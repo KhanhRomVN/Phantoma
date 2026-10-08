@@ -12,12 +12,12 @@ import Setting from '../modules/Setting';
 import { Recon } from '../modules/Recon';
 import Code from '../modules/Code/Code';
 import Emulate from '@renderer/modules/Emulate/Emulate';
-import Test from '../modules/Test';
 
 // -- Hooks --
 import { useActiveModule } from '@renderer/hooks/useActiveModule';
+import { logger } from '@renderer/utils/logger';
 
-export type ModuleId = 'recon' | 'emulate' | 'code' | 'settings' | 'test';
+export type ModuleId = 'recon' | 'emulate' | 'code' | 'settings' | 'preview';
 
 interface ModuleConfig {
   id: ModuleId;
@@ -43,8 +43,6 @@ export const ViewContainer = () => {
   });
 
   // Lazy initialize modules when first accessed.
-  // Dùng setModules với Map mới (immutable) thay vì mutate trực tiếp — mutate Map
-  // không trigger re-render nên module mới sẽ không xuất hiện trong DOM.
   useEffect(() => {
     if (!modules.has(activeModule as ModuleId)) {
       setModules((prev) => {
@@ -88,8 +86,6 @@ function getModuleComponent(moduleId: ModuleId): ReactNode {
       return <Code />;
     case 'settings':
       return <Setting />;
-    case 'test':
-      return <Test />;
     default:
       return <Recon />;
   }

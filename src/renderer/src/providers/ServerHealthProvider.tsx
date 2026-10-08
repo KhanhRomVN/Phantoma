@@ -25,9 +25,13 @@ export const ServerHealthProvider: React.FC<ServerHealthProviderProps> = ({ chil
   const [error, setError] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean>(false);
   const isChecking = useRef(false);
+  const failureCount = useRef(0);
+  const MAX_FAILURES_BEFORE_DOWN = 3; // Allow up to 3 consecutive failures (15s) before marking as down
 
   const clearError = useCallback(() => {
     setError(null);
+    failureCount.current = 0;
+    setIsValid(true);
   }, []);
 
   // Check backend health periodically every 5 seconds
@@ -38,17 +42,24 @@ export const ServerHealthProvider: React.FC<ServerHealthProviderProps> = ({ chil
       try {
         const healthy = await apiService.healthCheck();
         if (healthy) {
+          failureCount.current = 0;
           setIsValid(true);
           setError(null);
         } else {
-          setIsValid(false);
-          setError('Backend server is not reachable. Please start the Phantoma server.');
+          handleFailure('Backend server is not reachable. Please start the Phantoma server.');
         }
       } catch {
-        setIsValid(false);
-        setError('Cannot connect to backend server');
+        handleFailure('Cannot connect to backend server');
       } finally {
         isChecking.current = false;
+      }
+    };
+
+    const handleFailure = (msg: string) => {
+      failureCount.current++;
+      if (failureCount.current >= MAX_FAILURES_BEFORE_DOWN) {
+        setIsValid(false);
+        setError(msg);
       }
     };
 

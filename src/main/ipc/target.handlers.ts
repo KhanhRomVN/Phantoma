@@ -129,8 +129,6 @@ export function setupTargetHandlers(): void {
       };
     }
   });
-
-  logger.info('[IPC] Target handlers registered');
 }
 
 // ─── CLI Capture Methods IPC Handlers ───────────────────────────────────
@@ -260,8 +258,6 @@ export function setupCliCaptureHandlers(): void {
       };
     }
   });
-
-  logger.info('[IPC] CLI capture handlers registered');
 }
 
 /**

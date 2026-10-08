@@ -4,14 +4,14 @@
  * ------------------------------------------------------------------
  * Launches CLI applications with debug/verbose environment variables
  * to enable native application logging.
- * 
+ *
  * Sets common debug env vars:
  * - NODE_DEBUG=*
  * - DEBUG=*
  * - RUST_LOG=debug
  * - VERBOSE=1
  * - etc.
- * 
+ *
  * Main functions:
  * - launch()  : Launch app with debug env vars
  * - stop()    : Stop debug app
@@ -53,8 +53,6 @@ export class AppDebugLauncher extends EventEmitter {
     if (this.isRunning) {
       throw new Error('Debug app already running');
     }
-
-    logger.info(`[AppDebugLauncher] Launching: ${options.executablePath}`);
 
     // Build debug environment variables
     const debugEnv = {
@@ -100,7 +98,6 @@ export class AppDebugLauncher extends EventEmitter {
 
       // Handle exit
       this.process.on('exit', (code) => {
-        logger.info(`[AppDebugLauncher] Process exited with code ${code}`);
         this.isRunning = false;
         this.process = null;
         this.emit('exited', code);
@@ -115,7 +112,6 @@ export class AppDebugLauncher extends EventEmitter {
 
   public stop(): void {
     if (this.process) {
-      logger.info('[AppDebugLauncher] Stopping debug app');
       this.process.kill('SIGTERM');
       this.process = null;
       this.isRunning = false;
@@ -125,7 +121,7 @@ export class AppDebugLauncher extends EventEmitter {
 
   private parseOutput(output: string, stream: 'stdout' | 'stderr'): void {
     const lines = output.split('\n');
-    
+
     for (const line of lines) {
       if (!line.trim()) continue;
 
@@ -156,7 +152,7 @@ export class AppDebugLauncher extends EventEmitter {
       const match = line.match(pattern);
       if (match) {
         const [, levelOrModule, moduleOrLevel, message] = match;
-        
+
         // Determine which is level and which is module
         const levelKeywords = ['debug', 'info', 'warn', 'warning', 'error', 'fatal'];
         if (levelKeywords.includes(levelOrModule.toLowerCase())) {

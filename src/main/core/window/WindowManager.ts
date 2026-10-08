@@ -29,6 +29,8 @@ import { clearAllTargetProcesses } from '../../shared/state';
 // ─── Class ──────────────────────────────────────────────────────────────
 export class WindowManager {
   private mainWindow: BrowserWindow | null = null;
+  /** Cờ phân biệt manual reload (Ctrl+R) vs auto-recovery sau crash */
+  private isManualReload = false;
 
   constructor() {}
 
@@ -73,9 +75,42 @@ export class WindowManager {
       this.mainWindow?.webContents.send('window:unmaximized');
     });
 
-    // Cleanup target processes on renderer reload (Ctrl+R)
+    // Phát hiện manual reload (Ctrl+R / Cmd+R / F5) để set cờ trước khi did-start-loading fire.
+    // Electron bắn keydown trên webContents trước navigation, nên thứ tự là:
+    //   keydown → did-start-loading → (reload diễn ra).
+    this.mainWindow.webContents.on('before-input-event', (_event, input) => {
+      if (input.type !== 'keyDown') return;
+      const isReloadShortcut =
+        (input.control && input.key.toLowerCase() === 'r') ||
+        (input.meta && input.key.toLowerCase() === 'r') ||
+        input.key === 'F5';
+      if (isReloadShortcut) {
+        this.isManualReload = true;
+      }
+    });
+
+    // Chỉ cleanup target processes khi ĐÚNG LÀ manual reload.
+    // Crash recovery (Electron tự reload sau render-process-gone) KHÔNG được giết target —
+    // người dùng vẫn muốn capture tiếp tục chạy ngầm trong lúc UI hồi phục.
     this.mainWindow.webContents.on('did-start-loading', () => {
-      clearAllTargetProcesses();
+      if (this.isManualReload) {
+        clearAllTargetProcesses();
+        this.isManualReload = false;
+      }
+    });
+
+    // Renderer crash (OOM, unhandled exception, v8 fatal…) → log + thông báo renderer,
+    // nhưng KHÔNG kill target processes và KHÔNG chủ động reload ở đây
+    // (Electron sẽ tự reload nếu enableRemoteModule/reloadAfterCrash được bật ở mức framework).
+    this.mainWindow.webContents.on('render-process-gone', (_event, details) => {
+      console.error(
+        `[WindowManager] Renderer process gone: reason=${details.reason}, exitCode=${details.exitCode}`,
+      );
+      this.mainWindow?.webContents.send('window:renderer-crashed', {
+        reason: details.reason,
+        exitCode: details.exitCode,
+        timestamp: Date.now(),
+      });
     });
 
     this.mainWindow.webContents.setWindowOpenHandler((details) => {

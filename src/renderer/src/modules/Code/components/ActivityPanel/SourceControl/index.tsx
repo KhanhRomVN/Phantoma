@@ -295,138 +295,162 @@ export function SourceControl() {
         </div>
       </div>
 
-      {/* Branch row */}
-      {branch && (
-        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-divider shrink-0">
-          <div className="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-full bg-card-background border border-border">
-            <GitBranch className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={1.5} />
-            <span className="text-xs text-text-primary truncate" title={branch}>
-              {branch}
-            </span>
+      {/* ── Global Empty/Error States ── */}
+      {!projectPath ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
+          <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
+            <GitBranch className="w-6 h-6" strokeWidth={1.5} />
           </div>
-          {unpushed > 0 && (
-            <span
-              className="flex items-center gap-0.5 text-[10px] text-text-secondary tabular-nums shrink-0"
-              title={`${unpushed} commit chưa push`}
+          <div>
+            <p className="text-sm font-medium text-text-primary mb-1">No project selected</p>
+            <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
+              Open a project to manage its source control.
+            </p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
+          <div className="w-12 h-12 rounded-xl bg-error/10 border border-error/20 grid place-items-center text-error">
+            <AlertCircle className="w-6 h-6" strokeWidth={1.5} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-text-primary mb-1">Not a Git repository</p>
+            <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
+              Initialize a repository or open a valid Git project.
+            </p>
+            <code className="block mt-2 text-[10px] font-mono text-error/80 bg-error/5 px-2 py-1 rounded border border-error/10 truncate max-w-full">
+              {error}
+            </code>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Branch row */}
+          {branch && (
+            <div className="flex items-center gap-2 px-3 py-1.5 border-b border-divider shrink-0">
+              <div className="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-full bg-card-background border border-border">
+                <GitBranch className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={1.5} />
+                <span className="text-xs text-text-primary truncate" title={branch}>
+                  {branch}
+                </span>
+              </div>
+              {unpushed > 0 && (
+                <span
+                  className="flex items-center gap-0.5 text-[10px] text-text-secondary tabular-nums shrink-0"
+                  title={`${unpushed} commits ahead`}
+                >
+                  <ArrowUp className="w-3 h-3" strokeWidth={1.5} />
+                  {unpushed}
+                </span>
+              )}
+              <span className="ml-auto text-[10px] text-text-secondary/60 shrink-0 tabular-nums">
+                {totalChanges} changes
+              </span>
+            </div>
+          )}
+
+          {/* Commit input */}
+          <div className="p-2 border-b border-divider shrink-0">
+            <textarea
+              value={commitMessage}
+              onChange={(e) => setCommitMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCommit();
+                }
+              }}
+              placeholder="Message (Ctrl+Enter to commit)"
+              rows={Math.min(6, Math.max(2, commitMessage.split('\n').length))}
+              className="w-full bg-input-background border border-border rounded-md px-2 py-1.5 text-xs text-text-primary placeholder:text-text-secondary/40 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-colors resize-none"
+            />
+            <button
+              onClick={handleCommit}
+              disabled={!canCommit}
+              title={commitTitle}
+              className="mt-1.5 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded-md bg-button-solid-background text-button-solid-text hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <ArrowUp className="w-3 h-3" strokeWidth={1.5} />
-              {unpushed}
-            </span>
-          )}
-          <span className="ml-auto text-[10px] text-text-secondary/60 shrink-0 tabular-nums">
-            {totalChanges} thay đổi
-          </span>
-        </div>
-      )}
-
-      {/* Commit input */}
-      <div className="p-2 border-b border-divider shrink-0">
-        <textarea
-          value={commitMessage}
-          onChange={(e) => setCommitMessage(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-              e.preventDefault();
-              handleCommit();
-            }
-          }}
-          placeholder="Message (Ctrl+Enter to commit)"
-          rows={Math.min(6, Math.max(2, commitMessage.split('\n').length))}
-          className="w-full bg-input-background border border-border rounded-md px-2 py-1.5 text-xs text-text-primary placeholder:text-text-secondary/40 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30 transition-colors resize-none"
-        />
-        <button
-          onClick={handleCommit}
-          disabled={!canCommit}
-          title={commitTitle}
-          className="mt-1.5 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded-md bg-button-solid-background text-button-solid-text hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {committing ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
-          ) : (
-            <GitCommit className="w-3.5 h-3.5" strokeWidth={1.5} />
-          )}
-          Commit
-          {staged.length > 0 && <span className="opacity-70 tabular-nums">({staged.length})</span>}
-        </button>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="mx-2 mt-2 p-2 bg-error/10 border border-error/20 rounded-md flex items-start gap-2 text-[11px] text-error shrink-0">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={1.5} />
-          <span className="break-words min-w-0">{error}</span>
-        </div>
-      )}
-
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto py-1">
-        {!projectPath && (
-          <div className="p-4 text-xs text-text-secondary/40 text-center">No project open</div>
-        )}
-
-        {projectPath && totalChanges === 0 && !loading && !error && (
-          <div className="flex flex-col items-center gap-2 p-6 text-text-secondary/50">
-            <CheckCircle2 className="w-6 h-6" strokeWidth={1.25} />
-            <span className="text-xs">Working tree clean</span>
+              {committing ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
+              ) : (
+                <GitCommit className="w-3.5 h-3.5" strokeWidth={1.5} />
+              )}
+              Commit
+              {staged.length > 0 && <span className="opacity-70 tabular-nums">({staged.length})</span>}
+            </button>
           </div>
-        )}
 
-        {staged.length > 0 && (
-          <Section
-            title="Staged Changes"
-            items={staged}
-            kind="staged"
-            diffStats={diffStats}
-            onUnstageAll={handleUnstageAll}
-            onDiscardAll={() =>
-              openDiscardModal({
-                items: staged,
-                staged: true,
-                label: `${staged.length} file đã stage`,
-              })
-            }
-            onUnstageFile={(p) => handleUnstage([p])}
-            onDiscardFile={(item) =>
-              openDiscardModal({ items: [item], staged: true, label: item.path })
-            }
-          />
-        )}
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto py-1">
+            {totalChanges === 0 && !loading ? (
+               <div className="flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
+                 <div className="w-10 h-10 rounded-xl bg-success/10 border border-success/20 grid place-items-center text-success">
+                   <CheckCircle2 className="w-5 h-5" strokeWidth={1.5} />
+                 </div>
+                 <p className="text-xs text-text-secondary">Working tree clean</p>
+               </div>
+            ) : (
+              <>
+                {staged.length > 0 && (
+                  <Section
+                    title="Staged Changes"
+                    items={staged}
+                    kind="staged"
+                    diffStats={diffStats}
+                    onUnstageAll={handleUnstageAll}
+                    onDiscardAll={() =>
+                      openDiscardModal({
+                        items: staged,
+                        staged: true,
+                        label: `${staged.length} files`,
+                      })
+                    }
+                    onUnstageFile={(p) => handleUnstage([p])}
+                    onDiscardFile={(item) =>
+                      openDiscardModal({ items: [item], staged: true, label: item.path })
+                    }
+                  />
+                )}
 
-        {unstaged.length > 0 && (
-          <Section
-            title="Changes"
-            items={unstaged}
-            kind="unstaged"
-            diffStats={diffStats}
-            onStageAll={handleStageAll}
-            onDiscardAll={() =>
-              openDiscardModal({
-                items: unstaged,
-                staged: false,
-                label: `${unstaged.length} file`,
-              })
-            }
-            onStageFile={(p) => handleStage([p])}
-            onDiscardFile={(item) =>
-              openDiscardModal({ items: [item], staged: false, label: item.path })
-            }
-          />
-        )}
-      </div>
+                {unstaged.length > 0 && (
+                  <Section
+                    title="Changes"
+                    items={unstaged}
+                    kind="unstaged"
+                    diffStats={diffStats}
+                    onStageAll={handleStageAll}
+                    onDiscardAll={() =>
+                      openDiscardModal({
+                        items: unstaged,
+                        staged: false,
+                        label: `${unstaged.length} files`,
+                      })
+                    }
+                    onStageFile={(p) => handleStage([p])}
+                    onDiscardFile={(item) =>
+                      openDiscardModal({ items: [item], staged: false, label: item.path })
+                    }
+                  />
+                )}
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Discard confirm modal */}
       <Modal isOpen={isDiscardOpen} onClose={closeDiscardModal} closeOnBackdropClick={false}>
         <ModalHeader
           title="Discard Changes"
-          description={`Thay đổi trong "${discardTarget?.label ?? ''}" sẽ bị hủy vĩnh viễn.`}
+          description={`Changes in "${discardTarget?.label ?? ''}" will be permanently discarded.`}
           onClose={closeDiscardModal}
         />
         <ModalBody>
           <div className="flex items-start gap-3 p-3 rounded-md bg-error/10 border border-error/20">
             <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" strokeWidth={1.5} />
             <p className="text-[13px] text-text-secondary leading-relaxed">
-              Hành động này không thể hoàn tác.
-              {hasUntrackedInTarget && ' File chưa được theo dõi (untracked) sẽ bị xóa khỏi ổ đĩa.'}
+              This action cannot be undone.
+              {hasUntrackedInTarget && ' Untracked files will be deleted from disk.'}
             </p>
           </div>
         </ModalBody>
@@ -435,7 +459,7 @@ export function SourceControl() {
             onClick={closeDiscardModal}
             className="px-4 py-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors text-[13px]"
           >
-            Hủy
+            Cancel
           </button>
           <button
             onClick={handleConfirmDiscard}

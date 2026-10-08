@@ -65,7 +65,6 @@ async function waitForServer(timeoutMs: number): Promise<boolean> {
  */
 export async function startServer(): Promise<boolean> {
   if (await isServerUp()) {
-    logger.info('[ServerManager] Server đã chạy sẵn — tái sử dụng');
     return true;
   }
 
@@ -75,8 +74,6 @@ export async function startServer(): Promise<boolean> {
   const cmd = isDev ? 'npx' : 'node';
   const args = isDev ? ['tsx', 'src/index.ts'] : ['dist/index.js'];
 
-  logger.info(`[ServerManager] Spawning: ${cmd} ${args.join(' ')} (cwd=${serverDir})`);
-
   serverProcess = spawn(cmd, args, {
     cwd: serverDir,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -84,17 +81,17 @@ export async function startServer(): Promise<boolean> {
   });
   spawnedByUs = true;
 
-  serverProcess.stdout?.on('data', (data) => {
-    logger.info(`[Server] ${data.toString().trim()}`);
-  });
+  serverProcess.stdout?.on('data', () => {});
+
   serverProcess.stderr?.on('data', (data) => {
     logger.warn(`[Server] ${data.toString().trim()}`);
   });
+
   serverProcess.on('exit', (code) => {
-    logger.info(`[ServerManager] Server exited with code ${code}`);
     serverProcess = null;
     spawnedByUs = false;
   });
+
   serverProcess.on('error', (err) => {
     logger.error('[ServerManager] Server spawn error:', { err: String(err) });
     serverProcess = null;
@@ -103,7 +100,6 @@ export async function startServer(): Promise<boolean> {
 
   const ready = await waitForServer(15000);
   if (ready) {
-    logger.info('[ServerManager] Server sẵn sàng');
   } else {
     logger.error('[ServerManager] Server không phản hồi sau 15s');
   }
@@ -115,7 +111,7 @@ export function stopServer(): void {
   if (!spawnedByUs || !serverProcess) {
     return;
   }
-  logger.info('[ServerManager] Stopping server (spawned by us)');
+
   try {
     serverProcess.kill('SIGTERM');
     // Force kill sau 5s nếu chưa thoát

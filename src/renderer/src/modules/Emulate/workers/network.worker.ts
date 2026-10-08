@@ -164,8 +164,11 @@ function filterRequestsByConfig(
   searchTerm: string,
 ): NetworkRequest[] {
   return reqs.filter((req) => {
-    if (!req.host || req.host.trim() === '' || !req.url || req.url.trim() === '') {
-      return false;
+    // SOFT-TAGGING thay vì HARD-DROP: giữ lại request thiếu metadata để UI render placeholder
+    // Chỉ skip nếu thực sự invalid protocol (data:, blob:) — những cái này nên bị lọc từ upstream
+    if (!req.host && !req.url) {
+      // Cho phép đi qua nhưng đánh dấu pending — RequestTable sẽ hiển thị "(loading...)" 
+      return true; 
     }
 
     const method = req.method?.toUpperCase() || '';
@@ -240,9 +243,9 @@ function matchesCurrentFilter(req: NetworkRequest): boolean {
   const { searchTerm = '', config } = currentFilter;
   if (!config && !searchTerm) return true;
 
+  // SOFT-TAGGING: Cho phép request thiếu host/url đi qua nếu không có search term cụ thể
+  // Nếu có search term thì vẫn phải match text (nhưng bỏ qua guard empty string cũ)
   if (!config) {
-    // Chỉ search term, không có config filter
-    if (!req.host || req.host.trim() === '' || !req.url || req.url.trim() === '') return false;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       const searchable = [
@@ -252,7 +255,7 @@ function matchesCurrentFilter(req: NetworkRequest): boolean {
       ].filter(Boolean).map((s) => String(s).toLowerCase());
       return searchable.some((s) => s.includes(term));
     }
-    return true;
+    return true; // Không có search term -> accept all including pending ones
   }
 
   const filtered = filterRequestsByConfig([req], config, searchTerm);

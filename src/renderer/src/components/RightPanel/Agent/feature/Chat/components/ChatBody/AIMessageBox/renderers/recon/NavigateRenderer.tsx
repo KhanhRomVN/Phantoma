@@ -7,7 +7,7 @@ import { BaseRendererProps } from '../../../../../types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/shared/utils/cn';
 import ActionBar from '../../ActionBar';
-import { getFaviconUrl } from '@renderer/utils/favicon';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
 interface NavigateBlockProps {
   url?: string;
@@ -70,11 +70,7 @@ export const NavigateRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <NavigateBlock
-          url={action.params.url}
-          output={outputData?.output}
-          isError={isError}
-        />
+        <NavigateBlock url={action.params.url} output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -91,11 +87,7 @@ export const NavigateRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function NavigateBlock({
-  url,
-  output,
-  isError,
-}: NavigateBlockProps) {
+function NavigateBlock({ url, output, isError }: NavigateBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {output && isError ? (

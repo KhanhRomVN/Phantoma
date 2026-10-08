@@ -29,13 +29,13 @@ import {
   Wifi,
   Code2,
   Settings,
-  FlaskConical,
 } from 'lucide-react';
 
 // ── Hooks ──
 import { useCodeStore } from '../modules/Code/hooks/useCodeStore';
-import { useActiveModule } from '../hooks/useActiveModule';
+import { useActiveModule, useActiveModuleStore } from '../hooks/useActiveModule';
 import { useActiveTarget } from '../hooks/useActiveTarget';
+import { useGlobalCopyShortcut } from '../hooks/useGlobalCopyShortcut';
 
 // ── Components ──
 import { RightPanel } from '../components/RightPanel';
@@ -62,12 +62,17 @@ const MainLayoutContent = () => {
   const { activeSubTarget } = useActiveTarget();
   const { setActiveFeature } = useAgentFeature();
 
-  // ── State ──
+  // Enable global text copy support (Electron fix)
+  useGlobalCopyShortcut();
+
+  // ── State ─
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const [isQuickNavOpen, setIsQuickNavOpen] = useState(false);
   const [isReconModalOpen, setIsReconModalOpen] = useState(false);
+  /** Thông báo khi renderer crash và Electron tự reload — target processes vẫn sống ngầm */
+  const [crashNotice, setCrashNotice] = useState<{ reason: string; exitCode: number } | null>(null);
 
-  // ── Effects ──
+  // ── Effects ─
   useEffect(() => {
     if (activeModule === 'emulate') {
       setActiveFeature('emulate');
@@ -79,6 +84,26 @@ const MainLayoutContent = () => {
       setActiveFeature(null);
     }
   }, [activeModule, setActiveFeature]);
+
+  // Lắng nghe sự kiện renderer-crashed từ main process.
+  // Main process đã KHÔNG kill target processes khi crash → capture vẫn chạy ngầm,
+  // chỉ UI cần được thông báo để user biết trạng thái hiện tại.
+  useEffect(() => {
+    if (!window.api?.on) return;
+    const handleCrashed = (_event: unknown, data: { reason?: string; exitCode?: number }) => {
+      logger.warn('[MainLayout] Renderer crashed, recovering...', data);
+      setCrashNotice({
+        reason: data?.reason || 'unknown',
+        exitCode: data?.exitCode ?? -1,
+      });
+      // Tự ẩn sau 8 giây nếu user không bấm dismiss
+      setTimeout(() => setCrashNotice(null), 8000);
+    };
+    window.api.on('window:renderer-crashed', handleCrashed);
+    return () => {
+      window.api?.off?.('window:renderer-crashed', handleCrashed);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -107,7 +132,6 @@ const MainLayoutContent = () => {
             try {
               const result = await window.api.invoke('selectFolder');
               if (result?.success && result.folderPath) {
-                logger.info('[Ctrl+O] Selected folder:', result.folderPath);
               }
             } catch (err) {
               logger.error('[Ctrl+O] Failed to open folder dialog:', err);
@@ -121,9 +145,9 @@ const MainLayoutContent = () => {
   }, [activeModule, setActiveModule]);
 
   // ── Derived ──
-  // Ẩn hoàn toàn RightPanel khi ở module Code
-  const shouldShowRightPanel = isRightPanelOpen && activeModule !== 'code';
-
+  // Ẩn hoàn toàn RightPanel khi ở module Code hoặc Preview (vì chúng có ActivityPanel riêng)
+  const shouldShowRightPanel =
+    isRightPanelOpen && activeModule !== 'code' && activeModule !== 'preview';
   const quickNavItems = [
     {
       id: 'dashboard',
@@ -193,6 +217,10 @@ const MainLayoutContent = () => {
       color: 'text-indigo-400',
       action: () => {
         setActiveModule('code' as PhantomModule);
+        // Force immediate check after a tiny delay to see if state propagated
+        setTimeout(() => {
+          const current = useActiveModuleStore.getState().activeModule;
+        }, 50);
       },
     },
     {
@@ -203,16 +231,6 @@ const MainLayoutContent = () => {
       color: 'text-gray-400',
       action: () => {
         setActiveModule('settings' as PhantomModule);
-      },
-    },
-    {
-      id: 'test',
-      title: 'Test',
-      description: 'Sandbox for testing UI components',
-      icon: <FlaskConical className="w-4 h-4" strokeWidth="1.3" />,
-      color: 'text-pink-400',
-      action: () => {
-        setActiveModule('test' as PhantomModule);
       },
     },
   ];
@@ -264,6 +282,36 @@ const MainLayoutContent = () => {
           </p>
         </ModalBody>
       </Modal>
+
+      {/* Toast cảnh báo renderer crash — target processes vẫn sống ngầm, chỉ UI reload */}
+      {crashNotice && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-14 left-1/2 -translate-x-1/2 z-[9999] max-w-xl w-full px-4"
+        >
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 backdrop-blur-sm p-3 flex items-start gap-3 shadow-lg">
+            <span className="text-amber-400 shrink-0 mt-0.5">⚠️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-amber-300">
+                Giao diện đã khởi động lại do lỗi render
+              </p>
+              <p className="text-[11px] text-amber-200/80 mt-1 leading-relaxed">
+                Lý do: <code>{crashNotice.reason}</code> (exit code {crashNotice.exitCode}). Các
+                tiến trình capture đang chạy <strong>vẫn hoạt động ngầm</strong> — không bị gián
+                đoạn. Bạn có thể quay lại tab Emulate để tiếp tục theo dõi traffic.
+              </p>
+            </div>
+            <button
+              onClick={() => setCrashNotice(null)}
+              className="shrink-0 text-amber-300 hover:text-amber-100 text-xs px-2 py-1 rounded border border-amber-500/30"
+            >
+              Đóng
+            </button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };

@@ -7,7 +7,7 @@
  * Also exports shared types, constants, helpers and small building
  * blocks (StatusDot, TaskIcon, AgentAvatar, ProcessPill …) used by
  * SessionCard, ProjectCard and ProjectPanel.
- * Animations live in ./ProjectPanel.css (pp-* classes).
+ * Animations use pp-* classes defined in global styles/animations.css.
  * ------------------------------------------------------------------
  */
 
@@ -20,10 +20,7 @@ import { Terminal, Loader2, AlertTriangle, Square, X, ChevronDown } from 'lucide
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-import { getFaviconUrl } from '@renderer/utils/favicon';
-
-// ── Animations / state styles ──
-import './ProjectPanel.css';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
 // Helper to map common AI Agent names/IDs to their official domains for favicon fetching
 const AGENT_DOMAIN_MAP: Record<string, string> = {
@@ -236,7 +233,7 @@ export function getWorstProcessStatus(procs: ProcessInfo[]): ProcessStatus | und
 
 // ─── Small building blocks ──────────────────────────────────────────────
 
-/** Status dot with animated rings (see ProjectPanel.css) */
+/** Status dot with animated rings (classes from global animations.css) */
 export function StatusDot({
   status,
   size = 'normal',
@@ -316,8 +313,8 @@ export function AgentChip({
   return (
     <span className="inline-flex items-center gap-[5px] bg-card-hover border border-border rounded-md py-px pl-0.5 pr-2 text-[10px] text-text-secondary">
       {faviconUrl ? (
-        <img 
-          src={faviconUrl} 
+        <img
+          src={faviconUrl}
           alt={agent.name}
           className="w-4 h-4 object-contain rounded-l-md shrink-0"
           onError={() => setImgError(true)}
@@ -462,6 +459,7 @@ export const SessionCard = memo(function SessionCard({
   onOpenTaskMenu,
   onKillProcess,
   onContextMenu,
+  draggable = true, // Default to true, but can be overridden by parent if needed
 }: {
   session: SessionInfo;
   selectedSessionId: string | null;
@@ -469,6 +467,7 @@ export const SessionCard = memo(function SessionCard({
   onOpenTaskMenu?: (sessionId: string, pos: MenuPosition) => void;
   onKillProcess?: (sessionId: string, index: number) => void;
   onContextMenu?: (e: React.MouseEvent, sessionId: string) => void;
+  draggable?: boolean;
 }) {
   const st = session.status;
   const isSelected = selectedSessionId === session.id;
@@ -487,6 +486,7 @@ export const SessionCard = memo(function SessionCard({
         // Subtle dashed border for selected state
         isSelected && 'border-[1.5px] border-dashed border-[#ff6a1f]/70',
       )}
+      draggable={draggable}
       onClick={() => onSelect(session.id)}
       onContextMenu={handleContextMenu}
     >

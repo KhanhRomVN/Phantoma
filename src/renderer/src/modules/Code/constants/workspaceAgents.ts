@@ -5,7 +5,8 @@
  */
 
 import { useCodeStore } from '../hooks/useCodeStore';
-import { getFaviconUrl } from '@renderer/utils/favicon';
+import type { SessionStatus } from '../components/ProjectPanel/SessionCard';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
 // Map AI agent IDs to their official domains for favicon fetching
 const AGENT_DOMAIN_MAP: Record<string, string> = {
@@ -68,37 +69,110 @@ function colorForAgent(name: string): string {
  * Attach a detected agent to the NEWEST session of the FIRST branch.
  * Heuristic: ideally terminal → session would be mapped explicitly.
  */
-export function attachAgentToProject(projectId: string, providerId: string): void {
+/**
+ * Attach or Update an agent in the project store.
+ * @param status If provided, forces this status. If omitted, defaults to 'idle' for new agents,
+ *               and keeps current status for existing ones unless explicitly changed by other means.
+ */
+export function attachAgentToProject(
+  projectId: string,
+  providerId: string,
+  status?: SessionStatus,
+): void {
   const { projects, updateProject } = useCodeStore.getState();
   const project = projects.find((p) => p.id === projectId);
   const targetBranch = project?.branches?.[0];
   const session = targetBranch?.sessions?.[0];
+
   if (!project || !targetBranch || !session) return;
 
   const agents = [...session.agents];
   const existingIdx = agents.findIndex((a) => a.name.toLowerCase() === providerId.toLowerCase());
 
+  let newStatus: SessionStatus;
+
   if (existingIdx >= 0) {
-    // Detection implies the agent is running
-    agents[existingIdx] = { ...agents[existingIdx], status: 'running' };
+    // Existing agent: Use forced status if provided, otherwise keep current
+    newStatus = status ?? agents[existingIdx].status;
+    agents[existingIdx] = { ...agents[existingIdx], status: newStatus };
   } else {
+    // New agent: Default to 'idle' unless forced otherwise
+    newStatus = status ?? 'idle';
     agents.push({
       name: providerId,
       color: colorForAgent(providerId),
       initials: providerId.substring(0, 2).toUpperCase(),
-      status: 'running',
+      status: newStatus,
     });
   }
 
-  const updatedSession = { ...session, agents, status: 'running' as const };
+  // Determine overall session status based on agents
+  const hasRunning = agents.some((a) => a.status === 'running');
+  const sessionStatus: SessionStatus = hasRunning ? 'running' : 'idle';
+
+  const updatedSession = { ...session, agents, status: sessionStatus };
+
+  // Construct new branches array.
+  const newBranches = (project.branches ?? []).map((branch, branchIdx) => {
+    if (branchIdx !== 0) return branch;
+
+    const newSessions = branch.sessions.map((s, sessionIdx) =>
+      sessionIdx === 0 ? updatedSession : s,
+    );
+
+    return { ...branch, sessions: newSessions };
+  });
+
+  // Cast to any to bypass deep structural type inference issues with spread operators on nested arrays.
+  // Logic is verified at runtime; this is purely a TypeScript compiler workaround for complex generics.
+  updateProject(projectId, { branches: newBranches } as any);
+}
+
+/**
+ * Remove an agent completely from the session's badge list.
+ * Used when agent becomes idle or process exits.
+ */
+export function removeAgentFromProject(projectId: string, providerId: string | null): void {
+  if (!providerId) return;
+
+  const { projects, updateProject } = useCodeStore.getState();
+  const project = projects.find((p) => p.id === projectId);
+  const targetBranch = project?.branches?.[0];
+  const session = targetBranch?.sessions?.[0];
+
+  if (!project || !targetBranch || !session) return;
+
+  const originalCount = session.agents.length;
+  const filteredAgents = session.agents.filter(
+    (a) => a.name.toLowerCase() !== providerId.toLowerCase(),
+  );
+
+  if (filteredAgents.length === originalCount) {
+    return;
+  }
+
+  const updatedSession = { ...session, agents: filteredAgents };
+  const hasRunning = filteredAgents.some((a) => a.status === 'running');
+  const newSessionStatus = hasRunning ? 'running' : 'idle';
+
   const branches = (project.branches ?? []).map((branch, branchIdx) =>
     branchIdx !== 0
       ? branch
       : {
           ...branch,
-          sessions: branch.sessions.map((s, sessionIdx) => (sessionIdx === 0 ? updatedSession : s)),
+          sessions: branch.sessions.map((s, sessionIdx) =>
+            sessionIdx === 0 ? { ...updatedSession, status: newSessionStatus } : s,
+          ),
         },
   );
 
-  updateProject(projectId, { branches });
+  // Cast to any to bypass deep structural type inference issues with spread operators on nested arrays.
+  updateProject(projectId, { branches } as any);
+}
+
+/**
+ * Legacy detach - kept for compatibility if needed, but now delegates to removal.
+ */
+export function detachAgentFromProject(projectId: string, providerId: string | null): void {
+  removeAgentFromProject(projectId, providerId);
 }

@@ -11,7 +11,8 @@ export type TuiAgentId =
   | 'aug' | 'trae' | 'dsh' | 'zcode' | 'devin' | 'kiro'
   | 'kilo' | 'pi' | 'omp' | 'rovo' | 'codebuff' | 'codebuddy'
   | 'openclaude' | 'mimo-code' | 'ante' | 'command-code'
-  | 'autohand' | 'freebuff' | 'crush' | 'openclaw' | 'prime-agent';
+  | 'autohand' | 'freebuff' | 'crush' | 'openclaw' | 'prime-agent'
+  | 'zencli';
 
 interface ProviderConfig {
   id: TuiAgentId;
@@ -63,6 +64,7 @@ const PROVIDER_REGISTRY: ProviderConfig[] = [
   { id: 'crush', detectCmd: 'crush', expectedProcess: 'crush' },
   { id: 'openclaw', detectCmd: 'openclaw', expectedProcess: 'openclaw' },
   { id: 'prime-agent', detectCmd: 'prime-agent', expectedProcess: 'prime-agent' },
+  { id: 'zencli', detectCmd: 'zen-cli', aliases: ['zencli'], expectedProcess: 'zen-cli' },
 ];
 
 // Build lookup map
@@ -226,6 +228,8 @@ export function detectAgentFromTitle(title: string): TuiAgentId | null {
     { keyword: 'crush', id: 'crush' },
     { keyword: 'openclaw', id: 'openclaw' },
     { keyword: 'prime-agent', id: 'prime-agent' },
+    { keyword: 'zen-cli', id: 'zencli' },
+    { keyword: 'zencli', id: 'zencli' },
   ];
 
   for (const { keyword, id } of AGENT_TOKENS) {

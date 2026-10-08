@@ -764,24 +764,44 @@ export function Search() {
       {/* Results */}
       <div className="flex-1 overflow-y-auto py-1 px-1">
         {!projectPath && (
-          <div className="p-4 text-xs text-text-secondary/40 text-center">No project open</div>
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
+            <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
+              <Folder className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-text-primary mb-1">No project selected</p>
+              <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
+                Open a project to search its files.
+              </p>
+            </div>
+          </div>
         )}
 
         {projectPath && !hasQuery && (
-          <div className="flex flex-col items-center justify-center gap-2 p-6 text-text-secondary/40">
-            <SearchIcon className="w-6 h-6" strokeWidth={1.25} />
-            <span className="text-xs text-center">Nhập từ khóa để tìm trong project</span>
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
+            <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
+              <SearchIcon className="w-6 h-6" strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-text-primary mb-1">Ready to search</p>
+              <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
+                Type a keyword above to find matches in your project files.
+              </p>
+            </div>
           </div>
         )}
 
         {projectPath && hasQuery && !loading && !error && visible.length === 0 && (
-          <div className="p-4 text-xs text-text-secondary/50 text-center">
-            No results found
-            {(includePattern.trim() || excludePattern.trim()) && (
-              <div className="mt-1 text-[10px] text-text-secondary/40">
-                Đang áp dụng bộ lọc include / exclude
-              </div>
-            )}
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
+            <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
+              <X className="w-6 h-6" strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-text-primary mb-1">No results found</p>
+              <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
+                Try adjusting your query or removing filters.
+              </p>
+            </div>
           </div>
         )}
 

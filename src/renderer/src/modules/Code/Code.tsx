@@ -109,12 +109,15 @@ export function Code() {
     hydratedRef.current = true;
 
     projects.forEach((project) => {
-      if (project.path && project.files.length === 0) {
+      const shouldScan = !!project.path && project.files.length === 0;
+      if (shouldScan) {
         scanDirectory(project.path)
           .then((files: FileNode[]) => {
             hydrateProjectFiles(project.id, files);
           })
+
           .catch((err: unknown) => {
+            console.error(`[DEBUG][Code.hydrate] FAILED scanning project=${project.id}:`, err);
             logger.error('[Code] Failed to scan directory:', err);
           });
       }

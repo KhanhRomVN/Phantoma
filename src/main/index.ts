@@ -137,8 +137,8 @@ app.whenReady().then(async () => {
   setupGitHandlers();
   setupTaskHandlers();
   setupBrowserHandlers();
-  // setupTargetHandlers();     // ĐÃ CHUYỂN sang express-server (/api/v1/runtime/targets/*)
-  // setupCliCaptureHandlers(); // ĐÃ CHUYỂN sang express-server (/api/v1/runtime/cli/*)
+  setupTargetHandlers();     // Re-enabled: Renderer still uses IPC for target:list-running
+  setupCliCaptureHandlers(); // Re-enabled: Consistency with target handlers
   registerWorkspaceHandlers();
 
   // Auto-install certificate when proxy session is created

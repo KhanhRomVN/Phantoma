@@ -31,24 +31,46 @@ import { Copy, ClipboardPaste, SquareMousePointer, Trash2, PowerOff, Zap } from 
 interface CodeTerminalProps {
   projectId?: string;
   cwd?: string;
-  onProviderChange?: (providerId: string | null) => void;
+  onProviderChange?: (providerId: string | null, status?: 'running' | 'idle') => void;
+
+  // ── NEW: ZenCLI Auto-Resume Support ──
+  /** Lệnh shell để tự động gõ ngay sau khi PTY spawn xong. Dùng cho auto-resume ZenCLI. */
+  initialCommand?: string | null;
+  /** Callback khi user thoát process (exit event từ main process). */
+  onProcessExit?: () => void;
+  /** Callback khi phát hiện [PHANTOMA_BIND] signal từ stdout/stderr của ZenCLI. */
+  onBindConversation?: (conversationId: string) => void;
+  /** Callback khi phát hiện [PHANTOMA_RESET] signal từ stdout/stderr của ZenCLI (user gõ /new). */
+  onResetConversation?: () => void;
 }
 
-export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
+export const CodeTerminal = ({
+  cwd,
+  onProviderChange,
+  initialCommand,
+  onProcessExit,
+  onBindConversation,
+  onResetConversation,
+}: CodeTerminalProps) => {
   const termRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const terminalIdRef = useRef<string>(
     `code-terminal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   );
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [, setIsInitialized] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{ top: number; left: number } | null>(null);
   // Track if shell has been spawned to prevent double-spawn on re-render/resize
   const hasSpawnedRef = useRef(false);
 
-  // State for detected AI agent
-  const [detectedAgent, setDetectedAgent] = useState<TuiAgentId | null>(null);
+  // State for detected AI agent (used for UI display if needed elsewhere, though mostly driven by signals now)
+  const [_detectedAgent, setDetectedAgent] = useState<TuiAgentId | null>(null);
+
+  // ── NEW: Ref to persist the last known agent ID across renders/signals ──
+  // This solves the issue where `detectedAgent` state might be null when a signal arrives
+  // due to async updates or resets.
+  const lastKnownAgentIdRef = useRef<string | null>(null);
 
   // Ref to hold the latest onProviderChange callback to avoid stale closures and unnecessary effect triggers
   const onProviderChangeRef = useRef(onProviderChange);
@@ -59,10 +81,9 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
   }, [onProviderChange]);
 
   // Notify parent when provider changes
-  // Removed 'onProviderChange' from deps to break infinite loop caused by unstable prop references
-  useEffect(() => {
-    onProviderChangeRef.current?.(detectedAgent);
-  }, [detectedAgent]);
+  // REMOVED: We no longer auto-notify on detectedAgent change.
+  // Badge visibility is now strictly controlled by [PHANTOMA_STATUS] signals in onData handler.
+  // This prevents the badge from appearing immediately upon CLI launch (Idle state).
 
   useEffect(() => {
     let cleanupFunctions: (() => void)[] = [];
@@ -142,10 +163,50 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
               }
             }
 
-            // 2. Detect via Process Name (if available via IPC later, or heuristic from input/output)
-            // For now, we rely primarily on OSC titles which are robust for running CLIs.
-            // If you have access to foreground process PID/name via main process IPC,
-            // you can add another listener here: window.api.on('terminal:foreground-process', ...)
+            // ── NEW: Parse [PHANTOMA_BIND] signal from ZenCLI stderr ──
+            // Format expected: \x1b[0m[PHANTOMA_BIND] id=<uuid>\n
+            const bindMatch = payload.data.match(/\[PHANTOMA_BIND\]\s+id=([a-fA-F0-9\-]+)/i);
+            if (bindMatch && onBindConversation) {
+              const conversationId = bindMatch[1];
+              onBindConversation(conversationId);
+            }
+
+            // ── NEW: Parse [PHANTOMA_RESET] signal from ZenCLI stderr ──
+            // Triggered when user runs /new. Clears stored conversation ID in parent.
+            if (payload.data.includes('[PHANTOMA_RESET]') && onResetConversation) {
+              onResetConversation();
+            }
+
+            // ── NEW: Parse [PHANTOMA_STATUS] signal from ZenCLI stderr ──
+            // Format: \x1b[0m[PHANTOMA_STATUS] active=true/false\n
+            // Using a more lenient regex to handle potential whitespace/newline variations
+            const statusMatch = payload.data.match(
+              /\[PHANTOMA_STATUS\]\s*active\s*=\s*(true|false)/i,
+            );
+            if (statusMatch) {
+              const isActive = statusMatch[1].toLowerCase() === 'true';
+              // Fallback to 'zencli' if no agent was detected via input heuristic yet.
+              // This handles cases like --resume where the command is injected automatically.
+              const agentName = lastKnownAgentIdRef.current || 'zencli';
+              const newStatus = isActive ? 'running' : 'idle';
+
+              // Always update provider change, even if we just fell back to default name
+              onProviderChangeRef.current?.(agentName, newStatus);
+            }
+
+            // ── NEW: Parse [PHANTOMA_EXIT] signal from ZenCLI stderr ──
+            // This ensures immediate cleanup even if 'terminal:exit' IPC event is delayed/lost
+            if (payload.data.includes('[PHANTOMA_EXIT]')) {
+              // Reset detection state locally
+              setDetectedAgent(null);
+
+              // Notify parent component to detach agent badge completely
+              onProcessExit?.();
+            }
+
+            // Note: We no longer call onProviderChange immediately upon detecting the agent name.
+            // The badge should only appear when [PHANTOMA_STATUS] active=true is received.
+            // This prevents showing 'Running' state just because the CLI was launched.
           }
         };
         const onExit = (_event: any, payload: { terminalId: string; exitCode: number }) => {
@@ -153,6 +214,13 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
             term.write('\r\n\x1b[31m[Process exited]\x1b[0m\r\n');
             // Reset detection when process exits
             setDetectedAgent(null);
+
+            // ── NEW: Notify parent that the bound process has terminated ──
+            onProcessExit?.();
+          } else {
+            console.warn(
+              `[DEBUG_TERMINAL_EXIT_MISMATCH] ID mismatch! Exiting terminal ${payload.terminalId} vs current ${terminalIdRef.current}`,
+            );
           }
         };
 
@@ -185,10 +253,17 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
             const detected = detectAgentFromCommandLine(cmd);
             if (detected) {
               setDetectedAgent(detected);
+              lastKnownAgentIdRef.current = detected;
+
+              // ── STRATEGY UPDATE: Show badge immediately upon launching CLI ──
+              // BUT keep it 'idle' initially. It will switch to 'running' ONLY when
+              // [PHANTOMA_STATUS] active=true is received from ZenCLI stderr.
+              onProviderChangeRef.current?.(detected, 'idle');
             } else {
-              // If it's a shell command that isn't an agent, maybe reset?
-              // Or keep previous state if it was just 'ls'?
-              // For safety, we don't reset unless explicit exit or new non-agent launch.
+              // Non-agent command typed.
+              // Optional: Reset lastKnownAgentId if you want strict isolation per terminal session?
+              // For now, we keep it so subsequent STATUS signals can still attach if needed,
+              // but typically a new agent launch overwrites it anyway.
             }
           }
           inputBuffer = ''; // Reset buffer
@@ -231,7 +306,21 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
       const spawnShell = async () => {
         if (!window.api?.invoke || !isMounted || hasSpawnedRef.current) return;
 
-        const effectiveCwd = cwd || '/home/khanhromvn';
+        // Wait for a valid CWD before spawning to prevent landing in Home unexpectedly
+        if (!cwd) {
+          console.warn('[CodeTerminal] Waiting for valid CWD...');
+          return; // Don't spawn yet, will retry when cwd updates via useEffect deps
+        }
+
+        let effectiveCwd = cwd;
+
+        // Basic validation
+        if (!effectiveCwd.startsWith('/')) {
+          console.warn('[CodeTerminal] Relative CWD detected, resolving...', effectiveCwd);
+          // If relative, we can't resolve it reliably in renderer without knowing base.
+          // Fallback to home is safer than crashing.
+          effectiveCwd = '/home/khanhromvn';
+        }
 
         try {
           hasSpawnedRef.current = true;
@@ -245,6 +334,19 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
             setTimeout(() => {
               if (isMounted && isOpened) {
                 safeFit();
+
+                // ── NEW: Inject initial command nếu có (cho ZenCLI auto-resume) ──
+                if (initialCommand && window.api?.send) {
+                  // Delay thêm 300ms để shell kịp init prompt và sẵn sàng nhận input
+                  setTimeout(() => {
+                    if (isMounted && term) {
+                      window.api.send('terminal:write', {
+                        terminalId: terminalIdRef.current,
+                        data: initialCommand + '\n', // Thêm newline để execute
+                      });
+                    }
+                  }, 300);
+                }
 
                 // Start observing for future resizes
                 if (termRef.current && !resizeObserver) {
@@ -394,11 +496,7 @@ export const CodeTerminal = ({ cwd, onProviderChange }: CodeTerminalProps) => {
 
   return (
     <div className="relative w-full h-full">
-      <div
-        ref={termRef}
-        className="w-full h-full"
-        onContextMenu={handleContextMenu}
-      />
+      <div ref={termRef} className="w-full h-full" onContextMenu={handleContextMenu} />
 
       {contextMenuPos && (
         <Dropdown

@@ -7,4 +7,4 @@ export type PhantomModule =
   | 'wireless'
   | 'code'
   | 'settings'
-  | 'test';
+  | 'preview';

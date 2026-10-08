@@ -7,20 +7,17 @@ import { LANGUAGES } from '../../feature/Setting/components/LanguageSelector';
 import { combinePromptsForMode } from '../../feature/Chat/prompts/code';
 import type { SystemInfo } from '../../feature/Chat/prompts/code';
 import ModelAccountDrawer from './ModelAccountDrawer';
-import StyleCodeDropdown, {
-  StyleCodeTriggerIcon,
-  STYLE_CODE_MODE_META,
-} from './StyleCodeDropdown';
+import StyleCodeDropdown, { StyleCodeTriggerIcon, STYLE_CODE_MODE_META } from './StyleCodeDropdown';
 import PromptLengthDropdown, {
   PromptLengthTriggerIcon,
   PROMPT_LENGTH_MODE_META,
 } from './PromptLengthDropdown';
 import ActionDropdown from './ActionDropdown';
-import { getFaviconUrl } from '@renderer/utils/favicon';
 import { getClientId } from '@renderer/utils/clientId';
 import { countTokens } from '@renderer/utils/tokenizer';
 import { buildAcceptString } from '../../feature/Chat/utils/fileUtils';
 import type { MessageInputProps, UploadedFile, ToggleButtonProps } from './types';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
 export type { UploadedFile };
 
@@ -1250,8 +1247,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   ? '1px dashed #f44336'
                   : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
             transition: 'border 0.3s ease',
-            marginTop:
-              !isConversationStarted || isConversationStarted ? '24px' : '0px',
+            marginTop: !isConversationStarted || isConversationStarted ? '24px' : '0px',
           }}
         >
           {/* HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
@@ -1299,7 +1295,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     );
                     if (!prov?.website) {
                       return (
-                        <span className="codicon codicon-server-process" style={{ fontSize: '12px' }} />
+                        <span
+                          className="codicon codicon-server-process"
+                          style={{ fontSize: '12px' }}
+                        />
                       );
                     }
                     const faviconUrl = getFaviconUrl(prov.website);
@@ -1900,8 +1899,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                             : message.trim() || uploadedFiles.length > 0
                               ? 'pointer'
                               : 'default',
-                    padding:
-                      isStreaming || isProcessing ? 'var(--spacing-xs)' : '4px 8px',
+                    padding: isStreaming || isProcessing ? 'var(--spacing-xs)' : '4px 8px',
                     borderRadius: 'var(--border-radius)',
                     transition: 'all 0.2s',
                     display: 'flex',

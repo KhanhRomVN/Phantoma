@@ -158,18 +158,30 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   }, []);
 
   // Handle CDP request event
+  let _debugCdpReqCount = 0;
   const handleCdpRequest = useCallback(
     (data: CdpRequestData) => {
+      _debugCdpReqCount++;
       const req = buildRequest(data);
       const fullReq = req as NetworkRequest;
+
       // Skip non-network protocols (data:, blob:, etc.)
-      if (fullReq.protocol === 'data' || fullReq.protocol === 'blob') return;
+      if (fullReq.protocol === 'data' || fullReq.protocol === 'blob') {
+        if (_debugCdpReqCount <= 5) {
+          logger.warn('[useNetworkEvents][DEBUG] SKIPPED data/blob URI:', fullReq.url);
+        }
+        return;
+      }
       // Skip OPTIONS preflight requests to reduce noise (they often don't complete properly in CDP)
       if (fullReq.method === 'OPTIONS') {
+        if (_debugCdpReqCount <= 5) {
+          logger.warn('[useNetworkEvents][DEBUG] SKIPPED OPTIONS preflight:', fullReq.url);
+        }
         return;
       }
 
       requestMapRef.current.set(fullReq.id, fullReq);
+
       addRequest(fullReq);
       onRequest?.(fullReq);
     },
@@ -325,9 +337,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     (data: any) => {
       try {
         const { id, host, port, timestamp, note } = data;
-        
-        logger.info('[handleSslBypass] Creating bypass request for:', host);
-        
+
         // Create a special request object for SSL bypass
         const bypassRequest: NetworkRequest = {
           id: id || `ssl-bypass-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -353,13 +363,8 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           timestamp: timestamp || Date.now(),
         };
 
-        logger.info('[handleSslBypass] Request object created:', bypassRequest);
-        
         requestMapRef.current.set(bypassRequest.id, bypassRequest);
         addRequest(bypassRequest);
-        
-        logger.info('[handleSslBypass] Request added to store');
-        
         onRequest?.(bypassRequest);
       } catch (error) {
         logger.error('[handleSslBypass] Error:', error);
@@ -475,11 +480,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleWsConnect = useCallback(
     (_event: any, data: any) => {
       try {
-        logger.info('[DEBUG|NetworkEvents] ws:connect', {
-          id: data?.id,
-          url: data?.url,
-          host: data?.host,
-        });
         if (!data?.id || !data?.url) return;
         const protocol = typeof data.url === 'string' && data.url.startsWith('wss') ? 'wss' : 'ws';
         useWebSocketStore.getState().addConnection({
@@ -505,12 +505,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleWsMessage = useCallback(
     (_event: any, data: any) => {
       try {
-        logger.info('[DEBUG|NetworkEvents] ws:message', {
-          id: data?.id,
-          connectionId: data?.connectionId,
-          direction: data?.direction,
-          size: data?.size,
-        });
         if (!data?.connectionId || !data?.id) return;
         const direction = data.direction === 'client' ? 'send' : 'receive';
         const opcode = data.dataType === 'binary' ? 'binary' : 'text';
@@ -534,7 +528,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleWsUpdate = useCallback(
     (_event: any, data: any) => {
       try {
-        logger.info('[DEBUG|NetworkEvents] ws:update', { id: data?.id, status: data?.status });
         if (!data?.id) return;
         const updates: Partial<{
           status: 'connecting' | 'open' | 'closed' | 'error';
@@ -559,7 +552,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleWsClose = useCallback(
     (_event: any, data: any) => {
       try {
-        logger.info('[DEBUG|NetworkEvents] ws:close', { id: data?.id });
         if (!data?.id) return;
         useWebSocketStore.getState().updateConnection(data.id, {
           status: 'closed',
@@ -577,11 +569,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleEbpfHttpsEvent = useCallback(
     (_event: any, data: any) => {
       try {
-        logger.info('[DEBUG|NetworkEvents] ebpf:https-event', {
-          type: data?.type,
-          method: data?.method,
-          url: data?.url,
-        });
         if (!data?.id) return;
 
         // Convert eBPF event to NetworkRequest format
@@ -646,11 +633,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handlePacketCaptured = useCallback(
     (_event: any, data: any) => {
       try {
-        logger.info('[DEBUG|NetworkEvents] packet:captured', {
-          protocol: data?.protocol,
-          destination: data?.destination,
-          size: data?.size,
-        });
         if (!data?.id) return;
 
         // Convert packet to NetworkRequest format (metadata only)
@@ -691,11 +673,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleAppDebugLog = useCallback(
     (_event: any, data: any) => {
       try {
-        logger.info('[DEBUG|NetworkEvents] app-debug:log', {
-          level: data?.level,
-          module: data?.module,
-          message: data?.message?.substring(0, 100),
-        });
         if (!data?.id) return;
 
         // Convert debug log to NetworkRequest format (for display purposes)
@@ -815,7 +792,6 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     const handleSslBypassWrapped = (_event: any, data: any) => {
       try {
-        logger.info('[useNetworkEvents] Received SSL bypass event:', data);
         handleSslBypass(data);
       } catch (error) {
         logger.error('[useNetworkEvents] SSL bypass handler error:', error);

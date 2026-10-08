@@ -15,18 +15,19 @@
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
+// ─── Imports ───────────────────────────────────────────────────────────
 // ── React ──
 import { useEffect, useRef, useCallback, useState } from 'react';
+
+// ── Utils ──
+import { logger } from '@renderer/utils/logger';
 
 // ── Stores ──
 import { useNetworkStore } from '../stores/networkStore';
 
-// ── Types ──
+// ── Types ─
 import { NetworkRequest } from '../types/inspector';
 import { InspectorFilter } from '../types/filter.types';
-
-// ─── Types ──────────────────────────────────────────────────────────────
 interface UseNetworkWorkerOptions {
   targetId?: string;
   onRequestsChange?: (requests: NetworkRequest[]) => void;
@@ -41,6 +42,10 @@ export function useNetworkWorker(options: UseNetworkWorkerOptions = {}) {
   const pendingMessagesRef = useRef<Array<{ type: string; payload?: any }>>([]);
   const onRequestsChangeRef = useRef(onRequestsChange);
   const isFirstMountRef = useRef(true);
+
+  // ─── Backpressure Batch Queue (declared EARLY for use in cleanup effect) ──
+  const pendingBatchRef = useRef<NetworkRequest[]>([]);
+  const batchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [totalCount, setTotalCount] = useState(0);
   const [filteredCount, setFilteredCount] = useState<number | null>(null);
@@ -58,6 +63,22 @@ export function useNetworkWorker(options: UseNetworkWorkerOptions = {}) {
     }
     workerRef.current.postMessage({ type, payload });
   }, []);
+
+  const flushBatch = useCallback(() => {
+    if (pendingBatchRef.current.length === 0) return;
+
+    const batch = [...pendingBatchRef.current];
+    pendingBatchRef.current = [];
+
+    for (const req of batch) {
+      postToWorker('ADD_REQUEST', req);
+    }
+
+    if (batchTimerRef.current) {
+      clearTimeout(batchTimerRef.current);
+      batchTimerRef.current = null;
+    }
+  }, [postToWorker]);
 
   // Khởi tạo Worker
   useEffect(() => {
@@ -83,17 +104,15 @@ export function useNetworkWorker(options: UseNetworkWorkerOptions = {}) {
         // REQUEST_ADDED: Worker gửi khi có request mới
         // → prepend vào store (không replace toàn bộ)
         case 'REQUEST_ADDED': {
-          const { request, totalCount: tc, filteredCount: fc, matchesFilter } = payload;
+          const { request, totalCount: tc, filteredCount: fc } = payload;
 
           // Cập nhật tổng đếm trong store (FooterBar đọc từ đây)
           useNetworkStore.getState().setWorkerCounts(tc, fc ?? null);
           setTotalCount(tc);
           setFilteredCount(fc ?? null);
 
-          // Chỉ thêm vào store nếu request match filter hiện tại (hoặc không filter)
-          if (matchesFilter) {
-            useNetworkStore.getState().prependRequest(request);
-          }
+          // Luôn prepend — RequestTable là nơi duy nhất áp filter (tránh double-filter race)
+          useNetworkStore.getState().prependRequest(request);
           break;
         }
 
@@ -161,12 +180,19 @@ export function useNetworkWorker(options: UseNetworkWorkerOptions = {}) {
     };
 
     return () => {
+      // Flush bất kỳ batch nào còn sót trước khi terminate để không mất data
+      if (batchTimerRef.current) {
+        clearTimeout(batchTimerRef.current);
+        batchTimerRef.current = null;
+      }
+      flushBatch();
+
       worker.terminate();
       workerRef.current = null;
       isReadyRef.current = false;
       pendingMessagesRef.current = [];
     };
-  }, []);
+  }, [flushBatch]);
 
   // Clear khi targetId thay đổi (bỏ qua lần mount đầu)
   useEffect(() => {
@@ -175,12 +201,20 @@ export function useNetworkWorker(options: UseNetworkWorkerOptions = {}) {
       isFirstMountRef.current = false;
       return;
     }
+    // Flush batch trước khi clear để đảm bảo không có request nào bị rơi vào void
+    if (batchTimerRef.current) {
+      clearTimeout(batchTimerRef.current);
+      batchTimerRef.current = null;
+    }
+    flushBatch();
     postToWorker('CLEAR');
-  }, [targetId, postToWorker]);
+  }, [targetId, postToWorker, flushBatch]);
 
-  // ─── API ──────────────────────────────────────────────────────────
+  // ─── API ────────────────────────────────────────────────────────
+  let _debugAddCount = 0;
   const addRequest = useCallback(
     (request: Partial<NetworkRequest>) => {
+      _debugAddCount++;
       const networkReq: NetworkRequest = {
         id: request.id || 'req-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9),
         method: request.method || 'GET',
@@ -214,9 +248,20 @@ export function useNetworkWorker(options: UseNetworkWorkerOptions = {}) {
         isIntercepted: request.isIntercepted,
         analysis: request.analysis,
       };
-      postToWorker('ADD_REQUEST', networkReq);
+
+      // Push vào batch buffer thay vì fire immediately
+      pendingBatchRef.current.push(networkReq);
+
+      // Schedule flush nếu chưa có timer active
+      if (!batchTimerRef.current) {
+        batchTimerRef.current = setTimeout(flushBatch, 50);
+      }
+
+      // [DEBUG] Log trước khi enqueue
+      if (_debugAddCount % 10 === 1 || _debugAddCount <= 5) {
+      }
     },
-    [postToWorker],
+    [flushBatch],
   );
 
   const updateRequest = useCallback(

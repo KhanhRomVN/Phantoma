@@ -542,13 +542,14 @@ export default React.memo(function Emulate({
         const result = await runtimeApi.startCliEbpf(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
-          logger.info('[Emulate] eBPF capture started:', result);
         } else {
           alert(`Failed to start eBPF capture: ${result.error}`);
         }
       } catch (error) {
         logger.error('[Emulate] eBPF start error:', error);
-        alert(`Failed to start eBPF capture: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        alert(
+          `Failed to start eBPF capture: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     },
     [startTarget],
@@ -560,13 +561,14 @@ export default React.memo(function Emulate({
         const result = await runtimeApi.startCliCdp(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'cdp'); // Track as active with CDP mode
-          logger.info('[Emulate] CDP proxy started:', result);
         } else {
           alert(`Failed to start CDP proxy: ${result.error}`);
         }
       } catch (error) {
         logger.error('[Emulate] CDP start error:', error);
-        alert(`Failed to start CDP proxy: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        alert(
+          `Failed to start CDP proxy: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     },
     [startTarget],
@@ -578,13 +580,14 @@ export default React.memo(function Emulate({
         const result = await runtimeApi.startCliPcap(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
-          logger.info('[Emulate] Packet capture started:', result);
         } else {
           alert(`Failed to start packet capture: ${result.error}`);
         }
       } catch (error) {
         logger.error('[Emulate] Packet capture start error:', error);
-        alert(`Failed to start packet capture: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        alert(
+          `Failed to start packet capture: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     },
     [startTarget],
@@ -596,13 +599,14 @@ export default React.memo(function Emulate({
         const result = await runtimeApi.startCliDebug(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
-          logger.info('[Emulate] App debug mode started:', result);
         } else {
           alert(`Failed to start app debug mode: ${result.error}`);
         }
       } catch (error) {
         logger.error('[Emulate] App debug start error:', error);
-        alert(`Failed to start app debug mode: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        alert(
+          `Failed to start app debug mode: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     },
     [startTarget],

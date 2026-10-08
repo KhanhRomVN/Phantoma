@@ -46,6 +46,12 @@ export interface StoredWorkspacePanel {
   title: string;
   content?: string;
   providerId?: string | null;
+  
+  // ── NEW: ZenCLI session binding for auto-resume ──
+  /** Conversation ID của ZenCLI đang bind với terminal này. null nếu chưa bind. */
+  zencliConversationId?: string | null;
+  /** Timestamp lần cuối user tương tác với conversation này (để quyết định "active"). */
+  zencliLastActiveAt?: number | null;
 }
 
 export interface Project {
@@ -73,7 +79,7 @@ export interface Project {
   bottomPanelTab: 'output' | 'terminal' | 'port' | 'performance' | 'problems';
   isBottomPanelOpen: boolean;
   // ── Activity panel per-project ──
-  activityPanelTab: 'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp';
+  activityPanelTab: 'explore' | 'search' | 'source' | 'history' | 'agents' | 'design' | 'extension' | 'lsp';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -153,6 +159,9 @@ function createDefaultPerProject() {
     // tasks removed — persisted in SQLite via task.service.ts
     agentGroups: [] as AgentGroup[],
     mcps: [] as MCP[],
+    // ── NEW: Workspace Panel Defaults ──
+    workspacePanels: [] as StoredWorkspacePanel[],
+    activeWorkspacePanelId: null as string | null,
   };
 }
 
@@ -236,6 +245,12 @@ interface CodeState {
   // Content View actions
   setContentViewMode: (mode: ContentViewMode) => void;
   setActiveWorkspaceSessionId: (sessionId: string | null) => void;
+  // ── NEW: ZenCLI binding actions ──
+  updatePanelZenCliBinding: (
+    projectId: string,
+    panelId: string,
+    binding: { conversationId: string | null; lastActiveAt?: number | null },
+  ) => void;
 }
 
 // ─── Store ──────────────────────────────────────────────────────────────
@@ -374,6 +389,45 @@ export const useCodeStore = create<CodeState>()(
         }
       };
 
+      /**
+       * Auto-cleanup: Remove projects whose folder no longer exists on disk.
+       * Runs asynchronously via IPC to Main Process which has fs access.
+       */
+      const cleanupStaleProjects = async () => {
+        try {
+          const api = (window as any).api;
+          if (!api?.invoke) return;
+
+          const state = get();
+          if (state.projects.length === 0) return;
+
+          const paths = state.projects.map((p) => p.path);
+          
+          // Ask Main Process to validate which paths are invalid/non-existent directories
+          const result = await api.invoke('fs:validate-paths', paths);
+          
+          if (result && Array.isArray(result.invalidPaths) && result.invalidPaths.length > 0) {
+            logger.warn(`[CodeStore] Cleaning up ${result.invalidPaths.length} stale project(s):`, result.invalidPaths);
+            
+            // Filter out projects with invalid paths
+            const validProjects = state.projects.filter(p => !result.invalidPaths.includes(p.path));
+            
+            // If current project was removed, reset selection
+            let newCurrentProjectId = state.currentProjectId;
+            if (newCurrentProjectId && !validProjects.find(p => p.id === newCurrentProjectId)) {
+              newCurrentProjectId = validProjects[0]?.id || null;
+            }
+
+            set({ 
+              projects: validProjects,
+              currentProjectId: newCurrentProjectId 
+            });
+          }
+        } catch (err) {
+          logger.error('[CodeStore] Failed to cleanup stale projects:', err);
+        }
+      };
+
       setTimeout(() => {
         migrateOldExtensionServices();
         migratePerProjectPanelState();
@@ -382,6 +436,9 @@ export const useCodeStore = create<CodeState>()(
         migrateAgentGroupsArray();
         migrateMCPsArray();
         migrateWorkspacePanels();
+        
+        // Auto-cleanup stale projects whose folders no longer exist on disk
+        cleanupStaleProjects();
       }, 100);
 
       return {
@@ -1026,6 +1083,28 @@ export const useCodeStore = create<CodeState>()(
         // ── Content View Actions ──
         setContentViewMode: (mode) => set({ contentViewMode: mode }),
         setActiveWorkspaceSessionId: (sessionId) => set({ activeWorkspaceSessionId: sessionId }),
+
+        // ── NEW: ZenCLI Binding Action ──
+        updatePanelZenCliBinding: (projectId, panelId, binding) => {
+          set((state) => ({
+            projects: state.projects.map((p) => {
+              if (p.id !== projectId) return p;
+              
+              const updatedPanels = (p.workspacePanels || []).map((wp) => {
+                if (wp.id !== panelId) return wp;
+                
+                return {
+                  ...wp,
+                  zencliConversationId: binding.conversationId,
+                  // Nếu có conversationId mới -> cập nhật timestamp. Nếu null -> reset về null.
+                  zencliLastActiveAt: binding.lastActiveAt ?? (binding.conversationId ? Date.now() : null),
+                };
+              });
+              
+              return { ...p, workspacePanels: updatedPanels };
+            }),
+          }));
+        },
       };
     },
     {

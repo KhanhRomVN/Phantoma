@@ -19,12 +19,13 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { Plus, Terminal as TerminalIcon, Globe, FileText, MonitorPlay } from 'lucide-react';
+import { Plus, Terminal as TerminalIcon, Globe, FileText, MonitorPlay, X } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 import { CodeTerminal } from './CodeTerminal';
 import { CodeBrowser } from './CodeBrowser';
 import { CodeMarkdown } from './CodeMarkdown';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
+import type { SessionStatus } from '../../ProjectPanel/SessionCard';
 import {
   TABBAR_HEIGHT,
   findPaneOfPanel,
@@ -38,6 +39,24 @@ import {
 } from '../../../utils/workspaceLayout';
 
 // ─── Panel metadata ───────────────────────────────────────────────────
+
+/**
+ * Xây dựng lệnh shell để auto-resume ZenCLI dựa trên binding stored trong panel.
+ * Trả về null nếu không có binding hợp lệ hoặc binding đã stale (>24h).
+ */
+function buildZenCliCommand(panel: WorkspacePanel): string | null {
+  if (!panel.zencliConversationId) return null;
+
+  // Kiểm tra freshness: nếu lastActive > 24h thì coi như stale, không auto-resume
+  const now = Date.now();
+  const maxAgeMs = 24 * 60 * 60 * 1000; // 24 hours
+  if (panel.zencliLastActiveAt && now - panel.zencliLastActiveAt > maxAgeMs) {
+    return null;
+  }
+
+  // Binary chính thức là `zen-cli` (xem package.json bin field của ZenCLI)
+  return `zen-cli --resume ${panel.zencliConversationId}`;
+}
 
 export function getPanelMeta(
   type: PanelType,
@@ -73,7 +92,7 @@ interface WorkspaceTabProps {
 
 function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: WorkspaceTabProps) {
   const meta = getPanelMeta(panel.type);
-  
+
   // Determine if we should show Agent info instead of generic panel icon/title
   // This assumes panel.content or a specific field holds the providerId when detected.
   // Looking at CodeTerminal, it calls onProviderChange. We need to ensure WorkspacePanel receives/stores this.
@@ -81,10 +100,10 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
   // If the structure doesn't have providerId directly on panel, we might need to check how state flows.
   // However, typically in these apps, the panel object is updated with metadata.
   // Let's stick to the visual requirement: if it's a terminal AND has an agent, show favicon + name.
-  
+
   const agentId = (panel as any).providerId; // Accessing potentially dynamic field
   const faviconUrl = agentId ? getAgentFavicon(agentId) : undefined;
-  
+
   const displayTitle = panel.title || meta.label;
   const showAgentBadge = !!agentId && panel.type === 'terminal';
 
@@ -105,21 +124,21 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
       style={{ cursor: 'grab', userSelect: 'none' }}
     >
       {showAgentBadge && faviconUrl ? (
-        <img 
-          src={faviconUrl} 
-          alt="" 
-          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain" 
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        <img
+          src={faviconUrl}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
         />
       ) : (
         <span className="shrink-0 opacity-70" style={{ pointerEvents: 'none' }}>
           {meta.icon}
         </span>
       )}
-      
-      <span style={{ pointerEvents: 'none' }}>
-        {showAgentBadge ? agentId : displayTitle}
-      </span>
+
+      <span style={{ pointerEvents: 'none' }}>{showAgentBadge ? agentId : displayTitle}</span>
 
       <button
         draggable={false}
@@ -129,11 +148,11 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
           e.stopPropagation();
           onClose();
         }}
-        className="opacity-0 group-hover/tab:opacity-100 transition-opacity ml-auto w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-[14px] leading-none"
+        className="opacity-0 group-hover/tab:opacity-100 transition-opacity ml-auto w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 p-0 border-0 outline-none focus:outline-none"
         style={{ cursor: 'pointer' }}
         aria-label={`Close ${displayTitle}`}
       >
-        ×
+        <X className="w-3.5 h-3.5 stroke-current" strokeWidth={2.5} />
       </button>
     </div>
   );
@@ -151,6 +170,22 @@ export interface TabBarProps {
   onAddPanel: (type: PanelType) => void;
 }
 
+// ─── Overlay broadcast events ─────────────────────────────────────────
+// BrowserView là native layer Electron nằm TRÊN web content → mọi dropdown
+// DOM đều bị che bất kể z-index. Cách duy nhất: co bounds BrowserView về 0×0
+// khi overlay mở và re-sync từ getBoundingClientRect() khi overlay đóng.
+// Dùng CustomEvent local (không qua IPC global) để tránh bug trắng xóa do
+// bounds stale hoặc web contents suspend quá lâu.
+export const OVERLAY_OPEN_EVENT = 'phantoma:overlay-open';
+export const OVERLAY_CLOSE_EVENT = 'phantoma:overlay-close';
+
+function broadcastOverlayOpen() {
+  window.dispatchEvent(new CustomEvent(OVERLAY_OPEN_EVENT));
+}
+function broadcastOverlayClose() {
+  window.dispatchEvent(new CustomEvent(OVERLAY_CLOSE_EVENT));
+}
+
 export function TabBar({
   panels,
   activeId,
@@ -161,12 +196,46 @@ export function TabBar({
 }: TabBarProps) {
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
+  const menuOpenRef = useRef(false);
+
+  // Giữ ref đồng bộ với state để callback ổn định
+  useEffect(() => {
+    menuOpenRef.current = !!menuPos;
+  }, [menuPos]);
 
   const openMenu = (e: MouseEvent<HTMLButtonElement>) => {
-    if (menuPos) return setMenuPos(null);
+    if (menuPos) {
+      setMenuPos(null);
+      broadcastOverlayClose();
+      return;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
+    broadcastOverlayOpen();
     setMenuPos({ top: rect.bottom + 4, left: rect.left });
   };
+
+  const closeMenu = useCallback(() => {
+    if (!menuOpenRef.current) return;
+    setMenuPos(null);
+    broadcastOverlayClose();
+  }, []);
+
+  // Đóng menu + notify khi click ra ngoài / Esc
+  useEffect(() => {
+    if (!menuPos) return;
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') closeMenu();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [menuPos, closeMenu]);
+
+  // Unmount → đảm bảo không để browser ẩn vĩnh viễn
+  useEffect(() => {
+    return () => {
+      if (menuOpenRef.current) broadcastOverlayClose();
+    };
+  }, []);
 
   return (
     <div
@@ -193,7 +262,7 @@ export function TabBar({
       </button>
 
       {menuPos && (
-        <div className="fixed inset-0 z-[200]" onClick={() => setMenuPos(null)}>
+        <div className="fixed inset-0 z-[200]" onClick={closeMenu}>
           <div
             className="absolute bg-card-background border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
             style={menuPos}
@@ -206,7 +275,7 @@ export function TabBar({
                   key={type}
                   onClick={() => {
                     onAddPanel(type);
-                    setMenuPos(null);
+                    closeMenu();
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-white/[0.05] transition-colors"
                 >
@@ -227,8 +296,12 @@ export function TabBar({
 interface PanelBodyProps {
   panel: WorkspacePanel;
   cwd?: string;
-  onProviderChange: (panelId: string, providerId: string | null) => void;
+  onProviderChange: (panelId: string, providerId: string | null, status?: SessionStatus) => void;
   onContentChange: (panelId: string, content: string) => void;
+  // ── NEW: ZenCLI binding callbacks ──
+  onProcessExit?: (panelId: string) => void;
+  onBindConversation?: (panelId: string, conversationId: string) => void;
+  onResetConversation?: (panelId: string) => void;
 }
 
 const PanelBody = memo(function PanelBody({
@@ -236,19 +309,46 @@ const PanelBody = memo(function PanelBody({
   cwd,
   onProviderChange,
   onContentChange,
+  onProcessExit,
+  onBindConversation,
+  onResetConversation,
 }: PanelBodyProps) {
   const handleProvider = useCallback(
-    (providerId: string | null) => onProviderChange(panel.id, providerId),
+    (providerId: string | null, status?: 'running' | 'idle') =>
+      onProviderChange(panel.id, providerId, status as SessionStatus | undefined),
     [onProviderChange, panel.id],
   );
   const handleContent = useCallback(
     (content: string) => onContentChange(panel.id, content),
     [onContentChange, panel.id],
   );
+  const handleExit = useCallback(() => {
+    onProcessExit?.(panel.id);
+  }, [onProcessExit, panel.id]);
+
+  const handleBind = useCallback(
+    (conversationId: string) => {
+      onBindConversation?.(panel.id, conversationId);
+    },
+    [onBindConversation, panel.id],
+  );
+
+  const handleReset = useCallback(() => {
+    onResetConversation?.(panel.id);
+  }, [onResetConversation, panel.id]);
 
   switch (panel.type) {
     case 'terminal':
-      return <CodeTerminal cwd={cwd} onProviderChange={handleProvider} />;
+      return (
+        <CodeTerminal
+          cwd={cwd}
+          onProviderChange={handleProvider}
+          initialCommand={buildZenCliCommand(panel)}
+          onProcessExit={handleExit}
+          onBindConversation={handleBind}
+          onResetConversation={handleReset}
+        />
+      );
     case 'website':
       return <CodeBrowser initialUrl={panel.content} />;
     case 'note':
@@ -335,6 +435,10 @@ export interface WorkspacePanesProps {
   onResizeStart: (handle: ResizeHandle) => void;
   onProviderChange: (panelId: string, providerId: string | null) => void;
   onContentChange: (panelId: string, content: string) => void;
+  // ── NEW: ZenCLI binding callbacks ──
+  onProcessExit?: (panelId: string) => void;
+  onBindConversation?: (panelId: string, conversationId: string) => void;
+  onResetConversation?: (panelId: string) => void;
 }
 
 export const WorkspacePanes = memo(function WorkspacePanes({
@@ -349,6 +453,9 @@ export const WorkspacePanes = memo(function WorkspacePanes({
   onResizeStart,
   onProviderChange,
   onContentChange,
+  onProcessExit,
+  onBindConversation,
+  onResetConversation,
 }: WorkspacePanesProps) {
   // Divider positions, derived from which panes exist
   const leftRect = rects.tl ?? rects.bl;
@@ -379,6 +486,9 @@ export const WorkspacePanes = memo(function WorkspacePanes({
                   cwd={cwd}
                   onProviderChange={onProviderChange}
                   onContentChange={onContentChange}
+                  onProcessExit={onProcessExit}
+                  onBindConversation={onBindConversation}
+                  onResetConversation={onResetConversation}
                 />
               </div>
             </div>

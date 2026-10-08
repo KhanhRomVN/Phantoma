@@ -18,6 +18,7 @@ import { ipcMain } from 'electron';
 
 // ── Node.js ──
 import * as os from 'os';
+import * as fs from 'fs';
 
 // ── External ──
 import * as pty from 'node-pty';
@@ -39,21 +40,23 @@ function getDefaultShell(): string {
 }
 
 function getShellArgs(shell: string): string[] {
-  // Return appropriate args to start shell in interactive login mode
-  // This ensures .bashrc, .zshrc, etc. are loaded
+  // Use INTERACTIVE NON-LOGIN mode to preserve the CWD passed by node-pty.
+  // Login shells (-l) often source profiles that may inadvertently change directory
+  // or override environment variables, causing the terminal to land in $HOME instead of project dir.
+  // Most modern terminals (VS Code, iTerm2) use interactive non-login shells for new tabs.
   const shellName = shell.split('/').pop() || shell;
 
   switch (shellName) {
     case 'bash':
-      return ['-l']; // login shell - sources .bash_profile, .bashrc
+      return ['-i']; // Interactive, non-login. Sources .bashrc but respects initial CWD.
     case 'zsh':
-      return ['-l']; // login shell - sources .zprofile, .zshrc
+      return ['-i']; // Interactive, non-login. Sources .zshrc.
     case 'fish':
-      return ['-l']; // login shell
+      return [];     // Fish is interactive by default when attached to a TTY.
     case 'powershell.exe':
     case 'pwsh':
     case 'pwsh.exe':
-      return ['-NoLogo']; // skip logo
+      return ['-NoLogo', '-NoExit']; // Keep window open on error
     default:
       return [];
   }
@@ -74,11 +77,24 @@ export function setupTerminalHandlers(): void {
       activePTYs.delete(terminalId);
     }
 
+    // Validate CWD to prevent chdir(2) failed errors if project folder is missing
+    let safeCwd = payload.cwd || os.homedir();
+    
+    try {
+      if (!fs.existsSync(safeCwd)) {
+        logger.warn(`[Terminal] CWD "${safeCwd}" does not exist. Falling back to home directory.`);
+        safeCwd = os.homedir();
+      }
+    } catch (err) {
+      logger.error(`[Terminal] Error checking CWD existence:`, err);
+      safeCwd = os.homedir();
+    }
+
     const spawnOptions = {
       name: 'xterm-256color',
       cols: 80,
       rows: 24,
-      cwd: payload.cwd || process.cwd(),
+      cwd: safeCwd,
       env: {
         ...process.env,
         TERM: 'xterm-256color',

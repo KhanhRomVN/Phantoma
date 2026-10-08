@@ -913,6 +913,29 @@ async function handleRendererCommand(command: string, payload: any): Promise<any
       }
     }
 
+    // Generic Open Dialog for Projects/Folders
+    case 'showOpenDialog': {
+      try {
+        const win = getMainWindow();
+        if (!win) return { success: false, error: 'No window found' };
+        
+        const options: any = payload || {};
+        const result = await dialog.showOpenDialog(win, {
+          title: options.title || 'Select Directory',
+          properties: options.properties || ['openDirectory'],
+          defaultPath: options.defaultPath,
+        });
+
+        if (!result.canceled && result.filePaths.length > 0) {
+          return { success: true, filePaths: result.filePaths, canceled: false };
+        }
+        return { success: false, canceled: true };
+      } catch (e: any) {
+        logger.error('[RendererHandler] showOpenDialog error:', e);
+        return { success: false, error: e.message };
+      }
+    }
+
     case 'showSaveDialog': {
       try {
         const payloadData: any = payload;
@@ -1111,6 +1134,7 @@ export function setupRendererHandlers() {
     'openFolder',
     'selectFile',
     'selectFolder',
+    'showOpenDialog',
     'showSaveDialog',
     // Snapshot
     'getSnapshot',

@@ -1,12 +1,16 @@
 import { ipcMain, BrowserView, shell, BrowserWindow } from 'electron';
 import * as fs from 'fs';
-import * as path from 'path';
 
 // Store active BrowserViews
 const browserViews = new Map<string, BrowserView>();
 
+// Bounds cuối cùng của từng view — dùng để restore sau khi tạm ẩn
+// (ví dụ khi mở dropdown "+" bị native layer che).
+const lastBounds = new Map<string, { x: number; y: number; width: number; height: number }>();
+
 export function registerWorkspaceHandlers() {
-  // Browser View Handlers
+  // ─── Browser View Handlers ──────────────────────────────────────────
+
   ipcMain.handle('browser:create', async (event, { browserId, url }) => {
     try {
       const win = BrowserWindow.fromWebContents(event.sender);
@@ -29,25 +33,24 @@ export function registerWorkspaceHandlers() {
       // Add to window
       win.addBrowserView(view);
 
-      // Set bounds (will be updated by renderer)
-      const bounds = win.getContentBounds();
-      view.setBounds({
-        x: 0,
-        y: 40, // Account for toolbar height
-        width: bounds.width,
-        height: bounds.height - 40,
-      });
+      // Auto-resize theo window — renderer sẽ override bằng bounds chính xác
+      // qua 'browser:set-bounds' ngay sau khi mount (ResizeObserver).
+      view.setAutoResize({ width: true, height: true });
+
+      // Bounds tạm thời (sẽ bị renderer thay thế ngay). Đặt nhỏ để tránh
+      // flash phủ toàn màn hình trước khi renderer báo vị trí thật.
+      view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
 
       // Load URL
       await view.webContents.loadURL(url);
 
       // Setup event listeners
-      view.webContents.on('did-navigate', (_event, url) => {
-        event.sender.send('browser:did-navigate', { browserId, url });
+      view.webContents.on('did-navigate', (_e, navUrl) => {
+        event.sender.send('browser:did-navigate', { browserId, url: navUrl });
       });
 
-      view.webContents.on('did-navigate-in-page', (_event, url) => {
-        event.sender.send('browser:did-navigate', { browserId, url });
+      view.webContents.on('did-navigate-in-page', (_e, navUrl) => {
+        event.sender.send('browser:did-navigate', { browserId, url: navUrl });
       });
 
       view.webContents.on('did-start-loading', () => {
@@ -56,7 +59,7 @@ export function registerWorkspaceHandlers() {
 
       view.webContents.on('did-stop-loading', () => {
         event.sender.send('browser:load-stop', { browserId });
-        
+
         // Send navigation state
         event.sender.send('browser:navigation-state-changed', {
           browserId,
@@ -66,31 +69,116 @@ export function registerWorkspaceHandlers() {
       });
 
       return { success: true, browserId };
-    } catch (error) {
+    } catch (error: any) {
       console.error('[browser:create] Error:', error);
       return { error: error.message };
     }
   });
 
-  ipcMain.handle('browser:destroy', async (_event, browserId: string) => {
+  ipcMain.on('browser:destroy', (event, browserId: string) => {
     try {
       const view = browserViews.get(browserId);
-      if (view) {
-        // Remove from window
-        const win = BrowserWindow.getAllWindows()[0];
-        if (win) {
-          win.removeBrowserView(view);
-        }
-        
-        // Destroy view
-        // @ts-ignore - destroy exists but not in types
-        view.webContents.destroy();
-        browserViews.delete(browserId);
+      if (!view) return;
+
+      // Remove khỏi đúng window đang chứa view (không hard-code window[0])
+      const ownerWin =
+        BrowserWindow.fromWebContents(event.sender) ||
+        BrowserWindow.getAllWindows().find((w) => w.getBrowserViews().includes(view));
+      if (ownerWin) {
+        ownerWin.removeBrowserView(view);
       }
-      return { success: true };
+
+      try {
+        (view.webContents as any).clearDeviceMetricsOverride?.();
+      } catch {
+        /* noop */
+      }
+
+      // Destroy view
+      (view.webContents as any).destroy();
+      browserViews.delete(browserId);
+      lastBounds.delete(browserId);
     } catch (error) {
       console.error('[browser:destroy] Error:', error);
-      return { error: error.message };
+    }
+  });
+
+  // Renderer gửi bounds (CSS pixel) của vùng chứa BrowserView → map sang
+  // coordinate hệ window (device-independent px) rồi set cho BrowserView.
+  // BrowserView là native layer nằm TRÊN web content nên bắt buộc phải sync
+  // thủ công kiểu này; nếu không nó sẽ phủ toàn cửa sổ thay vì chỉ vùng chứa.
+  ipcMain.on('browser:set-bounds', (event, { browserId, bounds }) => {
+    const view = browserViews.get(browserId);
+    if (!view) return;
+
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+
+    const zoomFactor = event.sender.getZoomFactor() || 1;
+    const finalBounds = {
+      x: Math.round(bounds.x * zoomFactor),
+      y: Math.round(bounds.y * zoomFactor),
+      width: Math.round(bounds.width * zoomFactor),
+      height: Math.round(bounds.height * zoomFactor),
+    };
+    view.setBounds(finalBounds);
+
+    // Ghi nhớ bounds thật (bỏ qua trạng thái ẩn 0×0) để restore sau này
+    if (finalBounds.width > 0 && finalBounds.height > 0) {
+      lastBounds.set(browserId, finalBounds);
+    }
+  });
+
+  // NOTE: Việc tạm ẩn / khôi phục BrowserView khi mở dropdown "+" được xử lý
+  // HOÀN TOÀN ở renderer bằng CustomEvent ('phantoma:overlay-open' / 'closed').
+  // Lý do: BrowserView là native layer Electron nằm TRÊN web content nên mọi
+  // dropdown DOM đều bị che bất kể z-index → phải co bounds về 0×0 khi overlay
+  // mở và re-sync qua getBoundingClientRect() khi overlay đóng. Làm qua IPC
+  // global (hide-all/restore-all) gây bug trắng xóa vì bounds restore có thể
+  // stale hoặc web contents bị suspend khi bounds = 0 quá lâu.
+
+  // Device metrics override — mô phỏng viewport của thiết bị nổi tiếng
+  // (iPhone, iPad, Pixel…). width=0 → clear override, trở về responsive.
+  ipcMain.on(
+    'browser:set-device-metrics',
+    (_event, { browserId, width, height, deviceScaleFactor, mobile }) => {
+      const view = browserViews.get(browserId);
+      if (!view) return;
+
+      try {
+        const wc = view.webContents as any;
+        if (!width || !height) {
+          wc.clearDeviceMetricsOverride();
+        } else {
+          wc.setDeviceMetricsOverride({
+            width,
+            height,
+            deviceScaleFactor: deviceScaleFactor || 1,
+            mobile: !!mobile,
+          });
+        }
+      } catch (error) {
+        console.error('[browser:set-device-metrics] Error:', error);
+      }
+    },
+  );
+
+  // Force repaint cho BrowserView sau khi bounds được restore từ trạng thái
+  // ẩn (0×0). Electron có thể suspend paint pipeline khi view invisible quá
+  // ngắn → frame cuối cùng bị "đóng băng" thành màu trắng. invalidate() ép
+  // compositor render lại frame mới ngay lập tức.
+  ipcMain.on('browser:force-repaint', (_event, browserId: string) => {
+    const view = browserViews.get(browserId);
+    if (!view) return;
+    try {
+      const wc = view.webContents as any;
+      if (typeof wc.invalidate === 'function') {
+        wc.invalidate();
+      } else if (typeof wc.forceRepaint === 'function') {
+        wc.forceRepaint();
+      }
+    } catch (error) {
+      console.error('[browser:force-repaint] Error:', error);
     }
   });
 
@@ -130,7 +218,8 @@ export function registerWorkspaceHandlers() {
     });
   });
 
-  // Markdown Export PDF Handler
+  // ─── Markdown Export PDF Handler ────────────────────────────────────
+
   ipcMain.handle('markdown:export-pdf', async (event, { content, filename }) => {
     try {
       const win = BrowserWindow.fromWebContents(event.sender);
@@ -140,10 +229,10 @@ export function registerWorkspaceHandlers() {
 
       // Dynamic import marked (ESM package)
       const { marked } = await import('marked');
-      
+
       // Convert markdown to HTML
       const html = await marked(content);
-      
+
       // Create styled HTML document
       const styledHtml = `
 <!DOCTYPE html>
@@ -211,7 +300,7 @@ export function registerWorkspaceHandlers() {
       width: 100%;
     }
     table th, table td {
-      border: 1px solid #dfe2e5;
+      border: 1px solid #eaecef;
       padding: 6px 13px;
     }
     table tr:nth-child(2n) {
@@ -239,33 +328,26 @@ export function registerWorkspaceHandlers() {
       const { dialog } = require('electron');
       const { filePath } = await dialog.showSaveDialog(win, {
         defaultPath: filename,
-        filters: [
-          { name: 'PDF Files', extensions: ['pdf'] },
-        ],
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
       });
 
       if (filePath) {
         // Generate PDF
         const data = await pdfWin.webContents.printToPDF({
-          margins: {
-            top: 0.5,
-            bottom: 0.5,
-            left: 0.5,
-            right: 0.5,
-          },
+          margins: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
           printBackground: true,
         });
 
         // Write to file
         fs.writeFileSync(filePath, data);
-        
+
         pdfWin.destroy();
         return { success: true, path: filePath };
       } else {
         pdfWin.destroy();
         return { cancelled: true };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[markdown:export-pdf] Error:', error);
       return { error: error.message };
     }

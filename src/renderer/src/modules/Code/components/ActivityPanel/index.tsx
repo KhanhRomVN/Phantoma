@@ -25,10 +25,10 @@ import {
   Folder,
   Search as SearchIcon,
   GitBranch,
-  Bot,
+  History as HistoryIcon,
 } from 'lucide-react';
 
-// ── Hooks ──
+// ── Hooks ─
 import { useCodeStore } from '../../hooks/useCodeStore';
 
 // ── Components ─
@@ -36,8 +36,7 @@ import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { SourceControl } from './SourceControl';
-import { Agent } from './Agent';
-
+import { History } from './History';
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
@@ -51,9 +50,9 @@ const TABS = [
     label: 'Source Control',
   },
   {
-    id: 'agents',
-    icon: <Bot className="w-4 h-4" />,
-    label: 'Agent',
+    id: 'history',
+    icon: <HistoryIcon className="w-4 h-4" />,
+    label: 'Conversation History',
   },
 ];
 
@@ -111,8 +110,8 @@ export function ActivityPanel() {
         return <Search />;
       case 'source':
         return <SourceControl />;
-      case 'agents':
-        return <Agent />;
+      case 'history':
+        return <History />;
       default:
         return <FileExplore />;
     }

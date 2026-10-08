@@ -213,10 +213,13 @@ export async function handleLoadingFinished(this: CdpManager, params: any) {
       break;
     } catch (e: any) {
       if (e.code === -32000 && e.message?.includes('No resource')) {
-        logger.warn(`[CDP] No resource for ${requestId}, skipping body fetch`);
+        // logger.warn(`[CDP] No resource for ${requestId}, skipping body fetch`);
         break;
       }
-      logger.warn(`[CDP] Failed to get response body for ${requestId} (attempt ${attempt + 1}):`, e.message);
+      logger.warn(
+        `[CDP] Failed to get response body for ${requestId} (attempt ${attempt + 1}):`,
+        e.message,
+      );
     }
   }
 
@@ -337,7 +340,6 @@ export function handleWebSocketCreated(this: CdpManager, params: any) {
     // Bỏ qua lỗi parse URL — vẫn giữ giá trị mặc định
   }
 
-  logger.info('[CDP WS] webSocketCreated', { requestId, url });
   this.sendToRenderer('ws:connect', {
     id: makeWsId(requestId),
     url,
@@ -355,7 +357,6 @@ export function handleWebSocketHandshakeResponse(this: CdpManager, params: any) 
   const { requestId, response } = params;
   if (!this.mainWindow) return;
 
-  logger.info('[CDP WS] handshakeResponse', { requestId, status: response?.status });
   this.sendToRenderer('ws:update', {
     id: makeWsId(requestId),
     status: 'connected',
@@ -405,7 +406,6 @@ export function handleWebSocketClosed(this: CdpManager, params: any) {
   const { requestId } = params;
   if (!this.mainWindow) return;
 
-  logger.info('[CDP WS] webSocketClosed', { requestId });
   this.sendToRenderer('ws:close', {
     id: makeWsId(requestId),
     endTime: Date.now(),

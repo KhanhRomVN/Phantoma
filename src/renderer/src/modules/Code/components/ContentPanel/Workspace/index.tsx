@@ -20,7 +20,12 @@
 
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../hooks/useCodeStore';
-import { attachAgentToProject } from '../../../constants/workspaceAgents';
+import {
+  attachAgentToProject,
+  removeAgentFromProject,
+  detachAgentFromProject,
+} from '../../../constants/workspaceAgents';
+import type { SessionStatus } from '../../ProjectPanel/SessionCard';
 import { getPanelMeta, TabBar } from './WorkspacePanes';
 import { WorkspacePanes } from './WorkspacePanes';
 import { WorkspaceEmptyState, type EmptyWorkspaceAction } from './WorkspaceEmptyStates';
@@ -66,6 +71,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 }: WorkspaceViewsProps) {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const updateProject = useCodeStore((s) => s.updateProject);
+  const updatePanelZenCliBinding = useCodeStore((s) => s.updatePanelZenCliBinding);
 
   // Persisted state from the store
   const storedPanels = useCodeStore(
@@ -131,6 +137,56 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     });
   }, []);
 
+  // ── NEW: Handle Drop from History Panel ──
+  const handleDropHistory = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      try {
+        const dataStr = e.dataTransfer.getData('application/json');
+        if (!dataStr) return;
+
+        const payload = JSON.parse(dataStr);
+
+        // Verify it's a ZenCLI resume action
+        if (payload.type !== 'zencli-resume' || !payload.conversationId) return;
+
+        const convId = payload.conversationId;
+        const title = payload.title || 'Resume Session';
+
+        // Determine target pane based on mouse position relative to content area
+        const rect = contentRef.current?.getBoundingClientRect();
+        let targetPane: PaneId | undefined;
+
+        if (rect && rect.width > 0 && rect.height > 0) {
+          const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+          const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+          targetPane = getPaneAtPoint(xPct, yPct, occupied, sizes);
+        }
+
+        // Create a new terminal panel pre-filled with the resume command
+        const newPanel: WorkspacePanel = {
+          id: createPanelId('terminal'),
+          type: 'terminal',
+          title: `Resume: ${title.substring(0, 20)}...`,
+          providerId: null,
+          zencliConversationId: convId,
+          zencliLastActiveAt: Date.now(),
+        };
+
+        dispatch({
+          type: 'add',
+          pane: targetPane,
+          panel: newPanel,
+        });
+      } catch (err) {
+        console.error('[Workspace] Failed to process history drop:', err);
+      }
+    },
+    [occupied, sizes],
+  );
+
   const closePanel = useCallback((id: string) => dispatch({ type: 'close', id }), []);
   const selectTab = useCallback(
     (pane: PaneId, id: string) => dispatch({ type: 'select', pane, id }),
@@ -147,12 +203,97 @@ export const WorkspaceViews = memo(function WorkspaceViews({
   );
 
   // Update provider info for a panel AND sync it to the store (SessionCard display)
+  // Now supports optional status parameter to distinguish Idle vs Running
   const updatePanelProvider = useCallback(
-    (id: string, providerId: string | null) => {
+    (id: string, providerId: string | null, status?: SessionStatus) => {
       dispatch({ type: 'updatePanel', id, patch: { providerId } });
-      if (currentProjectId && providerId) attachAgentToProject(currentProjectId, providerId);
+
+      if (!currentProjectId) return;
+
+      if (providerId) {
+        // Attach or Update agent with specific status (defaults to 'idle' if not provided)
+        attachAgentToProject(currentProjectId, providerId, status);
+      } else {
+        // Remove agent completely (used on Exit)
+        const panel = panels.find((p) => p.id === id);
+        const lastKnownProvider = panel?.providerId;
+
+        if (lastKnownProvider) {
+          removeAgentFromProject(currentProjectId, lastKnownProvider);
+        }
+      }
     },
-    [currentProjectId],
+    [currentProjectId, panels],
+  );
+
+  // ── NEW: Handle ZenCLI process exit → clear binding & detach agent ──
+  const handleProcessExit = useCallback(
+    (panelId: string) => {
+      if (!currentProjectId) return;
+
+      // Check if this panel had a ZenCLI binding before clearing
+      const panel = panels.find((p) => p.id === panelId);
+
+      if (panel?.zencliConversationId) {
+        // Clear binding in store so next mount won't auto-resume
+        updatePanelZenCliBinding(currentProjectId, panelId, { conversationId: null });
+
+        // Also update local reducer state immediately to prevent stale UI
+        dispatch({
+          type: 'updatePanel',
+          id: panelId,
+          patch: { zencliConversationId: null, zencliLastActiveAt: null },
+        });
+      }
+
+      // Detach agent from session badges when process exits
+      if (panel?.providerId) {
+        detachAgentFromProject(currentProjectId, panel.providerId);
+      }
+    },
+    [currentProjectId, panels, updatePanelZenCliBinding],
+  );
+
+  // ── NEW: Handle ZenCLI bind signal → save conversation ID to store ──
+  const handleBindConversation = useCallback(
+    (panelId: string, conversationId: string) => {
+      if (!currentProjectId) return;
+
+      // Update store with new binding
+      updatePanelZenCliBinding(currentProjectId, panelId, {
+        conversationId,
+        lastActiveAt: Date.now(),
+      });
+
+      // Update local reducer state for immediate feedback
+      dispatch({
+        type: 'updatePanel',
+        id: panelId,
+        patch: {
+          zencliConversationId: conversationId,
+          zencliLastActiveAt: Date.now(),
+        },
+      });
+    },
+    [currentProjectId, updatePanelZenCliBinding],
+  );
+
+  // ── NEW: Handle ZenCLI reset signal (/new) → clear conversation ID from store ──
+  const handleResetConversation = useCallback(
+    (panelId: string) => {
+      if (!currentProjectId) return;
+
+      // Clear binding in store so next mount won't auto-resume
+      updatePanelZenCliBinding(currentProjectId, panelId, { conversationId: null });
+
+      // Also update local reducer state immediately to prevent stale UI
+      dispatch({
+        type: 'updatePanel',
+        id: panelId,
+        patch: { zencliConversationId: null, zencliLastActiveAt: null },
+      });
+    },
+    [currentProjectId, updatePanelZenCliBinding],
   );
 
   // ─── Drag & drop / resize ───────────────────────────────────────────
@@ -218,7 +359,16 @@ export const WorkspaceViews = memo(function WorkspaceViews({
           })}
 
         {/* Content area (also used to convert mouse position → quadrant) */}
-        <div ref={contentRef} className="absolute inset-0">
+        <div
+          ref={contentRef}
+          className="absolute inset-0"
+          onDrop={handleDropHistory}
+          onDragOver={(e) => {
+            // Prevent default to allow dropping
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+          }}
+        >
           {panels.length === 0 ? (
             <WorkspaceEmptyState
               onAddPanel={(action) => addPanel(EMPTY_ACTION_TO_PANEL_TYPE[action])}
@@ -237,6 +387,9 @@ export const WorkspaceViews = memo(function WorkspaceViews({
                 onResizeStart={dnd.startResize}
                 onProviderChange={updatePanelProvider}
                 onContentChange={updatePanelContent}
+                onProcessExit={handleProcessExit}
+                onBindConversation={handleBindConversation}
+                onResetConversation={handleResetConversation}
               />
             </>
           )}

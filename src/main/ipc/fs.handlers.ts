@@ -503,6 +503,80 @@ export function setupFSHandlers() {
     },
   );
 
+  // ZenCLI: List conversation history from ~/.khanhromvn-zen/projects/{hash}/
+  ipcMain.handle('zencli:list-history', async (_, projectPath: string) => {
+    try {
+      const crypto = await import('crypto');
+      const os = await import('os');
+      
+      const projectHash = crypto.createHash('md5').update(projectPath).digest('hex');
+      const projectsDir = path.join(os.homedir(), '.khanhromvn-zen', 'projects', projectHash);
+
+      if (!fs.existsSync(projectsDir)) {
+        return [];
+      }
+
+      const entries = await fs.promises.readdir(projectsDir, { withFileTypes: true });
+      const history: any[] = [];
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+
+        const conversationId = entry.name;
+        const jsonPath = path.join(projectsDir, conversationId, `${conversationId}.json`);
+
+        if (!fs.existsSync(jsonPath)) continue;
+
+        try {
+          const content = await fs.promises.readFile(jsonPath, 'utf-8');
+          const data = JSON.parse(content);
+
+          if (!data.metadata) continue;
+
+          let providerId: string | undefined;
+          let modelId: string | undefined;
+          let email: string | undefined;
+          let websiteUrl: string | undefined;
+
+          if (Array.isArray(data.messages)) {
+            const firstAssistantMsg = data.messages.find((m: any) => m.role === 'assistant');
+            if (firstAssistantMsg) {
+              providerId = firstAssistantMsg.providerId || firstAssistantMsg.provider_id;
+              modelId = firstAssistantMsg.modelId || firstAssistantMsg.model_id;
+              email = firstAssistantMsg.email;
+              websiteUrl = firstAssistantMsg.websiteUrl;
+            }
+          }
+
+          const sourceEnv = data.metadata.sourceEnvironment === 'terminal' ? 'terminal' : 'vscode-extension';
+
+          history.push({
+            id: conversationId,
+            title: data.metadata.title || 'Untitled',
+            createdAt: data.metadata.createdAt || 0,
+            lastModified: data.metadata.lastModified || 0,
+            messageCount: data.messages?.length || 0,
+            totalTokens: data.metadata.totalTokenUsage || 0,
+            providerId,
+            modelId,
+            email,
+            websiteUrl,
+            sourceEnvironment: sourceEnv,
+          });
+        } catch {
+          // Skip invalid files
+        }
+      }
+
+      // Sort by lastModified descending
+      history.sort((a, b) => b.lastModified - a.lastModified);
+      return history;
+    } catch (error: any) {
+      logger.error('[zencli:list-history] Failed:', error);
+      return [];
+    }
+  });
+
   // Shell: open path in OS file manager
   ipcMain.handle('shell:open-path', async (_, targetPath: string) => {
     const { shell } = await import('electron');
@@ -553,5 +627,26 @@ export function setupFSHandlers() {
   // Get homedir
   ipcMain.handle('fs:get-homedir', async () => {
     return require('os').homedir();
+  });
+
+  // Validate existence of multiple paths (for cleaning up stale projects)
+  ipcMain.handle('fs:validate-paths', async (_, paths: string[]) => {
+    const invalidPaths: string[] = [];
+    for (const p of paths) {
+      try {
+        if (!p || !fs.existsSync(p)) {
+          invalidPaths.push(p);
+        } else {
+          // Additional check: ensure it's a directory, not a file
+          const stat = fs.statSync(p);
+          if (!stat.isDirectory()) {
+            invalidPaths.push(p);
+          }
+        }
+      } catch {
+        invalidPaths.push(p);
+      }
+    }
+    return { validCount: paths.length - invalidPaths.length, invalidPaths };
   });
 }

@@ -57,8 +57,12 @@ import {
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
 
-// ── Local modal ──
-import { AddProjectModal } from '../modal/AddProjectModal';
+// ── Local modals ──
+import { OpenProjectModal } from '../modal/OpenProjectModal/index';
+import { ConfirmDeleteProjectModal } from '../modal/ConfirmDeleteProjectModal';
+
+// ── Group Picker Form ──
+import { GroupPickerForm, GROUP_ICONS } from './GroupPickerForm';
 
 // ── Shared definitions ──
 import {
@@ -74,6 +78,26 @@ import {
   StatusDot,
   TaskIcon,
 } from './SessionCard';
+
+// ── Accent Colors Hook (Simple implementation for stable random colors) ──
+const ACCENT_PALETTE = [
+  '#ff6a1f', // Orange Primary
+  '#a078ff', // Purple
+  '#3ddc84', // Green
+  '#4fa8e0', // Blue
+  '#ffb020', // Yellow
+  '#ff78aa', // Pink
+  '#32c8be', // Teal
+];
+
+function useAccentColors() {
+  return useMemo(() => ({ accentColors: ACCENT_PALETTE }), []);
+}
+
+// Helper to get visible branches count
+function getVisibleBranches(project: ProjectExtended): BranchInfo[] {
+  return project.branches.filter((b) => b.visible);
+}
 
 // ── Project Card Component ──
 import {
@@ -92,6 +116,7 @@ interface GroupInfo {
   id: string;
   name: string;
   open: boolean;
+  iconId?: string; // New field for group icon
 }
 
 type SortMode = 'manual' | 'name' | 'status' | 'tokens';
@@ -109,7 +134,8 @@ type DropdownTarget =
   | { kind: 'group'; groupId: string; pos: MenuPosition }
   | { kind: 'header-config'; pos: MenuPosition }
   | { kind: 'task'; sessionId: string; pos: MenuPosition }
-  | { kind: 'session'; sessionId: string; projectId: string; pos: MenuPosition };
+  | { kind: 'session'; sessionId: string; projectId: string; pos: MenuPosition }
+  | { kind: 'move-to-group'; projectId: string; pos: MenuPosition };
 
 // ─── Constants & Helpers ────────────────────────────────────────────────
 
@@ -216,7 +242,7 @@ const ck = (checked: boolean, extra?: ReactNode) => (
   </span>
 );
 
-/** Group header row with inline rename */
+/** Group header row with inline rename and drag support */
 function GroupHeader({
   group,
   count,
@@ -224,6 +250,12 @@ function GroupHeader({
   onToggle,
   onOpenMenu,
   onRenameDone,
+  onEditClick,
+  draggable,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
 }: {
   group: GroupInfo;
   count: number;
@@ -231,9 +263,16 @@ function GroupHeader({
   onToggle: () => void;
   onOpenMenu: (pos: MenuPosition) => void;
   onRenameDone: (name: string | null) => void;
+  onEditClick?: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef(false);
+  const { accentColors } = useAccentColors();
 
   useEffect(() => {
     if (renaming) {
@@ -249,10 +288,41 @@ function GroupHeader({
     onRenameDone(commit ? (inputRef.current?.value ?? null) : null);
   };
 
+  // Resolve icon component from ID
+  const IconComp = GROUP_ICONS.find((g) => g.id === group.iconId)?.icon || (
+    <Folder className="w-[11px] h-[11px]" />
+  );
+
+  // Generate stable random color based on group ID/name hash
+  const groupColor = useMemo(() => {
+    let hash = 0;
+    const str = group.id + group.name;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    const idx = Math.abs(hash) % accentColors.length;
+    return accentColors[idx];
+  }, [group.id, group.name, accentColors]);
+
   return (
     <div
-      className="group/gh flex items-center gap-[7px] px-3 py-[7px] bg-white/[0.02] border-b border-divider cursor-pointer select-none font-mono text-[10.5px] font-semibold uppercase tracking-[0.05em] text-text-secondary hover:text-text-primary"
+      draggable={draggable}
+      data-gid={group.id}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className={cn(
+        // Removed 'uppercase' and 'tracking-[0.05em]' to preserve raw case
+        'group/gh flex items-center gap-[7px] px-3 py-[7px] bg-white/[0.02] border-b border-divider cursor-pointer select-none font-mono text-[10.5px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
+        draggable && 'hover:bg-card-hover',
+      )}
       onClick={onToggle}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onEditClick?.();
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         onOpenMenu({ top: e.clientY, left: e.clientX });
@@ -263,7 +333,12 @@ function GroupHeader({
       ) : (
         <ChevronRight className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
       )}
-      <Folder className="w-[11px] h-[11px] shrink-0 text-[#a078ff]" />
+
+      {/* Dynamic Icon Container with Random Accent Color */}
+      <span className="shrink-0 [&_svg]:w-[11px] [&_svg]:h-[11px]" style={{ color: groupColor }}>
+        {IconComp}
+      </span>
+
       {renaming ? (
         <input
           ref={inputRef}
@@ -309,9 +384,33 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
   // Local state mirrors store projects but adds UI-only fields (color, group, hidden, branches)
   const [projects, setProjects] = useState<ProjectExtended[]>(() => rawProjects.map(seedProject));
-  const [groups, setGroups] = useState<GroupInfo[]>(() =>
-    projects.some((p) => p.groupId === 'g1') ? [{ id: 'g1', name: 'Client work', open: true }] : [],
-  );
+
+  // ── Group Persistence Key ──
+  const GROUP_STORAGE_KEY = 'phantoma_project_groups_v1';
+
+  // Helper to load groups from storage safely
+  const loadGroupsFromStorage = (): GroupInfo[] => {
+    try {
+      const stored = window.localStorage.getItem(GROUP_STORAGE_KEY);
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      // Basic validation to ensure structure integrity
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((g: any) => ({
+        id: String(g.id),
+        name: String(g.name || 'Untitled'),
+        open: Boolean(g.open ?? true),
+        iconId: g.iconId ? String(g.iconId) : undefined,
+      }));
+    } catch (e) {
+      console.error('Failed to load groups from storage:', e);
+      return [];
+    }
+  };
+
+  // Initialize groups state with persisted data
+  const [groups, setGroups] = useState<GroupInfo[]>(loadGroupsFromStorage);
+
   // Keep local edits (order, group, hidden) when the store changes.
   // IMPORTANT: Always take `branches` from the store because it contains
   // runtime session/agent data that must stay in sync with Workspace updates.
@@ -324,13 +423,33 @@ export const ProjectPanel = memo(function ProjectPanel() {
           const fresh = byId.get(p.id)!;
           return {
             ...fresh, // Start with latest store data (includes updated branches/sessions/agents)
-            // Override with UI-only local state
-            defaultBranch: p.defaultBranch,
-            hidden: p.hidden,
-            color: p.color,
-            groupId: p.groupId,
-            // DO NOT override branches here - let them come from 'fresh' (store)
-          };
+            // Ensure critical fields have valid defaults if missing from store payload
+            branches: fresh.branches ?? [],
+            defaultBranch: p.defaultBranch || 'main',
+            hidden: p.hidden ?? false,
+            color: p.color || '#8b91a1',
+            groupId: p.groupId ?? null,
+            files: fresh.files ?? [],
+            services: fresh.services ?? [],
+            agentGroups: fresh.agentGroups ?? [],
+            mcps: fresh.mcps ?? [],
+            activeWorkspacePanelId: fresh.activeWorkspacePanelId ?? null,
+            workspacePanels: fresh.workspacePanels ?? [],
+            expandedFolderIds: fresh.expandedFolderIds ?? [],
+            openFiles: fresh.openFiles ?? [],
+            fileDisplayNames: fresh.fileDisplayNames ?? {},
+            fileNodeMap: fresh.fileNodeMap ?? {},
+            activeFileTabId: fresh.activeFileTabId ?? null,
+            currentServiceId: fresh.currentServiceId ?? null,
+            currentFileId: fresh.currentFileId ?? null,
+            bottomPanelTab: fresh.bottomPanelTab ?? 'output',
+            isBottomPanelOpen: fresh.isBottomPanelOpen ?? true,
+            activityPanelTab: fresh.activityPanelTab ?? 'explore',
+            unsavedFiles: new Set(fresh.unsavedFiles || []),
+            originalContents: fresh.originalContents ?? {},
+            dirVersions: fresh.dirVersions ?? {},
+            designs: fresh.designs ?? [],
+          } as ProjectExtended;
         });
       const known = new Set(prev.map((p) => p.id));
       const added = rawProjects
@@ -341,26 +460,44 @@ export const ProjectPanel = memo(function ProjectPanel() {
     });
   }, [rawProjects]);
 
+  // Persist groups whenever they change
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(groups));
+    } catch (e) {
+      console.error('Failed to save groups to storage:', e);
+    }
+  }, [groups]);
+
   // ── UI state ──
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   /** Tracks which project's Task Manager is currently open in ContentPanel */
   const [activeTaskManagerProjectId, setActiveTaskManagerProjectId] = useState<string | null>(null);
-  const [showHidden, setShowHidden] = useState(false);
+  const [showHidden] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('manual');
   const [filterStatus, setFilterStatus] = useState<'all' | SessionStatus>('all');
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [dropdownTarget, setDropdownTarget] = useState<DropdownTarget | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<ProjectExtended | null>(null);
   const [toast, setToast] = useState<{ msg: string; on: boolean }>({ msg: '', on: false });
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // ── Group Creation State ──
+  const [groupFormOpen, setGroupFormOpen] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+
   const dragRef = useRef<{
-    type: 'project' | 'branch';
-    projectId: string;
+    type: 'project' | 'branch' | 'group';
+    projectId?: string;
     branchName?: string;
+    groupId?: string;
     el: HTMLElement | null;
   } | null>(null);
+
+  // Global flag to trigger collapse-all during drag
+  const [isGlobalDragging, setIsGlobalDragging] = useState(false);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
@@ -420,10 +557,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
           } else {
             // If no branches found (e.g., empty repo or not a git repo), we still consider it "fetched"
             // so we don't retry endlessly. We can optionally set a flag on the project later if needed.
-            logger.info('[ProjectPanel] No branches found for project', {
-              id: proj.id,
-              path: proj.path,
-            });
           }
         } catch (err) {
           logger.error('[ProjectPanel] Error fetching branches', { id: proj.id, err });
@@ -463,7 +596,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
     return list;
   }, [projects, showHidden, filterStatus, sortMode]);
 
-  const hiddenCount = projects.filter((p) => p.hidden).length;
   const anyOpen = shownProjects.some((p) => expandedIds.has(p.id));
   const isDirty = sortMode !== 'manual' || filterStatus !== 'all';
 
@@ -514,7 +646,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       if (!sessionId) {
         // Deselect logic triggered by clicking an already-selected branch row
         setSelectedSessionId(null);
-        setCurrentProject(null); // Clear current project selection when deselecting session
+        setCurrentProject(undefined as unknown as string); // Clear current project selection when deselecting session
         return;
       }
 
@@ -628,24 +760,25 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [patchProject],
   );
 
-  const createGroupFromProject = useCallback(
-    (projectId: string) => {
-      const id = `g${Date.now()}`;
-      setGroups((prev) => [...prev, { id, name: 'New group', open: true }]);
-      setProjectGroup(projectId, id);
-      setRenamingGroupId(id);
-    },
-    [setProjectGroup],
-  );
+  // Removed unused createGroupFromProject as logic shifted to GroupPickerForm + Drag/Drop
+
+  const removeProjectFromStore = useCodeStore((s) => s.removeProject);
 
   const handleRemoveProject = useCallback(
     (projectId: string) => {
-      logger.info('[ProjectPanel] Remove project (stub)', {
-        name: projects.find((p) => p.id === projectId)?.name,
-      });
+      const target = projects.find((p) => p.id === projectId);
+      if (!target) return;
+      setConfirmDeleteTarget(target);
     },
     [projects],
   );
+
+  const confirmRemoveProject = useCallback(() => {
+    if (!confirmDeleteTarget) return;
+    removeProjectFromStore(confirmDeleteTarget.id);
+    showToast(`Removed "${confirmDeleteTarget.name}"`);
+    setConfirmDeleteTarget(null);
+  }, [confirmDeleteTarget, removeProjectFromStore, showToast]);
 
   // ── Branch actions ──
   const moveBranch = useCallback(
@@ -795,76 +928,140 @@ export const ProjectPanel = memo(function ProjectPanel() {
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
   }, []);
 
-  // ── Drag & Drop ──
+  // ── Drag & Drop Engine (Multi-level: Group / Project / Branch) ──
   const clearDragMarks = () =>
     document.querySelectorAll('.pp-dragover').forEach((el) => el.classList.remove('pp-dragover'));
 
   const handleDragStart = useCallback(
-    (e: React.DragEvent, type: 'project' | 'branch', projectId: string, branchName?: string) => {
+    (
+      e: React.DragEvent,
+      type: 'project' | 'branch' | 'group',
+      idOrPid: string,
+      secondaryArg?: string, // branchName or groupId depending on type
+    ) => {
+      // --- GUARD: Block drag if fewer than 2 items of this type are visible ---
+      let count = 0;
+      if (type === 'project') {
+        count = shownProjects.length;
+      } else if (type === 'group') {
+        count = groups.length;
+      } else if (type === 'branch') {
+        // Count branches in the specific project being dragged from
+        const proj = projects.find((p) => p.id === idOrPid);
+        count = proj ? getVisibleBranches(proj).length : 0;
+      }
+
+      if (count < 2) {
+        e.preventDefault(); // Stop native drag
+        return;
+      }
+
       const el = e.currentTarget as HTMLElement;
-      dragRef.current = { type, projectId, branchName, el };
+
+      // Normalize args based on type for internal storage consistency
+      let projectId: string | undefined;
+      let branchName: string | undefined;
+      let groupId: string | undefined;
+
+      if (type === 'project') {
+        projectId = idOrPid;
+      } else if (type === 'branch') {
+        projectId = idOrPid;
+        branchName = secondaryArg;
+      } else if (type === 'group') {
+        groupId = idOrPid;
+      }
+
+      dragRef.current = { type, projectId, branchName, groupId, el };
       e.dataTransfer.effectAllowed = 'move';
       e.stopPropagation();
       el.classList.add('pp-dragging');
+      setIsGlobalDragging(true); // Trigger UI collapse
     },
-    [],
+    [shownProjects, groups, projects],
   );
 
   const handleDragEnd = useCallback(() => {
     dragRef.current?.el?.classList.remove('pp-dragging');
     dragRef.current = null;
     clearDragMarks();
+    setIsGlobalDragging(false); // Restore UI
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     const drag = dragRef.current;
     if (!drag) return;
+
     const target = e.currentTarget as HTMLElement;
-    const isBranchTarget = target.dataset.branch !== undefined;
-    const ok =
-      drag.type === 'branch'
-        ? isBranchTarget && target.dataset.pid === drag.projectId && target !== drag.el
-        : !isBranchTarget && target !== drag.el;
-    if (!ok) return;
+
+    // Walk up DOM to find closest drop-zone ancestor with data attributes
+    // This fixes the issue where dragging over child elements (like text spans inside headers) fails detection
+    const zoneEl = target.closest('[data-gid], [data-pid], [data-branch]') as HTMLElement | null;
+
+    if (!zoneEl) return;
+
+    const targetGroupId = zoneEl.dataset.gid;
+    const targetProjectId = zoneEl.dataset.pid;
+    const targetBranchName = zoneEl.dataset.branch;
+
+    let isValidDrop = false;
+
+    // Rule 1: Cannot drop Group into Group
+    if (drag.type === 'group' && targetGroupId) {
+      isValidDrop = false;
+    }
+    // Rule 2: Branch reorder only within same project
+    else if (drag.type === 'branch') {
+      isValidDrop = !!targetBranchName && targetProjectId === drag.projectId && zoneEl !== drag.el;
+    }
+    // Rule 3: Project can drop on Project (reorder) or Group (assign)
+    else if (drag.type === 'project') {
+      if (targetProjectId) {
+        // Reorder projects
+        isValidDrop = zoneEl !== drag.el;
+      } else if (targetGroupId) {
+        // Dropping INTO a group header/container -> Assign project to this group
+        isValidDrop = true;
+      }
+    }
+    // Rule 4: Group reordering (only against other Groups)
+    else if (drag.type === 'group') {
+      if (targetGroupId) {
+        isValidDrop = zoneEl !== drag.el; // Reorder groups
+      }
+    }
+
+    if (!isValidDrop) return;
+
     e.preventDefault();
     clearDragMarks();
-    target.classList.add('pp-dragover');
+    // Highlight the ZONE element, not necessarily the immediate hover target
+    zoneEl.classList.add('pp-dragover');
   }, []);
 
   const handleDrop = useCallback(
-    (
-      e: React.DragEvent,
-      targetType: 'project' | 'branch',
-      targetProjectId: string,
-      targetBranchName?: string,
-    ) => {
+    (e: React.DragEvent) => {
       const drag = dragRef.current;
       if (!drag) return;
       e.preventDefault();
       clearDragMarks();
       drag.el?.classList.remove('pp-dragging');
       dragRef.current = null;
+      setIsGlobalDragging(false);
 
-      if (drag.type === 'project' && targetType === 'project') {
-        setProjects((prev) => {
-          const src = prev.findIndex((p) => p.id === drag.projectId);
-          const target = prev.find((p) => p.id === targetProjectId);
-          if (src < 0 || !target || drag.projectId === targetProjectId) return prev;
-          const next = [...prev];
-          const [moved] = next.splice(src, 1);
-          const dst = next.findIndex((p) => p.id === targetProjectId);
-          // Dropping onto a project also moves it into that project's group
-          next.splice(dst, 0, { ...moved, groupId: target.groupId });
-          return next;
-        });
-      } else if (
-        drag.type === 'branch' &&
-        targetType === 'branch' &&
-        drag.projectId === targetProjectId &&
-        drag.branchName &&
-        targetBranchName
-      ) {
-        patchProject(drag.projectId, (p) => {
+      const target = e.currentTarget as HTMLElement;
+      const zoneEl = target.closest('[data-gid], [data-pid], [data-branch]') as HTMLElement | null;
+      if (!zoneEl) return;
+
+      const targetGroupId = zoneEl.dataset.gid;
+      const targetProjectId = zoneEl.dataset.pid;
+      const targetBranchName = zoneEl.dataset.branch;
+
+      // --- Logic Dispatcher ---
+
+      // 1. Branch Reorder (Same Project)
+      if (drag.type === 'branch' && targetBranchName && targetProjectId === drag.projectId) {
+        patchProject(drag.projectId!, (p) => {
           const src = p.branches.findIndex((b) => b.name === drag.branchName);
           const dst = p.branches.findIndex((b) => b.name === targetBranchName);
           if (src < 0 || dst < 0 || src === dst) return p;
@@ -872,9 +1069,49 @@ export const ProjectPanel = memo(function ProjectPanel() {
           branches.splice(dst, 0, branches.splice(src, 1)[0]);
           return { ...p, branches };
         });
+        return;
+      }
+
+      // 2. Project -> Group (Assign Group)
+      if (drag.type === 'project' && targetGroupId) {
+        patchProject(drag.projectId!, (p) => ({ ...p, groupId: targetGroupId }));
+        showToast(`Moved "${projects.find((pr) => pr.id === drag.projectId)?.name}" to group`);
+        return;
+      }
+
+      // 3. Project -> Project (Reorder)
+      if (drag.type === 'project' && targetProjectId) {
+        setProjects((prev) => {
+          const srcIdx = prev.findIndex((p) => p.id === drag.projectId);
+          const tgtIdx = prev.findIndex((p) => p.id === targetProjectId);
+
+          if (srcIdx < 0 || tgtIdx < 0 || srcIdx === tgtIdx) return prev;
+
+          const next = [...prev];
+          const [moved] = next.splice(srcIdx, 1);
+          const newTgtIdx = next.findIndex((p) => p.id === targetProjectId);
+          next.splice(newTgtIdx, 0, moved);
+          return next;
+        });
+        return;
+      }
+
+      // 4. Group -> Group (Reorder)
+      if (drag.type === 'group' && targetGroupId) {
+        setGroups((prev) => {
+          const srcIdx = prev.findIndex((g) => g.id === drag.groupId);
+          const tgtIdx = prev.findIndex((g) => g.id === targetGroupId);
+          if (srcIdx < 0 || tgtIdx < 0 || srcIdx === tgtIdx) return prev;
+          const next = [...prev];
+          const [moved] = next.splice(srcIdx, 1);
+          const newTgtIdx = next.findIndex((g) => g.id === targetGroupId);
+          next.splice(newTgtIdx, 0, moved);
+          return next;
+        });
+        return;
       }
     },
-    [patchProject],
+    [patchProject, projects, showToast, setProjects, setGroups],
   );
 
   // ── Resolve dropdown subjects ──
@@ -909,6 +1146,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       selectedSessionId={selectedSessionId}
       isTaskManagerActive={activeTaskManagerProjectId === project.id}
       draggable={sortMode === 'manual'}
+      isGlobalDragging={isGlobalDragging}
       onToggleProject={handleToggleProject}
       onOpenProject={handleOpenProject}
       onSelectSession={handleSelectSession}
@@ -923,6 +1161,25 @@ export const ProjectPanel = memo(function ProjectPanel() {
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     />
+  );
+
+  const handleCreateGroup = useCallback(
+    (iconId: string, name: string) => {
+      const id = `g${Date.now()}`;
+      setGroups((prev) => [...prev, { id, name, open: true, iconId }]);
+      setGroupFormOpen(false);
+      showToast(`Created group "${name}"`);
+    },
+    [showToast],
+  );
+
+  const handleUpdateGroup = useCallback(
+    (groupId: string, iconId: string, name: string) => {
+      setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, name, iconId } : g)));
+      setEditingGroupId(null);
+      showToast(`Updated group "${name}"`);
+    },
+    [showToast],
   );
 
   const headerBtn =
@@ -944,6 +1201,18 @@ export const ProjectPanel = memo(function ProjectPanel() {
           </span>
         </b>
         <div className="flex gap-0.5 items-center">
+          {/* Create New Group Button */}
+          <button
+            onClick={() => {
+              setGroupFormOpen(true);
+              setEditingGroupId(null); // Ensure we are in create mode
+            }}
+            className={cn(headerBtn, headerBtnIdle)}
+            title="Create new group"
+          >
+            <Folder className="w-3.5 h-3.5" />
+          </button>
+
           {/* Expand / Collapse all */}
           <button
             onClick={toggleExpandAll}
@@ -975,20 +1244,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
             )}
           </button>
 
-          {/* Show hidden */}
-          <button
-            onClick={() => setShowHidden((v) => !v)}
-            className={cn(headerBtn, showHidden ? headerBtnOn : headerBtnIdle)}
-            title="Show hidden projects"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            {hiddenCount > 0 && (
-              <i className="absolute -top-0.5 -right-0.5 px-[3px] rounded-md bg-[#4a4d57] text-white text-[8px] font-mono font-semibold not-italic">
-                {hiddenCount}
-              </i>
-            )}
-          </button>
-
           {/* Add project */}
           <button
             onClick={() => setAddModalOpen(true)}
@@ -1002,40 +1257,89 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       {/* Project list */}
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm">
-        {shownProjects.length === 0 ? (
-          <div className="text-center text-text-secondary/50 text-[11.5px] px-2.5 py-6">
-            No projects match this filter.
+        {/* Group Creation Form */}
+        {groupFormOpen && (
+          <div className="px-3 py-2 sticky top-0 z-10 bg-sidebar-background/95 backdrop-blur-sm border-b border-divider">
+            <GroupPickerForm onSave={handleCreateGroup} onCancel={() => setGroupFormOpen(false)} />
+          </div>
+        )}
+
+        {shownProjects.length === 0 && groups.length === 0 && !groupFormOpen ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
+            <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
+              <Folder className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-text-primary mb-1">
+                {projects.length === 0 ? 'No projects yet' : 'No matching projects'}
+              </p>
+              <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
+                {projects.length === 0
+                  ? 'Create or open a project to get started.'
+                  : 'Try adjusting your filters or sort order.'}
+              </p>
+            </div>
           </div>
         ) : (
           <>
             {groups.map((g) => {
               const members = shownProjects.filter((p) => p.groupId === g.id);
-              if (!members.length && filterStatus !== 'all') return null;
+              // Hide empty groups when filtering unless explicitly looking for them?
+              // For now, keep structure stable.
+
               return (
-                <div key={g.id}>
-                  <GroupHeader
-                    group={g}
-                    count={members.length}
-                    renaming={renamingGroupId === g.id}
-                    onToggle={() => toggleGroup(g.id)}
-                    onOpenMenu={(pos) => setDropdownTarget({ kind: 'group', groupId: g.id, pos })}
-                    onRenameDone={(name) => finishRename(g.id, name)}
-                  />
-                  {g.open &&
-                    (members.length ? (
-                      members.map(renderCard)
-                    ) : (
-                      <div className="text-center text-text-secondary/50 text-[11.5px] px-2.5 py-6">
-                        Empty group
-                      </div>
-                    ))}
+                <div key={g.id} data-gid={g.id}>
+                  {editingGroupId === g.id ? (
+                    <div className="px-2 py-1.5 bg-sidebar-background/50">
+                      <GroupPickerForm
+                        initialIconId={g.iconId || 'folder'}
+                        initialName={g.name}
+                        isEditing
+                        onSave={(iconId, name) => handleUpdateGroup(g.id, iconId, name)}
+                        onCancel={() => setEditingGroupId(null)}
+                        onDragStart={(e) => handleDragStart(e, 'group', g.id)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, 'group', g.id)}
+                        isDragging={dragRef.current?.groupId === g.id}
+                      />
+                    </div>
+                  ) : (
+                    <GroupHeader
+                      group={g}
+                      count={members.length}
+                      renaming={renamingGroupId === g.id}
+                      onToggle={() => toggleGroup(g.id)}
+                      onOpenMenu={(pos) => setDropdownTarget({ kind: 'group', groupId: g.id, pos })}
+                      onRenameDone={(name) => finishRename(g.id, name)}
+                      onEditClick={() => setEditingGroupId(g.id)}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, 'group', g.id)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, 'group', g.id)}
+                    />
+                  )}
+
+                  {g.open && (
+                    <div className="pl-2">
+                      {members.length ? (
+                        members.map(renderCard)
+                      ) : (
+                        <div className="text-center text-text-secondary/50 text-[11.5px] px-2.5 py-4 italic">
+                          Drop projects here
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
 
             {groups.length > 0 && ungrouped.length > 0 && (
-              <div className="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-[0.05em] text-text-secondary/50">
-                Ungrouped
+              <div className="px-3 pt-3 pb-1 font-mono text-[10px] uppercase tracking-[0.05em] text-text-secondary/50 flex items-center gap-2">
+                <span>Ungrouped</span>
+                <div className="h-px flex-1 bg-divider" />
               </div>
             )}
             {ungrouped.map(renderCard)}
@@ -1132,19 +1436,30 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
                 <DropdownSeparator />
 
-                <MenuLabel>Group</MenuLabel>
-                {groups.map((g) => (
+                {/* SUBMENU: MOVE TO GROUP */}
+                {groups.length > 0 && (
                   <DropdownItem
-                    key={g.id}
-                    icon={ck(activeProject.groupId === g.id, <Folder className="w-3 h-3" />)}
-                    onClick={() => {
-                      setProjectGroup(activeProject.id, g.id);
-                      closeDropdown();
+                    icon={<ChevronRight className="w-3 h-3 rotate-90 ml-auto" />} // Visual cue for submenu
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setDropdownTarget({
+                        kind: 'move-to-group',
+                        projectId: activeProject.id,
+                        pos: { top: rect.top, left: rect.right + 4 },
+                      });
                     }}
                   >
-                    Move to {g.name}
+                    Move to group...
                   </DropdownItem>
-                ))}
+                )}
+
+                {/* INLINE LIST IF NO GROUPS YET OR AS FALLBACK? 
+                    Requirement says "if at least 1 group". If 0 groups, maybe hide or show disabled.
+                    Let's stick to requirement: Only show if groups exist. 
+                    If user wants to create new group immediately, they use the item below.
+                */}
+
                 {activeProject.groupId && (
                   <DropdownItem
                     icon={ck(false, <X className="w-3 h-3" />)}
@@ -1153,13 +1468,17 @@ export const ProjectPanel = memo(function ProjectPanel() {
                       closeDropdown();
                     }}
                   >
-                    <span className="text-text-secondary">Remove from group</span>
+                    <span className="text-text-secondary">Remove from current group</span>
                   </DropdownItem>
                 )}
+
                 <DropdownItem
                   icon={ck(false, <Plus className="w-3 h-3" />)}
                   onClick={() => {
-                    createGroupFromProject(activeProject.id);
+                    // Open Group Form inline in header area instead of modal/alert
+                    setGroupFormOpen(true);
+                    // Optionally store which project triggered it to auto-add after creation?
+                    // For now, just opens form. User creates group, then drags project in.
                     closeDropdown();
                   }}
                 >
@@ -1268,17 +1587,57 @@ export const ProjectPanel = memo(function ProjectPanel() {
               </>
             )}
 
+            {/* MOVE TO GROUP SUBMENU */}
+            {dropdownTarget.kind === 'move-to-group' && activeProject && (
+              <>
+                <MenuLabel>Select Group</MenuLabel>
+                {groups.map((g) => (
+                  <DropdownItem
+                    key={g.id}
+                    icon={ck(
+                      activeProject.groupId === g.id,
+                      GROUP_ICONS.find((i) => i.id === g.iconId)?.icon || (
+                        <Folder className="w-3 h-3" />
+                      ),
+                    )}
+                    onClick={() => {
+                      setProjectGroup(activeProject.id, g.id);
+                      showToast(`Moved "${activeProject.name}" to ${g.name}`);
+                      closeDropdown();
+                    }}
+                  >
+                    {g.name}
+                  </DropdownItem>
+                ))}
+                <DropdownSeparator />
+                <DropdownItem
+                  icon={<X className="w-3 h-3" />}
+                  onClick={() => {
+                    // Return to main project menu or close?
+                    // Usually returning is better UX if they misclicked.
+                    setDropdownTarget({
+                      kind: 'project',
+                      projectId: activeProject.id,
+                      pos: dropdownTarget.pos,
+                    });
+                  }}
+                >
+                  <span className="text-text-secondary">Back</span>
+                </DropdownItem>
+              </>
+            )}
+
             {/* GROUP MENU */}
             {dropdownTarget.kind === 'group' && activeGroup && (
               <>
                 <DropdownItem
                   icon={<Pencil className="w-3 h-3" />}
                   onClick={() => {
-                    setRenamingGroupId(activeGroup.id);
+                    setEditingGroupId(activeGroup.id);
                     closeDropdown();
                   }}
                 >
-                  Rename group
+                  Edit Group (Icon & Name)
                 </DropdownItem>
                 <DropdownItem
                   icon={<Trash2 className="w-3 h-3" />}
@@ -1430,8 +1789,17 @@ export const ProjectPanel = memo(function ProjectPanel() {
         {toast.msg}
       </div>
 
-      {/* ── Add Project Modal ── */}
-      <AddProjectModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
+      {/* ── Project Modals ── */}
+      <OpenProjectModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
+
+      {/* ── Confirm Delete Project Modal ── */}
+      <ConfirmDeleteProjectModal
+        isOpen={!!confirmDeleteTarget}
+        onClose={() => setConfirmDeleteTarget(null)}
+        onConfirm={confirmRemoveProject}
+        projectName={confirmDeleteTarget?.name ?? ''}
+        projectPath={confirmDeleteTarget?.path}
+      />
     </div>
   );
 });

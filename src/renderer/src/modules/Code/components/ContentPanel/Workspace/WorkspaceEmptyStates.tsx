@@ -4,7 +4,7 @@
  *  - WorkspaceEmptyState → project selected but no panels open
  */
 
-import { memo, useMemo, type ReactNode } from 'react';
+import { memo, useMemo, useState, type ReactNode } from 'react';
 import {
   Plus,
   Terminal as TerminalIcon,
@@ -16,15 +16,25 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { cn } from '@renderer/shared/utils/cn';
+import { OpenProjectModal } from '../../modal/OpenProjectModal/index';
+import { CreateProjectModal } from '../../modal/CreateProjectModal';
 
 // ─── Shared pieces ────────────────────────────────────────────────────
 
 // Full class names must be written out so Tailwind can detect them.
 const ACCENTS = {
-  primary: { hover: 'hover:border-primary/50', icon: 'text-primary bg-primary/10 group-hover:bg-primary/20' },
+  primary: {
+    hover: 'hover:border-primary/50',
+    icon: 'text-primary bg-primary/10 group-hover:bg-primary/20',
+  },
   info: { hover: 'hover:border-info/50', icon: 'text-info bg-info/10 group-hover:bg-info/20' },
   warn: { hover: 'hover:border-warn/50', icon: 'text-warn bg-warn/10 group-hover:bg-warn/20' },
-  success: { hover: 'hover:border-success/50', icon: 'text-success bg-success/10 group-hover:bg-success/20' },
+  success: {
+    hover: 'hover:border-success/50',
+    icon: 'text-success bg-success/10 group-hover:bg-success/20',
+  },
   purple: { hover: 'hover:border-purple/50', icon: 'text-purple bg-purple/10' },
 } as const;
 
@@ -96,12 +106,12 @@ function CardStackArt({ children }: { children: ReactNode }) {
 
 function EmptyStateShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex-1 flex items-center justify-center bg-background relative overflow-hidden p-6">
+    <div className="w-full h-full flex items-center justify-center bg-background relative overflow-hidden p-6">
       {/* Subtle glow background */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.05]">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-primary blur-[130px]" />
       </div>
-      <div className="relative z-10 text-center max-w-[580px] w-full flex flex-col items-center">
+      <div className="relative z-10 text-center max-w-[740px] w-full flex flex-col items-center justify-center">
         {children}
       </div>
     </div>
@@ -111,13 +121,21 @@ function EmptyStateShell({ children }: { children: ReactNode }) {
 // ─── No project selected ──────────────────────────────────────────────
 
 export const EmptyState = memo(function EmptyState() {
-  const setProjectManagerOpen = useCodeStore((s) => s.setProjectManagerOpen);
-  const setNewProjectOpen = useCodeStore((s) => s.setNewProjectOpen);
   const projects = useCodeStore((s) => s.projects);
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
+  const currentProjectId = useCodeStore((s) => s.currentProjectId); // Get active project ID
+  const { accentColors, toRgba } = useAccentColors();
 
-  // Up to 2 most recent projects
-  const recentProjects = useMemo(() => projects.slice(0, 2), [projects]);
+  const [openModalVisible, setOpenModalVisible] = useState(false);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+
+  // Up to 5 most recent projects, excluding the currently active one
+  const recentProjects = useMemo(() => {
+    const filtered = currentProjectId 
+      ? projects.filter(p => p.id !== currentProjectId) 
+      : projects;
+    return filtered.slice(0, 5);
+  }, [projects, currentProjectId]);
 
   return (
     <EmptyStateShell>
@@ -139,52 +157,99 @@ export const EmptyState = memo(function EmptyState() {
           icon={<FolderOpen className="w-4 h-4" />}
           title="Open Project"
           subtitle="Choose folder on disk"
-          onClick={() => setProjectManagerOpen(true)}
+          onClick={() => setOpenModalVisible(true)}
         />
         <ActionCard
           accent="primary"
           icon={<Plus className="w-4 h-4" />}
           title="New Project"
           subtitle="Create from empty template"
-          onClick={() => setNewProjectOpen(true)}
+          onClick={() => setCreateModalVisible(true)}
         />
         <ActionCard
           accent="purple"
           icon={<GitBranch className="w-4 h-4" />}
           title="Clone from Git"
           subtitle="Paste repository URL"
-          disabled
+          onClick={() => setOpenModalVisible(true)}
         />
       </div>
 
       {recentProjects.length > 0 && (
         <div className="w-full mt-6 text-left">
-          <h2 className="text-[11px] font-medium text-text-secondary mb-2 ml-1">Recent</h2>
-          <div className="border border-border rounded-xl bg-card-background overflow-hidden">
-            {recentProjects.map((project, index) => {
+          <h2 className="text-[11px] font-medium text-text-secondary mb-2 ml-1 uppercase tracking-wider">
+            Recent Projects
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
+            {recentProjects.map((project) => {
               const branchName = project.branches?.[0]?.name || 'main';
               const sessionCount =
                 project.branches?.reduce((acc, b) => acc + (b.sessions?.length || 0), 0) || 0;
-              const statusText =
-                sessionCount > 0
-                  ? `${branchName} · ${sessionCount} session${sessionCount > 1 ? 's' : ''}`
-                  : `${branchName} · no active sessions`;
+
+              // Stable color hash — same technique as ProjectCard.tsx
+              let hash = 0;
+              const str = project.id + project.name;
+              for (let i = 0; i < str.length; i++) {
+                hash = (hash << 5) - hash + str.charCodeAt(i);
+                hash |= 0;
+              }
+              const glowColor = accentColors[Math.abs(hash) % accentColors.length];
 
               return (
                 <button
                   key={project.id}
                   onClick={() => setCurrentProject(project.id)}
-                  className={`w-full flex items-center gap-2.5 h-11 px-3 text-left hover:bg-white/[0.03] transition-colors ${
-                    index !== recentProjects.length - 1 ? 'border-b border-divider' : ''
-                  }`}
+                  className={cn(
+                    'group relative overflow-hidden rounded-xl border border-border bg-card-background',
+                    'p-3 text-left transition-all duration-200',
+                    'hover:-translate-y-0.5 hover:border-primary/40',
+                  )}
+                  style={{
+                    boxShadow: `inset 0 1px 0 0 ${toRgba(glowColor, 0.08)}, 0 1px 2px rgba(0,0,0,0.04)`,
+                  }}
                 >
-                  <span className="w-6.5 h-6.5 rounded-lg grid place-items-center shrink-0 text-primary bg-primary/10">
-                    <GitBranch className="w-3.5 h-3.5" />
-                  </span>
-                  <span className="flex-1 font-semibold text-[12.5px] text-text-primary truncate">
-                    {project.name}
-                  </span>
-                  <span className="font-mono text-[11px] text-text-secondary">{statusText}</span>
+                  {/* Top-left accent glow */}
+                  <div
+                    className="absolute -top-8 -left-8 w-20 h-20 rounded-full pointer-events-none blur-xl opacity-25 group-hover:opacity-40 transition-opacity duration-500 ease-out"
+                    style={{
+                      backgroundColor: glowColor,
+                      boxShadow: `0 0 30px 8px ${toRgba(glowColor, 0.35)}`,
+                      zIndex: 0,
+                    }}
+                  />
+
+                  <div className="relative z-10 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-7 h-7 rounded-lg grid place-items-center shrink-0"
+                        style={{
+                          color: glowColor,
+                          backgroundColor: toRgba(glowColor, 0.14),
+                        }}
+                      >
+                        <GitBranch className="w-3.5 h-3.5" />
+                      </span>
+                      <span className="flex-1 min-w-0 font-display font-semibold text-[12.5px] text-text-primary truncate">
+                        {project.name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 text-[10.5px]">
+                      <span className="font-mono text-text-secondary truncate">{branchName}</span>
+                      <span
+                        className={cn(
+                          'shrink-0 px-1.5 py-0.5 rounded-md font-mono',
+                          sessionCount > 0
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-card-hover text-text-secondary/60',
+                        )}
+                      >
+                        {sessionCount > 0
+                          ? `${sessionCount} session${sessionCount > 1 ? 's' : ''}`
+                          : 'idle'}
+                      </span>
+                    </div>
+                  </div>
                 </button>
               );
             })}
@@ -198,6 +263,16 @@ export const EmptyState = memo(function EmptyState() {
           ['⌘ N', 'new project'],
           ['⌘ K', 'quick search'],
         ]}
+      />
+
+      {/* Project Modals */}
+      <OpenProjectModal
+        isOpen={openModalVisible}
+        onClose={() => setOpenModalVisible(false)}
+      />
+      <CreateProjectModal
+        isOpen={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
       />
     </EmptyStateShell>
   );

@@ -162,7 +162,6 @@ export function useRepeaterPersistence({
 
     // Listen for repeater updates
     const handleRepeaterUpdate = () => {
-      logger.info('[RepeaterPersist] Repeater updated event received, reloading...');
       loadData();
     };
 
@@ -178,37 +177,21 @@ export function useRepeaterPersistence({
     if (!targetId || isLoading) return;
     const snapshot = JSON.stringify({ method, url, body, params, headers });
 
-    logger.info(`[RepeaterPersist] ⚙️ Data changed effect triggered`);
-    logger.info(`[RepeaterPersist] targetId: ${targetId}`);
-    logger.info(`[RepeaterPersist] isLoading: ${isLoading}`);
-    logger.info(`[RepeaterPersist] params:`, params);
-    logger.info(`[RepeaterPersist] snapshot: ${snapshot.substring(0, 200)}...`);
-    logger.info(`[RepeaterPersist] lastSavedRef: ${lastSavedRef.current.substring(0, 200)}...`);
-
     if (snapshot === lastSavedRef.current) {
-      logger.info('[RepeaterPersist] Snapshot unchanged, skipping save');
       return;
     }
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       setIsSaving(true);
-      logger.info(`[RepeaterPersist] 💾 Saving... currentRequestId: ${currentRequestId}`);
 
       // Remove 'id' field from params and headers before saving
       // Then auto-format with 2-space indent for readability
       const paramsWithoutId = params.map(({ id, ...rest }) => rest);
       const headersWithoutId = headers.map(({ id, ...rest }) => rest);
 
-      logger.info(`[RepeaterPersist] paramsWithoutId to save:`, paramsWithoutId);
-      logger.info(
-        `[RepeaterPersist] paramsWithoutId JSON:`,
-        JSON.stringify(paramsWithoutId, null, 2),
-      );
-
       try {
         if (currentRequestId) {
-          logger.info(`[RepeaterPersist] Updating existing request ${currentRequestId}`);
           await emulateApi.updateRequest(targetId, currentRequestId, {
             method,
             url,
@@ -216,9 +199,7 @@ export function useRepeaterPersistence({
             params: JSON.stringify(paramsWithoutId, null, 2),
             headers: JSON.stringify(headersWithoutId, null, 2),
           });
-          logger.info(`[RepeaterPersist] ✅ Update successful`);
         } else {
-          logger.info(`[RepeaterPersist] Creating new request`);
           const res = await emulateApi.createRequest(targetId, {
             method,
             url,
@@ -228,11 +209,9 @@ export function useRepeaterPersistence({
           });
           if (res.success && res.data) {
             setCurrentRequestId(res.data.id);
-            logger.info(`[RepeaterPersist] Created request with ID: ${res.data.id}`);
           }
         }
         lastSavedRef.current = snapshot;
-        logger.info(`[RepeaterPersist] lastSavedRef updated`);
       } catch (err) {
         logger.error('[RepeaterPersist] Save failed:', err);
       } finally {

@@ -4,16 +4,16 @@
  * ------------------------------------------------------------------
  * Proxies CLI app traffic through Chrome browser via CDP.
  * CLI sends requests to local proxy → Chrome executes them → CDP captures plaintext.
- * 
+ *
  * Benefits:
  * - No MITM certificate needed
  * - No SSL pinning issues
  * - Works on all platforms (not just Linux)
  * - Full request/response capture
- * 
+ *
  * Architecture:
  * CLI App → HTTP_PROXY → Local Proxy → Chrome (CDP) → Real Server
- * 
+ *
  * Main functions:
  * - start()   : Start proxy server and Chrome with CDP
  * - stop()    : Stop proxy and Chrome
@@ -23,7 +23,6 @@
 
 import { EventEmitter } from 'events';
 import * as http from 'http';
-import * as https from 'https';
 import { BrowserWindow } from 'electron';
 import { spawn, ChildProcess } from 'child_process';
 import { logger } from '../utils/logger';
@@ -58,29 +57,25 @@ export class CdpProxy extends EventEmitter {
   private cdpClient: any = null;
   private window: BrowserWindow | null = null;
   private isRunning: boolean = false;
-  
+
   private proxyPort: number = 8888;
   private chromeDebugPort: number = 9222;
-  
-  // Map request IDs to CLI sockets
-  private requestMap = new Map<string, http.ServerResponse>();
 
   constructor(window: BrowserWindow) {
     super();
     this.window = window;
   }
 
-  public async start(options: CdpProxyOptions = {}): Promise<{ proxyPort: number; chromePort: number }> {
+  public async start(
+    options: CdpProxyOptions = {},
+  ): Promise<{ proxyPort: number; chromePort: number }> {
     if (this.isRunning) {
       throw new Error('CDP Proxy already running');
     }
 
     // Find available ports
-    this.proxyPort = options.proxyPort || await findAvailablePort(8888);
-    this.chromeDebugPort = options.chromeDebugPort || await findAvailablePort(9222);
-
-    logger.info(`[CdpProxy] Starting proxy on port ${this.proxyPort}`);
-    logger.info(`[CdpProxy] Chrome debug port: ${this.chromeDebugPort}`);
+    this.proxyPort = options.proxyPort || (await findAvailablePort(8888));
+    this.chromeDebugPort = options.chromeDebugPort || (await findAvailablePort(9222));
 
     // Start Chrome headless with CDP
     await this.startChrome();
@@ -98,8 +93,6 @@ export class CdpProxy extends EventEmitter {
   }
 
   public stop(): void {
-    logger.info('[CdpProxy] Stopping...');
-
     // Stop proxy server
     if (this.proxyServer) {
       this.proxyServer.close();
@@ -125,12 +118,7 @@ export class CdpProxy extends EventEmitter {
   private async startChrome(): Promise<void> {
     return new Promise((resolve, reject) => {
       // Find Chrome executable
-      const chromePaths = [
-        'google-chrome',
-        'google-chrome-stable',
-        'chromium',
-        'chromium-browser',
-      ];
+      const chromePaths = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
 
       let chromeExe = '';
       for (const path of chromePaths) {
@@ -146,8 +134,6 @@ export class CdpProxy extends EventEmitter {
       if (!chromeExe) {
         return reject(new Error('Chrome not found'));
       }
-
-      logger.info(`[CdpProxy] Using Chrome: ${chromeExe}`);
 
       // Launch Chrome headless with CDP
       const args = [
@@ -165,14 +151,11 @@ export class CdpProxy extends EventEmitter {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
-      this.chromeProcess.stdout?.on('data', (data) => {
-        logger.debug(`[CdpProxy] Chrome stdout: ${data.toString().trim()}`);
-      });
+      this.chromeProcess.stdout?.on('data', () => {});
 
       this.chromeProcess.stderr?.on('data', (data) => {
         const msg = data.toString();
-        logger.debug(`[CdpProxy] Chrome stderr: ${msg.trim()}`);
-        
+
         // Detect when Chrome is ready
         if (msg.includes('DevTools listening')) {
           resolve();
@@ -190,8 +173,6 @@ export class CdpProxy extends EventEmitter {
   }
 
   private async connectCDP(): Promise<void> {
-    logger.info('[CdpProxy] Connecting to CDP...');
-
     try {
       this.cdpClient = await CDP({ port: this.chromeDebugPort });
 
@@ -204,8 +185,6 @@ export class CdpProxy extends EventEmitter {
 
       // Listen to network events
       Network.requestWillBeSent((params: any) => {
-        logger.debug(`[CdpProxy] Request: ${params.request.method} ${params.request.url}`);
-        
         const capturedReq: CapturedRequest = {
           id: params.requestId,
           timestamp: Date.now(),
@@ -219,8 +198,6 @@ export class CdpProxy extends EventEmitter {
       });
 
       Network.responseReceived(async (params: any) => {
-        logger.debug(`[CdpProxy] Response: ${params.response.status} ${params.response.url}`);
-
         try {
           const body = await Network.getResponseBody({ requestId: params.requestId });
 
@@ -268,7 +245,10 @@ export class CdpProxy extends EventEmitter {
     });
   }
 
-  private async handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  private async handleHttpRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ): Promise<void> {
     const { method, url, headers } = req;
 
     logger.info(`[CdpProxy] HTTP ${method} ${url}`);
@@ -314,10 +294,7 @@ export class CdpProxy extends EventEmitter {
         const lines = requestStr.split('\r\n');
         const requestLine = lines[0];
         const [method, path] = requestLine.split(' ');
-
         const fullUrl = `https://${url}${path}`;
-
-        logger.debug(`[CdpProxy] HTTPS ${method} ${fullUrl}`);
 
         // Execute in Chrome
         const result = await this.executeRequestInChrome(method, fullUrl, {}, '');

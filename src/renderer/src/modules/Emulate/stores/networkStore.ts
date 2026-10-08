@@ -23,15 +23,21 @@
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
+// ─── Imports ───────────────────────────────────────────────────────────
 // ── Store ──
 import { create } from 'zustand';
 
-// ── Types ──
+// ── Types ─
 import type { NetworkRequest, CdpScriptUnpackedData } from '@renderer/shared/types/network';
 
 export type { NetworkRequest, CdpScriptUnpackedData };
 
+// [DEBUG] Expose store to window for diagnostic testing
+declare global {
+  interface Window {
+    __PHANTOMA_NETWORK_STORE__?: any;
+  }
+}
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface NetworkStore {
   requests: NetworkRequest[];
@@ -93,13 +99,16 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
   prependRequest: (request) =>
     set((state) => {
       // Bỏ qua nếu đã có
-      if (state.requestIndex.has(request.id)) return state;
+      if (state.requestIndex.has(request.id)) {
+        // [DEBUG] Log khi duplicate bị bỏ qua
+        console.warn('[networkStore][DEBUG] DUPLICATE SKIPPED:', request.id);
+        return state;
+      }
 
       const requests = [request, ...state.requests];
       // Giữ tối đa maxMemory items trong store (window hiển thị)
       const sliced =
         requests.length > state.maxMemory ? requests.slice(0, state.maxMemory) : requests;
-
       const requestIndex = new Map<string, number>();
       sliced.forEach((r, i) => requestIndex.set(r.id, i));
 
@@ -160,3 +169,8 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
   setWorkerCounts: (totalCount, filteredCount) =>
     set({ totalWorkerCount: totalCount, filteredWorkerCount: filteredCount }),
 }));
+
+// [DEBUG] Expose store instance to global window for diagnostic runner access
+if (typeof window !== 'undefined') {
+  window.__PHANTOMA_NETWORK_STORE__ = useNetworkStore;
+}

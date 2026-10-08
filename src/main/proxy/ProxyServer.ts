@@ -471,9 +471,6 @@ export class ProxyServer extends EventEmitter {
       });
 
       if (shouldBypass || shouldBypassClineAuth) {
-        // Log bypassed SSL connection (metadata only - content not decrypted)
-        logger.info(`[ProxyServer] SSL Bypass (TCP tunnel): ${hostUrl}`);
-        
         // Send connection metadata to renderer for logging
         this.sendToRenderer('proxy:ssl-bypass', {
           id: `ssl-bypass-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -484,7 +481,7 @@ export class ProxyServer extends EventEmitter {
           type: 'SSL_BYPASS',
           note: 'Connection tunneled without decryption to preserve authentication',
         });
-        
+
         const conn = net.connect(
           {
             port,
@@ -1176,10 +1173,6 @@ export class ProxyServer extends EventEmitter {
     const windowExists = this.window && !this.window.isDestroyed();
     if (windowExists) {
       this.window?.webContents.send(channel, data);
-      // Debug: log SSL bypass events
-      if (channel === 'proxy:ssl-bypass') {
-        logger.debug(`[ProxyServer] Sent SSL bypass event to renderer:`, data.host);
-      }
     } else {
       if (channel === 'proxy:ssl-bypass') {
         logger.warn(`[ProxyServer] Cannot send SSL bypass - no window available`);

@@ -35,6 +35,12 @@ export interface WorkspacePanel {
   content?: string;
   /** Detected AI Provider ID (for terminals) */
   providerId?: string | null;
+  
+  // ── NEW: ZenCLI session binding for auto-resume ──
+  /** Conversation ID của ZenCLI đang bind với terminal này. null nếu chưa bind. */
+  zencliConversationId?: string | null;
+  /** Timestamp lần cuối user tương tác với conversation này (để quyết định "active"). */
+  zencliLastActiveAt?: number | null;
 }
 
 export type PaneId = 'tl' | 'tr' | 'bl' | 'br';

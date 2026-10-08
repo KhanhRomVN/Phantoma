@@ -128,7 +128,7 @@ function launchBrowser(
   });
 
   child.unref();
-  
+
   // Emit target started event nếu có targetId
   if (targetId) {
     emitTargetStatusChanged(targetId, 'running', {
@@ -138,7 +138,7 @@ function launchBrowser(
       platform: 'web',
     });
   }
-  
+
   return true;
 }
 
@@ -366,7 +366,7 @@ export async function launchApp(
 
   // Try to launch as native app or CLI command
   // Support both full paths (/usr/bin/app) and command names (code, curl, cline, etc.)
-  
+
   // Check if it's a full path
   const isFullPath = appName.includes('/');
   let executablePath = appName;
@@ -389,27 +389,24 @@ export async function launchApp(
       const allPaths = execSyncChild(`which -a ${appName} 2>/dev/null || which ${appName}`, {
         encoding: 'utf8',
       }).trim();
-      
+
       // Split by newlines to get all paths
       const paths = allPaths.split('\n').filter((p) => p.length > 0);
-      
+
       // Prefer paths that are NOT in node_modules (global installations)
       const globalPath = paths.find((p) => !p.includes('node_modules'));
       executablePath = globalPath || paths[0] || '';
-      
+
       if (!executablePath) {
         logger.error(`[AppLauncher] Command not found in PATH: ${appName}`);
         return false;
       }
-      
+
       if (globalPath) {
-        logger.info(`[AppLauncher] Using global installation: ${executablePath}`);
       } else {
-        logger.warn(
-          `[AppLauncher] Using local installation (no global found): ${executablePath}`,
-        );
+        logger.warn(`[AppLauncher] Using local installation (no global found): ${executablePath}`);
       }
-      
+
       executableName = appName;
     } catch {
       logger.error(`[AppLauncher] Command not found in PATH: ${appName}`);
@@ -420,7 +417,7 @@ export async function launchApp(
   // Create isolated sandbox environment for CLI apps (if useSandbox is true)
   // Default to sandbox mode (true) if not specified
   const shouldUseSandbox = useSandbox !== false;
-  
+
   let sandboxRoot: string;
   let sandboxHome: string;
   let sandboxConfig: string;
@@ -445,8 +442,6 @@ export async function launchApp(
     fs.mkdirSync(sandboxCache, { recursive: true });
     fs.mkdirSync(sandboxData, { recursive: true });
     fs.mkdirSync(sandboxTemp, { recursive: true });
-
-    logger.info(`[AppLauncher] Created CLI sandbox for ${executableName} at: ${sandboxRoot}`);
 
     // Setup isolated environment variables
     env = {
@@ -484,18 +479,16 @@ export async function launchApp(
     };
   } else {
     // No sandbox - use system environment
-    logger.info(`[AppLauncher] Launching ${executableName} without sandbox (system environment)`);
-    
     sandboxRoot = '';
     sandboxHome = process.env.HOME || process.cwd();
     sandboxConfig = '';
     sandboxCache = '';
     sandboxData = '';
     sandboxTemp = process.env.TMPDIR || process.env.TEMP || '/tmp';
-    
+
     // Use current system environment completely
     env = { ...process.env } as Record<string, string>;
-    
+
     // Explicitly ensure we're NOT overriding XDG vars (use system defaults)
     // This allows cline to read from user's actual config location
   }
@@ -513,16 +506,13 @@ export async function launchApp(
     env.HTTPS_PROXY = proxyUrl;
     env.all_proxy = proxyUrl;
     env.ALL_PROXY = proxyUrl;
-    
+
     // NO_PROXY: Only bypass localhost (everything else goes through proxy)
     // Sensitive domains (cline.bot, workos.com) are handled by proxy's SSL bypass list
     // which creates TCP tunnels without decrypting - this allows authentication to work
     // while still capturing connection metadata (host, port, timing)
-    const noProxyList = [
-      'localhost',
-      '127.0.0.1',
-    ].join(',');
-    
+    const noProxyList = ['localhost', '127.0.0.1'].join(',');
+
     env.NO_PROXY = noProxyList;
     env.no_proxy = noProxyList;
 
@@ -533,15 +523,19 @@ export async function launchApp(
   } else if (skipProxyEnv) {
     // Explicitly scrub any inherited proxy vars so nothing leaks into the sandbox
     for (const key of [
-      'http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY',
-      'all_proxy', 'ALL_PROXY', 'no_proxy', 'NO_PROXY',
-      'NODE_TLS_REJECT_UNAUTHORIZED', 'NODE_EXTRA_CA_CERTS',
+      'http_proxy',
+      'https_proxy',
+      'HTTP_PROXY',
+      'HTTPS_PROXY',
+      'all_proxy',
+      'ALL_PROXY',
+      'no_proxy',
+      'NO_PROXY',
+      'NODE_TLS_REJECT_UNAUTHORIZED',
+      'NODE_EXTRA_CA_CERTS',
     ]) {
       delete env[key];
     }
-    logger.info(
-      `[AppLauncher] captureMode=${captureMode}: proxy env scrubbed, target will connect directly`,
-    );
   }
 
   // For CLI apps, we need to launch them in a terminal emulator
@@ -557,13 +551,12 @@ export async function launchApp(
   ];
 
   let terminal: { cmd: string; args: string[] } | null = null;
-  
+
   // Find available terminal emulator
   for (const term of terminalEmulators) {
     try {
       execSyncChild(`which ${term.cmd}`, { encoding: 'utf8' });
       terminal = term;
-      logger.info(`[AppLauncher] Found terminal emulator: ${term.cmd}`);
       break;
     } catch {
       continue;
@@ -571,7 +564,9 @@ export async function launchApp(
   }
 
   if (!terminal) {
-    logger.error('[AppLauncher] No terminal emulator found! Install gnome-terminal, konsole, or xterm');
+    logger.error(
+      '[AppLauncher] No terminal emulator found! Install gnome-terminal, konsole, or xterm',
+    );
     return false;
   }
 
@@ -594,7 +589,7 @@ export async function launchApp(
   } catch {
     // pidfile did not exist — fine
   }
-  
+
   // For no-sandbox mode, only export proxy-related vars, not ALL env vars
   let envVars: string;
   if (shouldUseSandbox) {
@@ -621,7 +616,7 @@ export async function launchApp(
       .map(([key, value]) => `export ${key}="${value.replace(/"/g, '\\"')}"`)
       .join('\n');
   }
-  
+
   const scriptContent = `#!/bin/bash
 # Phantoma CLI ${shouldUseSandbox ? 'Sandbox' : 'No-Sandbox'} Launcher
 echo "${shouldUseSandbox ? '🔒' : '🔓'} Phantoma CLI ${shouldUseSandbox ? 'Sandbox' : 'No-Sandbox'}"
@@ -661,16 +656,12 @@ exec "${executablePath}"
 
   fs.writeFileSync(wrapperScript, scriptContent, { mode: 0o755 });
 
-  logger.info(`[AppLauncher] Created wrapper script at: ${wrapperScript}`);
-  logger.info(`[AppLauncher] Executable path: ${executablePath}`);
-  logger.info(`[AppLauncher] Working directory: ${sandboxHome}`);
-  logger.info(`[AppLauncher] Sandbox mode: ${shouldUseSandbox}`);
-
   // Launch terminal with wrapper script
   // Use --wait flag to keep terminal process alive
-  const terminalArgs = terminal.cmd === 'gnome-terminal' 
-    ? ['--wait', '--', wrapperScript]
-    : [...terminal.args, wrapperScript];
+  const terminalArgs =
+    terminal.cmd === 'gnome-terminal'
+      ? ['--wait', '--', wrapperScript]
+      : [...terminal.args, wrapperScript];
 
   const child = spawn(terminal.cmd, terminalArgs, {
     detached: false, // Don't detach - keep connected to parent
@@ -685,18 +676,13 @@ exec "${executablePath}"
 
   // Log terminal output for debugging
   if (child.stdout) {
-    child.stdout.on('data', (data) => {
-      logger.debug(`[AppLauncher] ${executableName} stdout: ${data.toString().trim()}`);
-    });
+    child.stdout.on('data', () => {});
   }
   if (child.stderr) {
-    child.stderr.on('data', (data) => {
-      logger.debug(`[AppLauncher] ${executableName} stderr: ${data.toString().trim()}`);
-    });
+    child.stderr.on('data', () => {});
   }
 
-  child.on('exit', (code) => {
-    logger.info(`[AppLauncher] Terminal exited with code: ${code}`);
+  child.on('exit', () => {
     if (appState.activeChildProcess === child) {
       appState.activeChildProcess = null;
       appState.activeProxyUrl = null;
@@ -781,8 +767,6 @@ export async function launchCliWithEbpf(
   useSandbox?: boolean,
 ): Promise<boolean> {
   try {
-    logger.info(`[AppLauncher] Launching CLI with eBPF: ${executablePath}`);
-
     // First, launch the app normally (without proxy).
     // captureMode='ebpf' tells launchApp to scrub inherited proxy env vars
     // so the target connects directly — required for SSL_write/SSL_read hooking.
@@ -808,14 +792,10 @@ export async function launchCliWithEbpf(
       logger.error('[AppLauncher] Terminal process not found');
       throw new Error('Terminal process not found after launch');
     }
-    
-    const terminalPid = terminalProcess.pid;
-    logger.info(`[AppLauncher] Terminal PID: ${terminalPid}`);
 
     // Wait for the actual CLI app to spawn inside the terminal
     // The terminal launches a shell script which then runs the executable
-    logger.info(`[AppLauncher] Waiting for ${path.basename(executablePath)} process to spawn...`);
-    
+
     let actualPid: number | null = null;
     const maxAttempts = 15; // Try for ~7.5 seconds
     const execName = path.basename(executablePath);
@@ -832,7 +812,6 @@ export async function launchCliWithEbpf(
       targetId || 'default',
       'target.pid',
     );
-    logger.info(`[AppLauncher] Polling pidfile: ${pidFile}`);
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -843,13 +822,9 @@ export async function launchCliWithEbpf(
           const pid = parseInt(raw, 10);
           if (!isNaN(pid) && pid > 1 && fs.existsSync(`/proc/${pid}`)) {
             actualPid = pid;
-            logger.info(`[AppLauncher] Found target PID ${pid} from ${pidFile}`);
             break;
           }
         }
-        logger.info(
-          `[AppLauncher] Attempt ${attempt + 1}/${maxAttempts}: ${execName} pidfile not ready yet, waiting...`,
-        );
       } catch (error) {
         logger.warn(`[AppLauncher] Error reading pidfile:`, error);
       }
@@ -872,7 +847,6 @@ export async function launchCliWithEbpf(
       targetId,
     });
 
-    logger.info(`[AppLauncher] eBPF capture started for ${path.basename(executablePath)} PID ${actualPid}`);
     return true;
   } catch (error) {
     logger.error('[AppLauncher] launchCliWithEbpf failed:', error);
@@ -893,19 +867,15 @@ export async function launchCliWithPacketCapture(
   window: BrowserWindow,
   useSandbox?: boolean,
 ): Promise<boolean> {
-  logger.info(`[AppLauncher] Launching CLI with Packet Capture: ${executablePath}`);
-
   // Start packet capture BEFORE launching app
   const packetCapture = new PacketCapture(window);
-  
+
   try {
     // Start capturing HTTPS traffic (port 443)
     await packetCapture.start({
       filter: 'tcp port 443',
       interface: 'any',
     });
-
-    logger.info('[AppLauncher] Packet capture started');
   } catch (error) {
     logger.error('[AppLauncher] Failed to start packet capture:', error);
     return false;
@@ -946,8 +916,6 @@ export async function launchCliWithDebugMode(
   window: BrowserWindow,
   useSandbox?: boolean,
 ): Promise<boolean> {
-  logger.info(`[AppLauncher] Launching CLI with Debug Mode: ${executablePath}`);
-
   // Use AppDebugLauncher which handles debug env vars
   const debugLauncher = new AppDebugLauncher(window);
 
@@ -982,8 +950,6 @@ export async function launchCliWithDebugMode(
       setTargetProcess(targetId, { pid: debugLauncher.getPid() } as any);
     }
 
-    logger.info(`[AppLauncher] Debug mode started for PID ${debugLauncher.getPid()}`);
-    
     // Emit target started event
     emitTargetStatusChanged(targetId, 'running', {
       id: targetId,
@@ -1005,7 +971,6 @@ export async function launchCliWithDebugMode(
 export function stopCliCapture(targetId: string): void {
   const capture = appState.activeCaptures.get(targetId);
   if (capture) {
-    logger.info(`[AppLauncher] Stopping ${capture.type} capture for ${targetId}`);
     removeCaptureInstance(targetId);
   }
 }
@@ -1020,13 +985,9 @@ export async function launchCliWithCdp(
   useSandbox?: boolean,
 ): Promise<boolean> {
   try {
-    logger.info(`[AppLauncher] Launching CLI with CDP Proxy: ${executablePath}`);
-
     // Start CDP proxy (Chrome + proxy server)
     const cdpProxy = new CdpProxy(window);
     const { proxyPort } = await cdpProxy.start();
-
-    logger.info(`[AppLauncher] CDP proxy started on port ${proxyPort}`);
 
     // Launch CLI app with HTTP_PROXY pointing to CDP proxy
     const proxyUrl = `http://127.0.0.1:${proxyPort}`;
@@ -1052,7 +1013,6 @@ export async function launchCliWithCdp(
       targetId,
     });
 
-    logger.info(`[AppLauncher] CLI launched with CDP proxy on port ${proxyPort}`);
     return true;
   } catch (error) {
     logger.error('[AppLauncher] launchCliWithCdp failed:', error);

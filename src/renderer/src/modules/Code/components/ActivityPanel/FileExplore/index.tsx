@@ -88,7 +88,7 @@ import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileI
 import { cn } from '@renderer/shared/utils/cn';
 
 // ── Components ──
-import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { ConfirmDeleteFileModal } from './ConfirmDeleteFileModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 let lazyFileIdCounter = 100000;
@@ -656,9 +656,7 @@ const TreeNode = memo(function TreeNode({
         <div
           className="text-[11px] text-text-secondary py-0.5"
           style={{ paddingLeft: `${8 + (depth + 1) * 12 + 20}px` }}
-        >
-          (tr��ng)
-        </div>
+        ></div>
       )}
     </div>
   );
@@ -709,10 +707,23 @@ export function FileExplore() {
       logger.error('[FileExplore] Failed to start watcher:', err);
     });
 
+    const normalize = (p: string) => p.replace(/\/+$/, '');
+    const normalizedRoot = normalize(projectPath);
+
     const handler = (_event: any, payload: { dirPath: string }) => {
       const store = useCodeStore.getState();
-      if (store.currentProjectId) {
-        store.invalidateDir(store.currentProjectId, payload.dirPath);
+      if (!store.currentProjectId) return;
+
+      // Luôn bump dirVersion cho folder bị thay đổi (drives lazy-children refresh
+      // của các TreeNode đang expanded).
+      store.invalidateDir(store.currentProjectId, payload.dirPath);
+
+      // Root-level nodes lấy từ `project.files` (initial scan), KHÔNG qua
+      // lazyChildren — nên invalidateDir một mình không làm file mới xuất hiện
+      // ở cấp gốc. Nếu event thuộc root project, re-scan toàn bộ tree.
+      const changedDir = normalize(payload.dirPath);
+      if (changedDir === normalizedRoot) {
+        void refreshProjectTree(store.currentProjectId, projectPath);
       }
     };
 
@@ -1200,16 +1211,20 @@ export function FileExplore() {
             onCancel={() => setCreating(null)}
           />
         )}
-        <div className="flex-1 flex flex-col items-center justify-center text-text-secondary gap-2 p-4">
-          <img
-            src="/images/icon/folder-base.svg"
-            alt=""
-            className="w-8 h-8 opacity-40"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-          <span className="text-xs">Chưa có file nào</span>
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
+          <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
+            <Folder className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-text-primary mb-1">
+              {!project ? 'No project selected' : 'Empty folder'}
+            </p>
+            <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
+              {!project
+                ? 'Select a project from the sidebar to browse files.'
+                : 'This project has no files yet. Create one or open an existing file.'}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -1249,7 +1264,7 @@ export function FileExplore() {
         </div>
 
         {/* Delete confirm modal */}
-        <DeleteConfirmModal
+        <ConfirmDeleteFileModal
           isOpen={deleteModalOpen}
           onClose={handleDeleteCancel}
           onConfirm={handleDeleteConfirm}

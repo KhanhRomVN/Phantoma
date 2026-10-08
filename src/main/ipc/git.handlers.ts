@@ -46,14 +46,11 @@ export function setupGitHandlers(): void {
   ipcMain.handle('git:list-branches', async (_event, projectPath: string) => {
     try {
       const cwd = projectPath || process.cwd();
-      
+
       // Get all branches (local and remote), formatted as short names
       // Using --format="%(refname:short)" gives clean names like "main", "feature/x"
       // Filtering out remotes/HEAD to avoid duplicates/confusion
-      const result = await runGit(
-        ['branch', '-a', '--format=%(refname:short)'], 
-        cwd
-      );
+      const result = await runGit(['branch', '-a', '--format=%(refname:short)'], cwd);
 
       if (result.error) {
         return { error: result.stderr || result.error.message };
@@ -263,4 +260,100 @@ export function setupGitHandlers(): void {
       }
     },
   );
+
+  /**
+   * Get comprehensive Git info for Project Detail Panel
+   * Returns: repoUrl, author, contributors (top 5), branches (with dates & counts)
+   */
+  ipcMain.handle('git:get-project-info', async (_event, projectPath: string) => {
+    const cwd = projectPath;
+
+    // Quick check if it's a git repo
+    const checkResult = await runGit(['rev-parse', '--is-inside-work-tree'], cwd);
+    if (checkResult.error || checkResult.stdout.trim() !== 'true') {
+      logger.warn(
+        `[git:get-project-info] Not a valid git repo or error checking: ${checkResult.stderr || checkResult.error}`,
+      );
+      return null; // Not a git repo
+    }
+
+    try {
+      // Run commands in parallel for performance
+      const [remoteRes, logRes, shortlogRes, branchListRes] = await Promise.all([
+        runGit(['config', '--get', 'remote.origin.url'], cwd),
+        runGit(['log', '-1', '--pretty=format:%an|%ae|%at'], cwd), // Last commit author/email/time
+        runGit(['shortlog', '-sn', '--all'], cwd), // Top contributors
+        runGit(
+          [
+            'for-each-ref',
+            '--sort=-committerdate',
+            'refs/heads/',
+            '--format=%(refname:short)|%(committerdate:unix)',
+          ],
+          cwd,
+        ), // Local branches sorted by date
+      ]);
+
+      // 1. Parse Repo URL
+      const repoUrl = remoteRes.stdout?.trim() || '';
+
+      // 2. Parse Author Info (from last commit as proxy)
+      let author = '';
+      if (!logRes.error && logRes.stdout) {
+        const parts = logRes.stdout.split('|');
+        author = parts[0] || ''; // Name
+      }
+
+      // 3. Parse Contributors (Top 5)
+      const contributors: { username: string }[] = [];
+      if (!shortlogRes.error && shortlogRes.stdout) {
+        const lines = shortlogRes.stdout.split('\n').filter((l) => l.trim());
+        // Format: "   123 John Doe" or "     5 Jane Smith <email>"
+        lines.slice(0, 5).forEach((line) => {
+          const match = line.match(/^\s*\d+\s+(.+)$/);
+          if (match) {
+            // Remove email part if present "Name <email>" -> "Name"
+            const namePart = match[1].split('<')[0].trim();
+            if (namePart) contributors.push({ username: namePart });
+          }
+        });
+      }
+
+      // 4. Parse Branches
+      const branches: { name: string; lastCommitDate: number; commitCount: number }[] = [];
+      if (!branchListRes.error && branchListRes.stdout) {
+        const lines = branchListRes.stdout.split('\n').filter((l) => l.trim());
+
+        // Fetch commit counts sequentially to avoid overwhelming git process with too many parallel spawns
+        // Optimization: Limit to top 10 most recent branches for display speed
+        const topBranches = lines.slice(0, 10);
+
+        for (const line of topBranches) {
+          const [name, tsStr] = line.split('|');
+          if (!name) continue;
+
+          const countRes = await runGit(['rev-list', '--count', name], cwd);
+          const count = parseInt(countRes.stdout?.trim() || '0', 10);
+
+          branches.push({
+            name: name.trim(),
+            lastCommitDate: (parseInt(tsStr, 10) || 0) * 1000, // Unix seconds to ms
+            commitCount: isNaN(count) ? 0 : count,
+          });
+        }
+      }
+
+      const finalResult = {
+        repoUrl,
+        author,
+        contributors,
+        branches,
+      };
+
+      return finalResult;
+    } catch (e: any) {
+      logger.error('[git:get-project-info] Critical Error:', e);
+      return null;
+    }
+  });
 }

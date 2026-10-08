@@ -57,6 +57,8 @@ interface ProjectCardProps {
   isTaskManagerActive: boolean;
   /** Project drag is only enabled with Manual sort */
   draggable: boolean;
+  /** True if ANY item in the list is being dragged — forces visual collapse */
+  isGlobalDragging?: boolean;
   /** Click on the top row: toggle expand/collapse */
   onToggleProject: (projectId: string) => void;
   /** Click on the collapsed tree: expand only */
@@ -83,12 +85,7 @@ interface ProjectCardProps {
   ) => void;
   onDragEnd: () => void;
   onDragOver: (e: React.DragEvent) => void;
-  onDrop: (
-    e: React.DragEvent,
-    targetType: 'project' | 'branch',
-    targetProjectId: string,
-    targetBranchName?: string,
-  ) => void;
+  onDrop: (e: React.DragEvent) => void;
 }
 
 // ─── Helpers (shared with ProjectPanel) ─────────────────────────────────
@@ -423,17 +420,16 @@ const BranchBlock = memo(function BranchBlock({
           onOpenTaskMenu={onOpenTaskMenu}
           onKillProcess={onKillProcess}
           onContextMenu={onSessionContextMenu}
+          // Explicitly disable drag on SessionCard to prevent accidental loss of parent Branch context
+          draggable={false} 
         />
       ) : (
         <div 
           className="rounded-lg px-2.5 py-[9px] flex justify-center items-center text-[11px] text-text-secondary/40 cursor-default"
           style={{
             borderStyle: 'dashed',
-            borderWidth: '1.5px', // Slightly thicker than default 1px
-            borderColor: 'var(--color-border)', // Use theme variable for consistency
-            // To simulate wider gaps in dashes without custom SVG, we rely on browser rendering 
-            // which usually looks acceptable with 1.5px width. If strict control is needed, 
-            // a repeating-linear-gradient background would be required, but that's overkill here.
+            borderWidth: '1.5px',
+            borderColor: 'var(--color-border)',
           }}
         >
           No sessions yet
@@ -451,6 +447,7 @@ export const ProjectCard = memo(function ProjectCard({
   selectedSessionId,
   isTaskManagerActive,
   draggable,
+  isGlobalDragging = false,
   onToggleProject,
   onOpenProject,
   onSelectSession,
@@ -493,7 +490,7 @@ export const ProjectCard = memo(function ProjectCard({
   return (
     <div
       className={cn(
-        'relative border-b border-divider overflow-hidden', // Added overflow-hidden for glow containment if needed, though absolute works too
+        'relative border-y border-divider overflow-hidden', // Changed to border-y (top + bottom)
         project.hidden && 'opacity-50',
       )}
       draggable={draggable}
@@ -504,15 +501,6 @@ export const ProjectCard = memo(function ProjectCard({
       onDrop={(e) => onDrop(e, 'project', project.id)}
       onContextMenu={openMenuAt}
     >
-      {/* Top-left Accent Glow Effect */}
-      <div 
-        className="absolute -top-12 -left-12 w-32 h-32 rounded-full pointer-events-none blur-xl opacity-20 transition-opacity duration-500 ease-out"
-        style={{
-          backgroundColor: projectGlowColor,
-          boxShadow: `0 0 40px 10px ${toRgba(projectGlowColor, 0.3)}`,
-          zIndex: 0
-        }}
-      />
       {/* ── Top: name row + task chips ── */}
       <div
         className="group/top flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
@@ -577,9 +565,9 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       </div>
 
-      {/* ── COLLAPSED VIEW: compact branch tree with inline session display ── */}
-      {!isSelected && (
-        <div className="flex flex-col gap-px pl-3 pr-2 pb-2.5">
+      {/* ── CONTENT AREA: Collapses visually when global drag is active ── */}
+      {!isGlobalDragging && !isSelected && (
+        <div className="flex flex-col gap-px pl-3 pr-2 pb-2.5 transition-opacity duration-150">
           <CollapsedTree
             project={project}
             selectedSessionId={selectedSessionId}
@@ -598,8 +586,7 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       )}
 
-      {/* ── EXPANDED VIEW: branch blocks ── */}
-      {isSelected && (
+      {!isGlobalDragging && isSelected && (
         <div className="px-3 pt-0.5 pb-3 flex flex-col gap-3.5 relative animate-in fade-in slide-in-from-top-1 duration-150">
           {visBranches.length > 0 ? (
             visBranches.map((branch) => (
@@ -628,6 +615,11 @@ export const ProjectCard = memo(function ProjectCard({
             </div>
           )}
         </div>
+      )}
+
+      {/* Placeholder during drag to maintain layout height without rendering heavy children */}
+      {isGlobalDragging && (
+        <div className="h-8 w-full" /> 
       )}
     </div>
   );

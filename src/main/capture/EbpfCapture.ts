@@ -4,12 +4,12 @@
  * ------------------------------------------------------------------
  * Captures plaintext HTTPS traffic using eBPF (ecapture tool).
  * Hooks SSL_write/SSL_read at kernel level BEFORE encryption.
- * 
+ *
  * Captures: Full plaintext HTTP/HTTPS requests and responses
  * Preserves: SSL/TLS signatures (no re-encryption)
- * 
+ *
  * Requirements: Linux kernel 4.18+, root/CAP_BPF capability
- * 
+ *
  * Main functions:
  * - start()   : Start eBPF capture for target process
  * - stop()    : Stop eBPF capture
@@ -57,24 +57,17 @@ export class EbpfCapture extends EventEmitter {
     // Check if ecapture is available
     const ecapturePath = await this.findEcapture();
     if (!ecapturePath) {
-      throw new Error(
-        'ecapture not found. Install: https://github.com/gojue/ecapture'
-      );
+      throw new Error('ecapture not found. Install: https://github.com/gojue/ecapture');
     }
-
-    logger.info(
-      `[EbpfCapture] Starting capture for PID ${options.targetPid} (exe: ${options.targetExe || 'n/a'})`,
-    );
 
     // ecapture 'tls' subcommand hooks SSL_write/SSL_read.
     // Binary must have caps: cap_bpf,cap_perfmon,cap_sys_admin (set once via setcap).
     const args = [
       'tls',
-      '--pid', options.targetPid.toString(),
+      '--pid',
+      options.targetPid.toString(),
       '--hex', // Output hex for binary data
     ];
-
-    logger.info(`[EbpfCapture] Spawning: ${ecapturePath} ${args.join(' ')}`);
 
     try {
       this.process = spawn(ecapturePath, args, {
@@ -91,7 +84,6 @@ export class EbpfCapture extends EventEmitter {
       // Parse stdout (ecapture writes captured events to stdout)
       this.process.stdout?.on('data', (data: Buffer) => {
         const text = data.toString();
-        logger.debug('[EbpfCapture] stdout chunk:', text.slice(0, 200));
         this.buffer += text;
         this.parseBuffer();
       });
@@ -109,9 +101,6 @@ export class EbpfCapture extends EventEmitter {
 
       // Handle exit
       this.process.on('exit', (code, signal) => {
-        logger.info(
-          `[EbpfCapture] Process exited with code ${code}, signal ${signal ?? 'none'}`,
-        );
         this.isRunning = false;
         this.process = null;
       });
@@ -125,7 +114,6 @@ export class EbpfCapture extends EventEmitter {
 
   public stop(): void {
     if (this.process) {
-      logger.info('[EbpfCapture] Stopping capture');
       this.process.kill('SIGTERM');
       this.process = null;
       this.isRunning = false;
@@ -136,11 +124,7 @@ export class EbpfCapture extends EventEmitter {
   private async findEcapture(): Promise<string | null> {
     // Check common install locations first, then PATH. setcap requires the
     // exact binary path, and pkexec/polkit inject a different PATH.
-    const candidates = [
-      '/usr/local/bin/ecapture',
-      '/usr/bin/ecapture',
-      '/opt/ecapture/ecapture',
-    ];
+    const candidates = ['/usr/local/bin/ecapture', '/usr/bin/ecapture', '/opt/ecapture/ecapture'];
 
     const { accessSync, constants } = await import('fs');
     for (const candidate of candidates) {
@@ -171,7 +155,7 @@ export class EbpfCapture extends EventEmitter {
     // GET /api/chat HTTP/1.1
     // Host: api.cline.bot
     // ...
-    
+
     const lines = this.buffer.split('\n');
     let currentEvent: Partial<HttpsEvent> | null = null;
     let headers: Record<string, string> = {};
@@ -247,7 +231,6 @@ export class EbpfCapture extends EventEmitter {
   }
 
   private sendEvent(event: HttpsEvent): void {
-    logger.debug('[EbpfCapture] Captured event:', event.type, event.url || event.statusCode);
     this.sendToRenderer('ebpf:https-event', event);
   }
 

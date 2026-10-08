@@ -22,9 +22,6 @@ export const useFileUpload = (apiUrl: string) => {
    */
   const uploadFiles = useCallback(
     async (files: any[], accountId: string): Promise<string[]> => {
-      logger.info(
-        `[useFileUpload] uploadFiles called with ${files.length} files, accountId: ${accountId}`,
-      );
       const ref_file_ids: string[] = [];
 
       const localFiles = files.filter(
@@ -43,17 +40,11 @@ export const useFileUpload = (apiUrl: string) => {
           continue;
         }
 
-        logger.info(
-          `[useFileUpload] Uploading file: name="${file.name}", size=${file.size}, type="${file.type}"`,
-        );
-
         try {
           let blob: Blob;
           if (file.content.startsWith('data:')) {
-            logger.info(`[useFileUpload] Converting base64 data to Blob`);
             const arr = file.content.split(',');
             const mime = arr[0].match(/:(.*?);/)?.[1] || file.type || 'application/octet-stream';
-            logger.info(`[useFileUpload] MIME type: ${mime}`);
             const bstr = atob(arr[1]);
             let n = bstr.length;
             const u8arr = new Uint8Array(n);
@@ -61,9 +52,7 @@ export const useFileUpload = (apiUrl: string) => {
               u8arr[n] = bstr.charCodeAt(n);
             }
             blob = new Blob([u8arr], { type: mime });
-            logger.info(`[useFileUpload] Blob created, size: ${blob.size} bytes`);
           } else {
-            logger.info(`[useFileUpload] Creating Blob from text content`);
             blob = new Blob([file.content], {
               type: file.type || 'text/plain',
             });
@@ -73,16 +62,11 @@ export const useFileUpload = (apiUrl: string) => {
           formData.append('file', blob, file.name);
 
           const uploadUrl = `${apiUrl}/v1/uploads/accounts/${accountId}/uploads`;
-          logger.info(`[useFileUpload] Sending POST to: ${uploadUrl}`);
 
           const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             body: formData,
           });
-
-          logger.info(
-            `[useFileUpload] Upload response: status=${uploadRes.status} ${uploadRes.statusText}`,
-          );
 
           if (!uploadRes.ok) {
             const errorText = await uploadRes.text();
@@ -109,7 +93,6 @@ export const useFileUpload = (apiUrl: string) => {
         }
       }
 
-      logger.info(`[useFileUpload] All uploads completed. Total file_ids: ${ref_file_ids.length}`);
       return ref_file_ids;
     },
     [apiUrl],
