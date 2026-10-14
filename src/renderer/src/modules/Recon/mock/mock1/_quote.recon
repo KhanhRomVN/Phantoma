@@ -1,0 +1,22 @@
+---
+recon: 1.0
+type: tab
+title: Quote
+---
+
+# Quote có tác giả và nguồn
+@box w=10 maxh=12 ui=quote icon=Quote desc="Trích dẫn kèm tác giả và nguồn {src=...}"
+
+- Tên miền nguyenvana.com là dự án cá nhân của tôi, chưa dùng cho mục đích kinh doanh. | Nguyễn Văn A {src=S-001}
+- Công ty cấp laptop và điện thoại công tác cho toàn bộ kỹ sư backend. | Thông báo nội bộ TechCorp VN {src=S-002}
+- Chủ sở hữu tên miền được ẩn thông tin theo dịch vụ bảo vệ quyền riêng tư. | Kết quả WHOIS {src=S-004,S-001}
+
+# Quote không tác giả
+@box w=5 maxh=6 ui=quote icon=Quote desc="Chỉ có nội dung trích"
+
+- Tôi thường đăng ảnh khi đi công tác ở Nha Trang.
+
+# Quote nội dung dài
+@box w=5 maxh=8 ui=quote icon=Quote desc="Trích dẫn nhiều dòng"
+
+- Mọi thiết bị công tác phải được báo cáo ngay khi mất, trong vòng 24 giờ, kèm mô tả vị trí và thời điểm cuối cùng sử dụng, để bộ phận bảo mật khoá từ xa. | Quy định thiết bị TechCorp VN {src=S-002}

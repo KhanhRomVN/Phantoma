@@ -17,7 +17,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
@@ -100,7 +99,7 @@ export function useRepeaterPersistence({
             }));
           }
         } catch (e) {
-          logger.warn('[RepeaterPersist] Failed to parse params:', e);
+          console.warn('[RepeaterPersist] Failed to parse params:', e);
         }
         try {
           const parsedHeaders = JSON.parse(req.headers || '[]');
@@ -121,7 +120,7 @@ export function useRepeaterPersistence({
             }));
           }
         } catch (e) {
-          logger.warn('[RepeaterPersist] Failed to parse headers:', e);
+          console.warn('[RepeaterPersist] Failed to parse headers:', e);
         }
         const payloadsRes = await emulateApi.listPayloads(targetId, req.id);
         let loadedPayloads: PayloadItem[] = [];
@@ -134,7 +133,7 @@ export function useRepeaterPersistence({
               try {
                 return JSON.parse(p.payload_values);
               } catch (e) {
-                logger.warn('[RepeaterPersist] Failed to parse payload values:', e);
+                console.warn('[RepeaterPersist] Failed to parse payload values:', e);
                 return [];
               }
             })(),
@@ -213,7 +212,7 @@ export function useRepeaterPersistence({
         }
         lastSavedRef.current = snapshot;
       } catch (err) {
-        logger.error('[RepeaterPersist] Save failed:', err);
+        console.error('[RepeaterPersist] Save failed:', err);
       } finally {
         setIsSaving(false);
       }

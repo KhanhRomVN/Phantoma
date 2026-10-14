@@ -8,7 +8,9 @@ This document defines the standard comment structure for all source files in the
 
 Every file **must** start with a block comment describing the file's purpose and listing its main exports/functions/features.
 
-```ts
+### 1.1 General Format (Services, Components, Hooks, Utils)
+
+
 /**
  * ------------------------------------------------------------------
  * <File Title>
@@ -21,6 +23,46 @@ Every file **must** start with a block comment describing the file's purpose and
  * - itemC() : <short description>
  * ------------------------------------------------------------------
  */
+
+
+### 1.2 IPC Handlers Format (`src/main/ipc/*.handlers.ts`)
+
+For files located in `src/main/ipc/`, the header must strictly categorize content into five sections: **Types**, **Constants**, **Channels**, **Functions**, and **Utils**. The **Channels** section is critical as it serves as the API contract documentation for the Renderer process.
+
+
+/**
+ * ------------------------------------------------------------------
+ * IPC <Domain> Handlers
+ * ------------------------------------------------------------------
+ * <Detailed description of the domain responsibility, e.g., managing browser sessions, handling FS operations.>
+ *
+ * Types:
+ * - TypeName       : <Description of the interface/type>
+ *
+ * Constants:
+ * - CONST_NAME     : <Description of the constant/map/set>
+ *
+ * Channels:
+ * - domain:action  : <Short description of what this IPC call does>
+ * - domain:other   : <Another channel description>
+ *
+ * Functions:
+ * - setupXxxHandlers() : Entry point for registering all channels below
+ * - cleanupXxx()       : Optional lifecycle function (e.g., closeAllSessions)
+ *
+ * Utils:
+ * - helperFunc()   : Internal private helpers used by the handlers above
+ * ------------------------------------------------------------------
+ */
+
+
+**Rules for IPC Headers:**
+- **Title**: Must follow the pattern `IPC <Domain> Handlers` (e.g., `IPC App Handlers`, `IPC Browser Handlers`).
+- **Ordering**: Sections must appear in the order: Types → Constants → Channels → Functions → Utils.
+- **Channels Listing**: You MUST list every single `ipcMain.handle(...)` or `ipcMain.on(...)` channel registered in this file under the **Channels** section. Do not just say "registers handlers". List them explicitly like `- browser:launch : Starts puppeteer instance`.
+- **Completeness**: List ALL significant types, constants, channels, exported functions, and notable internal utils defined in the file.
+- **Language**: Descriptions should be in Vietnamese for consistency with project standards, while identifiers (channel names, type names) remain in English.
+- **Skip Empty Sections**: If a file has no Types or Utils, omit those sections entirely rather than leaving them blank.
 ```
 
 **Example (Service):**
@@ -450,7 +492,7 @@ export interface PaginatedResponse<T> {
 
 ### 5.6 Store
 
-```ts
+
 /**
  * ------------------------------------------------------------------
  * Target Store
@@ -465,14 +507,14 @@ export interface PaginatedResponse<T> {
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
+// ─── Imports ───────────────────────────────────────────────────────────
 // ── Store ──
 import { create } from 'zustand';
 
-// ── Services ──
+// ── Services ─
 import { targetService } from '@renderer/services';
 
-// ── Types ──
+// ── Types ─
 import { Target } from '@renderer/types';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
@@ -492,6 +534,100 @@ interface TargetActions {
 export const useTargetStore = create<TargetState & TargetActions>((set, get) => ({
   // ...
 }));
+
+
+### 5.7 IPC Handler (Main Process)
+
+File: `src/main/ipc/app.handlers.ts`
+
+
+/**
+ * ------------------------------------------------------------------
+ * IPC App Handlers
+ * ------------------------------------------------------------------
+ * Đăng ký IPC handler cho các thao tác liên quan đến ứng dụng hệ thống:
+ * liệt kê danh sách ứng dụng đã cài đặt (cross-platform) và truy vấn
+ * mức sử dụng bộ nhớ của tiến trình Electron.
+ *
+ * Types:
+ * - DiscoveredApp   : Cấu trúc dữ liệu đại diện cho một ứng dụng tìm thấy
+ * - DesktopEntry    : Interface trung gian để parse file .desktop
+ *
+ * Constants:
+ * - APPLICATIONS_PATHS : Danh sách thư mục chứa shortcut ứng dụng trên Linux
+ * - ICON_THEME_PATHS   : Danh sách thư mục icon theme chuẩn
+ *
+ * Channels:
+ * - app:list-installed  : Quét và trả về danh sách ứng dụng đã cài đặt trên hệ thống
+ * - app:get-memory-usage: Lấy thông tin bộ nhớ đang sử dụng bởi process Electron hiện tại
+ *
+ * Functions:
+ * - setupAppHandlers() : Entry point đăng ký toàn bộ IPC handler nhóm 'app:'
+ *
+ * Utils:
+ * - findIconPath()     : Tra cứu đường dẫn tuyệt đối của icon từ tên hoặc path tương đối
+ * - parseDesktopFile() : Phân tích nội dung file .desktop thành object key-value
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Node.js ──
+import * as fs from 'fs';
+import * as path from 'path';
+
+// ── Electron ─
+import { ipcMain } from 'electron';
+
+// ── Internal ─
+import { logger } from '../utils/logger';
+
+// ─── Interfaces & Types ─────────────────────────────────────────────────
+interface DiscoveredApp {
+  name: string;
+  exec: string;
+  icon?: string;
+  description?: string;
+  path: string;
+}
+
+interface DesktopEntry {
+  Name?: string;
+  Exec?: string;
+  Icon?: string;
+  Comment?: string;
+  NoDisplay?: boolean;
+}
+
+// ─── Constants ─────────────────────────────────────────────────────────
+const APPLICATIONS_PATHS = [
+  '/usr/share/applications',
+  path.join(process.env.HOME || '', '.local/share/applications'),
+];
+
+const ICON_THEME_PATHS = [
+  '/usr/share/icons/hicolor/48x48/apps',
+  // ... other paths
+];
+
+// ─── Helper Functions ───────────────────────────────────────────────────
+function findIconPath(iconName?: string): string | undefined {
+  // ... implementation
+}
+
+function parseDesktopFile(content: string): DesktopEntry | null {
+  // ... implementation
+}
+
+// ─── Functions ─────────────────────────────────────────────────────────
+export function setupAppHandlers() {
+  ipcMain.handle('app:list-installed', async (): Promise<DiscoveredApp[]> => {
+    // ... inline logic using helpers above
+  });
+  
+  ipcMain.handle('app:get-memory-usage', () => {
+    return process.memoryUsage();
+  });
+}
 ```
 
 ---

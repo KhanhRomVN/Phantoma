@@ -18,7 +18,6 @@ import { emulateApi } from '../services/emulate-api.service';
 import { NetworkRequest } from '../types/inspector';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 export class DeleteRepeaterHandler {
@@ -28,7 +27,11 @@ export class DeleteRepeaterHandler {
    * @param repeaterId - Indexing mapping từ list_repeaters, format: repeater_<number>
    * @param targetId   - Target ID để query database
    */
-  public async handle(requests: NetworkRequest[], repeaterId: string, targetId?: string | null): Promise<{ text: string }> {
+  public async handle(
+    requests: NetworkRequest[],
+    repeaterId: string,
+    targetId?: string | null,
+  ): Promise<{ text: string }> {
     const match = /^repeater_(\d+)$/.exec(repeaterId.trim());
     if (!match) {
       return {
@@ -70,7 +73,7 @@ export class DeleteRepeaterHandler {
 
       return { text: `[delete_repeater] Removed ${repeaterId}` };
     } catch (err: any) {
-      logger.error('[DeleteRepeaterHandler] Error:', err);
+      console.error('[DeleteRepeaterHandler] Error:', err);
       return { text: `[delete_repeater] Error: ${err.message || String(err)}` };
     }
   }

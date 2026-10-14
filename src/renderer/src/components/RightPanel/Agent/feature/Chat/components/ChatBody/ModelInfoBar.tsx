@@ -15,7 +15,6 @@ import React from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ── Types ──
 import { Message } from '../../types/message';
@@ -47,7 +46,7 @@ const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
     email = data.email;
     websiteUrl = data.websiteUrl;
   } catch (e) {
-    logger.error('Failed to parse model switch message:', e);
+    console.error('Failed to parse model switch message:', e);
     return null;
   }
 

@@ -23,7 +23,7 @@ import { Search, Smartphone, Monitor, Loader2, RefreshCw, Check } from 'lucide-r
 import type { BaseModalProps } from './index';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 import { runtimeApi } from '../../../services/runtime-api.service';
 
@@ -80,7 +80,7 @@ export const Android = forwardRef<AndroidRef, AndroidBodyProps>(function Android
       });
       setDevices(list);
     } catch (e) {
-      logger.error('Failed to load devices:', e);
+      console.error('Failed to load devices:', e);
     } finally {
       setLoading(false);
     }
@@ -141,7 +141,7 @@ export const Android = forwardRef<AndroidRef, AndroidBodyProps>(function Android
         emulatorSerial: selectedDevice.serial,
       });
     } catch (error) {
-      logger.error('[Android] Add target failed:', error);
+      console.error('[Android] Add target failed:', error);
     }
   };
 

@@ -14,13 +14,11 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Services ──
 import { emulateApi } from '../services/emulate-api.service';
-import { ipcService } from '../../../services/ipc.service';
 
 // ── Types ──
 import { NetworkRequest } from '../types/inspector';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface SendRequestResult {
@@ -114,18 +112,18 @@ export class RunRepeaterHandler {
           });
         }
       } catch (err) {
-        logger.warn('[RunRepeaterHandler] Failed to load payloads:', err);
+        console.warn('[RunRepeaterHandler] Failed to load payloads:', err);
       }
 
       // Filter enabled payloads with values
-      const enabledPayloads = payloads.filter(p => p.enabled && p.values && p.values.length > 0);
+      const enabledPayloads = payloads.filter((p) => p.enabled && p.values && p.values.length > 0);
 
       // Parse params từ JSON
       let params: any[] = [];
       try {
         params = reqData.params ? JSON.parse(reqData.params) : [];
       } catch (err) {
-        logger.warn('[RunRepeaterHandler] Failed to parse params:', reqData.params, err);
+        console.warn('[RunRepeaterHandler] Failed to parse params:', reqData.params, err);
       }
 
       // Parse headers từ JSON
@@ -133,7 +131,7 @@ export class RunRepeaterHandler {
       try {
         headers = reqData.headers ? JSON.parse(reqData.headers) : [];
       } catch (err) {
-        logger.warn('[RunRepeaterHandler] Failed to parse headers:', reqData.headers, err);
+        console.warn('[RunRepeaterHandler] Failed to parse headers:', reqData.headers, err);
       }
 
       // Build request
@@ -163,10 +161,10 @@ export class RunRepeaterHandler {
 
         // Cartesian product
         let result: Array<Record<string, string>> = [{}];
-        enabledPayloads.forEach(payload => {
+        enabledPayloads.forEach((payload) => {
           const newResult: Array<Record<string, string>> = [];
-          result.forEach(combination => {
-            payload.values.forEach(val => {
+          result.forEach((combination) => {
+            payload.values.forEach((val) => {
               newResult.push({ ...combination, [payload.name]: val });
             });
           });
@@ -192,7 +190,7 @@ export class RunRepeaterHandler {
 
       for (let i = 0; i < validIterations; i++) {
         const combo = combinations[i];
-        
+
         // Replace payload variables trong params, headers, body
         const replacePayloadVars = (str: string): string => {
           if (!str) return str;
@@ -226,16 +224,30 @@ export class RunRepeaterHandler {
         }
 
         const startTime = Date.now();
-        const result = await ipcService.sendRequest({
-          url: finalUrl,
-          method: reqData.method,
-          headers: finalHeaders,
-          body: reqData.method !== 'GET' && finalBody ? finalBody : undefined,
-        });
+        let sendResult: SendRequestResult;
+        try {
+          const response = await fetch(finalUrl, {
+            method: reqData.method,
+            headers: finalHeaders,
+            body: reqData.method !== 'GET' && finalBody ? finalBody : undefined,
+          });
 
-        const sendResult: SendRequestResult = result.success
-          ? (result.data as SendRequestResult)
-          : { status: 0, headers: {}, body: '' };
+          const respHeaders: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            respHeaders[key] = value;
+          });
+
+          const respBody = await response.text();
+
+          sendResult = {
+            status: response.status,
+            headers: respHeaders,
+            body: respBody,
+          };
+        } catch (err) {
+          console.error('[RunRepeaterHandler] Fetch failed:', err);
+          sendResult = { status: 0, headers: {}, body: String(err) };
+        }
 
         const duration = Date.now() - startTime;
 
@@ -259,14 +271,17 @@ export class RunRepeaterHandler {
           history = JSON.parse(stored);
         }
       } catch (err) {
-        logger.warn('[RunRepeaterHandler] Failed to load history:', err);
+        console.warn('[RunRepeaterHandler] Failed to load history:', err);
       }
 
       // Lưu vào history (mỗi run)
-      results.forEach(r => {
-        const payloadText = Object.entries(r.payloadCombo).length > 0
-          ? Object.entries(r.payloadCombo).map(([k, v]) => `${k}=${v}`).join(', ')
-          : '';
+      results.forEach((r) => {
+        const payloadText =
+          Object.entries(r.payloadCombo).length > 0
+            ? Object.entries(r.payloadCombo)
+                .map(([k, v]) => `${k}=${v}`)
+                .join(', ')
+            : '';
 
         const historyEntry: HistoryEntry = {
           id: crypto.randomUUID(),
@@ -294,16 +309,19 @@ export class RunRepeaterHandler {
       try {
         localStorage.setItem(storageKey, JSON.stringify(history));
       } catch (err) {
-        logger.error('[RunRepeaterHandler] Failed to save history:', err);
+        console.error('[RunRepeaterHandler] Failed to save history:', err);
       }
 
       // Format response theo số lần chạy
       if (validIterations === 1) {
         // Single run: Hiển thị chi tiết
         const sendResult = results[0];
-        const payloadText = Object.entries(sendResult.payloadCombo).length > 0
-          ? `\nPayload: ${Object.entries(sendResult.payloadCombo).map(([k, v]) => `${k}=${v}`).join(', ')}`
-          : '';
+        const payloadText =
+          Object.entries(sendResult.payloadCombo).length > 0
+            ? `\nPayload: ${Object.entries(sendResult.payloadCombo)
+                .map(([k, v]) => `${k}=${v}`)
+                .join(', ')}`
+            : '';
 
         const responseHeadersText = Object.entries(sendResult.headers)
           .map(([key, value]) => `  "${key}": "${value}"`)
@@ -330,8 +348,10 @@ ${responseBodyText}`,
         };
       } else {
         // Multiple runs: Hiển thị danh sách
-        const avgDuration = Math.round(results.reduce((sum, r) => sum + r.duration, 0) / results.length);
-        const successCount = results.filter(r => r.status >= 200 && r.status < 300).length;
+        const avgDuration = Math.round(
+          results.reduce((sum, r) => sum + r.duration, 0) / results.length,
+        );
+        const successCount = results.filter((r) => r.status >= 200 && r.status < 300).length;
 
         let summary = `[run_repeater] ${reqData.method} ${reqData.url}\n\n`;
         summary += `Total Runs: ${validIterations}\n`;
@@ -341,16 +361,19 @@ ${responseBodyText}`,
 
         results.forEach((r, idx) => {
           const statusEmoji = r.status >= 200 && r.status < 300 ? '✓' : '✗';
-          const payloadText = Object.entries(r.payloadCombo).length > 0
-            ? ` | Payload: ${Object.entries(r.payloadCombo).map(([k, v]) => `${k}=${v}`).join(', ')}`
-            : '';
+          const payloadText =
+            Object.entries(r.payloadCombo).length > 0
+              ? ` | Payload: ${Object.entries(r.payloadCombo)
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join(', ')}`
+              : '';
           summary += `${idx + 1}. ${statusEmoji} Status: ${r.status} | Duration: ${r.duration}ms${payloadText}\n`;
         });
 
         return { text: summary };
       }
     } catch (err: any) {
-      logger.error('[RunRepeaterHandler] Error:', err);
+      console.error('[RunRepeaterHandler] Error:', err);
       return {
         text: `[run_repeater] Error: ${err.message || String(err)}`,
       };

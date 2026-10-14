@@ -1,0 +1,26 @@
+---
+recon: 1.0
+type: tab
+title: Graph
+---
+
+# Graph quan hệ
+@box w=10 ui=graph icon=Share2 desc="Node theo loại (person, domain, device, social) và edge kèm độ tin cậy"
+
+node: P-001 | Nguyễn Văn A | person
+node: D-001 | nguyenvana.com | domain
+node: IP-001 | iPhone 15 Pro | device
+node: SC-001 | Facebook nv.a | social
+node: SC-002 | LinkedIn nva | social
+edge: P-001 -> D-001 | sở hữu tên miền | 0.95
+edge: P-001 -> IP-001 | dùng thiết bị | 0.80
+edge: P-001 -> SC-001 | chủ tài khoản | 0.60
+edge: P-001 -> SC-002 | chủ tài khoản | 0.40
+edge: SC-001 -> SC-002 | trùng ảnh đại diện | 0.30
+
+# Graph nhỏ
+@box w=5 ui=graph source=manual icon=Share2 desc="Graph thủ công (source=manual): không liên kết dữ liệu, dùng node:/edge:"
+
+node: P-001 | Nguyễn Văn A | person
+node: D-001 | nguyenvana.com | domain
+edge: P-001 -> D-001 | sở hữu tên miền | 0.95

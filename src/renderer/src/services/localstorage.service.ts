@@ -16,7 +16,6 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { logger } from '@renderer/utils/logger';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 class LocalStorageService {
@@ -34,7 +33,7 @@ class LocalStorageService {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      logger.error(`[LocalStorage] Failed to set ${key}:`, error);
+      console.error(`[LocalStorage] Failed to set ${key}:`, error);
     }
   }
 
@@ -42,7 +41,7 @@ class LocalStorageService {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      logger.error(`[LocalStorage] Failed to remove ${key}:`, error);
+      console.error(`[LocalStorage] Failed to remove ${key}:`, error);
     }
   }
 
@@ -83,7 +82,7 @@ class LocalStorageService {
       }
       keysToRemove.forEach((key) => localStorage.removeItem(key));
     } catch (error) {
-      logger.error(`[LocalStorage] Failed to clear ${prefix}:`, error);
+      console.error(`[LocalStorage] Failed to clear ${prefix}:`, error);
     }
   }
 }

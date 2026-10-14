@@ -15,7 +15,6 @@
 import { Message } from '../types/message';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ── Local ──
 import { calculateTokens } from './ConversationService';
@@ -79,7 +78,7 @@ export class StreamingService {
         errorDetail = msg || errorDetail;
         if (errBody.error_code) errorDetail = `[${errBody.error_code}] ${errorDetail}`;
       } catch {
-        logger.warn('[StreamingService] Failed to parse error body');
+        console.warn('[StreamingService] Failed to parse error body');
       }
       throw new Error(errorDetail);
     }
@@ -259,7 +258,7 @@ export class StreamingService {
           assistantMessage.thinking = (assistantMessage.thinking || '') + data.thinking;
         }
       } catch (e) {
-        logger.warn('[StreamingService] Failed to parse stream data:', e);
+        console.warn('[StreamingService] Failed to parse stream data:', e);
       }
     }
 

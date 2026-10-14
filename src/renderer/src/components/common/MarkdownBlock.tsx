@@ -22,7 +22,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
 // ── Components ──
-import CodeBlock from '@renderer/components/common/CodeBlock';
+import ReadOnlyCodeBlock from '@renderer/components/common/ReadOnlyCodeBlock';
 
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
@@ -188,7 +188,7 @@ const domNodeToReact = (
       const className = codeEl.className || '';
       const languageMatch = className.match(/language-(\w+)/);
       const language = languageMatch ? languageMatch[1] : 'text';
-      return <CodeBlock key={key} code={codeText} language={language} />;
+      return <ReadOnlyCodeBlock key={key} code={codeText} language={language} />;
     }
   }
 

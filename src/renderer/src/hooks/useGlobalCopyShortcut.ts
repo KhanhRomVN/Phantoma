@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { logger } from '@renderer/utils/logger';
 
 /**
  * Hook để xử lý phím tắt Copy (Ctrl+C / Cmd+C) toàn cục cho text đã chọn.
@@ -20,7 +19,7 @@ export const useGlobalCopyShortcut = () => {
           try {
             await navigator.clipboard.writeText(selectedText);
           } catch (err) {
-            logger.error('[GlobalCopy] Failed to copy to clipboard:', err);
+            console.error('[GlobalCopy] Failed to copy to clipboard:', err);
           }
         }
       }

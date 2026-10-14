@@ -14,7 +14,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 
 // ── React ──
 import { useState, useEffect, useRef } from 'react';
@@ -74,7 +74,7 @@ export const useWorkspaceData = () => {
         const rules = JSON.parse(stored);
         setAvailableRules(rules);
       } catch (error) {
-        logger.warn('[useWorkspaceData] Failed to parse rules:', error);
+        console.warn('[useWorkspaceData] Failed to parse rules:', error);
       }
     }
   }, []);

@@ -1,21 +1,25 @@
 /**
  * ------------------------------------------------------------------
- * IPC Handler — Task Storage (SQLite)
+ * IPC Task Handlers
  * ------------------------------------------------------------------
- * Đăng ký các IPC handler cho thao tác CRUD task trong Code module.
- * Data được lưu per-project tại ~/.phantoma/code:{slug}/task.sqlite
+ * Giao diện CRUD cho hệ thống quản lý công việc (Task Tracker) tích hợp
+ * sẵn trong IDE. Sử dụng SQLite làm backend lưu trữ cục bộ theo từng dự án
+ * (~/.phantoma/...) để đảm bảo hiệu suất và tính độc lập dữ liệu.
  *
  * Channels:
- * - task:list     : Lấy danh sách tasks của một project
- * - task:get      : Lấy 1 task theo id
- * - task:create   : Tạo mới task
- * - task:update   : Cập nhật task
- * - task:delete   : Xóa task
+ * - task:list   : Lấy toàn bộ danh sách tasks của một project
+ * - task:get    : Chi tiết một task duy nhất theo ID
+ * - task:create : Thêm mới một task vào database
+ * - task:update : Sửa đổi thuộc tính của một task hiện có
+ * - task:delete : Xóa vĩnh viễn một task
+ *
+ * Functions:
+ * - setupTaskHandlers() : Entry point đăng ký IPC handler nhóm 'task:'
  * ------------------------------------------------------------------
  */
 
 import { ipcMain } from 'electron';
-import { taskStorage, type CreateTaskInput, type UpdateTaskInput } from '../services/TaskStorage';
+import { taskStorage, type CreateTaskInput, type UpdateTaskInput } from '../storage/TaskStorage';
 import { logger } from '../utils/logger';
 
 export function setupTaskHandlers(): void {

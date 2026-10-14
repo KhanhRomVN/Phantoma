@@ -1,14 +1,46 @@
 /**
  * ------------------------------------------------------------------
- * IPC handler hệ thống file
+ * IPC File System Handlers
  * ------------------------------------------------------------------
- * IPC handler hệ thống file cho renderer. Cung cấp đọc-ghi file/thư mục,
- * liệt kê, tìm kiếm, lệnh shell, theo dõi file và
- * cài đặt CA hệ thống.
+ * Bộ API hệ thống file đầy đủ cho Renderer process. Hỗ trợ thao tác
+ * file/thư mục cơ bản, tìm kiếm regex/glob, giám sát thay đổi realtime
+ * (via chokidar), thực thi shell command và quản lý chứng chỉ TLS hệ thống.
  *
- * Hàm chính:
- * - setupFSHandlers()   : Đăng ký tất cả IPC handler fs:/shell:/cert:
- * - installSystemCA()   : Cài đặt CA Phantoma vào kho tin cậy hệ thống
+ * Constants:
+ * - watchers      : Map quản lý các FSWatcher cấp thư mục đang hoạt động
+ * - fileWatchers  : Map quản lý các FSWatcher cấp file đơn lẻ đang hoạt động
+ *
+ * Channels:
+ * - fs:read-file        : Đọc nội dung text từ một file
+ * - fs:write-file       : Ghi đè hoặc tạo mới file với content string
+ * - fs:list-dir         : Liệt kê chi tiết file/thư mục con (có stat info)
+ * - fs:read-dir         : Liệt kê nhanh tên và type của entries trong thư mục
+ * - fs:stat             : Lấy thông tin metadata (size, mtime, isDir...) của path
+ * - fs:delete-file      : Xóa một file duy nhất
+ * - fs:remove-dir       : Xóa thư mục và toàn bộ nội dung bên trong (rm -rf)
+ * - fs:rename           : Đổi tên hoặc di chuyển file/thư mục
+ * - fs:find-files       : Tìm kiếm file theo tên/pattern trong cây thư mục
+ * - fs:search           : Tìm kiếm nâng cao với option case/word/regex/include/exclude
+ * - fs:replace-all      : Thay thế hàng loạt chuỗi khớp trong nhiều file
+ * - shell:open-path     : Mở path mặc định bằng ứng dụng hệ thống (xdg-open/open)
+ * - fs:watch-dir        : Bắt đầu giám sát thay đổi trong thư mục
+ * - fs:unwatch-dir      : Ngừng giám sát thư mục
+ * - fs:watch-file       : Giám sát thay đổi của một file cụ thể
+ * - fs:get-homedir      : Lấy đường dẫn home directory hiện tại
+ * - fs:validate-paths   : Kiểm tra sự tồn tại và tính hợp lệ của danh sách paths
+ *
+ * Functions:
+ * - setupFSHandlers()   : Entry point đăng ký tập hợp lớn IPC handler (fs:, shell:, cert:)
+ * - installSystemCA()   : Logic cài đặt certificate gốc của Phantoma vào OS
+ *
+ * Utils:
+ * - matchPattern()      : Helper so khớp glob pattern đơn giản
+ * - globToRegex()       : Converter Glob -> RegExp
+ * - buildSearchRegex()  : Builder RegExp cho search feature
+ * - startWatching()     : Lifecycle manager cho directory watchers
+ * - stopWatching()      : Cleanup cho directory watchers
+ * - startWatchingFile() : Lifecycle manager cho file watchers
+ * - stopWatchingFile()  : Cleanup cho file watchers
  * ------------------------------------------------------------------
  */
 
@@ -48,7 +80,10 @@ function globToRegex(pattern: string): RegExp | null {
     .filter(Boolean);
   if (parts.length === 0) return null;
   const sources = parts.map((p) =>
-    p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.'),
+    p
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '.*')
+      .replace(/\?/g, '.'),
   );
   return new RegExp(`(?:${sources.join('|')})`, 'i');
 }
@@ -202,11 +237,6 @@ export function setupFSHandlers() {
     return true;
   });
 
-  ipcMain.handle('fs:mkdir', async (_, dirPath: string) => {
-    fs.mkdirSync(dirPath, { recursive: true });
-    return true;
-  });
-
   // Directory listing (original)
   ipcMain.handle('fs:list-dir', async (_, dirPath: string) => {
     const files = fs.readdirSync(dirPath);
@@ -276,15 +306,6 @@ export function setupFSHandlers() {
     return true;
   });
 
-  // Delete file/folder (original)
-  ipcMain.handle('fs:delete', async (_, targetPath: string) => {
-    if (!fs.existsSync(targetPath)) return false;
-    const stat = fs.statSync(targetPath);
-    if (stat.isDirectory()) fs.rmSync(targetPath, { recursive: true, force: true });
-    else fs.unlinkSync(targetPath);
-    return true;
-  });
-
   // Find files by pattern
   ipcMain.handle('fs:find-files', async (_, dirPath: string, pattern: string) => {
     const results: string[] = [];
@@ -309,59 +330,6 @@ export function setupFSHandlers() {
     };
     walk(dirPath, 0);
     return results.map((p) => ({ path: p }));
-  });
-
-  // Grep / regex search
-  ipcMain.handle('fs:grep', async (_, targetPath: string, searchTerm: string) => {
-    const regex = new RegExp(searchTerm, 'i');
-    const results: Record<string, { matches: Array<{ lineNumber: number; lineContent: string }> }> =
-      {};
-    const MAX_FILE_SIZE = 1024 * 1024;
-
-    const searchInFile = (filePath: string) => {
-      try {
-        const stat = fs.statSync(filePath);
-        if (stat.size > MAX_FILE_SIZE) return;
-        const content = fs.readFileSync(filePath, 'utf-8');
-        const lines = content.split(/\r?\n/);
-        const matches: Array<{ lineNumber: number; lineContent: string }> = [];
-        for (let i = 0; i < lines.length; i++) {
-          if (regex.test(lines[i]))
-            matches.push({ lineNumber: i + 1, lineContent: lines[i].trim() });
-        }
-        if (matches.length > 0) results[filePath] = { matches };
-      } catch {
-        logger.warn(`[fs] Skipping unreadable file: ${filePath}`);
-      }
-    };
-
-    const stat = fs.statSync(targetPath);
-    if (stat.isFile()) {
-      searchInFile(targetPath);
-    } else if (stat.isDirectory()) {
-      const walk = (dir: string, depth: number) => {
-        if (depth > 10) return;
-        try {
-          for (const entry of fs.readdirSync(dir)) {
-            if (entry.startsWith('.') || entry === 'node_modules') continue;
-            const fullPath = path.join(dir, entry);
-            try {
-              const s = fs.statSync(fullPath);
-              if (s.isDirectory()) walk(fullPath, depth + 1);
-              else if (s.isFile()) searchInFile(fullPath);
-            } catch {
-              logger.warn(`[fs] Skipping inaccessible path: ${fullPath}`);
-            }
-          }
-        } catch {
-          logger.warn(`[fs] Skipping inaccessible directory: ${dir}`);
-        }
-      };
-      walk(targetPath, 0);
-    }
-
-    const totalMatches = Object.values(results).reduce((sum, r) => sum + r.matches.length, 0);
-    return { results, totalFilesSearched: Object.keys(results).length, totalMatches };
   });
 
   // Search content across files with VS Code-like options (case/word/regex + include/exclude)
@@ -503,98 +471,10 @@ export function setupFSHandlers() {
     },
   );
 
-  // ZenCLI: List conversation history from ~/.khanhromvn-zen/projects/{hash}/
-  ipcMain.handle('zencli:list-history', async (_, projectPath: string) => {
-    try {
-      const crypto = await import('crypto');
-      const os = await import('os');
-      
-      const projectHash = crypto.createHash('md5').update(projectPath).digest('hex');
-      const projectsDir = path.join(os.homedir(), '.khanhromvn-zen', 'projects', projectHash);
-
-      if (!fs.existsSync(projectsDir)) {
-        return [];
-      }
-
-      const entries = await fs.promises.readdir(projectsDir, { withFileTypes: true });
-      const history: any[] = [];
-
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-
-        const conversationId = entry.name;
-        const jsonPath = path.join(projectsDir, conversationId, `${conversationId}.json`);
-
-        if (!fs.existsSync(jsonPath)) continue;
-
-        try {
-          const content = await fs.promises.readFile(jsonPath, 'utf-8');
-          const data = JSON.parse(content);
-
-          if (!data.metadata) continue;
-
-          let providerId: string | undefined;
-          let modelId: string | undefined;
-          let email: string | undefined;
-          let websiteUrl: string | undefined;
-
-          if (Array.isArray(data.messages)) {
-            const firstAssistantMsg = data.messages.find((m: any) => m.role === 'assistant');
-            if (firstAssistantMsg) {
-              providerId = firstAssistantMsg.providerId || firstAssistantMsg.provider_id;
-              modelId = firstAssistantMsg.modelId || firstAssistantMsg.model_id;
-              email = firstAssistantMsg.email;
-              websiteUrl = firstAssistantMsg.websiteUrl;
-            }
-          }
-
-          const sourceEnv = data.metadata.sourceEnvironment === 'terminal' ? 'terminal' : 'vscode-extension';
-
-          history.push({
-            id: conversationId,
-            title: data.metadata.title || 'Untitled',
-            createdAt: data.metadata.createdAt || 0,
-            lastModified: data.metadata.lastModified || 0,
-            messageCount: data.messages?.length || 0,
-            totalTokens: data.metadata.totalTokenUsage || 0,
-            providerId,
-            modelId,
-            email,
-            websiteUrl,
-            sourceEnvironment: sourceEnv,
-          });
-        } catch {
-          // Skip invalid files
-        }
-      }
-
-      // Sort by lastModified descending
-      history.sort((a, b) => b.lastModified - a.lastModified);
-      return history;
-    } catch (error: any) {
-      logger.error('[zencli:list-history] Failed:', error);
-      return [];
-    }
-  });
-
   // Shell: open path in OS file manager
   ipcMain.handle('shell:open-path', async (_, targetPath: string) => {
     const { shell } = await import('electron');
     return shell.openPath(targetPath);
-  });
-
-  // Shell: exec command
-  ipcMain.handle('shell:exec', async (_, command: string, cwd?: string) => {
-    return new Promise((resolve) => {
-      execCallback(
-        command,
-        { cwd: cwd || process.cwd() },
-        (error: any, stdout: any, stderr: any) => {
-          if (error) resolve({ success: false, error: error.message, stderr, stdout });
-          else resolve({ success: true, stdout, stderr });
-        },
-      );
-    });
   });
 
   // File watcher
@@ -612,16 +492,6 @@ export function setupFSHandlers() {
   ipcMain.handle('fs:watch-file', async (event, filePath: string) => {
     startWatchingFile(filePath, event.sender);
     return true;
-  });
-
-  ipcMain.handle('fs:unwatch-file', async (_, filePath: string) => {
-    stopWatchingFile(filePath);
-    return true;
-  });
-
-  // Certificate
-  ipcMain.handle('cert:install-system-ca', async () => {
-    return await installSystemCA();
   });
 
   // Get homedir

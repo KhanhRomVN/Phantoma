@@ -15,10 +15,13 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-// ── React ──
-import { useEffect, useState } from 'react';
+// ── React ─
+import { useEffect, useState, useRef } from 'react';
 
-// ── UI ──
+// ── Hooks ─
+import { useActiveModule } from '@renderer/hooks/useActiveModule';
+
+// ── UI ─
 import {
   Bell,
   Settings,
@@ -28,18 +31,17 @@ import {
   Minus,
   Square,
   X,
-  Search,
+  Ghost,
   Cpu,
   HardDrive,
   Activity,
 } from 'lucide-react';
 
-// ── Utils ──
-import { logger } from '@renderer/utils/logger';
-
 // ── Components ──
 import { SystemStatsModal } from './SystemStatsModal';
 
+// ── Utils ─
+import { cn } from '@renderer/shared/utils/cn';
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface HeaderBarProps {
   isRightPanelOpen?: boolean;
@@ -51,29 +53,82 @@ interface HeaderBarProps {
 export function HeaderBar({
   isRightPanelOpen = true,
   onToggleRightPanel,
-  onOpenQuickNav,
 }: HeaderBarProps) {
-  // ── State ──
+  // ── Hooks ─
+  const { activeModule } = useActiveModule();
+
+  // ── State ─
   const [isMaximized, setIsMaximized] = useState(false);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+
+  // Emulate Service States
+  const [emulateUrl, setEmulateUrl] = useState('localhost:3002');
+  const [isEmulateInputOpen, setIsEmulateInputOpen] = useState(false);
+  const [emulateStatus, setEmulateStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const emulateInputRef = useRef<HTMLInputElement>(null);
 
   // Mock system metrics
   const [cpuUsage] = useState(45);
   const [ramUsage] = useState(62);
   const [diskUsage] = useState(78);
 
-  // ── Derived ──
+  // ── Derived
   const ToggleIcon = isRightPanelOpen ? PanelRightClose : PanelRightOpen;
+  const isEmulateMode = activeModule === 'emulate';
 
+  // Load emulate URL from localStorage and check health
+  useEffect(() => {
+    const saved = localStorage.getItem('emulate_service_url');
+    if (saved) {
+      setEmulateUrl(saved);
+    }
+
+    // Initial health check
+    checkEmulateHealth(saved || 'localhost:3002');
+  }, []);
+
+  // Auto-focus input when expanded
+  useEffect(() => {
+    if (isEmulateInputOpen && emulateInputRef.current) {
+      emulateInputRef.current.focus();
+    }
+  }, [isEmulateInputOpen]);
+
+  const checkEmulateHealth = async (url: string) => {
+    setEmulateStatus('checking');
+    try {
+      const baseUrl = url.startsWith('http') ? url : `http://${url}`;
+      const res = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) {
+        setEmulateStatus('online');
+      } else {
+        setEmulateStatus('offline');
+      }
+    } catch {
+      setEmulateStatus('offline');
+    }
+  };
+
+  const handleEmulateUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUrl = e.target.value;
+    setEmulateUrl(newUrl);
+    localStorage.setItem('emulate_service_url', newUrl);
+    window.dispatchEvent(new CustomEvent('emulateUrlChanged', { detail: newUrl }));
+
+    // Debounce health check slightly or immediate? Immediate for feedback.
+    checkEmulateHealth(newUrl);
+  };
+
+  const toggleEmulateInput = () => {
+    setIsEmulateInputOpen(!isEmulateInputOpen);
+  };
   // ── Effects ──
   useEffect(() => {
     const checkMaximized = async () => {
       try {
         const maximized = await window.api.invoke('window:isMaximized');
         setIsMaximized(maximized);
-      } catch (error) {
-        logger.error('Failed to check window state:', error);
-      }
+      } catch (error) {}
     };
     checkMaximized();
 
@@ -90,31 +145,27 @@ export function HeaderBar({
   }, []);
 
   // ── Handlers ──
-  const handleSearchClick = () => {
-    onOpenQuickNav?.();
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || (e.metaKey && e.key === 'k') || (e.ctrlKey && e.key === 'k')) {
-      e.preventDefault();
-      onOpenQuickNav?.();
-    }
-  };
 
   const handleMinimize = () => {
-    window.api.invoke('window:minimize').catch((err) => logger.error('Failed to minimize window:', err));
+    window.api
+      .invoke('window:minimize')
+      .catch((err) => console.error('Failed to minimize window:', err));
   };
 
   const handleMaximize = () => {
     if (isMaximized) {
-      window.api.invoke('window:unmaximize').catch((err) => logger.error('Failed to unmaximize window:', err));
+      window.api
+        .invoke('window:unmaximize')
+        .catch((err) => console.error('Failed to unmaximize window:', err));
     } else {
-      window.api.invoke('window:maximize').catch((err) => logger.error('Failed to maximize window:', err));
+      window.api
+        .invoke('window:maximize')
+        .catch((err) => console.error('Failed to maximize window:', err));
     }
   };
 
   const handleClose = () => {
-    window.api.invoke('window:close').catch((err) => logger.error('Failed to close window:', err));
+    window.api.invoke('window:close').catch((err) => console.error('Failed to close window:', err));
   };
 
   // ── Render ──
@@ -123,28 +174,80 @@ export function HeaderBar({
       <div className="h-10 w-full shrink-0 border-b border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center select-none">
         {/* Left Section */}
         <div className="flex items-center gap-3 flex-1">
-          <span className="text-sm font-bold text-primary tracking-wider">PHANTOMA</span>
-          <span className="text-[10px] font-mono text-text-secondary/60 bg-border/30 px-1.5 py-0.5 rounded border border-border/50">
-            1.2.34
-          </span>
-        </div>
-
-        {/* Center Section - Search Bar (Absolutely Centered) */}
-        <div className="absolute left-1/2 -translate-x-1/2">
-          <div className="relative group">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary/60 group-hover:text-text-secondary transition-colors pointer-events-none" strokeWidth={1.5} />
-            <input
-              type="text"
-              placeholder="Search files, commands, targets..."
-              className="w-80 h-7 bg-input-background border border-input-border-default rounded-md pl-8 pr-12 text-xs text-text-primary placeholder:text-text-secondary/50 focus:border-primary/50 outline-none transition-colors cursor-pointer"
-              onClick={handleSearchClick}
-              onKeyDown={handleSearchKeyDown}
-              readOnly
-            />
-            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-mono text-text-secondary/60 bg-border/30 rounded border border-border/50 pointer-events-none">
-              ⌘K
-            </kbd>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+              <Ghost className="w-3.5 h-3.5 text-primary" strokeWidth={2} />
+            </div>
+            <span className="text-[13px] font-semibold tracking-tight text-text-primary">Phantoma</span>
+            <span className="text-[10px] font-mono text-text-secondary bg-border/30 px-1.5 py-0.5 rounded-full">
+              1.2.34
+            </span>
           </div>
+
+          {/* Emulate Service Status & Config - Only visible in Emulate module */}
+          {isEmulateMode && (
+            <div className="ml-2 relative group">
+              {/* Collapsed View: Status Dot + Label */}
+              {!isEmulateInputOpen && (
+                <button
+                  onClick={toggleEmulateInput}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-sidebar-item-hover transition-colors cursor-pointer"
+                  title={`Emulate Service: ${emulateStatus.toUpperCase()} (${emulateUrl})`}
+                >
+                  <span
+                    className={cn(
+                      'w-2 h-2 rounded-full shrink-0',
+                      emulateStatus === 'online' &&
+                        'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.6)]',
+                      emulateStatus === 'offline' && 'bg-red-500',
+                      emulateStatus === 'checking' && 'bg-amber-500 animate-pulse',
+                    )}
+                  />
+                  <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">
+                    EMU
+                  </span>
+                </button>
+              )}
+
+              {/* Expanded View: Input Bar */}
+              {isEmulateInputOpen && (
+                <div className="flex items-center gap-2 bg-input-background border border-input-border-default rounded-md px-2 py-1 shadow-sm">
+                  <span
+                    className={cn(
+                      'w-2 h-2 rounded-full shrink-0',
+                      emulateStatus === 'online' && 'bg-emerald-500',
+                      emulateStatus === 'offline' && 'bg-red-500',
+                      emulateStatus === 'checking' && 'bg-amber-500 animate-pulse',
+                    )}
+                  />
+                  <input
+                    ref={emulateInputRef}
+                    type="text"
+                    value={emulateUrl}
+                    onChange={handleEmulateUrlChange}
+                    onBlur={() => setIsEmulateInputOpen(false)} // Close on blur for cleaner UX, or keep open? Let's close on Escape or Click Outside ideally, but simple onBlur works for now if we don't want persistent editing. Actually, let's NOT close on blur immediately to allow copy paste. We'll add a small X button or rely on clicking elsewhere.
+                    // Better approach: Keep it open until explicit toggle or click outside handled by parent?
+                    // For simplicity in HeaderBar, let's just toggle via the dot/button when closed. When open, maybe add a tiny 'x' or just let user click away?
+                    // Let's stick to: Click dot -> Open. Click outside input -> Close.
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setIsEmulateInputOpen(false);
+                    }}
+                    placeholder="localhost:3002"
+                    className="h-5 w-40 bg-transparent text-[10px] font-mono text-text-primary outline-none placeholder:text-text-secondary/50"
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsEmulateInputOpen(false);
+                    }}
+                    className="text-text-secondary hover:text-text-primary p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Section */}
@@ -157,22 +260,32 @@ export function HeaderBar({
             {/* CPU */}
             <div className="flex items-center gap-1">
               <Cpu className="w-3.5 h-3.5 text-blue-400" strokeWidth={2} />
-              <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">CPU</span>
-              <span className="text-[11px] font-mono font-semibold text-blue-400">{cpuUsage}%</span>
+              <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">
+                CPU
+              </span>
+              <span className="text-[11px] font-mono font-semibold text-text-secondary">{cpuUsage}%</span>
             </div>
 
             {/* RAM */}
             <div className="flex items-center gap-1">
               <Activity className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2} />
-              <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">RAM</span>
-              <span className="text-[11px] font-mono font-semibold text-emerald-400">{ramUsage}%</span>
+              <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">
+                RAM
+              </span>
+              <span className="text-[11px] font-mono font-semibold text-text-secondary">
+                {ramUsage}%
+              </span>
             </div>
 
             {/* DISK */}
             <div className="flex items-center gap-1">
               <HardDrive className="w-3.5 h-3.5 text-purple-400" strokeWidth={2} />
-              <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">DISK</span>
-              <span className="text-[11px] font-mono font-semibold text-purple-400">{diskUsage}%</span>
+              <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">
+                DISK
+              </span>
+              <span className="text-[11px] font-mono font-semibold text-text-secondary">
+                {diskUsage}%
+              </span>
             </div>
           </button>
 

@@ -23,7 +23,7 @@ import { Bug } from 'lucide-react';
 import type { BaseModalProps } from './index';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ export const Website = forwardRef<WebsiteRef, WebsiteBodyProps>(function Website
     try {
       await onAdd({ name, url, mode: 'intercept', platform: 'web' });
     } catch (error) {
-      logger.error('[Website] Add target failed:', error);
+      console.error('[Website] Add target failed:', error);
     }
   };
 

@@ -1,14 +1,30 @@
 /**
  * ------------------------------------------------------------------
- * IPC handler Git
+ * IPC Git Handlers
  * ------------------------------------------------------------------
- * IPC handler cho các thao tác Git trong tiến trình chính. Bọc
- * Git CLI cho các thao tác status, diff, commit, stage/unstage và
- * discard.
+ * Giao diện IPC cho việc quản lý repository Git cục bộ. Bao bọc trực tiếp
+ * Git CLI thông qua child_process để cung cấp các tính năng như xem trạng thái,
+ * so sánh khác biệt (diff), staging, unstaging, discard changes, commit
+ * và lấy thông tin chi tiết về repo (branch, contributor).
  *
- * Hàm chính:
- * - setupGitHandlers() : Đăng ký IPC handler git:
- * - runGit()           : Thực thi lệnh git và thu thập đầu ra
+ * Channels:
+ * - git:list-branches    : Liệt kê tất cả branch local và remote
+ * - git:status           : Lấy trạng thái working tree, diff stats và unpushed commits
+ * - git:diff             : Xem thay đổi giữa HEAD và working tree (hoặc staged)
+ * - git:commit           : Tạo commit mới với message được cung cấp
+ * - git:stage            : Thêm các file đã chọn vào staging area
+ * - git:stage-all        : Stage toàn bộ thay đổi (git add -A)
+ * - git:unstage          : Bỏ staging cho các file đã chọn
+ * - git:unstage-all      : Unstage toàn bộ (git restore --staged .)
+ * - git:discard          : Khôi phục file về trạng thái HEAD (bỏ thay đổi)
+ * - git:discard-all      : Discard toàn bộ thay đổi chưa commit
+ * - git:get-repo-info    : Tổng hợp thông tin repo (URL, author, contributors, branches)
+ *
+ * Functions:
+ * - setupGitHandlers() : Entry point đăng ký toàn bộ IPC handler nhóm 'git:'
+ *
+ * Utils:
+ * - runGit()           : Low-level wrapper để spawn git process và capture output safely
  * ------------------------------------------------------------------
  */
 
@@ -265,14 +281,14 @@ export function setupGitHandlers(): void {
    * Get comprehensive Git info for Project Detail Panel
    * Returns: repoUrl, author, contributors (top 5), branches (with dates & counts)
    */
-  ipcMain.handle('git:get-project-info', async (_event, projectPath: string) => {
+  ipcMain.handle('git:get-repo-info', async (_event, projectPath: string) => {
     const cwd = projectPath;
 
     // Quick check if it's a git repo
     const checkResult = await runGit(['rev-parse', '--is-inside-work-tree'], cwd);
     if (checkResult.error || checkResult.stdout.trim() !== 'true') {
       logger.warn(
-        `[git:get-project-info] Not a valid git repo or error checking: ${checkResult.stderr || checkResult.error}`,
+        `[git:get-repo-info] Not a valid git repo or error checking: ${checkResult.stderr || checkResult.error}`,
       );
       return null; // Not a git repo
     }
@@ -352,7 +368,7 @@ export function setupGitHandlers(): void {
 
       return finalResult;
     } catch (e: any) {
-      logger.error('[git:get-project-info] Critical Error:', e);
+      logger.error('[git:get-repo-info] Critical Error:', e);
       return null;
     }
   });

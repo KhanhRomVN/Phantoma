@@ -19,7 +19,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { logger } from '@renderer/utils/logger';
+
 // ── React ──
 import {
   useState,
@@ -223,7 +223,7 @@ function InlineNewInput({ type, parentPath, depth, onCreated, onCancel }: Inline
       }
       onCreated();
     } catch (err) {
-      logger.error(`[FileExplore] Failed to create ${type}:`, err);
+      console.error(`[FileExplore] Failed to create ${type}:`, err);
       onCancel();
     }
   };
@@ -421,7 +421,7 @@ const TreeNode = memo(function TreeNode({
       onCopyAbsolutePath();
     } else if (node.path) {
       navigator.clipboard.writeText(node.path).catch(() => {
-        logger.warn('[FileTree] Failed to copy path to clipboard');
+        console.warn('[FileTree] Failed to copy path to clipboard');
       });
     }
   }, [node.path, selectedNodeIds, onCopyAbsolutePath]);
@@ -437,7 +437,7 @@ const TreeNode = memo(function TreeNode({
           ? node.path.substring(rootPath.length)
           : node.path;
         navigator.clipboard.writeText(relative).catch(() => {
-          logger.warn('[FileTree] Failed to copy relative path to clipboard');
+          console.warn('[FileTree] Failed to copy relative path to clipboard');
         });
       }
     }
@@ -459,7 +459,7 @@ const TreeNode = memo(function TreeNode({
       const p = useCodeStore.getState().projects.find((pr) => pr.id === projectId);
       if (p?.path) await refreshProjectTree(projectId, p.path);
     } catch (err) {
-      logger.error('[FileExplore] Failed to rename:', err);
+      console.error('[FileExplore] Failed to rename:', err);
     }
   }, [node.path, node.name, projectId]);
 
@@ -704,7 +704,7 @@ export function FileExplore() {
     projectPathRef.current = projectPath;
 
     window.api.invoke('fs:watch-dir', projectPath).catch((err) => {
-      logger.error('[FileExplore] Failed to start watcher:', err);
+      console.error('[FileExplore] Failed to start watcher:', err);
     });
 
     const normalize = (p: string) => p.replace(/\/+$/, '');
@@ -833,7 +833,7 @@ export function FileExplore() {
           await window.api.invoke('fs:delete-file', item.path);
         }
       } catch (err) {
-        logger.error(`[FileExplore] Failed to delete ${item.path}:`, err);
+        console.error(`[FileExplore] Failed to delete ${item.path}:`, err);
         errorCount++;
       }
     }
@@ -962,7 +962,7 @@ export function FileExplore() {
           await window.api.invoke('fs:copy', { src: srcPath, dest: destPath });
         }
       } catch (err) {
-        logger.error(`[FileExplore] Failed to paste ${srcPath}:`, err);
+        console.error(`[FileExplore] Failed to paste ${srcPath}:`, err);
         errorCount++;
       }
     }
@@ -989,7 +989,7 @@ export function FileExplore() {
       await window.api.invoke('fs:rename', { oldPath: node.path, newPath });
       await refreshProjectTree(p.id, p.path);
     } catch (err) {
-      logger.error('[FileExplore] Failed to rename:', err);
+      console.error('[FileExplore] Failed to rename:', err);
     }
   }, [selectedNodeIds]);
 

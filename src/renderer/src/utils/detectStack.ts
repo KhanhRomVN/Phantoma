@@ -153,8 +153,8 @@ export async function detectProjectStack(path: string): Promise<StackInfo> {
   // FETCH REAL GIT INFO VIA IPC
   let gitInfo: any = null;
   try {
-    // Assumes 'git:get-project-info' handler exists in Main Process
-    gitInfo = await window.api.invoke('git:get-project-info', path);
+    // Assumes 'git:get-repo-info' handler exists in Main Process
+    gitInfo = await window.api.invoke('git:get-repo-info', path);
   } catch (err) {
     console.error('[ERROR DetectStack] Failed to fetch git info via IPC:', err);
     // Fallback to empty/null values if IPC fails (not a git repo or handler missing)

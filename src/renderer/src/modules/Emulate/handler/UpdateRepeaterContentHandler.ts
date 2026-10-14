@@ -19,7 +19,7 @@ import { emulateApi } from '../services/emulate-api.service';
 import { NetworkRequest } from '../types/inspector';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { FuzzyMatcher } from '../../Code/utils/FuzzyMatcher';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -98,8 +98,8 @@ export class UpdateRepeaterContentHandler {
       } catch (readErr: any) {
         // File not found — create with default content
         const defaultContent = target === 'body' ? '' : '[]';
-        logger.warn(`[UpdateRepeaterContentHandler] ⚠️  File not found: ${filePath}`);
-        logger.warn(
+        console.warn(`[UpdateRepeaterContentHandler] ⚠️  File not found: ${filePath}`);
+        console.warn(
           `[UpdateRepeaterContentHandler] ⚠️  Read error: ${readErr.message || String(readErr)}`,
         );
 
@@ -107,7 +107,7 @@ export class UpdateRepeaterContentHandler {
           await api.invoke('fs:write-file', filePath, defaultContent);
           fileContent = defaultContent;
         } catch (writeErr: any) {
-          logger.error(
+          console.error(
             `[UpdateRepeaterContentHandler] ❌ Cannot create file: ${writeErr.message || String(writeErr)}`,
           );
           return {
@@ -127,7 +127,7 @@ export class UpdateRepeaterContentHandler {
 
       if (targetPos !== -1) {
       } else {
-        logger.warn(
+        console.warn(
           `[UpdateRepeaterContentHandler] ⚠️  Exact match NOT found, trying fuzzy match...`,
         );
       }
@@ -136,13 +136,13 @@ export class UpdateRepeaterContentHandler {
       if (targetPos === -1) {
         const fuzzy = FuzzyMatcher.findMatch(normalizedContent, normalizedOld);
         if (!fuzzy || fuzzy.score > 0.3) {
-          logger.error(`[UpdateRepeaterContentHandler] ❌ Fuzzy match FAILED`);
-          logger.error(`[UpdateRepeaterContentHandler] Fuzzy score: ${fuzzy?.score || 'N/A'}`);
-          logger.error(`[UpdateRepeaterContentHandler] ===== FILE CONTENT =====`);
-          logger.error(normalizedContent);
-          logger.error(`[UpdateRepeaterContentHandler] ===== OLD CONTENT =====`);
-          logger.error(normalizedOld);
-          logger.error(`[UpdateRepeaterContentHandler] ======================`);
+          console.error(`[UpdateRepeaterContentHandler] ❌ Fuzzy match FAILED`);
+          console.error(`[UpdateRepeaterContentHandler] Fuzzy score: ${fuzzy?.score || 'N/A'}`);
+          console.error(`[UpdateRepeaterContentHandler] ===== FILE CONTENT =====`);
+          console.error(normalizedContent);
+          console.error(`[UpdateRepeaterContentHandler] ===== OLD CONTENT =====`);
+          console.error(normalizedOld);
+          console.error(`[UpdateRepeaterContentHandler] ======================`);
           return {
             text: `[update_repeater_content] Error: old_content not found in ${target}\n\nDEBUG INFO:\n- Current ${target} content:\n${fileContent}\n\n- Searching for:\n${oldContent}\n\nSuggestion: Check the exact text in the file or try with more context.`,
           };
@@ -153,7 +153,7 @@ export class UpdateRepeaterContentHandler {
       }
 
       if (targetPos === -1) {
-        logger.error(`[UpdateRepeaterContentHandler] ❌ Could not locate text after fuzzy match`);
+        console.error(`[UpdateRepeaterContentHandler] ❌ Could not locate text after fuzzy match`);
         return {
           text: `[update_repeater_content] Error: Could not locate text in ${target}`,
         };
@@ -173,14 +173,14 @@ export class UpdateRepeaterContentHandler {
           finalContent = JSON.stringify(parsed, null, 2);
         } catch (parseErr) {
           // If parse fails, DON'T write - return error
-          logger.error(`[UpdateRepeaterContentHandler] ❌ JSON validation FAILED`);
-          logger.error(
+          console.error(`[UpdateRepeaterContentHandler] ❌ JSON validation FAILED`);
+          console.error(
             `[UpdateRepeaterContentHandler] Parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`,
           );
-          logger.error(`[UpdateRepeaterContentHandler] ===== INVALID JSON =====`);
-          logger.error(updatedContent);
-          logger.error(`[UpdateRepeaterContentHandler] =======================`);
-          logger.warn(
+          console.error(`[UpdateRepeaterContentHandler] ===== INVALID JSON =====`);
+          console.error(updatedContent);
+          console.error(`[UpdateRepeaterContentHandler] =======================`);
+          console.warn(
             `[UpdateRepeaterContentHandler] ⚠️  FILE NOT WRITTEN - keeping original content`,
           );
           return {
@@ -196,7 +196,7 @@ export class UpdateRepeaterContentHandler {
       try {
         await api.invoke('fs:write-file', filePath, finalContent);
       } catch (writeErr: any) {
-        logger.error(
+        console.error(
           `[UpdateRepeaterContentHandler] ❌ File write FAILED: ${writeErr.message || String(writeErr)}`,
         );
 
@@ -207,7 +207,7 @@ export class UpdateRepeaterContentHandler {
             text: `[update_repeater_content] Error: Failed to write file: ${writeErr.message || String(writeErr)}\n\n⚠️ Original content has been restored.`,
           };
         } catch (restoreErr: any) {
-          logger.error(
+          console.error(
             `[UpdateRepeaterContentHandler] ❌ Backup restore FAILED: ${restoreErr.message || String(restoreErr)}`,
           );
           return {
@@ -225,8 +225,8 @@ export class UpdateRepeaterContentHandler {
         text: `[update_repeater_content] Updated ${repeaterId} ${target}`,
       };
     } catch (err: any) {
-      logger.error('[UpdateRepeaterContentHandler] ❌ Unexpected error:', err);
-      logger.error('[UpdateRepeaterContentHandler] Error stack:', err.stack);
+      console.error('[UpdateRepeaterContentHandler] ❌ Unexpected error:', err);
+      console.error('[UpdateRepeaterContentHandler] Error stack:', err.stack);
       return { text: `[update_repeater_content] Error: ${err.message || String(err)}` };
     }
   }

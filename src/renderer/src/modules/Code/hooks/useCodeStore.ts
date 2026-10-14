@@ -23,7 +23,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { logger } from '@renderer/utils/logger';
+
 // ── Store ──
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -46,7 +46,7 @@ export interface StoredWorkspacePanel {
   title: string;
   content?: string;
   providerId?: string | null;
-  
+
   // ── NEW: ZenCLI session binding for auto-resume ──
   /** Conversation ID của ZenCLI đang bind với terminal này. null nếu chưa bind. */
   zencliConversationId?: string | null;
@@ -79,7 +79,8 @@ export interface Project {
   bottomPanelTab: 'output' | 'terminal' | 'port' | 'performance' | 'problems';
   isBottomPanelOpen: boolean;
   // ── Activity panel per-project ──
-  activityPanelTab: 'explore' | 'search' | 'source' | 'history' | 'agents' | 'design' | 'extension' | 'lsp';
+  activityPanelTab:
+    'explore' | 'search' | 'source' | 'history' | 'agents' | 'design' | 'extension' | 'lsp';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -402,29 +403,34 @@ export const useCodeStore = create<CodeState>()(
           if (state.projects.length === 0) return;
 
           const paths = state.projects.map((p) => p.path);
-          
+
           // Ask Main Process to validate which paths are invalid/non-existent directories
           const result = await api.invoke('fs:validate-paths', paths);
-          
+
           if (result && Array.isArray(result.invalidPaths) && result.invalidPaths.length > 0) {
-            logger.warn(`[CodeStore] Cleaning up ${result.invalidPaths.length} stale project(s):`, result.invalidPaths);
-            
+            console.warn(
+              `[CodeStore] Cleaning up ${result.invalidPaths.length} stale project(s):`,
+              result.invalidPaths,
+            );
+
             // Filter out projects with invalid paths
-            const validProjects = state.projects.filter(p => !result.invalidPaths.includes(p.path));
-            
+            const validProjects = state.projects.filter(
+              (p) => !result.invalidPaths.includes(p.path),
+            );
+
             // If current project was removed, reset selection
             let newCurrentProjectId = state.currentProjectId;
-            if (newCurrentProjectId && !validProjects.find(p => p.id === newCurrentProjectId)) {
+            if (newCurrentProjectId && !validProjects.find((p) => p.id === newCurrentProjectId)) {
               newCurrentProjectId = validProjects[0]?.id || null;
             }
 
-            set({ 
+            set({
               projects: validProjects,
-              currentProjectId: newCurrentProjectId 
+              currentProjectId: newCurrentProjectId,
             });
           }
         } catch (err) {
-          logger.error('[CodeStore] Failed to cleanup stale projects:', err);
+          console.error('[CodeStore] Failed to cleanup stale projects:', err);
         }
       };
 
@@ -436,7 +442,7 @@ export const useCodeStore = create<CodeState>()(
         migrateAgentGroupsArray();
         migrateMCPsArray();
         migrateWorkspacePanels();
-        
+
         // Auto-cleanup stale projects whose folders no longer exist on disk
         cleanupStaleProjects();
       }, 100);
@@ -751,7 +757,7 @@ export const useCodeStore = create<CodeState>()(
             get().setOriginalContent(fileId, fileNode.content);
             get().markFileAsSaved(fileId);
           } catch (err) {
-            logger.error('[CodeStore] Failed to save file ' + fileNode.path + ':', err);
+            console.error('[CodeStore] Failed to save file ' + fileNode.path + ':', err);
             throw err;
           }
         },
@@ -1089,18 +1095,19 @@ export const useCodeStore = create<CodeState>()(
           set((state) => ({
             projects: state.projects.map((p) => {
               if (p.id !== projectId) return p;
-              
+
               const updatedPanels = (p.workspacePanels || []).map((wp) => {
                 if (wp.id !== panelId) return wp;
-                
+
                 return {
                   ...wp,
                   zencliConversationId: binding.conversationId,
                   // Nếu có conversationId mới -> cập nhật timestamp. Nếu null -> reset về null.
-                  zencliLastActiveAt: binding.lastActiveAt ?? (binding.conversationId ? Date.now() : null),
+                  zencliLastActiveAt:
+                    binding.lastActiveAt ?? (binding.conversationId ? Date.now() : null),
                 };
               });
-              
+
               return { ...p, workspacePanels: updatedPanels };
             }),
           }));

@@ -68,7 +68,6 @@ export {
   executeEvaluateJs,
 } from './ReconExecutor';
 
-import { logger } from '@renderer/utils/logger';
 // ═══════════════════════════════════════════════════════════════════════
 // Imports
 // ═══════════════════════════════════════════════════════════════════════
@@ -570,7 +569,7 @@ export function getExecutor(actionType: string): ToolExecutor | null {
       return null;
 
     default:
-      logger.warn('[tool] No executor found for: "' + actionType + '"');
+      console.warn('[tool] No executor found for: "' + actionType + '"');
       return null;
   }
 }

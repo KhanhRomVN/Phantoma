@@ -1,30 +1,25 @@
 /**
  * ------------------------------------------------------------------
- * Barrel export IPC
+ * IPC Module Index
  * ------------------------------------------------------------------
- * Tái xuất tất cả hàm thiết lập IPC handler từ thư mục ipc
- * để cung cấp một điểm import duy nhất cho tiến trình chính.
+ * Điểm xuất khẩu tập trung (Barrel File) cho toàn bộ hệ thống IPC Handler.
+ * Cung cấp một interface sạch sẽ cho Main Process để khởi tạo tất cả
+ * kênh giao tiếp với Renderer mà không cần biết cấu trúc nội tại của từng module.
  *
- * Export chính:
- * - setup*Handlers()        : Các hàm đăng ký IPC handler riêng lẻ
- * - closeAllBrowserSessions : Trợ giúp dọn dẹp trình duyệt
+ * Exports:
+ * - setupAppHandlers, setupBrowserHandlers, ... : Các hàm khởi tạo handler theo domain
+ * - closeAllBrowserSessions                     : Hàm cleanup tài nguyên đặc biệt
  * ------------------------------------------------------------------
  */
 
-export * from './proxy.handlers';
-export * from './cdp.handlers';
 export * from './app.handlers';
-export * from './session.handlers';
 export * from './fs.handlers';
-export * from './tls.handlers';
-export * from './renderer.handlers';
-export { setupMobileHandlers } from './mobile.handlers';
+export { setupDialogHandlers } from './dialog.handlers';
 export { setupConversationHandlers } from './conversation.handlers';
 export { setupWindowHandlers } from './window.handlers';
 export { setupTerminalHandlers } from './terminal.handlers';
 export { setupGitHandlers } from './git.handlers';
 export { setupTaskHandlers } from './task.handlers';
 export { setupLoggerHandlers } from './logger.handlers';
-export { setupBrowserHandlers, closeAllBrowserSessions } from './browser.handlers';
-export { setupTargetHandlers, setupCliCaptureHandlers } from './target.handlers';
-export { registerWorkspaceHandlers } from './workspace.handlers';
+export { setupBrowserHandlers } from './puppeteer.handlers';
+export { registerWorkspaceHandlers } from './webview.handlers';

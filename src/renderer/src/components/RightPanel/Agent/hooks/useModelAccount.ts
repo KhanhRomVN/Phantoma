@@ -11,7 +11,6 @@
  * ------------------------------------------------------------------
  */
 
-import { logger } from '@renderer/utils/logger';
 import { useState, useEffect, useRef } from 'react';
 
 function getKey(base: string, folderPath: string | null | undefined): string {
@@ -58,7 +57,7 @@ export function useModelAccount(
       const saved = localStorage.getItem(key);
       if (saved) return JSON.parse(saved);
     } catch {
-      logger.warn('[useModelAccount] Failed to parse saved model');
+      console.warn('[useModelAccount] Failed to parse saved model');
     }
     return null;
   });
@@ -70,7 +69,7 @@ export function useModelAccount(
       const saved = localStorage.getItem(key);
       if (saved) return JSON.parse(saved);
     } catch {
-      logger.warn('[useModelAccount] Failed to parse saved account');
+      console.warn('[useModelAccount] Failed to parse saved account');
     }
     return null;
   });

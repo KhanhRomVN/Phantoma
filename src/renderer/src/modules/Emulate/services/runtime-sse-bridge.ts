@@ -10,7 +10,7 @@
  * ------------------------------------------------------------------
  */
 
-import { logger } from '@renderer/utils/logger';
+import { resolveEmulateBaseUrl } from './emulate-base-url';
 
 type Listener = (event: unknown, data: unknown) => void;
 
@@ -19,11 +19,10 @@ let eventSource: EventSource | null = null;
 let installed = false;
 
 function resolveSseUrl(): string {
-  const storedUrl = localStorage.getItem('server_url');
-  const base = storedUrl
-    ? `http://${storedUrl}`
-    : import.meta.env.VITE_SERVER_URL || 'http://localhost:8080';
-  return `${base}/api/v1/runtime/events`;
+  // SSE events được emit bởi Emulate service (port 3002), không phải server shell 8080.
+  // Dùng resolver riêng để tránh nhầm lẫn khi user đổi server_url trong Settings.
+  const base = resolveEmulateBaseUrl();
+  return `${base.replace(/\/$/, '')}/events`;
 }
 
 let _debugReqCount = 0;
@@ -35,7 +34,7 @@ function dispatch(channel: string, data: unknown): void {
   const set = listeners.get(channel);
   if (!set) {
     if (channel === 'cdp:request') {
-      logger.warn('[SSE-Bridge][DEBUG] NO LISTENERS for cdp:request! Event dropped.');
+      console.warn('[SSE-Bridge][DEBUG] NO LISTENERS for cdp:request! Event dropped.');
     }
     return;
   }
@@ -43,7 +42,7 @@ function dispatch(channel: string, data: unknown): void {
     try {
       fn({ type: channel }, data);
     } catch (err) {
-      logger.error('[RuntimeSseBridge] listener error', {
+      console.error('[RuntimeSseBridge] listener error', {
         channel,
         err: String(err),
       });
@@ -51,19 +50,22 @@ function dispatch(channel: string, data: unknown): void {
   }
 }
 
-// Global error handler để bắt parse failures trước khi chúng propagate lên Electron framework
+// Global error handler — CHỈ bắt lỗi từ EventSource (SSE connection failures).
+// Không chặn resource-load errors (404 fetch, image/script fail...) vì đó là
+// trách nhiệm của caller, không phải SSE bridge. Lọc bằng e.target instanceof EventSource.
 let _sseParseErrorCount = 0;
 const handleGlobalSseError = (e: ErrorEvent) => {
+  // Bỏ qua mọi error không xuất phát từ EventSource
+  if (!(e.target instanceof EventSource)) return;
+
   _sseParseErrorCount++;
-  // Chỉ log lần đầu + mỗi 50 lỗi để tránh spam
   if (_sseParseErrorCount === 1 || _sseParseErrorCount % 50 === 0) {
-    logger.error(
-      `[SSE-Bridge][DEBUG] GLOBAL PARSE ERROR #${_sseParseErrorCount}:`,
-      e.message?.substring(0, 200),
+    console.error(
+      `[SSE-Bridge][DEBUG] EVENTSOURCE ERROR #${_sseParseErrorCount}:`,
+      e.message || '(no message)',
     );
   }
-  // Prevent default behavior that might trigger app reload
-  e.preventDefault();
+  // EventSource tự reconnect, không cần preventDefault ở đây
 };
 
 // Attach once at module level before any connections
@@ -78,7 +80,7 @@ function safeJsonParse<T>(data: string | null | undefined, fallback: T): T {
   } catch (err) {
     _sseParseErrorCount++;
     if (_sseParseErrorCount <= 5 || _sseParseErrorCount % 50 === 0) {
-      logger.warn('[SSE-Bridge][DEBUG] Malformed JSON received:', {
+      console.warn('[SSE-Bridge][DEBUG] Malformed JSON received:', {
         preview: data.substring(0, 100),
         error: String(err).substring(0, 80),
         count: _sseParseErrorCount,
@@ -134,7 +136,7 @@ function ensureConnected(): void {
       if (channel === 'cdp:request' || channel === 'cdp:response-body') {
         const byteLen = typeof e.data === 'string' ? e.data.length : 0;
         if (byteLen > 512 * 1024) {
-          logger.warn(
+          console.warn(
             `[SSE-Bridge][DEBUG] LARGE PAYLOAD on ${channel}: ${(byteLen / 1024).toFixed(1)} KB`,
           );
         }
@@ -148,7 +150,7 @@ function ensureConnected(): void {
   }
 
   eventSource.onerror = () => {
-    logger.warn('[RuntimeSseBridge] SSE error — will retry automatically');
+    console.warn('[RuntimeSseBridge] SSE error — will retry automatically');
   };
 }
 
@@ -161,7 +163,7 @@ function runDiagnostic(): void {
   const hasReqListener = listeners.has('cdp:request') && listeners.get('cdp:request')!.size > 0;
 
   if (!hasReqListener) {
-    logger.error(
+    console.error(
       '[SSE-DIAG] FAILED at Step 1: No listener for cdp:request. Check useNetworkEvents mount order.',
     );
     return;
@@ -180,7 +182,7 @@ function runDiagnostic(): void {
   try {
     dispatch('cdp:request', mockRequest);
   } catch (err) {
-    logger.error('[SSE-DIAG] FAILED at Step 2: Exception during dispatch.', err);
+    console.error('[SSE-DIAG] FAILED at Step 2: Exception during dispatch.', err);
     return;
   }
 
@@ -191,12 +193,12 @@ function runDiagnostic(): void {
     if (store) {
       const exists = store.getState().requests.some((r: any) => r.id === mockRequest.id);
       if (!exists) {
-        logger.error(
+        console.error(
           '[SSE-DIAG] FAILED at Step 3: Data lost between Dispatch and Store. Likely Worker postMessage failure or Filter drop.',
         );
       }
     } else {
-      logger.warn(
+      console.warn(
         '[SSE-DIAG] Step 3 SKIPPED: Could not access networkStore globally. Manual inspection required.',
       );
     }
@@ -213,6 +215,13 @@ export function installRuntimeSseBridge(): void {
   installed = true;
 
   const w = window as unknown as { api?: Record<string, unknown> };
+
+  // Nếu Electron preload script đã inject IPC API thật (window.api.on là function),
+  // KHÔNG override — để renderer dùng IPC native thay vì SSE bridge.
+  // Tránh lỗi "Failed to set on/off" khi window.api bị freeze bởi preload.
+  if (w.api && typeof (w.api as any).on === 'function') {
+    return;
+  }
 
   // Ensure w.api exists and is mutable enough for our needs
   if (!w.api) {
@@ -233,7 +242,7 @@ export function installRuntimeSseBridge(): void {
           configurable: true,
         });
       } catch (innerErr) {
-        logger.error(`[RuntimeSseBridge] Failed to set ${prop}`, { err: String(innerErr) });
+        console.error(`[RuntimeSseBridge] Failed to set ${prop}`, { err: String(innerErr) });
       }
     }
   };

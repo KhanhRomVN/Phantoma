@@ -27,7 +27,6 @@ import { useAgentFeature } from '../../../../context/FeatureContext';
 // ── Utils ──
 export { getPermissionDecision } from '../../utils/permissionUtils';
 import { getPermissionDecision } from '../../utils/permissionUtils';
-import { logger } from '@renderer/utils/logger';
 
 // ── Constants ──
 import {
@@ -262,7 +261,7 @@ export const useToolExecution = ({
 
       const executor = getExecutor(action.type);
       if (!executor) {
-        logger.warn(`[Zen][tool] No executor for type: "${action.type}"`);
+        console.warn(`[Zen][tool] No executor for type: "${action.type}"`);
         return null;
       }
 

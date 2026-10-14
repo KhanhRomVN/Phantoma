@@ -1,12 +1,16 @@
 /**
  * ------------------------------------------------------------------
- * IPC handler logger
+ * IPC Logger Handlers
  * ------------------------------------------------------------------
- * Nhận các mục log từ tiến trình renderer và ghi chúng
- * vào file log của tiến trình chính.
+ * Cầu nối logging giữa Renderer và Main process. Cho phép frontend gửi
+ * các sự kiện log (info, warn, error) xuống backend để ghi vào file
+ * log tập trung hoặc console system, đảm bảo tính minh bạch khi debug.
  *
- * Hàm chính:
- * - setupLoggerHandlers() : Đăng ký IPC handler log:
+ * Channels:
+ * - log:write : Ghi một dòng log từ renderer xuống main process logger
+ *
+ * Functions:
+ * - setupLoggerHandlers() : Entry point đăng ký IPC handler nhóm 'log:'
  * ------------------------------------------------------------------
  */
 

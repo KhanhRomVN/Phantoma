@@ -1,0 +1,24 @@
+---
+recon: 1.0
+type: tab
+title: Heatmap
+---
+
+# Giờ hoạt động
+@box w=10 maxh=8 ui=heatmap icon=Activity color=green desc="Dạng thứ | giờ (0-23) | giá trị"
+
+- Mon | 9 | 12
+- Mon | 21 | 30
+- Tue | 10 | 18
+- Tue | 22 | 26
+- Wed | 21 | 28
+- Wed | 23 | 20
+- Thu | 9 | 8
+- Thu | 21 | 33
+- Fri | 22 | 35
+- Fri | 23 | 24
+- Sat | 0 | 22
+- Sat | 22 | 38
+- Sat | 23 | 45
+- Sun | 20 | 22
+- Sun | 21 | 30

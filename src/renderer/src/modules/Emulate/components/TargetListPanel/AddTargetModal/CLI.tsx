@@ -2,11 +2,12 @@
  * ------------------------------------------------------------------
  * AddTargetModal - CLI
  * ------------------------------------------------------------------
- * Form thêm target CLI — cấu hình name, command, working directory
- * và environment variables. Hỗ trợ edit mode.
+ * Form thêm target CLI — cấu hình name, URL (để lấy favicon), command,
+ * working directory và environment variables. Hỗ trợ edit mode.
  *
  * Các chức năng chính:
- * - Nhập name, command và working directory
+ * - Nhập name, URL (tùy chọn) và tự động fetch favicon
+ * - Nhập command và working directory
  * - Thêm/xóa environment variables
  * - Kiểm tra trùng lặp name/command
  * ------------------------------------------------------------------
@@ -17,13 +18,13 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 // ── UI ──
-import { Folder, Plus, Trash2 } from 'lucide-react';
+import { Bug, Folder, Plus, Trash2 } from 'lucide-react';
 
 // ── Types ──
 import type { BaseModalProps } from './index';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -42,18 +43,41 @@ export interface CLIRef {
   canSubmit: boolean;
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────
+/** Thêm https:// nếu URL người dùng nhập chưa có protocol. */
+const withProtocol = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
 // ─── Component ──────────────────────────────────────────────────────────
 export const CLI = forwardRef<CLIRef, CLIBodyProps>(function CLI(
   { isOpen, onAdd, existingApps = [], editApp, onEdit, onCanSubmitChange },
   ref,
 ) {
   const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
   const [command, setCommand] = useState('');
   const [workingDir, setWorkingDir] = useState('');
   const [envVars, setEnvVars] = useState<EnvVar[]>([]);
   const [duplicateError, setDuplicateError] = useState<{ name?: string; value?: string }>({});
+  const [faviconStatus, setFaviconStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(
+    'idle',
+  );
+  const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
 
   const isEdit = !!editApp;
+
+  const isUrlInvalid = (() => {
+    if (!url.trim()) return false;
+    try {
+      new URL(withProtocol(url));
+      return false;
+    } catch {
+      return true;
+    }
+  })();
 
   // Duplicate error detection
   useEffect(() => {
@@ -74,28 +98,86 @@ export const CLI = forwardRef<CLIRef, CLIBodyProps>(function CLI(
     setDuplicateError(error);
   }, [name, command, existingApps, isEdit, editApp]);
 
+  // Fetch favicon when URL changes
+  useEffect(() => {
+    if (!url.trim()) {
+      setFaviconStatus('idle');
+      setFaviconUrl(null);
+      return;
+    }
+
+    let isMounted = true;
+    setFaviconStatus('loading');
+
+    const checkImage = (src: string): Promise<boolean> =>
+      new Promise((resolve) => {
+        const testImg = new Image();
+        testImg.onload = () => resolve(true);
+        testImg.onerror = () => resolve(false);
+        testImg.src = src;
+      });
+
+    const fetchFavicon = async () => {
+      try {
+        const hostname = new URL(withProtocol(url)).hostname;
+        const candidates = [
+          `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`,
+          `https://${hostname}/favicon.ico`,
+          `https://${hostname}/favicon.png`,
+        ];
+        for (const src of candidates) {
+          const loaded = await checkImage(src);
+          if (!isMounted) return;
+          if (loaded) {
+            setFaviconUrl(src);
+            setFaviconStatus('success');
+            return;
+          }
+        }
+        if (isMounted) setFaviconStatus('error');
+      } catch {
+        if (isMounted) setFaviconStatus('error');
+      }
+    };
+
+    // Debounce để tránh fetch ở mỗi lần gõ phím
+    const timer = setTimeout(fetchFavicon, 400);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [url]);
+
   // Reset on open/edit
   useEffect(() => {
     if (!isOpen) return;
     if (editApp) {
       setName(editApp.name || '');
+      setUrl(editApp.url || '');
       setCommand(editApp.executablePath || '');
     } else {
       setName('');
+      setUrl('');
       setCommand('');
     }
     setWorkingDir('');
     setEnvVars([]);
+    setFaviconStatus('idle');
+    setFaviconUrl(null);
   }, [isOpen, editApp]);
 
   const handleSelectFolder = async () => {
     try {
-      const result = await window.api.invoke('selectFolder');
-      if (result?.folderPath) {
-        setWorkingDir(result.folderPath);
+      const result = await (window as any).electron.ipcRenderer.invoke('dialog:show-save', {
+        title: 'Select Working Directory',
+        properties: ['openDirectory'],
+      });
+      if (result?.success && result?.filePath) {
+        setWorkingDir(result.filePath);
       }
     } catch (error) {
-      logger.error('[CLI] Select folder failed:', error);
+      console.error('[CLI] Select folder failed:', error);
     }
   };
 
@@ -104,9 +186,7 @@ export const CLI = forwardRef<CLIRef, CLIBodyProps>(function CLI(
   };
 
   const updateEnvVar = (index: number, field: 'key' | 'value', value: string) => {
-    setEnvVars((prev) =>
-      prev.map((env, i) => (i === index ? { ...env, [field]: value } : env)),
-    );
+    setEnvVars((prev) => prev.map((env, i) => (i === index ? { ...env, [field]: value } : env)));
   };
 
   const removeEnvVar = (index: number) => {
@@ -114,19 +194,28 @@ export const CLI = forwardRef<CLIRef, CLIBodyProps>(function CLI(
   };
 
   const handleSubmit = async () => {
+    const normalizedUrl = withProtocol(url);
     if (isEdit && editApp && onEdit) {
-      onEdit(editApp.id, { name, executablePath: command });
+      // url rỗng ('') để cho phép xóa URL đã lưu (toUpdateDTO bỏ qua undefined)
+      onEdit(editApp.id, { name, executablePath: command, url: normalizedUrl });
       return;
     }
     if (!name || !command) return;
     try {
-      await onAdd({ name, executablePath: command, mode: 'intercept', platform: 'cli' });
+      await onAdd({
+        name,
+        executablePath: command,
+        url: normalizedUrl || undefined,
+        mode: 'intercept',
+        platform: 'cli',
+      });
     } catch (error) {
-      logger.error('[CLI] Add target failed:', error);
+      console.error('[CLI] Add target failed:', error);
     }
   };
 
-  const canSubmit = !!(name && command) && !duplicateError.name && !duplicateError.value;
+  const canSubmit =
+    !!(name && command) && !duplicateError.name && !duplicateError.value && !isUrlInvalid;
 
   useImperativeHandle(ref, () => ({ submit: handleSubmit, canSubmit }), [handleSubmit, canSubmit]);
 
@@ -149,6 +238,52 @@ export const CLI = forwardRef<CLIRef, CLIBodyProps>(function CLI(
           )}
         />
         {duplicateError.name && <p className="text-xs text-error mt-1.5">{duplicateError.name}</p>}
+      </div>
+
+      {/* URL (optional) — dùng để lấy favicon hiển thị trên TargetCard */}
+      <div>
+        <label className="block text-xs font-bold text-text-secondary mb-1.5">
+          URL <span className="font-normal text-text-secondary/60">(optional)</span>
+        </label>
+        <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              'w-9 h-9 shrink-0 rounded-lg flex items-center justify-center border-2 transition-all bg-input-background',
+              faviconStatus === 'idle' && 'border-border',
+              faviconStatus === 'loading' && 'border-border animate-pulse',
+              faviconStatus === 'success' && 'border-success',
+              faviconStatus === 'error' && 'border-error',
+            )}
+          >
+            {faviconStatus === 'loading' && (
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            )}
+            {faviconStatus === 'success' && faviconUrl && (
+              <img
+                src={faviconUrl}
+                alt="Favicon"
+                className="w-6 h-6 object-contain"
+                onError={() => setFaviconStatus('error')}
+              />
+            )}
+            {faviconStatus === 'error' && <Bug className="w-5 h-5 text-error" />}
+            {faviconStatus === 'idle' && <div className="w-6 h-6 rounded bg-border/30" />}
+          </div>
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://example.com"
+            className={cn(
+              'flex-1 bg-input-background border rounded-lg px-3 py-2.5 text-sm font-mono text-text-primary outline-none focus:border-primary',
+              isUrlInvalid ? 'border-error' : 'border-border',
+            )}
+          />
+        </div>
+        {isUrlInvalid && <p className="text-xs text-error mt-1.5">Invalid URL</p>}
+        <p className="text-[10px] text-text-secondary mt-1.5 italic">
+          Used to display the favicon for this CLI target.
+        </p>
       </div>
 
       <div>

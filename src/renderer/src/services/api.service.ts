@@ -19,7 +19,6 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 import { ApiResponse } from '@renderer/types/api';
-import { logger } from '@renderer/utils/logger';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 const DEFAULT_BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8080';
@@ -72,7 +71,7 @@ class ApiService {
     try {
       json = JSON.parse(cleanedText);
     } catch (parseError) {
-      logger.error('[ApiService] Failed to parse JSON. Raw response:', cleanedText);
+      console.error('[ApiService] Failed to parse JSON. Raw response:', cleanedText);
       throw new Error(`Invalid JSON response: ${cleanedText.substring(0, 100)}...`);
     }
 

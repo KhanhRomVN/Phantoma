@@ -1,0 +1,13 @@
+---
+recon: 1.0
+type: tab
+title: Diff
+---
+
+# Lịch sử WHOIS
+@box w=5 maxh=18 ui=diff icon=GitCompare desc="Dạng ngày | trường | giá trị cũ | giá trị mới"
+
+- 2025-01-15 | Nameserver | ns1.old.com | ns1.cloudflare.com
+- 2025-01-15 | Registrar | | NameCheap Inc.
+- 2024-03-01 | Registrant | Nguyễn Văn A | Công ty ABC
+- 2024-03-01 | Email liên hệ | a.nguyen@gmail.com |

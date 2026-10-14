@@ -1,12 +1,23 @@
 /**
  * ------------------------------------------------------------------
- * IPC handler hội thoại
+ * IPC Conversation Handlers
  * ------------------------------------------------------------------
- * Đăng ký IPC handler cho lưu trữ bền vững hội thoại. Ủy quyền
- * các thao tác CRUD cho ConversationStorage.
+ * Cầu nối IPC cho việc quản lý lịch sử hội thoại AI. ủy quyền toàn bộ
+ * thao tác CRUD (Create, Read, Update, Delete) xuống lớp Service
+ * ConversationStorage để đảm bảo tính nhất quán dữ liệu.
  *
- * Hàm chính:
- * - setupConversationHandlers() : Đăng ký IPC handler conversation:
+ * Constants:
+ * - storage : Instance đơn lẻ của ConversationStorage dùng chung cho mọi request
+ *
+ * Channels:
+ * - conversation:save     : Lưu hoặc cập nhật một cuộc hội thoại cụ thể
+ * - conversation:get      : Truy xuất nội dung đầy đủ của một hội thoại theo ID
+ * - conversation:list     : Liệt kê tất cả ID hội thoại thuộc một module/project
+ * - conversation:delete   : Xóa vĩnh viễn một hội thoại duy nhất
+ * - conversation:deleteAll: Dọn sạch toàn bộ lịch sử hội thoại của một module
+ *
+ * Functions:
+ * - setupConversationHandlers() : Entry point đăng ký IPC handler nhóm 'conversation:'
  * ------------------------------------------------------------------
  */
 
@@ -15,7 +26,7 @@
 import { ipcMain } from 'electron';
 
 // ── Internal ──
-import { ConversationStorage } from '../services/ConversationStorage';
+import { ConversationStorage } from '../storage/ConversationStorage';
 import { logger } from '@main/utils/logger';
 
 // ─── Constants ──────────────────────────────────────────────────────────

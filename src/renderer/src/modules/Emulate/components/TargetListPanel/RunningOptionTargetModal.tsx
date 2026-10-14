@@ -14,24 +14,49 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-// ── React ──
+// ── React ─
 import React, { useState, useEffect } from 'react';
 
 // ── UI ──
-import { Square, Shield, Monitor, Smartphone, Syringe, Lock, LockOpen, Star, Zap, Network, Activity } from 'lucide-react';
+import {
+  Square,
+  Shield,
+  Monitor,
+  Smartphone,
+  Syringe,
+  Lock,
+  Zap,
+  Network,
+  Activity,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
 
 // ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
-// ── Types ──
+// ── Types ─
 import { TargetTab } from '../../types/target.types';
 
-// ── Utils ──
+// ── Services ──
+import { emulateApi } from '../../services/emulate-api.service';
+import { secureStorage } from '../../services/secure-storage.service';
+
+// ── Utils ─
 import { cn } from '@renderer/shared/utils/cn';
 import { getTargetFavicon } from '.';
 
+// Map icon name string to Lucide component
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  Monitor,
+  Shield,
+  Syringe,
+  Zap,
+  Network,
+  Activity,
+};
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface RunningOptionTargetModalProps {
   isOpen: boolean;
@@ -49,12 +74,25 @@ interface RunningOptionTargetModalProps {
     useSandbox?: boolean,
   ) => void;
   onStartFrida: (targetId: string, targetUrl?: string, useSandbox?: boolean) => void;
-  onStartEbpf: (targetId: string, targetUrl?: string, useSandbox?: boolean) => void;
+  onStartEbpf: (targetId: string, targetUrl?: string, useSandbox?: boolean, sudoPassword?: string) => void;
   onStartCdp: (targetId: string, targetUrl?: string, useSandbox?: boolean) => void;
-  onStartPcap: (targetId: string, targetUrl?: string, useSandbox?: boolean) => void;
+  onStartPcap: (targetId: string, targetUrl?: string, useSandbox?: boolean, sudoPassword?: string) => void;
   onStartAppDebug: (targetId: string, targetUrl?: string, useSandbox?: boolean) => void;
   onStopTarget: () => void;
   onRefreshDevices?: () => Promise<void>;
+}
+
+interface CaptureMethodMeta {
+  id: string;
+  label: string;
+  description: string;
+  icon?: string;
+  color?: string;
+  ratings: { dataQuality: number; authCompat: number; complexity: number };
+  pros: string[];
+  cons: string[];
+  limitations: string;
+  recommended?: boolean;
 }
 
 export function RunningOptionTargetModal({
@@ -75,14 +113,55 @@ export function RunningOptionTargetModal({
   onRefreshDevices,
 }: RunningOptionTargetModalProps) {
   const [selectedDeviceSerial, setSelectedDeviceSerial] = useState<string>('');
-  const [selectedAction, setSelectedAction] = useState<
-    'cdp' | 'mitm-normal' | 'mitm-env' | 'frida' | 'ebpf' | 'pcap' | 'app-debug' | 'stop' | null
-  >(null);
+  const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [isDeviceDropdownOpen, setIsDeviceDropdownOpen] = useState(false);
-  const [useSandbox, setUseSandbox] = useState(
-    platform === 'cli' && target?.title?.toLowerCase() === 'cline' ? false : true
-  );
+  const [availableMethods, setAvailableMethods] = useState<CaptureMethodMeta[]>([]);
+  const [loadingMethods, setLoadingMethods] = useState(false);
+  
+  // Sudo Password State
+  const [sudoPassword, setSudoPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  
   const hasOpenedRef = React.useRef(false);
+
+  // Fetch capture methods from backend
+  useEffect(() => {
+    if (!platform || !isOpen) return;
+
+    let cancelled = false;
+    setLoadingMethods(true);
+
+    emulateApi
+      .getCaptureMethods(platform as any)
+      .then((response) => {
+        if (cancelled) return;
+
+        // Response is expected to be { platform: string, methods: CaptureMethodMeta[] }
+        const methods = response?.methods;
+
+        if (Array.isArray(methods)) {
+          setAvailableMethods(methods);
+        } else {
+          console.warn('[Modal] No valid methods array found in response.', response);
+          setAvailableMethods([]);
+        }
+      })
+      .catch((err) => {
+        console.error('[Modal] Failed to load capture methods:', err);
+        if (!cancelled) {
+          setAvailableMethods([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingMethods(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [platform, isOpen]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -95,6 +174,13 @@ export function RunningOptionTargetModal({
         if (onRefreshDevices && platform === 'android') {
           onRefreshDevices();
         }
+        
+        // Load saved sudo password from secure storage asynchronously
+        secureStorage.getSudoPassword().then((savedPw) => {
+          if (savedPw) {
+            setSudoPassword(savedPw);
+          }
+        });
       }
     } else {
       hasOpenedRef.current = false;
@@ -115,26 +201,40 @@ export function RunningOptionTargetModal({
   const PlatformIcon = platformCfg.icon;
   const platformColor = platformCfg.color;
 
-  const handleActionSelect = (action: 'cdp' | 'mitm-normal' | 'mitm-env' | 'frida' | 'ebpf' | 'pcap' | 'app-debug' | 'stop') => {
+  const handleActionSelect = (action: string) => {
     setSelectedAction(action);
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!selectedAction) return;
     if (selectedAction === 'stop') {
       onStopTarget();
       onClose();
       return;
     }
+
+    // Map action ID to appropriate callback based on platform and method type
+    const method = availableMethods.find((m) => m.id === selectedAction);
+    if (!method) return;
+
+    // Auto-save password to secure storage if provided for modes requiring sudo
+    if ((selectedAction === 'ebpf' || selectedAction === 'pcap') && sudoPassword) {
+      await secureStorage.setSudoPassword(sudoPassword);
+    }
+
     switch (selectedAction) {
       case 'cdp':
-        onStartCDP(target.id, target.url);
+        if (platform === 'cli') {
+          onStartCdp(target.id, target.executablePath || target.url);
+        } else {
+          onStartCDP(target.id, target.url);
+        }
         break;
       case 'mitm-normal':
         if (platform === 'android') {
           onStartMITM(target.id, target.url, false, selectedDeviceSerial || undefined);
         } else if (platform === 'cli') {
-          onStartMITM(target.id, target.url, false, undefined, useSandbox);
+          onStartMITM(target.id, undefined, false, undefined); // CLI url chỉ dùng cho favicon, không dùng để launch
         } else {
           onStartMITM(target.id, target.url, false);
         }
@@ -147,23 +247,16 @@ export function RunningOptionTargetModal({
         }
         break;
       case 'frida':
-        onStartFrida(target.id, target.url, useSandbox);
+        onStartFrida(target.id, platform === 'cli' ? undefined : target.url); // CLI url chỉ dùng cho favicon
         break;
       case 'ebpf':
-        // Call IPC handler for eBPF
-        onStartEbpf(target.id, target.executablePath || target.url, useSandbox);
-        break;
-      case 'cdp':
-        // Call IPC handler for CDP proxy
-        onStartCdp(target.id, target.executablePath || target.url, useSandbox);
+        onStartEbpf(target.id, target.executablePath || target.url, undefined, sudoPassword);
         break;
       case 'pcap':
-        // Call IPC handler for packet capture
-        onStartPcap(target.id, target.executablePath || target.url, useSandbox);
+        onStartPcap(target.id, target.executablePath || target.url, undefined, sudoPassword);
         break;
       case 'app-debug':
-        // Call IPC handler for app debug
-        onStartAppDebug(target.id, target.executablePath || target.url, useSandbox);
+        onStartAppDebug(target.id, target.executablePath || target.url);
         break;
     }
     onClose();
@@ -174,67 +267,6 @@ export function RunningOptionTargetModal({
     if ((platform === 'pc' || platform === 'cli') && target.executablePath)
       return target.executablePath;
     return platformCfg.label;
-  };
-
-  // Rating component for capture methods
-  const StarRating = ({ rating, maxStars = 5 }: { rating: number; maxStars?: number }) => {
-    return (
-      <div className="flex items-center gap-0.5">
-        {Array.from({ length: maxStars }).map((_, i) => (
-          <Star
-            key={i}
-            className={cn(
-              'w-2.5 h-2.5',
-              i < rating ? 'fill-amber-400 text-amber-400' : 'text-border',
-            )}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  // Capture method metadata
-  const captureMethodInfo = {
-    'mitm-normal': {
-      dataQuality: 5,
-      authCompat: 2,
-      complexity: 2,
-      pros: ['Full plaintext access', 'Headers & body visible', 'Standard tool'],
-      cons: ['Breaks signature validation', 'Auth may fail', 'SSL re-encryption'],
-      limitations: 'Cannot preserve auth for apps with certificate pinning',
-    },
-    ebpf: {
-      dataQuality: 5,
-      authCompat: 5,
-      complexity: 4,
-      pros: ['Full plaintext access', 'Auth preserved', 'No SSL interference'],
-      cons: ['Linux only', 'Requires root', 'Complex setup'],
-      limitations: 'Kernel-level access required. Not available on all systems.',
-    },
-    frida: {
-      dataQuality: 5,
-      authCompat: 5,
-      complexity: 3,
-      pros: ['Full plaintext access', 'Auth preserved', 'Runtime inspection'],
-      cons: ['Process injection', 'May trigger anti-debug', 'App-specific'],
-      limitations: 'Requires injectable process. May not work with protected apps.',
-    },
-    pcap: {
-      dataQuality: 1,
-      authCompat: 5,
-      complexity: 1,
-      pros: ['Auth preserved', 'Simple setup', 'No app interference'],
-      cons: ['Encrypted data only', 'No plaintext', 'Metadata only'],
-      limitations: 'Can only capture: host, port, timing, packet sizes. No decryption.',
-    },
-    'app-debug': {
-      dataQuality: 5,
-      authCompat: 5,
-      complexity: 1,
-      pros: ['Full plaintext access', 'Auth preserved', 'Native app logs'],
-      cons: ['App must support', 'Verbose output', 'Format varies'],
-      limitations: 'Only works if app has debug/verbose logging mode.',
-    },
   };
 
   const renderActionButtons = () => {
@@ -269,378 +301,52 @@ export function RunningOptionTargetModal({
       return buttons;
     }
 
-    // CDP - only for web
-    if (platform === 'web') {
-      buttons.push(
-        <button
-          key="cdp"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect('cdp');
-          }}
-          className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'cdp'
-              ? 'border-sky-400 bg-sky-400/10'
-              : 'border-border hover:bg-dropdown-item-hover',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Monitor className="w-4 h-4 text-sky-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium">CDP</div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Chrome DevTools Protocol for debugging and automation
-              </div>
-            </div>
-          </div>
-        </button>,
-      );
+    if (loadingMethods) {
+      return <div className="text-center py-4 text-xs text-text-secondary">Loading methods...</div>;
     }
 
-    // MITM - all platforms
-    const mitmLabel = platform === 'android' ? 'MITM (select device)' : 'MITM Proxy';
-    const mitmInfo = captureMethodInfo['mitm-normal'];
-    buttons.push(
-      <button
-        key="mitm-normal"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleActionSelect('mitm-normal');
-        }}
-        className={cn(
-          'w-full text-left px-4 py-3 rounded-lg border transition-all',
-          selectedAction === 'mitm-normal'
-            ? 'border-amber-400 bg-amber-400/10'
-            : 'border-border hover:bg-dropdown-item-hover',
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <Shield className="w-4 h-4 text-amber-400 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-medium">{mitmLabel}</span>
-              {platform === 'cli' && (
-                <>
-                  <StarRating rating={mitmInfo.dataQuality} />
-                  <span className="text-[9px] text-text-secondary">Data</span>
-                  <StarRating rating={mitmInfo.authCompat} />
-                  <span className="text-[9px] text-text-secondary">Auth</span>
-                </>
-              )}
-            </div>
-            <div className="text-xs text-text-secondary mt-0.5">
-              {platform === 'cli'
-                ? 'SSL interception - may break auth signatures'
-                : 'Standard MITM proxy interception for traffic analysis'}
-            </div>
-            {platform === 'cli' && selectedAction === 'mitm-normal' && (
-              <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
-                <div className="text-[10px] text-emerald-400">
-                  ✓ {mitmInfo.pros.join(' • ')}
-                </div>
-                <div className="text-[10px] text-red-400">✗ {mitmInfo.cons.join(' • ')}</div>
-                <div className="text-[10px] text-amber-400/70 italic">
-                  ⚠ {mitmInfo.limitations}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </button>,
-    );
+    // Render dynamic buttons based on availableMethods from backend
+    for (const method of availableMethods) {
+      const IconComp = method.icon ? ICON_MAP[method.icon] : Shield; // Fallback to Shield
 
-    // CDP Proxy - CLI only (Universal solution)
-    if (platform === 'cli') {
       buttons.push(
         <button
-          key="cdp"
+          key={method.id}
           onClick={(e) => {
             e.stopPropagation();
-            handleActionSelect('cdp');
+            handleActionSelect(method.id);
           }}
           className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'cdp'
-              ? 'border-sky-400 bg-sky-400/10'
-              : 'border-border hover:bg-dropdown-item-hover',
+            'relative w-full text-left px-4 py-3 rounded-lg border transition-all duration-200 ease-out overflow-hidden',
+            selectedAction === method.id
+              ? 'border-border/60 bg-input-background'
+              : 'border-transparent hover:bg-dropdown-item-hover',
           )}
         >
-          <div className="flex items-center gap-3">
-            <Monitor className="w-4 h-4 text-sky-400 shrink-0" />
+          {/* Selected Accent Bar (Gradient Line Left) */}
+          {selectedAction === method.id && (
+            <div
+              className={cn(
+                'absolute left-0 top-1/2 -translate-y-1/2 h-[80%] w-1 rounded-r-md',
+                `bg-gradient-to-r from-${method.color || 'sky-400'} to-transparent`,
+              )}
+            />
+          )}
+
+          <div className="flex items-center gap-3 relative z-10">
+            <IconComp
+              className={`w-4 h-4 ${selectedAction === method.id ? `text-${method.color || 'sky-400'}` : 'text-text-secondary'} shrink-0`}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium">CDP Proxy</span>
-                <StarRating rating={5} />
-                <span className="text-[9px] text-text-secondary">Data</span>
-                <StarRating rating={5} />
-                <span className="text-[9px] text-text-secondary">Auth</span>
-                <span className="ml-1 px-1.5 py-0.5 text-[9px] bg-sky-500/20 text-sky-400 rounded">
-                  RECOMMENDED
-                </span>
+                <span className="text-sm font-medium">{method.label}</span>
+                {method.recommended && (
+                  <span className="ml-1 px-1.5 py-0.5 text-[9px] bg-sky-500/20 text-sky-400 rounded">
+                    RECOMMENDED
+                  </span>
+                )}
               </div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Chrome-based proxy - universal, no root needed
-              </div>
-              {selectedAction === 'cdp' && (
-                <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
-                  <div className="text-[10px] text-emerald-400">
-                    ✓ Full plaintext access • Auth preserved • Cross-platform • No root required
-                  </div>
-                  <div className="text-[10px] text-red-400">
-                    ✗ Slightly slower • Chrome dependency
-                  </div>
-                  <div className="text-[10px] text-amber-400/70 italic">
-                    ⚠ Traffic proxied through Chrome browser. Best compatibility.
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </button>,
-      );
-    }
-
-    // eBPF - CLI only (Linux)
-    if (platform === 'cli') {
-      const ebpfInfo = captureMethodInfo.ebpf;
-      buttons.push(
-        <button
-          key="ebpf"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect('ebpf');
-          }}
-          className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'ebpf'
-              ? 'border-cyan-400 bg-cyan-400/10'
-              : 'border-border hover:bg-dropdown-item-hover',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Zap className="w-4 h-4 text-cyan-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium">eBPF Capture</span>
-                <StarRating rating={ebpfInfo.dataQuality} />
-                <span className="text-[9px] text-text-secondary">Data</span>
-                <StarRating rating={ebpfInfo.authCompat} />
-                <span className="text-[9px] text-text-secondary">Auth</span>
-              </div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Kernel-level SSL capture - preserves auth
-              </div>
-              {selectedAction === 'ebpf' && (
-                <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
-                  <div className="text-[10px] text-emerald-400">
-                    ✓ {ebpfInfo.pros.join(' • ')}
-                  </div>
-                  <div className="text-[10px] text-red-400">✗ {ebpfInfo.cons.join(' • ')}</div>
-                  <div className="text-[10px] text-amber-400/70 italic">
-                    ⚠ {ebpfInfo.limitations}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </button>,
-      );
-
-      // Frida - CLI support
-      const fridaInfo = captureMethodInfo.frida;
-      buttons.push(
-        <button
-          key="frida"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect('frida');
-          }}
-          className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'frida'
-              ? 'border-purple-400 bg-purple-400/10'
-              : 'border-border hover:bg-dropdown-item-hover',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Syringe className="w-4 h-4 text-purple-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium">Frida Injection</span>
-                <StarRating rating={fridaInfo.dataQuality} />
-                <span className="text-[9px] text-text-secondary">Data</span>
-                <StarRating rating={fridaInfo.authCompat} />
-                <span className="text-[9px] text-text-secondary">Auth</span>
-              </div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Runtime SSL hook - preserves auth
-              </div>
-              {selectedAction === 'frida' && (
-                <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
-                  <div className="text-[10px] text-emerald-400">
-                    ✓ {fridaInfo.pros.join(' • ')}
-                  </div>
-                  <div className="text-[10px] text-red-400">✗ {fridaInfo.cons.join(' • ')}</div>
-                  <div className="text-[10px] text-amber-400/70 italic">
-                    ⚠ {fridaInfo.limitations}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </button>,
-      );
-
-      // Packet Capture (tcpdump)
-      const pcapInfo = captureMethodInfo.pcap;
-      buttons.push(
-        <button
-          key="pcap"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect('pcap');
-          }}
-          className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'pcap'
-              ? 'border-blue-400 bg-blue-400/10'
-              : 'border-border hover:bg-dropdown-item-hover',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Network className="w-4 h-4 text-blue-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium">Packet Capture</span>
-                <StarRating rating={pcapInfo.dataQuality} />
-                <span className="text-[9px] text-text-secondary">Data</span>
-                <StarRating rating={pcapInfo.authCompat} />
-                <span className="text-[9px] text-text-secondary">Auth</span>
-              </div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Network-level capture - metadata only
-              </div>
-              {selectedAction === 'pcap' && (
-                <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
-                  <div className="text-[10px] text-emerald-400">
-                    ✓ {pcapInfo.pros.join(' • ')}
-                  </div>
-                  <div className="text-[10px] text-red-400">✗ {pcapInfo.cons.join(' • ')}</div>
-                  <div className="text-[10px] text-amber-400/70 italic">
-                    ⚠ {pcapInfo.limitations}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </button>,
-      );
-
-      // App Debug Logging
-      const appDebugInfo = captureMethodInfo['app-debug'];
-      buttons.push(
-        <button
-          key="app-debug"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect('app-debug');
-          }}
-          className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'app-debug'
-              ? 'border-green-400 bg-green-400/10'
-              : 'border-border hover:bg-dropdown-item-hover',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Activity className="w-4 h-4 text-green-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium">App Debug Mode</span>
-                <StarRating rating={appDebugInfo.dataQuality} />
-                <span className="text-[9px] text-text-secondary">Data</span>
-                <StarRating rating={appDebugInfo.authCompat} />
-                <span className="text-[9px] text-text-secondary">Auth</span>
-              </div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Native app logging - if supported
-              </div>
-              {selectedAction === 'app-debug' && (
-                <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
-                  <div className="text-[10px] text-emerald-400">
-                    ✓ {appDebugInfo.pros.join(' • ')}
-                  </div>
-                  <div className="text-[10px] text-red-400">
-                    ✗ {appDebugInfo.cons.join(' • ')}
-                  </div>
-                  <div className="text-[10px] text-amber-400/70 italic">
-                    ⚠ {appDebugInfo.limitations}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </button>,
-      );
-    }
-
-    // Remove MITM ENV Inject and Frida for CLI platform
-    // MITM with ENV Inject - only for PC
-    if (platform === 'pc') {
-      buttons.push(
-        <button
-          key="mitm-env"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect('mitm-env');
-          }}
-          className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'mitm-env'
-              ? 'border-green-400 bg-green-400/10'
-              : 'border-border hover:bg-dropdown-item-hover',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Syringe className="w-4 h-4 text-green-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">MITM</span>
-                <span className="text-xs text-text-secondary">ENV Inject</span>
-              </div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Intercept traffic with environment variable injection
-              </div>
-            </div>
-          </div>
-        </button>,
-      );
-    }
-
-    // Frida - only for PC
-    if (platform === 'pc') {
-      buttons.push(
-        <button
-          key="frida"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect('frida');
-          }}
-          className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'frida'
-              ? 'border-purple-400 bg-purple-400/10'
-              : 'border-border hover:bg-dropdown-item-hover',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Syringe className="w-4 h-4 text-purple-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium">Frida + DLL Injection</div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Dynamic instrumentation for runtime manipulation
-              </div>
+              <div className="text-xs text-text-secondary mt-0.5">{method.description}</div>
             </div>
           </div>
         </button>,
@@ -662,7 +368,7 @@ export function RunningOptionTargetModal({
           {/* Target Info */}
           <div className="bg-input-background rounded-lg p-4 border border-border">
             <div className="flex items-center gap-3">
-              {platform === 'web' ? (
+              {platform === 'web' || platform === 'cli' ? (
                 (() => {
                   const faviconSrc = getTargetFavicon(target);
                   return faviconSrc ? (
@@ -708,43 +414,8 @@ export function RunningOptionTargetModal({
                 </span>
               </div>
             </div>
-            
-            {/* Sandbox toggle for CLI - integrated in target card */}
-            {platform === 'cli' && !isRunning && (
-              <div className="mt-3 pt-3 border-t border-border/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {useSandbox ? (
-                      <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    ) : (
-                      <LockOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    )}
-                    <div>
-                      <div className="text-xs font-medium">
-                        {useSandbox ? 'Sandbox Mode' : 'No Sandbox'}
-                      </div>
-                      <div className="text-[10px] text-text-secondary">
-                        {useSandbox ? 'Isolated environment' : 'System environment'}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setUseSandbox(!useSandbox)}
-                    className={cn(
-                      'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-                      useSandbox ? 'bg-emerald-500' : 'bg-border',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform',
-                        useSandbox ? 'translate-x-5' : 'translate-x-0.5',
-                      )}
-                    />
-                  </button>
-                </div>
-              </div>
-            )}
+
+
           </div>
 
           {/* Device selector for Android */}
@@ -797,6 +468,36 @@ export function RunningOptionTargetModal({
                   No devices found. Please connect a device.
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Sudo Password Input for eBPF/PCAP */}
+          {(selectedAction === 'ebpf' || selectedAction === 'pcap') && !isRunning && (
+            <div className="space-y-1.5 pt-2 border-t border-border">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                <Lock className="w-3 h-3" />
+                Sudo Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={sudoPassword}
+                  onChange={(e) => setSudoPassword(e.target.value)}
+                  placeholder="Enter your sudo password..."
+                  className="w-full bg-input-background border border-border rounded-lg px-3 py-2 pr-10 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-text-primary transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[10px] text-text-secondary italic">
+                Required for kernel-level traffic capture. Stored temporarily in session memory only.
+              </p>
             </div>
           )}
 

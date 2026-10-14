@@ -1,0 +1,33 @@
+---
+recon: 1.0
+type: tab
+title: Timeline
+---
+
+# Timeline đủ tone
+@box w=5 maxh=16 ui=timeline icon=History desc="Sự kiện theo ngày, kèm nguồn; {tone=ok|warn|danger|info} đổi màu mốc"
+
+- 2020-01-10 | Đăng ký tên miền nguyenvana.com | S-004 {tone=info}
+- 2021-03-01 | Bắt đầu làm việc tại TechCorp VN | S-002 {tone=ok}
+- 2023-06-15 | Email xuất hiện trong dữ liệu rò rỉ | S-003 {tone=danger}
+- 2026-05-12 | Phát hiện tài khoản mạng xã hội trùng biệt danh | S-001 {tone=warn}
+- 2026-05-15 | Ảnh check-in có metadata thiết bị | S-001
+
+# Timeline ngắn
+@box w=5 maxh=8 ui=timeline icon=History desc="Hai sự kiện, không có nguồn"
+
+- 2026-10-01 | Bắt đầu thu thập dữ liệu
+- 2026-10-12 | Hoàn tất đợt thu thập đầu tiên
+
+# Sự nghiệp
+@box w=5 maxh=12 ui=timeline icon=Briefcase desc="Mục có 'nay' tô cam; {color=...} để tự chọn màu"
+
+- 2021 - nay | Senior Backend Engineer | TechCorp VN, Quận 1
+- 2015 - 2021 | Software Engineer | ABC Software, TP.HCM {color=blue}
+- 2008 - 2013 | Kỹ sư Khoa học Máy tính | ĐH Bách Khoa TP.HCM {color=green}
+
+# Sự nghiệp không nơi làm
+@box w=5 maxh=8 ui=timeline icon=Briefcase desc="Mục không có ghi chú"
+
+- 2024 - nay | Cố vấn kỹ thuật
+- 2019 - 2021 | Freelancer

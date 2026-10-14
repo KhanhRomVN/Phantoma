@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useEffect, useState, ReactNode } from 'react';
 import {
   FONTS,
   applyFont,
@@ -8,7 +8,6 @@ import {
   getFontById,
   initFontSystem,
 } from './index';
-import { logger } from '@renderer/utils/logger';
 
 interface FontProviderState {
   currentFont: FontDefinition | null;
@@ -57,8 +56,6 @@ export const FontProvider: React.FC<FontProviderProps> = ({
       if (font) {
         setCurrentFont(font);
         applyFont(font.fontFamily);
-      } else {
-        logger.error('🔤 [FontProvider] No font available!');
       }
 
       setIsLoading(false);
@@ -72,8 +69,6 @@ export const FontProvider: React.FC<FontProviderProps> = ({
     if (font) {
       setCurrentFont(font);
       setStoredFont(font.fontFamily);
-    } else {
-      logger.error('🔤 [FontProvider] Font not found for ID:', fontId);
     }
   };
 

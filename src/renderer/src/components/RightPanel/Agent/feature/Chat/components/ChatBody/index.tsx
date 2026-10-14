@@ -16,7 +16,7 @@ import React, { useRef, useEffect, useMemo } from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 
 // ── Types ──
@@ -140,7 +140,7 @@ class MessageBoxErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    logger.error('[MessageBox] Render error caught:', error, info);
+    console.error('[MessageBox] Render error caught:', error, info);
   }
 
   render() {

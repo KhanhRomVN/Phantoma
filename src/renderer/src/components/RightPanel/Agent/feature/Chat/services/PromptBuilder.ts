@@ -33,7 +33,6 @@ import { extensionService } from '@renderer/components/RightPanel/Agent/services
 import type { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface PromptBuilderOptions {
@@ -155,7 +154,7 @@ export class PromptBuilder {
         };
       }
     } catch (e) {
-      logger.warn('[PromptBuilder] Failed to fetch system info:', e);
+      console.warn('[PromptBuilder] Failed to fetch system info:', e);
     }
 
     const effectiveLang = aiLanguage;

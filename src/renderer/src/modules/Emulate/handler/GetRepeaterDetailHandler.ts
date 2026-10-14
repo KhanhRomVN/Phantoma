@@ -18,7 +18,6 @@ import { emulateApi } from '../services/emulate-api.service';
 import { NetworkRequest } from '../types/inspector';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Functions ──────────────────────────────────────────────────────────
 const scanPayloadVariables = (text: string): string[] => {
@@ -170,7 +169,7 @@ export class GetRepeaterDetailHandler {
         text: firstLine + paramsText + headersText + bodyText + payloadsText,
       };
     } catch (err: any) {
-      logger.error('[GetRepeaterDetailHandler] Error:', err);
+      console.error('[GetRepeaterDetailHandler] Error:', err);
       return { text: `[get_repeater_detail] Error: ${err.message || String(err)}` };
     }
   }

@@ -29,7 +29,6 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { logger } from '@renderer/utils/logger';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface WatchedFile {
@@ -84,7 +83,7 @@ class FileWatcherService {
       try {
         listener(event);
       } catch (err) {
-        logger.error('[FileWatcherService] ❌ Listener error:', err);
+        console.error('[FileWatcherService] ❌ Listener error:', err);
       }
     });
   }
@@ -145,7 +144,7 @@ class FileWatcherService {
     try {
       await window.api.invoke('fs:watch-file', filePath);
     } catch (err) {
-      logger.error('[FileWatcherService] ❌ Failed to start watch:', filePath, err);
+      console.error('[FileWatcherService] ❌ Failed to start watch:', filePath, err);
       return;
     }
 
@@ -180,7 +179,7 @@ class FileWatcherService {
             mtime: data.mtime,
           });
         } catch (err) {
-          logger.error('[FileWatcherService] ❌ Error handling file change:', err);
+          console.error('[FileWatcherService] ❌ Error handling file change:', err);
         }
       },
     );
@@ -231,7 +230,7 @@ class FileWatcherService {
     try {
       await window.api.invoke('fs:unwatch-file', filePath);
     } catch (err) {
-      logger.error('[FileWatcherService] ❌ Error unwatching:', err);
+      console.error('[FileWatcherService] ❌ Error unwatching:', err);
     }
 
     this.watchedFiles.delete(filePath);

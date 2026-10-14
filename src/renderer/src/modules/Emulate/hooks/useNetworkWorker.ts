@@ -20,7 +20,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ── Stores ──
 import { useNetworkStore } from '../stores/networkStore';

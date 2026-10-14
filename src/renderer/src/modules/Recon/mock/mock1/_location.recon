@@ -1,0 +1,11 @@
+---
+recon: 1.0
+type: tab
+title: Location
+---
+
+# Các địa điểm quan trọng
+@box w=10 ui=map icon=MapPin desc="Bản đồ Google Maps với các tọa độ đánh dấu"
+
+Trọ Của Tôi: 10.373444, 105.433250
+An Giang: region {tone=warn}

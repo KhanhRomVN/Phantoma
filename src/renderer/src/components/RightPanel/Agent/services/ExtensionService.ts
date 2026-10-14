@@ -21,8 +21,6 @@
 // ─── Helpers ──────────────────────────────────────────────────────────
 // window.api is exposed by preload (see src/preload/index.d.ts)
 
-import { logger } from '@renderer/utils/logger';
-
 // ─── MessageDispatcher ────────────────────────────────────────────────
 // Kept for backward compatibility with code that uses the old
 // register(requestId, handler, timeout, onTimeout) pattern.
@@ -98,7 +96,7 @@ function getApi() {
       return api;
     }
   } catch {
-    logger.warn('[ExtensionService] window.api not available');
+    console.warn('[ExtensionService] window.api not available');
   }
   return null;
 }
@@ -138,7 +136,7 @@ function ipcInvoke(channel: string, payload: any = {}, timeoutMs = 5000): Promis
 function ipcOn(channel: string, listener: (...args: any[]) => void): () => void {
   const api = getApi();
   if (!api) {
-    logger.warn(`[ExtensionService] IPC not available, cannot listen on channel: ${channel}`);
+    console.warn(`[ExtensionService] IPC not available, cannot listen on channel: ${channel}`);
     return () => {};
   }
   api.on(channel, listener);
@@ -146,7 +144,7 @@ function ipcOn(channel: string, listener: (...args: any[]) => void): () => void 
     try {
       api.off(channel, listener);
     } catch {
-      logger.warn('[ExtensionService] Failed to remove listener for channel:', channel);
+      console.warn('[ExtensionService] Failed to remove listener for channel:', channel);
     }
   };
 }
@@ -162,7 +160,7 @@ function storageGet(key: string): Promise<{ key: string; value: string } | null>
       return Promise.resolve({ key, value: raw });
     }
   } catch (e) {
-    logger.warn('[ExtensionService] localStorage get failed:', key, e);
+    console.warn('[ExtensionService] localStorage get failed:', key, e);
   }
   return Promise.resolve(null);
 }
@@ -171,7 +169,7 @@ function storageSet(key: string, value: string): Promise<{ key: string; value: s
   try {
     localStorage.setItem(STORAGE_PREFIX + key, value);
   } catch (e) {
-    logger.warn('[ExtensionService] localStorage set failed:', key, e);
+    console.warn('[ExtensionService] localStorage set failed:', key, e);
   }
   return Promise.resolve({ key, value });
 }
@@ -181,7 +179,7 @@ function storageDelete(key: string): Promise<{ key: string; deleted: boolean }> 
     localStorage.removeItem(STORAGE_PREFIX + key);
     return Promise.resolve({ key, deleted: true });
   } catch (e) {
-    logger.warn('[ExtensionService] localStorage delete failed:', key, e);
+    console.warn('[ExtensionService] localStorage delete failed:', key, e);
     return Promise.resolve({ key, deleted: false });
   }
 }
@@ -198,7 +196,7 @@ function storageList(prefix?: string): Promise<{ keys: string[] }> {
     }
     return Promise.resolve({ keys });
   } catch (e) {
-    logger.warn('[ExtensionService] localStorage list failed:', prefix, e);
+    console.warn('[ExtensionService] localStorage list failed:', prefix, e);
     return Promise.resolve({ keys: [] });
   }
 }
@@ -229,7 +227,7 @@ class ExtensionService {
     api.invoke(channel, message).catch((err: any) => {
       // Only warn for non-trivial errors (not "no handler")
       if (err?.message && !err.message.includes('No handler')) {
-        logger.warn(`[ExtensionService] postMessage error on "${channel}":`, err.message);
+        console.warn(`[ExtensionService] postMessage error on "${channel}":`, err.message);
       }
     });
   }
@@ -255,10 +253,11 @@ class ExtensionService {
   // ─── Get system info ──────────────────────────────────────────────
   public async getSystemInfo(): Promise<any> {
     try {
-      const result = await ipcInvoke('getSystemInfo', {}, 3000);
+      // Updated to use new standardized channel 'system:get-info'
+      const result = await ipcInvoke('system:get-info', {}, 3000);
       if (result) return result;
     } catch (e) {
-      logger.warn('[ExtensionService] getSystemInfo via IPC failed, using fallback:', e);
+      console.warn('[ExtensionService] getSystemInfo via IPC failed, using fallback:', e);
     }
 
     // Fallback: collect info from renderer

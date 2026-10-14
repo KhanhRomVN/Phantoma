@@ -26,7 +26,6 @@ import { ResourcePreview } from './ResourcePreview';
 import { detectResourceType } from '../../../constants/resource';
 
 // ── Services ──
-import { ipcService } from '../../../../../services/ipc.service';
 
 // ── Stores ──
 import { useNetworkStore } from '../../../stores/networkStore';
@@ -35,7 +34,6 @@ import { useNetworkStore } from '../../../stores/networkStore';
 import { ResourceItem, ResourceType } from '../../../types/resource.types';
 
 // ── Utils ──
-import { formatSize } from '../../../utils/source-tree.util';
 import { detectWasm } from '../../../utils/wasm-detector.util';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -52,25 +50,6 @@ export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<ResourceType>>(
     new Set(['image', 'video', 'audio', 'wasm', 'font', 'document']),
   );
-  const [cacheManifest, setCacheManifest] = useState<Record<string, { size?: number }>>({});
-
-  // Fetch cache manifest
-  useEffect(() => {
-    const fetchManifest = async () => {
-      try {
-        const res = await ipcService.getCacheManifest();
-        if (res.success && res.data) {
-          setCacheManifest(res.data as any);
-        }
-      } catch (e) {
-        // Ignore if not available
-      }
-    };
-    fetchManifest();
-    const interval = setInterval(fetchManifest, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
   // Detect WASM modules
   const wasmItems = useMemo(() => detectWasm(requests), [requests]);
 
@@ -118,8 +97,7 @@ export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
       if (seen.has(key)) return;
       seen.add(key);
 
-      const cachedEntry = cacheManifest[req.id];
-      const size = cachedEntry?.size ? formatSize(cachedEntry.size) : req.size || 'Unknown';
+      const size = req.size || 'Unknown';
 
       items.push({
         id: req.id,
@@ -139,7 +117,7 @@ export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
     });
 
     return items.sort((a, b) => b.timestamp - a.timestamp);
-  }, [requests, wasmItems, cacheManifest]);
+  }, [requests, wasmItems]);
 
   // Notify parent of count change
   useEffect(() => {

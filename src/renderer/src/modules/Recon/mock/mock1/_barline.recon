@@ -1,0 +1,36 @@
+---
+recon: 1.0
+type: tab
+title: Barline
+---
+
+# Hoạt động theo giờ
+@box w=10 maxh=8 ui=barline icon=ChartColumn desc="Cột (trục trái) kết hợp đường (trục phải)" barLabel=Requests lineLabel=Tokens barColor=blue lineColor=green
+
+- 00:00 | 38 | 2000000
+- 01:00 | 0 | 0
+- 02:00 | 0 | 0
+- 03:00 | 0 | 0
+- 04:00 | 0 | 0
+- 05:00 | 0 | 0
+- 06:00 | 0 | 20000
+- 07:00 | 58 | 90000
+- 08:00 | 12 | 10000
+
+# Đổi màu cột và đường
+@box w=5 maxh=8 ui=barline icon=ChartColumn desc="barColor=yellow, lineColor=blue" barLabel=Lượt lineLabel=Dung lượng barColor=yellow lineColor=blue
+
+- T2 | 4 | 30
+- T3 | 7 | 55
+- T4 | 3 | 20
+- T5 | 9 | 80
+- T6 | 5 | 45
+
+# Chỉ có cột
+@box w=5 maxh=8 ui=barline icon=ChartColumn desc="Không có giá trị thứ ba nên không vẽ đường" barLabel=Nguồn barColor=green
+
+- T2 | 4
+- T3 | 7
+- T4 | 3
+- T5 | 9
+- T6 | 5

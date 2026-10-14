@@ -1,0 +1,19 @@
+---
+recon: 1.0
+type: tab
+title: Callout
+---
+
+# Callout đủ tone
+@box w=5 maxh=8 ui=callout cols=1 icon=Info desc="Bốn tone: danger, warn, ok, info"
+
+- danger | Email xuất hiện trong dữ liệu rò rỉ | Địa chỉ a.nguyen@gmail.com có trong bộ dữ liệu rò rỉ năm 2023, nên ưu tiên đổi mật khẩu liên quan. {src=S-003}
+- warn | Ngày sinh chưa được xác minh | Chỉ có một nguồn mạng xã hội, cần đối chiếu với nguồn thứ hai. {src=S-001}
+- ok | Nơi làm việc đã xác nhận | Website công ty và báo chí cùng nêu tên đối tượng. {src=S-002,S-005}
+- info | Biệt danh dùng nhiều nền tảng | Biệt danh nv_a xuất hiện trên ít nhất 3 nền tảng khác nhau.
+
+# Callout nội dung dài
+@box w=5 maxh=8 ui=callout icon=FileWarning desc="Nội dung nhiều dòng và nhiều nguồn"
+
+- warn | Dấu hiệu tài khoản giả mạo | Ảnh đại diện trùng với một tài khoản khác, ngày tạo tài khoản cách nhau chưa đến một tuần, và nội dung đăng tải gần như giống hệt. Cần đối chiếu thêm trước khi kết luận. {src=S-001,S-003,S-005}
+- neutral | Chưa có kết luận | Đang chờ kết quả đối chiếu từ nguồn thứ hai. {color=purple}

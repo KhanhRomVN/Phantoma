@@ -1,0 +1,26 @@
+---
+recon: 1.0
+type: tab
+title: Code
+---
+
+# Code ngắn
+@box w=5 maxh=8 ui=code lang=shell icon=Code desc="Đoạn lệnh ngắn"
+
+whois nguyenvana.com
+dig +short NS nguyenvana.com
+
+# Code JSON
+@box w=5 maxh=12 ui=code lang=json icon=Braces desc="Dữ liệu JSON"
+
+{
+  "domain": "nguyenvana.com",
+  "registrar": "NameCheap Inc.",
+  "created": "2020-01-10",
+  "nameservers": ["ns1.namecheap.com", "ns2.namecheap.com"]
+}
+
+# Code dòng dài
+@box w=10 maxh=8 ui=code lang=shell icon=Terminal desc="Dòng dài kiểm tra cuộn ngang"
+
+curl -s -H "Accept: application/json" "https://crt.sh/?q=%25.nguyenvana.com&output=json" | jq -r '.[].name_value' | sort -u

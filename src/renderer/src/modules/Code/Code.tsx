@@ -19,7 +19,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { logger } from '@renderer/utils/logger';
+
 // ── React ──
 import { useEffect, useRef, useState } from 'react';
 
@@ -118,7 +118,7 @@ export function Code() {
 
           .catch((err: unknown) => {
             console.error(`[DEBUG][Code.hydrate] FAILED scanning project=${project.id}:`, err);
-            logger.error('[Code] Failed to scan directory:', err);
+            console.error('[Code] Failed to scan directory:', err);
           });
       }
     });
@@ -168,7 +168,7 @@ export function Code() {
           }
           await state.saveFile(activeFileId);
         } catch (err) {
-          logger.error('[Code] Ctrl+S save failed:', err);
+          console.error('[Code] Ctrl+S save failed:', err);
         }
         return;
       }
@@ -199,11 +199,11 @@ export function Code() {
           const ext = dotIdx > 0 ? baseName.substring(dotIdx) : '';
           const defaultPath = dir ? dir + '/' + stem + '_copy' + ext : stem + '_copy' + ext;
 
-          const result = await window.api.invoke('showSaveDialog', { defaultPath });
+          const result = await window.api.invoke('dialog:show-save', { defaultPath });
           if (!result || result.canceled || !result.filePath) return;
           await window.api.invoke('fs:write-file', result.filePath, content);
         } catch (err) {
-          logger.error('[Code] Ctrl+Shift+S save-as failed:', err);
+          console.error('[Code] Ctrl+Shift+S save-as failed:', err);
         }
         return;
       }

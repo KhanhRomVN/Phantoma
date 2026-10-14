@@ -18,7 +18,6 @@ import { emulateApi } from '../services/emulate-api.service';
 import { NetworkRequest } from '../types/inspector';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 export class ListRepeatersHandler {
@@ -50,7 +49,7 @@ export class ListRepeatersHandler {
           host = new URL(req.url).host;
           path = new URL(req.url).pathname + new URL(req.url).search;
         } catch {
-          logger.warn('[ListRepeatersHandler] Invalid URL:', req.url);
+          console.warn('[ListRepeatersHandler] Invalid URL:', req.url);
         }
         return `- repeater_${i} | ${req.method} | ${host} | ${path}`;
       });
@@ -59,7 +58,7 @@ export class ListRepeatersHandler {
         text: `[list_repeaters] Total: ${dbRequests.length}\n` + lines.join('\n'),
       };
     } catch (err: any) {
-      logger.error('[ListRepeatersHandler] Error:', err);
+      console.error('[ListRepeatersHandler] Error:', err);
       return {
         text: `[list_repeaters] Error: ${err.message || String(err)}`,
       };

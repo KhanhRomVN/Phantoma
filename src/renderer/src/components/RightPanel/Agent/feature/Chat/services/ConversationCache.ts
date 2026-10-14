@@ -12,7 +12,6 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ── Types ──
 import { Message } from '../types/message';
@@ -66,7 +65,7 @@ export const ConversationCache = {
     }
     cache[conversationId] = data;
     if (cacheKeys.length > 15 || Object.keys(questionAnswersStore).length > 10) {
-      logger.warn(
+      console.warn(
         `[ConversationCache] set - key: ${conversationId}, cacheSize: ${cacheKeys.length}, questionStoreSize: ${Object.keys(questionAnswersStore).length}`,
       );
     }

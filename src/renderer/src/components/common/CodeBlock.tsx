@@ -20,8 +20,6 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
 // ── Services ──
-import { logger } from '@renderer/utils/logger';
-import { documentManager } from '../../modules/Code/services/document-manager.service';
 import { fileWatcherService } from '../../modules/Code/services/file-watcher.service';
 
 // ── Hooks ──
@@ -253,7 +251,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     filePath,
     fileId,
     enableLSP = false,
-    projectRoot,
   } = props;
 
   // ── Store ──
@@ -267,8 +264,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
   const editorInstance = useRef<any>(null);
   const modelRef = useRef<any>(null);
   const isModelOwnerRef = useRef<boolean>(false);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
-  const didAddReferenceRef = useRef<boolean>(false);
   const decorationsRef = useRef<string[]>([]);
   const lineDecorationsRef = useRef<string[]>([]);
   const rangeDecorationsRef = useRef<string[]>([]);
@@ -351,14 +346,14 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
               }
             })
             .catch((error: Error) => {
-              logger.error('[CodeBlock] Format action failed:', error);
+              console.error('[CodeBlock] Format action failed:', error);
               // Restore readOnly even on error
               if (isReadOnly) {
                 editor.updateOptions({ readOnly: true });
               }
             });
         } else {
-          logger.warn(
+          console.warn(
             '[CodeBlock] Format action not available - this may happen if:',
             '1. Language server not loaded for:',
             model.getLanguageId(),
@@ -372,7 +367,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           }
         }
       } catch (error) {
-        logger.error('[CodeBlock] Error during format:', error);
+        console.error('[CodeBlock] Error during format:', error);
       }
     },
   }));
@@ -487,7 +482,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                   markFileAsSaved(fileId);
                 })
                 .catch((err: Error) => {
-                  logger.error('[CodeBlock] ❌ Failed to save file:', err);
+                  console.error('[CodeBlock] ❌ Failed to save file:', err);
                 });
             }
           },
@@ -534,7 +529,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           onEditorMounted(editorInstance.current);
         }
       } catch (error) {
-        logger.error('[CodeBlock] ❌ Failed to create editor:', error);
+        console.error('[CodeBlock] ❌ Failed to create editor:', error);
       }
     };
 
@@ -579,13 +574,13 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                 if (mounted) initMonaco();
               },
               (err: any) => {
-                logger.error('Failed to load monaco editor modules:', err);
+                console.error('Failed to load monaco editor modules:', err);
               },
             );
           }
         })
         .catch((err) => {
-          logger.warn('Monaco loading promise failed or cancelled:', err);
+          console.warn('Monaco loading promise failed or cancelled:', err);
         });
     };
 

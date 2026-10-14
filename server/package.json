@@ -10,7 +10,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "nodemon",
+    "dev": "NODE_ENV=development nodemon",
     "start": "tsx -r dotenv/config src/index.ts",
     "build": "tsc && tsc-alias",
     "typecheck": "tsc --noEmit"

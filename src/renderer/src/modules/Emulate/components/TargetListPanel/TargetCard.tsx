@@ -13,11 +13,11 @@
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
+// ─── Imports ───────────────────────────────────────────────────────────
 // ── React ──
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 
-// ── UI ──
+// ── UI ─
 import { Square, Play, Pencil, Trash2 } from 'lucide-react';
 import {
   Dropdown,
@@ -25,7 +25,6 @@ import {
   DropdownItem,
   DropdownTrigger,
 } from '@renderer/components/ui/Dropdown';
-
 // ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 
@@ -74,6 +73,8 @@ const TargetCard = memo(function TargetCard({
   onOpenRunningModal,
   collapsed,
 }: TargetCardProps) {
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
   const isRunning = targetStates[tab.id]?.isActive || false;
   const elapsed = useTimerStore((state) => state.timerDisplay[tab.id] || '00:00');
 
@@ -99,7 +100,7 @@ const TargetCard = memo(function TargetCard({
         onClick={() => onSelectTarget(tab.id)}
         title={tab.title}
       >
-        {platform === 'web' && faviconSrc ? (
+        {(platform === 'web' || platform === 'cli') && faviconSrc ? (
           <img
             src={faviconSrc}
             alt={tab.title}
@@ -127,10 +128,16 @@ const TargetCard = memo(function TargetCard({
     );
   }
 
+  const isOpen = openMenuId === tab.id;
+
   return (
     <Dropdown
-      open={openMenuId === tab.id}
-      onOpenChange={(open) => onOpenMenuChange(open ? tab.id : null)}
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) setMenuPos(null);
+        onOpenMenuChange(open ? tab.id : null);
+      }}
+      position={menuPos ?? undefined}
       className="w-full"
     >
       <DropdownTrigger>
@@ -142,6 +149,7 @@ const TargetCard = memo(function TargetCard({
           onContextMenu={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            setMenuPos({ top: e.clientY, left: e.clientX });
             onOpenMenuChange(tab.id);
           }}
           className={cn(
@@ -156,7 +164,7 @@ const TargetCard = memo(function TargetCard({
         >
           {/* Badge icon */}
           <div className="relative shrink-0">
-            {platform === 'web' && faviconSrc ? (
+            {(platform === 'web' || platform === 'cli') && faviconSrc ? (
               <img
                 src={faviconSrc}
                 alt={tab.title}

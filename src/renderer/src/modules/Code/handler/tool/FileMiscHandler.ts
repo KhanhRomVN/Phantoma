@@ -9,7 +9,6 @@
  * ------------------------------------------------------------------
  */
 
-import { logger } from '@renderer/utils/logger';
 import { BaseParams, BaseResult } from './FileHandlerTypes';
 
 interface FileMiscParams extends BaseParams {

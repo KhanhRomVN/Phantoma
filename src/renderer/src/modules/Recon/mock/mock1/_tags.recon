@@ -1,0 +1,15 @@
+---
+recon: 1.0
+type: tab
+title: Tags
+---
+
+# Định danh tìm thấy
+@box w=5 maxh=12 ui=tags icon=Tags desc="Nhóm bằng ## rồi liệt kê, ngăn cách bằng dấu phẩy"
+
+## Username
+nguyenvana, nvana.dev, vana_95 {color=blue}
+## Số điện thoại
++84 912 345 678 [phone] {color=green} {src=S-004}
+## Email
+a.nguyen@gmail.com, vana@proton.me [email] {color=cyan}

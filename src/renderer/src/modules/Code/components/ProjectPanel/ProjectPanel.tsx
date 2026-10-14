@@ -46,7 +46,6 @@ import { useCodeStore, type Project } from '../../hooks/useCodeStore';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-import { logger } from '@renderer/utils/logger';
 
 // ── Shared UI components ──
 import {
@@ -559,7 +558,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
             // so we don't retry endlessly. We can optionally set a flag on the project later if needed.
           }
         } catch (err) {
-          logger.error('[ProjectPanel] Error fetching branches', { id: proj.id, err });
+          console.error('[ProjectPanel] Error fetching branches', { id: proj.id, err });
           // On error, remove from ref so it can be retried on next significant state change?
           // Or keep it to avoid spamming logs. Let's keep it marked as attempted for now.
         }

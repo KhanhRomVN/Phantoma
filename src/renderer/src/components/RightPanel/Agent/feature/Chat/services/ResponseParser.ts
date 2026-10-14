@@ -23,7 +23,6 @@ import type { ContentBlock } from '../types/renderer-types';
 
 // ── Utils ──
 import { findClosingTagPosition } from '../utils/TagClosingFinder';
-import { logger } from '@renderer/utils/logger';
 
 // ── Parsers ──
 import {
@@ -158,7 +157,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
     !content.includes('</thinking>'); // No closing tag yet
 
   if (remainingContent.trim().length === 0 && content.trim().length > 100 && !isLikelyStreaming) {
-    logger.warn('[Zen][Parser] ⚠️ All content consumed by thinking extraction!', {
+    console.warn('[Zen][Parser] ⚠️ All content consumed by thinking extraction!', {
       originalLength: content.length,
       thinkingBlocks: thinkingBlocks.length,
     });
@@ -466,7 +465,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             // For text/confirm, no options needed - skip validation
             if (qType === 'single' || qType === 'multi') {
               if (qOptions.length < 2) {
-                logger.warn(
+                console.warn(
                   `[Zen][Question] ⚠️ SKIPPING question "${qId}" - type ${qType} needs at least 2 options, got ${qOptions.length}`,
                 );
                 searchIndex = closeTagEnd;
@@ -915,7 +914,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   // 🔍 ALWAYS log if contentBlocks is empty (potential bug)
   const isPartialTag = /^<[\/]?[a-zA-Z0-9_]*$/.test(content.trim());
   if (result.contentBlocks.length === 0 && content.trim().length > 0 && !isPartialTag) {
-    logger.warn('[Zen][Parser] ⚠️ No contentBlocks generated!', {
+    console.warn('[Zen][Parser] ⚠️ No contentBlocks generated!', {
       contentLength: content.length,
       contentPreview: content.substring(0, 200),
       remainingAfterThinking: remainingContent.substring(0, 100),
@@ -933,7 +932,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   if (hasThinkingBlocks && !hasOtherContent && content.trim().length > 100) {
     // Only mark if content is substantial (> 100 chars) to avoid false positives
     result.onlyThinkingDetected = true;
-    logger.warn('[Zen][Parser] ⚠️ ONLY-THINKING response detected!', {
+    console.warn('[Zen][Parser] ⚠️ ONLY-THINKING response detected!', {
       thinkingBlocksCount: thinkingBlocks.length,
       contentLength: content.length,
       totalBlocks: result.contentBlocks.length,
@@ -946,7 +945,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
     const errorActions = result.actions.filter((a) => a.isError);
 
     if (errorActions.length > 0) {
-      logger.warn(
+      console.warn(
         '[Zen][Parser] ⚠️ Error actions summary:',
         errorActions.map((a) => ({
           type: a.type,

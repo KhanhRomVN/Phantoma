@@ -19,7 +19,7 @@ import { FileCode, AlignLeft, Loader2 } from 'lucide-react';
 import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { prettifyCode, isMinified } from '../../../utils/prettify';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
@@ -158,7 +158,7 @@ export function FileContentSection({ selectedContent }: FileContentSectionProps)
             try {
               codeBlockRef.current?.format();
             } catch {
-              logger.warn('[FileContentSection] Format action failed');
+              console.warn('[FileContentSection] Format action failed');
             }
           }}
           className="p-1 hover:bg-secondary rounded text-text-secondary hover:text-text-primary transition-colors"

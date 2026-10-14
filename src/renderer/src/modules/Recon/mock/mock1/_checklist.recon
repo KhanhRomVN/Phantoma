@@ -1,0 +1,31 @@
+---
+recon: 1.0
+type: tab
+title: Checklist
+---
+
+# Việc cần xác minh
+@box w=5 maxh=12 ui=checklist icon=ListChecks desc="Mục đã hoàn thành và chưa hoàn thành"
+
+- [x] Đối chiếu email với dữ liệu rò rỉ
+- [x] Kiểm tra WHOIS tên miền
+- [ ] Xác minh ngày sinh qua nguồn thứ hai
+  - [x] Tìm nguồn mạng xã hội thứ nhất
+  - [ ] Tìm nguồn báo chí hoặc hồ sơ công khai
+  - [ ] Đối chiếu hai nguồn với nhau
+- [ ] Kiểm tra tên miền con qua certificate transparency
+  - [x] Tra cứu crt.sh
+  - [x] Lọc tên miền con trùng lặp
+- [ ] Đối chiếu địa chỉ Wi-Fi với văn phòng Quận 1
+
+# Checklist hoàn tất
+@box w=5 maxh=6 ui=checklist icon=CheckCheck desc="Tất cả mục đã tick"
+
+- [x] Thu thập hồ sơ công khai
+- [x] Lập sơ đồ quan hệ
+
+# Checklist chưa làm
+@box w=10 maxh=6 ui=checklist icon=Square desc="Chưa có mục nào tick"
+
+- [ ] Liên hệ nguồn thứ hai để xác nhận
+- [ ] Rà soát lại toàn bộ ghi chú

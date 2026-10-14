@@ -16,7 +16,6 @@
 import { useState, useRef, useEffect } from 'react';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ── Services ──
 import { extensionService } from '../../../../services/ExtensionService';
@@ -63,7 +62,7 @@ export const useDraftManagement = (
         isDraftRestoredRef.current = true;
       })
       .catch((err: unknown) => {
-        logger.error('[useDraftManagement] ❌ Error restoring draft:', err);
+        console.error('[useDraftManagement] ❌ Error restoring draft:', err);
         isDraftRestoredRef.current = true;
       });
   }, [conversationId]);
@@ -88,14 +87,14 @@ export const useDraftManagement = (
           .set(draftKey, message)
           .then(() => {})
           .catch((err: unknown) => {
-            logger.error('[useDraftManagement] ❌ Error saving draft:', err);
+            console.error('[useDraftManagement] ❌ Error saving draft:', err);
           });
       } else {
         storage
           .delete(draftKey)
           .then(() => {})
           .catch((err: unknown) => {
-            logger.error('[useDraftManagement] ❌ Error deleting draft:', err);
+            console.error('[useDraftManagement] ❌ Error deleting draft:', err);
           });
       }
     }, 500);
@@ -120,7 +119,7 @@ export const useDraftManagement = (
         .delete(draftKey)
         .then(() => {})
         .catch((err: unknown) => {
-          logger.error('[useDraftManagement] ❌ Error clearing draft:', err);
+          console.error('[useDraftManagement] ❌ Error clearing draft:', err);
         });
     }
     undoStackRef.current = [];

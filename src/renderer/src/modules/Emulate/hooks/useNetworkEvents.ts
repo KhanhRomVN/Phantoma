@@ -18,7 +18,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import {
   buildCdpRequest,
   parseProxyRequest,
@@ -28,14 +28,17 @@ import {
   buildPlaceholderRequest,
 } from '../utils/network-event-parser.util';
 
-// ── Hooks ──
+// ── Hooks ─
 import { useNetworkWorker } from './useNetworkWorker';
+
+// ── Services ──
+import { wsBus } from '../services/runtime-ws-bridge'; // <--- NEW IMPORT
 
 // ── Stores ──
 import { useNetworkStore } from '../stores/networkStore';
 import { useWebSocketStore } from '../stores/websocketStore';
 
-// ── Types ──
+// ── Types ─
 import { NetworkRequest } from '../types/inspector';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -168,14 +171,14 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       // Skip non-network protocols (data:, blob:, etc.)
       if (fullReq.protocol === 'data' || fullReq.protocol === 'blob') {
         if (_debugCdpReqCount <= 5) {
-          logger.warn('[useNetworkEvents][DEBUG] SKIPPED data/blob URI:', fullReq.url);
+          console.warn('[useNetworkEvents][DEBUG] SKIPPED data/blob URI:', fullReq.url);
         }
         return;
       }
       // Skip OPTIONS preflight requests to reduce noise (they often don't complete properly in CDP)
       if (fullReq.method === 'OPTIONS') {
         if (_debugCdpReqCount <= 5) {
-          logger.warn('[useNetworkEvents][DEBUG] SKIPPED OPTIONS preflight:', fullReq.url);
+          console.warn('[useNetworkEvents][DEBUG] SKIPPED OPTIONS preflight:', fullReq.url);
         }
         return;
       }
@@ -223,7 +226,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
       } else {
         // Only log if status code indicates error (4xx, 5xx)
         if (data.statusCode >= 400) {
-          logger.warn('[DEBUG|NetworkEvents] CDP Response error', {
+          console.warn('[DEBUG|NetworkEvents] CDP Response error', {
             id: data.id,
             statusCode: data.statusCode,
             url: existing.url,
@@ -367,7 +370,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         addRequest(bypassRequest);
         onRequest?.(bypassRequest);
       } catch (error) {
-        logger.error('[handleSslBypass] Error:', error);
+        console.error('[handleSslBypass] Error:', error);
         onError?.(error);
       }
     },
@@ -389,7 +392,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         if (existing) {
           // Only log if status code indicates error (4xx, 5xx)
           if (data.statusCode >= 400) {
-            logger.warn('[DEBUG|NetworkEvents] Proxy Response error', {
+            console.warn('[DEBUG|NetworkEvents] Proxy Response error', {
               id: data.id,
               statusCode: data.statusCode,
               url: existing.url,
@@ -495,7 +498,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           frames: [],
         });
       } catch (error) {
-        logger.error('[DEBUG|NetworkEvents] ws:connect handler failed', error);
+        console.error('[DEBUG|NetworkEvents] ws:connect handler failed', error);
         onError?.(error);
       }
     },
@@ -518,7 +521,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           timestamp: data.timestamp || Date.now(),
         });
       } catch (error) {
-        logger.error('[DEBUG|NetworkEvents] ws:message handler failed', error);
+        console.error('[DEBUG|NetworkEvents] ws:message handler failed', error);
         onError?.(error);
       }
     },
@@ -542,7 +545,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           useWebSocketStore.getState().updateConnection(data.id, updates);
         }
       } catch (error) {
-        logger.error('[DEBUG|NetworkEvents] ws:update handler failed', error);
+        console.error('[DEBUG|NetworkEvents] ws:update handler failed', error);
         onError?.(error);
       }
     },
@@ -558,7 +561,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           closedAt: data.endTime || Date.now(),
         });
       } catch (error) {
-        logger.error('[DEBUG|NetworkEvents] ws:close handler failed', error);
+        console.error('[DEBUG|NetworkEvents] ws:close handler failed', error);
         onError?.(error);
       }
     },
@@ -623,7 +626,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
           }
         }
       } catch (error) {
-        logger.error('[DEBUG|NetworkEvents] ebpf:https-event handler failed', error);
+        console.error('[DEBUG|NetworkEvents] ebpf:https-event handler failed', error);
         onError?.(error);
       }
     },
@@ -663,7 +666,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         addRequest(request);
         onRequest?.(request);
       } catch (error) {
-        logger.error('[DEBUG|NetworkEvents] packet:captured handler failed', error);
+        console.error('[DEBUG|NetworkEvents] packet:captured handler failed', error);
         onError?.(error);
       }
     },
@@ -702,174 +705,104 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
         addRequest(request);
         onRequest?.(request);
       } catch (error) {
-        logger.error('[DEBUG|NetworkEvents] app-debug:log handler failed', error);
+        console.error('[DEBUG|NetworkEvents] app-debug:log handler failed', error);
         onError?.(error);
       }
     },
     [addRequest, onRequest, onError],
   );
 
-  // Setup IPC listeners
+  // Setup WebSocket Bus listeners
   useEffect(() => {
     if (!targetId) {
       return;
     }
 
-    if (!window.api?.on) {
-      return;
-    }
+    // REMOVED: Periodic cleanup/stale detection.
+    // Requests should remain in "Pending" state indefinitely until they receive
+    // a response or are explicitly cancelled by the browser/system.
+    // This prevents false positives for long-running operations like uploads,
+    // large downloads, SSE streams, or complex backend processing.
 
-    // Setup periodic cleanup for stuck pending requests (every 5 seconds)
-    cleanupIntervalRef.current = setInterval(() => {
-      const now = Date.now();
-      useNetworkStore.getState().requests.forEach((req) => {
-        if (req.status === 0 && !req.responseHeaders?.['X-Request-Status']) {
-          const timestamp = timestampMapRef.current.get(req.id);
-          if (timestamp && now - timestamp > 10000) {
-            // Request pending > 10s
-            updateRequest(req.id, {
-              status: 0,
-              responseHeaders: { 'X-Request-Status': 'Stale' },
-              time: `${now - timestamp}ms`,
-            });
-            timestampMapRef.current.delete(req.id);
-          }
-        }
-      });
-    }, 5000);
+    const unsubscribes: (() => void)[] = [];
 
-    const handleRequest = (_event: any, data: any) => {
-      try {
-        handleCdpRequest(data);
-      } catch (error) {
-        onError?.(error);
-      }
+    // Helper to subscribe and store unsubscribe fn
+    const sub = (channel: string, handler: Listener) => {
+      const unsub = wsBus.on(channel, handler);
+      unsubscribes.push(unsub);
     };
 
-    const handleResponse = (_event: any, data: any) => {
-      try {
-        handleCdpResponse(data);
-      } catch (error) {
-        onError?.(error);
-      }
-    };
+    // CDP Events
+    sub('cdp:request', (_e, d) => {
+      try { handleCdpRequest(d as CdpRequestData); } 
+      catch (err) { onError?.(err); }
+    });
+    
+    sub('cdp:response', (_e, d) => {
+      try { handleCdpResponse(d as CdpResponseData); } 
+      catch (err) { onError?.(err); }
+    });
 
-    const handleResponseBody = (_event: any, data: any) => {
-      try {
-        handleCdpResponseBody(data);
-      } catch (error) {
-        onError?.(error);
-      }
-    };
+    sub('cdp:response-body', (_e, d) => {
+      try { handleCdpResponseBody(d as CdpResponseBodyData); } 
+      catch (err) { onError?.(err); }
+    });
 
-    const handleError = (_event: any, data: any) => {
-      onError?.(data);
-    };
+    sub('cdp:script-unpacked', (_e, d) => {
+      try { handleScriptUnpacked(d as CdpScriptUnpackedData); } 
+      catch (err) { onError?.(err); }
+    });
 
-    const handleScriptUnpackedEvent = (_event: any, data: any) => {
-      try {
-        handleScriptUnpacked(data);
-      } catch (error) {
-        onError?.(error);
-      }
-    };
+    sub('cdp:script-source', (_e, d) => {
+      try { handleScriptSource(d as CdpScriptSourceData); } 
+      catch (err) { onError?.(err); }
+    });
 
-    const handleScriptSourceEvent = (_event: any, data: any) => {
-      try {
-        handleScriptSource(data);
-      } catch (error) {
-        onError?.(error);
-      }
-    };
+    sub('cdp:error', (_e, d) => {
+      onError?.(d);
+    });
 
-    const handleProxyRequestWrapped = (_event: any, data: any) => {
-      try {
-        handleProxyRequest(data);
-      } catch (error) {
-        onError?.(error);
-      }
-    };
+    // Proxy Events (if applicable via same bus later)
+    sub('proxy:request', (_e, d) => {
+      try { handleProxyRequest(d); } 
+      catch (err) { onError?.(err); }
+    });
 
-    const handleSslBypassWrapped = (_event: any, data: any) => {
-      try {
-        handleSslBypass(data);
-      } catch (error) {
-        logger.error('[useNetworkEvents] SSL bypass handler error:', error);
-        onError?.(error);
-      }
-    };
+    sub('proxy:response', (_e, d) => {
+      try { handleProxyResponse(d); } 
+      catch (err) { onError?.(err); }
+    });
 
-    const handleProxyResponseWrapped = (_event: any, data: any) => {
-      try {
-        handleProxyResponse(data);
-      } catch (error) {
-        onError?.(error);
-      }
-    };
+    sub('proxy:response-body', (_e, d) => {
+      try { handleProxyResponseBody(d); } 
+      catch (err) { onError?.(err); }
+    });
 
-    const handleProxyResponseBodyWrapped = (_event: any, data: any) => {
-      try {
-        handleProxyResponseBody(data);
-      } catch (error) {
-        onError?.(error);
-      }
-    };
+    sub('proxy:request-body', (_e, d) => {
+      try { handleProxyRequestBody(d); } 
+      catch (err) { onError?.(err); }
+    });
 
-    const handleProxyRequestBodyWrapped = (_event: any, data: any) => {
-      try {
-        handleProxyRequestBody(data);
-      } catch (error) {
-        onError?.(error);
-      }
-    };
+    sub('proxy:ssl-bypass', (_e, d) => {
+      try { handleSslBypass(d); } 
+      catch (err) { onError?.(err); }
+    });
 
-    window.api.on('cdp:request', handleRequest);
-    window.api.on('cdp:response', handleResponse);
-    window.api.on('cdp:response-body', handleResponseBody);
-    window.api.on('cdp:script-unpacked', handleScriptUnpackedEvent);
-    window.api.on('cdp:script-source', handleScriptSourceEvent);
-    window.api.on('cdp:error', handleError);
-    window.api.on('proxy:request', handleProxyRequestWrapped);
-    window.api.on('proxy:response', handleProxyResponseWrapped);
-    window.api.on('proxy:response-body', handleProxyResponseBodyWrapped);
-    window.api.on('proxy:request-body', handleProxyRequestBodyWrapped);
-    window.api.on('proxy:ssl-bypass', handleSslBypassWrapped);
-    window.api.on('ws:connect', handleWsConnect);
-    window.api.on('ws:message', handleWsMessage);
-    window.api.on('ws:update', handleWsUpdate);
-    window.api.on('ws:close', handleWsClose);
-    // CLI Capture method events
-    window.api.on('ebpf:https-event', handleEbpfHttpsEvent);
-    window.api.on('packet:captured', handlePacketCaptured);
-    window.api.on('app-debug:log', handleAppDebugLog);
-    window.api.on('cdp:request', handleCdpRequest);
-    window.api.on('cdp:response', handleCdpResponse);
+    // WebSocket Store Events
+    sub('ws:connect', (_e, d) => handleWsConnect(_e, d));
+    sub('ws:message', (_e, d) => handleWsMessage(_e, d));
+    sub('ws:update', (_e, d) => handleWsUpdate(_e, d));
+    sub('ws:close', (_e, d) => handleWsClose(_e, d));
+
+    // CLI Capture Events
+    sub('ebpf:https-event', (_e, d) => handleEbpfHttpsEvent(_e, d));
+    sub('packet:captured', (_e, d) => handlePacketCaptured(_e, d));
+    sub('app-debug:log', (_e, d) => handleAppDebugLog(_e, d));
 
     return () => {
-      if (window.api?.off) {
-        window.api.off('cdp:request', handleRequest);
-        window.api.off('cdp:response', handleResponse);
-        window.api.off('cdp:response-body', handleResponseBody);
-        window.api.off('cdp:script-unpacked', handleScriptUnpackedEvent);
-        window.api.off('cdp:script-source', handleScriptSourceEvent);
-        window.api.off('cdp:error', handleError);
-        window.api.off('proxy:request', handleProxyRequestWrapped);
-        window.api.off('proxy:response', handleProxyResponseWrapped);
-        window.api.off('proxy:response-body', handleProxyResponseBodyWrapped);
-        window.api.off('proxy:request-body', handleProxyRequestBodyWrapped);
-        window.api.off('proxy:ssl-bypass', handleSslBypassWrapped);
-        window.api.off('ws:connect', handleWsConnect);
-        window.api.off('ws:message', handleWsMessage);
-        window.api.off('ws:update', handleWsUpdate);
-        window.api.off('ws:close', handleWsClose);
-        // CLI Capture method events
-        window.api.off('ebpf:https-event', handleEbpfHttpsEvent);
-        window.api.off('packet:captured', handlePacketCaptured);
-        window.api.off('app-debug:log', handleAppDebugLog);
-        window.api.off('cdp:request', handleCdpRequest);
-        window.api.off('cdp:response', handleCdpResponse);
-      }
-
+      // Unsubscribe all listeners
+      unsubscribes.forEach(fn => fn());
+      
       // Clear all pending timeouts on unmount
       pendingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       pendingTimeoutsRef.current.clear();

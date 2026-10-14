@@ -18,7 +18,6 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Controller ──
 import { ReconController } from '@renderer/controller/ReconController';
-import { logger } from '@renderer/utils/logger';
 
 // ── Module-level state ─────────────────────────────────────────────────
 // Lưu file_id của screenshot mới nhất để đưa vào ref_file_ids khi gửi message tiếp theo
@@ -706,7 +705,7 @@ export async function executeCaptureScreenshot(
           }
         }
       } catch (uploadErr: any) {
-        logger.warn('[executeCaptureScreenshot] Upload failed:', uploadErr);
+        console.warn('[executeCaptureScreenshot] Upload failed:', uploadErr);
       }
 
       return {

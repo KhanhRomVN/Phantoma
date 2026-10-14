@@ -15,7 +15,6 @@ import Emulate from '@renderer/modules/Emulate/Emulate';
 
 // -- Hooks --
 import { useActiveModule } from '@renderer/hooks/useActiveModule';
-import { logger } from '@renderer/utils/logger';
 
 export type ModuleId = 'recon' | 'emulate' | 'code' | 'settings' | 'preview';
 

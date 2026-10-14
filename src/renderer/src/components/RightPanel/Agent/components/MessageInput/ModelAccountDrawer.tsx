@@ -13,7 +13,7 @@ import {
   Activity,
   Coins,
 } from 'lucide-react';
-import { logger } from '@renderer/utils/logger';
+
 
 interface Provider {
   provider_id: string;
@@ -267,10 +267,10 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
             }
             setAccountCountMap(map);
           } else {
-            logger.warn('[Phantoma][Drawer] Accounts fetch failed or empty:', result);
+            console.warn('[Phantoma][Drawer] Accounts fetch failed or empty:', result);
           }
         })
-        .catch((err) => logger.error('[Phantoma][Drawer] Accounts fetch error:', err))
+        .catch((err) => console.error('[Phantoma][Drawer] Accounts fetch error:', err))
         .finally(() => setIsLoadingAccountMap(false));
     }
   }, [isOpen, apiUrl]);
@@ -286,10 +286,10 @@ const ModelAccountDrawer: React.FC<ModelAccountDrawerProps> = ({
           if (isMounted && result.success && result.data?.accounts) {
             setProviderAccounts(result.data.accounts);
           } else if (isMounted) {
-            logger.warn('[Phantoma][Drawer] No accounts in response:', result);
+            console.warn('[Phantoma][Drawer] No accounts in response:', result);
           }
         })
-        .catch((err) => logger.error('[Phantoma][Drawer] Provider accounts fetch error:', err))
+        .catch((err) => console.error('[Phantoma][Drawer] Provider accounts fetch error:', err))
         .finally(() => {
           if (isMounted) setIsLoadingAccounts(false);
         });

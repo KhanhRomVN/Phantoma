@@ -40,7 +40,6 @@ import {
 } from '../modules/Code/handler/terminal/TerminalHandlers';
 import { StorageHandler } from '../modules/Code/handler/storage/StorageHandler';
 import { FileLockManager } from '../modules/Code/managers/FileLockManager';
-import { logger } from '@renderer/utils/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -196,7 +195,7 @@ export class CodeController {
       try {
         fn(result);
       } catch (e) {
-        logger.error('[CodeController] listener error:', e);
+        console.error('[CodeController] listener error:', e);
       }
     });
   }
@@ -219,7 +218,6 @@ export class CodeController {
       switch (command) {
         case 'readFile':
         case 'getFileContent': {
-          // [DEBUG]
           const readResult = await this.readFileHandler.handle(msg);
           this.emitResult(readResult);
           break;
@@ -330,31 +328,12 @@ export class CodeController {
           });
           break;
         }
-        case 'storageGet':
-        case 'storageSet':
-        case 'storageDelete':
+
         case 'storageList': {
           this.emitResult(await this.storageHandler.handle(msg));
           break;
         }
-        case 'getProjectContext': {
-          const state = useCodeStore.getState();
-          const project = state.projects.find((p) => p.id === state.currentProjectId);
-          this.emitResult({
-            command: 'projectContext',
-            requestId: msg.requestId,
-            project: project
-              ? {
-                  name: project.name,
-                  path: project.path,
-                  template: project.template,
-                  fileCount: project.files.length,
-                  serviceCount: project.services.length,
-                }
-              : null,
-          });
-          break;
-        }
+
         case 'getSystemInfo': {
           try {
             const info = await extensionService.getSystemInfo();
@@ -373,7 +352,7 @@ export class CodeController {
           break;
         }
         case 'showError':
-          logger.error('[CodeController] showError:', msg.message);
+          console.error('[CodeController] showError:', msg.message);
           break;
         default:
           this.emitResult({
@@ -383,7 +362,7 @@ export class CodeController {
           });
       }
     } catch (error: any) {
-      logger.error('[CodeController] handleMessage error for "' + command + '":', error);
+      console.error('[CodeController] handleMessage error for "' + command + '":', error);
       this.emitResult({
         command: 'error',
         requestId: msg.requestId,

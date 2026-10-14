@@ -18,7 +18,6 @@ import { emulateApi } from '../services/emulate-api.service';
 import { NetworkRequest } from '../types/inspector';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 export class SendToRepeaterHandler {
@@ -28,7 +27,11 @@ export class SendToRepeaterHandler {
    * @param index    - Số index 1-indexed từ list_https
    * @param targetId - Target ID để lưu vào DB
    */
-  public async handle(requests: NetworkRequest[], index: number, targetId?: string | null): Promise<{ text: string }> {
+  public async handle(
+    requests: NetworkRequest[],
+    index: number,
+    targetId?: string | null,
+  ): Promise<{ text: string }> {
     const arrayIndex = index - 1;
 
     if (arrayIndex < 0 || arrayIndex >= requests.length) {
@@ -44,7 +47,7 @@ export class SendToRepeaterHandler {
     }
 
     const req = requests[arrayIndex];
-    
+
     try {
       // Parse headers từ NetworkRequest format
       let headers: any[] = [];
@@ -73,12 +76,14 @@ export class SendToRepeaterHandler {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('repeater-updated'));
         }
-        return { text: `[send_to_repeater] Added request_${index} to repeater (DB ID: ${res.data?.id})` };
+        return {
+          text: `[send_to_repeater] Added request_${index} to repeater (DB ID: ${res.data?.id})`,
+        };
       } else {
         return { text: `[send_to_repeater] Error: ${res.error || 'Failed to create request'}` };
       }
     } catch (err: any) {
-      logger.error('[SendToRepeaterHandler] Error:', err);
+      console.error('[SendToRepeaterHandler] Error:', err);
       return { text: `[send_to_repeater] Error: ${err.message || String(err)}` };
     }
   }

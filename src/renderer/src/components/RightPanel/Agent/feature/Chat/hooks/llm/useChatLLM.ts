@@ -49,7 +49,7 @@ import { extensionService } from '@renderer/components/RightPanel/Agent/services
 import { TOOL_ACTION_TYPES } from '../../constants/constants';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 
 // ── Controllers ──
 import { EmulateController } from '@renderer/controller/EmulateController';
@@ -210,7 +210,7 @@ export const useChatLLM = ({
         }
       });
     } catch (err) {
-      logger.warn('[useChatLLM] Failed to clear sessionStorage:', err);
+      console.warn('[useChatLLM] Failed to clear sessionStorage:', err);
     }
   }, [setIsProcessingSync, setIsContinuingSync, dispatchStreaming]);
 
@@ -471,13 +471,13 @@ export const useChatLLM = ({
         !skipFirstRequestLogic && oldAccount && finalAccount && oldAccount.id !== finalAccount.id;
 
       if (modelSwitched || accountSwitched) {
-        logger.warn(`[Zen] Model/account switched — resetting backend conversationId`);
+        console.warn(`[Zen] Model/account switched — resetting backend conversationId`);
         backendConversationIdRef.current = '';
         qwenParentIdRef.current = undefined;
         try {
           sessionStorage.removeItem(`zen-backend-conv:${effectiveChatUuid}`);
         } catch {
-          logger.warn('[useChatLLM] Failed to remove backend conversation from sessionStorage');
+          console.warn('[useChatLLM] Failed to remove backend conversation from sessionStorage');
         }
       }
 
@@ -626,7 +626,7 @@ export const useChatLLM = ({
           try {
             sessionStorage.setItem(`zen-backend-conv:${effectiveChatUuid}`, backendConversationId);
           } catch {
-            logger.warn('[useChatLLM] Failed to save backend conversation to sessionStorage');
+            console.warn('[useChatLLM] Failed to save backend conversation to sessionStorage');
           }
         }
 
@@ -656,7 +656,7 @@ export const useChatLLM = ({
             conversationId: finalConversationId,
           });
         } catch (logErr) {
-          logger.warn('[useChatLLM] Failed to log chat to workspace:', logErr);
+          console.warn('[useChatLLM] Failed to log chat to workspace:', logErr);
         }
 
         setMessages([...updatedMessages, assistantMessage]);
@@ -672,7 +672,7 @@ export const useChatLLM = ({
           parsed = parseAIResponse(assistantMessage.content);
         } catch (parseError) {
           hasParsingError = true;
-          logger.warn('[Zen] Response parsing failed:', parseError);
+          console.warn('[Zen] Response parsing failed:', parseError);
 
           const errorDetails =
             parseError instanceof Error ? parseError.message : 'Unknown parsing error';
@@ -701,7 +701,7 @@ export const useChatLLM = ({
         if (!hasParsingError && parsed && onToolRequest && parsed.actions?.length > 0) {
           onToolRequest(parsed.actions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
         } else if (parsed && parsed.actions?.length > 0 && hasParsingError) {
-          logger.warn(`[Zen][sendMessage] Skipping onToolRequest due to parsing error`);
+          console.warn(`[Zen][sendMessage] Skipping onToolRequest due to parsing error`);
         }
       } catch (error) {
         dispatchStreaming({ type: 'RESET_STREAMING' });
@@ -712,7 +712,7 @@ export const useChatLLM = ({
           return;
         }
 
-        logger.error('[Zen sendMessage] error:', error);
+        console.error('[Zen sendMessage] error:', error);
         const errorMessage: Message = {
           id: `msg-${Date.now()}-error`,
           role: 'assistant',
@@ -739,7 +739,7 @@ export const useChatLLM = ({
               backendConversationIdRef.current,
             );
           } catch (saveErr) {
-            logger.warn('[useChatLLM] Failed to save conversation:', saveErr);
+            console.warn('[useChatLLM] Failed to save conversation:', saveErr);
           }
         }
 
@@ -763,7 +763,7 @@ export const useChatLLM = ({
   const handleSelectOption = useCallback(
     (messageId: string, option: string) => {
       if (isProcessingRef.current) {
-        logger.warn(
+        console.warn(
           `[Zen][handleSelectOption] BLOCKED - already processing, skipping option selection`,
         );
         return;
@@ -789,7 +789,7 @@ export const useChatLLM = ({
             );
           }
         } catch (e) {
-          logger.warn('[useChatLLM] Failed to parse option:', e);
+          console.warn('[useChatLLM] Failed to parse option:', e);
         }
 
         let convId = currentConversationIdRef.current;
@@ -818,7 +818,7 @@ export const useChatLLM = ({
 
           setTimeout(() => {
             if (isProcessingRef.current) {
-              logger.warn(`[Zen][handleSelectOption] Timeout guard: still processing, canceling`);
+              console.warn(`[Zen][handleSelectOption] Timeout guard: still processing, canceling`);
               return;
             }
 

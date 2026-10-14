@@ -8,6 +8,7 @@
 export interface ReconTarget {
   id: string;
   email: string;
+  type?: string; // person | website | domain | phone | company | other
   createdAt: string;
   browserPid?: number;
   isActive: boolean;
@@ -44,7 +45,6 @@ import { HoverHandler } from '../modules/Recon/handler/HoverHandler';
 import { ClearInputHandler } from '../modules/Recon/handler/ClearInputHandler';
 import { UploadFileHandler } from '../modules/Recon/handler/UploadFileHandler';
 import { EvaluateJsHandler } from '../modules/Recon/handler/EvaluateJsHandler';
-import { logger } from '@renderer/utils/logger';
 
 export class ReconController {
   private static instance: ReconController;
@@ -301,7 +301,7 @@ export class ReconController {
           return { success: false, error: `Unknown recon tool: ${toolName}` };
       }
     } catch (error: any) {
-      logger.error('[ReconController.executeTool] Error executing tool:', toolName, error);
+      console.error('[ReconController.executeTool] Error executing tool:', toolName, error);
       return { success: false, error: error.message || 'Tool execution failed' };
     }
   }
@@ -357,7 +357,7 @@ export class ReconController {
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     const target = this.targets.get(targetId);
     if (!target) {
-      logger.error('[ReconController.launchBrowser] Target not found:', targetId);
+      console.error('[ReconController.launchBrowser] Target not found:', targetId);
       return { success: false, error: `Target not found: ${targetId}` };
     }
 
@@ -399,11 +399,11 @@ export class ReconController {
           },
         };
       } else {
-        logger.error('[ReconController.launchBrowser] IPC call failed:', result.error);
+        console.error('[ReconController.launchBrowser] IPC call failed:', result.error);
         return { success: false, error: result.error || 'Failed to launch browser' };
       }
     } catch (error: any) {
-      logger.error('[ReconController.launchBrowser] Exception:', error);
+      console.error('[ReconController.launchBrowser] Exception:', error);
       return { success: false, error: error.message || 'Failed to launch browser' };
     }
   }
@@ -450,12 +450,21 @@ export class ReconController {
 
   // ── Callbacks ─────────────────────────────────────────────────────
 
-  public onTargetsUpdate(callback: (targets: ReconTarget[]) => void): void {
+  /** Đăng ký callback cập nhật danh sách target. Trả về hàm hủy đăng ký. */
+  public onTargetsUpdate(callback: (targets: ReconTarget[]) => void): () => void {
     this.onTargetsChanged = callback;
+    return () => {
+      // Chỉ gỡ nếu chưa bị callback mới ghi đè
+      if (this.onTargetsChanged === callback) this.onTargetsChanged = () => {};
+    };
   }
 
-  public onActiveTargetUpdate(callback: (targetId: string | null) => void): void {
+  /** Đăng ký callback đổi active target. Trả về hàm hủy đăng ký. */
+  public onActiveTargetUpdate(callback: (targetId: string | null) => void): () => void {
     this.onActiveTargetChanged = callback;
+    return () => {
+      if (this.onActiveTargetChanged === callback) this.onActiveTargetChanged = () => {};
+    };
   }
 
   private notifyTargetsChanged(): void {

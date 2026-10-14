@@ -1,0 +1,17 @@
+---
+recon: 1.0
+type: tab
+title: Files
+---
+
+# All files
+@box w=10 maxh=20 ui=files icon=FolderOpen desc="No customization: shows everything, all features enabled, grid view"
+
+# Images and videos
+@box w=5 maxh=16 ui=files icon=Image view=grid kinds=image,video desc="Pre-filtered by kind, grid view"
+
+# Notes as tree
+@box w=5 maxh=16 ui=files icon=Table root=ghi-chu view=tree sort=modified:desc features=-viewSwitch,-upload,-delete desc="Only the ghi-chu folder, tree view, pre-sorted by modified date"
+
+# Tree view
+@box w=10 maxh=16 ui=files icon=FolderTree view=tree desc="Explorer-style tree view: click a folder to enter it, click the checkbox to select"

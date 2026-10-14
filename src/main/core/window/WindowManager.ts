@@ -14,18 +14,13 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Electron ──
-import { BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 
 // ── Node.js ──
 import { join } from 'path';
 
-// ── External ──
-import { is } from '@electron-toolkit/utils';
-
-// ── Internal ──
+// ── Internal ─
 import { windowConfig } from '../config/window.config';
-import { clearAllTargetProcesses } from '../../shared/state';
-
 // ─── Class ──────────────────────────────────────────────────────────────
 export class WindowManager {
   private mainWindow: BrowserWindow | null = null;
@@ -62,7 +57,7 @@ export class WindowManager {
         this.mainWindow?.maximize();
       }, 150);
 
-      if (is.dev) {
+      if (!app.isPackaged) {
         // keep window maximized in dev
       }
     });
@@ -78,7 +73,7 @@ export class WindowManager {
     // Phát hiện manual reload (Ctrl+R / Cmd+R / F5) để set cờ trước khi did-start-loading fire.
     // Electron bắn keydown trên webContents trước navigation, nên thứ tự là:
     //   keydown → did-start-loading → (reload diễn ra).
-    this.mainWindow.webContents.on('before-input-event', (_event, input) => {
+    this.mainWindow.webContents.on('before-input-event', (event, input) => {
       if (input.type !== 'keyDown') return;
       const isReloadShortcut =
         (input.control && input.key.toLowerCase() === 'r') ||
@@ -87,21 +82,24 @@ export class WindowManager {
       if (isReloadShortcut) {
         this.isManualReload = true;
       }
+
+      if (input.control || input.meta) {
+        const zoomIn = input.code === 'Equal' || input.code === 'NumpadAdd';
+        const zoomOut = input.code === 'Minus' || input.code === 'NumpadSubtract';
+        const zoomReset = input.code === 'Digit0' || input.code === 'Numpad0';
+        if (zoomIn || zoomOut || zoomReset) {
+          event.preventDefault();
+          this.applyZoom(zoomIn ? 1 : zoomOut ? -1 : 0);
+        }
+      }
     });
 
-    // Chỉ cleanup target processes khi ĐÚNG LÀ manual reload.
-    // Crash recovery (Electron tự reload sau render-process-gone) KHÔNG được giết target —
-    // người dùng vẫn muốn capture tiếp tục chạy ngầm trong lúc UI hồi phục.
     this.mainWindow.webContents.on('did-start-loading', () => {
       if (this.isManualReload) {
-        clearAllTargetProcesses();
         this.isManualReload = false;
       }
     });
 
-    // Renderer crash (OOM, unhandled exception, v8 fatal…) → log + thông báo renderer,
-    // nhưng KHÔNG kill target processes và KHÔNG chủ động reload ở đây
-    // (Electron sẽ tự reload nếu enableRemoteModule/reloadAfterCrash được bật ở mức framework).
     this.mainWindow.webContents.on('render-process-gone', (_event, details) => {
       console.error(
         `[WindowManager] Renderer process gone: reason=${details.reason}, exitCode=${details.exitCode}`,
@@ -120,11 +118,21 @@ export class WindowManager {
 
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
       this.mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
     } else {
       this.mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
     }
+  }
+
+  /** direction: 1 = phóng to, -1 = thu nhỏ, 0 = đặt lại 100% */
+  private applyZoom(direction: number): void {
+    const contents = this.mainWindow?.webContents;
+    if (!contents) return;
+    const level =
+      direction === 0 ? 0 : Math.min(5, Math.max(-3, contents.getZoomLevel() + direction * 0.5));
+    contents.setZoomLevel(level);
+    contents.send('window:zoom-changed', Math.round(Math.pow(1.2, level) * 100));
   }
 
   getMainWindow(): BrowserWindow | null {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 
 // ── Constants ──
@@ -180,7 +180,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
       if (parsed.success && parsed.data) return parsed.data as GrepResultData;
       return null;
     } catch (e) {
-      logger.warn('[GrepBlock] Failed to parse output:', e);
+      console.warn('[GrepBlock] Failed to parse output:', e);
       return null;
     }
   }, [actionId, toolOutputs]);
@@ -439,7 +439,7 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
                   const fileMatch = output.match(/files="(\d+)"/);
                   if (fileMatch) fileCount = parseInt(fileMatch[1], 10);
                 } catch {
-                  logger.warn('[GrepRenderer] Failed to parse match counts');
+                  console.warn('[GrepRenderer] Failed to parse match counts');
                 }
                 if (totalMatches === 0 && fileCount === 0) {
                   return (
@@ -493,7 +493,7 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
               const fileResult = output.match(/files="(\d+)"/);
               if (fileResult) meta.fileCount = parseInt(fileResult[1], 10);
             } catch {
-              logger.warn('[GrepRenderer] Failed to parse tooltip meta');
+              console.warn('[GrepRenderer] Failed to parse tooltip meta');
             }
           }
 

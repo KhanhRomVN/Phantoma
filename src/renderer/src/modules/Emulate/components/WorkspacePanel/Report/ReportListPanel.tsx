@@ -24,16 +24,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 
 // ── UI ──
-import {
-  FileText,
-  Plus,
-  Search,
-  ArrowLeft,
-  Copy,
-  Scissors,
-  Pencil,
-  Trash2,
-} from 'lucide-react';
+import { FileText, Plus, Search, ArrowLeft, Copy, Scissors, Pencil, Trash2 } from 'lucide-react';
 
 // ── UI Components ──
 import { Kbd } from '@renderer/components/ui/Kbd';
@@ -53,7 +44,7 @@ import type { Report } from '../../../stores/reportStore';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-import { logger } from '@renderer/utils/logger';
+
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -151,7 +142,7 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
 
   const handleCreateReport = async () => {
     if (!targetId) {
-      logger.warn('[ReportListPanel] Cannot create report — targetId is null');
+      console.warn('[ReportListPanel] Cannot create report — targetId is null');
       return;
     }
 
@@ -160,8 +151,10 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
     try {
       await createReport(targetId, content, title);
     } catch (error) {
-      logger.error('[ReportListPanel] Failed to create report:', error);
-      alert('Failed to create report: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.error('[ReportListPanel] Failed to create report:', error);
+      alert(
+        'Failed to create report: ' + (error instanceof Error ? error.message : 'Unknown error'),
+      );
     }
   };
 
@@ -182,7 +175,7 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
       await reportFileService.writeFile(targetId, activeReport.id, name, '');
       await loadActiveFiles();
     } catch (error) {
-      logger.error('[ReportListPanel] Failed to create code file:', error);
+      console.error('[ReportListPanel] Failed to create code file:', error);
       alert('Failed to create file: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsCreatingCodeFile(false);
@@ -194,7 +187,7 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
     if (targetId) {
       const res = await emulateApi.deleteReport(targetId, id);
       if (!res.success || !res.data?.deleted) {
-        logger.error('[ReportListPanel] Failed to delete report:', res.error);
+        console.error('[ReportListPanel] Failed to delete report:', res.error);
         alert('Failed to delete report: ' + (res.error || 'Unknown error'));
         return;
       }
@@ -233,7 +226,7 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
       await window.api.invoke('fs:rename', { oldPath, newPath });
       await loadActiveFiles();
     } catch (error) {
-      logger.error('[ReportListPanel] Failed to rename file:', error);
+      console.error('[ReportListPanel] Failed to rename file:', error);
       alert('Failed to rename file: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       closeFileItemMenu();
@@ -246,7 +239,7 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
       await reportFileService.deleteFile(targetId, activeReport.id, fileItemMenu.fileName);
       await loadActiveFiles();
     } catch (error) {
-      logger.error('[ReportListPanel] Failed to delete file:', error);
+      console.error('[ReportListPanel] Failed to delete file:', error);
       alert('Failed to delete file: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       closeFileItemMenu();
@@ -335,11 +328,7 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
                     : (e) => handleFileItemContextMenu(e, fileName)
                 }
               >
-                <img
-                  src={getFileIconPath(fileName)}
-                  alt=""
-                  className="w-4 h-4 shrink-0"
-                />
+                <img src={getFileIconPath(fileName)} alt="" className="w-4 h-4 shrink-0" />
                 <span className="truncate">{fileName}</span>
               </div>
             ))}

@@ -1,8 +1,22 @@
 import { useState, useMemo } from 'react';
-import { Loader2, Folder, FolderOpen, Home, Check, FileText, Layout, Package, Server, Terminal as TerminalIcon, Lock, Shield, Bot } from 'lucide-react';
+import {
+  Loader2,
+  Folder,
+  FolderOpen,
+  Home,
+  Check,
+  FileText,
+  Layout,
+  Package,
+  Server,
+  Terminal as TerminalIcon,
+  Lock,
+  Shield,
+  Bot,
+} from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
-import { logger } from '@renderer/utils/logger';
+
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
@@ -24,80 +38,147 @@ interface TemplateDef {
 
 const TEMPLATES: TemplateDef[] = [
   {
-    id: 'blank', name: 'Empty', description: 'Blank workspace', category: 'All',
-    icon: <FolderOpen className="w-5 h-5" />, stack: ['Any'],
+    id: 'blank',
+    name: 'Empty',
+    description: 'Blank workspace',
+    category: 'All',
+    icon: <FolderOpen className="w-5 h-5" />,
+    stack: ['Any'],
     treePreview: [{ depth: 0, label: 'README.md' }],
-    accentColor: '#fbbf24', setupTime: '~2s', lay: 'term',
+    accentColor: '#fbbf24',
+    setupTime: '~2s',
+    lay: 'term',
   },
   {
-    id: 'web', name: 'Web App', description: 'React + Tailwind', category: 'Web',
-    icon: <Layout className="w-5 h-5" />, stack: ['React', 'Vite', 'Tailwind'],
+    id: 'web',
+    name: 'Web App',
+    description: 'React + Tailwind',
+    category: 'Web',
+    icon: <Layout className="w-5 h-5" />,
+    stack: ['React', 'Vite', 'Tailwind'],
     treePreview: [
-      { depth: 0, label: 'src', isFolder: true }, { depth: 1, label: 'components', isFolder: true },
-      { depth: 1, label: 'App.tsx' }, { depth: 1, label: 'main.tsx' },
-      { depth: 0, label: 'index.html' }, { depth: 0, label: 'package.json' },
-    ],
-    accentColor: '#22d3ee', setupTime: '~25s', lay: 'app',
-  },
-  {
-    id: 'ext', name: 'Extension', description: 'Browser / VSCode', category: 'Web',
-    icon: <Package className="w-5 h-5" />, stack: ['TypeScript', 'Manifest v3'],
-    treePreview: [
-      { depth: 0, label: 'src', isFolder: true }, { depth: 1, label: 'background.ts' },
-      { depth: 1, label: 'popup', isFolder: true }, { depth: 0, label: 'manifest.json' },
+      { depth: 0, label: 'src', isFolder: true },
+      { depth: 1, label: 'components', isFolder: true },
+      { depth: 1, label: 'App.tsx' },
+      { depth: 1, label: 'main.tsx' },
+      { depth: 0, label: 'index.html' },
       { depth: 0, label: 'package.json' },
     ],
-    accentColor: '#34d399', setupTime: '~18s', lay: 'app',
+    accentColor: '#22d3ee',
+    setupTime: '~25s',
+    lay: 'app',
   },
   {
-    id: 'api', name: 'API Server', description: 'REST + auth', category: 'Backend',
-    icon: <Server className="w-5 h-5" />, stack: ['Node', 'Fastify', 'Prisma'],
+    id: 'ext',
+    name: 'Extension',
+    description: 'Browser / VSCode',
+    category: 'Web',
+    icon: <Package className="w-5 h-5" />,
+    stack: ['TypeScript', 'Manifest v3'],
     treePreview: [
-      { depth: 0, label: 'src', isFolder: true }, { depth: 1, label: 'routes', isFolder: true },
-      { depth: 1, label: 'plugins', isFolder: true }, { depth: 1, label: 'server.ts' },
-      { depth: 0, label: 'prisma', isFolder: true }, { depth: 0, label: 'package.json' },
+      { depth: 0, label: 'src', isFolder: true },
+      { depth: 1, label: 'background.ts' },
+      { depth: 1, label: 'popup', isFolder: true },
+      { depth: 0, label: 'manifest.json' },
+      { depth: 0, label: 'package.json' },
     ],
-    accentColor: '#a78bfa', setupTime: '~30s', lay: 'api',
+    accentColor: '#34d399',
+    setupTime: '~18s',
+    lay: 'app',
   },
   {
-    id: 'cli', name: 'CLI Tool', description: 'Commands + args', category: 'Backend',
-    icon: <TerminalIcon className="w-5 h-5" />, stack: ['Go', 'Cobra'],
+    id: 'api',
+    name: 'API Server',
+    description: 'REST + auth',
+    category: 'Backend',
+    icon: <Server className="w-5 h-5" />,
+    stack: ['Node', 'Fastify', 'Prisma'],
     treePreview: [
-      { depth: 0, label: 'cmd', isFolder: true }, { depth: 1, label: 'root.go' },
-      { depth: 1, label: 'run.go' }, { depth: 0, label: 'internal', isFolder: true },
-      { depth: 0, label: 'main.go' }, { depth: 0, label: 'go.mod' },
+      { depth: 0, label: 'src', isFolder: true },
+      { depth: 1, label: 'routes', isFolder: true },
+      { depth: 1, label: 'plugins', isFolder: true },
+      { depth: 1, label: 'server.ts' },
+      { depth: 0, label: 'prisma', isFolder: true },
+      { depth: 0, label: 'package.json' },
     ],
-    accentColor: '#34d399', setupTime: '~8s', lay: 'term',
+    accentColor: '#a78bfa',
+    setupTime: '~30s',
+    lay: 'api',
   },
   {
-    id: 'proxy', name: 'Proxy Tool', description: 'HTTPS capture', category: 'Security',
-    icon: <Lock className="w-5 h-5" />, stack: ['Go', 'MITM', 'SQLite'],
+    id: 'cli',
+    name: 'CLI Tool',
+    description: 'Commands + args',
+    category: 'Backend',
+    icon: <TerminalIcon className="w-5 h-5" />,
+    stack: ['Go', 'Cobra'],
     treePreview: [
-      { depth: 0, label: 'proxy', isFolder: true }, { depth: 1, label: 'capture.go' },
-      { depth: 1, label: 'certs.go' }, { depth: 0, label: 'store', isFolder: true },
-      { depth: 0, label: 'config.yaml' }, { depth: 0, label: 'go.mod' },
+      { depth: 0, label: 'cmd', isFolder: true },
+      { depth: 1, label: 'root.go' },
+      { depth: 1, label: 'run.go' },
+      { depth: 0, label: 'internal', isFolder: true },
+      { depth: 0, label: 'main.go' },
+      { depth: 0, label: 'go.mod' },
     ],
-    accentColor: '#f97316', setupTime: '~12s', lay: 'api',
+    accentColor: '#34d399',
+    setupTime: '~8s',
+    lay: 'term',
   },
   {
-    id: 'sec', name: 'Scanner', description: 'Recon pipeline', category: 'Security',
-    icon: <Shield className="w-5 h-5" />, stack: ['Python', 'asyncio'],
+    id: 'proxy',
+    name: 'Proxy Tool',
+    description: 'HTTPS capture',
+    category: 'Security',
+    icon: <Lock className="w-5 h-5" />,
+    stack: ['Go', 'MITM', 'SQLite'],
     treePreview: [
-      { depth: 0, label: 'scanner', isFolder: true }, { depth: 1, label: 'modules', isFolder: true },
-      { depth: 1, label: 'engine.py' }, { depth: 0, label: 'reports', isFolder: true },
+      { depth: 0, label: 'proxy', isFolder: true },
+      { depth: 1, label: 'capture.go' },
+      { depth: 1, label: 'certs.go' },
+      { depth: 0, label: 'store', isFolder: true },
+      { depth: 0, label: 'config.yaml' },
+      { depth: 0, label: 'go.mod' },
+    ],
+    accentColor: '#f97316',
+    setupTime: '~12s',
+    lay: 'api',
+  },
+  {
+    id: 'sec',
+    name: 'Scanner',
+    description: 'Recon pipeline',
+    category: 'Security',
+    icon: <Shield className="w-5 h-5" />,
+    stack: ['Python', 'asyncio'],
+    treePreview: [
+      { depth: 0, label: 'scanner', isFolder: true },
+      { depth: 1, label: 'modules', isFolder: true },
+      { depth: 1, label: 'engine.py' },
+      { depth: 0, label: 'reports', isFolder: true },
       { depth: 0, label: 'pyproject.toml' },
     ],
-    accentColor: '#f97316', setupTime: '~15s', lay: 'api',
+    accentColor: '#f97316',
+    setupTime: '~15s',
+    lay: 'api',
   },
   {
-    id: 'agent', name: 'AI Agent', description: 'Tools + memory', category: 'AI',
-    icon: <Bot className="w-5 h-5" />, stack: ['TypeScript', 'MCP', 'SDK'],
+    id: 'agent',
+    name: 'AI Agent',
+    description: 'Tools + memory',
+    category: 'AI',
+    icon: <Bot className="w-5 h-5" />,
+    stack: ['TypeScript', 'MCP', 'SDK'],
     treePreview: [
-      { depth: 0, label: 'agent', isFolder: true }, { depth: 1, label: 'tools', isFolder: true },
-      { depth: 1, label: 'memory.ts' }, { depth: 1, label: 'loop.ts' },
-      { depth: 0, label: 'prompts', isFolder: true }, { depth: 0, label: 'package.json' },
+      { depth: 0, label: 'agent', isFolder: true },
+      { depth: 1, label: 'tools', isFolder: true },
+      { depth: 1, label: 'memory.ts' },
+      { depth: 1, label: 'loop.ts' },
+      { depth: 0, label: 'prompts', isFolder: true },
+      { depth: 0, label: 'package.json' },
     ],
-    accentColor: '#a78bfa', setupTime: '~22s', lay: 'app',
+    accentColor: '#a78bfa',
+    setupTime: '~22s',
+    lay: 'app',
   },
 ];
 
@@ -113,7 +194,9 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   const [newProjName, setNewProjName] = useState('');
   const [newProjLoc, setNewProjLoc] = useState('/home/khanhromvn/projects');
   const [selectedTemplateId, setSelectedTemplateId] = useState('web');
-  const [templateCategory, setTemplateCategory] = useState<'All' | 'Web' | 'Backend' | 'Security' | 'AI'>('All');
+  const [templateCategory, setTemplateCategory] = useState<
+    'All' | 'Web' | 'Backend' | 'Security' | 'AI'
+  >('All');
   const [options, setOptions] = useState({ git: true, readme: true, ignore: true, deps: false });
   const [license, setLicense] = useState('MIT');
 
@@ -143,7 +226,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
       });
       onClose();
     } catch (err) {
-      logger.error('[CreateProjectModal] Create failed:', err);
+      console.error('[CreateProjectModal] Create failed:', err);
     } finally {
       setLoading(false);
     }
@@ -361,7 +444,10 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                 </div>
                 <div className="flex-1 grid grid-cols-[34px_1fr] min-h-0">
                   <div className="border-r border-border p-1.5 flex flex-col gap-1">
-                    <i className="w-full h-1 rounded-sm" style={{ background: selectedTemplate.accentColor }} />
+                    <i
+                      className="w-full h-1 rounded-sm"
+                      style={{ background: selectedTemplate.accentColor }}
+                    />
                     <i className="w-full h-1 rounded-sm bg-border" />
                     <i className="w-full h-1 rounded-sm bg-border" />
                     <i className="w-full h-1 rounded-sm bg-border" />
@@ -369,24 +455,65 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                   <div className="p-2 flex flex-col gap-1 min-w-0">
                     {selectedTemplate.lay === 'app' ? (
                       <>
-                        <i className="w-1/2 h-1 rounded-sm" style={{ background: `color-mix(in srgb, ${selectedTemplate.accentColor} 70%, transparent)` }} />
+                        <i
+                          className="w-1/2 h-1 rounded-sm"
+                          style={{
+                            background: `color-mix(in srgb, ${selectedTemplate.accentColor} 70%, transparent)`,
+                          }}
+                        />
                         <div className="grid grid-cols-3 gap-1">
-                          <i className="h-5 rounded-sm" style={{ background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`, border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)` }} />
-                          <i className="h-5 rounded-sm" style={{ background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`, border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)` }} />
-                          <i className="h-5 rounded-sm" style={{ background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`, border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)` }} />
+                          <i
+                            className="h-5 rounded-sm"
+                            style={{
+                              background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)`,
+                            }}
+                          />
+                          <i
+                            className="h-5 rounded-sm"
+                            style={{
+                              background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)`,
+                            }}
+                          />
+                          <i
+                            className="h-5 rounded-sm"
+                            style={{
+                              background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`,
+                              border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)`,
+                            }}
+                          />
                         </div>
                         <div className="flex-1 rounded-sm bg-white/[0.02] border border-border" />
                       </>
                     ) : selectedTemplate.lay === 'api' ? (
                       [70, 55, 80, 45].map((w, i) => (
                         <div key={i} className="flex gap-1.5 items-center">
-                          <em className="w-4 h-1.5 rounded-sm" style={{ background: `color-mix(in srgb, ${selectedTemplate.accentColor} 32%, transparent)` }} />
-                          <i className="h-1 rounded-sm" style={{ width: `${w}%`, background: $('--border') }} />
+                          <em
+                            className="w-4 h-1.5 rounded-sm"
+                            style={{
+                              background: `color-mix(in srgb, ${selectedTemplate.accentColor} 32%, transparent)`,
+                            }}
+                          />
+                          <i
+                            className="h-1 rounded-sm"
+                            style={{ width: `${w}%`, background: $('--border') }}
+                          />
                         </div>
                       ))
                     ) : (
                       [40, 70, 55, 30, 62].map((w, i) => (
-                        <i key={i} className="h-1 rounded-sm" style={{ width: `${w}%`, background: i % 2 === 0 ? `color-mix(in srgb, ${selectedTemplate.accentColor} 70%, transparent)` : $('--border') }} />
+                        <i
+                          key={i}
+                          className="h-1 rounded-sm"
+                          style={{
+                            width: `${w}%`,
+                            background:
+                              i % 2 === 0
+                                ? `color-mix(in srgb, ${selectedTemplate.accentColor} 70%, transparent)`
+                                : $('--border'),
+                          }}
+                        />
                       ))
                     )}
                   </div>
@@ -398,9 +525,17 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
               {/* Tree Preview */}
               <div className="mx-3.5 p-2 rounded-md bg-sidebar-background border border-border font-mono text-[11px] leading-relaxed text-text-secondary flex-1 min-h-0 overflow-hidden">
                 {selectedTemplate.treePreview.map((node, idx) => (
-                  <div key={idx} style={{ paddingLeft: `${node.depth * 14}px` }} className="flex items-center gap-1.5 whitespace-nowrap">
+                  <div
+                    key={idx}
+                    style={{ paddingLeft: `${node.depth * 14}px` }}
+                    className="flex items-center gap-1.5 whitespace-nowrap"
+                  >
                     <span className={cn(node.isFolder ? 'text-warn' : '')}>
-                      {node.isFolder ? <FolderOpen className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                      {node.isFolder ? (
+                        <FolderOpen className="w-3 h-3" />
+                      ) : (
+                        <FileText className="w-3 h-3" />
+                      )}
                     </span>
                     {node.label}
                   </div>
@@ -412,7 +547,15 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
               {/* Stack Tags */}
               <div className="mx-3.5 pb-3 flex flex-wrap gap-1.5">
                 {selectedTemplate.stack.map((s) => (
-                  <span key={s} className="text-[10px] font-mono px-1.5 py-0.5 rounded border text-text-secondary" style={{ backgroundColor: `color-mix(in srgb, ${selectedTemplate.accentColor} 11%, transparent)`, borderColor: `color-mix(in srgb, ${selectedTemplate.accentColor} 22%, transparent)`, color: selectedTemplate.accentColor }}>
+                  <span
+                    key={s}
+                    className="text-[10px] font-mono px-1.5 py-0.5 rounded border text-text-secondary"
+                    style={{
+                      backgroundColor: `color-mix(in srgb, ${selectedTemplate.accentColor} 11%, transparent)`,
+                      borderColor: `color-mix(in srgb, ${selectedTemplate.accentColor} 22%, transparent)`,
+                      color: selectedTemplate.accentColor,
+                    }}
+                  >
                     {s}
                   </span>
                 ))}
@@ -423,7 +566,12 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
       </ModalBody>
       <ModalFooter className="justify-end px-5 py-4 bg-sidebar-background/50 border-t border-border">
         <div className="flex-1 mr-auto text-[11.5px] text-text-secondary/60 flex items-center gap-3 min-w-0">
-          <span>Will create in <b className="text-text-primary font-mono">{newProjLoc}/{newProjName || '...'}</b></span>
+          <span>
+            Will create in{' '}
+            <b className="text-text-primary font-mono">
+              {newProjLoc}/{newProjName || '...'}
+            </b>
+          </span>
         </div>
         <div className="flex gap-3">
           <button
@@ -437,7 +585,9 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
             disabled={!canSubmit || loading}
             className={cn(
               'h-[30px] px-3.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all border-none',
-              canSubmit && !loading ? 'bg-primary text-white hover:bg-primary/90' : 'bg-text-secondary/10 text-text-secondary/50 cursor-not-allowed',
+              canSubmit && !loading
+                ? 'bg-primary text-white hover:bg-primary/90'
+                : 'bg-text-secondary/10 text-text-secondary/50 cursor-not-allowed',
             )}
           >
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { logger } from '@renderer/utils/logger';
+
 import { ConversationItem } from '../types';
 import ConversationService from '../../../services/ConversationService';
 
@@ -31,7 +31,7 @@ export const useConversationHistory = (isOpen: boolean) => {
   const loadHistory = useCallback(async () => {
     const moduleId = getCurrentModuleId();
     if (!moduleId) {
-      logger.warn('[useConversationHistory] No active moduleId, cannot load history');
+      console.warn('[useConversationHistory] No active moduleId, cannot load history');
       return;
     }
 
@@ -70,7 +70,7 @@ export const useConversationHistory = (isOpen: boolean) => {
               totalTokenUsage: 0,
             } as ConversationItem;
           } catch (error) {
-            logger.warn(`[useConversationHistory] Failed to load conversation ${id}:`, error);
+            console.warn(`[useConversationHistory] Failed to load conversation ${id}:`, error);
             return null;
           }
         }),
@@ -80,7 +80,7 @@ export const useConversationHistory = (isOpen: boolean) => {
       const validConversations = conversationsData.filter((c): c is ConversationItem => c !== null);
       setConversations(validConversations);
     } catch (error) {
-      logger.error('[useConversationHistory] Failed to load history:', error);
+      console.error('[useConversationHistory] Failed to load history:', error);
       setConversations([]);
     } finally {
       setIsLoading(false);
@@ -96,7 +96,7 @@ export const useConversationHistory = (isOpen: boolean) => {
   const deleteConversation = useCallback(async (id: string) => {
     const moduleId = getCurrentModuleId();
     if (!moduleId) {
-      logger.warn('[useConversationHistory] No active moduleId, cannot delete conversation');
+      console.warn('[useConversationHistory] No active moduleId, cannot delete conversation');
       return;
     }
 
@@ -104,14 +104,14 @@ export const useConversationHistory = (isOpen: boolean) => {
       await ConversationService.delete(moduleId, id);
       setConversations((prev) => prev.filter((c) => c.id !== id));
     } catch (error) {
-      logger.error('[useConversationHistory] Failed to delete conversation:', error);
+      console.error('[useConversationHistory] Failed to delete conversation:', error);
     }
   }, []);
 
   const clearAllHistory = useCallback(async () => {
     const moduleId = getCurrentModuleId();
     if (!moduleId) {
-      logger.warn('[useConversationHistory] No active moduleId, cannot clear history');
+      console.warn('[useConversationHistory] No active moduleId, cannot clear history');
       return;
     }
 
@@ -119,7 +119,7 @@ export const useConversationHistory = (isOpen: boolean) => {
       await ConversationService.deleteAll(moduleId);
       setConversations([]);
     } catch (error) {
-      logger.error('[useConversationHistory] Failed to clear all history:', error);
+      console.error('[useConversationHistory] Failed to clear all history:', error);
     }
   }, []);
 

@@ -1,0 +1,43 @@
+---
+recon: 1.0
+type: tab
+title: Table
+---
+
+# Bảng có sort
+@box w=10 maxh=10 ui=table filterable=true icon=ArrowUpDown desc="Cột có :sort bấm được: mặc định, tăng dần (xanh), giảm dần (đỏ)"
+
+| Mã:sort | Tên:sort | Loại:badge:sort | Tin cậy:percent:sort |
+|---|---|---|---|
+| S-001 | Hồ sơ công khai & mạng xã hội | OSINT {color=orange} | 0.55 {color=yellow} |
+| S-002 | Website TechCorp VN | Tổ chức {color=purple} | 0.70 {color=yellow} |
+| S-010 | WHOIS Lookup | Hạ tầng {color=cyan} | 0.90 {color=green} |
+| S-003 | Tin tức báo chí về TechCorp VN | Báo chí {color=blue} | 0.65 {color=yellow} |
+| S-004 | Dữ liệu rò rỉ | Rò rỉ {color=red} | 0.30 {color=red} |
+
+# Bảng chỉ sort một số cột
+@box w=5 maxh=8 ui=table icon=ListFilter desc="Chỉ cột Mã và Điểm có :sort, cột Ghi chú không phản ứng khi bấm"
+
+| Mã:sort | Điểm:percent:sort | Ghi chú |
+|---|---|---|
+| A-2 | 0.40 | Cần xác minh |
+| A-10 | 0.85 | Đã xác nhận |
+| A-1 | 0.62 | Chờ đối chiếu |
+
+# Bảng không sort
+@box w=5 maxh=8 ui=table icon=Table desc="Không cột nào có :sort, header không bấm được"
+
+| Thiết bị | Hệ điều hành | Trạng thái:badge |
+|---|---|---|
+| iPhone 15 Pro | iOS 18 | Đang dùng {color=green} |
+| Laptop công ty | Windows 11 | Cũ {color=gray} |
+| Máy tính bảng | Android 14 | Mất liên lạc {color=red} |
+
+# Bảng có ô dài
+@box w=10 maxh=10 ui=table filterable=true icon=Text desc="Ô dài bị cắt bằng '...', bấm vào hàng để mở rộng xem đủ"
+
+| Mã:sort | Tên:sort | Mô tả |
+|---|---|---|
+| L-001 | Báo cáo rò rỉ dữ liệu | Bộ dữ liệu được tổng hợp từ nhiều diễn đàn ngầm vào năm 2023, chứa email, số điện thoại và băm mật khẩu của nhiều tài khoản, cần đối chiếu thêm trước khi dùng làm bằng chứng. |
+| L-002 | Hồ sơ mạng xã hội | Tài khoản công khai, ảnh đại diện trùng với ảnh trên LinkedIn. |
+| L-003 | Thông báo nội bộ | Công ty cấp laptop và điện thoại công tác cho toàn bộ kỹ sư backend, kèm quy định bảo mật thiết bị và quy trình báo mất thiết bị trong vòng 24 giờ. |

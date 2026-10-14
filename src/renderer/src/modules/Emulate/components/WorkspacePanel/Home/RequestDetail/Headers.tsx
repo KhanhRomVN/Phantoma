@@ -17,7 +17,7 @@ import { useMemo } from 'react';
 import { NetworkRequest } from '../../../../types/inspector';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ function HighlightText({ text, searchTerm, className, highlightClassName }: High
         return { text: part, highlight: isMatch };
       });
     } catch (e) {
-      logger.warn('HighlightText error:', e);
+      console.warn('HighlightText error:', e);
       return [{ text, highlight: false }];
     }
   }, [text, searchTerm]);

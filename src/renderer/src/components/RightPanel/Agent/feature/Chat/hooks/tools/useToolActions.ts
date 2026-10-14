@@ -28,7 +28,6 @@ import { getPermissionDecision } from './useToolExecution';
 import { isToolClickable, TOOL_ACTION_TYPES } from '../../constants/constants';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 interface UseToolActionsProps {
   onSendToolRequest?: (
@@ -185,7 +184,7 @@ export const useToolActions = ({
         );
 
         if (!targetAction) {
-          logger.warn(`[Zen][handleToolClick] Cannot find action at index ${actionIndex}`, {
+          console.warn(`[Zen][handleToolClick] Cannot find action at index ${actionIndex}`, {
             actionIndex,
             availableIndices: actionOrActions.map((a: any) => a._index),
             messageId: message.id,

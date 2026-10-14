@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { logger } from '@renderer/utils/logger';
 
 /**
  * ------------------------------------------------------------------
@@ -70,7 +69,7 @@ export const useFileUpload = (apiUrl: string) => {
 
           if (!uploadRes.ok) {
             const errorText = await uploadRes.text();
-            logger.error(
+            console.error(
               `[useFileUpload] Upload failed with status ${uploadRes.status}: ${errorText}`,
             );
             throw new Error(`Upload API returned status ${uploadRes.status}: ${errorText}`);
@@ -82,13 +81,13 @@ export const useFileUpload = (apiUrl: string) => {
             ref_file_ids.push(uploadData.data.file_id);
           } else {
             const errorMsg = uploadData.error || 'Unknown upload error';
-            logger.error(`[useFileUpload] Upload failed: ${errorMsg}`);
+            console.error(`[useFileUpload] Upload failed: ${errorMsg}`);
             throw new Error(errorMsg);
           }
         } catch (err) {
           const errorMsg = `Failed to upload ${file.name}: ${err instanceof Error ? err.message : String(err)}`;
-          logger.error(`[useFileUpload] Exception:`, err);
-          logger.error(`[useFileUpload] Error message: ${errorMsg}`);
+          console.error(`[useFileUpload] Exception:`, err);
+          console.error(`[useFileUpload] Error message: ${errorMsg}`);
           throw new Error(errorMsg);
         }
       }

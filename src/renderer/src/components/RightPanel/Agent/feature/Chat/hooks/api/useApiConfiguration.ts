@@ -18,7 +18,6 @@
 import { useState, useEffect } from 'react';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ── Services ──
 import { extensionService } from '../../../../services/ExtensionService';
@@ -42,7 +41,7 @@ export const useApiConfiguration = () => {
         setIsApiUrlReady(true);
       })
       .catch((err: any) => {
-        logger.warn('[Zen] ChatPanel failed to load apiUrl from storage:', err);
+        console.warn('[Zen] ChatPanel failed to load apiUrl from storage:', err);
         setIsApiUrlReady(true);
       });
   }, []);
@@ -57,7 +56,7 @@ export const useApiConfiguration = () => {
         if (Array.isArray(data)) setProviders(data);
       })
       .catch((err: any) => {
-        logger.warn('[useApiConfiguration] Failed to fetch providers:', err);
+        console.warn('[useApiConfiguration] Failed to fetch providers:', err);
       });
   }, [apiUrl]);
 

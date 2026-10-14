@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Loader2, FolderOpen, GitBranch, Search, Trash2, X } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
-import { logger } from '@renderer/utils/logger';
+
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { addCloneEntry } from '../../../utils/cloneHistory';
 import { detectProjectStack, type StackInfo } from '@renderer/utils/detectStack';
@@ -158,7 +158,7 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
         setSelectedProjectId(null);
       }
     } catch (err) {
-      logger.error('[OpenProjectModal] Browse failed:', err);
+      console.error('[OpenProjectModal] Browse failed:', err);
     }
   };
 
@@ -193,7 +193,7 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
       }
       onClose();
     } catch (err) {
-      logger.error('[OpenProjectModal] Submit failed:', err);
+      console.error('[OpenProjectModal] Submit failed:', err);
     } finally {
       setLoading(false);
     }

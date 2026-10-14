@@ -62,9 +62,9 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Services ──
-import { apiService } from '@renderer/services/api.service';
+import ApiService from '@renderer/services/api.service';
 
-// ── Types ──
+// ── Types ─
 import type { TargetTab } from '../types/target.types';
 import type { ApiResponse } from '@renderer/types/api';
 import type {
@@ -174,6 +174,27 @@ function toUpdateDTO(target: Partial<TargetTab>): UpdateTargetDTO {
 
 // ─── EmulateApiService ──────────────────────────────────────────────────
 class EmulateApiService {
+  private _client: ApiService;
+
+  constructor() {
+    this._client = this.createClient();
+
+    // Listen for URL changes to recreate client if needed (optional optimization)
+    window.addEventListener('emulateUrlChanged', () => {
+      this._client = this.createClient();
+    });
+  }
+
+  private createClient(): ApiService {
+    const storedUrl = localStorage.getItem('emulate_service_url');
+    const baseUrl = storedUrl ? `http://${storedUrl}` : 'http://localhost:3002';
+    return new ApiService(baseUrl);
+  }
+
+  public get client(): ApiService {
+    return this._client;
+  }
+
   // ── Private Helpers ────────────────────────────────────────────
 
   /** Build base path cho repeater endpoints của một target. */
@@ -200,17 +221,17 @@ class EmulateApiService {
 
   /** Lấy toàn bộ danh sách emulate target. */
   async getTargets(): Promise<TargetDTO[]> {
-    return apiService.request<TargetDTO[]>('/api/v1/emulate-targets');
+    return this._client.request<TargetDTO[]>('/api/v1/emulate-targets');
   }
 
   /** Lấy một target theo id. */
   async getTarget(id: string): Promise<TargetDTO> {
-    return apiService.request<TargetDTO>(`/api/v1/emulate-targets/${encodeURIComponent(id)}`);
+    return this._client.request<TargetDTO>(`/api/v1/emulate-targets/${encodeURIComponent(id)}`);
   }
 
   /** Tạo target mới. */
   async createTarget(input: CreateTargetDTO): Promise<TargetDTO> {
-    return apiService.request<TargetDTO>('/api/v1/emulate-targets', {
+    return this._client.request<TargetDTO>('/api/v1/emulate-targets', {
       method: 'POST',
       body: JSON.stringify(input),
     });
@@ -218,15 +239,30 @@ class EmulateApiService {
 
   /** Cập nhật target theo id. */
   async updateTarget(id: string, input: UpdateTargetDTO): Promise<TargetDTO> {
-    return apiService.request<TargetDTO>(`/api/v1/emulate-targets/${encodeURIComponent(id)}`, {
+    return this._client.request<TargetDTO>(`/api/v1/emulate-targets/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     });
   }
 
+  /** Lấy danh sách capture methods hỗ trợ cho một platform. */
+  async getCaptureMethods(
+    platform: 'web' | 'pc' | 'android' | 'cli',
+  ): Promise<{ platform: string; methods: any[] }> {
+    try {
+      const res = await this._client.request<{ platform: string; methods: any[] }>(
+        `/api/v1/capture-methods/${platform}`,
+      );
+      return res;
+    } catch (err) {
+      console.error(`[EmulateApiService] Failed to call capture-methods API:`, err);
+      throw err;
+    }
+  }
+
   /** Xóa target theo id, trả về true nếu thành công. */
   async deleteTarget(id: string): Promise<boolean> {
-    const result = await apiService.request<{ deleted: boolean }>(
+    const result = await this._client.request<{ deleted: boolean }>(
       `/api/v1/emulate-targets/${encodeURIComponent(id)}`,
       { method: 'DELETE' },
     );
@@ -235,7 +271,7 @@ class EmulateApiService {
 
   /** Cập nhật timestamp last_used của target (gọi khi user mở target). */
   async updateLastUsed(id: string): Promise<boolean> {
-    const result = await apiService.request<{ success: boolean }>(
+    const result = await this._client.request<{ success: boolean }>(
       `/api/v1/emulate-targets/${encodeURIComponent(id)}/use`,
       { method: 'POST' },
     );
@@ -249,7 +285,7 @@ class EmulateApiService {
   /** Lấy bộ lọc hiện tại của target, trả về null nếu chưa có. */
   async getFilter(targetId: string): Promise<TargetFilterDTO | null> {
     try {
-      return await apiService.request<TargetFilterDTO>(
+      return await this._client.request<TargetFilterDTO>(
         `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/filter`,
       );
     } catch {
@@ -259,7 +295,7 @@ class EmulateApiService {
 
   /** Lưu hoặc cập nhật bộ lọc cho target. */
   async saveFilter(targetId: string, input: CreateTargetFilterDTO): Promise<TargetFilterDTO> {
-    return apiService.request<TargetFilterDTO>(
+    return this._client.request<TargetFilterDTO>(
       `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/filter`,
       { method: 'PUT', body: JSON.stringify(input) },
     );
@@ -267,7 +303,7 @@ class EmulateApiService {
 
   /** Xóa bộ lọc của target. */
   async deleteFilter(targetId: string): Promise<boolean> {
-    const result = await apiService.request<{ deleted: boolean }>(
+    const result = await this._client.request<{ deleted: boolean }>(
       `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/filter`,
       { method: 'DELETE' },
     );
@@ -281,14 +317,14 @@ class EmulateApiService {
   /** Lấy danh sách repeater request của target. */
   async listRequests(targetId: string): Promise<ApiResponse<RepeaterRequest[]>> {
     return this.wrap(() =>
-      apiService.request<RepeaterRequest[]>(`${this.basePath(targetId)}/requests`),
+      this._client.request<RepeaterRequest[]>(`${this.basePath(targetId)}/requests`),
     );
   }
 
   /** Lấy một repeater request theo id. */
   async getRequest(targetId: string, requestId: string): Promise<ApiResponse<RepeaterRequest>> {
     return this.wrap(() =>
-      apiService.request<RepeaterRequest>(`${this.basePath(targetId)}/requests/${requestId}`),
+      this._client.request<RepeaterRequest>(`${this.basePath(targetId)}/requests/${requestId}`),
     );
   }
 
@@ -298,7 +334,7 @@ class EmulateApiService {
     input: CreateRepeaterRequestInput,
   ): Promise<ApiResponse<RepeaterRequest>> {
     return this.wrap(() =>
-      apiService.request<RepeaterRequest>(`${this.basePath(targetId)}/requests`, {
+      this._client.request<RepeaterRequest>(`${this.basePath(targetId)}/requests`, {
         method: 'POST',
         body: JSON.stringify(input),
       }),
@@ -312,7 +348,7 @@ class EmulateApiService {
     input: UpdateRepeaterRequestInput,
   ): Promise<ApiResponse<RepeaterRequest>> {
     return this.wrap(() =>
-      apiService.request<RepeaterRequest>(`${this.basePath(targetId)}/requests/${requestId}`, {
+      this._client.request<RepeaterRequest>(`${this.basePath(targetId)}/requests/${requestId}`, {
         method: 'PUT',
         body: JSON.stringify(input),
       }),
@@ -325,7 +361,7 @@ class EmulateApiService {
     requestId: string,
   ): Promise<ApiResponse<{ deleted: boolean }>> {
     return this.wrap(() =>
-      apiService.request<{ deleted: boolean }>(`${this.basePath(targetId)}/requests/${requestId}`, {
+      this._client.request<{ deleted: boolean }>(`${this.basePath(targetId)}/requests/${requestId}`, {
         method: 'DELETE',
       }),
     );
@@ -338,7 +374,7 @@ class EmulateApiService {
   /** Lấy danh sách payload của một repeater request. */
   async listPayloads(targetId: string, requestId: string): Promise<ApiResponse<RepeaterPayload[]>> {
     return this.wrap(() =>
-      apiService.request<RepeaterPayload[]>(
+      this._client.request<RepeaterPayload[]>(
         `${this.basePath(targetId)}/requests/${requestId}/payloads`,
       ),
     );
@@ -351,7 +387,7 @@ class EmulateApiService {
     input: UpsertRepeaterPayloadInput,
   ): Promise<ApiResponse<RepeaterPayload>> {
     return this.wrap(() =>
-      apiService.request<RepeaterPayload>(
+      this._client.request<RepeaterPayload>(
         `${this.basePath(targetId)}/requests/${requestId}/payloads`,
         { method: 'PUT', body: JSON.stringify(input) },
       ),
@@ -365,7 +401,7 @@ class EmulateApiService {
     payloadId: string,
   ): Promise<ApiResponse<{ deleted: boolean }>> {
     return this.wrap(() =>
-      apiService.request<{ deleted: boolean }>(
+      this._client.request<{ deleted: boolean }>(
         `${this.basePath(targetId)}/requests/${requestId}/payloads/${payloadId}`,
         { method: 'DELETE' },
       ),
@@ -379,7 +415,7 @@ class EmulateApiService {
   /** Lấy toàn bộ lịch sử fuzzer/repeater của target. */
   async listHistoryByTarget(targetId: string): Promise<ApiResponse<RepeaterHistory[]>> {
     return this.wrap(() =>
-      apiService.request<RepeaterHistory[]>(`${this.basePath(targetId)}/history`),
+      this._client.request<RepeaterHistory[]>(`${this.basePath(targetId)}/history`),
     );
   }
 
@@ -389,7 +425,7 @@ class EmulateApiService {
     requestId: string,
   ): Promise<ApiResponse<RepeaterHistory[]>> {
     return this.wrap(() =>
-      apiService.request<RepeaterHistory[]>(
+      this._client.request<RepeaterHistory[]>(
         `${this.basePath(targetId)}/requests/${requestId}/history`,
       ),
     );
@@ -402,7 +438,7 @@ class EmulateApiService {
     input: SaveHistoryInput,
   ): Promise<ApiResponse<RepeaterHistory>> {
     return this.wrap(() =>
-      apiService.request<RepeaterHistory>(
+      this._client.request<RepeaterHistory>(
         `${this.basePath(targetId)}/requests/${requestId}/history`,
         { method: 'POST', body: JSON.stringify(input) },
       ),
@@ -415,7 +451,7 @@ class EmulateApiService {
     historyId: string,
   ): Promise<ApiResponse<RepeaterHistoryRun[]>> {
     return this.wrap(() =>
-      apiService.request<RepeaterHistoryRun[]>(
+      this._client.request<RepeaterHistoryRun[]>(
         `${this.basePath(targetId)}/history/${historyId}/runs`,
       ),
     );
@@ -427,7 +463,7 @@ class EmulateApiService {
     historyId: string,
   ): Promise<ApiResponse<{ deleted: boolean }>> {
     return this.wrap(() =>
-      apiService.request<{ deleted: boolean }>(`${this.basePath(targetId)}/history/${historyId}`, {
+      this._client.request<{ deleted: boolean }>(`${this.basePath(targetId)}/history/${historyId}`, {
         method: 'DELETE',
       }),
     );
@@ -440,14 +476,16 @@ class EmulateApiService {
   /** Lấy danh sách report của target. */
   async listReports(targetId: string): Promise<ApiResponse<ReportDTO[]>> {
     return this.wrap(() =>
-      apiService.request<ReportDTO[]>(`/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports`),
+      this._client.request<ReportDTO[]>(
+        `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports`,
+      ),
     );
   }
 
   /** Lấy một report theo id. */
   async getReport(targetId: string, reportId: string): Promise<ApiResponse<ReportDTO>> {
     return this.wrap(() =>
-      apiService.request<ReportDTO>(
+      this._client.request<ReportDTO>(
         `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports/${reportId}`,
       ),
     );
@@ -456,7 +494,7 @@ class EmulateApiService {
   /** Tạo report mới cho target. */
   async createReport(targetId: string, input: CreateReportDTO): Promise<ApiResponse<ReportDTO>> {
     return this.wrap(() =>
-      apiService.request<ReportDTO>(
+      this._client.request<ReportDTO>(
         `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports`,
         { method: 'POST', body: JSON.stringify(input) },
       ),
@@ -470,7 +508,7 @@ class EmulateApiService {
     input: UpdateReportDTO,
   ): Promise<ApiResponse<ReportDTO>> {
     return this.wrap(() =>
-      apiService.request<ReportDTO>(
+      this._client.request<ReportDTO>(
         `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports/${reportId}`,
         { method: 'PUT', body: JSON.stringify(input) },
       ),
@@ -483,7 +521,7 @@ class EmulateApiService {
     reportId: string,
   ): Promise<ApiResponse<{ deleted: boolean }>> {
     return this.wrap(() =>
-      apiService.request<{ deleted: boolean }>(
+      this._client.request<{ deleted: boolean }>(
         `/api/v1/emulate-targets/${encodeURIComponent(targetId)}/reports/${reportId}`,
         { method: 'DELETE' },
       ),

@@ -33,7 +33,7 @@ import {
 
 // ── Hooks ──
 import { useCodeStore } from '../modules/Code/hooks/useCodeStore';
-import { useActiveModule, useActiveModuleStore } from '../hooks/useActiveModule';
+import { useActiveModule } from '../hooks/useActiveModule';
 import { useActiveTarget } from '../hooks/useActiveTarget';
 import { useGlobalCopyShortcut } from '../hooks/useGlobalCopyShortcut';
 
@@ -48,9 +48,6 @@ import {
   FeatureProvider,
   useAgentFeature,
 } from '../components/RightPanel/Agent/context/FeatureContext';
-
-// ── Utils ──
-import { logger } from '../utils/logger';
 
 // ── Types ──
 import { PhantomModule } from '../types/phantom-module';
@@ -89,9 +86,10 @@ const MainLayoutContent = () => {
   // Main process đã KHÔNG kill target processes khi crash → capture vẫn chạy ngầm,
   // chỉ UI cần được thông báo để user biết trạng thái hiện tại.
   useEffect(() => {
-    if (!window.api?.on) return;
+    const ipcRenderer = (window as any).electron?.ipcRenderer;
+    if (!ipcRenderer) return;
+
     const handleCrashed = (_event: unknown, data: { reason?: string; exitCode?: number }) => {
-      logger.warn('[MainLayout] Renderer crashed, recovering...', data);
       setCrashNotice({
         reason: data?.reason || 'unknown',
         exitCode: data?.exitCode ?? -1,
@@ -99,9 +97,10 @@ const MainLayoutContent = () => {
       // Tự ẩn sau 8 giây nếu user không bấm dismiss
       setTimeout(() => setCrashNotice(null), 8000);
     };
-    window.api.on('window:renderer-crashed', handleCrashed);
+    
+    ipcRenderer.on('window:renderer-crashed', handleCrashed);
     return () => {
-      window.api?.off?.('window:renderer-crashed', handleCrashed);
+      ipcRenderer.removeListener('window:renderer-crashed', handleCrashed);
     };
   }, []);
 
@@ -130,11 +129,15 @@ const MainLayoutContent = () => {
             break;
           default:
             try {
-              const result = await window.api.invoke('selectFolder');
-              if (result?.success && result.folderPath) {
+              const result = await (window as any).electron.ipcRenderer.invoke('dialog:show-save', {
+                title: 'Select Folder',
+                properties: ['openDirectory'],
+              });
+              if (result?.success && result.filePath) {
+                // Handle selected folder path if needed
               }
             } catch (err) {
-              logger.error('[Ctrl+O] Failed to open folder dialog:', err);
+              console.error('[MainLayout] Failed to select folder:', err);
             }
             break;
         }
@@ -217,10 +220,6 @@ const MainLayoutContent = () => {
       color: 'text-indigo-400',
       action: () => {
         setActiveModule('code' as PhantomModule);
-        // Force immediate check after a tiny delay to see if state propagated
-        setTimeout(() => {
-          const current = useActiveModuleStore.getState().activeModule;
-        }, 50);
       },
     },
     {

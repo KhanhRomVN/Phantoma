@@ -1,0 +1,41 @@
+---
+recon: 1.0
+type: tab
+title: Markdown
+---
+
+# Markdown ngắn
+@box w=5 maxh=4 ui=markdown icon=FileText desc="Định dạng cơ bản"
+
+Đối tượng dùng tên miền **nguyenvana.com**, đăng ký từ *2020*.
+
+- Bật bảo vệ thông tin `WHOIS`
+- Chứng chỉ TLS cấp cùng thời điểm
+- Cần đối chiếu thêm nguồn thứ hai
+
+# Markdown có tiêu đề
+@box w=5 maxh=4 ui=markdown icon=List desc="Tiêu đề phụ, danh sách, trích dẫn"
+
+## Tóm tắt
+
+Hồ sơ có độ tin cậy **trung bình**, phần lớn đến từ nguồn công khai.
+
+### Việc cần làm
+
+1. Xác minh thiết bị qua ảnh có EXIF
+2. Đối chiếu vị trí Nha Trang và Quận 7
+3. Kiểm tra lịch sử đăng ký tên miền
+
+> Chưa có bằng chứng độc lập cho nơi cư trú.
+
+# Markdown có code
+@box w=10 maxh=4 ui=markdown icon=Code desc="Khối code và liên kết trong markdown"
+
+Truy vấn DNS cơ bản cho tên miền mục tiêu:
+
+```bash
+whois nguyenvana.com
+dig +short NS nguyenvana.com
+```
+
+Tham khảo thêm tại [crt.sh](https://crt.sh/?q=nguyenvana.com) để xem chứng chỉ đã cấp.

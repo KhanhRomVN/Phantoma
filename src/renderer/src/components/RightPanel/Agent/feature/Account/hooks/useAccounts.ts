@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { logger } from '@renderer/utils/logger';
+
 import { FlatAccount, Pagination } from '../types';
 import { useDbFetch } from '../../../services/useDbFetch';
 import { extractAccessToken, isJwtExpired } from '@renderer/utils/jwt';
@@ -81,7 +81,7 @@ export const useAccounts = (isOpen: boolean) => {
               setProviderConfigs(pResult.data);
             }
           } catch (err) {
-            logger.error('Failed to fetch providers:', err);
+            console.error('Failed to fetch providers:', err);
           }
         }
 
@@ -137,7 +137,7 @@ export const useAccounts = (isOpen: boolean) => {
                   reset_usage_at: acc.reset_usage_at ?? null,
                 };
               } catch (err) {
-                logger.warn(`Failed to fetch stats for account ${acc.id}:`, err);
+                console.warn(`Failed to fetch stats for account ${acc.id}:`, err);
                 return {
                   id: acc.id,
                   provider_id: acc.provider_id,
@@ -166,19 +166,12 @@ export const useAccounts = (isOpen: boolean) => {
           });
         }
       } catch (err) {
-        logger.error('Failed to fetch accounts:', err);
+        console.error('Failed to fetch accounts:', err);
       } finally {
         if (!silent) setLoading(false);
       }
     },
-    [
-      isOpen,
-      providerFilter,
-      emailFilter,
-      providerConfigs.length,
-      callBackend,
-      statsPeriod,
-    ],
+    [isOpen, providerFilter, emailFilter, providerConfigs.length, callBackend, statsPeriod],
   );
 
   // ── Effects ──
@@ -212,7 +205,7 @@ export const useAccounts = (isOpen: boolean) => {
       setDeleteItem(null);
       fetchAccounts(pagination.page, pagination.limit, true);
     } catch (err) {
-      logger.error('Failed to delete accounts:', err);
+      console.error('Failed to delete accounts:', err);
     } finally {
       setDeleteLoading(false);
     }
@@ -251,7 +244,7 @@ export const useAccounts = (isOpen: boolean) => {
         fetchAccounts(pagination.page, pagination.limit, true);
       }
     } catch (err) {
-      logger.error('Failed to switch account:', err);
+      console.error('Failed to switch account:', err);
     }
   };
 
@@ -264,7 +257,7 @@ export const useAccounts = (isOpen: boolean) => {
         fetchAccounts(pagination.page, pagination.limit, true);
       }
     } catch (err) {
-      logger.error('Failed to refresh token:', err);
+      console.error('Failed to refresh token:', err);
     }
   };
 

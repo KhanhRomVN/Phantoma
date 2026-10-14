@@ -15,10 +15,23 @@
  * ------------------------------------------------------------------
  */
 
-import { logger } from '@renderer/utils/logger';
-
-// Access conversation API through window.api
-const conversationAPI = window.api.conversation;
+// Lazy accessor — defer evaluation tới lúc call thật sự.
+// Trong dev/browser mode (Vite), window.api chưa được inject bởi preload →
+// capture top-level sẽ crash ngay khi module load. Getter này trả về null
+// an toàn, các method bên dưới check và fallback gracefully.
+function getConversationAPI(): any {
+  const api = (typeof window !== 'undefined' && (window as any).api?.conversation) || null;
+  if (!api) {
+    // Dev-mode silent warn — chỉ log 1 lần mỗi phiên để tránh spam console
+    if (!(getConversationAPI as any)._warned) {
+      (getConversationAPI as any)._warned = true;
+      console.warn(
+        '[ConversationService] window.api.conversation unavailable — running in dev/browser mode. Persistence disabled.',
+      );
+    }
+  }
+  return api;
+}
 
 // TYPES
 export interface ConversationData {
@@ -71,17 +84,20 @@ export const ConversationService = {
    * Save a conversation
    */
   save: async (moduleId: string, conversationId: string, data: ConversationData): Promise<void> => {
-    return conversationAPI.saveConversation(moduleId, conversationId, data);
+    const api = getConversationAPI();
+    if (!api) return;
+    return api.saveConversation(moduleId, conversationId, data);
   },
 
   /**
    * Get a conversation
    */
   get: async (moduleId: string, conversationId: string): Promise<ConversationData | null> => {
-    const data = await conversationAPI.getConversation(moduleId, conversationId);
-    if (data) {
-    } else {
-      logger.warn('[ConversationService] ⚠️ Conversation not found:', {
+    const api = getConversationAPI();
+    if (!api) return null;
+    const data = await api.getConversation(moduleId, conversationId);
+    if (!data) {
+      console.warn('[ConversationService] ⚠️ Conversation not found:', {
         moduleId,
         conversationId,
       });
@@ -93,21 +109,27 @@ export const ConversationService = {
    * List all conversation IDs for a module
    */
   list: async (moduleId: string): Promise<string[]> => {
-    return conversationAPI.listConversations(moduleId);
+    const api = getConversationAPI();
+    if (!api) return [];
+    return api.listConversations(moduleId);
   },
 
   /**
    * Delete a conversation
    */
   delete: async (moduleId: string, conversationId: string): Promise<void> => {
-    return conversationAPI.deleteConversation(moduleId, conversationId);
+    const api = getConversationAPI();
+    if (!api) return;
+    return api.deleteConversation(moduleId, conversationId);
   },
 
   /**
    * Delete all conversations for a module
    */
   deleteAll: async (moduleId: string): Promise<void> => {
-    return conversationAPI.deleteAllConversations(moduleId);
+    const api = getConversationAPI();
+    if (!api) return;
+    return api.deleteAllConversations(moduleId);
   },
 
   /**

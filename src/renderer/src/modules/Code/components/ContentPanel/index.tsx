@@ -18,7 +18,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { logger } from '@renderer/utils/logger';
+
 // ── React ──
 import { useState, useEffect, memo, useMemo } from 'react';
 import type { ReactNode } from 'react';
@@ -41,7 +41,7 @@ import {
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 
-// ── Views 
+// ── Views
 import { TaskManager } from './TaskManager';
 import { WorkspaceViews, EmptyState } from './Workspace';
 import { ContentHeaderBar } from './Headerbar';
@@ -159,7 +159,7 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
     try {
       await window.api.invoke('openFolder', { path });
     } catch (err) {
-      logger.error('[BinaryPreview] Failed to open:', err);
+      console.error('[BinaryPreview] Failed to open:', err);
     }
   };
 
@@ -279,14 +279,14 @@ const ContentPanelInner = memo(function ContentPanelInner() {
               setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
             })
             .catch((err: any) => {
-              logger.error(`[ContentPanel] ❌ Load failed: ${fileName}`, err);
+              console.error(`[ContentPanel] ❌ Load failed: ${fileName}`, err);
               setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
             });
         };
         doRead(1);
       })
       .catch((err: any) => {
-        logger.warn(`[ContentPanel] ⚠️  fs:stat failed for ${fileName}:`, err);
+        console.warn(`[ContentPanel] ⚠️  fs:stat failed for ${fileName}:`, err);
       });
   }, [activeFileTabId, showFile]);
 
@@ -382,7 +382,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
             if (stat) setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
           })
           .catch((err: any) => {
-            logger.error(`[ContentPanel] ❌ Failed: ${fileNode.path}`, err);
+            console.error(`[ContentPanel] ❌ Failed: ${fileNode.path}`, err);
             setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
             setLoadingFiles((prev) => {
               const next = new Set(prev);
@@ -391,7 +391,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
             });
           });
       } else {
-        logger.warn(`[ContentPanel] ⚠️ No path/content: ${fileNode.name}`);
+        console.warn(`[ContentPanel] ⚠️ No path/content: ${fileNode.name}`);
         setLoadedContents((prev) => ({ ...prev, [fileId]: '' }));
       }
     });

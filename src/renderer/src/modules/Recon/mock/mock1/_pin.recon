@@ -1,0 +1,14 @@
+---
+recon: 1.0
+type: tab
+title: Pin
+---
+
+# Ảnh hiện trường
+@box w=5 maxh=10 ui=pin icon=Pin file=anh-hien-truong/scene.svg desc="Ghim ảnh để xem"
+
+# Ghi chú tổng quan
+@box w=5 maxh=10 ui=pin icon=Pin file=ghi-chu/tong-quan.md desc="Ghim file markdown"
+
+# Script trích xuất email
+@box w=10 maxh=16 ui=pin icon=Pin file=scripts/extract-emails.js desc="Ghim file code"

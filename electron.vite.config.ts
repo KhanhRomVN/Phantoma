@@ -31,6 +31,9 @@ export default defineConfig({
     },
     build: {
       outDir: 'out/preload',
+      rollupOptions: {
+        input: resolve(__dirname, 'src/preload/index.ts'),
+      },
     },
   },
   renderer: {
@@ -46,6 +49,19 @@ export default defineConfig({
     plugins: [react()],
     build: {
       outDir: 'out/renderer',
+      rollupOptions: {
+        output: {
+          assetFileNames: (assetInfo) => {
+            if (assetInfo.name === 'maplibre-gl-worker.js') {
+              return '[name][extname]';
+            }
+            return 'assets/[name]-[hash][extname]';
+          },
+        },
+      },
+    },
+    optimizeDeps: {
+      exclude: ['maplibre-gl'],
     },
   },
 });

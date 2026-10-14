@@ -26,7 +26,6 @@ import MessageInput from '../../components/MessageInput';
 import FilesPreviews from '../../components/MessageInput/FilesPreviews';
 import { useFileHandling } from '../../hooks/useFileHandling';
 import ConversationService from '../../services/ConversationService';
-import { logger } from '@renderer/utils/logger';
 
 /**
  * Get moduleId from current context
@@ -79,7 +78,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
       const saved = localStorage.getItem('zen_last_model');
       if (saved) return JSON.parse(saved);
     } catch (e) {
-      logger.warn('[Home] Failed to parse saved model:', e);
+      console.warn('[Home] Failed to parse saved model:', e);
     }
     return null;
   });
@@ -88,7 +87,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
       const saved = localStorage.getItem('zen_last_account');
       if (saved) return JSON.parse(saved);
     } catch (e) {
-      logger.warn('[Home] Failed to parse saved account:', e);
+      console.warn('[Home] Failed to parse saved account:', e);
     }
     return null;
   });
@@ -107,7 +106,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
         setProviders(result.data.filter((p: any) => p.is_enabled));
       }
     } catch (error) {
-      logger.error('[Phantoma][Home] Failed to fetch providers:', error);
+      console.error('[Phantoma][Home] Failed to fetch providers:', error);
     }
   }, [apiUrl]);
 
@@ -154,7 +153,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
     const loadHistory = async () => {
       const moduleId = getCurrentModuleId();
       if (!moduleId) {
-        logger.warn('[Home] No active moduleId, cannot load history');
+        console.warn('[Home] No active moduleId, cannot load history');
         setIsLoading(false);
         return;
       }
@@ -193,7 +192,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 folderPath: null,
               } as ConversationItem;
             } catch (error) {
-              logger.warn(`[Home] Failed to load conversation ${id}:`, error);
+              console.warn(`[Home] Failed to load conversation ${id}:`, error);
               return null;
             }
           }),
@@ -202,7 +201,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
         const validHistory = conversationsData.filter((c): c is ConversationItem => c !== null);
         setConversations(validHistory);
       } catch (error) {
-        logger.error('[Home] Failed to load history:', error);
+        console.error('[Home] Failed to load history:', error);
         setConversations([]);
       } finally {
         setIsLoading(false);
@@ -249,7 +248,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 try {
                   favicons[p.provider_id] = `${new URL(p.website).origin}/favicon.ico`;
                 } catch {
-                  logger.warn('[Home] Invalid website URL for favicon:', p.website);
+                  console.warn('[Home] Invalid website URL for favicon:', p.website);
                 }
               }
             });
@@ -257,7 +256,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
           }
         }
       } catch (err) {
-        logger.warn('[Home] Failed to fetch stats:', err);
+        console.warn('[Home] Failed to fetch stats:', err);
       }
     };
     fetchStats();
@@ -531,7 +530,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
               try {
                 faviconUrl = `${new URL(prov.website).origin}/favicon.ico`;
               } catch {
-                logger.warn('[Home] Invalid website URL for favicon:', prov.website);
+                console.warn('[Home] Invalid website URL for favicon:', prov.website);
               }
             }
 

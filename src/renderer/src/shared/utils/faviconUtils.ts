@@ -20,7 +20,6 @@
 import React, { useState, useEffect } from 'react';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 export interface FaviconProps {
@@ -123,7 +122,7 @@ export const useFavicon = (url?: string, size: number = 32) => {
               return;
             }
           } catch (err) {
-            logger.error(`Failed to load favicon from ${src}:`, err);
+            console.error(`Failed to load favicon from ${src}:`, err);
             continue;
           }
         }

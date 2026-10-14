@@ -40,7 +40,7 @@ import {
 import { useAccounts } from './hooks/useAccounts';
 import { useSettings } from '../../context/SettingsContext';
 import { useActiveDatabaseManagerName } from '../../hooks/useActiveDatabaseManagerName';
-import { logger } from '@renderer/utils/logger';
+
 import { extensionService } from '../../services/ExtensionService';
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
@@ -93,7 +93,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
       extensionService.postMessage({ command: 'importAccounts', apiUrl });
       setTimeout(() => fetchAccounts(pagination.page, pagination.limit, true), 1200);
     } catch (error) {
-      logger.error('Failed to import:', error);
+      console.error('Failed to import:', error);
     }
   };
 
@@ -320,10 +320,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
             {accounts.length}
           </span>
         </div>
-        <div
-          className="flex gap-1 p-[3px] rounded-lg"
-          style={{ backgroundColor: $('--input-bg') }}
-        >
+        <div className="flex gap-1 p-[3px] rounded-lg" style={{ backgroundColor: $('--input-bg') }}>
           {(['day', 'week', 'month'] as const).map((p) => (
             <button
               key={p}
@@ -426,7 +423,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
         onSuccess={() => fetchAccounts(pagination.page, pagination.limit, true)}
         providerConfig={
           editAccount
-            ? providerConfigs.find((p) => p.provider_id === editAccount.provider_id) ?? null
+            ? (providerConfigs.find((p) => p.provider_id === editAccount.provider_id) ?? null)
             : null
         }
       />

@@ -18,7 +18,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { formatResponseSize } from './utils/network-event-parser.util';
 
 // ── Hooks ──
@@ -26,11 +26,12 @@ import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 import useTargetData from './hooks/useTargetData';
 import { useRequestFilter } from './hooks/useRequestFilter';
 import useNetworkEvents from './hooks/useNetworkEvents';
+import useHealthCheck from './hooks/useHealthCheck';
 
 // ── Services ──
 import { emulateApi } from './services/emulate-api.service';
 import { runtimeApi } from './services/runtime-api.service';
-import { installRuntimeSseBridge } from './services/runtime-sse-bridge';
+import { installRuntimeWsBridge, wsBus } from './services/runtime-ws-bridge';
 import { EmulateController } from '../../controller/EmulateController';
 
 // ── UI ──
@@ -147,7 +148,7 @@ export default React.memo(function Emulate({
         setIsAddModalOpen(false);
         setEditingApp(null);
       } catch (error) {
-        logger.error('[Emulate] Add target failed:', error);
+        console.error('[Emulate] Add target failed:', error);
         alert(
           'Failed to add target: ' + (error instanceof Error ? error.message : 'Unknown error'),
         );
@@ -183,7 +184,7 @@ export default React.memo(function Emulate({
         });
         await refreshTargets();
       } catch (error) {
-        logger.error('[Emulate] removeTargetTab error:', error);
+        console.error('[Emulate] removeTargetTab error:', error);
       }
     },
     [deleteTarget, setState, refreshTargets],
@@ -193,7 +194,7 @@ export default React.memo(function Emulate({
     (id: string | null) => {
       if (id) {
         emulateApi.updateLastUsed(id).catch((err) => {
-          logger.warn('[Emulate] Failed to update last_used_at:', err);
+          console.warn('[Emulate] Failed to update last_used_at:', err);
         });
       }
       setState((prev) => ({ ...prev, activeTargetId: id }));
@@ -379,7 +380,7 @@ export default React.memo(function Emulate({
           updateFilter(mergedFilter);
         }
       } catch (error) {
-        logger.error('[Emulate] Failed to load filter from API:', error);
+        console.error('[Emulate] Failed to load filter from API:', error);
       }
     };
 
@@ -398,9 +399,62 @@ export default React.memo(function Emulate({
     setLoadedFromIPC(true);
   }, []);
 
-  // Cài SSE bridge một lần — thay window.api.on/off bằng EventSource.
+  // Refs for latest values
+  const activeTargetIdRef = useRef(activeTargetId);
+  const targetStatesRef = useRef(targetStates);
+  
+  // Use refs to hold callbacks so the WS effect doesn't depend on their declaration order
+  const stopTargetRef = useRef<(id: string) => void>(() => {});
+  const clearRequestsRef = useRef<() => void>(() => {});
+
+  // Cài WebSocket bridge một lần — thay window.api.on/off bằng WebSocket connection.
   useEffect(() => {
-    installRuntimeSseBridge();
+    installRuntimeWsBridge();
+
+    // Helper to perform cleanup logic shared by both immediate and permanent disconnects
+    const handleCleanupOnDisconnect = async (reason: string) => {
+      console.warn(`[Emulate] WS disconnected (${reason}) — cleaning up active targets.`);
+      
+      const currentState = targetStatesRef.current;
+      const activeIds = Object.keys(currentState).filter(id => currentState[id]?.isActive);
+
+      if (activeIds.length === 0) return;
+
+      await Promise.all(
+        activeIds.map(async (tid) => {
+          try {
+            // Attempt to tell server to kill the browser process
+            await runtimeApi.terminateApp(tid);
+          } catch (err) {
+            // Ignore errors here, as server might be down or unreachable
+            console.debug(`[Emulate] Could not reach server to terminate ${tid}:`, err);
+          } finally {
+            // Always update local UI state regardless of API success/failure
+            stopTargetRef.current(tid);
+            await runtimeApi.unregisterTarget(tid).catch(() => {});
+          }
+        })
+      );
+      
+      clearRequestsRef.current();
+    };
+
+    // 1. Immediate disconnect notification (fires on ANY close event)
+    const unsubImmediate = wsBus.on('ws:immediate-disconnect', (data: any) => {
+      handleCleanupOnDisconnect(`code:${data?.code || 'unknown'}`);
+    });
+
+    // 2. Permanent failure notification (fires after max retries exhausted)
+    const unsubPermanent = wsBus.on('ws:permanently-disconnected', () => {
+      // Already handled by immediate disconnect usually, but kept for safety 
+      // in case immediate didn't trigger due to some edge case logic change.
+      handleCleanupOnDisconnect('permanent-failure');
+    });
+
+    return () => {
+      unsubImmediate();
+      unsubPermanent();
+    };
   }, []);
 
   // Handlers
@@ -437,9 +491,14 @@ export default React.memo(function Emulate({
     setState((prev) => ({ ...prev, selectedId: null }));
   }, [clearRequests, setState]);
 
-  // Refs for latest values
-  const activeTargetIdRef = useRef(activeTargetId);
-  const targetStatesRef = useRef(targetStates);
+  // Keep refs in sync with latest callback implementations
+  useEffect(() => {
+    stopTargetRef.current = stopTarget;
+  }, [stopTarget]);
+
+  useEffect(() => {
+    clearRequestsRef.current = handleClearRequests;
+  }, [handleClearRequests]);
 
   useEffect(() => {
     activeTargetIdRef.current = activeTargetId;
@@ -456,10 +515,10 @@ export default React.memo(function Emulate({
     const mode = targetStatesRef.current[targetId]?.mode;
     if (mode === 'cdp') {
       await runtimeApi.disconnectCdp();
-      await runtimeApi.terminateApp();
+      await runtimeApi.terminateApp(targetId);
     } else if (mode === 'mitm' || mode === 'frida') {
       await runtimeApi.destroyProxySession('default');
-      await runtimeApi.terminateApp();
+      await runtimeApi.terminateApp(targetId);
     }
 
     stopTarget(targetId);
@@ -470,6 +529,32 @@ export default React.memo(function Emulate({
 
     await onStopSession();
   }, [stopTarget, handleClearRequests, onStopSession]);
+
+  // ── Health Check: auto-stop targets whose browser process has died ──
+  const handleTargetDead = useCallback(
+    async (targetId: string) => {
+      console.warn(`[Emulate] Target ${targetId} process is dead — cleaning up.`);
+
+      // Only act if the target was previously marked active in our local state.
+      const ts = targetStatesRef.current[targetId];
+      if (!ts?.isActive) return;
+
+      try {
+        await runtimeApi.terminateApp(targetId);
+      } catch (err) {
+        console.error('[Emulate] terminateApp failed during health cleanup:', err);
+      }
+
+      stopTarget(targetId);
+      if (activeTargetIdRef.current === targetId) {
+        handleClearRequests();
+      }
+      await runtimeApi.unregisterTarget(targetId).catch(() => {});
+    },
+    [stopTarget, handleClearRequests],
+  );
+
+  useHealthCheck({ intervalMs: 5000, onTargetDead: handleTargetDead });
 
   const handleStartTarget = useCallback(
     (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
@@ -529,7 +614,7 @@ export default React.memo(function Emulate({
           });
         }
       } catch (e) {
-        logger.error('[Emulate] Launch failed:', e);
+        console.error('[Emulate] Launch failed:', e);
       }
     },
     [targetTabs, addTargetTab, setActiveTarget],
@@ -537,16 +622,16 @@ export default React.memo(function Emulate({
 
   // CLI Capture method handlers
   const handleStartEbpf = useCallback(
-    async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
+    async (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => {
       try {
-        const result = await runtimeApi.startCliEbpf(targetId, executablePath, useSandbox);
+        const result = await runtimeApi.startCliEbpf(targetId, executablePath, useSandbox, sudoPassword);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
         } else {
           alert(`Failed to start eBPF capture: ${result.error}`);
         }
       } catch (error) {
-        logger.error('[Emulate] eBPF start error:', error);
+        console.error('[Emulate] eBPF start error:', error);
         alert(
           `Failed to start eBPF capture: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
@@ -565,7 +650,7 @@ export default React.memo(function Emulate({
           alert(`Failed to start CDP proxy: ${result.error}`);
         }
       } catch (error) {
-        logger.error('[Emulate] CDP start error:', error);
+        console.error('[Emulate] CDP start error:', error);
         alert(
           `Failed to start CDP proxy: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
@@ -575,16 +660,16 @@ export default React.memo(function Emulate({
   );
 
   const handleStartPcap = useCallback(
-    async (targetId: string, executablePath?: string, useSandbox?: boolean) => {
+    async (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => {
       try {
-        const result = await runtimeApi.startCliPcap(targetId, executablePath, useSandbox);
+        const result = await runtimeApi.startCliPcap(targetId, executablePath, useSandbox, sudoPassword);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
         } else {
           alert(`Failed to start packet capture: ${result.error}`);
         }
       } catch (error) {
-        logger.error('[Emulate] Packet capture start error:', error);
+        console.error('[Emulate] Packet capture start error:', error);
         alert(
           `Failed to start packet capture: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
@@ -603,7 +688,7 @@ export default React.memo(function Emulate({
           alert(`Failed to start app debug mode: ${result.error}`);
         }
       } catch (error) {
-        logger.error('[Emulate] App debug start error:', error);
+        console.error('[Emulate] App debug start error:', error);
         alert(
           `Failed to start app debug mode: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
@@ -631,6 +716,37 @@ export default React.memo(function Emulate({
       }
     },
     [onStopSession],
+  );
+
+  const handleEditApp = useCallback(
+    async (id: string, data: { name: string; url?: string; executablePath?: string }) => {
+      const current = targetTabs.find((t) => t.id === id);
+      if (!current) return;
+
+      try {
+        const saved = await saveTarget({
+          ...current,
+          title: data.name,
+          url: data.url !== undefined ? data.url : current.url,
+          executablePath:
+            data.executablePath !== undefined ? data.executablePath : current.executablePath,
+        });
+
+        // Merge để giữ lại các field runtime (httpsCount, dataUsed...) không có trong DB
+        setState((prev) => ({
+          ...prev,
+          targetTabs: prev.targetTabs.map((t) => (t.id === id ? { ...t, ...saved } : t)),
+        }));
+        setEditingApp(null);
+      } catch (error) {
+        console.error('[Emulate] Edit target failed:', error);
+        alert(
+          'Failed to update target: ' +
+            (error instanceof Error ? error.message : 'Unknown error'),
+        );
+      }
+    },
+    [targetTabs, saveTarget],
   );
 
   const handleOpenAddModal = useCallback((platform: 'web' | 'pc' | 'android' | 'cli') => {
@@ -731,7 +847,7 @@ export default React.memo(function Emulate({
           onAdd={handleAddApp}
           existingApps={targetTabs}
           editApp={editingApp}
-          onEdit={() => {}}
+          onEdit={handleEditApp}
         />
       )}
     </div>

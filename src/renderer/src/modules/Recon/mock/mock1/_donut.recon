@@ -1,0 +1,18 @@
+---
+recon: 1.0
+type: tab
+title: Donut
+---
+
+# Phân bổ model AI
+@box w=5 maxh=6 ui=donut icon=ChartPie desc="Mỗi mục chọn màu bằng {color=...}" unit=requests
+
+- claude-sonnet-5-5-low | 70 | 70 req · 86.2k {color=blue}
+- claude-sonnet-4.5 | 38 | 38 req · 2.0M {color=yellow}
+
+# Nguồn dữ liệu
+@box w=5 maxh=6 ui=donut icon=ChartPie desc="Ba mục, màu chọn riêng từng mục" unit=nguồn
+
+- Mạng xã hội | 12 | 12 nguồn {color=green}
+- Rò rỉ dữ liệu | 5 | 5 nguồn {color=yellow}
+- Đăng ký tên miền | 3 | 3 nguồn {color=blue}

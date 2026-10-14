@@ -33,7 +33,6 @@ import { emulateApi } from '../../../../../services/emulate-api.service';
 import { cn } from '@renderer/shared/utils/cn';
 
 // Services
-import { ipcService } from '../../../../../../../services/ipc.service';
 
 interface SendRequestResult {
   status: number;
@@ -354,15 +353,29 @@ export function RequestPanel({
     const startTime = Date.now();
 
     try {
-      const res = await ipcService.sendRequest({
-        url: executionUrl,
-        method,
-        headers: finalHeaders,
-        body: method !== 'GET' && finalBody ? finalBody : undefined,
-      });
-      const result: SendRequestResult = res.success
-        ? (res.data as SendRequestResult)
-        : { status: 0, headers: {}, body: '' };
+      let result: SendRequestResult;
+      try {
+        const response = await fetch(executionUrl, {
+          method,
+          headers: finalHeaders,
+          body: method !== 'GET' && finalBody ? finalBody : undefined,
+        });
+
+        const respHeaders: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          respHeaders[key] = value;
+        });
+
+        const respBody = await response.text();
+
+        result = {
+          status: response.status,
+          headers: respHeaders,
+          body: respBody,
+        };
+      } catch (err) {
+        result = { status: 0, headers: {}, body: String(err) };
+      }
 
       const duration = Date.now() - startTime;
 
@@ -589,57 +602,51 @@ export function RequestPanel({
       }
 
       const reqStart = Date.now();
+      let sendResult: SendRequestResult;
       try {
-        const result = await ipcService.sendRequest({
-          url: executionUrl,
+        const response = await fetch(executionUrl, {
           method,
           headers: finalHeaders,
           body: method !== 'GET' && finalBody ? finalBody : undefined,
         });
-        const sendResult = result.success
-          ? (result.data as SendRequestResult)
-          : { status: 0, headers: {}, body: '' };
 
-        const s = sendResult.status || 0;
-        const d = Date.now() - reqStart;
-        const combinationStr = Object.entries(combination)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(', ');
-        const item: RunResult = {
-          payloadName: Object.keys(combination)[0] || '',
-          value: combinationStr,
-          status: s,
-          duration: d,
-          method,
-          url: executionUrl,
-          params: finalParams,
-          requestHeaders: finalHeaders,
-          requestBody: method !== 'GET' ? finalBody : '',
-          responseHeaders: sendResult.headers || {},
-          responseBody: sendResult.body || '',
+        const respHeaders: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          respHeaders[key] = value;
+        });
+
+        const respBody = await response.text();
+
+        sendResult = {
+          status: response.status,
+          headers: respHeaders,
+          body: respBody,
         };
-        results.push(item);
-        onProgress(item);
-      } catch {
-        const combinationStr = Object.entries(combination)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(', ');
-        const item: RunResult = {
-          payloadName: Object.keys(combination)[0] || '',
-          value: combinationStr,
-          status: 0,
-          duration: Date.now() - reqStart,
-          method,
-          url: executionUrl,
-          params: finalParams,
-          requestHeaders: finalHeaders,
-          requestBody: method !== 'GET' ? finalBody : '',
-          responseHeaders: {},
-          responseBody: '',
-        };
-        results.push(item);
-        onProgress(item);
+      } catch (err) {
+        console.error('[RequestPanel] Fetch failed in run loop:', err);
+        sendResult = { status: 0, headers: {}, body: String(err) };
       }
+
+      const s = sendResult.status || 0;
+      const d = Date.now() - reqStart;
+      const combinationStr = Object.entries(combination)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(', ');
+      const item: RunResult = {
+        payloadName: Object.keys(combination)[0] || '',
+        value: combinationStr,
+        status: s,
+        duration: d,
+        method,
+        url: executionUrl,
+        params: finalParams,
+        requestHeaders: finalHeaders,
+        requestBody: method !== 'GET' ? finalBody : '',
+        responseHeaders: sendResult.headers || {},
+        responseBody: sendResult.body || '',
+      };
+      results.push(item);
+      onProgress(item);
     }
 
     return results;

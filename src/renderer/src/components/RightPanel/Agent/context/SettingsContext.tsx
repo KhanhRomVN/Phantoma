@@ -11,7 +11,6 @@
  * ------------------------------------------------------------------
  */
 
-import { logger } from '@renderer/utils/logger';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Services
@@ -102,7 +101,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setChromiumProfileDirState(savedChromiumProfileDir);
       }
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to load settings from localStorage:', e);
+      console.warn('[SettingsContext] Failed to load settings from localStorage:', e);
     }
     const storage = extensionService.getStorage();
 
@@ -147,7 +146,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem('zen-simple-mode', String(value));
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to save simple mode:', e);
+      console.warn('[SettingsContext] Failed to save simple mode:', e);
     }
   };
 
@@ -156,7 +155,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem('zen-live-write-preview', String(value));
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to save live write preview:', e);
+      console.warn('[SettingsContext] Failed to save live write preview:', e);
     }
   };
 
@@ -165,7 +164,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem('zen-commit-message-language', value);
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to save commit message language:', e);
+      console.warn('[SettingsContext] Failed to save commit message language:', e);
     }
   };
 
@@ -174,7 +173,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem('zen-language', value);
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to save language:', e);
+      console.warn('[SettingsContext] Failed to save language:', e);
     }
   };
 
@@ -183,7 +182,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem('zen-ai-language', value);
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to save AI language:', e);
+      console.warn('[SettingsContext] Failed to save AI language:', e);
     }
   };
 
@@ -192,7 +191,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem('zen-system-prompt-mode', mode);
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to save system prompt mode:', e);
+      console.warn('[SettingsContext] Failed to save system prompt mode:', e);
     }
   };
 
@@ -205,7 +204,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem('zen-chromium-profile-dir', dir);
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to save chromium profile dir:', e);
+      console.warn('[SettingsContext] Failed to save chromium profile dir:', e);
     }
   };
 
@@ -214,7 +213,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       localStorage.setItem('zen-prompt-length-mode', mode);
     } catch (e) {
-      logger.warn('[SettingsContext] Failed to save prompt length mode:', e);
+      console.warn('[SettingsContext] Failed to save prompt length mode:', e);
     }
   };
 

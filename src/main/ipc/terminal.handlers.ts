@@ -1,14 +1,27 @@
 /**
  * ------------------------------------------------------------------
- * IPC handler terminal
+ * IPC Terminal Handlers
  * ------------------------------------------------------------------
- * IPC handler cho các phiên terminal dựa trên PTY. Tạo tiến trình
- * node-pty và truyền I/O giữa renderer và shell.
+ * Cung cấp môi trường dòng lệnh ảo (Virtual Terminal) cho ứng dụng.
+ * Sử dụng thư viện `node-pty` để spawn các pseudo-terminal thực thụ,
+ * cho phép Renderer tương tác trực tiếp với Bash/Zsh/Fish/PowerShell
+ * như thể đang gõ phím thật. Hỗ trợ resize, kill process và stream output.
  *
- * Hàm chính:
- * - setupTerminalHandlers() : Đăng ký IPC handler terminal:
- * - getDefaultShell()       : Xác định shell mặc định của người dùng
- * - getShellArgs()          : Lấy tham số khởi chạy shell
+ * Constants:
+ * - activePTYs : Map lưu trữ reference đến các instance pty.IPty đang chạy
+ *
+ * Channels:
+ * - terminal:spawn  : Khởi tạo một phiên PTY mới với cwd và env tùy chỉnh
+ * - terminal:write  : Gửi keystroke/data vào stdin của PTY
+ * - terminal:resize : Cập nhật kích thước cột/dòng cho PTY (sync với UI)
+ * - terminal:kill   : Hủy diệt process PTY và giải phóng tài nguyên
+ *
+ * Functions:
+ * - setupTerminalHandlers() : Entry point đăng ký IPC handler nhóm 'terminal:'
+ *
+ * Utils:
+ * - getDefaultShell()       : Resolver shell executable dựa trên biến môi trường $SHELL
+ * - getShellArgs()          : Strategy pattern trả về flags khởi động đúng cho bash/zsh/fish/powershell
  * ------------------------------------------------------------------
  */
 

@@ -11,7 +11,7 @@
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
+// ─── Imports ───────────────────────────────────────────────────────────
 // ── Env (side-effect import — must come first) ──
 import './env';
 
@@ -22,12 +22,11 @@ import net from 'net';
 
 // ── Local
 import { getConfig } from './config/server.config';
-import { init, close } from './database/connection';
 import { createApp } from './app';
-import { ensureRuntimeDirs } from './runtime/paths';
 import { createLogger, F } from './utils/logger';
+import { showWelcome, printStarted } from './utils/welcome';
 
-// ─── Constants ──────────────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────────────
 const logger = createLogger('Startup');
 
 // ─── Network fix (copied verbatim from AIWeb2API_temp/src/index.ts) ────
@@ -46,35 +45,29 @@ if (dns.setDefaultResultOrder) {
 
 // ─── Main ──────────────────────────────────────────────────────────────
 
-async function main(options?: { dbPath?: string }): Promise<void> {
+async function main(): Promise<void> {
   const cfg = getConfig();
-  const dbPath = options?.dbPath || cfg.dbPath;
 
-  try {
-    init(dbPath);
-  } catch (err) {
-    logger.error('Failed to initialize database', F('error', String(err)));
-    process.exit(1);
-  }
-
-  // Tạo thư mục runtime (profiles, sandboxes, tmp, certs, ...).
-  ensureRuntimeDirs();
+  // Show welcome UI and get user-selected address
+  const { host, port } = await showWelcome('0.0.0.0', cfg.port);
 
   const app = createApp();
   const server = http.createServer(app);
 
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
-    server.listen(cfg.port, () => {
+    server.listen(port, host, () => {
       server.removeListener('error', reject);
       resolve();
     });
   });
 
+  // Print started message
+  printStarted(host, port);
+
   // Graceful shutdown
   const shutdown = () => {
     server.close(() => {
-      close();
       process.exit(0);
     });
     // Force-exit after 10s if connections hang.
@@ -95,19 +88,7 @@ async function main(options?: { dbPath?: string }): Promise<void> {
 // ─── CLI entry ─────────────────────────────────────────────────────────
 
 if (require.main === module) {
-  const args = process.argv.slice(2);
-  let dbPath: string | undefined;
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (arg.startsWith('--db-path=')) {
-      dbPath = arg.split('=')[1];
-    } else if (arg === '--db-path' && i + 1 < args.length) {
-      dbPath = args[++i];
-    }
-  }
-
-  main({ dbPath }).catch((err) => {
+  main().catch((err) => {
     logger.error('Unhandled startup error', F('error', String(err)));
     process.exit(1);
   });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { logger } from '@renderer/utils/logger';
+
 import { Search } from 'lucide-react';
 
 // ── Components ──
@@ -46,11 +46,11 @@ export const addToRepeater = async (
       window.dispatchEvent(new CustomEvent('repeater-updated'));
       return true;
     } else {
-      logger.error('[addToRepeater] Failed to create request:', res.error);
+      console.error('[addToRepeater] Failed to create request:', res.error);
       return false;
     }
   } catch (err) {
-    logger.error('[addToRepeater] Error:', err);
+    console.error('[addToRepeater] Error:', err);
     return false;
   }
 };
@@ -94,7 +94,7 @@ export const removeFromRepeater = async (requestId: string, targetId: string): P
     window.dispatchEvent(new CustomEvent('repeater-updated'));
     return true;
   } catch (err) {
-    logger.error('[removeFromRepeater] Error:', err);
+    console.error('[removeFromRepeater] Error:', err);
     return false;
   }
 };
@@ -112,7 +112,7 @@ export const clearRepeater = async (targetId: string): Promise<void> => {
     }
     window.dispatchEvent(new CustomEvent('repeater-updated'));
   } catch (err) {
-    logger.error('[clearRepeater] Error:', err);
+    console.error('[clearRepeater] Error:', err);
   }
 };
 
@@ -123,12 +123,12 @@ const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
   try {
     host = new URL(r.url).host;
   } catch {
-    logger.warn('[Repeater] Invalid URL host:', r.url);
+    console.warn('[Repeater] Invalid URL host:', r.url);
   }
   try {
     path = new URL(r.url).pathname + new URL(r.url).search;
   } catch {
-    logger.warn('[Repeater] Invalid URL path:', r.url);
+    console.warn('[Repeater] Invalid URL path:', r.url);
   }
 
   let requestHeaders: Record<string, string> = {};
@@ -148,7 +148,7 @@ const mapDbToNetworkRequest = (r: RepeaterRequest): NetworkRequest => {
       );
     }
   } catch (err) {
-    logger.warn('[Repeater] Failed to parse request headers:', r.headers, err);
+    console.warn('[Repeater] Failed to parse request headers:', r.headers, err);
   }
 
   return {
@@ -196,7 +196,7 @@ export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: P
         }
       }
     } catch (err) {
-      logger.error('[PayloadPanel] Failed to load requests:', err);
+      console.error('[PayloadPanel] Failed to load requests:', err);
     }
   };
 
@@ -262,7 +262,7 @@ export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: P
       setDbRequests((prev) => prev.filter((r) => r.id !== id));
       window.dispatchEvent(new CustomEvent('repeater-updated'));
     } catch (error) {
-      logger.error('[Repeater] Failed to delete request:', error);
+      console.error('[Repeater] Failed to delete request:', error);
     }
   };
 

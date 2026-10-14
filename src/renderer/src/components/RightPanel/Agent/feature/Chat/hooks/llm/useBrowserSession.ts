@@ -18,7 +18,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 export const useBrowserSession = (
@@ -84,7 +84,7 @@ export const useBrowserSession = (
         setShowBrowserWarning(true);
       }
     } catch (error) {
-      logger.error("Failed to check browser session:", error);
+      console.error("Failed to check browser session:", error);
       setIsBrowserSessionReady(false);
       setShowBrowserWarning(true);
     }
@@ -107,10 +107,10 @@ export const useBrowserSession = (
         setIsBrowserSessionReady(true);
         setShowBrowserWarning(false);
       } else {
-        logger.error("Failed to launch browser:", result.message);
+        console.error("Failed to launch browser:", result.message);
       }
     } catch (error) {
-      logger.error("Failed to launch browser:", error);
+      console.error("Failed to launch browser:", error);
     } finally {
       setIsLaunchingBrowser(false);
     }
@@ -158,7 +158,7 @@ export const useBrowserSession = (
           }
         }
       } catch (error) {
-        logger.warn("Polling browser status failed:", error);
+        console.warn("Polling browser status failed:", error);
       }
     };
     

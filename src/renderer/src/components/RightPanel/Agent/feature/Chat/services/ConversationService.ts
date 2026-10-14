@@ -29,7 +29,6 @@ import { Message } from '../types/message';
 import { ConversationCache } from './ConversationCache';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Functions ──────────────────────────────────────────────────────────
 /**
@@ -88,7 +87,7 @@ export const logChatToWorkspace = (chatUuid: string, message: any) => {
       logEntry,
     });
   } catch (err) {
-    logger.warn('[ConversationService] Failed to log chat:', err);
+    console.warn('[ConversationService] Failed to log chat:', err);
   }
 };
 
@@ -188,7 +187,7 @@ export const saveConversation = async (
 
     return convId;
   } catch (error: any) {
-    logger.error('[ConversationService][saveConversation] ❌ Error:', error);
+    console.error('[ConversationService][saveConversation] ❌ Error:', error);
     return '';
   }
 };
@@ -217,7 +216,7 @@ export const deleteConversation = async (
 
     return true;
   } catch (error) {
-    logger.error('[ConversationService][deleteConversation] Error:', error);
+    console.error('[ConversationService][deleteConversation] Error:', error);
     return false;
   }
 };

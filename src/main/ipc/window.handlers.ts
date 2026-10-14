@@ -1,12 +1,20 @@
 /**
  * ------------------------------------------------------------------
- * IPC handler cửa sổ
+ * IPC Window Control Handlers
  * ------------------------------------------------------------------
- * IPC handler cho điều khiển cửa sổ chính: thu nhỏ, phóng to,
- * khôi phục, đóng và kiểm tra trạng thái phóng to.
+ * Điều khiển hành vi của khung cửa sổ ứng dụng (Frameless/Custom Titlebar support).
+ * Cho phép Renderer gửi lệnh minimize, maximize, restore, close và query
+ * trạng thái hiện tại của BrowserWindow tập trung.
  *
- * Hàm chính:
- * - setupWindowHandlers() : Đăng ký IPC handler window:
+ * Channels:
+ * - window:minimize   : Thu nhỏ cửa sổ hiện tại
+ * - window:maximize   : Phóng to cửa sổ hiện tại
+ * - window:unmaximize : Khôi phục kích thước bình thường sau khi maximize
+ * - window:close      : Đóng cửa sổ hiện tại
+ * - window:isMaximized: Kiểm tra xem cửa sổ có đang ở chế độ maximize hay không
+ *
+ * Functions:
+ * - setupWindowHandlers() : Entry point đăng ký IPC handler nhóm 'window:'
  * ------------------------------------------------------------------
  */
 

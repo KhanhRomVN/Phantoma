@@ -1,0 +1,13 @@
+---
+recon: 1.0
+type: tab
+title: Stat
+---
+
+# Tổng quan
+@box w=10 maxh=6 ui=stat icon=LayoutDashboard desc="Dạng nhãn | giá trị | ghi chú | dãy sparkline"
+
+- Subdomain | 47 | +12 so với lần trước | 20,24,23,30,35,38,47 {color=blue} {icon=Globe}
+- Rò rỉ dữ liệu | 3 | Cần xử lý | 0,0,1,1,2,2,3 {tone=danger} {icon=ShieldAlert}
+- Tài khoản liên quan | 18 | 6 nền tảng | 4,6,9,10,13,15,18 {color=purple} {icon=Users}
+- Độ tin cậy TB | 0.82 | 31 nguồn | 0.6,0.7,0.65,0.74,0.78,0.8,0.82 {tone=ok} {icon=CircleCheck}

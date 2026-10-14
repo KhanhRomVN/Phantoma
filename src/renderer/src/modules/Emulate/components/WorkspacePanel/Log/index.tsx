@@ -39,7 +39,7 @@ import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { logcatService } from '../../../services/logcat.service';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
         };
         rafRef.current = requestAnimationFrame(flushLogs);
       } catch (e) {
-        logger.error('[LogViewer] Failed to start logcat:', e);
+        console.error('[LogViewer] Failed to start logcat:', e);
       }
     };
     startLogcat();
@@ -131,7 +131,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       logcatService
         .stop(emulatorSerial)
-        .catch((err) => logger.warn('[LogViewer] Failed to stop logcat:', err));
+        .catch((err) => console.warn('[LogViewer] Failed to stop logcat:', err));
       setIsRunning(false);
     };
   }, [emulatorSerial, isPaused]);
@@ -143,7 +143,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
         const packages = await logcatService.listPackages(emulatorSerial);
         setInstalledPackages(packages.sort());
       } catch (e) {
-        logger.error('[LogViewer] Failed to list packages:', e);
+        console.error('[LogViewer] Failed to list packages:', e);
       }
     };
     fetchPackages();

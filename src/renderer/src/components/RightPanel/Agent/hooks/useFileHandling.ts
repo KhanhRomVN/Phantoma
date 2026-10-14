@@ -13,7 +13,6 @@
  * ------------------------------------------------------------------
  */
 
-import { logger } from '@renderer/utils/logger';
 import React, { useState, useRef } from 'react';
 
 // CONTEXT
@@ -47,7 +46,9 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
 
   const uploadFileToServer = async (file: UploadedFile) => {
     if (!apiUrl || !accountId) {
-      logger.error(`[useFileHandling] Upload failed: apiUrl="${apiUrl}", accountId="${accountId}"`);
+      console.error(
+        `[useFileHandling] Upload failed: apiUrl="${apiUrl}", accountId="${accountId}"`,
+      );
       return;
     }
 
@@ -82,7 +83,7 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
 
       if (!uploadRes.ok) {
         const errorText = await uploadRes.text();
-        logger.error(`[useFileHandling] Upload API error response: ${errorText}`);
+        console.error(`[useFileHandling] Upload API error response: ${errorText}`);
         throw new Error(`Upload API returned status ${uploadRes.status}: ${errorText}`);
       }
 
@@ -96,13 +97,13 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
         );
       } else {
         const errorMsg = uploadData.error || 'Unknown upload error';
-        logger.error(`[useFileHandling] Upload failed: ${errorMsg}`);
+        console.error(`[useFileHandling] Upload failed: ${errorMsg}`);
         throw new Error(errorMsg);
       }
     } catch (err: any) {
-      logger.error(`[useFileHandling] Upload exception:`, err);
-      logger.error(`[useFileHandling] Error message: ${err.message}`);
-      logger.error(`[useFileHandling] Error stack: ${err.stack}`);
+      console.error(`[useFileHandling] Upload exception:`, err);
+      console.error(`[useFileHandling] Error message: ${err.message}`);
+      console.error(`[useFileHandling] Error stack: ${err.stack}`);
 
       setUploadedFiles((prev) =>
         prev.map((f) =>
@@ -138,12 +139,12 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
           };
 
           reader.onerror = (error) => {
-            logger.error('[useFileHandling] FileReader error:', error);
+            console.error('[useFileHandling] FileReader error:', error);
           };
 
           reader.readAsDataURL(file);
         } else {
-          logger.warn(`[useFileHandling] Item ${i} is image but getAsFile() returned null`);
+          console.warn(`[useFileHandling] Item ${i} is image but getAsFile() returned null`);
         }
       }
     }
@@ -353,7 +354,7 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
         };
         onAddAttachedItem(attachedItem);
       } catch (error) {
-        logger.warn('[useFileHandling] Failed to add attached item:', error);
+        console.warn('[useFileHandling] Failed to add attached item:', error);
       }
     }
   };

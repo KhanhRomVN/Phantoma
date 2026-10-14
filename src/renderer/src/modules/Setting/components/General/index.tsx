@@ -3,7 +3,6 @@ import { AlertCircle, FolderOpen, Save, File, FolderPlus, Eye, ChevronDown } fro
 import { useServerHealth } from '../../../../providers/ServerHealthProvider';
 import { apiService } from '@renderer/services/api.service';
 import databaseService from '@renderer/services/database.service';
-import { logger } from '@renderer/utils/logger';
 
 // Helper function to get directory name from a file path (cross-platform)
 // Works without Node.js path module
@@ -19,6 +18,7 @@ function getDirname(filePath: string): string {
 
 const General: React.FC = () => {
   const [serverUrl, setServerUrl] = useState('localhost:8080');
+  const [emulateUrl, setEmulateUrl] = useState('localhost:3002');
   const [dbPath, setDbPath] = useState<string>('');
   const [newDbPath, setNewDbPath] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -37,6 +37,12 @@ const General: React.FC = () => {
     if (saved) {
       setServerUrl(saved);
     }
+    
+    // Load emulate service URL
+    const savedEmulate = localStorage.getItem('emulate_service_url');
+    if (savedEmulate) {
+      setEmulateUrl(savedEmulate);
+    }
   }, []);
 
   // Load database path from server
@@ -50,7 +56,7 @@ const General: React.FC = () => {
         setNewDbPath(path);
       } catch (err) {
         setDbError(err instanceof Error ? err.message : 'Failed to load database path');
-        logger.error('Failed to load database path:', err);
+        console.error('Failed to load database path:', err);
       } finally {
         setIsLoading(false);
       }
@@ -81,6 +87,14 @@ const General: React.FC = () => {
     window.dispatchEvent(new CustomEvent('serverUrlChanged', { detail: newUrl }));
   };
 
+  const handleEmulateUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUrl = e.target.value;
+    setEmulateUrl(newUrl);
+    localStorage.setItem('emulate_service_url', newUrl);
+    // Notify EmulateApiService to recreate its client
+    window.dispatchEvent(new CustomEvent('emulateUrlChanged', { detail: newUrl }));
+  };
+
   const handleBrowse = () => {
     setShowDropdown(!showDropdown);
   };
@@ -100,7 +114,7 @@ const General: React.FC = () => {
       }
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to open folder');
-      logger.error('Failed to open folder:', err);
+      console.error('Failed to open folder:', err);
     }
   };
 
@@ -121,7 +135,7 @@ const General: React.FC = () => {
       }
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to select file');
-      logger.error('Failed to select file:', err);
+      console.error('Failed to select file:', err);
     }
   };
 
@@ -140,7 +154,7 @@ const General: React.FC = () => {
       }
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to select folder');
-      logger.error('Failed to select folder:', err);
+      console.error('Failed to select folder:', err);
     }
   };
 
@@ -175,7 +189,7 @@ const General: React.FC = () => {
       setNewDbPath(updatedPath);
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to update database path');
-      logger.error('Failed to update database path:', err);
+      console.error('Failed to update database path:', err);
       setNewDbPath(dbPath);
     } finally {
       setIsUpdating(false);
@@ -195,7 +209,7 @@ const General: React.FC = () => {
       setNewDbPath(updatedPath);
     } catch (err) {
       setDbError(err instanceof Error ? err.message : 'Failed to update database path');
-      logger.error('Failed to update database path:', err);
+      console.error('Failed to update database path:', err);
       // Revert newDbPath to current dbPath on error
       setNewDbPath(dbPath);
     } finally {
@@ -248,6 +262,23 @@ const General: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Emulate Service URL Section */}
+        <div className="mt-6 pt-6 border-t border-border">
+          <label className="block text-sm font-medium text-text-primary tracking-wide mb-1.5">
+            Emulate Service URL
+          </label>
+          <input
+            type="text"
+            value={emulateUrl}
+            onChange={handleEmulateUrlChange}
+            placeholder="localhost:3002"
+            className="w-full max-w-md px-4 py-3 bg-input-background border border-border rounded-md text-text-primary text-[13px] font-mono outline-none transition-all focus:ring-1 focus:ring-primary focus:border-primary"
+          />
+          <p className="text-[10px] text-text-secondary mt-2 mb-0">
+            Example: localhost:3002 | 192.168.1.100:3002
+          </p>
         </div>
 
         {/* Database Path Section */}

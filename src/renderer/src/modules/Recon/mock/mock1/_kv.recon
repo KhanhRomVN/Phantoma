@@ -1,0 +1,29 @@
+---
+recon: 1.0
+type: tab
+title: Kv
+---
+
+# KV cơ bản
+@box w=5 maxh=4 ui=kv icon=IdCard desc="Cặp khoá - giá trị kèm kiểu và nguồn"
+
+Họ và tên: Nguyễn Văn A [text] {src=S-001}
+Biệt danh: nv_a [text] {src=S-001}
+Ngày sinh: 1990-05-15 [date] {src=S-001}
+Quốc tịch: Vietnam [text] {src=S-001}
+
+# KV liên hệ
+@box w=5 maxh=4 ui=kv icon=Contact desc="Nhiều kiểu giá trị: email, điện thoại, địa chỉ"
+
+Email cá nhân: a.nguyen@gmail.com [email] {src=S-001}
+Email công việc: nguyen.a@techcorp.vn [email] {src=S-002}
+Số điện thoại: +84901234567 [phone] {src=S-001}
+Địa chỉ nhà: Quận 7, TP.HCM [location] {src=S-001}
+
+# KV theo mức độ
+@box w=10 maxh=6 ui=kv icon=Flag desc="Giá trị gắn tone: ok, warn, danger, info"
+
+Trạng thái hồ sơ: Đã xác minh [text] {tone=ok}
+Mức ưu tiên: Cao [enum] {tone=danger}
+Độ tin cậy nguồn: Trung bình [text] {tone=warn}
+Ghi chú: Cần đối chiếu thêm [text] {tone=info}

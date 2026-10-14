@@ -6,12 +6,36 @@
  * endpoints của express-server tại /api/v1/runtime/*. Mỗi method tương
  * ứng 1-1 với IPC channel cũ để dễ đối chiếu.
  *
+ * Lưu ý: Một số endpoint (như launch) giờ đây thuộc về Emulate Service
+ * (port 3002) thay vì Main Server (port 8080). Chúng ta duy trì hai
+ * client instances:
+ * - _mainClient: Cho các legacy endpoints (nếu còn) trên port 8080.
+ * - _emulateClient: Cho các runtime endpoints mới trên port 3002.
+ *
  * SSE event stream: xem hook useRuntimeEvents / runtime-sse-bridge.
  * ------------------------------------------------------------------
  */
 
-import { apiService } from '@renderer/services/api.service';
-import { logger } from '@renderer/utils/logger';
+import ApiService from '@renderer/services/api.service';
+
+// Client cho Emulate Service (Port 3002)
+let _emulateClientInstance: ApiService | null = null;
+
+function getEmulateClient(): ApiService {
+  if (!_emulateClientInstance) {
+    const storedUrl = localStorage.getItem('emulate_service_url');
+    const baseUrl = storedUrl ? `http://${storedUrl}` : 'http://localhost:3002';
+    _emulateClientInstance = new ApiService(baseUrl);
+    
+    // Listen for URL changes to recreate client
+    window.addEventListener('emulateUrlChanged', () => {
+      const newStoredUrl = localStorage.getItem('emulate_service_url');
+      const newBaseUrl = newStoredUrl ? `http://${newStoredUrl}` : 'http://localhost:3002';
+      _emulateClientInstance!.setBaseUrl(newBaseUrl);
+    });
+  }
+  return _emulateClientInstance;
+}
 
 const BASE = '/api/v1/runtime';
 
@@ -27,7 +51,7 @@ class RuntimeApiService {
       const data = await fn();
       return { success: true, data };
     } catch (error) {
-      logger.warn('[RuntimeApi] request failed', {
+      console.warn('[RuntimeApi] request failed', {
         err: error instanceof Error ? error.message : String(error),
       });
       return {
@@ -48,7 +72,7 @@ class RuntimeApiService {
     useSandbox?: boolean,
   ) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/launch`, {
+      getEmulateClient().post(`${BASE}/launch`, {
         appName,
         proxyUrl,
         customUrl,
@@ -60,8 +84,18 @@ class RuntimeApiService {
     );
   }
 
-  async terminateApp() {
-    return this.invoke<{ success: boolean }>(() => apiService.post(`${BASE}/terminate`, {}));
+  async terminateApp(targetId?: string) {
+    return this.invoke<{ success: boolean }>(() =>
+      getEmulateClient().post(`${BASE}/terminate`, { targetId }),
+    );
+  }
+
+  async healthCheck() {
+    return this.invoke<{
+      healthy: boolean;
+      timestamp: number;
+      targets: Array<{ targetId: string; pid: number; port: number; alive: boolean }>;
+    }>(() => getEmulateClient().get(`${BASE}/health`));
   }
 
   // ── Target metadata ─────────────────────────────────────────────
@@ -73,61 +107,81 @@ class RuntimeApiService {
     url?: string;
   }) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/targets/register`, data),
+      getEmulateClient().post(`${BASE}/targets/register`, data),
     );
   }
 
   async unregisterTarget(targetId: string) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.del(`${BASE}/targets/${encodeURIComponent(targetId)}`),
+      getEmulateClient().del(`${BASE}/targets/${encodeURIComponent(targetId)}`),
     );
   }
 
   async listRunningTargets() {
-    return this.invoke<{ targets: unknown[] }>(() => apiService.get(`${BASE}/targets/running`));
+    return this.invoke<{ targets: unknown[] }>(() => getEmulateClient().get(`${BASE}/targets/running`));
   }
 
   // ── CLI capture ─────────────────────────────────────────────────
-  async startCliEbpf(targetId: string, executablePath?: string, useSandbox?: boolean) {
+  async startCliEbpf(
+    targetId: string,
+    executablePath?: string,
+    useSandbox?: boolean,
+    sudoPassword?: string,
+  ) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/cli/ebpf`, { targetId, executablePath, useSandbox }),
+      getEmulateClient().post(`${BASE}/cli/ebpf`, {
+        targetId,
+        executablePath,
+        useSandbox,
+        sudoPassword,
+      }),
     );
   }
 
-  async startCliPcap(targetId: string, executablePath?: string, useSandbox?: boolean) {
+  async startCliPcap(
+    targetId: string,
+    executablePath?: string,
+    useSandbox?: boolean,
+    sudoPassword?: string,
+  ) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/cli/pcap`, { targetId, executablePath, useSandbox }),
+      getEmulateClient().post(`${BASE}/cli/pcap`, {
+        targetId,
+        executablePath,
+        useSandbox,
+        sudoPassword,
+      }),
     );
   }
 
   async startCliDebug(targetId: string, executablePath?: string, useSandbox?: boolean) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/cli/debug`, { targetId, executablePath, useSandbox }),
+      getEmulateClient().post(`${BASE}/cli/debug`, { targetId, executablePath, useSandbox }),
     );
   }
 
   async startCliCdp(targetId: string, executablePath?: string, useSandbox?: boolean) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/cli/cdp`, { targetId, executablePath, useSandbox }),
+      getEmulateClient().post(`${BASE}/cli/cdp`, { targetId, executablePath, useSandbox }),
     );
   }
 
   async stopCliCapture(targetId: string) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/cli/${encodeURIComponent(targetId)}/stop`, {}),
+      getEmulateClient().post(`${BASE}/cli/${encodeURIComponent(targetId)}/stop`, {}),
     );
   }
 
-  // ── Proxy ───────────────────────────────────────────────────────
+  // ── Proxy ──────────────────────────────────────────────────────
   async createProxySession(sessionId: string) {
     return this.invoke<{ port: number }>(() =>
-      apiService.post(`${BASE}/proxy/sessions`, { sessionId }),
+      getEmulateClient().post(`${BASE}/proxy/sessions`, { sessionId }),
     );
   }
 
   async destroyProxySession(sessionId: string) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.request(`${BASE}/proxy/sessions`, {
+      getEmulateClient().request(`${BASE}/proxy/sessions`, {
         method: 'DELETE',
         body: JSON.stringify({ sessionId }),
       }),
@@ -135,157 +189,163 @@ class RuntimeApiService {
   }
 
   async stopAllProxy() {
-    return this.invoke<{ success: boolean }>(() => apiService.post(`${BASE}/proxy/stop-all`, {}));
+    return this.invoke<{ success: boolean }>(() => getEmulateClient().post(`${BASE}/proxy/stop-all`, {}));
   }
 
   async setIntercept(enabled: boolean, appId?: string) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/proxy/intercept`, { enabled, appId }),
+      getEmulateClient().post(`${BASE}/proxy/intercept`, { enabled, appId }),
     );
   }
 
   async setBreakpointRules(rules: unknown[]) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/proxy/breakpoint-rules`, { rules }),
+      getEmulateClient().post(`${BASE}/proxy/breakpoint-rules`, { rules }),
     );
   }
 
   async resolveBreakpoint(requestId: string, edited: unknown) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/proxy/resolve-breakpoint`, { requestId, edited }),
+      getEmulateClient().post(`${BASE}/proxy/resolve-breakpoint`, { requestId, edited }),
     );
   }
 
   async forwardRequest(id: string) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/proxy/forward`, { id }),
+      getEmulateClient().post(`${BASE}/proxy/forward`, { id }),
     );
   }
 
   async dropRequest(id: string) {
-    return this.invoke<{ success: boolean }>(() => apiService.post(`${BASE}/proxy/drop`, { id }));
+    return this.invoke<{ success: boolean }>(() => getEmulateClient().post(`${BASE}/proxy/drop`, { id }));
   }
-
   // ── CDP ─────────────────────────────────────────────────────────
-  async connectCdp(port: number) {
+  async connectCdp(port: number, expectedUrl?: string, targetId?: string) {
     return this.invoke<{ success: boolean; port: number }>(() =>
-      apiService.post(`${BASE}/cdp/connect`, { port }),
+      getEmulateClient().post(`${BASE}/cdp/connect`, { port, expectedUrl, targetId }),
     );
   }
 
-  async disconnectCdp() {
-    return this.invoke<{ success: boolean }>(() => apiService.post(`${BASE}/cdp/disconnect`, {}));
-  }
-
-  async getCdpState() {
-    return this.invoke<{ connected: boolean }>(() => apiService.get(`${BASE}/cdp/state`));
-  }
-
-  async reloadCdp() {
-    return this.invoke<{ success: boolean }>(() => apiService.post(`${BASE}/cdp/reload`, {}));
-  }
-
-  async injectCdpBorder() {
+  async disconnectCdp(targetId?: string) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/cdp/inject-border`, {}),
+      getEmulateClient().post(`${BASE}/cdp/disconnect`, { targetId }),
     );
   }
 
-  async navigateCdp(url: string) {
+  async getCdpState(targetId?: string) {
+    const qs = targetId ? `?targetId=${encodeURIComponent(targetId)}` : '';
+    return this.invoke<{ connected: boolean; targets: string[] }>(() =>
+      getEmulateClient().get(`${BASE}/cdp/state${qs}`),
+    );
+  }
+
+  async reloadCdp(targetId?: string) {
     return this.invoke<{ success: boolean }>(() =>
-      apiService.post(`${BASE}/cdp/navigate`, { url }),
+      getEmulateClient().post(`${BASE}/cdp/reload`, { targetId }),
     );
   }
 
-  // ── Inspector ───────────────────────────────────────────────────
+  async injectCdpBorder(targetId?: string, color?: string) {
+    return this.invoke<{ success: boolean }>(() =>
+      getEmulateClient().post(`${BASE}/cdp/inject-border`, { targetId, color }),
+    );
+  }
+
+  async navigateCdp(url: string, targetId?: string) {
+    return this.invoke<{ success: boolean }>(() =>
+      getEmulateClient().post(`${BASE}/cdp/navigate`, { url, targetId }),
+    );
+  }
+
+  // ── Inspector ──────────────────────────────────────────────────
   async inspectorSend(payload: {
     url: string;
     method: string;
     headers: Record<string, string>;
     body?: string;
   }) {
-    return this.invoke(() => apiService.post(`${BASE}/inspector/send-request`, payload));
+    return this.invoke(() => getEmulateClient().post(`${BASE}/inspector/send-request`, payload));
   }
 
   // ── Command execution ───────────────────────────────────────────
   async exec(command: string, cwd?: string) {
     return this.invoke<{ success: boolean; stdout?: string; stderr?: string; error?: string }>(() =>
-      apiService.post(`${BASE}/exec`, { command, cwd }),
+      getEmulateClient().post(`${BASE}/exec`, { command, cwd }),
     );
   }
 
   // ── Terminal ────────────────────────────────────────────────────
   async terminalSpawn(terminalId: string, cwd?: string) {
     return this.invoke<{ pid: number; shell: string }>(() =>
-      apiService.post(`${BASE}/terminal/spawn`, { terminalId, cwd }),
+      getEmulateClient().post(`${BASE}/terminal/spawn`, { terminalId, cwd }),
     );
   }
 
   async terminalWrite(terminalId: string, data: string) {
-    return apiService.post(`${BASE}/terminal/write`, { terminalId, data }).catch(() => {});
+    return getEmulateClient().post(`${BASE}/terminal/write`, { terminalId, data }).catch(() => {});
   }
 
   async terminalResize(terminalId: string, cols: number, rows: number) {
-    return apiService.post(`${BASE}/terminal/resize`, { terminalId, cols, rows }).catch(() => {});
+    return getEmulateClient().post(`${BASE}/terminal/resize`, { terminalId, cols, rows }).catch(() => {});
   }
 
   async terminalKill(terminalId: string) {
-    return apiService.del(`${BASE}/terminal/${encodeURIComponent(terminalId)}`).catch(() => {});
+    return getEmulateClient().del(`${BASE}/terminal/${encodeURIComponent(terminalId)}`).catch(() => {});
   }
 
   // ── Mobile ──────────────────────────────────────────────────────
   async mobileCheckTools() {
-    return this.invoke(() => apiService.get(`${BASE}/mobile/tools`));
+    return this.invoke(() => getEmulateClient().get(`${BASE}/mobile/tools`));
   }
 
   async mobileCheckAdb() {
-    return this.invoke(() => apiService.get(`${BASE}/mobile/adb`));
+    return this.invoke(() => getEmulateClient().get(`${BASE}/mobile/adb`));
   }
 
   async mobileConnectWireless(ip: string, port: string) {
-    return this.invoke(() => apiService.post(`${BASE}/mobile/wireless/connect`, { ip, port }));
+    return this.invoke(() => getEmulateClient().post(`${BASE}/mobile/wireless/connect`, { ip, port }));
   }
 
   async mobileEnableWirelessAdb(serial: string) {
-    return this.invoke(() => apiService.post(`${BASE}/mobile/wireless/enable`, { serial }));
+    return this.invoke(() => getEmulateClient().post(`${BASE}/mobile/wireless/enable`, { serial }));
   }
 
   async mobileDetectEmulators() {
-    return this.invoke(() => apiService.get(`${BASE}/mobile/emulators`));
+    return this.invoke(() => getEmulateClient().get(`${BASE}/mobile/emulators`));
   }
 
   async mobileListGenymotionVms() {
-    return this.invoke(() => apiService.get(`${BASE}/mobile/genymotion/vms`));
+    return this.invoke(() => getEmulateClient().get(`${BASE}/mobile/genymotion/vms`));
   }
 
   async mobileCheckFrida(serial: string) {
-    return this.invoke<string>(() => apiService.post(`${BASE}/mobile/frida/check`, { serial }));
+    return this.invoke<string>(() => getEmulateClient().post(`${BASE}/mobile/frida/check`, { serial }));
   }
 
   async mobileInstallFrida(serial: string) {
-    return this.invoke<boolean>(() => apiService.post(`${BASE}/mobile/frida/install`, { serial }));
+    return this.invoke<boolean>(() => getEmulateClient().post(`${BASE}/mobile/frida/install`, { serial }));
   }
 
   async mobileStartFrida(serial: string) {
-    return this.invoke<boolean>(() => apiService.post(`${BASE}/mobile/frida/start`, { serial }));
+    return this.invoke<boolean>(() => getEmulateClient().post(`${BASE}/mobile/frida/start`, { serial }));
   }
 
   async mobileInjectSslBypass(serial: string, packageName: string) {
     return this.invoke<boolean>(() =>
-      apiService.post(`${BASE}/mobile/frida/inject-ssl-bypass`, { serial, packageName }),
+      getEmulateClient().post(`${BASE}/mobile/frida/inject-ssl-bypass`, { serial, packageName }),
     );
   }
 
   async mobileListPackages(serial: string) {
-    return this.invoke(() => apiService.post(`${BASE}/mobile/apps/list`, { serial }));
+    return this.invoke(() => getEmulateClient().post(`${BASE}/mobile/apps/list`, { serial }));
   }
 
   async mobileStartLogcat(serial: string) {
-    return this.invoke<boolean>(() => apiService.post(`${BASE}/mobile/logcat/start`, { serial }));
+    return this.invoke<boolean>(() => getEmulateClient().post(`${BASE}/mobile/logcat/start`, { serial }));
   }
 
   async mobileStopLogcat() {
-    return this.invoke<boolean>(() => apiService.post(`${BASE}/mobile/logcat/stop`, {}));
+    return this.invoke<boolean>(() => getEmulateClient().post(`${BASE}/mobile/logcat/stop`, {}));
   }
 }
 

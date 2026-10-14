@@ -22,7 +22,6 @@ import CodeBlock from '@renderer/components/common/CodeBlock';
 import { ResourceItem } from '../../../../types/resource.types';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Components ─────────────────────────────────────────────────────────
 function HexView({ data, filename }: { data: string; filename: string }) {
@@ -165,7 +164,7 @@ export function ResourcePreview({ item }: ResourcePreviewProps) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      logger.error('Failed to download:', e);
+      console.error('Failed to download:', e);
     }
   };
 

@@ -21,7 +21,7 @@ export function useDatabase() {
       setTables([{ name: 'emulate_targets', sql: 'REST API: GET /api/v1/emulate-targets' }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tables');
-      logger.error('Load tables error:', err);
+      console.error('Load tables error:', err);
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export function useDatabase() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to load data from ${tableName}`);
-      logger.error('Load table data error:', err);
+      console.error('Load table data error:', err);
     } finally {
       setLoading(false);
     }
@@ -164,7 +164,7 @@ export function useDatabase() {
         await loadTableData(selectedTable);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete records');
-        logger.error('Delete records error:', err);
+        console.error('Delete records error:', err);
         throw err;
       } finally {
         setLoading(false);

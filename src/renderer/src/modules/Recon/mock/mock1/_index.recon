@@ -1,0 +1,19 @@
+---
+recon: 1.0
+type: index
+title: Hồ sơ đối tượng - Nguyễn Văn A
+target_type: person
+tags: Công khai, Facebook, Gmail, Nha Trang, Du lịch, Chưa xác minh, Ảnh có EXIF, Mạng xã hội, OSINT, Ưu tiên cao
+updated: 2026-10-12 21:30
+theme:
+  preset: ember
+  mode: dark
+---
+
+# Header
+@box w=10 ui=kv
+
+priority: high [enum] {tone=danger}
+period: 2026-10-01 → 2026-10-12 [period]
+entities: 4
+sources_used: 2

@@ -29,63 +29,46 @@ interface RunningTarget {
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────
+/**
+ * TODO: Refactor this hook to fetch data from Express Server API instead of IPC.
+ * The old IPC channels ('target:list-running', 'target:status-changed') have been removed
+ * as part of migrating Emulate functionality to the backend server.
+ * 
+ * Expected new implementation:
+ * - Use SWR or React Query to poll/fetch `/api/v1/targets/running`
+ * - Subscribe to WebSocket events for real-time updates if available.
+ */
 export function useRunningTargets() {
   // ── State ──
   const [runningTargets, setRunningTargets] = useState<RunningTarget[]>([]);
 
   // ── Callbacks ──
   const loadRunningTargets = async () => {
+    // Placeholder: Return empty array until Server integration is complete.
+    // This prevents UI crashes while maintaining type safety.
+    setRunningTargets([]);
+    
+    /* Future Implementation Example:
     try {
-      const result = await window.api.invoke('target:list-running');
-      if (result?.success && Array.isArray(result.targets)) {
-        setRunningTargets(
-          result.targets.map((t: TargetTab) => ({
-            id: t.id,
-            title: t.title,
-            platform: t.platform,
-            favicon: t.favicon,
-          })),
-        );
+      const response = await fetch('http://localhost:3000/api/v1/targets/running');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setRunningTargets(data.map(t => ({ ...t })));
       }
-    } catch (error) {
-      console.error('[useRunningTargets] Failed to load running targets:', error);
+    } catch (e) {
+      console.error('[useRunningTargets] Server fetch failed:', e);
     }
+    */
   };
 
   // ── Effects ──
   useEffect(() => {
-    const unsubscribe = window.api.on('target:status-changed', (_, data) => {
-      const { targetId, status, target } = data as {
-        targetId: string;
-        status: 'running' | 'stopped';
-        target?: TargetTab;
-      };
-
-      setRunningTargets((prev) => {
-        if (status === 'running' && target) {
-          const exists = prev.find((t) => t.id === targetId);
-          const mapped = {
-            id: target.id,
-            title: target.title,
-            platform: target.platform,
-            favicon: target.favicon,
-          };
-          if (exists) {
-            return prev.map((t) => (t.id === targetId ? mapped : t));
-          }
-          return [...prev, mapped];
-        } else if (status === 'stopped') {
-          return prev.filter((t) => t.id !== targetId);
-        }
-        return prev;
-      });
-    });
-
+    // No longer listening to IPC events since handlers are gone.
+    // Will subscribe to WS/SSE in future refactor.
+    
     loadRunningTargets();
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    return () => {};
   }, []);
 
   return {

@@ -15,7 +15,6 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
 
 // ─── Functions ──────────────────────────────────────────────────────────
 function simpleBeautify(code: string): string {
@@ -143,7 +142,7 @@ export async function prettifyCode(code: string): Promise<{ formatted: string; e
 
     return { formatted };
   } catch (error) {
-    logger.warn('[Prettify] Error formatting code:', error);
+    console.warn('[Prettify] Error formatting code:', error);
     return {
       formatted: code,
       error: error instanceof Error ? error.message : 'Unknown error',

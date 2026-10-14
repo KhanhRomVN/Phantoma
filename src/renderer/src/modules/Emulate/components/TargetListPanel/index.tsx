@@ -39,7 +39,7 @@ import { logcatService } from '../../services/logcat.service';
 import type { TargetTab } from '../../types/target.types';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 import { getFaviconUrl } from '../../../../shared/utils/faviconUtils';
 
@@ -95,10 +95,14 @@ interface TargetListPanelProps {
     deviceSerial?: string,
     useSandbox?: boolean,
   ) => Promise<void>;
-  onStartEbpf: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
+  onStartEbpf: (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => Promise<void>;
   onStartCdp: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
-  onStartPcap: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
-  onStartAppDebug: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
+  onStartPcap: (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => Promise<void>;
+  onStartAppDebug: (
+    targetId: string,
+    executablePath?: string,
+    useSandbox?: boolean,
+  ) => Promise<void>;
   onOpenAddModal: (platform: AppPlatform) => void;
   onEditTarget?: (id: string) => void;
   onStopSession?: (e: React.MouseEvent, appId: string) => void;
@@ -147,7 +151,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
       const detected = await logcatService.detectEmulators();
       setDeviceList(detected);
     } catch (e) {
-      logger.error('[TargetListPanel] Failed to load devices:', e);
+      console.error('[TargetListPanel] Failed to load devices:', e);
     } finally {
       setIsLoadingDevices(false);
     }
@@ -178,9 +182,10 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
           const ports = [9222];
           for (const port of ports) {
             try {
-              const result = await runtimeApi.connectCdp(port);
+              // Pass both expectedUrl (tab matching hint) and targetId (session key)
+              const result = await runtimeApi.connectCdp(port, targetUrl, targetId);
               if (result?.success) {
-                await runtimeApi.reloadCdp();
+                await runtimeApi.reloadCdp(targetId);
                 break;
               }
             } catch {
@@ -245,7 +250,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
           }
         })
         .catch((err: unknown) => {
-          logger.error('[TargetListPanel] Failed to create proxy session:', err);
+          console.error('[TargetListPanel] Failed to create proxy session:', err);
           onStopTarget();
         });
     },

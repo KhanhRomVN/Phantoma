@@ -3,18 +3,18 @@
  * ProjectContext
  * ------------------------------------------------------------------
  * Cung cấp thông tin workspace (rootPath, homedir, workspace, treeView)
- * từ extension qua postMessage.
+ * trực tiếp từ CodeController (Renderer-side singleton) thay vì qua IPC.
  *
  * Main features:
- * - ProjectProvider : Provider lấy project context qua postMessage
+ * - ProjectProvider : Provider lấy project context qua CodeController
  * - useProject()    : Hook trả về thông tin workspace
  * ------------------------------------------------------------------
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Services
-import { extensionService } from '../services/ExtensionService';
+// Controller
+import { CodeController } from '../../../../controller/CodeController';
 
 interface ProjectContextType {
   rootPath: string;
@@ -27,25 +27,25 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [rootPath, setRootPath] = useState('');
-  const [homedir, setHomedir] = useState('');
+  const [homedir] = useState(''); // Not available from local controller yet
   const [workspace, setWorkspace] = useState('');
-  const [treeView, setTreeView] = useState('');
+  const [treeView] = useState(''); // Not available from local controller yet
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-      if (message.command === 'projectContextResult' && message.data) {
-        setRootPath(message.data.rootPath || '');
-        setHomedir(message.data.homedir || '');
-        setWorkspace(message.data.workspace || '');
-        setTreeView(message.data.treeView || '');
+    // Subscribe to results from CodeController
+    const unsubscribe = CodeController.getInstance().onResult((result) => {
+      if (result.command === 'projectContext') {
+        const projectData = result.project;
+        if (projectData) {
+          setRootPath(projectData.path || '');
+          setWorkspace(projectData.name || '');
+        }
       }
+    });
+
+    return () => {
+      unsubscribe();
     };
-
-    window.addEventListener('message', handleMessage);
-    extensionService.postMessage({ command: 'getProjectContext', requestId: 'init' });
-
-    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   return (

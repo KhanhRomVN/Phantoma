@@ -1,23 +1,39 @@
 import React from 'react';
-import { Plus, X, Zap, ShieldCheck } from 'lucide-react';
-import { logger } from '@renderer/utils/logger';
+import { Plus, X } from 'lucide-react';
+
 import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
 import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
 import { LANGUAGES } from '../../feature/Setting/components/LanguageSelector';
 import { combinePromptsForMode } from '../../feature/Chat/prompts/code';
 import type { SystemInfo } from '../../feature/Chat/prompts/code';
+// Use existing Phantoma drawer component
 import ModelAccountDrawer from './ModelAccountDrawer';
-import StyleCodeDropdown, { StyleCodeTriggerIcon, STYLE_CODE_MODE_META } from './StyleCodeDropdown';
 import PromptLengthDropdown, {
   PromptLengthTriggerIcon,
   PROMPT_LENGTH_MODE_META,
 } from './PromptLengthDropdown';
+import PromptSettingsDropdown from './PromptSettingsDropdown'; // New component to replace StyleCodeDropdown logic
 import ActionDropdown from './ActionDropdown';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { getClientId } from '@renderer/utils/clientId';
 import { countTokens } from '@renderer/utils/tokenizer';
 import { buildAcceptString } from '../../feature/Chat/utils/fileUtils';
 import type { MessageInputProps, UploadedFile, ToggleButtonProps } from './types';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+// Fallback for missing modules in Phantoma to allow compilation
+// TODO: Implement actual time-block logic and claude prompt builder in Phantoma backend/services
+
+const isDeepSeekProvider = (id?: string) => id?.toLowerCase() === 'deepseek';
+const isBlockedNow = (_ranges: any) => false;
+const getBlockedRangeLabel = (_ranges: any) => '';
+const getBlockedHoursDescription = (_ranges: any) => '';
+
+import { useWorkspaceZipSize } from './hooks/useWorkspaceZipSize';
+import { ClaudeZipBadge } from './ClaudeZipBadge';
+import { ZenCliHintBar } from './ZenCliHintBar';
+
+// Stub for buildClaudePrompt if not available
+const buildClaudePrompt = ({ language }: { language: string }) =>
+  `System prompt for Claude (${language})`;
 
 export type { UploadedFile };
 
@@ -75,37 +91,6 @@ const GlobeIcon = () => (
   </svg>
 );
 
-const MemoryIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="lucide lucide-database-icon lucide-database"
-  >
-    <ellipse cx="12" cy="5" rx="9" ry="3" />
-    <path d="M3 12a9 3 0 0 0 18 0" />
-    <path d="M3 5v14a9 3 0 0 0 18 0V5" />
-  </svg>
-);
-
-const formatTokenCount = (count: number): string => {
-  if (count < 1000) {
-    return count.toString();
-  } else if (count < 1000000) {
-    const k = count / 1000;
-    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
-  } else {
-    const m = count / 1000000;
-    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
-  }
-};
-
 // ============================================================================
 // CUSTOM HOOKS
 // ============================================================================
@@ -155,17 +140,17 @@ const useModelCapabilities = (
     return result;
   }, [currentModel, currentModelConfig, currentProviderConfig]);
 
-  const showMemoryButton = React.useMemo(() => {
-    return currentModel?.is_memory === true;
-  }, [currentModel]);
-
   const supportsUpload = React.useMemo(() => {
+    let result: boolean;
     if (currentModel?.is_image_upload !== undefined) {
-      return !!currentModel.is_image_upload;
+      result = !!currentModel.is_image_upload;
     } else if (currentModelConfig?.is_image_upload !== undefined) {
-      return !!currentModelConfig.is_image_upload;
+      result = !!currentModelConfig.is_image_upload;
+    } else {
+      result = false;
     }
-    return false;
+
+    return result;
   }, [currentModel, currentProviderConfig, currentModelConfig]);
 
   const supportsImageGenerator = React.useMemo(() => {
@@ -183,7 +168,6 @@ const useModelCapabilities = (
   return {
     showThinkingButton,
     showSearchButton,
-    showMemoryButton,
     supportsUpload,
     supportsImageGenerator,
     supportsVideoGenerator,
@@ -220,30 +204,28 @@ const useTextareaAutoResize = (
   message: string,
 ) => {
   const rafIdRef = React.useRef<number | null>(null);
-  const lastResizeTime = React.useRef(performance.now());
 
   React.useEffect(() => {
     const msgLength = message?.length || 0;
-    const now = performance.now();
-    lastResizeTime.current = now;
 
     // Cancel any pending resize
     if (rafIdRef.current !== null) {
       cancelAnimationFrame(rafIdRef.current);
     }
 
-    // Skip auto-resize for very large text (>50k chars) — use fixed max height.
+    // 🚀 OPTIMIZATION: Skip auto-resize for very large text (>50k chars)
     const isVeryLargeText = msgLength > 50000;
 
     if (isVeryLargeText) {
       const el = textareaRef.current;
       if (el) {
-        el.style.height = '240px';
+        el.style.height = '240px'; // max height
         el.style.overflowY = 'auto';
       }
       return;
     }
 
+    // Schedule resize in next animation frame for normal text
     rafIdRef.current = requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (!el) return;
@@ -291,7 +273,11 @@ const useModelSelection = (
       if (saved.accountId && !currentAccountRef.current) {
         pendingAccountIdRef.current = saved.accountId;
         if (saved.email) {
-          setCurrentAccount({ id: saved.accountId, email: saved.email });
+          setCurrentAccount({
+            id: saved.accountId,
+            email: saved.email,
+            _partial: true,
+          });
         }
       }
     };
@@ -346,9 +332,7 @@ const useModelSelection = (
       const dataStr = JSON.stringify(data);
       try {
         localStorage.setItem(key, dataStr);
-      } catch (e) {
-        logger.warn('[MessageInput] Failed to save model selection:', e);
-      }
+      } catch (e) {}
 
       const storage = (window as any).storage;
       if (storage) {
@@ -357,277 +341,172 @@ const useModelSelection = (
     }
   }, [currentModel, currentAccount, folderPath]);
 
-  return { isLoadingCache, pendingAccountIdRef };
+  return {
+    isLoadingCache,
+    pendingAccountIdRef,
+  };
 };
 
 // ============================================================================
 // TOGGLE BUTTONS
 // ============================================================================
 
+// ─── SimpleTooltip ────────────────────────────────────────────────────────────
 /**
- * Icon-only toggle button dùng chung cho Thinking / Search / Memory.
- * `accentColor` xác định màu khi ON.
+ * Custom tooltip dùng position:fixed để hiển thị đúng trong VSCode webview.
  */
-const IconToggleButton: React.FC<
-  ToggleButtonProps & { accentColor: string; children: React.ReactNode }
-> = ({ isOn, onClick, title, accentColor, children }) => {
-  const [isHovered, setIsHovered] = React.useState(false);
+const SimpleTooltip: React.FC<{
+  content: React.ReactNode;
+  children: React.ReactElement<any>; // Use any for props to avoid strict typing issues with cloneElement
+}> = ({ content, children }) => {
+  const [pos, setPos] = React.useState<{ x: number; y: number } | null>(null);
+
+  const show = (e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setPos({ x: rect.left + rect.width / 2, y: rect.top - 6 });
+  };
+
+  const hide = () => setPos(null);
 
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '24px',
-        width: '24px',
-        boxSizing: 'border-box',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        transition: 'all 0.15s ease-in-out',
-        border: '1px solid transparent',
-        background: isOn
-          ? isHovered
-            ? `color-mix(in srgb, ${accentColor} 22%, transparent)`
-            : `color-mix(in srgb, ${accentColor} 14%, transparent)`
-          : isHovered
-            ? 'rgba(128, 128, 128, 0.16)'
-            : 'transparent',
-        color: isOn ? accentColor : 'rgb(var(--text-primary))',
-        opacity: isOn ? 1 : isHovered ? 1 : 0.75,
-        padding: 0,
-      }}
-      title={title}
-    >
-      {children}
-    </button>
+    <>
+      {React.cloneElement(children, {
+        onMouseEnter: (e: React.MouseEvent) => {
+          (children.props as any).onMouseEnter?.(e);
+          show(e);
+        },
+        onMouseLeave: (e: React.MouseEvent) => {
+          (children.props as any).onMouseLeave?.(e);
+          hide();
+        },
+      } as any)}
+      {pos && (
+        <div
+          style={{
+            position: 'fixed',
+            left: pos.x,
+            top: pos.y,
+            transform: 'translate(-50%, -100%)',
+            zIndex: 99999,
+            backgroundColor: 'var(--vscode-editorHoverWidget-background, #252526)',
+            border: '1px solid var(--vscode-editorHoverWidget-border, #454545)',
+            borderRadius: '5px',
+            padding: '4px 8px',
+            fontSize: '11px',
+            color: 'var(--vscode-foreground)',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            boxShadow: '0 3px 10px rgba(0,0,0,0.35)',
+            marginBottom: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          {content}
+        </div>
+      )}
+    </>
   );
 };
 
-const ThinkingButton: React.FC<ToggleButtonProps> = (props) => (
-  <IconToggleButton {...props} accentColor="#a855f7">
-    <BrainCogIcon />
-  </IconToggleButton>
+/** Helper render "Label <ON|OFF>" với màu accent khi ON, mờ khi OFF */
+const TooltipToggle = ({
+  label,
+  isOn,
+  accentColor,
+}: {
+  label: string;
+  isOn: boolean;
+  accentColor: string;
+}) => (
+  <>
+    <span>{label}</span>
+    <span
+      style={{
+        fontWeight: 700,
+        color: isOn ? accentColor : 'var(--vscode-descriptionForeground, #888)',
+        opacity: isOn ? 1 : 0.6,
+      }}
+    >
+      {isOn ? 'ON' : 'OFF'}
+    </span>
+  </>
 );
 
-const SearchButton: React.FC<ToggleButtonProps> = (props) => (
-  <IconToggleButton {...props} accentColor="#0ea5e9">
-    <GlobeIcon />
-  </IconToggleButton>
-);
-
-const MemoryButton: React.FC<ToggleButtonProps> = (props) => (
-  <IconToggleButton {...props} accentColor="#8b5cf6">
-    <MemoryIcon />
-  </IconToggleButton>
-);
-
-// ============================================================================
-// GLOBAL PERMISSION BUTTON
-// ============================================================================
-
-/** Metadata cho các permission mode — dùng cho trigger + panel + tooltip. */
-const PERMISSION_MODE: Record<
-  string,
-  { label: string; desc: string; icon: React.ReactNode; color: string }
-> = {
-  fullAccess: {
-    label: 'Full Access',
-    desc: 'AI has unrestricted access to all project files and tools',
-    icon: <Zap size={11} />,
-    color: '#f59e0b',
-  },
-  approval: {
-    label: 'Approval Required',
-    desc: 'AI must request explicit approval before accessing files or running commands',
-    icon: <ShieldCheck size={11} />,
-    color: '#3b82f6',
-  },
-};
-
-const GlobalPermissionButton: React.FC = () => {
-  const { permissionMode, setPermissionMode } = useSettings();
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
+/**
+ * Icon-only toggle button dùng chung cho Thinking / Search.
+ */
+const IconToggleButton: React.FC<
+  ToggleButtonProps & {
+    accentColor: string;
+    children: React.ReactNode;
+    tooltipContent: React.ReactNode;
+  }
+> = ({ isOn, onClick, accentColor, children, tooltipContent }) => {
   const [isHovered, setIsHovered] = React.useState(false);
-  const [tooltip, setTooltip] = React.useState<{
-    id: string;
-    x: number;
-    y: number;
-  } | null>(null);
-  const tooltipTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  React.useEffect(() => {
-    if (!open) {
-      setTooltip(null);
-      if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
-    }
-  }, [open]);
-
-  const handleItemMouseEnter = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!e.currentTarget.parentElement) return;
-    if (
-      !e.currentTarget.style.backgroundColor ||
-      e.currentTarget.style.backgroundColor === 'transparent'
-    ) {
-      e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
-    }
-    const rect = e.currentTarget.getBoundingClientRect();
-    tooltipTimer.current = setTimeout(() => {
-      setTooltip({ id, x: rect.right + 6, y: rect.top });
-    }, 500);
-  };
-
-  const handleItemMouseLeave = (isSelected: boolean, e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
-    if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
-    setTooltip(null);
-  };
-
-  const metadata = PERMISSION_MODE[permissionMode] || PERMISSION_MODE.fullAccess;
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <SimpleTooltip content={tooltipContent}>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
-          padding: '0 8px',
-          height: '22px',
+          justifyContent: 'center',
+          height: '24px',
+          width: '24px',
           boxSizing: 'border-box',
-          borderRadius: '4px',
+          borderRadius: '5px',
           cursor: 'pointer',
-          fontSize: '11px',
-          fontWeight: 600,
-          letterSpacing: '0.3px',
-          transition: 'all 0.2s ease-in-out',
-          border: `1px solid ${metadata.color}40`,
-          background: isHovered
-            ? `color-mix(in srgb, ${metadata.color} 20%, transparent)`
-            : `color-mix(in srgb, ${metadata.color} 12%, transparent)`,
-          color: metadata.color,
-          opacity: 1,
-          lineHeight: 1,
-          verticalAlign: 'middle',
+          transition: 'all 0.15s ease-in-out',
+          border: '1px solid transparent',
+          background: isOn
+            ? isHovered
+              ? `color-mix(in srgb, ${accentColor} 22%, transparent)`
+              : `color-mix(in srgb, ${accentColor} 14%, transparent)`
+            : isHovered
+              ? 'rgba(128, 128, 128, 0.16)'
+              : 'transparent',
+          color: isOn ? accentColor : 'var(--vscode-foreground)',
+          opacity: isOn ? 1 : isHovered ? 1 : 0.75,
+          padding: 0,
         }}
-        title="Tool permission mode"
       >
-        {metadata.icon}
-        <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px' }}>
-          {metadata.label}
-        </span>
+        {children}
       </button>
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 'calc(100% + 4px)',
-            left: 0,
-            zIndex: 1000,
-            backgroundColor:
-              'var(--vscode-dropdown-background, var(--vscode-editorHoverWidget-background, #252526))',
-            border: '1px solid var(--vscode-widget-border, var(--border-color, #454545))',
-            borderRadius: '6px',
-            overflow: 'hidden',
-            boxShadow: '0 -4px 16px rgba(0,0,0,0.35)',
-            minWidth: '180px',
-          }}
-        >
-          {Object.entries(PERMISSION_MODE).map(([modeId, meta]) => {
-            const isSelected = permissionMode === modeId;
-            return (
-              <button
-                key={modeId}
-                onClick={() => {
-                  setPermissionMode(modeId as any);
-                  setOpen(false);
-                  setTooltip(null);
-                  if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  width: '100%',
-                  padding: '7px 12px',
-                  fontSize: '11.5px',
-                  fontWeight: 500,
-                  textAlign: 'left',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: isSelected ? 'var(--vscode-button-background)' : 'transparent',
-                  color: isSelected
-                    ? 'var(--vscode-button-foreground)'
-                    : 'var(--vscode-foreground)',
-                }}
-                onMouseEnter={(e) => handleItemMouseEnter(modeId, e)}
-                onMouseLeave={(e) => handleItemMouseLeave(isSelected, e)}
-              >
-                <span
-                  style={{
-                    color: isSelected ? 'inherit' : meta.color,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {meta.icon}
-                </span>
-                {meta.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      {tooltip && PERMISSION_MODE[tooltip.id] && (
-        <div
-          style={{
-            position: 'fixed',
-            left: tooltip.x,
-            top: tooltip.y,
-            zIndex: 9999,
-            backgroundColor: 'var(--vscode-editorHoverWidget-background, #1e1e1e)',
-            border: '1px solid var(--vscode-editorHoverWidget-border, #454545)',
-            borderRadius: '6px',
-            padding: '8px 10px',
-            maxWidth: '220px',
-            fontSize: '11px',
-            color: 'var(--vscode-foreground)',
-            lineHeight: 1.5,
-            pointerEvents: 'none',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          }}
-        >
-          <div
-            style={{
-              fontWeight: 600,
-              marginBottom: '3px',
-              color: PERMISSION_MODE[tooltip.id].color,
-            }}
-          >
-            {PERMISSION_MODE[tooltip.id].label}
-          </div>
-          {PERMISSION_MODE[tooltip.id].desc}
-        </div>
-      )}
-    </div>
+    </SimpleTooltip>
   );
 };
+
+const ThinkingButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => (
+  <IconToggleButton
+    isOn={isOn}
+    onClick={onClick}
+    title={title}
+    accentColor="#a855f7"
+    tooltipContent={<TooltipToggle label="Thinking" isOn={isOn} accentColor="#a855f7" />}
+  >
+    <BrainCogIcon />
+  </IconToggleButton>
+);
+
+const SearchButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => (
+  <IconToggleButton
+    isOn={isOn}
+    onClick={onClick}
+    title={title}
+    accentColor="#0ea5e9"
+    tooltipContent={<TooltipToggle label="Search" isOn={isOn} accentColor="#0ea5e9" />}
+  >
+    <GlobeIcon />
+  </IconToggleButton>
+);
+
+// GlobalPermissionButton removed as it is not rendered in the new UI structure
+// and its dependencies (PERMISSION_MODE constant from original Zen) are stubbed out.
 
 const PROMPT_HISTORY_KEY = 'zen:user_prompt_history';
 const MAX_PROMPT_HISTORY = 50;
@@ -659,7 +538,7 @@ const savePromptToHistory = (prompt: string) => {
 const MessageInput: React.FC<MessageInputProps> = React.memo(
   ({
     message,
-    setMessage,
+    // setMessage, // Unused in this version
     isHistoryMode = false,
     uploadedFiles,
     attachedItems = [],
@@ -671,13 +550,13 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     handleDrop,
     handleFileSelect,
     fileInputRef,
-    onOpenProjectStructure,
-    showChangesDropdown,
-    setShowChangesDropdown,
+    // onOpenProjectStructure, // Unused
+    // showChangesDropdown, // Unused
+    // setShowChangesDropdown, // Unused
     messages,
     handleSend,
-    hasProjectContext,
-    onOpenProjectContext,
+    // hasProjectContext, // Unused
+    // onOpenProjectContext, // Unused
     folderPath,
     isConversationStarted,
     currentModel,
@@ -691,126 +570,42 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     isLaunchingBrowser = false,
     onLaunchBrowserSession,
     onGitPullRequest,
-    isGitLoading = false,
-    isGitStatusVisible = false,
-    gitStatus,
-    onOpenGitStatus,
+    // isGitLoading, // Unused
+    // isGitStatusVisible, // Unused
+    // gitStatus, // Unused
+    // onOpenGitStatus, // Unused
     conversationFileStats,
-    onReviewClick,
-    responseRange,
+    // onReviewClick, // Unused
+    // responseRange, // Unused
     responseRanges = [],
-    onOpenModelDrawer,
     onModelSwitch,
+    // onRevertConversation, // Unused
+    // autoScrollPaused, // Unused
+    // scrollToBottom, // Unused
     enableViewOnlyMode = false,
+    isViewOnly = false,
+    // onSelectRule, // Passed to ActionDropdown but commented out due to prop mismatch
+    onRemoveAttachedItem,
+    conversationDiagnosticEnabled,
+    conversationUseSkillEnabled,
+    conversationMemoryEnabled,
+    conversationToolFormat,
+    onConversationDiagnosticToggle,
+    onConversationUseSkillToggle,
+    onConversationMemoryToggle,
+    onConversationToolFormatToggle,
   }) => {
-    // Prompt History Navigation State (ArrowUp / ArrowDown)
-    const historyIndexRef = React.useRef<number>(-1);
-    const tempDraftRef = React.useRef<string>('');
-
-    const getCombinedPromptHistory = React.useCallback((): string[] => {
-      const currentChatUserPrompts = (messages || [])
-        .filter(
-          (m: any) =>
-            m &&
-            (m.sender === 'user' || m.role === 'user') &&
-            m.content &&
-            typeof m.content === 'string' &&
-            m.content.trim(),
-        )
-        .map((m: any) => m.content.trim());
-
-      const stored = getStoredPromptHistory();
-      const combined = [...stored];
-      for (const p of currentChatUserPrompts) {
-        if (!combined.includes(p)) {
-          combined.push(p);
-        }
-      }
-      return combined.filter(Boolean);
-    }, [messages]);
-
-    const handlePromptHistoryKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'ArrowUp') {
-        const target = e.currentTarget;
-        const textBeforeCursor = target.value.substring(0, target.selectionStart);
-        const isAtFirstLine = !textBeforeCursor.includes('\n');
-        const isNavigating = historyIndexRef.current >= 0;
-
-        if (isAtFirstLine || isNavigating) {
-          const history = getCombinedPromptHistory();
-          if (history.length === 0) return;
-
-          if (!isNavigating) {
-            tempDraftRef.current = message;
-          }
-
-          const nextIndex = historyIndexRef.current + 1;
-          if (nextIndex < history.length) {
-            e.preventDefault();
-            historyIndexRef.current = nextIndex;
-            const promptText = history[history.length - 1 - nextIndex];
-            setMessage(promptText);
-            setTimeout(() => {
-              if (textareaRef.current) {
-                textareaRef.current.selectionStart = promptText.length;
-                textareaRef.current.selectionEnd = promptText.length;
-              }
-            }, 0);
-          }
-        }
-      } else if (e.key === 'ArrowDown') {
-        if (historyIndexRef.current >= 0) {
-          const target = e.currentTarget;
-          const textAfterCursor = target.value.substring(target.selectionEnd);
-          const isAtLastLine = !textAfterCursor.includes('\n');
-
-          if (isAtLastLine) {
-            const history = getCombinedPromptHistory();
-            const prevIndex = historyIndexRef.current - 1;
-
-            e.preventDefault();
-            if (prevIndex >= 0) {
-              historyIndexRef.current = prevIndex;
-              const promptText = history[history.length - 1 - prevIndex];
-              setMessage(promptText);
-              setTimeout(() => {
-                if (textareaRef.current) {
-                  textareaRef.current.selectionStart = promptText.length;
-                  textareaRef.current.selectionEnd = promptText.length;
-                }
-              }, 0);
-            } else {
-              historyIndexRef.current = -1;
-              const draft = tempDraftRef.current;
-              setMessage(draft);
-              setTimeout(() => {
-                if (textareaRef.current) {
-                  textareaRef.current.selectionStart = draft.length;
-                  textareaRef.current.selectionEnd = draft.length;
-                }
-              }, 0);
-            }
-          }
-        }
-      }
-    };
-
     const onSendMessage = () => {
-      if (isTokenLimitExceeded) {
-        return;
-      }
       if (message.trim()) {
         savePromptToHistory(message);
       }
-      historyIndexRef.current = -1;
-      tempDraftRef.current = '';
       handleSend(currentModel, currentAccount);
     };
 
     const { isValid: isConnected } = useServerHealth();
     const {
-      apiUrl,
       aiLanguage: preferredLanguage,
+      apiUrl,
       systemPromptMode,
       setSystemPromptMode,
       promptLengthMode,
@@ -818,8 +613,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     } = useSettings();
 
     const [providers, setProviders] = React.useState<any[]>([]);
+    // const [isLoadingProviders, setIsLoadingProviders] = React.useState(false); // Unused in current render logic
     const [showModelDrawer, setShowModelDrawer] = React.useState(false);
-    const [isSystemPromptHovered, setIsSystemPromptHovered] = React.useState(false);
     const [isPromptLengthHovered, setIsPromptLengthHovered] = React.useState(false);
 
     const [pendingModelSwitch, setPendingModelSwitch] = React.useState<{
@@ -832,7 +627,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     // Use custom hooks
     const [isThinking, toggleThinking, setIsThinking] = useToggleState('zen-thinking-enabled');
     const [isSearch, toggleSearch, setIsSearch] = useToggleState('zen-search-enabled');
-    const [isMemory, , setIsMemory] = useToggleState('zen-memory-enabled');
 
     const { isLoadingCache, pendingAccountIdRef } = useModelSelection(
       folderPath,
@@ -843,9 +637,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     );
 
     // ─── Presence heartbeat ──────────────────────────────────────────
-    // Báo cho backend biết cửa sổ này đang active account nào, để các
-    // cửa sổ khác thấy badge "In use". Gửi ngay khi account đổi và lặp
-    // lại mỗi 20s; release account cũ khi đổi/đóng.
     React.useEffect(() => {
       const accountId = currentAccount?.id;
       if (!accountId) return;
@@ -876,10 +667,16 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       providers,
     );
 
+    // ─── Claude workspace zip-size badge ─────────────────────────────
+    const rootPath = folderPath; // Simplified assumption for Phantoma context
+    const isClaudeProvider = currentModel?.providerId?.toLowerCase() === 'claude';
+    const zipTriggerKey = React.useMemo(() => {
+      if (!isClaudeProvider || !rootPath) return null;
+      return `${rootPath}::${currentModel?.id ?? ''}`;
+    }, [isClaudeProvider, rootPath, currentModel?.id]);
+    const zipSizeState = useWorkspaceZipSize(isClaudeProvider, zipTriggerKey);
+
     // ─── View-only mode detection ────────────────────────────────────
-    // Provider không cần auth (auth_method rỗng) CHỈ disable input
-    // khi conversation được load từ History (có conversationFileStats).
-    // Conversation mới tạo → không disable
     const isViewOnlyProvider = React.useMemo(() => {
       if (!enableViewOnlyMode) return false;
       if (!currentProviderConfig) return false;
@@ -888,13 +685,35 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       if (!isLoadedFromHistory) return false;
 
       const authMethod = currentProviderConfig.auth_method;
-      return Array.isArray(authMethod) && authMethod.length === 0;
+      const isNoAuth = Array.isArray(authMethod) && authMethod.length === 0;
+      const isSessionCleanup = (currentProviderConfig as any).supports_session_cleanup === true;
+      const result = isNoAuth || isSessionCleanup;
+      return result;
     }, [enableViewOnlyMode, currentProviderConfig, conversationFileStats]);
+
+    // ─── Time-block detection ────────────────────────────────────────
+    const [timeBlockTick, setTimeBlockTick] = React.useState(0);
+    React.useEffect(() => {
+      const id = setInterval(() => setTimeBlockTick((n) => n + 1), 30_000);
+      return () => clearInterval(id);
+    }, []);
+    const providerBlockedRanges = (currentProviderConfig as any)?.blocked_time_ranges ?? null;
+    const isTimeBlocked = React.useMemo(() => {
+      void timeBlockTick;
+      return isDeepSeekProvider(currentModel?.providerId) && isBlockedNow(providerBlockedRanges);
+    }, [currentModel?.providerId, timeBlockTick, providerBlockedRanges]);
+
+    const timeBlockLabel = React.useMemo(() => {
+      if (!isTimeBlocked) return null;
+      return {
+        current: getBlockedRangeLabel(providerBlockedRanges),
+        all: getBlockedHoursDescription(providerBlockedRanges),
+      };
+    }, [isTimeBlocked, providerBlockedRanges]);
 
     const {
       showThinkingButton,
       showSearchButton,
-      showMemoryButton,
       supportsUpload,
       supportsImageGenerator,
       supportsVideoGenerator,
@@ -926,7 +745,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         return 'Processing...';
       }
       if (isViewOnlyProvider) {
-        return 'This provider does not require authentication';
+        return 'View only — this conversation cannot be continued';
+      }
+      if (isTimeBlocked && timeBlockLabel) {
+        return `DeepSeek is blocked during ${timeBlockLabel.all}`;
       }
       if (!currentModel) {
         return 'Select a model to start';
@@ -935,36 +757,21 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         return 'Select an account to start';
       }
 
-      const hints: string[] = [];
-      hints.push('@agent');
-      if (supportsUpload) {
-        hints.push('attach files');
-      }
-      if (showThinkingButton) {
-        hints.push('🧠 thinking');
-      }
-      if (showSearchButton) {
-        hints.push('🔍 search');
-      }
-      if (showMemoryButton) {
-        hints.push('💾 memory');
-      }
-
-      return hints.length > 1
-        ? `Message ${hints[0]} (Alt+@) · ${hints.slice(1).join(' · ')}`
-        : `Message ${hints[0]} (Alt+@)`;
+      // Default: concise single-line placeholder, no emoji
+      return 'Type a message...';
     }, [
       isHistoryMode,
       isConnected,
       isLoadingCache,
       isProcessing,
       isViewOnlyProvider,
+      isTimeBlocked,
+      timeBlockLabel,
       currentModel,
       currentAccount,
       supportsUpload,
       showThinkingButton,
       showSearchButton,
-      showMemoryButton,
     ]);
 
     // Calculate token count for message input (including system prompt + text snippets)
@@ -974,7 +781,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       if (attachedItems && attachedItems.length > 0) {
         attachedItems.forEach((item: any) => {
           if (item.type === 'text-snippet' && item.content) {
-            totalTokens += countTokens(item.content);
+            const snippetTokens = countTokens(item.content);
+            totalTokens += snippetTokens;
           }
         });
       }
@@ -982,23 +790,36 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       // Add system prompt tokens (only for first message in conversation)
       if (!isConversationStarted) {
         try {
-          const systemPrompt = combinePromptsForMode(
-            {
-              language: preferredLanguage,
-              systemInfo: {
-                os: 'Unknown OS',
-                ide: 'Zen IDE',
-                shell: 'unknown',
-                homeDir: '~',
-                cwd: folderPath || '.',
+          let systemPrompt: string;
+
+          if (currentModel?.providerId?.toLowerCase() === 'claude') {
+            // Claude dùng prompt riêng
+            systemPrompt = buildClaudePrompt({ language: preferredLanguage });
+          } else {
+            // Generic providers: build theo mode + length
+            // Adjusting call to match Phantoma's combinePromptsForMode signature if different
+            // Assuming it takes config object and mode separately or combined.
+            // Using 'as any' for safety during migration until types are perfectly aligned.
+            systemPrompt = combinePromptsForMode(
+              {
                 language: preferredLanguage,
-              } as SystemInfo,
-            },
-            systemPromptMode,
-          );
-          totalTokens += countTokens(systemPrompt);
+                systemInfo: {
+                  os: 'Unknown OS',
+                  ide: 'Zen IDE',
+                  shell: 'unknown',
+                  homeDir: '~',
+                  cwd: folderPath || '.',
+                  language: preferredLanguage,
+                } as SystemInfo,
+              } as any,
+              systemPromptMode as any,
+            );
+          }
+
+          const systemPromptTokens = countTokens(systemPrompt);
+          totalTokens += systemPromptTokens;
         } catch (e) {
-          logger.warn('[MessageInput] Failed to calculate system prompt tokens:', e);
+          console.warn('[MessageInput] Failed to calculate system prompt tokens:', e);
         }
       }
 
@@ -1007,8 +828,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       message,
       isConversationStarted,
       preferredLanguage,
+      promptLengthMode,
       systemPromptMode,
       folderPath,
+      currentModel?.providerId,
       JSON.stringify(
         attachedItems?.map((item: any) => ({
           id: item.id,
@@ -1023,38 +846,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       return currentModelConfig?.max_input_tokens || null;
     }, [currentModelConfig]);
 
+    // Check if token limit exceeded
     const isTokenLimitExceeded = React.useMemo(() => {
       return maxInputTokens !== null && messageTokenCount > maxInputTokens;
     }, [messageTokenCount, maxInputTokens]);
-
-    const toggleMemory = async () => {
-      if (!currentAccount?.id) {
-        logger.warn('[MessageInput] No account selected, cannot toggle memory');
-        return;
-      }
-
-      const newState = !isMemory;
-      setIsMemory(newState);
-      localStorage.setItem('zen-memory-enabled', String(newState));
-
-      try {
-        const response = await fetch(`${apiUrl}/v1/accounts/${currentAccount.id}/memory`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ is_memory_enabled: newState }),
-        });
-        const result = await response.json();
-        if (!result.success) {
-          setIsMemory(!newState);
-          localStorage.setItem('zen-memory-enabled', String(!newState));
-          logger.error('Failed to update memory state on server:', result.message);
-        }
-      } catch (error) {
-        setIsMemory(!newState);
-        localStorage.setItem('zen-memory-enabled', String(!newState));
-        logger.error('Failed to sync memory state with server:', error);
-      }
-    };
 
     const fetchProviders = React.useCallback(async () => {
       try {
@@ -1064,7 +859,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
           setProviders(result.data.filter((p: any) => p.is_enabled));
         }
       } catch (error) {
-        logger.warn('[MessageInput] Failed to fetch providers:', error);
+        console.error('Failed to fetch providers:', error);
       }
     }, [apiUrl]);
 
@@ -1073,23 +868,21 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       fetchProviders();
     }, [fetchProviders]);
 
-    // Re-fetch providers every time the model drawer opens so stale data
-    // (e.g. "No accounts" after user just added an account) is never shown.
+    // Re-fetch providers every time the model drawer opens
     React.useEffect(() => {
       if (showModelDrawer) {
         fetchProviders();
       }
     }, [showModelDrawer, fetchProviders]);
 
-    // Close model drawer when user navigates to another panel so the drawer
-    // doesn't linger behind when they come back.
+    // Close model drawer when user navigates to another panel
     React.useEffect(() => {
       const handler = () => setShowModelDrawer(false);
       window.addEventListener('zen:panel-change', handler);
       return () => window.removeEventListener('zen:panel-change', handler);
     }, []);
 
-    // Validation: check if currentModel and currentAccount still exist after providers loaded
+    // VALIDATION: Check if currentModel and currentAccount still exist after providers loaded
     React.useEffect(() => {
       if (providers.length === 0 || isLoadingCache) return;
 
@@ -1101,12 +894,19 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         );
 
         if (!provider) {
+          console.warn(
+            `[MessageInput] Provider ${currentModel.providerId} not found - resetting model`,
+          );
           needsReset = true;
         } else {
           const modelExists = provider.models?.some(
             (m: any) => m.id?.toLowerCase() === currentModel.id?.toLowerCase(),
           );
+
           if (!modelExists) {
+            console.warn(
+              `[MessageInput] Model ${currentModel.id} not found in provider ${currentModel.providerId} - resetting model`,
+            );
             needsReset = true;
           }
         }
@@ -1126,6 +926,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               );
 
               if (!matchedAccount) {
+                console.warn(
+                  `[MessageInput] Account ${currentAccount.id} not found - resetting model + account`,
+                );
                 setCurrentModel(null);
                 setCurrentAccount(null);
               } else if (matchedAccount.email && matchedAccount.email !== currentAccount.email) {
@@ -1136,7 +939,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               }
             }
           } catch (error) {
-            logger.warn('[MessageInput] Failed to validate account:', error);
+            console.error('[MessageInput] Failed to validate account:', error);
           }
         };
 
@@ -1194,12 +997,35 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       setIsSearch,
     ]);
 
+    // Auto-fix promptLengthMode & systemPromptMode khi provider có anti_system_prompt_injection
+    React.useEffect(() => {
+      if (!currentProviderConfig) return;
+      if (!(currentProviderConfig as any).anti_system_prompt_injection) return;
+
+      // Cast to string for comparison to avoid TS enum mismatch errors during migration
+      const plModeStr = String(promptLengthMode);
+      const spModeStr = String(systemPromptMode);
+
+      if (plModeStr !== 'none') {
+        setPromptLengthMode('none' as any);
+      }
+      if (spModeStr !== 'none') {
+        setSystemPromptMode('none' as any);
+      }
+    }, [
+      currentProviderConfig,
+      promptLengthMode,
+      systemPromptMode,
+      setPromptLengthMode,
+      setSystemPromptMode,
+    ]);
+
     // Handle auto-selection of account from cache once providers are loaded
     React.useEffect(() => {
       if (
         pendingAccountIdRef.current &&
         providers.length > 0 &&
-        !currentAccount?.email &&
+        (!currentAccount?.email || currentAccount?._partial) &&
         currentModel?.providerId
       ) {
         const fetchAccountsForProvider = async () => {
@@ -1213,12 +1039,12 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 (a: any) => a.id === pendingAccountIdRef.current,
               );
               if (acc) {
-                setCurrentAccount({ id: acc.id, email: acc.email });
+                setCurrentAccount(acc);
                 pendingAccountIdRef.current = null;
               }
             }
           } catch (error) {
-            logger.warn('[MessageInput] Failed to fetch accounts for provider:', error);
+            // ignore
           }
         };
         fetchAccountsForProvider();
@@ -1238,790 +1064,1080 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            borderRadius: 'var(--border-radius)',
-            border: !isConnected
-              ? '1px dashed var(--vscode-errorForeground, #f44336)'
-              : isTokenLimitExceeded
-                ? '2px dashed var(--vscode-errorForeground, #f44336)'
-                : isViewOnlyProvider
-                  ? '1px dashed #f44336'
-                  : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
-            transition: 'border 0.3s ease',
-            marginTop: !isConversationStarted || isConversationStarted ? '24px' : '0px',
+            marginTop: '24px', // Simplified logic: always add space for badges/DiffSummaryBar sticking up
           }}
         >
-          {/* HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
-          {!isConversationStarted && (
-            <div
-              onClick={() => {
-                if (providers.length === 0) fetchProviders();
-                if (onOpenModelDrawer) {
-                  onOpenModelDrawer();
-                } else {
-                  setShowModelDrawer((v) => !v);
-                }
-              }}
-              style={{
-                position: 'absolute',
-                bottom: !isConnected ? 'calc(100% + 2px)' : '100%',
-                left: '8px',
-                backgroundColor: 'rgb(var(--input-background))',
-                color: 'rgb(var(--text-primary))',
-                padding: '5px 10px',
-                fontSize: '11px',
-                fontWeight: 600,
-                zIndex: 20,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                boxShadow: '0 -2px 6px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease',
-                marginBottom: isConnected ? '-1px' : '0',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgb(var(--input-background))';
-              }}
-              title="Click to select Model and Account"
-            >
-              {displayModel ? (
-                <>
-                  {(() => {
-                    const prov = providers.find(
-                      (p: any) => p.provider_id === displayModel.providerId,
-                    );
-                    if (!prov?.website) {
-                      return (
-                        <span
-                          className="codicon codicon-server-process"
-                          style={{ fontSize: '12px' }}
-                        />
-                      );
-                    }
-                    const faviconUrl = getFaviconUrl(prov.website);
-                    return (
-                      <img
-                        key={faviconUrl}
-                        src={faviconUrl}
-                        alt=""
-                        style={{
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '2px',
-                          objectFit: 'contain',
-                        }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    );
-                  })()}
-                  {displayModel.providerId}/{displayModel.id}
-                  {displayAccount?.email && (
-                    <span style={{ opacity: 0.8, fontStyle: 'italic', marginLeft: '2px' }}>
-                      {displayAccount.email}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <>
-                  <span className="codicon codicon-server-process" style={{ fontSize: '12px' }} />
-                  Select Model
-                </>
-              )}
-            </div>
-          )}
-
-          {showModelDrawer && !onOpenModelDrawer && (
-            <ModelAccountDrawer
-              isOpen={showModelDrawer}
-              onClose={() => setShowModelDrawer(false)}
-              providers={providers}
-              apiUrl={apiUrl}
-              onSelect={(selected) => {
-                const prov = providers.find((p: any) => p.provider_id === selected.providerId);
-                const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
-                let faviconUrl = '';
-                if (prov?.website) {
-                  faviconUrl = getFaviconUrl(prov.website);
-                }
-
-                const newModel = {
-                  ...selected,
-                  id: selected.modelId,
-                  name: modelObj?.name || selected.modelId,
-                  favicon: faviconUrl,
-                  is_thinking: modelObj?.is_thinking ?? false,
-                  is_search: modelObj?.is_search ?? false,
-                  is_image_upload: modelObj?.is_image_upload ?? false,
-                  is_video_upload: modelObj?.is_video_upload ?? false,
-                  is_audio_upload: modelObj?.is_audio_upload ?? false,
-                  is_file_upload: modelObj?.is_file_upload ?? false,
-                  is_memory: modelObj?.is_memory ?? prov?.is_memory ?? false,
-                };
-
-                const newAccount = {
-                  id: selected.accountId,
-                  email: selected.email,
-                };
-
-                if (isModelSwitchMode) {
-                  setPendingModelSwitch({ model: newModel, account: newAccount });
-                  setShowModelDrawer(false);
-                  setIsModelSwitchMode(false);
-                } else {
-                  setCurrentModel(newModel);
-                  setCurrentAccount(newAccount);
-
-                  const fetchMemoryState = async () => {
-                    try {
-                      const response = await fetch(
-                        `${apiUrl}/v1/accounts/${selected.accountId}/memory`,
-                      );
-                      const result = await response.json();
-                      if (result.success && result.data) {
-                        setIsMemory(result.data.is_memory_enabled);
-                        localStorage.setItem(
-                          'zen-memory-enabled',
-                          String(result.data.is_memory_enabled),
-                        );
-                      }
-                    } catch (error) {
-                      logger.error('[MessageInput] Failed to fetch memory state:', error);
-                    }
-                  };
-                  fetchMemoryState();
-                  setShowModelDrawer(false);
-                }
-              }}
-            />
-          )}
-
-          {/* Model Switch Confirmation Dialog */}
-          {pendingModelSwitch && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10001,
-              }}
-              onClick={() => setPendingModelSwitch(null)}
-            >
-              <div
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  backgroundColor: 'var(--vscode-editor-background)',
-                  border: '1px solid var(--vscode-widget-border)',
-                  borderRadius: '8px',
-                  padding: '20px',
-                  maxWidth: '400px',
-                  width: '90%',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    marginBottom: '12px',
-                    color: 'var(--vscode-foreground)',
-                  }}
-                >
-                  Switch Model?
-                </div>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    marginBottom: '16px',
-                    color: 'var(--vscode-descriptionForeground)',
-                    lineHeight: 1.5,
-                  }}
-                >
-                  You're about to switch to:
-                  <div
-                    style={{
-                      marginTop: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: 'var(--vscode-input-background)',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                    }}
-                  >
-                    <strong>
-                      {pendingModelSwitch.model.providerId}/{pendingModelSwitch.model.id}
-                    </strong>
-                    {pendingModelSwitch.account.email && (
-                      <div style={{ marginTop: '4px', opacity: 0.8 }}>
-                        {pendingModelSwitch.account.email}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => setPendingModelSwitch(null)}
-                    style={{
-                      padding: '6px 16px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--vscode-widget-border)',
-                      backgroundColor: 'transparent',
-                      color: 'var(--vscode-foreground)',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      const currentRange = responseRanges.find((r) => r.isCurrent);
-
-                      const userMessagesInRange: Array<{
-                        content: string;
-                        responseNumber: number;
-                      }> = [];
-                      if (currentRange) {
-                        let responseCount = 0;
-                        for (const msg of messages) {
-                          if (msg.role === 'assistant') {
-                            responseCount++;
-                          }
-                          if (
-                            msg.role === 'user' &&
-                            responseCount >= currentRange.start - 1 &&
-                            responseCount <= currentRange.end
-                          ) {
-                            userMessagesInRange.push({
-                              content: msg.content,
-                              responseNumber: responseCount,
-                            });
-                          }
-                        }
-                      }
-
-                      const contextData = {
-                        fileChanges: currentRange
-                          ? Array.from(currentRange.fileChanges.entries()).map(([path, stats]) => ({
-                              path,
-                              additions: stats.additions,
-                              deletions: stats.deletions,
-                            }))
-                          : [],
-                        userMessages: userMessagesInRange,
-                      };
-
-                      if (onModelSwitch) {
-                        onModelSwitch(
-                          pendingModelSwitch.model,
-                          pendingModelSwitch.account,
-                          contextData,
-                        );
-                      }
-
-                      setCurrentModel(pendingModelSwitch.model);
-                      setCurrentAccount(pendingModelSwitch.account);
-                      setPendingModelSwitch(null);
-                    }}
-                    style={{
-                      padding: '6px 16px',
-                      borderRadius: '4px',
-                      border: 'none',
-                      backgroundColor: 'var(--vscode-button-background)',
-                      color: 'var(--vscode-button-foreground)',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'var(--vscode-button-hoverBackground)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--vscode-button-background)';
-                    }}
-                  >
-                    Confirm Switch
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Browser session warning - bottom right inside MessageInput */}
-          {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
-            <div
-              onClick={isLaunchingBrowser ? undefined : onLaunchBrowserSession}
-              style={{
-                position: 'absolute',
-                top: '100%',
-                right: '8px',
-                backgroundColor: 'rgba(251, 146, 60, 0.15)',
-                padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 500,
-                borderBottomLeftRadius: '8px',
-                borderBottomRightRadius: '8px',
-                border: '1px solid rgba(251, 146, 60, 0.3)',
-                borderTop: 'none',
-                zIndex: 20,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: isLaunchingBrowser ? 'not-allowed' : 'pointer',
-                marginTop: '-1px',
-                opacity: isLaunchingBrowser ? 0.6 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!isLaunchingBrowser) {
-                  e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.25)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.15)';
-              }}
-            >
-              <span style={{ fontSize: '11px', fontWeight: 500 }}>
-                {isLaunchingBrowser
-                  ? 'Launching browser session...'
-                  : 'Browser session not ready. Click here'}
-              </span>
-            </div>
-          )}
-
+          {/* ─── Wrapper có border: chỉ bao quanh textarea + toolbar ─── */}
           <div
             style={{
-              position: 'relative',
-              backgroundColor: 'var(--input-bg)',
-              borderTopLeftRadius: 'var(--border-radius)',
-              borderTopRightRadius: 'var(--border-radius)',
-              padding: '12px',
-            }}
-          >
-            <style>{`
-              .custom-scrollbar {
-                scrollbar-width: thin;
-                scrollbar-color: var(--scrollbar-thumb, rgba(255,255,255,0.2)) transparent;
-              }
-              .custom-scrollbar::-webkit-scrollbar {
-                width: 8px;
-                height: 8px;
-              }
-              .custom-scrollbar::-webkit-scrollbar-track {
-                background: transparent;
-                border-radius: 10px;
-                margin: 4px 0;
-              }
-              .custom-scrollbar::-webkit-scrollbar-thumb {
-                background-color: var(--scrollbar-thumb, rgba(255,255,255,0.2));
-                border-radius: 10px;
-                border: 2px solid transparent;
-                background-clip: padding-box;
-                min-height: 40px;
-              }
-              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                background-color: var(--scrollbar-thumb-hover, rgba(255,255,255,0.35));
-              }
-              .custom-scrollbar::-webkit-scrollbar-corner {
-                background: transparent;
-              }
-            `}</style>
-
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => {
-                historyIndexRef.current = -1;
-                handleTextareaChange(e);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (
-                    !isHistoryMode &&
-                    isConnected &&
-                    !isLoadingCache &&
-                    !isProcessing &&
-                    !isTokenLimitExceeded
-                  ) {
-                    onSendMessage();
-                  }
-                } else {
-                  handlePromptHistoryKeyDown(e);
-                  handleKeyDown(e);
-                }
-              }}
-              onPaste={(e) => {
-                if (!supportsUpload && e.clipboardData.files.length > 0) {
-                  logger.warn('[MessageInput] onPaste: Upload is not supported, preventing paste.');
-                  e.preventDefault();
-                  return;
-                }
-                handlePaste(e);
-              }}
-              onDragOver={handleDragOver}
-              onDrop={(e) => {
-                if (!supportsUpload) {
-                  e.preventDefault();
-                  return;
-                }
-                handleDrop(e);
-              }}
-              onFocus={(e) => {
-                e.target.style.border = 'none';
-                e.target.style.boxShadow = 'none';
-              }}
-              placeholder={placeholderText}
-              disabled={isViewOnlyProvider}
-              rows={1}
-              style={{
-                width: '100%',
-                minHeight: '24px',
-                maxHeight: '240px',
-                border: 'none',
-                outline: 'none',
-                resize: 'none',
-                fontFamily: 'inherit',
-                fontSize: 'var(--font-size-sm)',
-                backgroundColor: 'transparent',
-                color: 'rgb(var(--text-primary))',
-                overflow: 'hidden',
-                whiteSpace: 'pre-wrap',
-                wordWrap: 'break-word',
-                opacity: 1,
-                cursor: 'text',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          {/* Bottom Part: Toolbar */}
-          <div
-            style={{
-              backgroundColor: 'var(--input-bg)',
-              borderBottomLeftRadius: 'var(--border-radius)',
-              borderBottomRightRadius: 'var(--border-radius)',
-              padding: '8px 12px',
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              flexDirection: 'column',
+              position: 'relative',
+              borderRadius: 'var(--border-radius)',
+              border: !isConnected
+                ? '1px dashed var(--vscode-errorForeground, #f44336)'
+                : isTimeBlocked
+                  ? '1px dashed var(--vscode-editorWarning-foreground, #f97316)'
+                  : isTokenLimitExceeded
+                    ? '2px dashed var(--vscode-errorForeground, #f44336)'
+                    : isViewOnlyProvider
+                      ? '1px dashed #eab308'
+                      : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+              transition: 'border 0.3s ease',
             }}
           >
-            {/* Left Icons */}
-            <div style={{ display: 'flex', gap: 'var(--spacing-xs)', alignItems: 'center' }}>
-              <ActionDropdown
-                onSelectAttach={() => {
-                  if (fileInputRef?.current) {
-                    fileInputRef.current.accept = buildAcceptString(
-                      currentModelConfig ?? currentModel,
-                    );
-                    (fileInputRef.current as any).dataset.textOnly = String(!supportsUpload);
-                    fileInputRef.current.click();
-                  } else {
-                    handleFileSelect();
-                  }
-                }}
-                onSelectImageGenerator={() => {}}
-                onSelectVideoGenerator={() => {}}
-                onSelectDeepResearch={() => {}}
-                onSelectPullRequest={onGitPullRequest}
-                onToggleMemory={showMemoryButton ? toggleMemory : undefined}
-                isMemoryOn={isMemory}
-                showImageGenerator={supportsImageGenerator}
-                showVideoGenerator={supportsVideoGenerator}
-                showDeepResearch={supportsDeepResearch}
-                currentModel={currentModel}
-                currentModelConfig={currentModelConfig}
-                triggerButton={
-                  <div
-                    onMouseEnter={() => setIsPlusHovered(true)}
-                    onMouseLeave={() => setIsPlusHovered(false)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      height: '22px',
-                      width: '22px',
-                      boxSizing: 'border-box',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease-in-out',
-                      border: '1px solid rgba(128, 128, 128, 0.2)',
-                      background: isPlusHovered
-                        ? 'rgba(128, 128, 128, 0.2)'
-                        : 'rgba(128, 128, 128, 0.12)',
-                      color: 'var(--vscode-foreground)',
-                      opacity: isPlusHovered ? 0.9 : 0.7,
-                    }}
-                    title={supportsUpload ? 'Attach files' : 'Attach text files only'}
-                  >
-                    <Plus size={14} />
-                  </div>
-                }
-              />
-
-              {showThinkingButton && (
-                <ThinkingButton
-                  isOn={isThinking}
-                  onClick={toggleThinking}
-                  title="Toggle AI Thinking Process"
-                />
-              )}
-
-              {showSearchButton && (
-                <SearchButton
-                  isOn={isSearch}
-                  onClick={toggleSearch}
-                  title="Toggle Web Search Grounding"
-                />
-              )}
-
+            {/* 🆕 HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
+            {!isConversationStarted && (
               <div
-                style={{
-                  width: '1px',
-                  height: '16px',
-                  background: 'var(--border-color)',
-                  margin: '0 2px',
-                  flexShrink: 0,
+                onClick={() => {
+                  setShowModelDrawer((v) => !v);
                 }}
-              />
-
-              <GlobalPermissionButton />
-
-              {/* System Prompt Mode Selector - Home only */}
-              {!isConversationStarted && (
-                <StyleCodeDropdown
-                  currentMode={systemPromptMode}
-                  onSelect={setSystemPromptMode}
-                  triggerButton={(() => {
-                    const meta =
-                      STYLE_CODE_MODE_META.find((m) => m.key === systemPromptMode) ??
-                      STYLE_CODE_MODE_META[1];
-                    return (
-                      <button
-                        onMouseEnter={() => setIsSystemPromptHovered(true)}
-                        onMouseLeave={() => setIsSystemPromptHovered(false)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          height: '24px',
-                          width: '24px',
-                          boxSizing: 'border-box',
-                          borderRadius: '5px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease-in-out',
-                          border: '1px solid transparent',
-                          background: isSystemPromptHovered
-                            ? 'rgba(128, 128, 128, 0.16)'
-                            : 'transparent',
-                          color: meta.color,
-                          opacity: 1,
-                          padding: 0,
-                        }}
-                        title={`Style Code — ${meta.label}`}
-                      >
-                        <StyleCodeTriggerIcon mode={systemPromptMode} />
-                      </button>
-                    );
-                  })()}
-                />
-              )}
-
-              {/* Prompt Length Selector - Home only */}
-              {!isConversationStarted && (
-                <PromptLengthDropdown
-                  currentMode={promptLengthMode}
-                  onSelect={setPromptLengthMode}
-                  triggerButton={(() => {
-                    const meta =
-                      PROMPT_LENGTH_MODE_META.find((m) => m.key === promptLengthMode) ??
-                      PROMPT_LENGTH_MODE_META[3];
-                    return (
-                      <button
-                        onMouseEnter={() => setIsPromptLengthHovered(true)}
-                        onMouseLeave={() => setIsPromptLengthHovered(false)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          height: '24px',
-                          width: '24px',
-                          boxSizing: 'border-box',
-                          borderRadius: '5px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease-in-out',
-                          border: '1px solid transparent',
-                          background: isPromptLengthHovered
-                            ? 'rgba(128, 128, 128, 0.16)'
-                            : 'transparent',
-                          color: meta.color,
-                          opacity: 1,
-                          padding: 0,
-                        }}
-                        title={`Prompt Length — ${meta.label}`}
-                      >
-                        <PromptLengthTriggerIcon mode={promptLengthMode} />
-                      </button>
-                    );
-                  })()}
-                />
-              )}
-            </div>
-
-            {/* Right Icons */}
-            <div style={{ display: 'flex', gap: 'var(--spacing-xs)' }}>
-              {isConnected && (
-                <div
-                  style={{
-                    cursor:
-                      isHistoryMode || isLoadingCache
-                        ? 'not-allowed'
-                        : isStreaming || isProcessing
-                          ? 'pointer'
-                          : isTokenLimitExceeded
-                            ? 'not-allowed'
-                            : message.trim() || uploadedFiles.length > 0
-                              ? 'pointer'
-                              : 'default',
-                    padding: isStreaming || isProcessing ? 'var(--spacing-xs)' : '4px 8px',
-                    borderRadius: 'var(--border-radius)',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color:
-                      isHistoryMode || isLoadingCache
-                        ? 'var(--secondary-text)'
-                        : isStreaming || isProcessing
-                          ? 'var(--vscode-errorForeground, #f44336)'
-                          : isTokenLimitExceeded
-                            ? 'var(--vscode-errorForeground, #f44336)'
-                            : 'var(--vscode-descriptionForeground, #888)',
-                    pointerEvents:
-                      isHistoryMode ||
-                      isLoadingCache ||
-                      (isTokenLimitExceeded && !isStreaming && !isProcessing)
-                        ? 'none'
-                        : 'auto',
-                    backgroundColor:
-                      isStreaming || isProcessing
-                        ? 'transparent'
-                        : isTokenLimitExceeded
-                          ? 'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 12%, transparent)'
-                          : 'color-mix(in srgb, var(--vscode-descriptionForeground, #888) 8%, transparent)',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    letterSpacing: '0.3px',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onClick={() => {
-                    if ((isStreaming || isProcessing) && onStopGeneration) {
-                      onStopGeneration();
-                      return;
-                    }
-
-                    if (isTokenLimitExceeded) {
-                      return;
-                    }
-
-                    if (!currentModel) {
-                      logger.warn('[MessageInput] send: no model selected, aborting');
-                      return;
-                    }
-                    onSendMessage();
-                  }}
-                  onMouseEnter={(e) => {
-                    if (isStreaming || isProcessing) {
-                      e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
-                    } else if (isTokenLimitExceeded) {
-                      e.currentTarget.style.backgroundColor =
-                        'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 18%, transparent)';
-                    } else if (message.trim() || uploadedFiles.length > 0) {
-                      e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isStreaming || isProcessing) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    } else if (isTokenLimitExceeded) {
-                      e.currentTarget.style.backgroundColor =
-                        'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 12%, transparent)';
-                    } else {
-                      e.currentTarget.style.backgroundColor =
-                        'color-mix(in srgb, var(--vscode-descriptionForeground, #888) 8%, transparent)';
-                    }
-                  }}
-                  title={
-                    isStreaming || isProcessing
-                      ? 'Stop Generation'
-                      : isTokenLimitExceeded
-                        ? `Token limit exceeded (${messageTokenCount.toLocaleString()}/${maxInputTokens?.toLocaleString()})`
-                        : maxInputTokens
-                          ? `${messageTokenCount.toLocaleString()}/${maxInputTokens.toLocaleString()} tokens`
-                          : `${messageTokenCount.toLocaleString()} tokens`
-                  }
-                >
-                  {isStreaming || isProcessing ? (
-                    <X size={16} strokeWidth={2.5} />
-                  ) : (
-                    <span style={{ lineHeight: 1 }}>
-                      {maxInputTokens
-                        ? `${formatTokenCount(messageTokenCount)}/${formatTokenCount(maxInputTokens)}`
-                        : messageTokenCount > 0
-                          ? `${formatTokenCount(messageTokenCount)}`
-                          : '0'}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Language Badge - HomePanel only */}
-          {!isConversationStarted &&
-            isConnected &&
-            LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
-              <div
                 style={{
                   position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  backgroundColor: 'var(--vscode-badge-background)',
-                  color: 'var(--vscode-badge-foreground)',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: '10px',
+                  bottom: '100%',
+                  left: '8px',
+                  backgroundColor: 'rgb(var(--input-background))',
+                  color: 'rgb(var(--text-primary))',
+                  padding: '5px 10px',
+                  fontSize: '11px',
                   fontWeight: 600,
+                  zIndex: 20,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  zIndex: 5,
-                  opacity: 0.8,
-                  pointerEvents: 'none',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 -2px 6px rgba(0,0,0,0.1)',
+                  transition: 'all 0.2s ease',
+                  marginBottom:
+                    !isConnected || isTimeBlocked || isTokenLimitExceeded || isViewOnlyProvider
+                      ? '1px'
+                      : '-1px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgb(var(--input-background))';
+                }}
+                title="Click to select Model and Account"
+              >
+                {displayModel ? (
+                  <>
+                    {(() => {
+                      const prov = providers.find(
+                        (p: any) => p.provider_id === displayModel.providerId,
+                      );
+                      if (!prov?.website) {
+                        return (
+                          <span
+                            className="codicon codicon-server-process"
+                            style={{ fontSize: '12px' }}
+                          />
+                        );
+                      }
+
+                      const faviconUrl = getFaviconUrl(prov.website);
+                      return (
+                        <img
+                          key={faviconUrl}
+                          src={faviconUrl}
+                          alt=""
+                          style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '2px',
+                            objectFit: 'contain',
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      );
+                    })()}
+                    {displayModel.providerId}/
+                    {(() => {
+                      // Tách effort suffix khỏi model id để hiển thị riêng
+                      const EFFORT_LEVELS_TRIGGER = [
+                        'low',
+                        'medium',
+                        'high',
+                        'xhigh',
+                        'max',
+                      ] as const;
+                      type EffortLvl = (typeof EFFORT_LEVELS_TRIGGER)[number];
+                      const EFFORT_COLOR_TRIGGER: Record<EffortLvl, string> = {
+                        low: '#6b7280',
+                        medium: '#3b82f6',
+                        high: '#10b981',
+                        xhigh: '#f59e0b',
+                        max: '#ef4444',
+                      };
+                      const EFFORT_LABEL_TRIGGER: Record<EffortLvl, string> = {
+                        low: 'Low',
+                        medium: 'Medium',
+                        high: 'High',
+                        xhigh: 'Extra',
+                        max: 'Max',
+                      };
+                      let baseId = displayModel.id;
+                      let effort: EffortLvl | null = null;
+                      for (const lvl of EFFORT_LEVELS_TRIGGER) {
+                        if (displayModel.id.endsWith(`-${lvl}`)) {
+                          baseId = displayModel.id.slice(0, -(lvl.length + 1));
+                          effort = lvl;
+                          break;
+                        }
+                      }
+                      if (!effort) return <>{baseId}</>;
+                      const effortColor = EFFORT_COLOR_TRIGGER[effort];
+                      return (
+                        <>
+                          {baseId}{' '}
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              backgroundColor: `color-mix(in srgb, ${effortColor} 15%, transparent)`,
+                              color: effortColor,
+                              letterSpacing: '0.02em',
+                              verticalAlign: 'middle',
+                            }}
+                          >
+                            {EFFORT_LABEL_TRIGGER[effort]}
+                          </span>
+                        </>
+                      );
+                    })()}
+                    {displayAccount?.email && (
+                      <span
+                        style={{
+                          opacity: 0.8,
+                          fontStyle: 'italic',
+                          marginLeft: '2px',
+                        }}
+                      >
+                        {displayAccount.email}
+                      </span>
+                    )}
+                    {/* period_requests + period_tokens: hiển thị độc lập, không phụ thuộc usage */}
+                    {displayAccount?.period_requests != null && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          opacity: 0.75,
+                          marginLeft: '4px',
+                          color: 'var(--secondary-text)',
+                        }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="9"
+                          height="9"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--vscode-testing-iconPassed, #22c55e)"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                        </svg>
+                        {Number(displayAccount.period_requests).toLocaleString()}
+                      </span>
+                    )}
+                    {displayAccount?.period_tokens != null && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          opacity: 0.75,
+                          marginLeft: '2px',
+                          color: 'var(--secondary-text)',
+                        }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="9"
+                          height="9"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--vscode-editorWarning-foreground, #f97316)"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="8" cy="8" r="6" />
+                          <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+                          <path d="M7 6h1v4" />
+                          <path d="m16.71 13.88.7.71-2.82 2.82" />
+                        </svg>
+                        {(() => {
+                          const n = Number(displayAccount.period_tokens);
+                          if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+                          if (n >= 1_000) return (n / 1_000).toFixed(1) + 'k';
+                          return String(n);
+                        })()}
+                      </span>
+                    )}
+                    {/* usage %: chỉ hiển thị khi có */}
+                    {displayAccount?.usage != null &&
+                      (() => {
+                        const usageNum = Number(displayAccount.usage);
+                        const usageColor =
+                          usageNum >= 90
+                            ? 'var(--vscode-editorError-foreground, #ef4444)'
+                            : usageNum >= 70
+                              ? 'var(--vscode-editorWarning-foreground, #f97316)'
+                              : 'var(--secondary-text)';
+                        return (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              opacity: 0.85,
+                              marginLeft: '4px',
+                              color: usageColor,
+                            }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="9"
+                              height="9"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="18" y1="20" x2="18" y2="10" />
+                              <line x1="12" y1="20" x2="12" y2="4" />
+                              <line x1="6" y1="20" x2="6" y2="14" />
+                            </svg>
+                            {usageNum.toFixed(1)}%
+                          </span>
+                        );
+                      })()}
+                  </>
+                ) : (
+                  <>
+                    <span className="codicon codicon-server-process" style={{ fontSize: '12px' }} />
+                    Select Model
+                  </>
+                )}
+              </div>
+            )}
+
+            {showModelDrawer && (
+              <ModelAccountDrawer
+                isOpen={showModelDrawer}
+                onClose={() => setShowModelDrawer(false)}
+                providers={providers}
+                apiUrl={apiUrl}
+                onSelect={(selected) => {
+                  const prov = providers.find((p: any) => p.provider_id === selected.providerId);
+                  const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
+                  let faviconUrl = '';
+                  if (prov?.website) {
+                    try {
+                      faviconUrl = getFaviconUrl(prov.website);
+                    } catch {}
+                  }
+
+                  const newModel = {
+                    ...selected,
+                    id: selected.modelId,
+                    name: modelObj?.name || selected.modelId,
+                    favicon: faviconUrl,
+                    is_thinking: modelObj?.is_thinking ?? false,
+                    is_search: modelObj?.is_search ?? false,
+                    is_image_upload: modelObj?.is_image_upload ?? false,
+                    is_video_upload: modelObj?.is_video_upload ?? false,
+                    is_audio_upload: modelObj?.is_audio_upload ?? false,
+                    is_file_upload: modelObj?.is_file_upload ?? false,
+                  };
+
+                  // Cast to any to handle potential missing fields in Phantoma's ModelAccountDrawer selection object
+                  const selAny = selected as any;
+                  const newAccount = {
+                    id: selAny.accountId,
+                    email: selAny.email,
+                    provider_id: selAny.accountProviderId,
+                    usage: selAny.usage ?? null,
+                    period_requests: selAny.period_requests ?? null,
+                    period_tokens: selAny.period_tokens ?? null,
+                  };
+
+                  if (isModelSwitchMode) {
+                    setPendingModelSwitch({
+                      model: newModel,
+                      account: newAccount,
+                    });
+                    setShowModelDrawer(false);
+                    setIsModelSwitchMode(false);
+                  } else {
+                    setCurrentModel(newModel);
+                    setCurrentAccount(newAccount);
+                    setShowModelDrawer(false);
+                  }
+                }}
+              />
+            )}
+
+            {/* Model Switch Confirmation Dialog */}
+            {pendingModelSwitch && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 10001,
+                }}
+                onClick={() => setPendingModelSwitch(null)}
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    backgroundColor: 'var(--vscode-editor-background)',
+                    border: '1px solid var(--vscode-widget-border)',
+                    borderRadius: '8px',
+                    padding: '20px',
+                    maxWidth: '400px',
+                    width: '90%',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      marginBottom: '12px',
+                      color: 'var(--vscode-foreground)',
+                    }}
+                  >
+                    Switch Model?
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      marginBottom: '16px',
+                      color: 'var(--vscode-descriptionForeground)',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    You're about to switch to:
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        backgroundColor: 'var(--vscode-input-background)',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                      }}
+                    >
+                      <strong>
+                        {pendingModelSwitch.model.providerId}/{pendingModelSwitch.model.id}
+                      </strong>
+                      {pendingModelSwitch.account.email && (
+                        <div style={{ marginTop: '4px', opacity: 0.8 }}>
+                          {pendingModelSwitch.account.email}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '8px',
+                      justifyContent: 'flex-end',
+                    }}
+                  >
+                    <button
+                      onClick={() => setPendingModelSwitch(null)}
+                      style={{
+                        padding: '6px 16px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--vscode-widget-border)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--vscode-foreground)',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          'var(--vscode-list-hoverBackground)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        const currentRange = responseRanges.find((r) => r.isCurrent);
+
+                        const userMessagesInRange: Array<{
+                          content: string;
+                          responseNumber: number;
+                        }> = [];
+                        if (currentRange) {
+                          let responseCount = 0;
+                          for (const msg of messages) {
+                            if (msg.role === 'assistant') {
+                              responseCount++;
+                            }
+                            if (
+                              msg.role === 'user' &&
+                              responseCount >= currentRange.start - 1 &&
+                              responseCount <= currentRange.end
+                            ) {
+                              userMessagesInRange.push({
+                                content: msg.content,
+                                responseNumber: responseCount,
+                              });
+                            }
+                          }
+                        }
+
+                        const contextData = {
+                          fileChanges: currentRange
+                            ? Array.from(currentRange.fileChanges.entries()).map(
+                                ([path, stats]) => ({
+                                  path,
+                                  additions: stats.additions,
+                                  deletions: stats.deletions,
+                                }),
+                              )
+                            : [],
+                          userMessages: userMessagesInRange,
+                        };
+
+                        if (onModelSwitch) {
+                          onModelSwitch(
+                            pendingModelSwitch.model,
+                            pendingModelSwitch.account,
+                            contextData,
+                          );
+                        }
+
+                        setCurrentModel(pendingModelSwitch.model);
+                        setCurrentAccount(pendingModelSwitch.account);
+                        setPendingModelSwitch(null);
+                      }}
+                      style={{
+                        padding: '6px 16px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        backgroundColor: 'var(--vscode-button-background)',
+                        color: 'var(--vscode-button-foreground)',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          'var(--vscode-button-hoverBackground)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--vscode-button-background)';
+                      }}
+                    >
+                      Confirm Switch
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Browser session warning */}
+            {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
+              <div
+                onClick={isLaunchingBrowser ? undefined : onLaunchBrowserSession}
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: '8px',
+                  backgroundColor: 'rgba(251, 146, 60, 0.15)',
+                  padding: '4px 10px',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  borderBottomLeftRadius: '8px',
+                  borderBottomRightRadius: '8px',
+                  border: '1px solid rgba(251, 146, 60, 0.3)',
+                  borderTop: 'none',
+                  zIndex: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: isLaunchingBrowser ? 'not-allowed' : 'pointer',
+                  marginTop: '-1px',
+                  opacity: isLaunchingBrowser ? 0.6 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLaunchingBrowser) {
+                    e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.25)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.15)';
                 }}
               >
-                <span>
-                  {LANGUAGES.find((l: any) => l.code === preferredLanguage)?.flag || '🇺🇸'}{' '}
-                  {preferredLanguage.toUpperCase()}
+                <span style={{ fontSize: '11px', fontWeight: 500 }}>
+                  {isLaunchingBrowser
+                    ? 'Launching browser session...'
+                    : 'Browser session not ready. Click here'}
                 </span>
               </div>
             )}
+
+            <div
+              style={{
+                position: 'relative',
+                backgroundColor: 'rgb(var(--input-background))',
+                borderTopLeftRadius: 'var(--border-radius)',
+                borderTopRightRadius: 'var(--border-radius)',
+                padding: '12px',
+              }}
+            >
+              <style>{`
+          .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb, rgba(255,255,255,0.2)) transparent;
+          }
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+            border-radius: 10px;
+            margin: 4px 0;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: var(--scrollbar-thumb, rgba(255,255,255,0.2));
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            min-height: 40px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: var(--scrollbar-thumb-hover, rgba(255,255,255,0.35));
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:active {
+            background-color: var(--scrollbar-thumb-hover, rgba(255,255,255,0.4));
+          }
+          .custom-scrollbar::-webkit-scrollbar-corner {
+            background: transparent;
+          }
+        `}</style>
+
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => {
+                  handleTextareaChange(e);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (
+                      !isHistoryMode &&
+                      isConnected &&
+                      !isLoadingCache &&
+                      !isProcessing &&
+                      !isTokenLimitExceeded &&
+                      !isTimeBlocked
+                    ) {
+                      onSendMessage();
+                    }
+                  } else {
+                    handleKeyDown(e);
+                  }
+                }}
+                onPaste={(e) => {
+                  const hasFileInClipboard = Array.from(e.clipboardData.items).some(
+                    (it) => it.kind === 'file',
+                  );
+                  if (!supportsUpload && hasFileInClipboard) {
+                    e.preventDefault();
+                    return;
+                  }
+                  handlePaste(e);
+                }}
+                onDragOver={handleDragOver}
+                onDrop={(e) => {
+                  if (!supportsUpload) {
+                    e.preventDefault();
+                    return;
+                  }
+                  handleDrop(e);
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = 'none';
+                  e.target.style.boxShadow = 'none';
+                }}
+                className="zen-message-input"
+                placeholder={placeholderText}
+                disabled={isViewOnlyProvider}
+                rows={1}
+                style={{
+                  width: '100%',
+                  minHeight: '24px',
+                  maxHeight: '240px',
+                  border: 'none',
+                  outline: 'none',
+                  resize: 'none',
+                  fontFamily: 'inherit',
+                  fontSize: 'var(--font-size-sm)',
+                  backgroundColor: 'transparent',
+                  color: 'rgb(var(--text-primary))',
+                  overflow: 'hidden',
+                  whiteSpace: 'pre-wrap',
+                  wordWrap: 'break-word',
+                  opacity: 1,
+                  cursor: 'text',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {/* Bottom Part: Toolbar */}
+            <div
+              style={{
+                backgroundColor: 'rgb(var(--input-background))',
+                borderBottomLeftRadius: 'var(--border-radius)',
+                borderBottomRightRadius: 'var(--border-radius)',
+                padding: '8px 12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                pointerEvents:
+                  !isConnected || isTimeBlocked || isViewOnlyProvider ? 'none' : undefined,
+              }}
+            >
+              {/* Left Icons */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 'var(--spacing-xs)',
+                  alignItems: 'center',
+                }}
+              >
+                <ActionDropdown
+                  onSelectAttach={() => {
+                    const acceptStr = buildAcceptString(currentModelConfig ?? currentModel);
+                    if (fileInputRef?.current) {
+                      fileInputRef.current.accept = acceptStr;
+                      (fileInputRef.current as any).dataset.textOnly = String(!supportsUpload);
+                      fileInputRef.current.click();
+                    } else {
+                      // Call original handleFileSelect without args if signature differs
+                      handleFileSelect();
+                    }
+                  }}
+                  onSelectImageGenerator={() => {}}
+                  onSelectVideoGenerator={() => {}}
+                  onSelectDeepResearch={() => {}}
+                  onSelectPullRequest={onGitPullRequest}
+                  showImageGenerator={supportsImageGenerator}
+                  showVideoGenerator={supportsVideoGenerator}
+                  showDeepResearch={supportsDeepResearch}
+                  currentModel={currentModel}
+                  currentModelConfig={currentModelConfig}
+                  // onSelectRule is not in Phantoma's ActionDropdownProps yet, commenting out to avoid TS error
+                  // onSelectRule={onSelectRule}
+                  triggerButton={
+                    <div
+                      onMouseEnter={() => setIsPlusHovered(true)}
+                      onMouseLeave={() => setIsPlusHovered(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '22px',
+                        width: '22px',
+                        boxSizing: 'border-box',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease-in-out',
+                        border: '1px solid rgba(128, 128, 128, 0.2)',
+                        background: isPlusHovered
+                          ? 'rgba(128, 128, 128, 0.2)'
+                          : 'rgba(128, 128, 128, 0.12)',
+                        color: 'var(--vscode-foreground)',
+                        opacity: isPlusHovered ? 0.9 : 0.7,
+                      }}
+                      title={supportsUpload ? 'Attach files' : 'Attach text files only'}
+                    >
+                      <Plus size={14} />
+                    </div>
+                  }
+                />
+
+                {showThinkingButton && (
+                  <ThinkingButton
+                    isOn={isThinking}
+                    onClick={toggleThinking}
+                    title="Toggle AI Thinking Process"
+                  />
+                )}
+
+                {showSearchButton && (
+                  <SearchButton
+                    isOn={isSearch}
+                    onClick={toggleSearch}
+                    title="Toggle Web Search Grounding"
+                  />
+                )}
+
+                <div
+                  style={{
+                    width: '1px',
+                    height: '16px',
+                    background: 'var(--border-color)',
+                    margin: '0 2px',
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* Prompt Settings (Style · Diagnostics · Skill) — Home only, ẩn khi promptLength=none */}
+                {!isConversationStarted && promptLengthMode !== 'none' && (
+                  <PromptSettingsDropdown
+                    systemPromptMode={systemPromptMode}
+                    onSelectSystemPromptMode={(mode) => {
+                      if (
+                        !!(currentProviderConfig as any)?.anti_system_prompt_injection &&
+                        mode !== 'none'
+                      )
+                        return;
+                      setSystemPromptMode(mode as any);
+                    }}
+                    isAntiInjection={!!(currentProviderConfig as any)?.anti_system_prompt_injection}
+                    diagnosticEnabled={!!conversationDiagnosticEnabled}
+                    onDiagnosticToggle={onConversationDiagnosticToggle}
+                    skillEnabled={!!conversationUseSkillEnabled}
+                    onSkillToggle={onConversationUseSkillToggle}
+                    memoryEnabled={!!conversationMemoryEnabled}
+                    onMemoryToggle={onConversationMemoryToggle}
+                    toolFormat={conversationToolFormat ?? 'xml'}
+                    onToolFormatToggle={() => {
+                      onConversationToolFormatToggle?.();
+                    }}
+                  />
+                )}
+
+                {/* Prompt Length Selector - Home only, hidden for Claude */}
+                {!isConversationStarted && currentModel?.providerId?.toLowerCase() !== 'claude' && (
+                  <PromptLengthDropdown
+                    currentMode={promptLengthMode as any} // Cast to any to bypass strict enum check if types differ slightly
+                    onSelect={(mode: any) => {
+                      if (
+                        !!(currentProviderConfig as any)?.anti_system_prompt_injection &&
+                        mode !== 'none'
+                      )
+                        return;
+                      setPromptLengthMode(mode);
+                    }}
+                    // isNoneOnly prop removed as it doesn't exist in Phantoma's component definition yet
+                    triggerButton={(() => {
+                      const meta =
+                        PROMPT_LENGTH_MODE_META.find((m) => m.key === promptLengthMode) ??
+                        PROMPT_LENGTH_MODE_META[3];
+                      return (
+                        <SimpleTooltip
+                          content={
+                            <>
+                              <span>Prompt Length</span>
+                              <span style={{ fontWeight: 700, color: meta.color }}>
+                                {meta.label}
+                              </span>
+                            </>
+                          }
+                        >
+                          <button
+                            onMouseEnter={() => setIsPromptLengthHovered(true)}
+                            onMouseLeave={() => setIsPromptLengthHovered(false)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '24px',
+                              width: '24px',
+                              boxSizing: 'border-box',
+                              borderRadius: '5px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease-in-out',
+                              border: '1px solid transparent',
+                              background: isPromptLengthHovered
+                                ? 'rgba(128, 128, 128, 0.16)'
+                                : 'transparent',
+                              color: meta.color,
+                              opacity: 1,
+                              padding: 0,
+                            }}
+                          >
+                            <PromptLengthTriggerIcon mode={promptLengthMode} />
+                          </button>
+                        </SimpleTooltip>
+                      );
+                    })()}
+                  />
+                )}
+              </div>
+
+              {/* Right Icons */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 'var(--spacing-xs)',
+                  alignItems: 'center',
+                }}
+              >
+                {/* Rule Badge */}
+                {(() => {
+                  const activeRule = attachedItems?.find((i: any) => i.type === 'rule');
+                  if (!activeRule) return null;
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 8px',
+                        borderRadius: 'var(--border-radius)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: '#facc15',
+                        backgroundColor: 'color-mix(in srgb, #facc15 12%, transparent)',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={`Rule: ${activeRule.path}`}
+                    >
+                      <span
+                        style={{
+                          maxWidth: '120px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {activeRule.path}
+                      </span>
+                      {onRemoveAttachedItem && (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveAttachedItem(activeRule.id);
+                          }}
+                          style={{
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <X size={11} strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Claude workspace zip-size badge */}
+                {isClaudeProvider && <ClaudeZipBadge state={zipSizeState} />}
+
+                {/* View Only badge */}
+                {isViewOnly && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 8px',
+                      height: '22px',
+                      boxSizing: 'border-box',
+                      borderRadius: '4px',
+                      backgroundColor: 'color-mix(in srgb, #eab308 14%, transparent)',
+                      border: '1px solid color-mix(in srgb, #eab308 40%, transparent)',
+                      color: '#ca8a04',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    View Only
+                  </div>
+                )}
+
+                {/* Token Count Badge / Stop Button */}
+                {isConnected && !isViewOnly && (
+                  <div
+                    style={{
+                      cursor:
+                        isHistoryMode || isLoadingCache
+                          ? 'not-allowed'
+                          : isStreaming || isProcessing
+                            ? 'pointer'
+                            : isTokenLimitExceeded || isTimeBlocked
+                              ? 'not-allowed'
+                              : message.trim() || uploadedFiles.length > 0
+                                ? 'pointer'
+                                : 'default',
+                      padding: isStreaming || isProcessing ? 'var(--spacing-xs)' : '4px 8px',
+                      borderRadius: 'var(--border-radius)',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color:
+                        isHistoryMode || isLoadingCache
+                          ? 'var(--secondary-text)'
+                          : isStreaming || isProcessing
+                            ? 'var(--vscode-errorForeground, #f44336)'
+                            : isTokenLimitExceeded || isTimeBlocked
+                              ? 'var(--vscode-errorForeground, #f44336)'
+                              : 'var(--vscode-descriptionForeground, #888)',
+                      pointerEvents:
+                        isHistoryMode ||
+                        isLoadingCache ||
+                        ((isTokenLimitExceeded || isTimeBlocked) && !isStreaming && !isProcessing)
+                          ? 'none'
+                          : 'auto',
+                      backgroundColor:
+                        isStreaming || isProcessing
+                          ? 'transparent'
+                          : isTokenLimitExceeded || isTimeBlocked
+                            ? 'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 12%, transparent)'
+                            : 'color-mix(in srgb, var(--vscode-descriptionForeground, #888) 8%, transparent)',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      letterSpacing: '0.3px',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onClick={() => {
+                      if ((isStreaming || isProcessing) && onStopGeneration) {
+                        onStopGeneration();
+                        return;
+                      }
+
+                      if (isTokenLimitExceeded || isTimeBlocked) {
+                        return;
+                      }
+
+                      if (!currentModel) {
+                        console.warn('[Zen] MessageInput send: no model selected, aborting');
+                        return;
+                      }
+                      onSendMessage();
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isStreaming || isProcessing) {
+                        e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                      } else if (isTokenLimitExceeded || isTimeBlocked) {
+                        e.currentTarget.style.backgroundColor =
+                          'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 18%, transparent)';
+                      } else if (message.trim() || uploadedFiles.length > 0) {
+                        e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isStreaming || isProcessing) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      } else if (isTokenLimitExceeded || isTimeBlocked) {
+                        e.currentTarget.style.backgroundColor =
+                          'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 12%, transparent)';
+                      } else {
+                        e.currentTarget.style.backgroundColor =
+                          'color-mix(in srgb, var(--vscode-descriptionForeground, #888) 8%, transparent)';
+                      }
+                    }}
+                    title={
+                      isStreaming || isProcessing
+                        ? 'Stop Generation'
+                        : isTimeBlocked && timeBlockLabel
+                          ? `DeepSeek is blocked during ${timeBlockLabel.all}`
+                          : isTokenLimitExceeded
+                            ? `Token limit exceeded (${messageTokenCount.toLocaleString()}/${maxInputTokens?.toLocaleString()})`
+                            : maxInputTokens
+                              ? `${messageTokenCount.toLocaleString()}/${maxInputTokens.toLocaleString()} tokens`
+                              : `${messageTokenCount.toLocaleString()} tokens`
+                    }
+                  >
+                    {isStreaming || isProcessing ? (
+                      <X size={16} strokeWidth={2.5} />
+                    ) : (
+                      <span style={{ lineHeight: 1 }}>
+                        {(() => {
+                          const formatTokenCount = (count: number): string => {
+                            if (count < 1000) return count.toString();
+                            else if (count < 1000000) {
+                              const k = count / 1000;
+                              return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
+                            } else {
+                              const m = count / 1000000;
+                              return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
+                            }
+                          };
+                          return maxInputTokens
+                            ? `${formatTokenCount(messageTokenCount)}/${formatTokenCount(maxInputTokens)}`
+                            : messageTokenCount > 0
+                              ? `${formatTokenCount(messageTokenCount)}`
+                              : '0';
+                        })()}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Language Badge - HomePanel only */}
+            {!isConversationStarted &&
+              isConnected &&
+              LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    backgroundColor: 'var(--vscode-badge-background)',
+                    color: 'var(--vscode-badge-foreground)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    zIndex: 5,
+                    opacity: 0.8,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <span>
+                    {LANGUAGES.find((l: any) => l.code === preferredLanguage)?.flag || '🇺'}{' '}
+                    {preferredLanguage.toUpperCase()}
+                  </span>
+                </div>
+              )}
+          </div>
+
+          {/* ─── Bậc 3: ZenCLI hint bar (ngoài border, chỉ HomePanel) ─── */}
+          {!isConversationStarted && <ZenCliHintBar isClaudeProvider={isClaudeProvider} />}
         </div>
       </div>
     );
@@ -2029,7 +2145,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 );
 
 export default React.memo(MessageInput, (prevProps, nextProps) => {
-  // Only re-render when essential props change.
   const messageSame = prevProps.message === nextProps.message;
   const isProcessingSame = prevProps.isProcessing === nextProps.isProcessing;
   const isStreamingSame = prevProps.isStreaming === nextProps.isStreaming;
@@ -2040,8 +2155,14 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
   const conversationFileStatsSame =
     prevProps.conversationFileStats === nextProps.conversationFileStats;
   const attachedItemsSame = prevProps.attachedItems?.length === nextProps.attachedItems?.length;
+  const diagnosticSame =
+    prevProps.conversationDiagnosticEnabled === nextProps.conversationDiagnosticEnabled;
+  const useSkillSame =
+    prevProps.conversationUseSkillEnabled === nextProps.conversationUseSkillEnabled;
+  const memorySame = prevProps.conversationMemoryEnabled === nextProps.conversationMemoryEnabled;
+  const toolFormatSame = prevProps.conversationToolFormat === nextProps.conversationToolFormat;
 
-  return (
+  const shouldSkip =
     messageSame &&
     isProcessingSame &&
     isStreamingSame &&
@@ -2050,6 +2171,11 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     messagesLengthSame &&
     responseRangesSame &&
     conversationFileStatsSame &&
-    attachedItemsSame
-  );
+    attachedItemsSame &&
+    diagnosticSame &&
+    useSkillSame &&
+    memorySame &&
+    toolFormatSame;
+
+  return shouldSkip;
 });

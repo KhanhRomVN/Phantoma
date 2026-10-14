@@ -30,7 +30,7 @@ import { emulateApi } from '../../../services/emulate-api.service';
 import { NetworkRequest } from '../../../types/inspector';
 
 // ── Utils ──
-import { logger } from '@renderer/utils/logger';
+
 import { cn } from '@renderer/shared/utils/cn';
 import { getRequestCategory } from '../../../utils/request-classifier.util';
 
@@ -354,7 +354,7 @@ export function NetworkFilter({
           onChange(mergedFilter);
         }
       } catch (error) {
-        logger.error('[Filter] ❌ Exception while loading filter:', error);
+        console.error('[Filter] ❌ Exception while loading filter:', error);
       } finally {
         setIsLoadingFilter(false);
       }
@@ -398,7 +398,7 @@ export function NetworkFilter({
       };
       localStorage.setItem(key, JSON.stringify(dataToSave));
     } catch (error) {
-      logger.error('[Filter] ❌ Failed to save to localStorage:', error);
+      console.error('[Filter] ❌ Failed to save to localStorage:', error);
     }
   }, [filter, targetId]);
 
@@ -416,7 +416,7 @@ export function NetworkFilter({
           type: JSON.stringify(filter.type),
         });
       } catch (error) {
-        logger.error('[Filter] ❌ Exception while saving filter:', error);
+        console.error('[Filter] ❌ Exception while saving filter:', error);
       }
     };
 

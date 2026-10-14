@@ -19,7 +19,6 @@ import { ChevronRight } from 'lucide-react';
 
 // ── Utils ──
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { logger } from '@renderer/utils/logger';
 
 // ── Components ──
 import ErrorBlock from './ErrorBlock';
@@ -44,7 +43,7 @@ interface TreeBlockProps {
  * Parse text output từ ListResourcesHandler thành FileNode[].
  * Format:
  *   [list_resources] Total: N, Filtered: M
- *   
+ *
  *   - filename (type, size, content-type)
  */
 export function parseResourceTable(text: string): FileNode[] {
@@ -53,7 +52,7 @@ export function parseResourceTable(text: string): FileNode[] {
 
   for (const line of lines) {
     if (!line.startsWith('-')) continue;
-    
+
     // Parse: - filename (type, size, content-type)
     const match = line.match(/^-\s+(.+?)\s+\((.+?),\s*(.+?),\s*(.+?)\)$/);
     if (!match) continue;
@@ -91,16 +90,16 @@ export function parseResourceTable(text: string): FileNode[] {
  * Parse text output từ ListSourcesHandler thành FileNode[].
  * Format:
  *   [list_sources] Total: N, Filtered: M
- *   
+ *
  *   - domain.com/folder/file.js (12.3 KB)
  */
 export function parseSourceTree(text: string): FileNode[] {
   const lines = text.split('\n');
   const nodes: FileNode[] = [];
-  
+
   for (const line of lines) {
     if (!line.startsWith('-')) continue;
-    
+
     // Parse: - path/to/file.js (size)
     const match = line.match(/^-\s+(.+?)(?:\s+\((.+?)\))?$/);
     if (!match) continue;
@@ -185,7 +184,8 @@ const TreeNode: React.FC<{
   const hasChildren = node.children && node.children.length > 0;
   const iconPath =
     node.type === 'folder' ? getFolderIconPath(node.name, isExpanded) : getFileIconPath(node.path);
-  const fallbackIcon = node.type === 'folder' ? '/images/icon/folder-base.svg' : '/images/icon/file.svg';
+  const fallbackIcon =
+    node.type === 'folder' ? '/images/icon/folder-base.svg' : '/images/icon/file.svg';
 
   return (
     <div>
@@ -253,7 +253,7 @@ function formatFileSize(bytes: number): string {
 
 export const TreeBlock: React.FC<TreeBlockProps> = ({ files, onFileClick, maxHeight }) => {
   if (!Array.isArray(files)) {
-    logger.warn('[TreeBlock] Invalid files data - not an array:', files);
+    console.warn('[TreeBlock] Invalid files data - not an array:', files);
     return (
       <ErrorBlock content="Invalid tree data format (not array)" compact={true} maxHeight="300px" />
     );
@@ -267,12 +267,7 @@ export const TreeBlock: React.FC<TreeBlockProps> = ({ files, onFileClick, maxHei
     <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
       <div className="py-1" style={maxHeight ? { maxHeight, overflow: 'auto' } : undefined}>
         {files.map((file, index) => (
-          <TreeNode
-            key={`${file.path}-${index}`}
-            node={file}
-            level={0}
-            onFileClick={onFileClick}
-          />
+          <TreeNode key={`${file.path}-${index}`} node={file} level={0} onFileClick={onFileClick} />
         ))}
       </div>
     </div>
