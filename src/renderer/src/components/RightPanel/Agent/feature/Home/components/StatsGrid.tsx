@@ -6,8 +6,9 @@
  * tổng tokens, API requests, favorite model, và tổng tài khoản.
  *
  * Main features:
- * - Hiển thị dạng 2x2 grid, mỗi box layout dọc: icon → value → name
- * - Text % thay đổi ở góc phải (green/red theo dương/âm)
+ * - 2x2 grid fixed layout
+ * - Icon → value → label vertical layout
+ * - Percent change badge (green/red)
  * - Giá trị động từ props
  * ------------------------------------------------------------------
  */
@@ -34,44 +35,39 @@ const StatsGrid: React.FC<StatsGridProps> = ({
   const cards = [
     {
       icon: <MessageSquare size={16} />,
-      iconBg: $('--primary', 0.12),
-      iconColor: $('--primary'),
+      iconBg: 'rgba(59, 130, 246, 0.12)',
+      iconColor: 'rgb(59, 130, 246)',
       value: todayTokens.toLocaleString(),
       label: 'Total Tokens',
       percent: percentChanges[0],
-      valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
+      isModel: false,
     },
     {
       icon: <Zap size={16} />,
-      iconBg: $('--success', 0.12),
-      iconColor: $('--success'),
+      iconBg: 'rgba(16, 185, 129, 0.12)',
+      iconColor: 'rgb(16, 185, 129)',
       value: String(todayRequests),
       label: 'API Requests',
       percent: percentChanges[1],
-      valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
+      isModel: false,
     },
     {
       icon: <Brain size={16} />,
-      iconBg: $('--warn', 0.12),
-      iconColor: $('--warn'),
+      iconBg: 'rgba(245, 158, 11, 0.12)',
+      iconColor: 'rgb(245, 158, 11)',
       value: favoriteModel,
       label: 'Favorite Model',
       percent: percentChanges[2],
-      valueStyle: {
-        fontSize: '13px',
-        fontWeight: 700,
-        lineHeight: 1.2,
-        wordBreak: 'break-all',
-      } as React.CSSProperties,
+      isModel: true,
     },
     {
       icon: <Users size={16} />,
-      iconBg: $('--purple', 0.12),
-      iconColor: $('--purple'),
+      iconBg: 'rgba(139, 92, 246, 0.12)',
+      iconColor: 'rgb(139, 92, 246)',
       value: String(totalAccounts),
       label: 'Total Accounts',
       percent: percentChanges[3],
-      valueStyle: { fontSize: '16px', fontWeight: 700 } as React.CSSProperties,
+      isModel: false,
     },
   ];
 
@@ -80,16 +76,13 @@ const StatsGrid: React.FC<StatsGridProps> = ({
       {cards.map((card, i) => (
         <div
           key={i}
-          className="dashboard-card relative flex flex-col gap-1.5 p-3 rounded-lg border border-border hover:border-primary transition-transform duration-200 ease-in-out"
+          className="dashboard-card relative flex flex-col gap-1.5 p-3.5 rounded-lg bg-card-background transition-transform duration-200"
         >
           {card.percent !== null && card.percent !== undefined && (
             <span
               className="absolute top-3 right-3 text-[10px] font-semibold"
               style={{
-                color:
-                  card.percent >= 0
-                    ? 'rgb(var(--success))'
-                    : 'rgb(var(--error))',
+                color: card.percent >= 0 ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)',
               }}
             >
               {card.percent > 0 ? '+' : ''}
@@ -107,13 +100,22 @@ const StatsGrid: React.FC<StatsGridProps> = ({
             {card.icon}
           </div>
 
-          <span style={card.valueStyle} className="text-text-primary">
-            {card.value}
-          </span>
-
-          <span className="text-[10px] font-medium text-text-secondary">
-            {card.label}
-          </span>
+          <div className="flex flex-col gap-1.5">
+            <span
+              style={{
+                fontSize: card.isModel ? '13px' : '16px',
+                fontWeight: 700,
+                lineHeight: card.isModel ? 1.2 : undefined,
+                wordBreak: card.isModel ? 'break-all' : undefined,
+                color: $('--text-primary'),
+              }}
+            >
+              {card.value}
+            </span>
+            <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wider">
+              {card.label}
+            </span>
+          </div>
         </div>
       ))}
     </div>

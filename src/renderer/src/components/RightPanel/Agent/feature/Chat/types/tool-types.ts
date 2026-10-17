@@ -22,6 +22,29 @@ export interface BaseToolParams {
   folder_path?: string;
 }
 
+// ===== CONVERSATION TITLE =====
+export interface ConversationTitleParams {
+  title: string;
+}
+
+// ===== READ MEMORY =====
+export interface ReadMemoryParams {
+  _empty?: true;
+}
+
+// ===== UPDATE MEMORY =====
+export interface UpdateMemoryParams {
+  old_content: string;
+  new_content: string;
+  _validationError?: string;
+}
+
+// ===== READ SKILL =====
+export interface ReadSkillParams {
+  skill_id: string;
+  _validationError?: string;
+}
+
 // ===== READ FILE =====
 export interface ReadFileParams extends BaseToolParams {
   start_line?: number;

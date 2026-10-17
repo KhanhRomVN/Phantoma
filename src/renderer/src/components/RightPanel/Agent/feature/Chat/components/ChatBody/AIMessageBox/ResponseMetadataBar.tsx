@@ -1,54 +1,60 @@
-import React from 'react';
 /**
  * ------------------------------------------------------------------
  * ResponseMetadataBar
  * ------------------------------------------------------------------
  * Hiển thị thống kê sử dụng token và số phản hồi.
  * Hỗ trợ xem nội dung thô (request/response) và parse debug info.
- *
- * Main features:
- * - Hiển thị token usage thống kê
- * - Xem raw request/response content
- * - Retry và revert conversation
+ * Retry/Revert với revert-preview drawer khi có file changes.
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
-// ── Utils ──
+import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
-// ── Types ──
 import { Message } from '../../../types/message';
+import type { RevertFileEntry, RevertGroupKey } from '../../../types/revert';
+import { buildRevertPreview } from '../../../utils/revertPreviewBuilder';
 
-// ── Components ──
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import RevertConfirmModal from '../RevertConfirmModal';
+import RevertConfirmDrawer from '../RevertConfirmDrawer';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ResponseMetadataBarProps {
   responseNumber: number;
   message: Message;
   previousUserMessage: Message | null;
+  /** All messages in the conversation — used to build revert preview. */
+  allMessages?: Message[];
   onRetryRequest?: () => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
+  /** True khi response đang stream — dùng để hiển thị số token real-time. */
+  isStreaming?: boolean;
+  /** Provider có hỗ trợ regenerate/revert không. Mặc định true. */
+  canRegenerate?: boolean;
+  conversationId?: string;
 }
 
 /**
  * ResponseMetadataBar hiển thị thống kê sử dụng token và số phản hồi.
- * Hiển thị số lượng token request/response với chế độ xem nội dung thô có thể mở rộng.
  */
 export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
   responseNumber,
   message,
   previousUserMessage,
+  allMessages,
   onRetryRequest,
   onRevertConversation,
+  isStreaming: _isStreaming = false,
+  canRegenerate = true,
+  conversationId: _conversationId,
 }) => {
   const [requestChecked, setRequestChecked] = React.useState(false);
   const [responseChecked, setResponseChecked] = React.useState(false);
   const [parseDebugChecked, setParseDebugChecked] = React.useState(false);
   const [showRetryModal, setShowRetryModal] = React.useState(false);
-  const [showRevertModal, setShowRevertModal] = React.useState(false);
+  const [showRevertDrawer, setShowRevertDrawer] = React.useState(false);
+  const [revertFiles, setRevertFiles] = React.useState<RevertFileEntry[]>([]);
   const [isRetryHovered, setIsRetryHovered] = React.useState(false);
   const [isRevertHovered, setIsRevertHovered] = React.useState(false);
 
@@ -57,20 +63,9 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
     previousUserMessage?.token_usage ?? previousUserMessage?.usage?.prompt_tokens ?? 0;
   const resTokens = message.usage?.completion_tokens ?? message.token_usage ?? 0;
 
-  // Request/Response icons
+  // ── Icons ──
   const RequestIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d="M12 3v12" />
       <path d="m17 8-5-5-5 5" />
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -78,18 +73,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
   );
 
   const ResponseIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d="M12 15V3" />
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <path d="m7 10 5 5 5-5" />
@@ -97,54 +81,21 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
   );
 
   const RetryIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
       <path d="M21 3v5h-5" />
     </svg>
   );
 
   const RevertIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d="M9 14 4 9l5-5" />
       <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
     </svg>
   );
 
   const DebugIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
       <path d="m8 2 1.88 1.88" />
       <path d="M14.12 3.88 16 2" />
       <path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" />
@@ -159,25 +110,53 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
     </svg>
   );
 
+  // ── Handlers ──
   const handleRetryClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowRetryModal(true);
   };
 
+  /**
+   * Revert flow:
+   * 1. Build preview từ allMessages + target messageId.
+   * 2. Nếu không có file changes → revert thẳng (không cần confirm).
+   * 3. Nếu có → mở Drawer để user review.
+   */
   const handleRevertClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShowRevertModal(true);
+    if (!onRevertConversation) return;
+
+    const targetId = previousUserMessage?.id ?? message.id;
+    const targetTimestamp = previousUserMessage?.timestamp ?? message.timestamp;
+
+    const preview = allMessages ? buildRevertPreview(allMessages, targetId) : [];
+
+    if (preview.length === 0) {
+      onRevertConversation(targetId, targetTimestamp);
+      return;
+    }
+
+    setRevertFiles(preview);
+    setShowRevertDrawer(true);
   };
 
   const handleConfirmRetry = () => {
-    if (onRetryRequest) {
-      onRetryRequest();
-    }
+    if (onRetryRequest) onRetryRequest();
   };
 
   const handleConfirmRevert = () => {
-    if (onRevertConversation) {
-      onRevertConversation(message.id, message.timestamp);
+    if (!onRevertConversation) return;
+    const targetId = previousUserMessage?.id ?? message.id;
+    const targetTimestamp = previousUserMessage?.timestamp ?? message.timestamp;
+    onRevertConversation(targetId, targetTimestamp);
+  };
+
+  const handleFileClick = (filePath: string, _groupKey: RevertGroupKey) => {
+    const api = (window as any).api;
+    if (api?.fs?.readFile) {
+      api.fs.readFile(filePath).catch(() => {
+        // Ignore read errors in preview — file có thể đã bị xoá.
+      });
     }
   };
 
@@ -198,43 +177,43 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
             <span className="text-success inline-flex items-center">{RequestIcon}</span>
             <span className="text-text-primary font-semibold">{reqTokens.toLocaleString()}</span>
           </div>
-
-          {/* Retry Icon */}
-          {onRetryRequest && previousUserMessage && requestChecked && (
-            <div
-              onClick={handleRetryClick}
-              onMouseEnter={() => setIsRetryHovered(true)}
-              onMouseLeave={() => setIsRetryHovered(false)}
-              className={cn(
-                'inline-flex items-center cursor-pointer text-warn transition-opacity duration-200',
-                isRetryHovered
-                  ? 'underline underline-offset-[3px] opacity-100'
-                  : 'no-underline opacity-70',
-              )}
-              title="Retry this request"
-            >
-              {RetryIcon}
-            </div>
-          )}
-
-          {/* Revert Icon */}
-          {onRevertConversation && requestChecked && (
-            <div
-              onClick={handleRevertClick}
-              onMouseEnter={() => setIsRevertHovered(true)}
-              onMouseLeave={() => setIsRevertHovered(false)}
-              className={cn(
-                'inline-flex items-center cursor-pointer text-warn transition-opacity duration-200',
-                isRevertHovered
-                  ? 'underline underline-offset-[3px] opacity-100'
-                  : 'no-underline opacity-70',
-              )}
-              title="Revert conversation to this point"
-            >
-              {RevertIcon}
-            </div>
-          )}
         </div>
+
+        {/* Retry Icon */}
+        {onRetryRequest && previousUserMessage && requestChecked && (
+          <div
+            onClick={handleRetryClick}
+            onMouseEnter={() => setIsRetryHovered(true)}
+            onMouseLeave={() => setIsRetryHovered(false)}
+            className={cn(
+              'inline-flex items-center cursor-pointer text-warn transition-opacity duration-200',
+              isRetryHovered
+                ? 'underline underline-offset-[3px] opacity-100'
+                : 'no-underline opacity-70',
+            )}
+            title="Retry this request"
+          >
+            {RetryIcon}
+          </div>
+        )}
+
+        {/* Revert Icon */}
+        {onRevertConversation && canRegenerate && requestChecked && (
+          <div
+            onClick={handleRevertClick}
+            onMouseEnter={() => setIsRevertHovered(true)}
+            onMouseLeave={() => setIsRevertHovered(false)}
+            className={cn(
+              'inline-flex items-center cursor-pointer text-warn transition-opacity duration-200',
+              isRevertHovered
+                ? 'underline underline-offset-[3px] opacity-100'
+                : 'no-underline opacity-70',
+            )}
+            title="Revert conversation to this point"
+          >
+            {RevertIcon}
+          </div>
+        )}
 
         {/* Response Badge */}
         <div className="inline-flex items-center gap-1.5">
@@ -390,7 +369,6 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                         if (block.language) {
                           lines.push(`    Language: ${block.language}`);
                         }
-
                         if (block.actionIndex !== undefined) {
                           lines.push(`    Linked to Action: #${block.actionIndex + 1}`);
                         }
@@ -412,7 +390,6 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
                         if (action.errorMessage) {
                           lines.push(`    Error: ${action.errorMessage}`);
                         }
-
                         if (action.errorCode) {
                           lines.push(`    Error Code: ${action.errorCode}`);
                         }
@@ -477,13 +454,13 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
         description="This will resend the request from this point. If there are messages after this one, they will be removed and any file changes from those messages will be reverted."
       />
 
-      {/* Revert Confirmation Modal */}
-      <RevertConfirmModal
-        isOpen={showRevertModal}
-        onClose={() => setShowRevertModal(false)}
+      {/* Revert Confirmation Drawer (with file preview) */}
+      <RevertConfirmDrawer
+        isOpen={showRevertDrawer}
+        onClose={() => setShowRevertDrawer(false)}
         onConfirm={handleConfirmRevert}
-        title="Revert conversation to this point?"
-        description="This will remove all messages after this response and revert any file changes from those messages."
+        files={revertFiles}
+        onFileClick={handleFileClick}
       />
     </div>
   );

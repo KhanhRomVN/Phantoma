@@ -30,6 +30,8 @@ interface Props {
 
 const CELL_HEIGHT = 36; // px per row unit (spec suggestion 36-40)
 
+const mapRowsFor = (w: number): number => Math.min(w, w % 2 === 0 ? 8 : 7);
+
 const BADGE_ACCENTS = ['#3686ff', '#a855f7', '#22c55e', '#f97316', '#eab308', '#ec4899', '#06b6d4'];
 
 /** Chọn màu accent cố định theo label: nhìn ngẫu nhiên nhưng không đổi giữa các lần render. */
@@ -78,8 +80,9 @@ export default function SectionBox({ box }: Props) {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
   const isCanvas = cfg.ui === 'graph' || cfg.ui === 'map';
+  const canvasRows = cfg.ui === 'map' ? mapRowsFor(cfg.w) : cfg.w;
   const style: React.CSSProperties = isCanvas
-    ? { minHeight: `calc(${cfg.w} * var(--row-h, ${CELL_HEIGHT}px) + ${cfg.w - 1} * 1rem)` }
+    ? { minHeight: `calc(${canvasRows} * var(--row-h, ${CELL_HEIGHT}px) + ${canvasRows - 1} * 1rem)` }
     : cfg.maxH
       ? { maxHeight: `calc(${cfg.maxH} * var(--row-h, ${CELL_HEIGHT}px) + ${cfg.maxH - 1} * 1rem)` }
       : {};
@@ -255,7 +258,7 @@ function renderBody(
         />
       );
     case 'stat':
-      return <StatView items={data.items} />;
+      return <StatView items={data.items} variant={options?.variant} />;
     case 'tags':
       return <TagsView groups={data.groups} />;
     case 'pin':

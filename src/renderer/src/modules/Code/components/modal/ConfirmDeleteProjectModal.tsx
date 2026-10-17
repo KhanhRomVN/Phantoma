@@ -16,7 +16,6 @@ export function ConfirmDeleteProjectModal({
   onClose,
   onConfirm,
   projectName,
-  projectPath,
 }: ConfirmDeleteProjectModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[400px]">

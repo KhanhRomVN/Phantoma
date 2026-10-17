@@ -30,6 +30,12 @@ import { Message } from '../../../types/message';
 import { ParsedResponse } from '../../../services/ResponseParser';
 import { GroupType } from '../../../types/renderer-types';
 
+// ── Utils ──
+import {
+  buildDangerousCommandMap,
+  type DangerousCommandInfo,
+} from '../../../utils/dangerousCommandDetector';
+
 // ── Components ──
 import TagRouter from './TagRouter';
 import ResponseMetadataBar from './ResponseMetadataBar';
@@ -120,6 +126,31 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   onRetryRequest,
   onRevertConversation,
 }) => {
+  // Detect dangerous run_command actions trong message này (regex trên command text)
+  const dangerousCommands = React.useMemo<Record<string, DangerousCommandInfo>>(() => {
+    if (!parsedContent?.actions?.length) return {};
+    return buildDangerousCommandMap(message.id, parsedContent.actions);
+  }, [message.id, parsedContent.actions]);
+
+  // Handlers cho dangerous command actions
+  const onProceedDangerousCommand = React.useCallback(
+    (actionId: string) => {
+      const idx = parsedContent.actions.findIndex((_a, i) => `${message.id}-action-${i}` === actionId);
+      if (idx === -1) return;
+      onToolClick(parsedContent.actions[idx], message, idx, 'accept');
+    },
+    [message, parsedContent.actions, onToolClick],
+  );
+
+  const onCancelDangerousCommand = React.useCallback(
+    (actionId: string) => {
+      const idx = parsedContent.actions.findIndex((_a, i) => `${message.id}-action-${i}` === actionId);
+      if (idx === -1) return;
+      onToolClick(parsedContent.actions[idx], message, idx, 'reject');
+    },
+    [message, parsedContent.actions, onToolClick],
+  );
+
   // Track render count for this specific message
   const renderCountRef = React.useRef(0);
   renderCountRef.current++;
@@ -317,7 +348,14 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
                 });
               }
             } else if (block.type === 'thinking') {
-              // Skip
+              if (block.content.trim().length > 0) {
+                flushTools();
+                groups.push({
+                  type: 'thinking',
+                  content: block.content,
+                  key: `thinking-${idx}`,
+                });
+              }
             } else if (block.type === 'question') {
               flushTools();
               groups.push({
@@ -379,6 +417,8 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
                   responseNumber={responseNumber!}
                   message={message}
                   previousUserMessage={previousUserMessage}
+                  allMessages={allMessages}
+                  conversationId={conversationId}
                   onRetryRequest={onRetryRequest ? () => onRetryRequest(message.id) : undefined}
                   onRevertConversation={onRevertConversation}
                 />
@@ -423,6 +463,10 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
               onSelectOption={onSelectOption}
               onSendMessage={onSendMessage}
               firstUnclickedActionIndex={firstUnclickedActionIndex}
+              isViewOnly={isRestored}
+              dangerousCommands={dangerousCommands}
+              onProceedDangerousCommand={onProceedDangerousCommand}
+              onCancelDangerousCommand={onCancelDangerousCommand}
             />
           );
 

@@ -29,6 +29,7 @@ import { logger } from '../utils/logger';
 // ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ConversationData {
   conversationId: string;
+  title?: string;
   backendConversationId?: string;
   messages: Array<{
     id: string;
@@ -53,6 +54,13 @@ export interface ConversationData {
     totalAdditions: number;
     totalDeletions: number;
     responseNumber?: number;
+  };
+  /** Per-conversation feature overrides (3-mode Phantoma: code/emulate/recon) */
+  conversationOverrides?: {
+    diagnosticEnabled?: boolean;
+    useSkillEnabled?: boolean;
+    memoryEnabled?: boolean;
+    toolFormat?: 'xml' | 'json';
   };
   createdAt: number;
   lastModified: number;
@@ -165,6 +173,35 @@ export class ConversationStorage {
     } catch (error) {
       // Ignore if directory doesn't exist
       logger.warn(`[ConversationStorage] Failed to delete all conversations for ${moduleId}:`, error);
+    }
+  }
+
+  /**
+   * Update only the title of a conversation.
+   * Title is stored as an optional `title` field at root level.
+   */
+  async updateConversationTitle(
+    moduleId: string,
+    conversationId: string,
+    title: string,
+  ): Promise<boolean> {
+    const filePath = this.getConversationPath(moduleId, conversationId);
+    if (!fs.existsSync(filePath)) {
+      logger.warn(
+        `[ConversationStorage] Cannot set title — conversation ${conversationId} not found in ${moduleId}`,
+      );
+      return false;
+    }
+    try {
+      const content = await fs.promises.readFile(filePath, 'utf-8');
+      const data = JSON.parse(content) as ConversationData & { title?: string };
+      data.title = title;
+      data.lastModified = Date.now();
+      await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+      return true;
+    } catch (err: any) {
+      logger.error('[ConversationStorage] Failed to update title:', err.message);
+      return false;
     }
   }
 }

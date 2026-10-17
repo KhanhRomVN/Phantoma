@@ -1,74 +1,166 @@
-import React from 'react';
+import * as React from "react";
+import {
+  extensionService,
+  messageDispatcher,
+} from "@renderer/components/RightPanel/Agent/services/ExtensionService";
 
-interface UseWorkspaceZipSizeResult {
-  isLoading: boolean;
+export interface ZipSizeState {
+  /** Kích thước file zip tính bằng bytes; null khi chưa có dữ liệu */
   sizeBytes: number | null;
+  /** Số file được đưa vào zip */
+  fileCount: number | null;
+  /** Đang trong quá trình zip */
+  isZipping: boolean;
+  /** Lỗi từ bước zip (network, timeout, ...) */
   error: string | null;
 }
 
+const INITIAL_STATE: ZipSizeState = {
+  sizeBytes: null,
+  fileCount: null,
+  isZipping: false,
+  error: null,
+};
+
+/** Timeout ngắn hơn bản production (60s) để UI không bị treo lâu khi user đổi model liên tục */
+const ZIP_TIMEOUT_MS = 30_000;
+/** Debounce để tránh spam zip khi user rapid-switch giữa các model claude */
+const DEBOUNCE_MS = 800;
+
+interface RequestWorkspaceZipResult {
+  fileCount: number;
+  sizeBytes: number;
+}
+
 /**
- * Hook to estimate the size of the workspace when zipped for Claude provider.
- * In a real Electron app, this would likely invoke an IPC call to the main process
- * to perform the actual zip calculation or estimation without blocking UI.
+ * Gọi command "zipWorkspace" tới extension host và đợi kết quả.
+ * Chỉ giữ lại metadata nhẹ (size, fileCount) — discard base64 để tránh leak memory.
+ */
+const requestWorkspaceZipMeta = (): Promise<RequestWorkspaceZipResult | null> => {
+  return new Promise((resolve) => {
+    const requestId = `zip-badge-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const timer = setTimeout(() => {
+      resolve(null);
+    }, ZIP_TIMEOUT_MS);
+
+    messageDispatcher.register(
+      requestId,
+      (msg: any) => {
+        clearTimeout(timer);
+        if (msg.error) {
+          resolve(null);
+        } else {
+          resolve(msg.data);
+        }
+      },
+      ZIP_TIMEOUT_MS,
+      () => {
+        resolve(null);
+      },
+    );
+
+    extensionService.postMessage({ command: "zipWorkspace", requestId });
+  });
+};
+
+/**
+ * Hook lấy kích thước ước lượng của workspace zip — dùng cho Claude provider badge.
  *
- * Here we simulate/mock it or prepare the structure for such integration.
+ * - Tự động trigger khi `enabled` chuyển true hoặc `triggerKey` thay đổi.
+ * - Cache kết quả theo `triggerKey` để không zip lại khi user toggle qua lại.
+ * - Debounce 800ms chống spam khi user rapid-switch model.
+ *
+ * @param enabled     Chỉ chạy khi provider hiện tại là claude
+ * @param triggerKey  Giá trị đại diện cho "phiên zip" (vd: rootPath + modelName).
+ *                    Đổi key → invalidate cache, chạy lại.
  */
 export const useWorkspaceZipSize = (
-  isEnabled: boolean,
+  enabled: boolean,
   triggerKey: string | null,
-): UseWorkspaceZipSizeResult => {
-  const [state, setState] = React.useState<UseWorkspaceZipSizeResult>({
-    isLoading: false,
-    sizeBytes: null,
-    error: null,
-  });
+): ZipSizeState => {
+  const [state, setState] = React.useState<ZipSizeState>(INITIAL_STATE);
+  // Cache theo triggerKey để lần sau mở lại không phải zip lại
+  const cacheRef = React.useRef<Map<string, ZipSizeState>>(new Map());
+  const abortTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inflightKeyRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
-    if (!isEnabled || !triggerKey) {
-      setState({ isLoading: false, sizeBytes: null, error: null });
+    // Cleanup timer cũ mỗi khi effect re-run
+    if (abortTimerRef.current !== null) {
+      clearTimeout(abortTimerRef.current);
+      abortTimerRef.current = null;
+    }
+
+    // Không enabled hoặc không có key → reset về idle
+    if (!enabled || !triggerKey) {
+      setState(INITIAL_STATE);
+      inflightKeyRef.current = null;
       return;
     }
 
-    let cancelled = false;
+    // Hit cache → dùng ngay
+    const cached = cacheRef.current.get(triggerKey);
+    if (cached) {
+      setState(cached);
+      return;
+    }
 
-    const calculateSize = async () => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    // Đã có request đang chạy cho cùng key → bỏ qua, chờ kết quả
+    if (inflightKeyRef.current === triggerKey) {
+      return;
+    }
 
+    // Đánh dấu đang chạy, set state loading ngay để UI phản hồi tức thì
+    inflightKeyRef.current = triggerKey;
+    setState({ ...INITIAL_STATE, isZipping: true });
+
+    abortTimerRef.current = setTimeout(async () => {
       try {
-        // TODO: Replace with actual IPC call to backend/main process
-        // e.g., window.electron.ipcRenderer.invoke('calculate-workspace-zip-size', rootPath)
+        const result = await requestWorkspaceZipMeta();
+        // Nếu trong lúc chờ, key đã đổi (user switch model khác) → discard
+        if (inflightKeyRef.current !== triggerKey) return;
 
-        // Mock delay for simulation
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (!result) {
+          const errState: ZipSizeState = {
+            sizeBytes: null,
+            fileCount: null,
+            isZipping: false,
+            error: "Không lấy được thông tin workspace",
+          };
+          setState(errState);
+          inflightKeyRef.current = null;
+          return;
+        }
 
-        if (cancelled) return;
-
-        // Simulate a random-ish size for demonstration purposes until integrated
-        // In production, this should return real bytes.
-        const mockSize = Math.floor(Math.random() * 5000000) + 100000;
-
-        setState({
-          isLoading: false,
-          sizeBytes: mockSize,
+        const okState: ZipSizeState = {
+          sizeBytes: result.sizeBytes,
+          fileCount: result.fileCount,
+          isZipping: false,
           error: null,
-        });
+        };
+        cacheRef.current.set(triggerKey, okState);
+        setState(okState);
+        inflightKeyRef.current = null;
       } catch (err) {
-        if (cancelled) return;
-        console.error('[useWorkspaceZipSize] Failed to calculate size:', err);
+        if (inflightKeyRef.current !== triggerKey) return;
         setState({
-          isLoading: false,
           sizeBytes: null,
-          error: String(err),
+          fileCount: null,
+          isZipping: false,
+          error: err instanceof Error ? err.message : String(err),
         });
+        inflightKeyRef.current = null;
       }
-    };
-
-    calculateSize();
+    }, DEBOUNCE_MS);
 
     return () => {
-      cancelled = true;
+      if (abortTimerRef.current !== null) {
+        clearTimeout(abortTimerRef.current);
+        abortTimerRef.current = null;
+      }
     };
-  }, [isEnabled, triggerKey]);
+  }, [enabled, triggerKey]);
 
   return state;
 };

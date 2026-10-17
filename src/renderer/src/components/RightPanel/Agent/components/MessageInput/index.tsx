@@ -7,7 +7,8 @@ import { LANGUAGES } from '../../feature/Setting/components/LanguageSelector';
 import { combinePromptsForMode } from '../../feature/Chat/prompts/code';
 import type { SystemInfo } from '../../feature/Chat/prompts/code';
 // Use existing Phantoma drawer component
-import ModelAccountDrawer from './ModelAccountDrawer';
+import ProviderModelDrawer from './ProviderModelDrawer';
+import SkillPickerDrawer, { type PickedSkill } from './SkillPickerDrawer';
 import PromptLengthDropdown, {
   PromptLengthTriggerIcon,
   PROMPT_LENGTH_MODE_META,
@@ -30,6 +31,7 @@ const getBlockedHoursDescription = (_ranges: any) => '';
 import { useWorkspaceZipSize } from './hooks/useWorkspaceZipSize';
 import { ClaudeZipBadge } from './ClaudeZipBadge';
 import { ZenCliHintBar } from './ZenCliHintBar';
+import { SimpleTooltip, TooltipRow, TooltipCard } from './SimpleTooltip';
 
 // Stub for buildClaudePrompt if not available
 const buildClaudePrompt = ({ language }: { language: string }) =>
@@ -115,6 +117,49 @@ const useToggleState = (key: string, defaultValue: boolean = false) => {
   }, [key]);
 
   return [state, toggle, setState] as const;
+};
+
+/**
+ * Hook tính thời gian còn lại (ms) cho cooldown request.
+ * Trả về `remaining` (ms) > 0 khi đang trong giai đoạn cooldown, 0 khi đã hết.
+ * Cập nhật mỗi 100ms để UI đếm ngược mượt.
+ */
+const useCooldownTimer = (
+  lastResponseEndTime: number | null | undefined,
+  cooldownMs: number,
+): number => {
+  const [remaining, setRemaining] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!lastResponseEndTime || cooldownMs <= 0) {
+      setRemaining(0);
+      return;
+    }
+
+    let rafId: number;
+
+    const tick = () => {
+      const elapsed = Date.now() - lastResponseEndTime;
+      const left = Math.max(0, cooldownMs - elapsed);
+
+      // Chỉ update state nếu giá trị thay đổi đáng kể hoặc về 0 để tránh re-render vô ích
+      setRemaining((prev) => {
+        if (prev === left) return prev;
+        return left;
+      });
+
+      if (left > 0) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    // Bắt đầu loop ngay lập tức
+    tick();
+
+    return () => cancelAnimationFrame(rafId);
+  }, [lastResponseEndTime, cooldownMs]);
+
+  return remaining;
 };
 
 const useModelCapabilities = (
@@ -204,6 +249,7 @@ const useTextareaAutoResize = (
   message: string,
 ) => {
   const rafIdRef = React.useRef<number | null>(null);
+  const lastResizeTime = React.useRef(performance.now());
 
   React.useEffect(() => {
     const msgLength = message?.length || 0;
@@ -222,6 +268,7 @@ const useTextareaAutoResize = (
         el.style.height = '240px'; // max height
         el.style.overflowY = 'auto';
       }
+      lastResizeTime.current = performance.now();
       return;
     }
 
@@ -236,6 +283,7 @@ const useTextareaAutoResize = (
       el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
 
       rafIdRef.current = null;
+      lastResizeTime.current = performance.now();
     });
 
     return () => {
@@ -351,66 +399,7 @@ const useModelSelection = (
 // TOGGLE BUTTONS
 // ============================================================================
 
-// ─── SimpleTooltip ────────────────────────────────────────────────────────────
-/**
- * Custom tooltip dùng position:fixed để hiển thị đúng trong VSCode webview.
- */
-const SimpleTooltip: React.FC<{
-  content: React.ReactNode;
-  children: React.ReactElement<any>; // Use any for props to avoid strict typing issues with cloneElement
-}> = ({ content, children }) => {
-  const [pos, setPos] = React.useState<{ x: number; y: number } | null>(null);
-
-  const show = (e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setPos({ x: rect.left + rect.width / 2, y: rect.top - 6 });
-  };
-
-  const hide = () => setPos(null);
-
-  return (
-    <>
-      {React.cloneElement(children, {
-        onMouseEnter: (e: React.MouseEvent) => {
-          (children.props as any).onMouseEnter?.(e);
-          show(e);
-        },
-        onMouseLeave: (e: React.MouseEvent) => {
-          (children.props as any).onMouseLeave?.(e);
-          hide();
-        },
-      } as any)}
-      {pos && (
-        <div
-          style={{
-            position: 'fixed',
-            left: pos.x,
-            top: pos.y,
-            transform: 'translate(-50%, -100%)',
-            zIndex: 99999,
-            backgroundColor: 'var(--vscode-editorHoverWidget-background, #252526)',
-            border: '1px solid var(--vscode-editorHoverWidget-border, #454545)',
-            borderRadius: '5px',
-            padding: '4px 8px',
-            fontSize: '11px',
-            color: 'var(--vscode-foreground)',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            boxShadow: '0 3px 10px rgba(0,0,0,0.35)',
-            marginBottom: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-        >
-          {content}
-        </div>
-      )}
-    </>
-  );
-};
-
-/** Helper render "Label <ON|OFF>" với màu accent khi ON, mờ khi OFF */
+/** Render "Label ... [ON|OFF]" dạng pill với màu accent khi ON, mờ khi OFF */
 const TooltipToggle = ({
   label,
   isOn,
@@ -420,18 +409,14 @@ const TooltipToggle = ({
   isOn: boolean;
   accentColor: string;
 }) => (
-  <>
-    <span>{label}</span>
-    <span
-      style={{
-        fontWeight: 700,
-        color: isOn ? accentColor : 'var(--vscode-descriptionForeground, #888)',
-        opacity: isOn ? 1 : 0.6,
-      }}
-    >
-      {isOn ? 'ON' : 'OFF'}
-    </span>
-  </>
+  <TooltipCard>
+    <TooltipRow
+      label={label}
+      value={isOn ? 'ON' : 'OFF'}
+      color={accentColor}
+      active={isOn}
+    />
+  </TooltipCard>
 );
 
 /**
@@ -470,7 +455,7 @@ const IconToggleButton: React.FC<
             : isHovered
               ? 'rgba(128, 128, 128, 0.16)'
               : 'transparent',
-          color: isOn ? accentColor : 'var(--vscode-foreground)',
+          color: isOn ? accentColor : '#ffffff', // text-text-primary
           opacity: isOn ? 1 : isHovered ? 1 : 0.75,
           padding: 0,
         }}
@@ -584,7 +569,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     // scrollToBottom, // Unused
     enableViewOnlyMode = false,
     isViewOnly = false,
-    // onSelectRule, // Passed to ActionDropdown but commented out due to prop mismatch
+    onSelectRule,
+    onSelectSkills,
     onRemoveAttachedItem,
     conversationDiagnosticEnabled,
     conversationUseSkillEnabled,
@@ -594,6 +580,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     onConversationUseSkillToggle,
     onConversationMemoryToggle,
     onConversationToolFormatToggle,
+    lastResponseEndTime,
+    requestCooldownMs = 0,
   }) => {
     const onSendMessage = () => {
       if (message.trim()) {
@@ -613,8 +601,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     } = useSettings();
 
     const [providers, setProviders] = React.useState<any[]>([]);
-    // const [isLoadingProviders, setIsLoadingProviders] = React.useState(false); // Unused in current render logic
+    const [isLoadingProviders, setIsLoadingProviders] = React.useState(false);
     const [showModelDrawer, setShowModelDrawer] = React.useState(false);
+    const [showSkillPicker, setShowSkillPicker] = React.useState(false);
+    const [selectedSkills, setSelectedSkills] = React.useState<PickedSkill[]>([]);
     const [isPromptLengthHovered, setIsPromptLengthHovered] = React.useState(false);
 
     const [pendingModelSwitch, setPendingModelSwitch] = React.useState<{
@@ -661,6 +651,17 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         ).catch(() => {});
       };
     }, [currentAccount?.id, apiUrl]);
+
+    // ─── Cooldown timer ──────────────────────────────────────────────
+    // Đếm ngược từ lúc nhận xong response đến khi hết cooldown.
+    const effectiveCooldownMs =
+      requestCooldownMs && requestCooldownMs > 0 ? requestCooldownMs : 0;
+    const cooldownRemaining = useCooldownTimer(
+      lastResponseEndTime,
+      effectiveCooldownMs,
+    );
+    // isCoolingDown = true khi đang trong giai đoạn chờ
+    const isCoolingDown = cooldownRemaining > 0;
 
     const { currentProviderConfig, currentModelConfig } = useProvidersConfig(
       currentModel,
@@ -750,6 +751,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       if (isTimeBlocked && timeBlockLabel) {
         return `DeepSeek is blocked during ${timeBlockLabel.all}`;
       }
+      if (isCoolingDown) {
+        return `Please wait ${(cooldownRemaining / 1000).toFixed(1)}s before sending next message...`;
+      }
       if (!currentModel) {
         return 'Select a model to start';
       }
@@ -767,6 +771,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       isViewOnlyProvider,
       isTimeBlocked,
       timeBlockLabel,
+      isCoolingDown,
+      cooldownRemaining,
       currentModel,
       currentAccount,
       supportsUpload,
@@ -853,6 +859,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 
     const fetchProviders = React.useCallback(async () => {
       try {
+        setIsLoadingProviders(true);
         const response = await fetch(`${apiUrl}/v1/providers`);
         const result = await response.json();
         if (result.success) {
@@ -860,8 +867,20 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         }
       } catch (error) {
         console.error('Failed to fetch providers:', error);
+      } finally {
+        setIsLoadingProviders(false);
       }
     }, [apiUrl]);
+
+    const refreshProviders = React.useCallback(async () => {
+      try {
+        // Invalidate cache trước để force re-fetch models từ upstream
+        await fetch(`${apiUrl}/v1/providers/cache/clear`, { method: 'POST' });
+      } catch {
+        // non-fatal
+      }
+      await fetchProviders();
+    }, [apiUrl, fetchProviders]);
 
     // Initial fetch
     React.useEffect(() => {
@@ -1054,8 +1073,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     return (
       <div
         style={{
-          padding: 'var(--spacing-md) var(--spacing-lg)',
-          backgroundColor: 'rgb(var(--card-background))',
+          padding: '12px 16px',
+          backgroundColor: '#1e1e1e', // bg-card-background
           position: 'relative',
         }}
       >
@@ -1073,16 +1092,16 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               display: 'flex',
               flexDirection: 'column',
               position: 'relative',
-              borderRadius: 'var(--border-radius)',
+              borderRadius: '6px',
               border: !isConnected
-                ? '1px dashed var(--vscode-errorForeground, #f44336)'
+                ? '1px dashed #f44336' // text-error
                 : isTimeBlocked
-                  ? '1px dashed var(--vscode-editorWarning-foreground, #f97316)'
+                  ? '1px dashed #f97316' // text-warn
                   : isTokenLimitExceeded
-                    ? '2px dashed var(--vscode-errorForeground, #f44336)'
+                    ? '2px dashed #f44336' // text-error
                     : isViewOnlyProvider
                       ? '1px dashed #eab308'
-                      : '1px solid var(--vscode-widget-border, rgba(255,255,255,0.08))',
+                      : '1px solid rgba(255,255,255,0.1)', // border-border
               transition: 'border 0.3s ease',
             }}
           >
@@ -1096,8 +1115,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   position: 'absolute',
                   bottom: '100%',
                   left: '8px',
-                  backgroundColor: 'rgb(var(--input-background))',
-                  color: 'rgb(var(--text-primary))',
+                  backgroundColor: '#3c3c3c', // bg-input-background
+                  color: '#ffffff', // text-text-primary
                   padding: '5px 10px',
                   fontSize: '11px',
                   fontWeight: 600,
@@ -1230,7 +1249,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           gap: '2px',
                           opacity: 0.75,
                           marginLeft: '4px',
-                          color: 'var(--secondary-text)',
+                          color: '#8b8b8b', // text-text-secondary
                         }}
                       >
                         <svg
@@ -1239,7 +1258,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           height="9"
                           viewBox="0 0 24 24"
                           fill="none"
-                          stroke="var(--vscode-testing-iconPassed, #22c55e)"
+                          stroke="#22c55e" // text-success
                           strokeWidth="2.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -1257,7 +1276,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           gap: '2px',
                           opacity: 0.75,
                           marginLeft: '2px',
-                          color: 'var(--secondary-text)',
+                          color: '#8b8b8b', // text-text-secondary
                         }}
                       >
                         <svg
@@ -1266,7 +1285,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           height="9"
                           viewBox="0 0 24 24"
                           fill="none"
-                          stroke="var(--vscode-editorWarning-foreground, #f97316)"
+                          stroke="#f97316" // text-warn
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -1290,10 +1309,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         const usageNum = Number(displayAccount.usage);
                         const usageColor =
                           usageNum >= 90
-                            ? 'var(--vscode-editorError-foreground, #ef4444)'
+                            ? '#ef4444' // text-error
                             : usageNum >= 70
-                              ? 'var(--vscode-editorWarning-foreground, #f97316)'
-                              : 'var(--secondary-text)';
+                              ? '#f97316' // text-warn
+                              : '#8b8b8b'; // text-text-secondary
                         return (
                           <span
                             style={{
@@ -1335,11 +1354,13 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             )}
 
             {showModelDrawer && (
-              <ModelAccountDrawer
+              <ProviderModelDrawer
                 isOpen={showModelDrawer}
                 onClose={() => setShowModelDrawer(false)}
                 providers={providers}
                 apiUrl={apiUrl}
+                onRefresh={refreshProviders}
+                isLoadingProviders={isLoadingProviders}
                 onSelect={(selected) => {
                   const prov = providers.find((p: any) => p.provider_id === selected.providerId);
                   const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
@@ -1390,6 +1411,26 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               />
             )}
 
+            {showSkillPicker && (
+              <SkillPickerDrawer
+                isOpen={showSkillPicker}
+                selectedSlugs={selectedSkills.map((s) => s.slug)}
+                onClose={() => setShowSkillPicker(false)}
+                onConfirm={(skills) => {
+                  setSelectedSkills(skills);
+                  onSelectSkills?.(
+                    skills.map((s) => ({
+                      id: s.slug,
+                      path: '',
+                      type: 'skill' as any, // Cast to match AttachedItem if needed, or adjust types later
+                      content: s.name,
+                    })),
+                  );
+                  setShowSkillPicker(false);
+                }}
+              />
+            )}
+
             {/* Model Switch Confirmation Dialog */}
             {pendingModelSwitch && (
               <div
@@ -1410,8 +1451,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 <div
                   onClick={(e) => e.stopPropagation()}
                   style={{
-                    backgroundColor: 'var(--vscode-editor-background)',
-                    border: '1px solid var(--vscode-widget-border)',
+                    backgroundColor: '#1e1e1e', // bg-card-background
+                    border: '1px solid rgba(255,255,255,0.1)', // border-border
                     borderRadius: '8px',
                     padding: '20px',
                     maxWidth: '400px',
@@ -1423,7 +1464,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       fontSize: '16px',
                       fontWeight: 600,
                       marginBottom: '12px',
-                      color: 'var(--vscode-foreground)',
+                      color: '#ffffff', // text-text-primary
                     }}
                   >
                     Switch Model?
@@ -1432,7 +1473,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     style={{
                       fontSize: '13px',
                       marginBottom: '16px',
-                      color: 'var(--vscode-descriptionForeground)',
+                      color: '#8b8b8b', // text-text-secondary
                       lineHeight: 1.5,
                     }}
                   >
@@ -1441,10 +1482,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       style={{
                         marginTop: '8px',
                         padding: '8px 12px',
-                        backgroundColor: 'var(--vscode-input-background)',
+                        backgroundColor: '#3c3c3c', // bg-input-background
                         borderRadius: '4px',
                         fontSize: '12px',
-                        fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                        fontFamily: "'Courier New', monospace", // font-mono
                       }}
                     >
                       <strong>
@@ -1469,15 +1510,15 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       style={{
                         padding: '6px 16px',
                         borderRadius: '4px',
-                        border: '1px solid var(--vscode-widget-border)',
+                        border: '1px solid rgba(255,255,255,0.1)', // border-border
                         backgroundColor: 'transparent',
-                        color: 'var(--vscode-foreground)',
+                        color: '#ffffff', // text-text-primary
                         fontSize: '13px',
                         cursor: 'pointer',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor =
-                          'var(--vscode-list-hoverBackground)';
+                          'rgba(255,255,255,0.05)'; // hover approximation
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = 'transparent';
@@ -1541,18 +1582,18 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         padding: '6px 16px',
                         borderRadius: '4px',
                         border: 'none',
-                        backgroundColor: 'var(--vscode-button-background)',
-                        color: 'var(--vscode-button-foreground)',
+                        backgroundColor: '#007acc', // bg-primary / --primary
+                        color: '#ffffff', // text-text-primary
                         fontSize: '13px',
                         fontWeight: 600,
                         cursor: 'pointer',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor =
-                          'var(--vscode-button-hoverBackground)';
+                          '#005a9e'; // darker primary for hover
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--vscode-button-background)';
+                        e.currentTarget.style.backgroundColor = '#007acc';
                       }}
                     >
                       Confirm Switch
@@ -1561,6 +1602,50 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 </div>
               </div>
             )}
+
+            {/* Border Depletion Progress — conic-gradient driven by cooldown timer */}
+            {isCoolingDown &&
+              !isViewOnly &&
+              !isStreaming &&
+              !isProcessing &&
+              isConnected &&
+              !isTimeBlocked &&
+              !isTokenLimitExceeded &&
+              (() => {
+                // remainingRatio: 1 at start → 0 when finished
+                const remainingRatio =
+                  effectiveCooldownMs > 0
+                    ? Math.max(
+                        0,
+                        Math.min(1, cooldownRemaining / effectiveCooldownMs),
+                      )
+                    : 0;
+                // Angle of the visible arc (clockwise from top-left)
+                const deg = remainingRatio * 360;
+                // Muted primary color (~50% opacity)
+                const borderColor =
+                  'color-mix(in srgb, #007acc 50%, transparent)'; // primary at 50% opacity
+
+                return (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: '6px',
+                      padding: '1px',
+                      // Arc drawn clockwise starting from top-left (-90deg origin in conic space)
+                      background: `conic-gradient(from -90deg at 50% 50%, ${borderColor} 0deg, ${borderColor} ${deg}deg, transparent ${deg}deg, transparent 360deg)`,
+                      WebkitMask:
+                        'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                      WebkitMaskComposite: 'xor',
+                      maskComposite: 'exclude',
+                      pointerEvents: 'none',
+                      zIndex: 5,
+                    }}
+                  />
+                );
+              })()}
 
             {/* Browser session warning */}
             {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
@@ -1606,9 +1691,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             <div
               style={{
                 position: 'relative',
-                backgroundColor: 'rgb(var(--input-background))',
-                borderTopLeftRadius: 'var(--border-radius)',
-                borderTopRightRadius: 'var(--border-radius)',
+                backgroundColor: '#3c3c3c', // bg-input-background
+                borderTopLeftRadius: '6px',
+                borderTopRightRadius: '6px',
                 padding: '12px',
               }}
             >
@@ -1659,7 +1744,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       !isLoadingCache &&
                       !isProcessing &&
                       !isTokenLimitExceeded &&
-                      !isTimeBlocked
+                      !isTimeBlocked &&
+                      !isCoolingDown
                     ) {
                       onSendMessage();
                     }
@@ -1701,9 +1787,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   outline: 'none',
                   resize: 'none',
                   fontFamily: 'inherit',
-                  fontSize: 'var(--font-size-sm)',
+                  fontSize: '13px', // text-sm equivalent
                   backgroundColor: 'transparent',
-                  color: 'rgb(var(--text-primary))',
+                  color: '#ffffff', // text-text-primary
                   overflow: 'hidden',
                   whiteSpace: 'pre-wrap',
                   wordWrap: 'break-word',
@@ -1717,22 +1803,24 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             {/* Bottom Part: Toolbar */}
             <div
               style={{
-                backgroundColor: 'rgb(var(--input-background))',
-                borderBottomLeftRadius: 'var(--border-radius)',
-                borderBottomRightRadius: 'var(--border-radius)',
+                backgroundColor: '#3c3c3c', // bg-input-background
+                borderBottomLeftRadius: '6px',
+                borderBottomRightRadius: '6px',
                 padding: '8px 12px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 pointerEvents:
-                  !isConnected || isTimeBlocked || isViewOnlyProvider ? 'none' : undefined,
+                  !isConnected || isTimeBlocked || isViewOnlyProvider || isCoolingDown
+                    ? 'none'
+                    : undefined,
               }}
             >
               {/* Left Icons */}
               <div
                 style={{
                   display: 'flex',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                   alignItems: 'center',
                 }}
               >
@@ -1757,8 +1845,12 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   showDeepResearch={supportsDeepResearch}
                   currentModel={currentModel}
                   currentModelConfig={currentModelConfig}
-                  // onSelectRule is not in Phantoma's ActionDropdownProps yet, commenting out to avoid TS error
-                  // onSelectRule={onSelectRule}
+                  onSelectRule={onSelectRule}
+                  onSelectSkills={(items) => {
+                    setSelectedSkills(items.map((i: any) => ({ slug: i.id.replace('skill-', ''), name: i.path })));
+                    // TODO: Sync with parent attachedItems when backend ready
+                  }}
+                  selectedSkillSlugs={selectedSkills.map(s => s.slug)}
                   triggerButton={
                     <div
                       onMouseEnter={() => setIsPlusHovered(true)}
@@ -1777,7 +1869,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         background: isPlusHovered
                           ? 'rgba(128, 128, 128, 0.2)'
                           : 'rgba(128, 128, 128, 0.12)',
-                        color: 'var(--vscode-foreground)',
+                        color: '#ffffff', // text-text-primary
                         opacity: isPlusHovered ? 0.9 : 0.7,
                       }}
                       title={supportsUpload ? 'Attach files' : 'Attach text files only'}
@@ -1807,7 +1899,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   style={{
                     width: '1px',
                     height: '16px',
-                    background: 'var(--border-color)',
+                    background: 'rgba(255,255,255,0.1)', // border-border
                     margin: '0 2px',
                     flexShrink: 0,
                   }}
@@ -1815,28 +1907,31 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 
                 {/* Prompt Settings (Style · Diagnostics · Skill) — Home only, ẩn khi promptLength=none */}
                 {!isConversationStarted && promptLengthMode !== 'none' && (
-                  <PromptSettingsDropdown
-                    systemPromptMode={systemPromptMode}
-                    onSelectSystemPromptMode={(mode) => {
-                      if (
-                        !!(currentProviderConfig as any)?.anti_system_prompt_injection &&
-                        mode !== 'none'
-                      )
-                        return;
-                      setSystemPromptMode(mode as any);
-                    }}
-                    isAntiInjection={!!(currentProviderConfig as any)?.anti_system_prompt_injection}
-                    diagnosticEnabled={!!conversationDiagnosticEnabled}
-                    onDiagnosticToggle={onConversationDiagnosticToggle}
-                    skillEnabled={!!conversationUseSkillEnabled}
-                    onSkillToggle={onConversationUseSkillToggle}
-                    memoryEnabled={!!conversationMemoryEnabled}
-                    onMemoryToggle={onConversationMemoryToggle}
-                    toolFormat={conversationToolFormat ?? 'xml'}
-                    onToolFormatToggle={() => {
-                      onConversationToolFormatToggle?.();
-                    }}
-                  />
+                  <>
+                    <PromptSettingsDropdown
+                      systemPromptMode={systemPromptMode}
+                      onSelectSystemPromptMode={(mode) => {
+                        if (
+                          !!(currentProviderConfig as any)?.anti_system_prompt_injection
+                        )
+                          return;
+                        setSystemPromptMode(mode as any);
+                      }}
+                      isAntiInjection={!!(currentProviderConfig as any)?.anti_system_prompt_injection}
+                      diagnosticEnabled={!!conversationDiagnosticEnabled}
+                      onDiagnosticToggle={onConversationDiagnosticToggle}
+                      skillEnabled={!!conversationUseSkillEnabled}
+                      onSkillToggle={onConversationUseSkillToggle}
+                      memoryEnabled={!!conversationMemoryEnabled}
+                      onMemoryToggle={onConversationMemoryToggle}
+                      toolFormat={conversationToolFormat ?? 'xml'}
+                      onToolFormatToggle={() => {
+                        onConversationToolFormatToggle?.();
+                      }}
+                    />
+                    
+
+                  </>
                 )}
 
                 {/* Prompt Length Selector - Home only, hidden for Claude */}
@@ -1902,7 +1997,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               <div
                 style={{
                   display: 'flex',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                   alignItems: 'center',
                 }}
               >
@@ -1917,7 +2012,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         alignItems: 'center',
                         gap: '4px',
                         padding: '4px 8px',
-                        borderRadius: 'var(--border-radius)',
+                        borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: 600,
                         color: '#facc15',
@@ -1992,37 +2087,39 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           ? 'not-allowed'
                           : isStreaming || isProcessing
                             ? 'pointer'
-                            : isTokenLimitExceeded || isTimeBlocked
+                            : isTokenLimitExceeded || isTimeBlocked || isCoolingDown
                               ? 'not-allowed'
                               : message.trim() || uploadedFiles.length > 0
                                 ? 'pointer'
                                 : 'default',
-                      padding: isStreaming || isProcessing ? 'var(--spacing-xs)' : '4px 8px',
-                      borderRadius: 'var(--border-radius)',
+                      padding: isStreaming || isProcessing ? '4px' : '4px 8px',
+                      borderRadius: '6px',
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color:
                         isHistoryMode || isLoadingCache
-                          ? 'var(--secondary-text)'
+                          ? '#8b8b8b' // text-text-secondary
                           : isStreaming || isProcessing
-                            ? 'var(--vscode-errorForeground, #f44336)'
-                            : isTokenLimitExceeded || isTimeBlocked
-                              ? 'var(--vscode-errorForeground, #f44336)'
-                              : 'var(--vscode-descriptionForeground, #888)',
+                            ? '#f44336' // text-error
+                            : isTokenLimitExceeded || isTimeBlocked || isCoolingDown
+                              ? '#f44336' // text-error
+                              : '#8b8b8b', // text-text-secondary
                       pointerEvents:
                         isHistoryMode ||
                         isLoadingCache ||
-                        ((isTokenLimitExceeded || isTimeBlocked) && !isStreaming && !isProcessing)
+                        ((isTokenLimitExceeded || isTimeBlocked || isCoolingDown) &&
+                          !isStreaming &&
+                          !isProcessing)
                           ? 'none'
                           : 'auto',
                       backgroundColor:
                         isStreaming || isProcessing
                           ? 'transparent'
-                          : isTokenLimitExceeded || isTimeBlocked
-                            ? 'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 12%, transparent)'
-                            : 'color-mix(in srgb, var(--vscode-descriptionForeground, #888) 8%, transparent)',
+                          : isTokenLimitExceeded || isTimeBlocked || isCoolingDown
+                            ? 'color-mix(in srgb, #f44336 12%, transparent)' // error bg
+                            : 'color-mix(in srgb, #8b8b8b 8%, transparent)', // secondary bg
                       fontSize: '11px',
                       fontWeight: 600,
                       letterSpacing: '0.3px',
@@ -2034,7 +2131,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         return;
                       }
 
-                      if (isTokenLimitExceeded || isTimeBlocked) {
+                      if (isTokenLimitExceeded || isTimeBlocked || isCoolingDown) {
                         return;
                       }
 
@@ -2046,23 +2143,23 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     }}
                     onMouseEnter={(e) => {
                       if (isStreaming || isProcessing) {
-                        e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
-                      } else if (isTokenLimitExceeded || isTimeBlocked) {
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; // hover approximation
+                      } else if (isTokenLimitExceeded || isTimeBlocked || isCoolingDown) {
                         e.currentTarget.style.backgroundColor =
-                          'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 18%, transparent)';
+                          'color-mix(in srgb, #f44336 18%, transparent)'; // error bg hover
                       } else if (message.trim() || uploadedFiles.length > 0) {
-                        e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; // hover approximation
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (isStreaming || isProcessing) {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                      } else if (isTokenLimitExceeded || isTimeBlocked) {
+                      } else if (isTokenLimitExceeded || isTimeBlocked || isCoolingDown) {
                         e.currentTarget.style.backgroundColor =
-                          'color-mix(in srgb, var(--vscode-errorForeground, #f44336) 12%, transparent)';
+                          'color-mix(in srgb, #f44336 12%, transparent)'; // error bg default
                       } else {
                         e.currentTarget.style.backgroundColor =
-                          'color-mix(in srgb, var(--vscode-descriptionForeground, #888) 8%, transparent)';
+                          'color-mix(in srgb, #8b8b8b 8%, transparent)'; // secondary bg default
                       }
                     }}
                     title={
@@ -2114,8 +2211,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     position: 'absolute',
                     top: '8px',
                     right: '8px',
-                    backgroundColor: 'var(--vscode-badge-background)',
-                    color: 'var(--vscode-badge-foreground)',
+                    backgroundColor: '#007acc', // --primary / badge background
+                    color: '#ffffff', // text-text-primary / badge foreground
                     padding: '2px 6px',
                     borderRadius: '4px',
                     fontSize: '10px',
@@ -2161,6 +2258,9 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     prevProps.conversationUseSkillEnabled === nextProps.conversationUseSkillEnabled;
   const memorySame = prevProps.conversationMemoryEnabled === nextProps.conversationMemoryEnabled;
   const toolFormatSame = prevProps.conversationToolFormat === nextProps.conversationToolFormat;
+  const lastResponseEndTimeSame =
+    prevProps.lastResponseEndTime === nextProps.lastResponseEndTime;
+  const requestCooldownMsSame = prevProps.requestCooldownMs === nextProps.requestCooldownMs;
 
   const shouldSkip =
     messageSame &&
@@ -2175,7 +2275,9 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     diagnosticSame &&
     useSkillSame &&
     memorySame &&
-    toolFormatSame;
+    toolFormatSame &&
+    lastResponseEndTimeSame &&
+    requestCooldownMsSame;
 
   return shouldSkip;
 });

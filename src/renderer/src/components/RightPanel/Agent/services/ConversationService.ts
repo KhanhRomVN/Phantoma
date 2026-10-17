@@ -61,6 +61,13 @@ export interface ConversationData {
     totalDeletions: number;
     responseNumber?: number;
   };
+  /** Per-conversation feature overrides — chỉ lưu, chưa có UI để set. */
+  conversationOverrides?: {
+    diagnosticEnabled?: boolean;
+    useSkillEnabled?: boolean;
+    memoryEnabled?: boolean;
+    toolFormat?: 'xml' | 'json';
+  };
   createdAt: number;
   lastModified: number;
 }

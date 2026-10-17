@@ -7,6 +7,8 @@ import { parseReconFile } from './ui/parser';
 import { TYPE_META, TYPE_ORDER, resolveType, withAlpha, TypeIcon, TypeBadgeIcon } from './targetType';
 import type { TargetType } from './targetType';
 import mockIndexRaw from '../mock/mock1/_index.recon?raw';
+import { Settings as SettingsIcon } from 'lucide-react';
+import { useReconSettings } from './Settings';
 
 const MOCK_ID = 'mock-report-nva';
 const FALLBACK_SUBTITLE = 'Chưa có mô tả'; // Tạm thời, chờ quyết định nội dung dòng 2
@@ -19,6 +21,8 @@ interface LeftPanelProps {
   onCloseBrowser: (targetId: string) => void;
   onSelectMock?: () => void;
   onAddTargetClick?: () => void; // Callback to open modal
+  onEditTarget?: (targetId: string) => void;
+  onOpenSettings?: () => void;
 }
 
 export default function LeftPanel({
@@ -29,8 +33,16 @@ export default function LeftPanel({
   onCloseBrowser,
   onSelectMock,
   onAddTargetClick,
+  onEditTarget,
+  onOpenSettings,
 }: LeftPanelProps) {
-  const [width, setWidth] = useState(320); // Default w-80 (20rem * 16px)
+  const { settings, updateLeftSidebar } = useReconSettings();
+  const sidebar = settings.leftSidebar;
+  const [width, setWidth] = useState(sidebar.width);
+
+  useEffect(() => {
+    setWidth(sidebar.width);
+  }, [sidebar.width]);
   const [isResizing, setIsResizing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TargetType | null>(null);
@@ -56,6 +68,11 @@ export default function LeftPanel({
     startXRef.current = e.clientX;
     startWidthRef.current = width;
   };
+
+  useEffect(() => {
+    if (!isResizing) updateLeftSidebar({ width });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isResizing]);
 
   useEffect(() => {
     if (!isResizing) return;
@@ -87,7 +104,7 @@ export default function LeftPanel({
       {/* Header */}
       <div className='px-3 py-2 border-b border-border shrink-0 space-y-3' style={{ borderColor: $('--border') }}>
         <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-2 flex-1 min-w-0'>
             <div className='w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary'>
               <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
                 <circle cx='12' cy='12' r='10'></circle>
@@ -97,6 +114,13 @@ export default function LeftPanel({
             </div>
             <h2 className='text-sm font-bold text-text-primary'>Recon</h2>
           </div>
+          <button
+            onClick={onOpenSettings}
+            className='p-1.5 mr-0.5 rounded-md hover:bg-white/10 text-text-secondary hover:text-text-primary transition-colors'
+            title='Cài đặt Recon'
+          >
+            <SettingsIcon className='w-4 h-4' strokeWidth={2} />
+          </button>
           <button
             onClick={onAddTargetClick}
             className='p-1.5 rounded-md hover:bg-white/10 text-text-secondary hover:text-primary transition-colors group'
@@ -110,7 +134,7 @@ export default function LeftPanel({
         </div>
 
         {/* Search Bar */}
-        <div className='relative'>
+        <div className={cn('relative', !sidebar.showSearch && 'hidden')}>
           <input
             type='text'
             placeholder='Tìm kiếm...'
@@ -126,7 +150,7 @@ export default function LeftPanel({
         </div>
 
         {/* Type filter badges */}
-        <div className='flex flex-wrap gap-1.5'>
+        <div className={cn('flex flex-wrap gap-1.5', !sidebar.showTypeFilter && 'hidden')}>
           {TYPE_ORDER.map((type) => {
             const { label, color } = TYPE_META[type];
             const isOn = typeFilter === type;
@@ -179,6 +203,7 @@ export default function LeftPanel({
                 isSelected={target.id === activeTargetId}
                 isRunning={target.isActive}
                 onSelect={() => onTargetSelect(target.id)}
+                onEdit={onEditTarget ? () => onEditTarget(target.id) : undefined}
                 actions={
                   target.isActive ? (
                     <button
@@ -227,18 +252,21 @@ interface TargetCardProps {
   isSelected: boolean;
   isRunning?: boolean;
   onSelect?: () => void;
+  onEdit?: () => void;
   actions?: ReactNode;
 }
 
 /** Card: [badgeIcon] [title / subtitle]. Selected có outline + vạch accent bên trái (80% chiều cao, căn giữa). */
-function TargetCard({ title, subtitle, type, isSelected, isRunning, onSelect, actions }: TargetCardProps) {
+function TargetCard({ title, subtitle, type, isSelected, isRunning, onSelect, onEdit, actions }: TargetCardProps) {
   const { color } = TYPE_META[type];
+  const compact = useReconSettings().settings.leftSidebar.density === 'compact';
 
   return (
     <div
       onClick={onSelect}
       className={cn(
-        'group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-lg border cursor-pointer transition-colors duration-150',
+        'group relative flex items-center gap-3 pl-4 pr-3 rounded-lg border cursor-pointer transition-colors duration-150',
+        compact ? 'py-1.5' : 'py-2.5',
         isSelected
           ? 'bg-card-background border-border'
           : 'bg-card-background/50 border-transparent hover:bg-card-background-hover'
@@ -261,8 +289,17 @@ function TargetCard({ title, subtitle, type, isSelected, isRunning, onSelect, ac
         <div className='text-[11px] text-text-secondary truncate'>{subtitle}</div>
       </div>
 
-      {actions && (
+      {(actions || onEdit) && (
         <div className={cn('flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity', isSelected && 'opacity-100')}>
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className='p-1 rounded hover:bg-white/10 text-text-secondary hover:text-text-primary transition-colors'
+              title='Chỉnh sửa target'
+            >
+              <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M12 20h9'></path><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z'></path></svg>
+            </button>
+          )}
           {actions}
         </div>
       )}

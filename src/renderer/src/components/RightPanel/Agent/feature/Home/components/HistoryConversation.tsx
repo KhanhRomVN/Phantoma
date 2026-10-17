@@ -1,6 +1,6 @@
 /**
  * ------------------------------------------------------------------
- * RecentActivity
+ * HistoryConversation
  * ------------------------------------------------------------------
  * Component hiển thị danh sách hội thoại gần đây trong Home panel.
  * Tái sử dụng HistoryCard từ feature history.
@@ -17,19 +17,26 @@ import { Loader2 } from 'lucide-react';
 import { ConversationItem } from '../../History/types';
 import HistoryCard from '../../History/components/HistoryCard';
 
-interface RecentActivityProps {
+interface HistoryConversationProps {
   conversations: ConversationItem[];
   isLoading: boolean;
   onLoadConversation?: (conversationId: string, tabId: number, folderPath: string | null) => void;
   providerFavicons?: Record<string, string>;
 }
 
-const RecentActivity: React.FC<RecentActivityProps> = ({
+const HistoryConversation: React.FC<HistoryConversationProps> = ({
   conversations,
   isLoading,
   onLoadConversation,
   providerFavicons,
 }) => {
+  const formatDate = (ts: number): string => {
+    const d = new Date(ts);
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}/${d.getFullYear()}`;
+  };
+
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const vscodeApi = (window as any).vscodeApi;
@@ -38,25 +45,18 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
     }
   };
 
-  const formatDate = (ts: number): string => {
-    const d = new Date(ts);
-    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1)
-      .toString()
-      .padStart(2, '0')}/${d.getFullYear()}`;
-  };
-
   return (
-    <div className="rounded-lg p-3.5 box-border border border-border hover:border-primary transition-all duration-200 ease-in-out">
+    <div className="bg-card-background rounded-lg p-3.5 box-border">
       <div className="flex justify-between items-center mb-2.5">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.05em] opacity-80 text-primary">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-text-primary opacity-80">
           Recent Activities
         </span>
       </div>
 
       <div className="flex flex-col gap-0.5">
         {isLoading ? (
-          <div className="flex items-center gap-2 py-2.5 text-secondary opacity-60">
-            <Loader2 size={12} className="spin-animation" />
+          <div className="flex items-center gap-2 py-2.5 text-text-secondary opacity-60">
+            <Loader2 size={12} className="animate-spin" />
             <span className="text-[11px]">Loading history...</span>
           </div>
         ) : conversations.length > 0 ? (
@@ -64,20 +64,20 @@ const RecentActivity: React.FC<RecentActivityProps> = ({
             <HistoryCard
               key={item.id}
               item={item}
-              onClick={() => {
-                onLoadConversation?.(item.id, item.tabId, item.folderPath);
-              }}
+              onClick={() => onLoadConversation?.(item.id, item.tabId, item.folderPath)}
               onDelete={handleDelete}
               formatDate={formatDate}
               providerFavicons={providerFavicons}
             />
           ))
         ) : (
-          <div className="py-2.5 text-[11px] italic text-secondary opacity-60">No recent chats</div>
+          <div className="py-2.5 text-[11px] italic text-text-secondary opacity-60">
+            No recent chats
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-export default React.memo(RecentActivity);
+export default React.memo(HistoryConversation);

@@ -96,14 +96,15 @@ Lưu trữ dữ liệu của module Code theo từng project. Đường dẫn `{
 
 
 ~/.phantoma/code:{system_path}/
-├── task.sqlite              ← SQLite DB chứa bảng `tasks` (kanban board)
-├── task.sqlite-wal          ← Write-ahead log
-├── task.sqlite-shm          ← Shared memory
+├── tasks.json               ← Danh sách task của kanban board
+├── worktrees/               ← Git worktree của các branch (mỗi branch một thư mục `{branchSlug}`)
 └── conversations/           ← Hội thoại AI assistant
     └── {conversationId}.json
 
 
-#### Schema `task.sqlite`
+#### Định dạng `tasks.json`
+
+Mảng JSON các task, kiểu `StoredTask` (xem `src/renderer/src/modules/Code/services/task.service.ts`). Ghi theo kiểu atomic bởi `src/main/storage/TaskStorage.ts`.
 
 
 CREATE TABLE IF NOT EXISTS tasks (

@@ -69,6 +69,10 @@ export interface Message {
   parsed?: ParsedResponse;
   /** Raw API request body (JSON string) sent to LLM provider. */
   rawRequest?: string;
+  /** Provider-specific unique identifier for the message (used by Qwen for edit/regenerate tracking). */
+  providerFid?: string;
+  /** Parent message ID from provider context (for threading in edit flows). */
+  providerParentId?: string;
   /** Raw API response content accumulated from SSE stream. */
   rawResponse?: string;
   /** Uploaded files sent with this message */

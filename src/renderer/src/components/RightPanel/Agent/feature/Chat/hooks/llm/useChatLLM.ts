@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 /**
  * ------------------------------------------------------------------
  * useChatLLM
@@ -49,7 +49,12 @@ import { extensionService } from '@renderer/components/RightPanel/Agent/services
 import { TOOL_ACTION_TYPES } from '../../constants/constants';
 
 // ── Utils ──
-
+import {
+  isBlockedNow,
+  isDeepSeekProvider,
+  getBlockedRangeLabel,
+  getBlockedHoursDescription,
+} from '@renderer/utils/timeBlock';
 
 // ── Controllers ──
 import { EmulateController } from '@renderer/controller/EmulateController';
@@ -63,10 +68,23 @@ import {
 } from '../../prompts/emulate';
 
 // ─── Types ──────────────────────────────────────────────────────────────
+interface ConversationOverrides {
+  diagnosticEnabled?: boolean;
+  useSkillEnabled?: boolean;
+  memoryEnabled?: boolean;
+  toolFormat?: "xml" | "json";
+}
+
 interface UseChatLLMProps {
   apiUrl: string;
   selectedTab: ChatSession | null;
   feature?: string | null;
+  /** Per-conversation feature overrides from Home panel */
+  conversationOverrides?: ConversationOverrides;
+  /** Blocked time ranges từ provider config — sync với deepseek.constant.ts qua API */
+  providerBlockedRanges?: Array<{ startTime: number; endTime: number }> | null;
+  /** Cờ anti_system_prompt_injection từ provider config — thay cho hardcode providerId === "claude" */
+  antiSystemPromptInjection?: boolean;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
     actions: ToolAction[],
@@ -74,14 +92,12 @@ interface UseChatLLMProps {
     isAutoTrigger?: boolean,
     actionType?: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
   ) => void;
-  onMalformedTool?: (
-    actionId: string,
-    toolName: string,
-    errorMessage: string,
-    errorCode: string,
-  ) => void;
+  /**
+   * Callback thông báo toàn bộ lượt trả lời đã kết thúc (markdown-only xong,
+   * hoặc chuỗi tool execution dừng hẳn).
+   */
+  onTurnComplete?: () => void;
 }
-
 export const parseQuestionAnswerTag = (content: string): Record<string, QuestionAnswer> | null => {
   const regex = /<question-answer>([\s\S]*?)<\/question-answer>/i;
   const match = regex.exec(content);
@@ -124,9 +140,37 @@ export const useChatLLM = ({
   apiUrl,
   selectedTab,
   feature,
+  conversationOverrides,
+  providerBlockedRanges,
   onConversationIdChange,
   onToolRequest,
+  onTurnComplete,
 }: UseChatLLMProps) => {
+  // Ref to hold per-conversation overrides (from Home panel or restored from metadata).
+  const conversationOverridesRef = useRef<ConversationOverrides | undefined>(
+    conversationOverrides,
+  );
+  const prevSelectedTabIdRef = useRef<string | number | undefined>(
+    selectedTab?.sessionId,
+  );
+  useEffect(() => {
+    const currentTabId = selectedTab?.sessionId;
+    const tabChanged = currentTabId !== prevSelectedTabIdRef.current;
+    prevSelectedTabIdRef.current = currentTabId;
+
+    if (tabChanged) {
+      conversationOverridesRef.current = conversationOverrides;
+    } else if (conversationOverrides !== undefined) {
+      conversationOverridesRef.current = conversationOverrides;
+    }
+  }, [conversationOverrides, selectedTab?.sessionId]);
+
+  // Ref giữ onTurnComplete luôn mới nhất (tránh stale closure trong sendMessage async)
+  const onTurnCompleteRef = useRef(onTurnComplete);
+  useEffect(() => {
+    onTurnCompleteRef.current = onTurnComplete;
+  }, [onTurnComplete]);
+
   const {
     streamingState,
     dispatchStreaming,
@@ -149,7 +193,9 @@ export const useChatLLM = ({
 
   renderCountRef.current++;
 
-  const { aiLanguage, permissionMode } = useSettings();
+  // NOTE: useSkillEnabled & memoryEnabled are not yet in SettingsContext for Phantoma.
+  // We rely solely on conversationOverridesRef for now. Default to false if no override provided.
+  const { aiLanguage, permissionMode, promptLengthMode } = useSettings();
   const { workspace, treeView } = useProject();
   const { uploadFiles } = useFileUpload(apiUrl);
 
@@ -249,10 +295,58 @@ export const useChatLLM = ({
       actionIds?: string[],
       uiHidden?: boolean,
       parentMessageId?: string,
+      extraOptions?: {
+        user_action?: string;
+        edit_message_id?: string;
+        parent_message_id?: string;
+      },
     ) => {
       if (isProcessingRef.current && !skipFirstRequestLogic) {
         return;
       }
+
+      // ── Time Block Check (DeepSeek) ────────────────────────────────────
+      const timeBlockProviderId =
+        model?.providerId ?? lastUsedModelRef.current?.providerId;
+      if (
+        !skipFirstRequestLogic &&
+        isDeepSeekProvider(timeBlockProviderId) &&
+        isBlockedNow(providerBlockedRanges)
+      ) {
+        const rangeLabel = getBlockedRangeLabel(providerBlockedRanges);
+        const allRanges = getBlockedHoursDescription(providerBlockedRanges);
+        const errorMsg =
+          `DeepSeek bị chặn trong khung giờ ${allRanges}. ` +
+          `Hiện tại đang trong khung ${rangeLabel}. Vui lòng thử lại sau.`;
+
+        const convIdToDelete = currentConversationIdRef.current;
+        if (convIdToDelete) {
+          deleteConversation(convIdToDelete);
+          extensionService.postMessage({
+            command: 'deleteConversation',
+            conversationId: convIdToDelete,
+            requestId: `time-block-${Date.now()}`,
+          });
+          currentConversationIdRef.current = '';
+          backendConversationIdRef.current = '';
+          messagesRef.current = [];
+          setCurrentConversationId('');
+          setMessages([]);
+        }
+
+        const blockErrorMessage: Message = {
+          id: `msg-${Date.now()}-time-block-error`,
+          role: 'assistant',
+          content: errorMsg,
+          timestamp: Date.now(),
+          isError: true,
+        };
+        setMessages([blockErrorMessage]);
+        messagesRef.current = [blockErrorMessage];
+        onTurnCompleteRef.current?.();
+        return;
+      }
+      // ────────────────────────────────────────────────────────────────────
 
       const sessionId = selectedTab?.sessionId || -1;
       const folderPath = selectedTab?.folderPath || null;
@@ -261,8 +355,31 @@ export const useChatLLM = ({
       const currentMessages = messagesRef.current;
       let filteredMessages = currentMessages.filter((m) => !m.isCancelled);
 
+      // For Qwen edit/regenerate: trim UI messages so only history up to (and including)
+      // the edited user message is kept. Qwen handles server-side deletion of children.
+      if (
+        extraOptions?.user_action === 'edit' &&
+        extraOptions.edit_message_id
+      ) {
+        const editFid = extraOptions.edit_message_id;
+        const editIdx = filteredMessages.findIndex(
+          (m) => m.role === 'user' && m.providerFid === editFid,
+        );
+
+        if (editIdx !== -1) {
+          filteredMessages = filteredMessages.slice(0, editIdx + 1);
+          messagesRef.current = filteredMessages;
+          setMessages(filteredMessages);
+        }
+      }
+
       // Check if last message pair is complete; clean up incomplete pairs before sending
-      if (!skipFirstRequestLogic && filteredMessages.length > 0) {
+      const isEditFlow = extraOptions?.user_action === 'edit';
+      if (
+        !skipFirstRequestLogic &&
+        !isEditFlow &&
+        filteredMessages.length > 0
+      ) {
         const lastMsg = filteredMessages[filteredMessages.length - 1];
 
         if (lastMsg.role === 'user') {
@@ -343,7 +460,82 @@ export const useChatLLM = ({
         }
       }
 
-      // Build prompt using PromptBuilder
+      // Calculate effective settings with per-conversation overrides taking priority.
+      // Since Phantoma's SettingsContext does not yet expose global toggles for Skill/Memory,
+      // we default to false if no explicit override is provided in the current conversation.
+      const effectiveUseSkill =
+        conversationOverridesRef.current?.useSkillEnabled ?? false;
+      
+      const effectiveMemory =
+        conversationOverridesRef.current?.memoryEnabled ?? false;
+
+      const effectiveToolFormat =
+        conversationOverridesRef.current?.toolFormat ?? 'xml';
+      const effectiveDiagnostic =
+        conversationOverridesRef.current?.diagnosticEnabled ?? true;
+
+      // [DEBUG] Log effective settings for verification
+      console.log('[Phantoma][ChatLLM] Effective Settings:', {
+        useSkill: effectiveUseSkill,
+        memory: effectiveMemory,
+        toolFormat: effectiveToolFormat,
+        diagnosticEnabled: effectiveDiagnostic,
+        promptLengthMode,
+        rawOverrides: conversationOverridesRef.current,
+      });
+
+      // Determine model/account before building prompt to resolve providerId correctly
+      const oldModel = lastUsedModelRef.current;
+      const oldAccount = lastUsedAccountRef.current;
+      let finalModel = model || oldModel;
+      let finalAccount = account || oldAccount;
+
+      if (!finalModel && !oldModel) {
+        const lastMetadataMsg = [...filteredMessages]
+          .reverse()
+          .find((m) => m.role === 'assistant' && m.providerId && m.modelId);
+        if (lastMetadataMsg) {
+          finalModel = {
+            id: lastMetadataMsg.modelId!,
+            providerId: lastMetadataMsg.providerId!,
+          };
+        }
+      }
+
+      if (!finalAccount && !oldAccount) {
+        const lastMetadataMsg = [...filteredMessages]
+          .reverse()
+          .find((m) => m.role === 'assistant' && m.accountId);
+        if (lastMetadataMsg?.accountId) {
+          finalAccount = { id: lastMetadataMsg.accountId };
+        }
+      }
+
+      if (finalModel) lastUsedModelRef.current = finalModel;
+      if (finalAccount) lastUsedAccountRef.current = finalAccount;
+
+      const modelSwitched =
+        !skipFirstRequestLogic &&
+        oldModel &&
+        finalModel &&
+        (oldModel.id !== finalModel.id || oldModel.providerId !== finalModel.providerId);
+      const accountSwitched =
+        !skipFirstRequestLogic && oldAccount && finalAccount && oldAccount.id !== finalAccount.id;
+
+      if (modelSwitched || accountSwitched) {
+        console.warn(`[Zen] Model/account switched — resetting backend conversationId`);
+        backendConversationIdRef.current = '';
+        qwenParentIdRef.current = undefined;
+        try {
+          sessionStorage.removeItem(`zen-backend-conv:${effectiveChatUuid}`);
+        } catch {
+          console.warn('[useChatLLM] Failed to remove backend conversation from sessionStorage');
+        }
+      }
+
+      // Build prompt using PromptBuilder with per-conversation overrides applied
+      const promptProviderId = finalModel?.providerId ?? lastUsedModelRef.current?.providerId;
+
       const promptPayload = await PromptBuilder.buildPrompt({
         content,
         isReq1,
@@ -357,6 +549,12 @@ export const useChatLLM = ({
         feature: feature as AgentFeature,
         trafficContext,
         filterContext,
+        useSkillEnabled: effectiveUseSkill,
+        memoryEnabled: effectiveMemory,
+        toolFormat: effectiveToolFormat,
+        providerId: promptProviderId,
+        promptLengthMode,
+        diagnosticEnabled: effectiveDiagnostic,
       });
 
       const userMessage: Message = {
@@ -433,54 +631,6 @@ export const useChatLLM = ({
         backendConversationIdRef.current,
       );
 
-      const oldModel = lastUsedModelRef.current;
-      const oldAccount = lastUsedAccountRef.current;
-      let finalModel = model || oldModel;
-      let finalAccount = account || oldAccount;
-
-      if (!finalModel && !oldModel) {
-        const lastMetadataMsg = [...filteredMessages]
-          .reverse()
-          .find((m) => m.role === 'assistant' && m.providerId && m.modelId);
-        if (lastMetadataMsg) {
-          finalModel = {
-            id: lastMetadataMsg.modelId!,
-            providerId: lastMetadataMsg.providerId!,
-          };
-        }
-      }
-
-      if (!finalAccount && !oldAccount) {
-        const lastMetadataMsg = [...filteredMessages]
-          .reverse()
-          .find((m) => m.role === 'assistant' && m.accountId);
-        if (lastMetadataMsg?.accountId) {
-          finalAccount = { id: lastMetadataMsg.accountId };
-        }
-      }
-
-      if (finalModel) lastUsedModelRef.current = finalModel;
-      if (finalAccount) lastUsedAccountRef.current = finalAccount;
-
-      const modelSwitched =
-        !skipFirstRequestLogic &&
-        oldModel &&
-        finalModel &&
-        (oldModel.id !== finalModel.id || oldModel.providerId !== finalModel.providerId);
-      const accountSwitched =
-        !skipFirstRequestLogic && oldAccount && finalAccount && oldAccount.id !== finalAccount.id;
-
-      if (modelSwitched || accountSwitched) {
-        console.warn(`[Zen] Model/account switched — resetting backend conversationId`);
-        backendConversationIdRef.current = '';
-        qwenParentIdRef.current = undefined;
-        try {
-          sessionStorage.removeItem(`zen-backend-conv:${effectiveChatUuid}`);
-        } catch {
-          console.warn('[useChatLLM] Failed to remove backend conversation from sessionStorage');
-        }
-      }
-
       try {
         const ref_file_ids: string[] = [];
         const localFiles = files
@@ -535,6 +685,34 @@ export const useChatLLM = ({
           ),
         );
 
+        // For Qwen regenerate support: save the fid and parentId used for this message
+        // so that handleRegenerateRequest can pass them back as edit_message_id / parent_message_id.
+        const isQwenProvider =
+          (finalModel?.providerId ?? '').toLowerCase() === 'qwen';
+        // Pre-generate fid for Qwen messages (both normal chat and edit).
+        // This fid is passed to the provider so the server stores the exact same UUID,
+        // allowing us to reference it later for regenerate/edit.
+        const qwenMessageFid =
+          isQwenProvider && !skipFirstRequestLogic
+            ? crypto.randomUUID()
+            : undefined;
+
+        if (qwenMessageFid) {
+          userMessage.providerFid = qwenMessageFid;
+          userMessage.providerParentId = effectiveParentMessageId ?? undefined;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === userMessage.id
+                ? {
+                    ...m,
+                    providerFid: qwenMessageFid,
+                    providerParentId: effectiveParentMessageId ?? undefined,
+                  }
+                : m,
+            ),
+          );
+        }
+
         // Create placeholder assistant message
         const assistantMessageId = `msg-${Date.now()}-assistant`;
         const placeholderAssistant: Message = {
@@ -558,6 +736,14 @@ export const useChatLLM = ({
               parentMessageId: effectiveParentMessageId,
               refFileIds: ref_file_ids,
               abortSignal: abortController.signal,
+              // Pass the pre-generated fid so the provider stores the exact UUID we saved.
+              ...(qwenMessageFid ? { messageFid: qwenMessageFid } : {}),
+              ...(extraOptions?.user_action
+                ? { userAction: extraOptions.user_action }
+                : {}),
+              ...(extraOptions?.edit_message_id
+                ? { editMessageId: extraOptions.edit_message_id }
+                : {}),
             },
             {
               onMetadata: (meta) => {
@@ -664,27 +850,132 @@ export const useChatLLM = ({
         dispatchStreaming({ type: 'RESET_STREAMING' });
         abortControllerRef.current = null;
 
+        // Parse response to extract tool sequence with error handling
         const { parseAIResponse } = await import('../../services/ResponseParser');
         let parsed: any = null;
         let hasParsingError = false;
 
         try {
-          parsed = parseAIResponse(assistantMessage.content);
+          // 🔧 FIX: Parse rawResponse (includes thinking) instead of content
+          const contentToParse =
+            assistantMessage.rawResponse || assistantMessage.content;
+
+          parsed = parseAIResponse(contentToParse);
+
+          // Attach parsed data to assistantMessage
+          assistantMessage.parsed = parsed;
+
+          // 📊 Create parseDebugInfo with detailed action parsing info
+          const parseDebugActions = parsed.actions.map(
+            (action: any, index: number) => {
+              // Check if action has error markers
+              const hasError = action.isError || action.errorMessage;
+              const status = hasError ? 'error' : 'success';
+
+              // Extract parameter info for debugging
+              const extractedParams = Object.entries(action.params).map(
+                ([name, value]) => ({
+                  name,
+                  found: value !== undefined && value !== null && value !== '',
+                  length: typeof value === 'string' ? value.length : undefined,
+                }),
+              );
+
+              return {
+                index,
+                type: action.type,
+                params: action.params,
+                status,
+                errorMessage: action.errorMessage,
+                errorCode: action.errorCode,
+                extractedParams,
+              };
+            },
+          );
+
+          const successfulActions = parseDebugActions.filter(
+            (a: any) => a.status === 'success',
+          ).length;
+          const failedActions = parseDebugActions.filter(
+            (a: any) => a.status === 'error',
+          ).length;
+
+          // Count content blocks by type for debugging
+          const contentBlockStats = parsed.contentBlocks.reduce(
+            (acc: any, block: any) => {
+              acc[block.type] = (acc[block.type] || 0) + 1;
+              return acc;
+            },
+            {},
+          );
+
+          assistantMessage.parseDebugInfo = {
+            totalActions: parsed.actions.length,
+            successfulActions,
+            failedActions,
+            actions: parseDebugActions,
+            contentBlocks: parsed.contentBlocks.map(
+              (block: any, index: number) => ({
+                index,
+                type: block.type,
+                contentLength: block.content?.length || 0,
+                language: block.language,
+                actionIndex: block.actionIndex,
+              }),
+            ),
+            contentBlockStats,
+          };
+
+          // Update React state with the parsed data and debug info
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMessageId
+                ? {
+                    ...m,
+                    parsed: assistantMessage.parsed,
+                    parseDebugInfo: assistantMessage.parseDebugInfo,
+                  }
+                : m,
+            ),
+          );
         } catch (parseError) {
           hasParsingError = true;
-          console.warn('[Zen] Response parsing failed:', parseError);
-
           const errorDetails =
-            parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+            parseError instanceof Error
+              ? parseError.message
+              : 'Unknown parsing error';
 
+          // Create error message with details
           const errorContent = `Error: Failed to parse response\n\nDetails: ${errorDetails}\n\n**Note:** The response was received but could not be displayed due to malformed content. This usually happens when tool calls are missing closing tags.\n\nYou can try:\n- Regenerating the response\n- Asking the assistant to fix the issue`;
 
+          // Update the assistant message to error state
           assistantMessage.content = errorContent;
           assistantMessage.isError = true;
 
+          // 📊 Create parseDebugInfo for parse errors
+          assistantMessage.parseDebugInfo = {
+            totalActions: 0,
+            successfulActions: 0,
+            failedActions: 0,
+            actions: [],
+            parseError: {
+              message: errorDetails,
+              rawContent:
+                assistantMessage.content?.substring(0, 500) || '(empty)',
+            },
+          };
+
+          // Update messages array with error state
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMessageId ? { ...m, content: errorContent, isError: true } : m,
+              m.id === assistantMessageId
+                ? {
+                    ...m,
+                    content: errorContent,
+                    isError: true,
+                    parseDebugInfo: assistantMessage.parseDebugInfo,
+                  }
+                : m,
             ),
           );
         }
@@ -698,10 +989,20 @@ export const useChatLLM = ({
           backendConversationId || backendConversationIdRef.current,
         );
 
+        // 🚨 DETECT ONLY-THINKING RESPONSE
+        if (!hasParsingError && parsed && parsed.onlyThinkingDetected) {
+          console.warn(
+            '[Phantoma][sendMessage] ⚠️ Only-thinking response detected - skipping tool execution',
+          );
+          onTurnCompleteRef.current?.();
+          return;
+        }
+
         if (!hasParsingError && parsed && onToolRequest && parsed.actions?.length > 0) {
           onToolRequest(parsed.actions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
-        } else if (parsed && parsed.actions?.length > 0 && hasParsingError) {
-          console.warn(`[Zen][sendMessage] Skipping onToolRequest due to parsing error`);
+        } else {
+          // Notify turn complete if no tools were executed or parsing failed
+          onTurnCompleteRef.current?.();
         }
       } catch (error) {
         dispatchStreaming({ type: 'RESET_STREAMING' });
@@ -709,8 +1010,12 @@ export const useChatLLM = ({
 
         if (error instanceof Error && error.name === 'AbortError') {
           setIsProcessingSync(false);
+          onTurnCompleteRef.current?.();
           return;
         }
+
+        // Fallback: notify turn complete on unexpected errors
+        onTurnCompleteRef.current?.();
 
         console.error('[Zen sendMessage] error:', error);
         const errorMessage: Message = {
@@ -757,6 +1062,8 @@ export const useChatLLM = ({
       setIsProcessingSync,
       setIsContinuingSync,
       dispatchStreaming,
+      providerBlockedRanges,
+      onTurnCompleteRef,
     ],
   );
 

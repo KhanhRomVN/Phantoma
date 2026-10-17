@@ -33,6 +33,9 @@ export interface WorkspacePanel {
   type: PanelType;
   title: string;
   content?: string;
+  /** Working directory for this specific panel (crucial to prevent restart on session switch) */
+  cwd?: string;
+  sessionId?: string;
   /** Detected AI Provider ID (for terminals) */
   providerId?: string | null;
   

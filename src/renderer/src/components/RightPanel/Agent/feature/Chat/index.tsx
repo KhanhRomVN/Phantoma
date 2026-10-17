@@ -39,9 +39,21 @@ import { useTextareaHandlers } from './hooks/handlers/useTextareaHandlers';
 import { useExternalMessages } from './hooks/events/useExternalMessages';
 import { useConversationCache } from './hooks/cache/useConversationCache';
 import { useConversationPersistence } from './hooks/persistence/useConversationPersistence';
+import { useSessionCleanup } from './hooks/llm/useSessionCleanup';
 
 // ── Types ──
 import { ChatSession } from './types/chat';
+
+// ── Utils ──
+import {
+  messagesToMarkdown,
+  messagesToJson,
+  downloadJson,
+  copyToClipboard,
+} from './utils/conversationExport';
+
+// ── Services ──
+import { deleteConversation } from './services/ConversationService';
 
 // ── Components ──
 import ChatHeader from './components/ChatHeader';
@@ -200,6 +212,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     totalDeletions: number;
   } | null>(null);
 
+  // Per-conversation overrides — restored từ conversation cũ (tool format, memory, skill, diagnostic)
+  const [restoredConversationOverrides, setRestoredConversationOverrides] = useState<
+    | {
+        diagnosticEnabled?: boolean;
+        useSkillEnabled?: boolean;
+        memoryEnabled?: boolean;
+        toolFormat?: 'xml' | 'json';
+      }
+    | undefined
+  >(undefined);
+
   // --- Chat LLM Hook ---
   const {
     messages,
@@ -223,6 +246,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     apiUrl,
     selectedTab: currentChat,
     feature,
+    conversationOverrides: restoredConversationOverrides,
     onToolRequest: (actions, assistantMessage, isAutoTrigger, actionType) =>
       handleToolRequest(
         actions,
@@ -320,6 +344,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     currentAccount,
     apiUrl,
   );
+
+  // --- Provider Session Cleanup ---
+  // Tự động dọn session phía provider khi account không còn ở chat view.
+  // Hook này fire-and-forget, không ảnh hưởng UI.
+  useSessionCleanup({
+    apiUrl,
+    accountId: currentAccount?.id,
+    providerId: currentModel?.providerId,
+    providers,
+    isInChatView: true,
+    isStreaming,
+  });
 
   // --- Wrapped Send Message ---
   const wrappedSendMessage = useCallback(
@@ -421,6 +457,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       revertParentMessageIdRef,
       setRevertInput,
       setLoadedConversationFileStats,
+      onRestoreOverrides: setRestoredConversationOverrides,
     });
 
   // --- Message Parsing (with caching) ---
@@ -610,6 +647,43 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const footerPaddingBottom =
     showBrowserWarning && currentModel?.providerId === 'zai-browser' ? '20px' : '8px';
 
+  // --- ChatHeader action handlers ---
+  const handleCopyAsMarkdown = useCallback(async () => {
+    const md = messagesToMarkdown({
+      messages,
+      conversationId: currentConversationId,
+    });
+    await copyToClipboard(md);
+  }, [messages, currentConversationId, currentChat]);
+
+  const handleCopyAsJson = useCallback(async () => {
+    const json = messagesToJson({
+      messages,
+      conversationId: currentConversationId,
+    });
+    await copyToClipboard(json);
+  }, [messages, currentConversationId, currentChat]);
+
+  const handleExportAsJson = useCallback(() => {
+    const json = messagesToJson({
+      messages,
+      conversationId: currentConversationId,
+    });
+    downloadJson(json, `conversation-${currentConversationId || 'export'}.json`);
+  }, [messages, currentConversationId, currentChat]);
+
+  const handleDeleteConversation = useCallback(() => {
+    if (!currentConversationId) return;
+    if (!window.confirm('Xoá conversation này? Thao tác không thể hoàn tác.')) return;
+    void deleteConversation(
+      currentConversationId,
+      currentChat?.sessionId,
+      currentChat?.folderPath || null,
+    ).then(() => {
+      onBack();
+    });
+  }, [currentConversationId, currentChat, onBack]);
+
   // --- Render ---
   return (
     <div className="flex flex-col h-full bg-background text-text-primary">
@@ -623,6 +697,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         setIsSearchOpen={setIsSearchOpen}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        messages={messages}
+        chatTokens={contextUsage.total}
+        chatRequests={messages.filter((m) => m.role === 'user').length}
+        onCopyAsMarkdown={handleCopyAsMarkdown}
+        onCopyAsJson={handleCopyAsJson}
+        onExportAsJson={handleExportAsJson}
+        onDeleteConversation={handleDeleteConversation}
       />
 
       {/* ─── ChatBody ─── */}

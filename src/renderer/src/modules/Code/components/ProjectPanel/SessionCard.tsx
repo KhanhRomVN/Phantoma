@@ -127,6 +127,7 @@ export interface BranchInfo {
   name: string;
   visible: boolean;
   sessions: SessionInfo[];
+  path?: string;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────

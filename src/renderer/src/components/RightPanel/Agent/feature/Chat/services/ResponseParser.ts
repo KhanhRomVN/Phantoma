@@ -91,6 +91,11 @@ import {
   parseEvaluateJs,
 } from './parsers/ReconParser';
 import { parseMarkdown, extractThinkingBlocks } from './parsers/OtherParser';
+import { parseConversationTitle } from './parsers/ConversationTitleParser';
+import { parseReadMemory } from './parsers/ReadMemoryParser';
+import { parseReadSkill } from './parsers/ReadSkillParser';
+import { parseUpdateMemory } from './parsers/UpdateMemoryParser';
+import { parseQuestion } from './parsers/QuestionParser';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface ParsedResponse {
@@ -341,186 +346,31 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             pushTextOrCodeBlocks('markdown', content);
           }
         } else if (toolName === 'question') {
-          // Explicit <question> tag - supports both legacy and new schema
-          const options: string[] = [];
-          let title: string | undefined = undefined;
-          const questions: import('../types/message').Question[] = [];
+          // Explicit <question> tag - delegate sang QuestionParser.
+          const parsed = parseQuestion(innerContent || '');
 
-          // Extract title if present (legacy)
-          const titleMatch = /<question_title>([\s\S]*?)<\/question_title>/i.exec(
-            innerContent || '',
-          );
-          if (titleMatch) {
-            title = titleMatch[1].trim();
-          }
-
-          // Try to parse new schema with <q> elements
-          // Support both self-closing (<q ... />) and non-self-closing (<q ...>...</q>) tags
-          // Use a more robust approach: find each <q> tag individually
-          let hasNewSchema = false;
-          const content = innerContent || '';
-
-          // Find all <q> tags using a more reliable approach
-          // We'll process each tag by finding the opening <q and then finding the matching closing </q> or />
-          let searchIndex = 0;
-          let processedCount = 0;
-
-          while (searchIndex < content.length) {
-            // Find the next <q tag
-            const qStart = content.indexOf('<q ', searchIndex);
-            if (qStart === -1) break;
-
-            // Find the end of the opening tag (> or />)
-            let tagEnd = -1;
-            let isSelfClosing = false;
-            let i = qStart + 2;
-
-            while (i < content.length) {
-              if (content[i] === '<' && content[i + 1] === '/') {
-                // Closing tag - we're not inside the opening tag anymore
-                break;
-              }
-              if (content[i] === '>' && content[i - 1] === '/') {
-                // Self-closing: />
-                isSelfClosing = true;
-                tagEnd = i;
-                break;
-              }
-              if (content[i] === '>') {
-                tagEnd = i;
-                break;
-              }
-              i++;
-            }
-
-            if (tagEnd === -1) {
-              // No closing > found, move past this tag
-              searchIndex = qStart + 2;
-              continue;
-            }
-
-            // Extract the opening tag attributes
-            const openTag = content.substring(qStart, tagEnd + 1);
-            const idMatch = openTag.match(/id="([^"]+)"/);
-            const typeMatch = openTag.match(/type="([^"]+)"/);
-            // Support both double quotes and single quotes for label attribute
-            // Handle HTML entities and decode them
-            let qLabel = '';
-            const doubleQuoteMatch = openTag.match(/label="([^"]*)"/);
-            const singleQuoteMatch = openTag.match(/label='([^']*)'/);
-            if (doubleQuoteMatch) {
-              qLabel = doubleQuoteMatch[1].trim();
-            } else if (singleQuoteMatch) {
-              qLabel = singleQuoteMatch[1].trim();
-            }
-
-            // Decode HTML entities if present
-            if (qLabel) {
-              const textarea = document.createElement('textarea');
-              textarea.innerHTML = qLabel;
-              qLabel = textarea.value;
-            }
-
-            if (!idMatch || !typeMatch) {
-              searchIndex = tagEnd + 1;
-              continue;
-            }
-
-            hasNewSchema = true;
-            const qId = idMatch[1].trim();
-            const qType = typeMatch[1].trim() as import('../types/message').QuestionType;
-            // qLabel is now set above via double/single quote detection
-
-            let qInner = '';
-            let closeTagEnd = tagEnd;
-
-            if (!isSelfClosing) {
-              // Find the matching closing </q>
-              let closeIndex = content.indexOf('</q>', tagEnd + 1);
-              if (closeIndex === -1) {
-                // No closing tag found, treat as self-closing
-                closeTagEnd = tagEnd;
-              } else {
-                // Extract inner content between opening and closing tags
-                qInner = content.substring(tagEnd + 1, closeIndex);
-                closeTagEnd = closeIndex + 4; // length of </q>
-              }
-            } else {
-              closeTagEnd = tagEnd + 1;
-            }
-
-            const qOptions: string[] = [];
-            // Only try to extract options if there is inner content
-            if (qInner.trim()) {
-              const optionRegex = /<option>([\s\S]*?)<\/option>/gi;
-              let optMatch;
-              while ((optMatch = optionRegex.exec(qInner)) !== null) {
-                if (optMatch[1].trim()) {
-                  qOptions.push(optMatch[1].trim());
-                }
-              }
-            }
-
-            // For single/multi, ensure we have at least 2 options
-            // For text/confirm, no options needed - skip validation
-            if (qType === 'single' || qType === 'multi') {
-              if (qOptions.length < 2) {
-                console.warn(
-                  `[Zen][Question] ⚠️ SKIPPING question "${qId}" - type ${qType} needs at least 2 options, got ${qOptions.length}`,
-                );
-                searchIndex = closeTagEnd;
-                continue;
-              }
-            }
-
-            const question = {
-              id: qId,
-              type: qType,
-              label: qLabel || `Question ${questions.length + 1}`,
-              options: qOptions.length > 0 ? qOptions : undefined,
-            };
-
-            questions.push(question);
-            processedCount++;
-
-            // Move search index past this tag
-            searchIndex = closeTagEnd;
-          }
-
-          // If no new schema found, fall back to legacy parsing
-          if (!hasNewSchema) {
-            const optionRegex = /<option>([\s\S]*?)<\/option>/gi;
-            let optMatch;
-            while ((optMatch = optionRegex.exec(innerContent || '')) !== null) {
-              if (optMatch[1].trim()) {
-                options.push(optMatch[1].trim());
-              }
-            }
-          }
-
+          // `optional` phải đọc từ opening tag gốc, không nằm trong innerContent.
           const openTag = match[0].split('>')[0];
           const optional = /optional=["']true["']/i.test(openTag);
 
-          // VALIDATION: Only push question block if it has valid content
-          // Skip empty questions to avoid showing empty outline boxes during streaming
-          const hasValidContent = options.length > 0 || questions.length > 0;
+          // VALIDATION: Only push question block if it has valid content.
+          // Skip empty questions to avoid showing empty outline boxes during streaming.
+          const hasValidContent = parsed.options.length > 0 || (parsed.questions?.length ?? 0) > 0;
 
           if (hasValidContent) {
-            // Build the question block
             const qBlock: ContentBlock = {
               type: 'question',
-              options: options.length > 0 ? options : [],
-              title,
+              options: parsed.options,
+              title: parsed.title,
               optional,
-              ...(questions.length > 0 ? { questions } : {}),
+              ...(parsed.questions ? { questions: parsed.questions } : {}),
             };
 
             result.contentBlocks.push(qBlock);
             result.question = qBlock;
 
-            // Legacy compatibility
-            if (options.length > 0) {
-              result.followupOptions = options;
+            if (parsed.options.length > 0) {
+              result.followupOptions = parsed.options;
             }
           }
         } else {
@@ -594,6 +444,26 @@ export const parseAIResponse = (content: string): ParsedResponse => {
             case 'git_diff': {
               const params = parseGitDiff(innerContent || '');
               action = { type: 'git_diff' as const, params, rawXml };
+              break;
+            }
+            case 'conversation_title': {
+              const params = parseConversationTitle(innerContent || '');
+              action = { type: 'conversation_title' as const, params, rawXml };
+              break;
+            }
+            case 'read_skill': {
+              const params = parseReadSkill(innerContent || '');
+              action = { type: 'read_skill' as const, params, rawXml };
+              break;
+            }
+            case 'read_memory': {
+              const params = parseReadMemory(innerContent || '');
+              action = { type: 'read_memory' as const, params, rawXml };
+              break;
+            }
+            case 'update_memory': {
+              const params = parseUpdateMemory(innerContent || '');
+              action = { type: 'update_memory' as const, params, rawXml };
               break;
             }
             case 'list_https': {

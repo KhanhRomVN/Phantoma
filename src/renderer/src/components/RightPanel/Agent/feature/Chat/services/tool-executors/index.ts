@@ -40,7 +40,17 @@ export {
 } from './EmulateExecutor';
 
 // ═══════════════════════════════════════════════════════════════════════
-// Re-export — Recon tools
+// Re-exports ── Memory / Skill / Title tools
+// ═══════════════════════════════════════════════════════════════════════
+export {
+  executeReadMemory,
+  executeUpdateMemory,
+} from './MemoryExecutor';
+export { executeReadSkill } from './SkillExecutor';
+export { executeConversationTitle } from './TitleExecutor';
+
+// ═══════════════════════════════════════════════════════════════════════
+// Re-exports ── Recon tools
 // ═══════════════════════════════════════════════════════════════════════
 export {
   executeListTabs,
@@ -117,6 +127,14 @@ import {
   executeDeleteReportFile,
   executeExecuteCommand,
 } from './EmulateExecutor';
+
+// ── Memory / Skill / Title tool executors ────────────────────────────
+import {
+  executeReadMemory,
+  executeUpdateMemory,
+} from './MemoryExecutor';
+import { executeReadSkill } from './SkillExecutor';
+import { executeConversationTitle } from './TitleExecutor';
 
 // ── Recon tool executors ────────────────────────────────────────────
 import {
@@ -560,6 +578,32 @@ export function getExecutor(actionType: string): ToolExecutor | null {
         execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
           const result = await executeEvaluateJs(action.params || {});
           return result.success ? result.output || null : result.error || null;
+        },
+      };
+
+    // ── Memory / Skill / Title tools ─────────────────────────────
+    case 'read_memory':
+      return {
+        execute: async (_action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeReadMemory();
+        },
+      };
+    case 'update_memory':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeUpdateMemory(action.params || {});
+        },
+      };
+    case 'read_skill':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeReadSkill(action.params || {});
+        },
+      };
+    case 'conversation_title':
+      return {
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) => {
+          return executeConversationTitle(action.params || {}, ctx);
         },
       };
 

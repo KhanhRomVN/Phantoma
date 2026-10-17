@@ -457,7 +457,8 @@ const TreeNode = memo(function TreeNode({
       const newPath = `${parentPath}/${newName}`;
       await window.api.invoke('fs:rename', { oldPath: node.path, newPath });
       const p = useCodeStore.getState().projects.find((pr) => pr.id === projectId);
-      if (p?.path) await refreshProjectTree(projectId, p.path);
+      const root = p?.explorerRoot ?? p?.path;
+      if (root) await refreshProjectTree(projectId, root);
     } catch (err) {
       console.error('[FileExplore] Failed to rename:', err);
     }
@@ -699,7 +700,7 @@ export function FileExplore() {
 
   // ── File watcher subscription ──────────────────────────────────────────────
   useEffect(() => {
-    const projectPath = project?.path;
+    const projectPath = project?.explorerRoot ?? project?.path;
     if (!projectPath || projectPath === projectPathRef.current) return;
     projectPathRef.current = projectPath;
 
@@ -734,7 +735,18 @@ export function FileExplore() {
       window.api.invoke('fs:unwatch-dir', projectPath).catch(() => {});
       projectPathRef.current = null;
     };
-  }, [project?.path]);
+  }, [project?.explorerRoot, project?.path]);
+
+  const lastRootKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${project?.id}|${project?.explorerRoot ?? ''}`;
+    const prev = lastRootKeyRef.current;
+    lastRootKeyRef.current = key;
+    if (!project) return;
+    const root = project.explorerRoot ?? project.path;
+    if (!root || (prev === null ? !project.explorerRoot : prev === key)) return;
+    void refreshProjectTree(project.id, root);
+  }, [project?.id, project?.explorerRoot]);
 
   // ── Node click handler (multi-select) ─────────────────────────────────────
   const handleNodeClick = useCallback(
@@ -971,7 +983,7 @@ export function FileExplore() {
       setClipboard(null);
     }
 
-    await refreshProjectTree(p.id, p.path);
+    await refreshProjectTree(p.id, p.explorerRoot ?? p.path);
   }, [clipboard, selectedNodeIds]);
 
   const handleRenameKeyboard = useCallback(async () => {
@@ -987,7 +999,7 @@ export function FileExplore() {
       const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
       const newPath = `${parentPath}/${newName}`;
       await window.api.invoke('fs:rename', { oldPath: node.path, newPath });
-      await refreshProjectTree(p.id, p.path);
+      await refreshProjectTree(p.id, p.explorerRoot ?? p.path);
     } catch (err) {
       console.error('[FileExplore] Failed to rename:', err);
     }
@@ -1097,8 +1109,9 @@ export function FileExplore() {
   }, [currentProjectId, collapseAllFolders]);
 
   const handleRefresh = useCallback(async () => {
-    if (!project?.path) return;
-    await refreshProjectTree(project.id, project.path);
+    const root = project?.explorerRoot ?? project?.path;
+    if (!project || !root) return;
+    await refreshProjectTree(project.id, root);
   }, [project]);
 
   const handleToolbarCreate = useCallback(
@@ -1116,8 +1129,9 @@ export function FileExplore() {
       }
 
       // Fallback: root level
-      if (project.path) {
-        setCreating({ nodeId: '__root__', parentPath: project.path, type });
+      const root = project.explorerRoot ?? project.path;
+      if (root) {
+        setCreating({ nodeId: '__root__', parentPath: root, type });
       }
     },
     [project, selectedNodeIds],
@@ -1125,8 +1139,9 @@ export function FileExplore() {
 
   const handleCreated = useCallback(async () => {
     setCreating(null);
-    if (!project?.path) return;
-    await refreshProjectTree(project.id, project.path);
+    const root = project?.explorerRoot ?? project?.path;
+    if (!project || !root) return;
+    await refreshProjectTree(project.id, root);
   }, [project]);
 
   // ── Delete confirm modal items ────────────────────────────────────────────

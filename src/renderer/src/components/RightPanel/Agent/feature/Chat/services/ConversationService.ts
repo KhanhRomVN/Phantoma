@@ -110,6 +110,12 @@ export const saveConversation = async (
     totalAdditions: number;
     totalDeletions: number;
   },
+  conversationOverrides?: {
+    diagnosticEnabled?: boolean;
+    useSkillEnabled?: boolean;
+    memoryEnabled?: boolean;
+    toolFormat?: 'xml' | 'json';
+  },
 ): Promise<string> => {
   try {
     const convId = conversationId || Date.now().toString();
@@ -165,6 +171,7 @@ export const saveConversation = async (
       questionAnswers: existingData?.questionAnswers,
       singleLineReviewActions: mergedSingleLineReviewActions,
       conversationFileStats: conversationFileStats || existingData?.conversationFileStats,
+      conversationOverrides: conversationOverrides || existingData?.conversationOverrides,
       createdAt: existingData?.createdAt || Date.now(),
       lastModified: skipTimestampUpdate ? existingData?.lastModified || Date.now() : Date.now(),
     };

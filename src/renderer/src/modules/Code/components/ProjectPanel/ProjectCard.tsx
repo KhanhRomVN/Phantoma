@@ -271,6 +271,11 @@ function CollapsedTree({
               className={cn(
                 'flex items-center gap-2 min-w-0 px-1.5 py-[6px] rounded-md transition-colors cursor-pointer hover:bg-card-hover',
               )}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onOpenDropdown('branch', project.id, b.name, { top: e.clientY, left: e.clientX });
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 

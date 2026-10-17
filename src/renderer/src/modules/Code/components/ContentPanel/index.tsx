@@ -415,6 +415,19 @@ const ContentPanelInner = memo(function ContentPanelInner() {
     return false;
   }, [activeWorkspaceSessionId, currentProjectId]);
 
+  const [mountedSessionIds, setMountedSessionIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setMountedSessionIds([]);
+  }, [currentProjectId]);
+
+  useEffect(() => {
+    if (!activeWorkspaceSessionId || !isValidWorkspaceSession) return;
+    setMountedSessionIds((prev) =>
+      prev.includes(activeWorkspaceSessionId) ? prev : [...prev, activeWorkspaceSessionId],
+    );
+  }, [activeWorkspaceSessionId, isValidWorkspaceSession]);
+
   // ── Special Views (Tasks / Workspace) ─────────────────────────────────────
   if (contentViewMode === 'tasks') {
     return <TaskManager />;
@@ -422,7 +435,20 @@ const ContentPanelInner = memo(function ContentPanelInner() {
 
   // Only render Workspace if mode is 'workspace' AND the session ID is valid/existing
   if (contentViewMode === 'workspace' && isValidWorkspaceSession) {
-    return <WorkspaceViews />;
+    const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+    const existingIds = new Set(
+      (project?.branches ?? []).flatMap((b) => b.sessions.map((s) => s.id)),
+    );
+    const sessionIds = [...mountedSessionIds, activeWorkspaceSessionId!].filter(
+      (id, i, arr) => arr.indexOf(id) === i && existingIds.has(id),
+    );
+    return (
+      <>
+        {sessionIds.map((id) => (
+          <WorkspaceViews key={id} sessionId={id} />
+        ))}
+      </>
+    );
   }
 
   // If mode is workspace but session is invalid/stale, fallthrough to EmptyState or Files view below.

@@ -23,7 +23,6 @@ import SettingsPanel from './Agent/feature/Setting';
 
 // CONTEXT
 import { SettingsProvider } from './Agent/context/SettingsContext';
-import { useAgentFeature } from './Agent/context/FeatureContext';
 
 // ── Types ──
 import type { SubTarget } from '../../types/phantom-target';
@@ -43,9 +42,6 @@ import {
   Clock,
   Settings,
   Bot,
-  Gamepad2,
-  Code2,
-  Radar,
 } from 'lucide-react';
 
 // ── Constants ──
@@ -56,13 +52,7 @@ const DEFAULT_WIDTH = 450;
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 type PanelView = 'agent' | 'analytic' | 'terminal';
-type AgentSubView =
-  | 'home'
-  | 'session'
-  | 'account'
-  | 'history'
-  | 'setting'
-  | null;
+type AgentSubView = 'home' | 'session' | 'account' | 'history' | 'setting' | null;
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
@@ -74,9 +64,8 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const resizeStartRef = useRef({ startX: 0, startWidth: 0 });
-  
+
   // Get active feature context
-  const { activeFeature, emulateState, codeState } = useAgentFeature();
 
   // Resize handler
   useEffect(() => {
@@ -310,67 +299,6 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
           )}
           {view === 'agent' && agentSubView === 'setting' && (
             <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />
-          )}
-        </div>
-
-        {/* Footer Bar */}
-        <div className="h-8 border-t border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center justify-between text-[10px] text-text-secondary select-none shrink-0 w-full">
-          <div className="flex items-center gap-4 flex-1">
-            {/* Emulate Module - Target ID + Session Status */}
-            {activeFeature === 'emulate' && emulateState.activeTargetId && (
-              <>
-                <div className="flex items-center gap-1.5">
-                  <Gamepad2 className="w-3 h-3 text-rose-400" strokeWidth={2} />
-                  <span className="font-medium text-text-secondary">Target:</span>
-                  <span className="font-mono text-primary">{emulateState.activeTargetId}</span>
-                </div>
-                {emulateState.targetStates[emulateState.activeTargetId]?.isActive && (
-                  <div className="flex items-center gap-1.5 text-emerald-400/70">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="font-medium">
-                      {emulateState.targetStates[emulateState.activeTargetId]?.mode?.toUpperCase() ||
-                        'ACTIVE'}
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Code Module - Project Path + File Count */}
-            {activeFeature === 'code' && codeState.currentProjectId && (
-              <div className="flex items-center gap-1.5">
-                <Code2 className="w-3 h-3 text-indigo-400" strokeWidth={2} />
-                <span className="font-medium text-text-secondary">Workspace:</span>
-                <span
-                  className="font-mono text-primary truncate max-w-[250px]"
-                  title={codeState.currentProjectId}
-                >
-                  {codeState.currentProjectId.split('/').pop() || codeState.currentProjectId}
-                </span>
-              </div>
-            )}
-
-            {/* Recon Module - Target Email */}
-            {activeFeature === 'recon' && (
-              <div className="flex items-center gap-1.5">
-                <Radar className="w-3 h-3 text-emerald-400" strokeWidth={2} />
-                <span className="font-medium text-text-secondary">Module:</span>
-                <span className="text-primary">Reconnaissance</span>
-              </div>
-            )}
-          </div>
-
-          {/* Right side - Active Feature Badge */}
-          {activeFeature && (
-            <div className="flex items-center gap-1.5 opacity-60">
-              <span className="text-[9px] uppercase tracking-wider">
-                {activeFeature === 'emulate'
-                  ? 'Emulation'
-                  : activeFeature === 'code'
-                    ? 'Code Analysis'
-                    : 'Reconnaissance'}
-              </span>
-            </div>
           )}
         </div>
       </div>

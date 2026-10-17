@@ -35,6 +35,8 @@ export interface ExecutorContext {
   responseNumber?: number;
   /** Active target ID from Emulate feature (for repeater tools) */
   activeTargetId?: string | null;
+  /** Module ID for the current conversation (code:projectId, emulate:targetId, ...) */
+  moduleId?: string;
 }
 
 // Base executor interface

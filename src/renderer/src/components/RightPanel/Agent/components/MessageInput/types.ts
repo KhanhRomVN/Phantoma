@@ -11,12 +11,20 @@ export interface UploadedFile {
   error?: string;
 }
 
+export interface AttachedItem {
+  id: string;
+  path: string;
+  type: 'file' | 'snippet' | 'rule';
+  content?: string;
+  ruleId?: number;
+}
+
 export interface MessageInputProps {
   message: string;
   setMessage: React.Dispatch<React.SetStateAction<string>>;
   isHistoryMode?: boolean;
   uploadedFiles: UploadedFile[];
-  attachedItems?: any[]; // Text snippets and external files
+  attachedItems?: AttachedItem[]; // Text snippets, external files, and rules
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   handleTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -24,7 +32,7 @@ export interface MessageInputProps {
   handleDragOver: (e: React.DragEvent) => void;
   handleDrop: (e: React.DragEvent) => void;
   setShowAtMenu?: (show: boolean) => void;
-  handleFileSelect: () => void;
+  handleFileSelect: (accept?: string, textOnly?: boolean) => void;
   fileInputRef?: React.RefObject<HTMLInputElement>;
   onOpenProjectStructure: () => void;
   showChangesDropdown: boolean;
@@ -94,7 +102,9 @@ export interface MessageInputProps {
   /** External flag: conversation đang ở chế độ chỉ xem — hiển thị badge View Only trên toolbar. */
   isViewOnly?: boolean;
   /** Gọi khi người dùng chọn (hoặc vừa tạo) 1 rule để gắn vào input. */
-  onSelectRule?: (item: any) => void;
+  onSelectRule?: (item: AttachedItem) => void;
+  /** Gọi khi xác nhận chọn skill — truyền toàn bộ tập skill mới (thay thế tập cũ). */
+  onSelectSkills?: (items: AttachedItem[]) => void;
   /** Gỡ 1 attached item theo id — dùng để gỡ badge Rule khỏi toolbar. */
   onRemoveAttachedItem?: (id: string) => void;
   /** Per-conversation override: diagnostic enabled (chỉ hiển thị ở Home panel) */
@@ -113,6 +123,19 @@ export interface MessageInputProps {
   onConversationMemoryToggle?: () => void;
   /** Callback khi toggle tool format thay đổi */
   onConversationToolFormatToggle?: () => void;
+  /**
+   * Timestamp (ms) lúc nhận xong response cuối (isStreaming false → true transition).
+   * Dùng để tính cooldown timer trên toolbar.
+   * null = chưa có response nào.
+   */
+  lastResponseEndTime?: number | null;
+  /** Mốc bắt đầu chờ cooldown trước request tool-result. null = không chờ. Chỉ dùng cho viền progress. */
+  cooldownWaitStartTime?: number | null;
+  /**
+   * Thời gian cooldown (ms) giữa các request — lấy từ provider config.
+   * 0 hoặc undefined = không dùng cooldown.
+   */
+  requestCooldownMs?: number;
 }
 
 export interface ToggleButtonProps {

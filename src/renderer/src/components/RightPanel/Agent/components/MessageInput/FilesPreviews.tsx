@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileIcon as FileIconLucide, Terminal, Loader2 } from 'lucide-react';
+import { FileIcon as FileIconLucide, Terminal, Loader2, Sparkles } from 'lucide-react';
 import TextSnippetDrawer from './TextSnippetDrawer';
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 
@@ -17,7 +17,7 @@ interface UploadedFile {
 interface AttachedItem {
   id: string;
   path: string;
-  type: 'file' | 'folder' | 'external' | 'text-snippet';
+  type: 'file' | 'folder' | 'external' | 'text-snippet' | 'skill';
   content?: string;
   lineCount?: number;
 }
@@ -68,19 +68,19 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
         <div
           style={{
             padding: readOnly
-              ? 'var(--spacing-sm) 0'
-              : 'var(--spacing-sm) var(--spacing-lg)',
-            borderTop: readOnly ? 'none' : '1px solid rgb(var(--border))',
-            backgroundColor: 'rgb(var(--card-background))',
+              ? '8px 0'
+              : '8px 16px',
+            borderTop: readOnly ? 'none' : '1px solid rgba(255,255,255,0.1)', // border-border
+            backgroundColor: '#1e1e1e', // bg-card-background
           }}
         >
           {uploadedFiles.filter((file) => file.type.startsWith('image/')).length > 0 && (
-            <div style={{ marginBottom: 'var(--spacing-xs)' }}>
+            <div style={{ marginBottom: '4px' }}>
               <div
                 style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
+                  fontSize: '10px',
+                  color: '#8b8b8b', // text-text-secondary
+                  marginBottom: '4px',
                 }}
               >
                 Images:
@@ -90,7 +90,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                   display: 'flex',
                   flexWrap: 'nowrap',
                   overflowX: 'auto',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                   maxHeight: '80px',
                 }}
               >
@@ -127,10 +127,10 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                             width: '100%',
                             height: '100%',
                             objectFit: 'cover',
-                            borderRadius: 'var(--border-radius)',
+                            borderRadius: '6px',
                             border: file.error
-                              ? '1px solid var(--vscode-errorForeground, #f44336)'
-                              : '1px solid var(--border-color)',
+                              ? '1px solid #f44336' // text-error
+                              : '1px solid rgba(255,255,255,0.1)', // border-border
                             opacity: file.isUploading ? 0.5 : 1,
                             filter: file.isUploading ? 'blur(0.5px)' : 'none',
                             pointerEvents: 'none',
@@ -148,13 +148,13 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                               alignItems: 'center',
                               justifyContent: 'center',
                               backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                              borderRadius: 'var(--border-radius)',
+                              borderRadius: '6px',
                               pointerEvents: 'none',
                             }}
                           >
                             <Loader2
                               size={16}
-                              color="var(--vscode-editor-foreground, #ffffff)"
+                              color="#ffffff" // text-text-primary
                               className="spin-animation"
                             />
                           </div>
@@ -172,8 +172,8 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                               alignItems: 'center',
                               justifyContent: 'center',
                               backgroundColor: 'rgba(244, 67, 54, 0.6)',
-                              borderRadius: 'var(--border-radius)',
-                              color: 'var(--vscode-editor-foreground, #fff)',
+                              borderRadius: '6px',
+                              color: '#ffffff', // text-text-primary
                               fontSize: '12px',
                               fontWeight: 'bold',
                               pointerEvents: 'none',
@@ -195,8 +195,8 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                               width: '14px',
                               height: '14px',
                               borderRadius: '50%',
-                              backgroundColor: 'rgb(var(--card-background))',
-                              border: '1px solid rgb(var(--border))',
+                              backgroundColor: '#1e1e1e', // bg-card-background
+                              border: '1px solid rgba(255,255,255,0.1)', // border-border
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -226,12 +226,12 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
           )}
 
           {uploadedFiles.filter((file) => !file.type.startsWith('image/')).length > 0 && (
-            <div style={{ marginBottom: 'var(--spacing-xs)' }}>
+            <div style={{ marginBottom: '4px' }}>
               <div
                 style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
+                  fontSize: '10px',
+                  color: '#8b8b8b', // text-text-secondary
+                  marginBottom: '4px',
                 }}
               >
                 Files:
@@ -240,7 +240,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                 }}
               >
                 {uploadedFiles
@@ -251,17 +251,17 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                        gap: '4px',
+                        padding: '4px 8px',
                         backgroundColor: 'transparent',
                         border: file.error
-                          ? '1px solid var(--vscode-errorForeground, #f44336)'
+                          ? '1px solid #f44336' // text-error
                           : 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
+                        borderRadius: '6px',
+                        fontSize: '10px',
                         color: file.error
-                          ? 'var(--vscode-errorForeground, #f44336)'
-                          : 'rgb(var(--text-primary))',
+                          ? '#f44336' // text-error
+                          : '#ffffff', // text-text-primary
                         opacity: file.isUploading ? 0.6 : 1,
                       }}
                     >
@@ -277,11 +277,11 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       >
                         {file.name}
                       </span>
-                      <span style={{ color: 'var(--secondary-text)' }}>
+                      <span style={{ color: '#8b8b8b' }}> // text-text-secondary
                         ({formatFileSize(file.size)})
                       </span>
                       {file.isUploading && (
-                        <span style={{ fontSize: '10px', color: 'var(--secondary-text)' }}>
+                        <span style={{ fontSize: '10px', color: '#8b8b8b' }}> // text-text-secondary
                           (uploading...)
                         </span>
                       )}
@@ -289,7 +289,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                         <span
                           style={{
                             fontSize: '10px',
-                            color: 'var(--vscode-errorForeground, #f44336)',
+                            color: '#f44336', // text-error
                           }}
                           title={file.error}
                         >
@@ -332,23 +332,23 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
         <div
           style={{
             padding: readOnly
-              ? 'var(--spacing-sm) 0'
-              : 'var(--spacing-sm) var(--spacing-lg)',
+              ? '8px 0'
+              : '8px 16px',
             borderTop: readOnly
               ? 'none'
               : uploadedFiles.length === 0
-                ? '1px solid rgb(var(--border))'
+                ? '1px solid rgba(255,255,255,0.1)' // border-border
                 : 'none',
-            backgroundColor: 'rgb(var(--card-background))',
+            backgroundColor: '#1e1e1e', // bg-card-background
           }}
         >
           {attachedItems.filter((item) => item.type === 'file').length > 0 && (
-            <div style={{ marginBottom: 'var(--spacing-xs)' }}>
+            <div style={{ marginBottom: '4px' }}>
               <div
                 style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
+                  fontSize: '10px',
+                  color: '#8b8b8b', // text-text-secondary
+                  marginBottom: '4px',
                 }}
               >
                 Files:
@@ -357,7 +357,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                 }}
               >
                 {attachedItems
@@ -368,13 +368,13 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                        gap: '4px',
+                        padding: '4px 8px',
                         backgroundColor: 'transparent',
                         border: 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'var(--secondary-text)',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        color: '#8b8b8b', // text-text-secondary
                         cursor: 'pointer',
                       }}
                       onClick={() => onAttachedItemClick(item)}
@@ -428,12 +428,12 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
           )}
 
           {attachedItems.filter((item) => item.type === 'folder').length > 0 && (
-            <div style={{ marginBottom: 'var(--spacing-xs)' }}>
+            <div style={{ marginBottom: '4px' }}>
               <div
                 style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
+                  fontSize: '10px',
+                  color: '#8b8b8b', // text-text-secondary
+                  marginBottom: '4px',
                 }}
               >
                 Folders:
@@ -442,7 +442,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                 }}
               >
                 {attachedItems
@@ -453,13 +453,13 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                        gap: '4px',
+                        padding: '4px 8px',
                         backgroundColor: 'transparent',
                         border: 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'var(--secondary-text)',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        color: '#8b8b8b', // text-text-secondary
                         cursor: 'pointer',
                       }}
                       onClick={() => onAttachedItemClick(item)}
@@ -514,12 +514,12 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
           )}
 
           {attachedItems.filter((item) => item.type === 'external').length > 0 && (
-            <div style={{ marginBottom: 'var(--spacing-xs)' }}>
+            <div style={{ marginBottom: '4px' }}>
               <div
                 style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
+                  fontSize: '10px',
+                  color: '#8b8b8b', // text-text-secondary
+                  marginBottom: '4px',
                 }}
               >
                 External Files:
@@ -528,7 +528,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                 }}
               >
                 {attachedItems
@@ -539,13 +539,13 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                        gap: '4px',
+                        padding: '4px 8px',
                         backgroundColor: 'transparent',
                         border: 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'var(--secondary-text)',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        color: '#8b8b8b', // text-text-secondary
                         cursor: 'pointer',
                       }}
                       onClick={() => onAttachedItemClick(item)}
@@ -601,13 +601,95 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
             </div>
           )}
 
-          {attachedItems.filter((item) => item.type === ('terminal' as any)).length > 0 && (
-            <div style={{ marginBottom: 'var(--spacing-xs)' }}>
+          {attachedItems.filter((item) => item.type === 'skill').length > 0 && (
+            <div style={{ marginBottom: '4px' }}>
               <div
                 style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
+                  fontSize: '10px',
+                  color: '#8b8b8b', // text-text-secondary
+                  marginBottom: '4px',
+                }}
+              >
+                Skills:
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '4px',
+                }}
+              >
+                {attachedItems
+                  .filter((item) => item.type === 'skill')
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 8px',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        border: '1px solid rgba(139, 92, 246, 0.3)',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        color: '#a78bfa',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => onAttachedItemClick(item)}
+                      title={`Skill: ${item.path}`}
+                    >
+                      <Sparkles size={12} />
+                      <span
+                        style={{
+                          maxWidth: '150px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {item.path}
+                      </span>
+                      {!readOnly && (
+                        <div
+                          style={{
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '2px',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRemoveAttachedItem(item.id);
+                          }}
+                        >
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {attachedItems.filter((item) => item.type === ('terminal' as any)).length > 0 && (
+            <div style={{ marginBottom: '4px' }}>
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: '#8b8b8b', // text-text-secondary
+                  marginBottom: '4px',
                 }}
               >
                 Terminals:
@@ -616,7 +698,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                 }}
               >
                 {attachedItems
@@ -627,13 +709,13 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                        gap: '4px',
+                        padding: '4px 8px',
                         backgroundColor: 'transparent',
                         border: 'none',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'var(--secondary-text)',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        color: '#8b8b8b', // text-text-secondary
                         cursor: 'pointer',
                       }}
                       onClick={() => onAttachedItemClick(item)}
@@ -687,9 +769,9 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
             <div>
               <div
                 style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--secondary-text)',
-                  marginBottom: 'var(--spacing-xs)',
+                  fontSize: '10px',
+                  color: '#8b8b8b', // text-text-secondary
+                  marginBottom: '4px',
                 }}
               >
                 Text Snippets:
@@ -698,7 +780,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  gap: 'var(--spacing-xs)',
+                  gap: '4px',
                 }}
               >
                 {attachedItems
@@ -709,15 +791,15 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 'var(--spacing-xs)',
-                        padding: 'var(--spacing-xs) var(--spacing-sm)',
+                        gap: '4px',
+                        padding: '4px 8px',
                         backgroundColor:
-                          'var(--vscode-editor-background, rgba(128, 128, 128, 0.1))',
+                          'rgba(128, 128, 128, 0.1)', // bg-card-background approximate
                         border:
-                          '1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.3))',
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: 'var(--font-size-xs)',
-                        color: 'rgb(var(--text-primary))',
+                          '1px solid rgba(255,255,255,0.1)', // border-border
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        color: '#ffffff', // text-text-primary
                         cursor: 'pointer',
                       }}
                       onClick={() => handleTextSnippetClick(item, index)}

@@ -86,6 +86,12 @@ export const CodeTerminal = ({
   // This prevents the badge from appearing immediately upon CLI launch (Idle state).
 
   useEffect(() => {
+    terminalIdRef.current = `code-terminal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    console.log('[DEBUG] CodeTerminal effect start', {
+      terminalId: terminalIdRef.current,
+      cwd,
+      hasSpawned: hasSpawnedRef.current,
+    });
     let cleanupFunctions: (() => void)[] = [];
     let isMounted = true;
     let resizeObserver: ResizeObserver | null = null;
@@ -304,7 +310,15 @@ export const CodeTerminal = ({
 
       // Spawn shell
       const spawnShell = async () => {
-        if (!window.api?.invoke || !isMounted || hasSpawnedRef.current) return;
+        if (!window.api?.invoke || !isMounted || hasSpawnedRef.current) {
+          console.log('[DEBUG] CodeTerminal spawnShell skipped', {
+            terminalId: terminalIdRef.current,
+            hasApi: !!window.api?.invoke,
+            isMounted,
+            hasSpawned: hasSpawnedRef.current,
+          });
+          return;
+        }
 
         // Wait for a valid CWD before spawning to prevent landing in Home unexpectedly
         if (!cwd) {
@@ -324,9 +338,17 @@ export const CodeTerminal = ({
 
         try {
           hasSpawnedRef.current = true;
+          console.log('[DEBUG] CodeTerminal spawning', {
+            terminalId: terminalIdRef.current,
+            cwd: effectiveCwd,
+          });
           const info: any = await window.api.invoke('terminal:spawn', {
             terminalId: terminalIdRef.current,
             cwd: effectiveCwd,
+          });
+          console.log('[DEBUG] CodeTerminal spawn result', {
+            terminalId: terminalIdRef.current,
+            info,
           });
 
           if (info && !info.error) {
@@ -407,8 +429,13 @@ export const CodeTerminal = ({
     openTerminalWhenReady();
 
     return () => {
+      console.log('[DEBUG] CodeTerminal cleanup', {
+        terminalId: terminalIdRef.current,
+        cwd,
+      });
       isMounted = false;
       isOpened = false;
+      hasSpawnedRef.current = false;
 
       cleanupFunctions.forEach((fn) => fn());
       cleanupFunctions = [];

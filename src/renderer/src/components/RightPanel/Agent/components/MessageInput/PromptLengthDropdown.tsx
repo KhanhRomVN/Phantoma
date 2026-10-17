@@ -1,4 +1,5 @@
 import React from 'react';
+import { Ban } from 'lucide-react';
 import {
   Dropdown,
   DropdownTrigger,
@@ -11,6 +12,11 @@ interface PromptLengthDropdownProps {
   currentMode: PromptLengthMode;
   onSelect: (mode: PromptLengthMode) => void;
   triggerButton: React.ReactNode;
+  /**
+   * Khi true, chỉ "None" được phép chọn — short/medium/long bị disabled.
+   * Dùng khi provider có anti-system-prompt-injection.
+   */
+  isNoneOnly?: boolean;
 }
 
 /**
@@ -24,6 +30,8 @@ export const PROMPT_LENGTH_MODE_META: {
   barHeight: number;
   color: string;
   desc: string;
+  /** Nếu true, option này không gắn system prompt. */
+  isNoPrompt?: boolean;
 }[] = [
   {
     key: 'none',
@@ -32,6 +40,7 @@ export const PROMPT_LENGTH_MODE_META: {
     barHeight: 4,
     color: '#64748b',
     desc: 'No system prompt — only your message is sent',
+    isNoPrompt: true,
   },
   {
     key: 'short',
@@ -104,6 +113,7 @@ const PromptLengthDropdown: React.FC<PromptLengthDropdownProps> = ({
   currentMode,
   onSelect,
   triggerButton,
+  isNoneOnly = false,
 }) => {
   const current =
     PROMPT_LENGTH_MODE_META.find((m) => m.key === currentMode) ?? PROMPT_LENGTH_MODE_META[3];
@@ -116,41 +126,30 @@ const PromptLengthDropdown: React.FC<PromptLengthDropdownProps> = ({
           .zen-pl-step .zen-pl-bar {
             transition: background 0.15s ease, box-shadow 0.15s ease;
           }
-          .zen-pl-step:hover .zen-pl-bar {
+          .zen-pl-step:not(.zen-pl-disabled):hover .zen-pl-bar {
             background: rgba(128, 128, 128, 0.4);
           }
         `}</style>
-        <div style={{ padding: '10px 12px 8px' }}>
+        <div className="p-[10px_12px_8px]">
+          
+          {/* Banner khi isNoneOnly */}
+          {isNoneOnly && (
+            <div className="flex items-center gap-1.5 text-[10.5px] text-warn leading-snug mb-2.5 pb-2 border-b border-border/50">
+              <Ban size={11} className="shrink-0" />
+              <span>This provider injects its own prompt — only None is available.</span>
+            </div>
+          )}
+
           {/* Header: label + value pill */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '12.5px',
-                fontWeight: 600,
-                color: 'var(--primary-text)',
-              }}
-            >
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[12.5px] font-semibold text-text-primary">
               Prompt Length
             </div>
             <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 whitespace-nowrap"
               style={{
-                fontSize: '10px',
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: '999px',
                 background: `color-mix(in srgb, ${current.color} 18%, transparent)`,
                 color: current.color,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                whiteSpace: 'nowrap',
               }}
             >
               {current.label}
@@ -158,51 +157,38 @@ const PromptLengthDropdown: React.FC<PromptLengthDropdownProps> = ({
           </div>
 
           {/* Step-bar */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: '8px',
-              height: '34px',
-              marginTop: '12px',
-              padding: '0 2px',
-            }}
-          >
+          <div className="flex items-end gap-2 h-[34px] mt-3 px-0.5">
             {PROMPT_LENGTH_MODE_META.map((meta) => {
               const isSelected = currentMode === meta.key;
+              const isDisabled = isNoneOnly && !meta.isNoPrompt;
+
               return (
                 <div
                   key={meta.key}
-                  className={`zen-pl-step${isSelected ? ' zen-pl-selected' : ''}`}
-                  onClick={() => onSelect(meta.key)}
-                  title={meta.desc}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '6px',
-                    cursor: 'pointer',
+                  className={`zen-pl-step flex-1 flex flex-col items-center gap-1.5 cursor-pointer transition-opacity ${isSelected ? 'zen-pl-selected' : ''} ${isDisabled ? 'zen-pl-disabled opacity-30 cursor-not-allowed' : ''}`}
+                  onClick={() => {
+                    if (!isDisabled) onSelect(meta.key);
                   }}
+                  title={
+                    isDisabled
+                      ? "Unavailable — provider uses its own system prompt"
+                      : meta.desc
+                  }
                 >
                   <div
-                    className="zen-pl-bar"
+                    className="zen-pl-bar w-full rounded-t-[3px] rounded-b-[1px]"
                     style={{
-                      width: '100%',
                       height: `${meta.barHeight}px`,
-                      borderRadius: '3px 3px 1px 1px',
-                      background: isSelected ? meta.color : undefined,
-                      boxShadow: isSelected
+                      background: isSelected && !isDisabled ? meta.color : undefined,
+                      boxShadow: isSelected && !isDisabled
                         ? `0 0 0 1px color-mix(in srgb, ${meta.color} 50%, transparent)`
                         : undefined,
                     }}
                   />
                   <span
+                    className="text-[9.5px] font-semibold leading-none"
                     style={{
-                      fontSize: '9.5px',
-                      fontWeight: 600,
-                      color: isSelected ? meta.color : 'var(--secondary-text)',
-                      lineHeight: 1,
+                      color: isSelected && !isDisabled ? meta.color : undefined,
                     }}
                   >
                     {meta.shortLabel}
@@ -213,14 +199,7 @@ const PromptLengthDropdown: React.FC<PromptLengthDropdownProps> = ({
           </div>
 
           {/* Description */}
-          <div
-            style={{
-              fontSize: '10.5px',
-              color: 'var(--secondary-text)',
-              marginTop: '8px',
-              lineHeight: 1.4,
-            }}
-          >
+          <div className="mt-2 text-[10.5px] text-text-secondary leading-normal">
             {current.desc}
           </div>
         </div>

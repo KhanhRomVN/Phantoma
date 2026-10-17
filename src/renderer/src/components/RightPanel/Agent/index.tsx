@@ -208,8 +208,7 @@ export function AgentPanel() {
   const showGenericOverlay =
     activeFeature !== 'emulate' && activeFeature !== 'code' && activeFeature !== 'recon';
   const showEmulateOverlay = activeFeature === 'emulate' && (!activeTargetId || !isTargetActive);
-  const showReconOverlay =
-    activeFeature === 'recon' && (!reconActiveTargetId || !isReconTargetActive);
+  const showReconOverlay = activeFeature === 'recon' && !reconActiveTargetId;
 
   const renderEmulateOverlay = () => {
     const hasTarget = !!activeTargetId;
@@ -238,12 +237,8 @@ export function AgentPanel() {
         {/* Overlay cho recon khi chưa có target */}
         {showReconOverlay && (
           <AgentOverlay
-            title={reconActiveTargetId ? 'Start the target session' : 'Select a target to start'}
-            description={
-              reconActiveTargetId
-                ? 'Click Start on the selected target to begin a browser session and use the Agent'
-                : 'Please select a target and start a browser session to use the Agent'
-            }
+            title="Select a target to start"
+            description="Please select a target from the left panel to use the Agent"
             icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
           />
         )}

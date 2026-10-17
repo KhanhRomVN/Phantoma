@@ -51,86 +51,27 @@ const TextSnippetDrawer: React.FC<TextSnippetDrawerProps> = ({
 
   const drawerContent = (
     <>
+      {/* Backdrop */}
       <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 99998,
-          animation: 'fadeIn 0.2s ease-out',
-        }}
+        className="fixed inset-0 bg-black/50 z-[99998] animate-fade-in"
         onClick={onClose}
       />
 
+      {/* Drawer Panel */}
       <div
         ref={drawerRef}
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          maxHeight: '70vh',
-          backgroundColor: 'var(--vscode-editor-background, #1e1e1e)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
-          boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.3)',
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'slideUp 0.3s ease-out',
-        }}
+        className="fixed bottom-0 left-0 right-0 max-h-[70vh] bg-card-background rounded-t-3xl shadow-[0_-4px_12px_rgba(0,0,0,0.3)] z-[99999] flex flex-col animate-slide-up"
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            paddingTop: '8px',
-            paddingBottom: '4px',
-            backgroundColor: 'var(--vscode-editor-background, #1e1e1e)',
-            borderTopLeftRadius: '24px',
-            borderTopRightRadius: '24px',
-          }}
-        >
-          <div
-            style={{
-              width: '40px',
-              height: '4px',
-              backgroundColor:
-                'var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.5))',
-              borderRadius: '2px',
-            }}
-          />
+        {/* Drag Handle Area (Optional visual flair from original) */}
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 bg-gray-500/50 rounded-full" />
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 16px 12px 16px',
-            borderBottom:
-              '1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.3))',
-            backgroundColor: 'var(--vscode-editor-background, #1e1e1e)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor:
-                  'var(--vscode-editor-background, rgba(128, 128, 128, 0.1))',
-                border:
-                  '1.5px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.4))',
-              }}
-            >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card-background">
+          <div className="flex items-center gap-3">
+            {/* Icon Container */}
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-500/10 border border-border">
               <svg
                 width="16"
                 height="16"
@@ -140,6 +81,7 @@ const TextSnippetDrawer: React.FC<TextSnippetDrawerProps> = ({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="text-text-secondary"
               >
                 <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -149,87 +91,37 @@ const TextSnippetDrawer: React.FC<TextSnippetDrawerProps> = ({
               </svg>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--vscode-foreground, #ffffff)',
-                }}
-              >
+            <div className="flex flex-col gap-0.5">
+              <h3 className="m-0 text-sm font-semibold text-text-primary">
                 {displayTitle}
               </h3>
-              <div
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--vscode-descriptionForeground, #888)',
-                }}
-              >
+              <div className="text-[11px] text-text-secondary opacity-70">
                 Large pasted text content
               </div>
             </div>
           </div>
+
           <button
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '4px',
-              color: 'var(--vscode-foreground, #ffffff)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(244, 67, 54, 0.15)';
-              e.currentTarget.style.color = '#f44336';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--vscode-foreground, #ffffff)';
-            }}
+            className="p-1.5 rounded-md text-text-secondary hover:bg-red-500/10 hover:text-red-500 transition-colors"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            overflow: 'auto',
-            padding: '16px',
-          }}
-        >
-          <pre
-            style={{
-              margin: 0,
-              fontFamily:
-                "var(--vscode-editor-font-family, 'Courier New', monospace)",
-              fontSize: '11px',
-              lineHeight: '1.5',
-              color: 'var(--vscode-editor-foreground, #d4d4d4)',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-            }}
-          >
+        {/* Content Scrollable Area */}
+        <div className="flex-1 overflow-auto p-4">
+          <pre className="m-0 font-mono text-[11px] leading-relaxed text-text-primary whitespace-pre-wrap break-words">
             {content}
           </pre>
         </div>
       </div>
 
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
       `}</style>
     </>
   );

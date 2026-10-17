@@ -38,9 +38,9 @@ export function DropdownItem({
     }
   }
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (disabled) return;
-    onClick?.();
+    onClick?.(e);
     if (shouldClose) {
       close();
     }

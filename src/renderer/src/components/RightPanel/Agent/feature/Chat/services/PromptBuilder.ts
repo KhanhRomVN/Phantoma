@@ -16,6 +16,8 @@
 import {
   getDefaultPrompt as getCodeDefaultPrompt,
   combinePrompts as combineCodePrompts,
+  buildClaudePrompt,
+  buildAgentsMdSection,
 } from '../prompts/code';
 import {
   getDefaultPrompt as getEmulateDefaultPrompt,
@@ -34,7 +36,7 @@ import type { AgentFeature } from '@renderer/components/RightPanel/Agent/context
 
 // ── Utils ──
 
-// ─── Types ──────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────
 export interface PromptBuilderOptions {
   content: string;
   isReq1: boolean;
@@ -50,6 +52,18 @@ export interface PromptBuilderOptions {
   trafficContext?: string;
   /** Filter context string (đã bọc sẵn <filter_context> tag) — inject vào mọi request */
   filterContext?: string;
+  /** Enable Skill injection in system prompt */
+  useSkillEnabled?: boolean;
+  /** Enable Memory context injection */
+  memoryEnabled?: boolean;
+  /** Tool output format preference ('xml' or 'json') */
+  toolFormat?: 'xml' | 'json';
+  /** Current provider ID for conditional prompting */
+  providerId?: string;
+  /** Prompt length mode — controls which sections are included (Zen parity). */
+  promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
+  /** When false, LSP-DIAGNOSTICS-FALLBACK constraint is added to system prompt. */
+  diagnosticEnabled?: boolean;
 }
 
 export const getShallowTree = (tree: string): string => {
@@ -98,6 +112,12 @@ export class PromptBuilder {
       feature,
       trafficContext,
       filterContext,
+      useSkillEnabled = false,
+      memoryEnabled = false,
+      toolFormat = 'xml',
+      providerId,
+      promptLengthMode = 'long',
+      diagnosticEnabled = true,
     } = options;
 
     let systemPrompt = '';
@@ -108,7 +128,20 @@ export class PromptBuilder {
 
     // Build system prompt for first request
     if (isReq1) {
-      systemPrompt = await this.buildSystemPrompt(aiLanguage, permissionMode, feature);
+      systemPrompt = await this.buildSystemPrompt(
+        aiLanguage,
+        permissionMode,
+        feature,
+        {
+          useSkillEnabled,
+          memoryEnabled,
+          toolFormat,
+          providerId,
+          promptLengthMode,
+          diagnosticEnabled,
+        },
+        workspace,
+      );
       projectContextStr = this.buildProjectContext(treeView, workspace);
     }
 
@@ -122,18 +155,39 @@ export class PromptBuilder {
       ? content
       : `## User Message\n<zen-user-content>\n${content}\n</zen-user-content>`;
 
+    // Tool format instruction (appended to every request if not handled in system prompt)
+    // Note: For simplicity, we append it here. Ideally, this should be part of the system prompt structure.
+    const toolFormatInstruction = this.getToolFormatInstruction(toolFormat);
+
     // Combine all parts
     const promptPayload = isReq1
-      ? `${systemPrompt}${projectContextStr}${attachedContextStr}${trafficContextStr}${filterContextStr}\n\n${fullContent}`
-      : `${attachedContextStr}${trafficContextStr}${filterContextStr}\n\n${fullContent}`;
+      ? `${systemPrompt}${projectContextStr}${attachedContextStr}${trafficContextStr}${filterContextStr}${toolFormatInstruction}\n\n${fullContent}`
+      : `${attachedContextStr}${trafficContextStr}${filterContextStr}${toolFormatInstruction}\n\n${fullContent}`;
 
     return promptPayload;
+  }
+
+  private static getToolFormatInstruction(format: 'xml' | 'json'): string {
+    if (format === 'json') {
+      return `\n\n## Tool Output Format\nWhen executing tools, please provide arguments in strict JSON format within a <tool_call> block or as specified by your internal protocol.`;
+    }
+    // Default XML behavior is usually implicit in the base prompts, but we can reinforce it if needed.
+    return '';
   }
 
   private static async buildSystemPrompt(
     aiLanguage: string,
     permissionMode: string,
     feature?: AgentFeature,
+    overrides?: {
+      useSkillEnabled?: boolean;
+      memoryEnabled?: boolean;
+      toolFormat?: 'xml' | 'json';
+      providerId?: string;
+      promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
+      diagnosticEnabled?: boolean;
+    },
+    workspace?: string,
   ): Promise<string> {
     let systemInfo = {
       os: 'Unknown OS',
@@ -159,27 +213,81 @@ export class PromptBuilder {
 
     const effectiveLang = aiLanguage;
 
-    // Select prompt module based on feature
-    let getDefaultPrompt = getCodeDefaultPrompt;
-    let combinePrompts = combineCodePrompts;
+    // Select prompt module based on feature.
+    // Cast to a common signature: 3 modules expose nearly-identical
+    // combinePrompts(config) but their SystemInfo interfaces diverge
+    // (code has no `ide`, emulate/recon require it). The runtime contract is
+    // identical — only the TS types differ.
+    type AnyCombine = (config: any) => string;
+    let getDefaultPrompt: (lang: string) => string = getCodeDefaultPrompt;
+    let combinePrompts: AnyCombine = combineCodePrompts as AnyCombine;
 
     if (feature === 'emulate') {
       getDefaultPrompt = getEmulateDefaultPrompt;
-      combinePrompts = combineEmulatePrompts;
+      combinePrompts = combineEmulatePrompts as AnyCombine;
     } else if (feature === 'recon') {
       getDefaultPrompt = getReconDefaultPrompt;
-      combinePrompts = combineReconPrompts;
+      combinePrompts = combineReconPrompts as AnyCombine;
     }
+
+    // ── Claude provider: dùng prompt riêng cho sandbox claude.ai ──
+    // Backend claude.ai hiện chưa emit __CLAUDE_TOOL__ markers ở Phantoma,
+    // nhưng prompt này vẫn được dùng để hướng dẫn tool_use format.
+    const isClaudeProvider = overrides?.providerId?.toLowerCase() === 'claude';
 
     let systemPrompt = getDefaultPrompt(effectiveLang);
 
-    // Use real system info if we managed to fetch it
-    if (systemInfo.os !== 'Unknown OS') {
+    if (isClaudeProvider) {
+      systemPrompt = buildClaudePrompt({ language: effectiveLang });
+    } else if (systemInfo.os !== 'Unknown OS') {
+      // Use real system info if we managed to fetch it
       systemPrompt = combinePrompts({
         language: effectiveLang,
         systemInfo,
         permissionMode,
+        promptLengthMode: overrides?.promptLengthMode,
+        diagnosticEnabled: overrides?.diagnosticEnabled,
+        toolFormat: overrides?.toolFormat,
       });
+    }
+
+    // ── AGENTS.md Injection (code mode only) ────────────────────────────
+    // Đọc AGENTS.md ở workspace root (nếu có) và inject như một section
+    // project-level guidance. Bỏ qua với claude provider (dùng prompt riêng).
+    if (!isClaudeProvider && workspace) {
+      try {
+        const api = (window as any).api;
+        if (api?.invoke) {
+          const agentsPath = `${workspace.replace(/\/$/, '')}/AGENTS.md`;
+          const exists = await api
+            .invoke('fs:stat', agentsPath)
+            .then((s: any) => s?.isFile === true)
+            .catch(() => false);
+          if (exists) {
+            const content = await api.invoke('fs:read-file', agentsPath);
+            if (typeof content === 'string') {
+              systemPrompt += buildAgentsMdSection(content);
+            }
+          }
+        }
+      } catch (e) {
+        // Không có AGENTS.md hoặc không đọc được — bỏ qua, không chặn request.
+        console.warn('[PromptBuilder] Failed to inject AGENTS.md:', e);
+      }
+    }
+
+    // ── Memory Context Injection ────────────────────────────────────────
+    if (overrides?.memoryEnabled) {
+      // TODO: Fetch actual memory context from MemoryService when available.
+      // For now, inject a structural hint so the LLM knows to look for <memory_context>.
+      systemPrompt += `\n\n## Memory Protocol\nYou have access to persistent memory. Look for <memory_context> blocks in subsequent messages or tool outputs to retrieve relevant historical information.`;
+    }
+
+    // ── Skill Activation ────────────────────────────────────────────────
+    if (overrides?.useSkillEnabled) {
+      // TODO: Load dynamic skills based on feature/provider.
+      // Placeholder to enable skill-aware prompting structure.
+      systemPrompt += `\n\n## Active Skills\nSpecialized capabilities are enabled. Follow any <skill_instructions> provided in the context strictly.`;
     }
 
     return systemPrompt;

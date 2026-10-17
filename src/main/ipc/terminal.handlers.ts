@@ -125,6 +125,7 @@ export function setupTerminalHandlers(): void {
 
     // Handle PTY exit
     ptyProcess.onExit(({ exitCode, signal }) => {
+      console.log('[DEBUG] terminal pty exit', { terminalId, pid: ptyProcess.pid, exitCode, signal, cwd: safeCwd });
       event.sender.send('terminal:exit', { terminalId, exitCode, signal });
       activePTYs.delete(terminalId);
     });

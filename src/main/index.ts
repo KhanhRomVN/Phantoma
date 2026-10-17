@@ -40,6 +40,10 @@ import {
   setupTaskHandlers,
   setupLoggerHandlers,
   registerWorkspaceHandlers,
+  setupReconHandlers,
+  setupMemoryHandlers,
+  setupSkillHandlers,
+  setupTitleHandlers,
 } from './ipc';
 
 // Ensure certificate directory exists for http-mitm-proxy
@@ -65,6 +69,10 @@ app.whenReady().then(() => {
   setupGitHandlers();
   setupTaskHandlers();
   registerWorkspaceHandlers();
+  setupReconHandlers(); // Browser automation via recon server
+  setupMemoryHandlers();
+  setupSkillHandlers();
+  setupTitleHandlers();
 
   // Create main window
   windowManager.createMainWindow();

@@ -28,6 +28,7 @@ import {
   MessageSquare,
   LayoutGrid,
   Check,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { parseReconFile } from './ui/parser';
@@ -38,6 +39,7 @@ import { applyRects } from './ui/layout';
 import { cn } from '@renderer/shared/utils/cn';
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
 import { TYPE_META, resolveType, withAlpha, TypeIcon, TypeBadgeIcon } from './targetType';
+import { useReconSettings } from './Settings';
 
 // Tự nạp mọi file _*.recon trong thư mục mock: thêm/xoá file mock không cần sửa import.
 const MOCK_MODULES = import.meta.glob('../mock/**/_*.recon', {
@@ -168,6 +170,7 @@ interface TabBarProps {
  * Sticky ở top của vùng cuộn; `stuck` bật bóng đổ khi header phía trên đã cuộn khuất.
  */
 function TabBar({ tabs, activeIndex, onSelect, stuck }: TabBarProps) {
+  const { contentTabUI } = useReconSettings().settings;
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [edges, setEdges] = useState({ overflowing: false, canLeft: false, canRight: false });
@@ -288,20 +291,25 @@ function TabBar({ tabs, activeIndex, onSelect, stuck }: TabBarProps) {
                 onClick={() => onSelect(idx)}
                 className={cn(
                   'relative shrink-0 flex items-center gap-2 px-4 h-10 text-sm font-medium whitespace-nowrap transition-colors',
-                  selected ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary'
+                  selected ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary',
+                  selected && contentTabUI.tabStyle === 'pill' && 'bg-primary/10 rounded-md'
                 )}
               >
-                <Icon className={cn('w-4 h-4', selected && 'text-primary')} strokeWidth={2} />
+                {contentTabUI.showIcons && (
+                  <Icon className={cn('w-4 h-4', selected && 'text-primary')} strokeWidth={2} />
+                )}
                 {tab.title}
-                <span
-                  className={cn(
-                    'min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold tabular-nums flex items-center justify-center',
-                    selected ? 'bg-primary/15 text-primary' : 'bg-border/40 text-text-secondary'
-                  )}
-                >
-                  {tab.boxes.length}
-                </span>
-                {selected && (
+                {contentTabUI.showBoxCount && (
+                  <span
+                    className={cn(
+                      'min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold tabular-nums flex items-center justify-center',
+                      selected ? 'bg-primary/15 text-primary' : 'bg-border/40 text-text-secondary'
+                    )}
+                  >
+                    {tab.boxes.length}
+                  </span>
+                )}
+                {selected && contentTabUI.tabStyle === 'underline' && (
                   <span
                     className='absolute left-3 right-3 bottom-0 h-0.5 rounded-full bg-gradient-to-r from-primary to-[color:var(--tab-accent)]'
                     style={{ ['--tab-accent' as string]: TAB_ACCENTS[tab.name] ?? TAB_ACCENT_DEFAULT }}
@@ -360,9 +368,10 @@ function TabBar({ tabs, activeIndex, onSelect, stuck }: TabBarProps) {
 export interface ContentPanelProps {
   /** Optional: pass a custom set of files instead of the default mock1 */
   files?: Record<string, string>;
+  onOpenSettings?: () => void;
 }
 
-export default function ContentPanel({ files: sourceFiles = MOCK_FILES }: ContentPanelProps) {
+export default function ContentPanel({ files: sourceFiles = MOCK_FILES, onOpenSettings }: ContentPanelProps) {
   // Chế độ chỉnh bố cục + nội dung file đã chỉnh (ghi đè lên file gốc, chỉ giữ trong bộ nhớ)
   const [editing, setEditing] = useState(false);
   const [edited, setEdited] = useState<Record<string, string>>({});
@@ -494,6 +503,9 @@ export default function ContentPanel({ files: sourceFiles = MOCK_FILES }: Conten
               )}
               {editing && 'Xong'}
             </button>
+            <HeaderIconButton title='Cài đặt Recon' onClick={onOpenSettings}>
+              <SettingsIcon className='w-4 h-4' strokeWidth={1.5} />
+            </HeaderIconButton>
             <HeaderIconButton title='Xuất'>
               <Download className='w-4 h-4' strokeWidth={1.5} />
             </HeaderIconButton>

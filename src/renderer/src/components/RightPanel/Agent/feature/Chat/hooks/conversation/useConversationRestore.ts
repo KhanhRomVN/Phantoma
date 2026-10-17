@@ -51,6 +51,13 @@ interface UseConversationRestoreProps {
       totalDeletions: number;
     } | null>
   >;
+  /** Callback khi restore conversation có conversationOverrides saved. */
+  onRestoreOverrides?: (overrides: {
+    diagnosticEnabled?: boolean;
+    useSkillEnabled?: boolean;
+    memoryEnabled?: boolean;
+    toolFormat?: 'xml' | 'json';
+  }) => void;
 }
 
 export const useConversationRestore = ({
@@ -68,6 +75,7 @@ export const useConversationRestore = ({
   revertParentMessageIdRef,
   setRevertInput,
   setLoadedConversationFileStats,
+  onRestoreOverrides,
 }: UseConversationRestoreProps) => {
   const [isLoadingConversation, setIsLoadingConversation] = useState<boolean>(true);
   const [isRestored, setIsRestored] = useState<boolean>(false);
@@ -153,6 +161,10 @@ export const useConversationRestore = ({
           }));
 
           setMessages(restoredMessages);
+
+          if (data.data.conversationOverrides && onRestoreOverrides) {
+            onRestoreOverrides(data.data.conversationOverrides);
+          }
 
           if (data.data.toolOutputs && Object.keys(data.data.toolOutputs).length > 0) {
             setToolOutputs(data.data.toolOutputs);

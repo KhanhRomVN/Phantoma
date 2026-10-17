@@ -473,8 +473,11 @@ export function setupFSHandlers() {
 
   // Shell: open path in OS file manager
   ipcMain.handle('shell:open-path', async (_, targetPath: string) => {
+    console.log('[DEBUG] shell:open-path called', { targetPath, exists: fs.existsSync(targetPath) });
     const { shell } = await import('electron');
-    return shell.openPath(targetPath);
+    const result = await shell.openPath(targetPath);
+    console.log('[DEBUG] shell:open-path result', JSON.stringify(result));
+    return result;
   });
 
   // File watcher

@@ -41,6 +41,8 @@ import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
 export type PanelType = 'terminal' | 'website' | 'note' | 'emulator';
 
 export interface StoredWorkspacePanel {
+  sessionId?: string;
+  cwd?: string;
   id: string;
   type: PanelType;
   title: string;
@@ -67,6 +69,7 @@ export interface Project {
   agentGroups: AgentGroup[];
   mcps: MCP[];
   branches?: BranchInfo[];
+  explorerRoot?: string | null;
   // ── Per-project state ──
   expandedFolderIds: string[];
   openFiles: string[];
@@ -188,6 +191,7 @@ interface CodeState {
   removeProject: (id: string) => void;
   updateProject: (id: string, data: Partial<Project>) => void;
   setCurrentProject: (id: string) => void;
+  setExplorerRoot: (projectId: string, root: string | null) => void;
   addService: (projectId: string, service: ServiceInput) => void;
   removeService: (projectId: string, serviceId: string) => void;
   updateServiceStatus: (projectId: string, serviceId: string, status: Service['status']) => void;
@@ -496,6 +500,16 @@ export const useCodeStore = create<CodeState>()(
 
         setCurrentProject: (id) => {
           set({ currentProjectId: id });
+        },
+
+        setExplorerRoot: (projectId, root) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId && (p.explorerRoot ?? null) !== root
+                ? { ...p, explorerRoot: root, expandedFolderIds: [] }
+                : p,
+            ),
+          }));
         },
 
         // ── Service Actions ──

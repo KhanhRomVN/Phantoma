@@ -19,6 +19,7 @@
  * - git:discard          : Khôi phục file về trạng thái HEAD (bỏ thay đổi)
  * - git:discard-all      : Discard toàn bộ thay đổi chưa commit
  * - git:get-repo-info    : Tổng hợp thông tin repo (URL, author, contributors, branches)
+ * - git:delete-branch    : Xóa hoàn toàn branch local cùng worktree liên kết (nếu có)
  *
  * Functions:
  * - setupGitHandlers() : Entry point đăng ký toàn bộ IPC handler nhóm 'git:'
@@ -34,6 +35,9 @@ import { ipcMain } from 'electron';
 
 // ── Node.js ──
 import { execFile } from 'child_process';
+import { promises as fs } from 'fs';
+import { homedir, tmpdir } from 'os';
+import { basename, dirname, join, resolve } from 'path';
 
 // ── Internal ──
 import { logger } from '../utils/logger';
@@ -370,6 +374,121 @@ export function setupGitHandlers(): void {
     } catch (e: any) {
       logger.error('[git:get-repo-info] Critical Error:', e);
       return null;
+    }
+  });
+
+  // ── Create Branch (git worktree) ──
+  ipcMain.handle(
+    'git:create-branch-worktree',
+    async (
+      _event,
+      projectPath: string,
+      newBranch: string,
+      sourceBranch: string,
+      mode: 'latest-commit' | 'local',
+    ) => {
+      try {
+        const cwd = projectPath || process.cwd();
+        const name = (newBranch || '').trim();
+
+        const formatCheck = await runGit(['check-ref-format', '--branch', name], cwd);
+        if (formatCheck.error) return { error: `Tên branch không hợp lệ: ${name}` };
+
+        const existing = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`], cwd);
+        if (!existing.error) return { error: `Branch "${name}" đã tồn tại` };
+
+        const source = await runGit(
+          ['show-ref', '--verify', '--quiet', `refs/heads/${sourceBranch}`],
+          cwd,
+        );
+        if (source.error) return { error: `Branch nguồn "${sourceBranch}" không tồn tại` };
+
+        if (mode === 'local') {
+          const current = await runGit(['branch', '--show-current'], cwd);
+          if (current.stdout.trim() !== sourceBranch) {
+            return { error: 'Chế độ Local chỉ dùng được khi branch nguồn đang được checkout' };
+          }
+        }
+
+        const targetPath = join(
+          homedir(),
+          '.phantoma',
+          `code:${Buffer.from(resolve(cwd)).toString('base64url')}`,
+          'worktrees',
+          name.replace(/\//g, '-'),
+        );
+        const add = await runGit(['worktree', 'add', '-b', name, targetPath, sourceBranch], cwd);
+        if (add.error) return { error: add.stderr || add.error.message };
+
+        if (mode === 'local') {
+          const patchFile = join(tmpdir(), `phantoma-${Date.now()}.patch`);
+          const diff = await runGit(['diff', 'HEAD', '--binary', '--output', patchFile], cwd);
+          if (!diff.error) {
+            const stat = await fs.stat(patchFile).catch(() => null);
+            if (stat && stat.size > 0) {
+              const apply = await runGit(['apply', '--whitespace=nowarn', patchFile], targetPath);
+              if (apply.error) logger.error('[git:create-branch-worktree] apply failed:', apply.stderr);
+            }
+            await fs.rm(patchFile, { force: true });
+          }
+
+          const untracked = await runGit(['ls-files', '--others', '--exclude-standard', '-z'], cwd);
+          const files = untracked.stdout.split('\0').filter((f) => f.length > 0);
+          for (const file of files) {
+            const dest = join(targetPath, file);
+            await fs.mkdir(dirname(dest), { recursive: true });
+            await fs.copyFile(join(cwd, file), dest);
+          }
+        }
+
+        return { branch: name, path: targetPath };
+      } catch (e: any) {
+        logger.error('[git:create-branch-worktree] Error:', e);
+        return { error: e.message || String(e) };
+      }
+    },
+  );
+
+  // ── Delete Branch (branch + worktree) ──
+  ipcMain.handle('git:delete-branch', async (_event, projectPath: string, branchName: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      const name = (branchName || '').trim();
+      if (!name) return { error: 'Thiếu tên branch' };
+
+      const exists = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`], cwd);
+      if (exists.error) return { error: `Branch "${name}" không tồn tại` };
+
+      const current = await runGit(['branch', '--show-current'], cwd);
+      if (current.stdout.trim() === name) {
+        return { error: `Không thể xóa branch "${name}" đang được checkout` };
+      }
+
+      const originHead = await runGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd);
+      const defaultBranch = originHead.error ? '' : originHead.stdout.trim().replace(/^origin\//, '');
+      if (name === defaultBranch || (!defaultBranch && (name === 'main' || name === 'master'))) {
+        return { error: `Không thể xóa branch mặc định "${name}"` };
+      }
+
+      const list = await runGit(['worktree', 'list', '--porcelain'], cwd);
+      const blocks = list.stdout.split(/\n\s*\n/).slice(1);
+      for (const block of blocks) {
+        const lines = block.split('\n').map((l) => l.trim());
+        if (!lines.includes(`branch refs/heads/${name}`)) continue;
+        const wtLine = lines.find((l) => l.startsWith('worktree '));
+        if (!wtLine) continue;
+        const remove = await runGit(['worktree', 'remove', '--force', wtLine.slice(9)], cwd);
+        if (remove.error) return { error: remove.stderr || remove.error.message };
+      }
+
+      const del = await runGit(['branch', '-D', name], cwd);
+      if (del.error) return { error: del.stderr || del.error.message };
+
+      await runGit(['worktree', 'prune'], cwd);
+      return { branch: name };
+    } catch (e: any) {
+      logger.error('[git:delete-branch] Error:', e);
+      return { error: e.message || String(e) };
     }
   });
 }

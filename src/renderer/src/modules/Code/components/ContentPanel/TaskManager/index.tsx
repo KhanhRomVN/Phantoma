@@ -1,9 +1,9 @@
 /**
  * ------------------------------------------------------------------
- * Task Manager — Kanban Board with SQLite Persistence
+ * Task Manager — Kanban Board with JSON File Persistence
  * ------------------------------------------------------------------
  * Replaces the old mock-data version. Now uses real IPC calls to
- * manage tasks stored in ~/.phantoma/code:{slug}/task.sqlite.
+ * manage tasks stored in ~/.phantoma/code:{slug}/tasks.json.
  * 
  * Features:
  * - 4 columns (Todo, In Progress, Review, Done) with subtle accents.

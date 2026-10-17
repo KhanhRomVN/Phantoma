@@ -49,6 +49,7 @@ export type { PanelType, WorkspacePanel } from '../../../utils/workspaceLayout';
 
 interface WorkspaceViewsProps {
   initialPanels?: WorkspacePanel[];
+  sessionId: string;
 }
 
 // Stable reference so the zustand selectors below don't return a fresh [] every call
@@ -68,26 +69,68 @@ const createPanelId = (type: PanelType) =>
 
 export const WorkspaceViews = memo(function WorkspaceViews({
   initialPanels = [],
+  sessionId,
 }: WorkspaceViewsProps) {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const updateProject = useCodeStore((s) => s.updateProject);
   const updatePanelZenCliBinding = useCodeStore((s) => s.updatePanelZenCliBinding);
 
   // Persisted state from the store
-  const storedPanels = useCodeStore(
+  const allStoredPanels = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.workspacePanels ?? NO_PANELS,
   );
   const storedActiveId = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.activeWorkspacePanelId ?? null,
   );
-  const currentProjectPath = useCodeStore(
-    (s) => s.projects.find((p) => p.id === s.currentProjectId)?.path,
+  const currentProjectPath = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === s.currentProjectId);
+    const branch = (project as any)?.branches?.find((b: any) =>
+      b.sessions?.some((sess: any) => sess.id === sessionId),
+    );
+    return branch?.path ?? project?.path;
+  });
+
+  const isActive = useCodeStore((s) => s.activeWorkspaceSessionId === sessionId);
+
+  const belongsToSession = (p: StoredWorkspacePanel) =>
+    p.sessionId ? p.sessionId === sessionId : p.cwd === currentProjectPath;
+
+  const storedPanels = useMemo(
+    () => allStoredPanels.filter(belongsToSession),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allStoredPanels, sessionId, currentProjectPath],
   );
 
+  const tagPanels = (list: WorkspacePanel[]) =>
+    list.map((p) => ({ ...p, sessionId })) as StoredWorkspacePanel[];
+
+  const mergeSessionPanels = (list: WorkspacePanel[]) => [
+    ...allStoredPanels.filter((p) => !belongsToSession(p)),
+    ...tagPanels(list),
+  ];
+
+  // Helper to ensure all terminal panels have a fixed CWD
+  const normalizePanelsCwd = useCallback((panelsToNormalize: WorkspacePanel[], defaultCwd: string) => {
+    let hasChanges = false;
+    const normalized = panelsToNormalize.map(p => {
+      if (p.type === 'terminal' && !p.cwd) {
+        hasChanges = true;
+        return { ...p, cwd: defaultCwd };
+      }
+      return p;
+    });
+    return { panels: normalized, changed: hasChanges };
+  }, []);
+
   // Panels + layout live in a single reducer so they can never drift apart
-  const [state, dispatch] = useReducer(workspaceReducer, undefined, () =>
-    createInitialState(storedPanels.length > 0 ? storedPanels : initialPanels, storedActiveId),
-  );
+  const [state, dispatch] = useReducer(workspaceReducer, undefined, () => {
+    const sourcePanels = storedPanels.length > 0 ? storedPanels : initialPanels;
+    const { panels: normalized } = normalizePanelsCwd(sourcePanels as WorkspacePanel[], currentProjectPath || '');
+    return createInitialState(
+      normalized,
+      normalized.some((p) => p.id === storedActiveId) ? storedActiveId : null,
+    );
+  });
   const { panels, paneTabs, paneActive, focusedPane, sizes } = state;
   const focusedActiveId = paneActive[focusedPane];
 
@@ -101,10 +144,54 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     if (loadedProjectRef.current === currentProjectId) return;
     loadedProjectRef.current = currentProjectId;
     skipNextSyncRef.current = true;
-    dispatch({ type: 'reset', panels: storedPanels, activeId: storedActiveId });
+    
+    // Normalize stored panels before resetting state to prevent missing CWD issues
+    const { panels: normalizedStored, changed } = normalizePanelsCwd(storedPanels as WorkspacePanel[], currentProjectPath || '');
+    
+    dispatch({ type: 'reset', panels: normalizedStored, activeId: storedActiveId });
+    
+    // If we had to fix missing CWDs, sync back to store immediately so next time it's clean
+    if (changed && currentProjectId) {
+       updateProject(currentProjectId, { workspacePanels: normalizedStored as StoredWorkspacePanel[] });
+    }
     // Only react to the project id changing
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProjectId]);
+
+  // ─── Sync Panel CWD with Active Session Path ────────────────────────
+  // When the active session changes (and thus currentProjectPath changes),
+  // we must update the 'cwd' of ALL open terminal panels to match the new path.
+  // This ensures that switching sessions correctly points terminals to the right directory.
+  const lastSyncedPathRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!currentProjectPath) return;
+    
+    // Skip if path hasn't actually changed since last sync
+    if (lastSyncedPathRef.current === currentProjectPath) return;
+    
+    lastSyncedPathRef.current = currentProjectPath;
+
+    let needsUpdate = false;
+    const updatedPanels = panels.map(p => {
+      if (p.type === 'terminal' && !p.cwd) {
+        needsUpdate = true;
+        return { ...p, cwd: currentProjectPath };
+      }
+      return p;
+    });
+
+    if (needsUpdate) {
+      console.log('[DEBUG_WORKSPACE_SYNC_CWD] Updating all terminal panels to new session path:', currentProjectPath);
+      // Use 'reset' to atomically update state without causing partial re-renders or loops
+      dispatch({ type: 'reset', panels: updatedPanels, activeId: focusedActiveId });
+      
+      // Persist immediately to store so reload keeps correct paths
+      if (currentProjectId) {
+         updateProject(currentProjectId, { workspacePanels: mergeSessionPanels(updatedPanels) });
+      }
+    }
+  }, [currentProjectPath, panels, focusedActiveId, currentProjectId, updateProject]);
 
   // Local → store, only when something actually changed
   useEffect(() => {
@@ -113,14 +200,16 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       skipNextSyncRef.current = false;
       return;
     }
-    const panelsChanged = JSON.stringify(storedPanels) !== JSON.stringify(panels);
-    if (panelsChanged || storedActiveId !== focusedActiveId) {
+    const panelsChanged = JSON.stringify(storedPanels) !== JSON.stringify(tagPanels(panels));
+    const activeChanged = isActive && storedActiveId !== focusedActiveId;
+    if (panelsChanged || activeChanged) {
       updateProject(currentProjectId, {
-        workspacePanels: panels as StoredWorkspacePanel[],
-        activeWorkspacePanelId: focusedActiveId,
+        workspacePanels: mergeSessionPanels(panels),
+        ...(isActive ? { activeWorkspacePanelId: focusedActiveId } : {}),
       });
     }
-  }, [panels, focusedActiveId, currentProjectId, updateProject, storedPanels, storedActiveId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panels, focusedActiveId, currentProjectId, updateProject, storedPanels, storedActiveId, isActive]);
 
   // ─── Derived layout ─────────────────────────────────────────────────
 
@@ -133,9 +222,15 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     dispatch({
       type: 'add',
       pane,
-      panel: { id: createPanelId(type), type, title: getPanelMeta(type).label, providerId: null },
+      panel: { 
+        id: createPanelId(type), 
+        type, 
+        title: getPanelMeta(type).label, 
+        providerId: null,
+        cwd: currentProjectPath // Gán CWD hiện tại cho panel mới
+      },
     });
-  }, []);
+  }, [currentProjectPath]);
 
   // ── NEW: Handle Drop from History Panel ──
   const handleDropHistory = useCallback(
@@ -171,6 +266,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
           type: 'terminal',
           title: `Resume: ${title.substring(0, 20)}...`,
           providerId: null,
+          cwd: currentProjectPath, // Gán CWD hiện tại
           zencliConversationId: convId,
           zencliLastActiveAt: Date.now(),
         };
@@ -323,7 +419,9 @@ export const WorkspaceViews = memo(function WorkspaceViews({
   // ─── Render ─────────────────────────────────────────────────────────
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-background relative">
+    <div
+      className={`flex-1 flex-col min-h-0 bg-background relative ${isActive ? 'flex' : 'hidden'}`}
+    >
       {/* Main workspace area */}
       <div className="flex-1 min-h-0 relative">
         {/* Tab bars - rendered at top level so they sit above the panel bodies */}

@@ -321,6 +321,13 @@ export class ReconController {
     this.notifyTargetsChanged();
   }
 
+  public updateTarget(targetId: string, patch: Partial<Omit<ReconTarget, 'id'>>): void {
+    const current = this.targets.get(targetId);
+    if (!current) return;
+    this.targets.set(targetId, { ...current, ...patch });
+    this.notifyTargetsChanged();
+  }
+
   public removeTarget(targetId: string): void {
     this.targets.delete(targetId);
     this.sessions.delete(targetId);

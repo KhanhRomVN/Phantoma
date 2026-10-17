@@ -1,48 +1,62 @@
-import React from 'react';
-import { Terminal } from 'lucide-react';
+import * as React from "react";
+import { extensionService } from "../../services/ExtensionService";
 
-interface ZenCliHintBarProps {
-  isClaudeProvider: boolean;
-}
+const ZENCLI_URL = "https://www.npmjs.com/package/@khanhromvn/zencli";
 
 /**
- * Small hint bar below the input box in Home Panel.
- * Provides quick tips for CLI usage or specific provider behaviors.
+ * Thanh hint ZenCLI — bậc 3 của MessageInput (dưới textarea + toolbar).
+ * - Width 100%, height auto theo content (1 dòng text).
+ * - Text căn phải, padding-top/bottom 4px.
+ * - KHÔNG có background, border, outline nào cả.
+ * - Click bất kỳ đâu → mở link npmjs trong browser mặc định của hệ điều hành
+ *   (thông qua command `openExternalUrl` ở extension host).
+ * - Màu: nhạt hơn (text-secondary), giảm fontSize xuống 10px.
  */
-export const ZenCliHintBar: React.FC<ZenCliHintBarProps> = ({ isClaudeProvider }) => {
-  // Only show hints relevant to current context if needed. 
-  // For now, we keep it simple as per original Zen implementation which often had static hints.
-  
-  const hints = [
-    { icon: '/', text: 'Use /commands for shortcuts' },
-    { icon: '@', text: 'Mention files with @filename' },
-  ];
+export const ZenCliHintBar: React.FC<{ isClaudeProvider: boolean }> = ({
+  isClaudeProvider,
+}) => {
+  const color = isClaudeProvider ? "rgb(244, 67, 54)" : "rgb(136, 136, 136)";
 
-  if (isClaudeProvider) {
-    hints.push({ icon: '📦', text: 'Workspace will be zipped on first message' });
-  }
+  const title = isClaudeProvider
+    ? "Use ZenCLI to avoid Claude path errors"
+    : "Prefer terminal? Try ZenCLI";
+
+  const handleClick = React.useCallback(() => {
+    extensionService.postMessage({ command: "openExternalUrl", url: ZENCLI_URL });
+  }, []);
 
   return (
     <div
-      style={{
-        marginTop: '4px',
-        paddingLeft: '8px',
-        paddingRight: '8px',
-        display: 'flex',
-        gap: '12px',
-        fontSize: '10px',
-        color: 'var(--vscode-descriptionForeground)',
-        opacity: 0.7,
-        userSelect: 'none',
-        pointerEvents: 'none',
+      role="link"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
       }}
+      style={{
+        width: "100%",
+        boxSizing: "border-box",
+        padding: "4px 12px 0 12px",
+        fontSize: "10px",
+        lineHeight: 1.4,
+        textAlign: "right",
+        color,
+        cursor: "pointer",
+        userSelect: "none",
+        transition: "opacity 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.opacity = "0.7";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.opacity = "1";
+      }}
+      title={ZENCLI_URL}
     >
-      {hints.map((hint, idx) => (
-        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Terminal size={9} />
-          <span>{hint.text}</span>
-        </div>
-      ))}
+      {title}
     </div>
   );
 };

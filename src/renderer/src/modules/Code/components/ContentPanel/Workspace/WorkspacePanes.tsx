@@ -338,10 +338,14 @@ const PanelBody = memo(function PanelBody({
   }, [onResetConversation, panel.id]);
 
   switch (panel.type) {
-    case 'terminal':
+    case 'terminal': {
+      // Use the panel's stored CWD if available, otherwise fallback to the current workspace path.
+      // This ensures existing terminals stay in their original directory when switching sessions.
+      const effectiveCwd = panel.cwd ?? cwd;
+      
       return (
         <CodeTerminal
-          cwd={cwd}
+          cwd={effectiveCwd}
           onProviderChange={handleProvider}
           initialCommand={buildZenCliCommand(panel)}
           onProcessExit={handleExit}
@@ -349,6 +353,7 @@ const PanelBody = memo(function PanelBody({
           onResetConversation={handleReset}
         />
       );
+    }
     case 'website':
       return <CodeBrowser initialUrl={panel.content} />;
     case 'note':

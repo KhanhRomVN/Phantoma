@@ -5,7 +5,10 @@ import { useAgentFeature } from '../../components/RightPanel/Agent/context/Featu
 // ── Components 
 import LeftPanel from './components/LeftPanel';
 import ContentPanel from './components/ContentPanel';
-import AddTargetModal from './components/AddTargetModal';
+import TargetModal from './components/TargetModal';
+import type { TargetModalValue } from './components/TargetModal';
+import { ReconSettingsProvider } from './components/Settings';
+import { SettingsView } from './components/SettingsView';
 
 export interface ReconProps {
   activeAppId?: string;
@@ -15,7 +18,9 @@ export function Recon({}: ReconProps) {
   const { setReconState } = useAgentFeature();
   const [targets, setTargets] = useState<ReconTarget[]>([]);
   const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTarget, setEditingTarget] = useState<ReconTarget | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Initialize Controller Subscriptions
   useEffect(() => {
@@ -84,72 +89,103 @@ export function Recon({}: ReconProps) {
     }
   }, []);
 
-  // Handle adding a new target via Modal
-  const handleAddTarget = useCallback(({ identifier, type }: { identifier: string; type: string }) => {
-    const controller = ReconController.getInstance();
-    
-    // Create a new target object
-    const newTarget: ReconTarget = {
-      id: `target-${Date.now()}`,
-      email: identifier, // Using email field as generic identifier for now
-      // Tạm map type của modal (email/domain/username) sang type mới
-      type: type === 'domain' ? 'domain' : 'person',
-      createdAt: new Date().toISOString(),
-      isActive: false,
-    };
-
-    controller.addTarget(newTarget);
-    
-    // Automatically select the newly added target
-    setActiveTargetId(newTarget.id);
-    setIsAddModalOpen(false);
+  const openAddModal = useCallback(() => {
+    setEditingTarget(null);
+    setIsModalOpen(true);
   }, []);
 
+  const openEditModal = useCallback(
+    (targetId: string) => {
+      const target = targets.find((t) => t.id === targetId);
+      if (!target) return;
+      setEditingTarget(target);
+      setIsModalOpen(true);
+    },
+    [targets]
+  );
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setEditingTarget(null);
+  }, []);
+
+  // Thêm mới hoặc cập nhật target tuỳ theo modal đang ở chế độ nào
+  const handleSubmitTarget = useCallback(
+    ({ identifier, type }: TargetModalValue) => {
+      const controller = ReconController.getInstance();
+
+      if (editingTarget) {
+        controller.updateTarget(editingTarget.id, { email: identifier, type });
+      } else {
+        const newTarget: ReconTarget = {
+          id: `target-${Date.now()}`,
+          email: identifier, // Using email field as generic identifier for now
+          type,
+          createdAt: new Date().toISOString(),
+          isActive: false,
+        };
+        controller.addTarget(newTarget);
+        setActiveTargetId(newTarget.id);
+      }
+
+      closeModal();
+    },
+    [editingTarget, closeModal]
+  );
+
   return (
-    <div className="flex h-full w-full overflow-hidden bg-background">
-      {/* Left Panel - Target List */}
-      <LeftPanel
-        targets={targets}
-        activeTargetId={activeTargetId}
-        onTargetSelect={handleTargetSelect}
-        onLaunchBrowser={handleLaunchBrowser}
-        onCloseBrowser={handleCloseBrowser}
-        onSelectMock={handleSelectMock}
-        onAddTargetClick={() => setIsAddModalOpen(true)}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden bg-background relative">
-        {activeTargetId === 'mock-report-nva' ? (
-          <ContentPanel />
-        ) : activeTargetId ? (
-           <div className="flex-1 flex items-center justify-center text-text-secondary">
-            <div className="text-center space-y-4">
-              <div className="text-lg">
-                Target:{' '}
-                <span className="text-text-primary font-medium">
-                  {targets.find((t) => t.id === activeTargetId)?.email}
-                </span>
-              </div>
-              <div className="text-sm opacity-60">Use the Agent panel to control the browser →</div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-text-secondary">
-             <div className="text-center space-y-2">
-               <p className="text-sm opacity-60">Chọn một target hoặc thêm mới để bắt đầu.</p>
-             </div>
-          </div>
-        )}
-
-        {/* Overlay Modal */}
-        <AddTargetModal 
-          isOpen={isAddModalOpen} 
-          onClose={() => setIsAddModalOpen(false)} 
-          onSubmit={handleAddTarget}
+    <ReconSettingsProvider>
+      <div className="flex h-full w-full overflow-hidden bg-background">
+        {/* Left Panel - Target List */}
+        <LeftPanel
+          targets={targets}
+          activeTargetId={activeTargetId}
+          onTargetSelect={handleTargetSelect}
+          onLaunchBrowser={handleLaunchBrowser}
+          onCloseBrowser={handleCloseBrowser}
+          onSelectMock={handleSelectMock}
+          onAddTargetClick={openAddModal}
+          onEditTarget={openEditModal}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex overflow-hidden bg-background relative">
+          {isSettingsOpen ? (
+            <SettingsView onClose={() => setIsSettingsOpen(false)} />
+          ) : activeTargetId === 'mock-report-nva' ? (
+            <ContentPanel onOpenSettings={() => setIsSettingsOpen(true)} />
+          ) : activeTargetId ? (
+             <div className="flex-1 flex items-center justify-center text-text-secondary">
+              <div className="text-center space-y-4">
+                <div className="text-lg">
+                  Target:{' '}
+                  <span className="text-text-primary font-medium">
+                    {targets.find((t) => t.id === activeTargetId)?.email}
+                  </span>
+                </div>
+                <div className="text-sm opacity-60">Use the Agent panel to control the browser →</div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-text-secondary">
+               <div className="text-center space-y-2">
+                 <p className="text-sm opacity-60">Chọn một target hoặc thêm mới để bắt đầu.</p>
+               </div>
+            </div>
+          )}
+
+          {/* Overlay Modal */}
+          <TargetModal
+            isOpen={isModalOpen}
+            onClose={closeModal}
+            onSubmit={handleSubmitTarget}
+            target={editingTarget}
+          />
+
+        </div>
       </div>
-    </div>
+    </ReconSettingsProvider>
   );
 }
 

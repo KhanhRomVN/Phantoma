@@ -40,6 +40,7 @@ import {
   X,
   Unlink,
   Link2,
+  GitBranch,
 } from 'lucide-react';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
@@ -59,6 +60,8 @@ import {
 // ── Local modals ──
 import { OpenProjectModal } from '../modal/OpenProjectModal/index';
 import { ConfirmDeleteProjectModal } from '../modal/ConfirmDeleteProjectModal';
+import { CreateBranchModal, type CreatedBranchResult } from '../modal/CreateBranchModal';
+import { ConfirmDeleteBranchModal } from '../modal/ConfirmDeleteBranchModal';
 
 // ── Group Picker Form ──
 import { GroupPickerForm, GROUP_ICONS } from './GroupPickerForm';
@@ -370,6 +373,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
   const updateProject = useCodeStore((s) => s.updateProject);
 
+
   // Content View Actions
   const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
   const setActiveWorkspaceSessionId = useCodeStore((s) => s.setActiveWorkspaceSessionId);
@@ -480,6 +484,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [dropdownTarget, setDropdownTarget] = useState<DropdownTarget | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<ProjectExtended | null>(null);
+  const [createBranchProjectId, setCreateBranchProjectId] = useState<string | null>(null);
+  const [confirmDeleteBranchTarget, setConfirmDeleteBranchTarget] = useState<{
+    project: ProjectExtended;
+    branchName: string;
+  } | null>(null);
   const [toast, setToast] = useState<{ msg: string; on: boolean }>({ msg: '', on: false });
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -542,6 +551,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     ...gitBranch,
                     sessions: existing.sessions,
                     visible: existing.visible,
+                    path: existing.path,
                   };
                 }
                 // New branch from Git, start with empty sessions
@@ -778,6 +788,39 @@ export const ProjectPanel = memo(function ProjectPanel() {
     showToast(`Removed "${confirmDeleteTarget.name}"`);
     setConfirmDeleteTarget(null);
   }, [confirmDeleteTarget, removeProjectFromStore, showToast]);
+
+  const createBranchProject = useMemo(
+    () => projects.find((p) => p.id === createBranchProjectId) ?? null,
+    [projects, createBranchProjectId],
+  );
+
+  const handleBranchCreated = useCallback(
+    (project: ProjectExtended, result: CreatedBranchResult) => {
+      const exists = project.branches.some((b) => b.name === result.branch);
+      const newBranches: BranchInfo[] = exists
+        ? project.branches.map((b) => (b.name === result.branch ? { ...b, path: result.path } : b))
+        : [...project.branches, { name: result.branch, visible: true, sessions: [], path: result.path }];
+      patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
+      updateProject(project.id, { branches: newBranches } as any);
+      showToast(`Created branch "${result.branch}"`);
+    },
+    [patchProject, updateProject, showToast],
+  );
+
+  const confirmDeleteBranch = useCallback(async () => {
+    if (!confirmDeleteBranchTarget) return {};
+    const { project, branchName } = confirmDeleteBranchTarget;
+    const res = await (window as any).api.invoke('git:delete-branch', project.path, branchName);
+    if (res?.error) return { error: res.error as string };
+    const removed = project.branches.find((b) => b.name === branchName);
+    const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
+    const newBranches = project.branches.filter((b) => b.name !== branchName);
+    patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
+    updateProject(project.id, { branches: newBranches } as any);
+    setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
+    showToast(`Deleted branch "${branchName}"`);
+    return {};
+  }, [confirmDeleteBranchTarget, patchProject, updateProject, showToast]);
 
   // ── Branch actions ──
   const moveBranch = useCallback(
@@ -1299,7 +1342,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                         onDragStart={(e) => handleDragStart(e, 'group', g.id)}
                         onDragEnd={handleDragEnd}
                         onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, 'group', g.id)}
+                        onDrop={handleDrop}
                         isDragging={dragRef.current?.groupId === g.id}
                       />
                     </div>
@@ -1316,7 +1359,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                       onDragStart={(e) => handleDragStart(e, 'group', g.id)}
                       onDragEnd={handleDragEnd}
                       onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, 'group', g.id)}
+                      onDrop={handleDrop}
                     />
                   )}
 
@@ -1435,10 +1478,23 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
                 <DropdownSeparator />
 
+                <DropdownItem
+                  icon={<GitBranch className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    setCreateBranchProjectId(activeProject.id);
+                    closeDropdown();
+                  }}
+                >
+                  Create branch...
+                </DropdownItem>
+
+                <DropdownSeparator />
+
                 {/* SUBMENU: MOVE TO GROUP */}
                 {groups.length > 0 && (
                   <DropdownItem
                     icon={<ChevronRight className="w-3 h-3 rotate-90 ml-auto" />} // Visual cue for submenu
+                    closeOnSelect={false}
                     onClick={(e) => {
                       e.stopPropagation();
                       const rect = e.currentTarget.getBoundingClientRect();
@@ -1461,7 +1517,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
                 {activeProject.groupId && (
                   <DropdownItem
-                    icon={ck(false, <X className="w-3 h-3" />)}
+                    icon={<X className="w-3.5 h-3.5" />}
                     onClick={() => {
                       setProjectGroup(activeProject.id, null);
                       closeDropdown();
@@ -1472,7 +1528,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 )}
 
                 <DropdownItem
-                  icon={ck(false, <Plus className="w-3 h-3" />)}
+                  icon={<Plus className="w-3.5 h-3.5" />}
                   onClick={() => {
                     // Open Group Form inline in header area instead of modal/alert
                     setGroupFormOpen(true);
@@ -1540,23 +1596,53 @@ export const ProjectPanel = memo(function ProjectPanel() {
             {dropdownTarget.kind === 'branch' && activeProject && activeBranch && (
               <>
                 <DropdownItem
-                  icon={<ArrowUp className="w-3.5 h-3.5" />}
-                  onClick={() => {
-                    moveBranch(activeProject.id, activeBranch.name, -1);
+                  icon={<Folder className="w-3.5 h-3.5" />}
+                  onClick={async () => {
+                    const target = activeBranch.path ?? activeProject.path;
+                    console.log('[DEBUG] open-folder click', {
+                      branch: activeBranch.name,
+                      branchPath: activeBranch.path,
+                      projectPath: activeProject.path,
+                      target,
+                      hasApi: !!(window as any).api?.invoke,
+                    });
                     closeDropdown();
+                    try {
+                      const err = await (window as any).api.invoke('shell:open-path', target);
+                      console.log('[DEBUG] open-folder result', JSON.stringify(err));
+                      if (err) showToast(`Cannot open folder: ${err}`);
+                    } catch (e) {
+                      console.error('[DEBUG] open-folder invoke failed', e);
+                    }
                   }}
                 >
-                  Move up
+                  Open Folder
                 </DropdownItem>
-                <DropdownItem
-                  icon={<ArrowDown className="w-3.5 h-3.5" />}
-                  onClick={() => {
-                    moveBranch(activeProject.id, activeBranch.name, 1);
-                    closeDropdown();
-                  }}
-                >
-                  Move down
-                </DropdownItem>
+
+                <DropdownSeparator />
+
+                {activeProject.branches.filter((b) => b.visible).length > 1 && (
+                  <>
+                    <DropdownItem
+                      icon={<ArrowUp className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        moveBranch(activeProject.id, activeBranch.name, -1);
+                        closeDropdown();
+                      }}
+                    >
+                      Move up
+                    </DropdownItem>
+                    <DropdownItem
+                      icon={<ArrowDown className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        moveBranch(activeProject.id, activeBranch.name, 1);
+                        closeDropdown();
+                      }}
+                    >
+                      Move down
+                    </DropdownItem>
+                  </>
+                )}
                 <DropdownItem
                   icon={<Eye className="w-3.5 h-3.5" />}
                   variant="error"
@@ -1580,6 +1666,25 @@ export const ProjectPanel = memo(function ProjectPanel() {
                       }}
                     >
                       Remove session
+                    </DropdownItem>
+                  </>
+                )}
+
+                {activeBranch.name !== activeProject.defaultBranch && (
+                  <>
+                    <DropdownSeparator />
+                    <DropdownItem
+                      icon={<Trash2 className="w-3.5 h-3.5" />}
+                      variant="error"
+                      onClick={() => {
+                        setConfirmDeleteBranchTarget({
+                          project: activeProject,
+                          branchName: activeBranch.name,
+                        });
+                        closeDropdown();
+                      }}
+                    >
+                      Delete branch
                     </DropdownItem>
                   </>
                 )}
@@ -1798,6 +1903,24 @@ export const ProjectPanel = memo(function ProjectPanel() {
         onConfirm={confirmRemoveProject}
         projectName={confirmDeleteTarget?.name ?? ''}
         projectPath={confirmDeleteTarget?.path}
+      />
+
+      <CreateBranchModal
+        isOpen={!!createBranchProject}
+        onClose={() => setCreateBranchProjectId(null)}
+        projectPath={createBranchProject?.path ?? ''}
+        projectName={createBranchProject?.name ?? ''}
+        branches={(createBranchProject?.branches ?? []).map((b) => b.name)}
+        defaultSource={createBranchProject?.defaultBranch}
+        onCreated={(result) => createBranchProject && handleBranchCreated(createBranchProject, result)}
+      />
+
+      <ConfirmDeleteBranchModal
+        isOpen={!!confirmDeleteBranchTarget}
+        onClose={() => setConfirmDeleteBranchTarget(null)}
+        onConfirm={confirmDeleteBranch}
+        branchName={confirmDeleteBranchTarget?.branchName ?? ''}
+        projectName={confirmDeleteBranchTarget?.project.name ?? ''}
       />
     </div>
   );

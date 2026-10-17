@@ -21,5 +21,9 @@ export { setupTerminalHandlers } from './terminal.handlers';
 export { setupGitHandlers } from './git.handlers';
 export { setupTaskHandlers } from './task.handlers';
 export { setupLoggerHandlers } from './logger.handlers';
-export { setupBrowserHandlers } from './puppeteer.handlers';
+// export { setupBrowserHandlers } from './puppeteer.handlers'; // Deprecated - moved to recon server
+export { setupReconHandlers } from './recon.handlers';
 export { registerWorkspaceHandlers } from './webview.handlers';
+export { setupMemoryHandlers } from './memory.handlers';
+export { setupSkillHandlers } from './skill.handlers';
+export { setupTitleHandlers } from './title.handlers';

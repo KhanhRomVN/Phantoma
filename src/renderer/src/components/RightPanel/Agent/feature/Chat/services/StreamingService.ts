@@ -29,6 +29,12 @@ export interface StreamConfig {
   parentMessageId?: string;
   refFileIds?: string[];
   abortSignal: AbortSignal;
+  /** Pre-generated UUID for Qwen provider to track message identity for edit/regenerate */
+  messageFid?: string;
+  /** Action type: 'chat' | 'edit' | 'regenerate' */
+  userAction?: string;
+  /** ID of the message being edited (for edit flow) */
+  editMessageId?: string;
 }
 
 export interface StreamCallbacks {
@@ -60,6 +66,10 @@ export class StreamingService {
       ...(config.refFileIds && config.refFileIds.length > 0
         ? { ref_file_ids: config.refFileIds }
         : {}),
+      // Qwen Edit/Regenerate support fields
+      ...(config.messageFid ? { message_fid: config.messageFid } : {}),
+      ...(config.userAction ? { user_action: config.userAction } : {}),
+      ...(config.editMessageId ? { edit_message_id: config.editMessageId } : {}),
     };
 
     const response = await fetch(`${config.apiUrl}/v1/chat/accounts/messages`, {

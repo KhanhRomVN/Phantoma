@@ -64,6 +64,9 @@ import {
   MarkdownRenderer,
   QuestionRenderer,
   WarningRenderer,
+  ReadMemoryRenderer,
+  UpdateMemoryRenderer,
+  ReadSkillRenderer,
   ListHttpsRenderer,
   ListHostsRenderer,
   ListSourcesRenderer,
@@ -114,6 +117,7 @@ import {
 } from './renderers';
 import ErrorBlock from './blocks/other/ErrorBlock';
 import ActionBar from './ActionBar';
+import { ThinkingBlock } from './ThinkingBlock';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 // GitDiffBlock removed - using GitDiffRenderer instead
 import CodeBlock from '@renderer/components/common/CodeBlock';
@@ -169,6 +173,13 @@ interface TagRouterProps {
   ) => void;
   isBlockedByPrecedingInteraction?: boolean;
   firstUnclickedActionIndex?: number;
+  isViewOnly?: boolean;
+  dangerousCommands?: Record<
+    string,
+    { actionId: string; commandText: string; folderPath?: string; reason: string }
+  >;
+  onProceedDangerousCommand?: (actionId: string) => void;
+  onCancelDangerousCommand?: (actionId: string) => void;
 }
 
 const TagRouterInternal: React.FC<TagRouterProps> = ({
@@ -200,8 +211,18 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   onSelectOption,
   onSendMessage,
   firstUnclickedActionIndex,
+  isViewOnly = false,
+  dangerousCommands,
+  onProceedDangerousCommand,
+  onCancelDangerousCommand,
 }) => {
   const { rootPath } = useProject();
+
+  // conversation_title is a silent tool — it updates the title in the background
+  // but doesn't render any UI. Skip early.
+  if (group.type === 'tools' && group.items.every((it) => it.action.type === 'conversation_title')) {
+    return null;
+  }
 
   // Handle UI blocks
   if (group.type === 'markdown') {
@@ -226,7 +247,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
         optional={group.optional}
         selectedOption={group.selectedOption}
         questionAnswers={group.questionAnswers as unknown as Record<string, any>}
-        disabled={!!nextUserMessage || isGenerating}
+        disabled={!!nextUserMessage || isGenerating || isViewOnly}
         onAnswer={(questionId, value) => {
           if (!hasQuestions) return;
           if (onSelectOption) {
@@ -287,6 +308,10 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
         isPulsing={false}
       />
     );
+  }
+
+  if (group.type === 'thinking') {
+    return <ThinkingBlock content={group.content} isStreaming={isGenerating} />;
   }
 
   // Handle tools group
@@ -625,13 +650,14 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   }
 
   if (toolType === 'run_command') {
+    const actionId = `${messageId}-action-${toolGroup[0].index}`;
     return (
       <RunCommandRenderer
         action={firstAction}
         actionIndex={toolGroup[0].index}
         messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isRejected={rejectedActions?.has(`${messageId}-action-${toolGroup[0].index}`)}
+        isActionClicked={clickedActions.has(actionId)}
+        isRejected={rejectedActions?.has(actionId)}
         isActiveGroup={isActiveGroup}
         isLastMessage={isLastMessage}
         toolOutputs={toolOutputs}
@@ -640,6 +666,9 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
         rootPath={rootPath}
         onToolClick={onToolClick}
         storedOutput={storedOutput}
+        dangerousCommand={dangerousCommands?.[actionId]}
+        onProceedDangerousCommand={onProceedDangerousCommand}
+        onCancelDangerousCommand={onCancelDangerousCommand}
       />
     );
   }
@@ -701,6 +730,10 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   const allToolRenderers: Record<string, React.FC<any>> = {
     // Code tools
     read_file: ReadFileRenderer,
+    // Memory / Skill / Title tools
+    read_memory: ReadMemoryRenderer,
+    update_memory: UpdateMemoryRenderer,
+    read_skill: ReadSkillRenderer,
     list_files: ListFilesRenderer,
     find_files: FindFilesRenderer,
     grep: GrepRenderer,

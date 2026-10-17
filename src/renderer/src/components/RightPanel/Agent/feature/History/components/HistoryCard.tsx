@@ -26,6 +26,7 @@ interface HistoryCardProps {
   onDelete: (id: string, e: React.MouseEvent) => void;
   formatDate: (timestamp: number) => string;
   providerFavicons?: Record<string, string>;
+  selected?: boolean;
 }
 
 const HistoryCard: React.FC<HistoryCardProps> = ({

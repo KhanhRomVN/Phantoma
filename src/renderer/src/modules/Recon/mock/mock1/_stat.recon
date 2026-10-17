@@ -4,10 +4,35 @@ type: tab
 title: Stat
 ---
 
-# Tổng quan
-@box w=10 maxh=6 ui=stat icon=LayoutDashboard desc="Dạng nhãn | giá trị | ghi chú | dãy sparkline"
+# Card (mặc định)
+@box w=10 maxh=6 ui=stat variant=card icon=LayoutDashboard desc="Dạng nhãn | giá trị | ghi chú | dãy sparkline"
 
 - Subdomain | 47 | +12 so với lần trước | 20,24,23,30,35,38,47 {color=blue} {icon=Globe}
 - Rò rỉ dữ liệu | 3 | Cần xử lý | 0,0,1,1,2,2,3 {tone=danger} {icon=ShieldAlert}
 - Tài khoản liên quan | 18 | 6 nền tảng | 4,6,9,10,13,15,18 {color=purple} {icon=Users}
 - Độ tin cậy TB | 0.82 | 31 nguồn | 0.6,0.7,0.65,0.74,0.78,0.8,0.82 {tone=ok} {icon=CircleCheck}
+
+# Compact
+@box w=5 maxh=6 ui=stat variant=compact icon=List desc="Gọn, mỗi chỉ số một hàng"
+
+- Email tìm thấy | 12 | 4 đã xác minh {color=cyan} {icon=Mail}
+- Số điện thoại | 5 | 2 đang hoạt động {color=green} {icon=Phone}
+- Địa chỉ IP | 9 | 3 quốc gia {color=orange} {icon=Server}
+- Bài đăng công khai | 214 | 30 ngày gần nhất {color=pink} {icon=FileText}
+- Cảnh báo | 2 | Mức trung bình {tone=warn} {icon=TriangleAlert}
+
+# Split
+@box w=5 maxh=6 ui=stat variant=split icon=LayoutGrid desc="Icon lớn bên trái, kèm sparkline nhỏ"
+
+- Cổng đang mở | 12 | 3 cổng nhạy cảm | 4,5,5,8,9,11,12 {color=orange} {icon=Network}
+- Liên kết ngoài | 86 | +9 trong tuần | 50,55,61,70,74,80,86 {color=blue} {icon=Link2}
+- Dữ liệu thu thập | 1.4 GB | 12 nguồn | 0.2,0.4,0.6,0.9,1.1,1.3,1.4 {color=purple} {icon=Database}
+- Lần quét gần nhất | 2 giờ trước | Hoàn tất {tone=ok} {icon=Clock}
+
+# Minimal
+@box w=10 maxh=4 ui=stat variant=minimal icon=BarChart3 desc="Không viền, nhấn vào số liệu"
+
+- Thực thể | 132 | +18 | 80,90,96,104,112,120,132 {color=blue} {icon=Network}
+- Nguồn dữ liệu | 31 | 5 nguồn mới | 18,20,22,25,27,29,31 {color=green} {icon=Database}
+- Rủi ro cao | 4 | Cần xem xét | 1,1,2,2,3,3,4 {tone=danger} {icon=ShieldAlert}
+- Độ phủ | 94% | Ổn định | 88,90,91,92,93,94,94 {tone=ok} {icon=CircleCheck}

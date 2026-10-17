@@ -1,5 +1,14 @@
-import React, { useRef, useState } from 'react';
-import { Paperclip, Image, Video, Search, GitCommitHorizontal } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Paperclip,
+  Image,
+  Video,
+  Search,
+  GitCommitHorizontal,
+  ScrollText,
+  Plus as PlusIcon,
+  Sparkles,
+} from 'lucide-react';
 import {
   Dropdown,
   DropdownTrigger,
@@ -10,6 +19,14 @@ import {
   extensionService,
   messageDispatcher,
 } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+import {
+  listRules,
+  createRule,
+  type Rule,
+} from '../../services/ruleService';
+import type { AttachedItem } from './types';
+import RuleDrawer from './RuleDrawer';
+import SkillPickerDrawer, { type PickedSkill } from './SkillPickerDrawer';
 
 interface AttachmentOption {
   key: string;
@@ -29,21 +46,26 @@ interface ActionDropdownProps {
   onSelectDeepResearch?: () => void;
   /** Callback khi click "Create Pull Request" — nếu truyền, item sẽ hiển thị. */
   onSelectPullRequest?: () => void;
-  /** Callback toggle Memory (được gọi khi click switch trong item Memory). */
-  onToggleMemory?: () => void;
-  /** Trạng thái Memory hiện tại (ON/OFF) — chỉ hiển thị item khi prop này được truyền. */
-  isMemoryOn?: boolean;
   showImageGenerator?: boolean;
   showVideoGenerator?: boolean;
   showDeepResearch?: boolean;
   triggerButton: React.ReactNode;
   currentModel?: any;
   currentModelConfig?: any;
+  /** Gọi khi người dùng chọn (hoặc vừa tạo) 1 rule để gắn vào input. */
+  onSelectRule?: (item: AttachedItem) => void;
+  /** Gọi khi xác nhận chọn skill — truyền toàn bộ tập skill mới (thay thế tập cũ). */
+  onSelectSkills?: (items: AttachedItem[]) => void;
+  /** Slug các skill đang gắn vào input — dùng để tick sẵn trong drawer. */
+  selectedSkillSlugs?: string[];
 }
+
+const RULE_COLOR = "#facc15";
+const SKILL_COLOR = "#8b5cf6";
 
 /**
  * Menu "+" gộp nhiều action (attach, image/video generator, deep research,
- * generate commit message, memory toggle) — tương đương ActionDropdown bản gốc.
+ * generate commit message, rule, skills) — tương đương ActionDropdown bản gốc.
  */
 const ActionDropdown: React.FC<ActionDropdownProps> = ({
   onSelectAttach,
@@ -51,15 +73,18 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
   onSelectVideoGenerator,
   onSelectDeepResearch,
   onSelectPullRequest,
-  onToggleMemory,
-  isMemoryOn = false,
   showImageGenerator = false,
   showVideoGenerator = false,
   showDeepResearch = false,
   triggerButton,
   currentModel,
   currentModelConfig,
+  onSelectRule,
+  onSelectSkills,
+  selectedSkillSlugs,
 }) => {
+  const [skillDrawerOpen, setSkillDrawerOpen] = useState(false);
+
   // Ưu tiên currentModelConfig (luôn fresh từ API), fallback currentModel (có thể cache)
   const modelCaps = currentModelConfig ?? currentModel;
 
@@ -71,8 +96,34 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
   }>({ checking: false, ok: false });
   const gitCheckIdRef = useRef<string | null>(null);
 
+  // Rule submenu state — danh sách rule đã lưu + drawer tạo mới
+  const [ruleListOpen, setRuleListOpen] = useState(false);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!ruleListOpen) return;
+    setRulesLoading(true);
+    listRules()
+      .then(setRules)
+      .catch(() => setRules([]))
+      .finally(() => setRulesLoading(false));
+  }, [ruleListOpen]);
+
+  const ruleToAttachedItem = (rule: Rule): AttachedItem => ({
+    id: `rule-${rule.id}`,
+    path: rule.name,
+    type: 'rule',
+    content: rule.content,
+    ruleId: Number(rule.id),
+  });
+
   // Mỗi lần mở dropdown: hỏi main process xem workspace có .git và đã git add chưa
   const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setRuleListOpen(false);
+    }
     if (!open || !onSelectPullRequest) return;
     const requestId = `gitCheckReady-${Date.now()}`;
     gitCheckIdRef.current = requestId;
@@ -173,170 +224,168 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
     }
   };
 
+  const rowClass = "w-full px-3 py-2.5 flex items-center gap-2.5 transition-colors hover:bg-sidebar-item-hover cursor-pointer";
+  const badgeClass = () => 
+    "inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0";
+  
+  // Helper to get dynamic bg style for badge since tailwind doesn't support arbitrary color mix easily without config
+  const badgeStyle = (color: string): React.CSSProperties => ({
+    backgroundColor: `color-mix(in srgb, ${color} 15%, transparent)`,
+    color,
+  });
+
   return (
-    <Dropdown side="top" align="start" sideOffset={4} onOpenChange={handleOpenChange}>
-      <DropdownTrigger asChild>{triggerButton}</DropdownTrigger>
-      <DropdownContent>
-        {visibleOptions.map((option) => (
-          <DropdownItem
-            key={option.key}
-            onClick={() => handleSelect(option.key)}
-            disabled={option.disabled}
-            title={option.disabled ? option.disabledReason : undefined}
-            noPadding
-          >
-            <div
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                transition: 'all 0.15s ease',
-              }}
+    <>
+      <Dropdown side="top" align="start" sideOffset={4} onOpenChange={handleOpenChange}>
+        <DropdownTrigger asChild>{triggerButton}</DropdownTrigger>
+        <DropdownContent>
+          {visibleOptions.map((option) => (
+            <DropdownItem
+              key={option.key}
+              onClick={() => handleSelect(option.key)}
+              disabled={option.disabled}
+              title={option.disabled ? option.disabledReason : undefined}
+              noPadding
             >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  backgroundColor: `color-mix(in srgb, ${option.color} 15%, transparent)`,
-                  color: option.color,
-                  flexShrink: 0,
-                }}
-              >
-                {option.icon}
-              </span>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'var(--primary-text)',
-                    marginBottom: '2px',
-                  }}
-                >
-                  {option.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: '11px',
-                    color: 'var(--secondary-text)',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {option.desc}
+              <div className={rowClass} style={{ opacity: option.disabled ? 0.5 : 1 }}>
+                <span className={badgeClass()} style={badgeStyle(option.color)}>
+                  {option.icon}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold text-text-primary mb-0.5">
+                    {option.label}
+                  </div>
+                  <div className="text-[11px] text-text-secondary leading-tight">
+                    {option.desc}
+                  </div>
                 </div>
               </div>
-            </div>
-          </DropdownItem>
-        ))}
+            </DropdownItem>
+          ))}
 
-        {/* Memory item (có switch toggle) — chỉ hiển thị khi onToggleMemory được truyền */}
-        {onToggleMemory && (
-          <DropdownItem onClick={() => {}} noPadding closeOnSelect={false}>
-            <div
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  backgroundColor: 'color-mix(in srgb, #8b5cf6 15%, transparent)',
-                  color: '#8b5cf6',
-                  flexShrink: 0,
-                }}
+          {/* Rule — chỉ hiển thị nếu onSelectRule được truyền */}
+          {onSelectRule && (
+            <>
+              <DropdownItem
+                onClick={() => setRuleListOpen((v) => !v)}
+                noPadding
+                closeOnSelect={false}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <ellipse cx="12" cy="5" rx="9" ry="3" />
-                  <path d="M3 12a9 3 0 0 0 18 0" />
-                  <path d="M3 5v14a9 3 0 0 0 18 0V5" />
-                </svg>
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'var(--primary-text)',
-                    marginBottom: '2px',
-                  }}
-                >
-                  Memory
+                <div className={rowClass}>
+                  <span className={badgeClass()} style={badgeStyle(RULE_COLOR)}>
+                    <ScrollText size={14} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-text-primary mb-0.5">
+                      Rule
+                    </div>
+                    <div className="text-[11px] text-text-secondary leading-tight">
+                      Attach a rule for the agent to follow
+                    </div>
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: '11px',
-                    color: 'var(--secondary-text)',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  Reference saved memories & chat history
+              </DropdownItem>
+
+              {ruleListOpen && (
+                <div className="pl-3 ml-5 border-l-2 border-yellow-500/30">
+                  <DropdownItem
+                    onClick={() => {
+                      setRuleListOpen(false);
+                      setRuleDrawerOpen(true);
+                    }}
+                    noPadding
+                  >
+                    <div className={`${rowClass} py-2`}>
+                      <span className={badgeClass()} style={badgeStyle(RULE_COLOR)}>
+                        <PlusIcon size={14} />
+                      </span>
+                      <div className="text-[12.5px] font-semibold text-text-primary">
+                        New Rule
+                      </div>
+                    </div>
+                  </DropdownItem>
+
+                  {rulesLoading && (
+                    <div className="py-2 px-3 text-[11px] text-text-secondary">
+                      Loading rules...
+                    </div>
+                  )}
+
+                  {!rulesLoading && rules.length === 0 && (
+                    <div className="py-2 px-3 text-[11px] text-text-secondary">
+                      No saved rules yet
+                    </div>
+                  )}
+
+                  {!rulesLoading &&
+                    rules.map((rule) => (
+                      <DropdownItem
+                        key={rule.id}
+                        onClick={() => onSelectRule(ruleToAttachedItem(rule))}
+                        noPadding
+                      >
+                        <div className={`${rowClass} py-2`}>
+                          <div className="text-[12.5px] font-semibold text-text-primary truncate">
+                            {rule.name}
+                          </div>
+                        </div>
+                      </DropdownItem>
+                    ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Skills — chỉ hiển thị nếu onSelectSkills được truyền */}
+          {onSelectSkills && (
+            <DropdownItem onClick={() => setSkillDrawerOpen(true)} noPadding>
+              <div className={rowClass}>
+                <span className={badgeClass()} style={badgeStyle(SKILL_COLOR)}>
+                  <Sparkles size={14} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold text-text-primary mb-0.5">
+                    Skills
+                  </div>
+                  <div className="text-[11px] text-text-secondary leading-tight">
+                    Attach installed skills for the agent to use
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleMemory();
-                }}
-                title="Toggle memory"
-                style={{
-                  width: '30px',
-                  height: '17px',
-                  borderRadius: '999px',
-                  background: isMemoryOn ? '#8b5cf6' : 'rgba(128, 128, 128, 0.3)',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'background 0.15s ease',
-                  border: 'none',
-                  padding: 0,
-                }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '2px',
-                    left: '2px',
-                    width: '13px',
-                    height: '13px',
-                    borderRadius: '50%',
-                    background: '#fff',
-                    transition: 'transform 0.15s ease',
-                    transform: isMemoryOn ? 'translateX(13px)' : 'translateX(0)',
-                  }}
-                />
-              </button>
-            </div>
-          </DropdownItem>
-        )}
-      </DropdownContent>
-    </Dropdown>
+            </DropdownItem>
+          )}
+        </DropdownContent>
+      </Dropdown>
+
+      {onSelectSkills && (
+        <SkillPickerDrawer
+          isOpen={skillDrawerOpen}
+          selectedSlugs={selectedSkillSlugs ?? []}
+          onClose={() => setSkillDrawerOpen(false)}
+          onConfirm={(skills: PickedSkill[]) =>
+            onSelectSkills(
+              skills.map((s) => ({
+                id: `skill-${s.slug}`,
+                path: s.name,
+                type: 'skill' as any, // Cast to match AttachedItem union if needed
+                content: s.name,
+              })),
+            )
+          }
+        />
+      )}
+
+      {onSelectRule && (
+        <RuleDrawer
+          isOpen={ruleDrawerOpen}
+          onClose={() => setRuleDrawerOpen(false)}
+          onSave={async (name, content) => {
+            const rule = await createRule(name, content);
+            onSelectRule(ruleToAttachedItem(rule));
+          }}
+        />
+      )}
+    </>
   );
 };
 

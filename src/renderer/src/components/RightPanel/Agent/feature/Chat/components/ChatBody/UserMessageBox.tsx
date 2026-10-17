@@ -24,6 +24,9 @@ import { Message } from '../../types/message';
 import FilesPreviews from '../../../../components/MessageInput/FilesPreviews';
 import RevertConfirmModal from './RevertConfirmModal';
 
+// ── Hooks ──
+import { useMessageActions } from '../../hooks/messages/useMessageActions';
+
 // ─── Helper ─────────────────────────────────────────────────────────────
 /**
  * Phân tích thẻ <question-answer> từ nội dung tin nhắn người dùng
@@ -64,12 +67,40 @@ const parseQuestionAnswerFromContent = (
 
 interface UserMessageBoxProps {
   message: Message;
+  messages?: Message[];
   onRevertConversation?: (messageId: string, timestamp: number) => void;
+  onSendMessage?: (
+    content: string,
+    files?: any[],
+    model?: any,
+    account?: any,
+    skipLogic?: boolean,
+    actionIds?: string[],
+    uiHidden?: boolean,
+    extraOptions?: {
+      user_action?: string;
+      edit_message_id?: string;
+      parent_message_id?: string;
+    },
+  ) => void | Promise<void>;
 }
 
-const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConversation }) => {
+const UserMessageBox: React.FC<UserMessageBoxProps> = ({
+  message,
+  messages,
+  onRevertConversation,
+  onSendMessage,
+}) => {
   const [showRevertModal, setShowRevertModal] = React.useState(false);
   const [isCopied, setIsCopied] = React.useState(false);
+
+  // Hook xử lý regenerate/edit/retry khi có đủ context.
+  // `messages` truyền xuống từ ChatBody để hook tìm đúng message index.
+  const { handleRegenerateRequest } = useMessageActions({
+    messages: messages || [message],
+    onSendMessage,
+    onRevertConversation,
+  });
 
   const userMsgRegex = /## User Message\n<zen-user-content>\n([\s\S]*?)\n<\/zen-user-content>/;
   const match = message.content.match(userMsgRegex);
@@ -243,9 +274,10 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({ message, onRevertConver
 
         {/* Regenerate button */}
         <button
-          onClick={() => {}}
+          onClick={() => onSendMessage && handleRegenerateRequest(message.id)}
+          disabled={!onSendMessage}
           title="Regenerate response"
-          className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200 text-text-secondary"
+          className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200 text-text-secondary disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

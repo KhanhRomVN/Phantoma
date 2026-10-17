@@ -2,34 +2,58 @@
  * ------------------------------------------------------------------
  * HomePanel
  * ------------------------------------------------------------------
- * Trang chủ của Agent, hiển thị dashboard thống kê (stats, model
- * distribution, daily usage, recent activity) và ô nhập message.
+ * Panel trang chủ — hiển thị dashboard thống kê và MessageInput.
+ * Bao gồm stats grid, model distribution, daily usage chart, recent activity,
+ * top accounts, efficiency map.
  *
  * Main features:
- * - Hiển thị stats grid và model distribution
- * - Hiển thị recent activity từ conversation history
- * - Ô nhập message với model/account selection
- * - Slogan xoay vòng tự động
+ * - Dashboard stats: tổng tokens, requests, favorite model, số tài khoản
+ * - Biểu đồ phân bố model và daily usage
+ * - Top accounts và efficiency map
+ * - Danh sách hội thoại gần đây
+ * - MessageInput với draft auto-save, file handling
+ * - Per-conversation feature toggles (diagnostic, skill, memory, tool format)
+ * - DeepSeek time-block checking
+ * - Performance optimizations với memoization
+ * - Fixed desktop layout (no responsive breakpoints)
  * ------------------------------------------------------------------
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import StatsGrid from './components/StatsGrid';
-import RecentActivity from './components/RecentActivity';
-import ModelDistributionCard from './components/ModelDistributionCard';
-import DailyUsageChart from './components/DailyUsageChart';
-import InstallationBanner from './components/InstallationBanner';
-import ModelAccountDrawer from '../../components/MessageInput/ModelAccountDrawer';
+import HistoryConversation from './components/HistoryConversation';
+import ModelDistribution from './components/ModelDistribution';
+import UsageChart from './components/UsageChart';
+import HomeHeader from './components/HomeHeader';
+import ZenUpdateBanner from './components/ZenUpdateBanner';
+import AIWeb2APIUpdateBanner from './components/AIWeb2APIUpdateBanner';
+import ConnectionErrorBanner from './components/ConnectionErrorBanner';
 import { ConversationItem } from '../History/types';
 import { useSettings } from '../../context/SettingsContext';
 import MessageInput from '../../components/MessageInput';
 import FilesPreviews from '../../components/MessageInput/FilesPreviews';
 import { useFileHandling } from '../../hooks/useFileHandling';
+import { useHomeDraftManagement } from './hooks/useHomeDraftManagement';
+import { useModelAccount } from '../../hooks/useModelAccount';
+import { useToolFormatSettings } from '../../hooks/useToolFormatSettings';
+import { useZenUpdate } from './hooks/useZenUpdate';
 import ConversationService from '../../services/ConversationService';
+import {
+  isBlockedNow,
+  isDeepSeekProvider,
+  getBlockedRangeLabel,
+  getBlockedHoursDescription,
+} from '@renderer/utils/timeBlock';
+import { AccountStat } from './utils/format';
+import {
+  useStatsPeriod,
+  readCachedPeriodState,
+  readStatsSnapshot,
+  writeStatsSnapshot,
+  readGlobalSnapshot,
+  writeGlobalSnapshot,
+} from './hooks/useStatsPeriod';
 
-/**
- * Get moduleId from current context
- */
 function getCurrentModuleId(): string | null {
   const feature = (window as any).__activeFeature;
   const targetId = (window as any).__activeTargetId;
@@ -46,109 +70,241 @@ function getCurrentModuleId(): string | null {
   return null;
 }
 
-const SLOGANS = [
-  'Code smarter, not harder',
-  'Your AI coding companion',
-  'Boost your productivity',
-  'Where ideas meet implementation',
-  'Ship faster with confidence',
-  'Your partner in development',
-];
-
 interface HomePanelProps {
-  onSendMessage: (content: string, files: any[], model: any, account: any) => void;
+  onSendMessage: (
+    content: string,
+    files: any[],
+    model: any,
+    account: any,
+    conversationOverrides?: {
+      diagnosticEnabled?: boolean;
+      useSkillEnabled?: boolean;
+      memoryEnabled?: boolean;
+      toolFormat?: 'xml' | 'json';
+    },
+  ) => void;
   onLoadConversation: (conversationId: string, tabId: number, folderPath: string | null) => void;
   initialValue?: string;
 }
 
-const HomePanel: React.FC<HomePanelProps> = ({
-  onSendMessage,
-  onLoadConversation,
-  initialValue,
-}) => {
-  // Instance ID
-  const renderCount = React.useRef(0);
-  renderCount.current += 1;
+// Memoized dashboard stats component
+const DashboardStats = React.memo(
+  ({
+    todayTokens,
+    todayRequests,
+    favoriteModel,
+    totalAccounts,
+    modelDistribution,
+    providerFavicons,
+    dailyUsage,
+    accounts,
+    statsPeriod,
+  }: {
+    todayTokens: number;
+    todayRequests: number;
+    favoriteModel: string;
+    totalAccounts: number;
+    modelDistribution: any[];
+    providerFavicons: Record<string, string>;
+    dailyUsage: any[];
+    accounts: AccountStat[];
+    statsPeriod: 'day' | 'week' | 'month' | 'year' | 'all';
+  }) => {
+    const percentChanges = useMemo(() => {
+      const sorted = [...dailyUsage].sort((a, b) => b.date.localeCompare(a.date));
+      const today = sorted[0];
+      const yesterday = sorted[1];
+      const tokenChange =
+        yesterday?.tokens && today?.tokens
+          ? ((today.tokens - yesterday.tokens) / yesterday.tokens) * 100
+          : null;
+      const requestChange =
+        yesterday?.requests && today?.requests
+          ? ((today.requests - yesterday.requests) / yesterday.requests) * 100
+          : null;
+      return [tokenChange, requestChange, null, null];
+    }, [dailyUsage]);
+
+    return (
+      <>
+        <StatsGrid
+          todayTokens={todayTokens}
+          todayRequests={todayRequests}
+          favoriteModel={favoriteModel}
+          totalAccounts={totalAccounts}
+          percentChanges={percentChanges}
+        />
+
+        <ModelDistribution
+          modelDistribution={modelDistribution}
+          providerFavicons={providerFavicons}
+          title="AI Model Distribution"
+          emptyText="Loading history..."
+        />
+
+        <UsageChart usage={dailyUsage} title="Usage" period={statsPeriod} />
+      </>
+    );
+  },
+);
+
+const HomePanel: React.FC<HomePanelProps> = ({ onSendMessage, onLoadConversation }) => {
   const { apiUrl } = useSettings();
 
   const folderPath = (window as any).__zenWorkspaceFolderPath as string | null | undefined;
+  const imagesUri = (window as any).__zenImagesUri;
+  const zenUpdateInfo = useZenUpdate();
 
-  const [currentModel, setCurrentModel] = useState<any>(() => {
-    try {
-      const saved = localStorage.getItem('zen_last_model');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('[Home] Failed to parse saved model:', e);
-    }
-    return null;
-  });
-  const [currentAccount, setCurrentAccount] = useState<any>(() => {
-    try {
-      const saved = localStorage.getItem('zen_last_account');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('[Home] Failed to parse saved account:', e);
-    }
-    return null;
-  });
-  const [message, setMessage] = useState(initialValue || '');
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  // Model & Account state with persistence
+  const { currentModel, setCurrentModel, currentAccount, setCurrentAccount } =
+    useModelAccount(folderPath);
 
-  // ModelAccountDrawer state
-  const [showModelDrawer, setShowModelDrawer] = useState(false);
-  const [providers, setProviders] = useState<any[]>([]);
+  // Tool format settings
+  const { toolFormat: conversationToolFormat, toggleToolFormat: toggleConversationToolFormat } =
+    useToolFormatSettings(currentModel?.providerId, currentModel?.id);
 
-  const fetchProviders = useCallback(async () => {
-    try {
-      const response = await fetch(`${apiUrl}/v1/providers`);
-      const result = await response.json();
-      if (result.success) {
-        setProviders(result.data.filter((p: any) => p.is_enabled));
-      }
-    } catch (error) {
-      console.error('[Phantoma][Home] Failed to fetch providers:', error);
-    }
-  }, [apiUrl]);
+  // Per-conversation feature toggles (default false for Phantoma)
+  const [conversationDiagnosticEnabled, setConversationDiagnosticEnabled] = useState(false);
+  const [conversationUseSkillEnabled, setConversationUseSkillEnabled] = useState(false);
+  const [conversationMemoryEnabled, setConversationMemoryEnabled] = useState(false);
 
-  const handleOpenModelDrawer = () => {
-    if (providers.length === 0) {
-      fetchProviders();
-    }
-    setShowModelDrawer((v) => !v);
-  };
+  // Draft management
+  const { message, setMessage, clearDraft } = useHomeDraftManagement(folderPath || null);
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
-  useEffect(() => {
-    if (currentModel) {
-      localStorage.setItem('zen_last_model', JSON.stringify(currentModel));
-    }
-  }, [currentModel]);
-
-  useEffect(() => {
-    if (currentAccount) {
-      localStorage.setItem('zen_last_account', JSON.stringify(currentAccount));
-    }
-  }, [currentAccount]);
-
-  const [sloganIndex, setSloganIndex] = useState(0);
+  // Conversations
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [todayTokens, setTodayTokens] = useState<number>(0);
-  const [todayRequests, setTodayRequests] = useState<number>(0);
-  const [favoriteModel, setFavoriteModel] = useState<string>('—');
-  const [totalAccounts, setTotalAccounts] = useState<number>(0);
-  const [modelDistribution, setModelDistribution] = useState<
-    {
-      model_id: string;
-      provider_id: string;
-      total_requests: number;
-      total_tokens: number;
-    }[]
-  >([]);
-  const [dailyUsage, setDailyUsage] = useState<
-    { date: string; requests: number; tokens: number }[]
-  >([]);
-  const [providerFavicons, setProviderFavicons] = useState<Record<string, string>>({});
 
+  // Stats state with snapshot cache
+  const [initialCache] = useState(() => {
+    const p = readCachedPeriodState();
+    return {
+      stats: readStatsSnapshot(p.period, p.offset),
+      global: readGlobalSnapshot(),
+    };
+  });
+
+  const [todayTokens, setTodayTokens] = useState<number>(initialCache.stats?.todayTokens ?? 0);
+  const [todayRequests, setTodayRequests] = useState<number>(
+    initialCache.stats?.todayRequests ?? 0,
+  );
+  const [favoriteModel, setFavoriteModel] = useState<string>(
+    initialCache.stats?.favoriteModel ?? '—',
+  );
+  const [totalAccounts, setTotalAccounts] = useState<number>(
+    initialCache.global?.totalAccounts ?? 0,
+  );
+  const [modelDistribution, setModelDistribution] = useState<any[]>(
+    initialCache.stats?.modelDistribution ?? [],
+  );
+  const [dailyUsage, setDailyUsage] = useState<any[]>(initialCache.stats?.dailyUsage ?? []);
+  const [accounts, setAccounts] = useState<AccountStat[]>(initialCache.stats?.accounts ?? []);
+  const [providerFavicons, setProviderFavicons] = useState<Record<string, string>>(
+    initialCache.global?.providerFavicons ?? {},
+  );
+  const [providers, setProviders] = useState<any[]>([]);
+  const [attachedItems, setAttachedItems] = useState<any[]>([]);
+
+  // Stats period picker
+  const { period: statsPeriod, offset: statsOffset } = useStatsPeriod();
+
+  // Apply snapshot cache immediately when period/offset changes
+  useEffect(() => {
+    const snap = readStatsSnapshot(statsPeriod, statsOffset);
+    if (!snap) return;
+    setTodayTokens(snap.todayTokens);
+    setTodayRequests(snap.todayRequests);
+    setFavoriteModel(snap.favoriteModel);
+    setModelDistribution(snap.modelDistribution);
+    setAccounts(snap.accounts);
+    setDailyUsage(snap.dailyUsage);
+  }, [statsPeriod, statsOffset]);
+
+  // Cache global data
+  useEffect(() => {
+    if (Object.keys(providerFavicons).length === 0) return;
+    writeGlobalSnapshot({ totalAccounts, providerFavicons });
+  }, [totalAccounts, providerFavicons]);
+
+  // Fetch stats from API
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const periodParam = statsPeriod === 'all' ? 'year' : statsPeriod;
+        const offsetParam = statsPeriod === 'all' ? 0 : statsOffset;
+
+        const statsUrl =
+          statsPeriod === 'all'
+            ? `${apiUrl}/v1/stats?period=year&offset=0`
+            : `${apiUrl}/v1/stats?period=${periodParam}&offset=${offsetParam}`;
+
+        const [statsRes, accountsRes, providersRes] = await Promise.all([
+          fetch(statsUrl),
+          fetch(`${apiUrl}/v1/accounts?page=1&limit=1000`),
+          fetch(`${apiUrl}/v1/providers`),
+        ]);
+
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          if (stats.success && stats.data) {
+            const usage: { requests: number; tokens: number }[] = stats.data.usage || [];
+            const sumTokens = usage.reduce((s: number, u: any) => s + (u.tokens || 0), 0);
+            const sumRequests = usage.reduce((s: number, u: any) => s + (u.requests || 0), 0);
+            setTodayTokens(sumTokens);
+            setTodayRequests(sumRequests);
+
+            const models: any[] = (stats.data.models || []).filter(
+              (m: any) => m.total_requests > 0,
+            );
+            setModelDistribution(models.slice(0, 5));
+            setAccounts(stats.data.accounts || []);
+            setDailyUsage(stats.data.usage || []);
+            if (models.length > 0) setFavoriteModel(models[0].model_id);
+
+            writeStatsSnapshot(statsPeriod, statsOffset, {
+              todayTokens: sumTokens,
+              todayRequests: sumRequests,
+              favoriteModel: models.length > 0 ? models[0].model_id : '—',
+              modelDistribution: models.slice(0, 5),
+              accounts: stats.data.accounts || [],
+              dailyUsage: stats.data.usage || [],
+            });
+          }
+        }
+
+        if (accountsRes.ok) {
+          const accs = await accountsRes.json();
+          if (accs.success && accs.data) {
+            setTotalAccounts(accs.data.total ?? accs.data.accounts?.length ?? 0);
+          }
+        }
+
+        if (providersRes.ok) {
+          const prov = await providersRes.json();
+          if (prov.success && prov.data) {
+            setProviders(prov.data);
+            const favicons: Record<string, string> = {};
+            prov.data.forEach((p: any) => {
+              if (p.provider_id && p.website) {
+                try {
+                  favicons[p.provider_id] = `${new URL(p.website).origin}/favicon.ico`;
+                } catch {
+                  console.warn('[Home] Invalid website URL for favicon:', p.website);
+                }
+              }
+            });
+            setProviderFavicons(favicons);
+          }
+        }
+      } catch (err) {
+        console.warn('[Home] Failed to fetch stats:', err);
+      }
+    };
+    fetchStats();
+  }, [apiUrl, statsPeriod, statsOffset]);
+
+  // Load conversation history
   useEffect(() => {
     const loadHistory = async () => {
       const moduleId = getCurrentModuleId();
@@ -159,18 +315,13 @@ const HomePanel: React.FC<HomePanelProps> = ({
       }
 
       try {
-        // Get list of conversation IDs
         const conversationIds = await ConversationService.list(moduleId);
-
-        // Load each conversation's data
         const conversationsData = await Promise.all(
           conversationIds.slice(0, 10).map(async (id) => {
-            // Load first 10 for home
             try {
               const data = await ConversationService.get(moduleId, id);
               if (!data) return null;
 
-              // Convert to ConversationItem format
               const firstMessage = data.messages[0];
               const title = firstMessage?.content.substring(0, 100) || 'New Conversation';
               const preview = data.messages
@@ -211,66 +362,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
     loadHistory();
   }, []);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [statsRes, accountsRes, providersRes] = await Promise.all([
-          fetch(`${apiUrl}/v1/stats?period=day`),
-          fetch(`${apiUrl}/v1/accounts?page=1&limit=1000`),
-          fetch(`${apiUrl}/v1/providers`),
-        ]);
-        if (statsRes.ok) {
-          const stats = await statsRes.json();
-          if (stats.success && stats.data) {
-            const usage: { requests: number; tokens: number }[] = stats.data.usage || [];
-            setTodayTokens(usage.reduce((s: number, u: any) => s + (u.tokens || 0), 0));
-            setTodayRequests(usage.reduce((s: number, u: any) => s + (u.requests || 0), 0));
-            const models: any[] = (stats.data.models || []).filter(
-              (m: any) => m.total_requests > 0,
-            );
-            setModelDistribution(models.slice(0, 5));
-            setDailyUsage(stats.data.usage || []);
-            if (models.length > 0) setFavoriteModel(models[0].model_id);
-          }
-        }
-        if (accountsRes.ok) {
-          const accs = await accountsRes.json();
-          if (accs.success && accs.data) {
-            setTotalAccounts(accs.data.total ?? accs.data.accounts?.length ?? 0);
-          }
-        }
-        if (providersRes.ok) {
-          const prov = await providersRes.json();
-          if (prov.success && prov.data) {
-            const favicons: Record<string, string> = {};
-            prov.data.forEach((p: any) => {
-              if (p.provider_id && p.website) {
-                try {
-                  favicons[p.provider_id] = `${new URL(p.website).origin}/favicon.ico`;
-                } catch {
-                  console.warn('[Home] Invalid website URL for favicon:', p.website);
-                }
-              }
-            });
-            setProviderFavicons(favicons);
-          }
-        }
-      } catch (err) {
-        console.warn('[Home] Failed to fetch stats:', err);
-      }
-    };
-    fetchStats();
-  }, [apiUrl]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSloganIndex((prev) => (prev + 1) % SLOGANS.length);
-    }, 3000);
-    return () => {
-      clearInterval(timer);
-    };
-  }, []);
-
   const sortedConversations = useMemo(() => {
     return [...conversations].sort((a, b) => {
       const timeA = new Date(a.lastModified || a.timestamp || a.createdAt || 0).getTime();
@@ -279,44 +370,13 @@ const HomePanel: React.FC<HomePanelProps> = ({
     });
   }, [conversations]);
 
-  const imagesUri = (window as any).__zenImagesUri;
+  const handleAddAttachedItem = useCallback((item: any) => {
+    setAttachedItems((prev) => [...prev, item]);
+  }, []);
 
-  // Calculate percent changes for StatsGrid (same logic as Zen)
-  const percentChanges = useMemo(() => {
-    const sorted = [...dailyUsage].sort((a, b) => b.date.localeCompare(a.date));
-    const today = sorted[0];
-    const yesterday = sorted[1];
-    const tokenChange = yesterday?.tokens
-      ? ((today.tokens - yesterday.tokens) / yesterday.tokens) * 100
-      : null;
-    const requestChange = yesterday?.requests
-      ? ((today.requests - yesterday.requests) / yesterday.requests) * 100
-      : null;
-    const totalModelRequests = modelDistribution.reduce(
-      (s: number, m: any) => s + m.total_requests,
-      0,
-    );
-    const favModel = modelDistribution.find((m: any) => m.model_id === favoriteModel);
-    const favShare =
-      totalModelRequests > 0 && favModel
-        ? (favModel.total_requests / totalModelRequests) * 100
-        : null;
-    return [tokenChange, requestChange, favShare, null];
-  }, [dailyUsage, modelDistribution, favoriteModel]);
-
-  const handleSend = (model: any, account: any) => {
-    if (message.trim() || uploadedFiles.length > 0) {
-      onSendMessage(message, [...uploadedFiles], model, account);
-      setMessage('');
-      clearFiles();
-    }
-  };
-
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-  };
-
-  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {};
+  const handleRemoveAttachedItem = useCallback((id: string) => {
+    setAttachedItems((prev) => prev.filter((item) => item.id !== id));
+  }, []);
 
   const {
     uploadedFiles,
@@ -332,71 +392,82 @@ const HomePanel: React.FC<HomePanelProps> = ({
     clearFiles,
   } = useFileHandling({
     accountId: currentAccount?.id,
-    onAddAttachedItem: () => {},
+    onAddAttachedItem: handleAddAttachedItem,
   });
 
-  const messageInputProps = {
-    message,
-    setMessage,
-    isHistoryMode: false as const,
-    uploadedFiles,
-    attachedItems: [] as any[],
-    textareaRef: textareaRef as React.RefObject<HTMLTextAreaElement>,
-    handleTextareaChange,
-    handleKeyDown,
-    handlePaste,
-    handleDragOver,
-    handleDrop,
-    setShowAtMenu: () => {},
-    handleFileSelect,
-    onOpenProjectStructure: () => {},
-    showChangesDropdown: false,
-    setShowChangesDropdown: () => {},
-    messages: [] as any[],
-    handleSend,
-    hasProjectContext: false,
-    onOpenProjectContext: () => {},
-    folderPath: folderPath || null,
-    isConversationStarted: false,
-    currentModel,
-    setCurrentModel,
-    currentAccount,
-    setCurrentAccount,
-    isProcessing: false,
-    isStreaming: false,
-    onOpenModelDrawer: handleOpenModelDrawer,
-  };
+  const handleRemoveAttachedItemWrapper = useCallback(
+    (id: string) => {
+      handleRemoveAttachedItem(id);
+    },
+    [handleRemoveAttachedItem],
+  );
+
+  const handleSend = useCallback(
+    (model: any, account: any) => {
+      if (message.trim() || uploadedFiles.length > 0 || attachedItems.length > 0) {
+        // DeepSeek time-block check
+        if (isDeepSeekProvider(model?.providerId)) {
+          const providerConfig = providers.find(
+            (p: any) => p.provider_id?.toLowerCase() === model?.providerId?.toLowerCase(),
+          );
+          const ranges = providerConfig?.blocked_time_ranges ?? null;
+          if (isBlockedNow(ranges)) {
+            const rangeLabel = getBlockedRangeLabel(ranges);
+            const allRanges = getBlockedHoursDescription(ranges);
+            onSendMessage(
+              `⛔ DeepSeek bị chặn trong khung giờ ${allRanges}. Hiện tại đang trong khung ${rangeLabel}. Vui lòng thử lại sau.`,
+              [],
+              model,
+              account,
+              {},
+            );
+            return;
+          }
+        }
+
+        onSendMessage(message, [...uploadedFiles, ...attachedItems], model, account, {
+          diagnosticEnabled: conversationDiagnosticEnabled,
+          useSkillEnabled: conversationUseSkillEnabled,
+          memoryEnabled: conversationMemoryEnabled,
+          toolFormat: conversationToolFormat,
+        });
+        setMessage('');
+        clearDraft();
+        clearFiles();
+        setAttachedItems([]);
+      }
+    },
+    [
+      message,
+      uploadedFiles,
+      attachedItems,
+      providers,
+      onSendMessage,
+      clearDraft,
+      clearFiles,
+      conversationDiagnosticEnabled,
+      conversationUseSkillEnabled,
+      conversationMemoryEnabled,
+      conversationToolFormat,
+    ],
+  );
+
+  const handleTextareaChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setMessage(e.target.value);
+    },
+    [setMessage],
+  );
+
+  const handleKeyDown = useCallback((_e: React.KeyboardEvent<HTMLTextAreaElement>) => {}, []);
 
   return (
-    <div
-      className="home-panel"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        backgroundColor: 'rgb(var(--background))',
-        position: 'relative',
-      }}
-    >
-      {/* ─── Dashboard scroll area ─── */}
-      <div
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          backgroundColor: 'rgb(var(--card-background))',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+    <div className="flex flex-col h-full relative">
+      {/* Dashboard scroll area */}
+      <div className="flex-1 overflow-auto flex flex-col">
         <div
+          className="flex-1 flex flex-col items-center justify-start p-8 text-primary"
           style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            padding: '32px 16px 20px 16px',
-            color: 'var(--text-primary)',
             animation: 'fadeIn 0.5s ease-out',
             maxWidth: '680px',
             margin: '0 auto',
@@ -404,108 +475,28 @@ const HomePanel: React.FC<HomePanelProps> = ({
             boxSizing: 'border-box',
           }}
         >
-          {/* Header */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0',
-              textAlign: 'center',
-              width: '100%',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <img
-                  src={`${imagesUri}/icon.png`}
-                  alt="Phantoma Logo"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                  }}
-                />
-              </div>
-              <h1
-                style={{
-                  fontSize: '30px',
-                  fontWeight: 800,
-                  margin: 0,
-                  background:
-                    'linear-gradient(to right, var(--text-primary, #fff), var(--text-secondary, #a8a8a8))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                Phantoma
-              </h1>
-            </div>
+          <HomeHeader imagesUri={imagesUri} />
 
-            <div
-              style={{
-                height: '28px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                margin: '0 0 12px 0',
-              }}
-            >
-              <div
-                key={sloganIndex}
-                style={{
-                  fontSize: '14px',
-                  color: 'var(--text-secondary)',
-                  fontWeight: 500,
-                  animation: 'slideUp 0.4s ease-out',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {SLOGANS[sloganIndex]}
-              </div>
-            </div>
-
-            <InstallationBanner />
+          <div className="w-full mb-4 flex flex-col gap-3">
+            <ConnectionErrorBanner isConnected={true} />
+            <ZenUpdateBanner updateInfo={zenUpdateInfo} />
+            <AIWeb2APIUpdateBanner updateInfo={null} />
           </div>
 
-          {/* Dashboard content */}
-          <div
-            style={{
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <StatsGrid
+          <div className="w-full flex flex-col gap-4">
+            <DashboardStats
               todayTokens={todayTokens}
               todayRequests={todayRequests}
               favoriteModel={favoriteModel}
               totalAccounts={totalAccounts}
-              percentChanges={percentChanges}
-            />
-
-            <ModelDistributionCard
               modelDistribution={modelDistribution}
               providerFavicons={providerFavicons}
-              title="AI Model Distribution"
-              emptyText="Loading history..."
+              dailyUsage={dailyUsage}
+              accounts={accounts}
+              statsPeriod={statsPeriod}
             />
 
-            <DailyUsageChart usage={dailyUsage} title="Daily Usage" />
-
-            <RecentActivity
+            <HistoryConversation
               conversations={sortedConversations}
               isLoading={isLoading}
               onLoadConversation={onLoadConversation}
@@ -515,53 +506,8 @@ const HomePanel: React.FC<HomePanelProps> = ({
         </div>
       </div>
 
-      {/* ModelAccountDrawer Overlay */}
-      {showModelDrawer && (
-        <ModelAccountDrawer
-          isOpen={showModelDrawer}
-          onClose={() => setShowModelDrawer(false)}
-          providers={providers}
-          apiUrl={apiUrl}
-          onSelect={(selected) => {
-            const prov = providers.find((p: any) => p.provider_id === selected.providerId);
-            const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
-            let faviconUrl = '';
-            if (prov?.website) {
-              try {
-                faviconUrl = `${new URL(prov.website).origin}/favicon.ico`;
-              } catch {
-                console.warn('[Home] Invalid website URL for favicon:', prov.website);
-              }
-            }
-
-            const newModel = {
-              ...selected,
-              id: selected.modelId,
-              name: modelObj?.name || selected.modelId,
-              favicon: faviconUrl,
-              is_thinking: modelObj?.is_thinking ?? false,
-              is_search: modelObj?.is_search ?? false,
-              is_upload: modelObj?.is_upload ?? false,
-              is_memory: modelObj?.is_memory ?? prov?.is_memory ?? false,
-            };
-            setCurrentModel(newModel);
-            setCurrentAccount({
-              id: selected.accountId,
-              email: selected.email,
-            });
-            setShowModelDrawer(false);
-          }}
-        />
-      )}
-
-      {/* ─── Bottom Input Area ─── */}
-      <div
-        style={{
-          flexShrink: 0,
-          padding: '0 16px 8px 16px',
-          backgroundColor: 'var(--primary-bg)',
-        }}
-      >
+      {/* Bottom Input Area */}
+      <div className="shrink-0 px-4 pb-2">
         <input
           ref={fileInputRef}
           type="file"
@@ -579,9 +525,9 @@ const HomePanel: React.FC<HomePanelProps> = ({
         />
         <FilesPreviews
           uploadedFiles={uploadedFiles}
-          attachedItems={[]}
+          attachedItems={attachedItems}
           onRemoveFile={removeFile}
-          onRemoveAttachedItem={() => {}}
+          onRemoveAttachedItem={handleRemoveAttachedItemWrapper}
           onOpenImage={(file) => {
             const vscodeApi = (window as any).vscodeApi;
             if (vscodeApi) {
@@ -594,8 +540,64 @@ const HomePanel: React.FC<HomePanelProps> = ({
           }}
           onAttachedItemClick={() => {}}
         />
-        <MessageInput {...(messageInputProps as any)} />
+        <MessageInput
+          message={message}
+          setMessage={setMessage}
+          isHistoryMode={false}
+          uploadedFiles={uploadedFiles}
+          attachedItems={attachedItems}
+          textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+          handleTextareaChange={handleTextareaChange}
+          handleKeyDown={handleKeyDown}
+          handlePaste={handlePaste}
+          handleDragOver={handleDragOver}
+          handleDrop={handleDrop}
+          handleFileSelect={handleFileSelect}
+          onOpenProjectStructure={() => {}}
+          showChangesDropdown={false}
+          setShowChangesDropdown={() => {}}
+          messages={[]}
+          handleSend={handleSend}
+          hasProjectContext={false}
+          onOpenProjectContext={() => {}}
+          folderPath={folderPath || null}
+          isConversationStarted={false}
+          currentModel={currentModel}
+          setCurrentModel={setCurrentModel}
+          currentAccount={currentAccount}
+          setCurrentAccount={setCurrentAccount}
+          isProcessing={false}
+          isStreaming={false}
+          conversationDiagnosticEnabled={conversationDiagnosticEnabled}
+          conversationUseSkillEnabled={conversationUseSkillEnabled}
+          conversationMemoryEnabled={conversationMemoryEnabled}
+          conversationToolFormat={conversationToolFormat}
+          onConversationDiagnosticToggle={() => {
+            setConversationDiagnosticEnabled(!conversationDiagnosticEnabled);
+          }}
+          onConversationUseSkillToggle={() => {
+            setConversationUseSkillEnabled(!conversationUseSkillEnabled);
+          }}
+          onConversationMemoryToggle={() => {
+            setConversationMemoryEnabled(!conversationMemoryEnabled);
+          }}
+          onConversationToolFormatToggle={() => {
+            toggleConversationToolFormat();
+          }}
+        />
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .spin-animation { animation: spin 1s linear infinite; }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };
