@@ -7,7 +7,13 @@ export interface SystemInfo {
   language: string;
 }
 
-export const buildSystemContext = (info: SystemInfo): string => {
+export const buildSystemContext = (
+  info: SystemInfo,
+  toolFormat: "xml" | "json" = "xml",
+): string => {
+  // toolFormat currently does not affect system context content for recon —
+  // accepted for signature parity with code prompt builder.
+  void toolFormat;
   return `# SYSTEM ENVIRONMENT
 OS: ${info.os}, IDE: ${info.ide}, Shell: ${info.shell}, Home: ${info.homeDir}, CWD: ${info.cwd}, Language: ${info.language}
 

@@ -62,8 +62,6 @@ export interface PromptBuilderOptions {
   providerId?: string;
   /** Prompt length mode — controls which sections are included (Zen parity). */
   promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
-  /** When false, LSP-DIAGNOSTICS-FALLBACK constraint is added to system prompt. */
-  diagnosticEnabled?: boolean;
 }
 
 export const getShallowTree = (tree: string): string => {
@@ -117,7 +115,6 @@ export class PromptBuilder {
       toolFormat = 'xml',
       providerId,
       promptLengthMode = 'long',
-      diagnosticEnabled = true,
     } = options;
 
     let systemPrompt = '';
@@ -138,7 +135,6 @@ export class PromptBuilder {
           toolFormat,
           providerId,
           promptLengthMode,
-          diagnosticEnabled,
         },
         workspace,
       );
@@ -185,7 +181,6 @@ export class PromptBuilder {
       toolFormat?: 'xml' | 'json';
       providerId?: string;
       promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
-      diagnosticEnabled?: boolean;
     },
     workspace?: string,
   ): Promise<string> {
@@ -246,7 +241,6 @@ export class PromptBuilder {
         systemInfo,
         permissionMode,
         promptLengthMode: overrides?.promptLengthMode,
-        diagnosticEnabled: overrides?.diagnosticEnabled,
         toolFormat: overrides?.toolFormat,
       });
     }

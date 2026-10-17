@@ -30,8 +30,6 @@ interface PromptConfig {
   permissionMode?: string;
   /** Which sections of the prompt to include. Default: 'long' (full). */
   promptLengthMode?: import("./mode-config").PromptLengthMode;
-  /** When false, adds LSP-DIAGNOSTICS-FALLBACK constraint. Default: true. */
-  diagnosticEnabled?: boolean;
   /** Tool output format — 'xml' (default) or 'json'. */
   toolFormat?: "xml" | "json";
 }
@@ -45,7 +43,6 @@ export const combinePrompts = (config: PromptConfig): string => {
       language: config.language,
       systemInfo: config.systemInfo,
       promptLengthMode: config.promptLengthMode,
-      diagnosticEnabled: config.diagnosticEnabled,
       toolFormat: config.toolFormat,
     },
     "balanced",

@@ -91,6 +91,10 @@ interface AIMessageBoxProps {
   responseNumber?: number | null;
   onRetryRequest?: (messageId: string) => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
+  /** User xác nhận chạy dangerous command — reset guard để lần execute kế tiếp cho phép. */
+  onApproveDangerousAction?: (actionId: string) => void;
+  /** User huỷ dangerous command — reset approval, không execute. */
+  onRejectDangerousAction?: (actionId: string) => void;
 }
 
 const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
@@ -125,6 +129,8 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   responseNumber,
   onRetryRequest,
   onRevertConversation,
+  onApproveDangerousAction,
+  onRejectDangerousAction,
 }) => {
   // Detect dangerous run_command actions trong message này (regex trên command text)
   const dangerousCommands = React.useMemo<Record<string, DangerousCommandInfo>>(() => {
@@ -137,18 +143,21 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
     (actionId: string) => {
       const idx = parsedContent.actions.findIndex((_a, i) => `${message.id}-action-${i}` === actionId);
       if (idx === -1) return;
+      // Mark approve trước khi trigger execute để guard dangerous command bỏ qua.
+      onApproveDangerousAction?.(actionId);
       onToolClick(parsedContent.actions[idx], message, idx, 'accept');
     },
-    [message, parsedContent.actions, onToolClick],
+    [message, parsedContent.actions, onToolClick, onApproveDangerousAction],
   );
 
   const onCancelDangerousCommand = React.useCallback(
     (actionId: string) => {
       const idx = parsedContent.actions.findIndex((_a, i) => `${message.id}-action-${i}` === actionId);
       if (idx === -1) return;
+      onRejectDangerousAction?.(actionId);
       onToolClick(parsedContent.actions[idx], message, idx, 'reject');
     },
-    [message, parsedContent.actions, onToolClick],
+    [message, parsedContent.actions, onToolClick, onRejectDangerousAction],
   );
 
   // Track render count for this specific message

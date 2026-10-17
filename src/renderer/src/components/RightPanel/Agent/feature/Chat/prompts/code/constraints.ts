@@ -5,7 +5,6 @@ import { MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from "./mode-config";
 export const buildConstraints = (
   mode: SystemPromptMode = "balanced",
   language: string = "English",
-  diagnosticEnabled: boolean = true,
   toolFormat: "xml" | "json" = "xml",
 ): string => {
   const behavior = MODE_BEHAVIORS[mode];
@@ -105,7 +104,6 @@ ${
 - **MAX-2-SEARCH**: 2 failed searches → ask user, do not guess.
 - **GITIGNORE**: Ignored path → tell user, ask before accessing.
 - **RUNTIME-VERIFY**: After fixing runtime/IPC/UI bugs, ask user to test. Never self-declare "fixed".
-${!diagnosticEnabled ? `- **LSP-DIAGNOSTICS-FALLBACK**: VSCode diagnostics are DISABLED. Without them, this CLI/LSP check is the ONLY way to catch type/syntax/lint errors — so treat running it as the default, not optional. You decide WHEN to run it (after a single risky edit, or batched after several related edits) — but you do NOT decide WHETHER to run it for any task that touched code logic, types, or imports. Bias toward checking EARLIER and MORE OFTEN rather than waiting until the whole task is done: an error caught right after one edit is cheap to fix, the same error left until the end may have already propagated into later edits built on top of it. Only skip the check entirely for edits with zero logic risk (pure comments, whitespace, markdown/docs). Steps: (1) Identify the language/framework from the file extension and project config (e.g. TypeScript → \`npx tsc --noEmit\`, Python → \`pylint\`/\`mypy\`, Go → \`go vet\`, Rust → \`cargo check\`, Java → \`mvn compile\`). (2) If the tool is not installed, use run_command to install it first (e.g. \`npm install -D typescript\`, \`pip install pylint\`). (3) Run the check scoped to the changed file(s) or project root — scope it to just-touched files when doing an early/per-edit check, and to the whole project when doing a final end-of-task check. (4) Parse stdout/stderr for errors/warnings and report them. Never self-declare a task "done" or "fixed" without having run this check at least once since the last code-affecting edit.` : ""}
 - **CONTRADICTION-CLARIFY**: If a result from EXPLORE, READ, or a run_command reveals information that contradicts the current plan, exposes multiple valid interpretations of the original request, or expands the scope beyond what was originally asked → STOP before EXECUTE and raise it via ${Q}. Do not silently reinterpret the request or adjust the plan without surfacing the contradiction first.
 - **PARTIAL-ANSWER-FOLLOWUP**: If the user's reply to ${Q} block only answers some of the questions, do not assume or default the unanswered ones. Re-ask only the unanswered items in a new ${Q} before proceeding with any part of the plan that depends on them.
 ${testSection}

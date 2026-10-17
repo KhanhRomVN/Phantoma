@@ -53,7 +53,6 @@ interface UseConversationRestoreProps {
   >;
   /** Callback khi restore conversation có conversationOverrides saved. */
   onRestoreOverrides?: (overrides: {
-    diagnosticEnabled?: boolean;
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';

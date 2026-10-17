@@ -69,7 +69,6 @@ import {
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ConversationOverrides {
-  diagnosticEnabled?: boolean;
   useSkillEnabled?: boolean;
   memoryEnabled?: boolean;
   toolFormat?: "xml" | "json";
@@ -471,15 +470,12 @@ export const useChatLLM = ({
 
       const effectiveToolFormat =
         conversationOverridesRef.current?.toolFormat ?? 'xml';
-      const effectiveDiagnostic =
-        conversationOverridesRef.current?.diagnosticEnabled ?? true;
 
       // [DEBUG] Log effective settings for verification
       console.log('[Phantoma][ChatLLM] Effective Settings:', {
         useSkill: effectiveUseSkill,
         memory: effectiveMemory,
         toolFormat: effectiveToolFormat,
-        diagnosticEnabled: effectiveDiagnostic,
         promptLengthMode,
         rawOverrides: conversationOverridesRef.current,
       });
@@ -554,7 +550,6 @@ export const useChatLLM = ({
         toolFormat: effectiveToolFormat,
         providerId: promptProviderId,
         promptLengthMode,
-        diagnosticEnabled: effectiveDiagnostic,
       });
 
       const userMessage: Message = {
@@ -629,6 +624,10 @@ export const useChatLLM = ({
         effectiveChatUuid,
         false,
         backendConversationIdRef.current,
+        undefined,
+        undefined,
+        undefined,
+        conversationOverridesRef.current,
       );
 
       try {
@@ -987,6 +986,10 @@ export const useChatLLM = ({
           effectiveChatUuid,
           false,
           backendConversationId || backendConversationIdRef.current,
+          undefined,
+          undefined,
+          undefined,
+          conversationOverridesRef.current,
         );
 
         // 🚨 DETECT ONLY-THINKING RESPONSE
@@ -1042,6 +1045,10 @@ export const useChatLLM = ({
               effectiveChatUuid,
               false,
               backendConversationIdRef.current,
+              undefined,
+              undefined,
+              undefined,
+              conversationOverridesRef.current,
             );
           } catch (saveErr) {
             console.warn('[useChatLLM] Failed to save conversation:', saveErr);
@@ -1116,6 +1123,10 @@ export const useChatLLM = ({
           convId,
           true,
           backendConversationIdRef.current,
+          undefined,
+          undefined,
+          undefined,
+          conversationOverridesRef.current,
         );
 
         if (parsedPayload && parsedPayload.answers) {

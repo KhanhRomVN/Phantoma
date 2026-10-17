@@ -213,6 +213,70 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
   // ─── Derived layout ─────────────────────────────────────────────────
 
+  const focusRequest = useCodeStore((s) => s.focusPanelRequest);
+  const clearFocusPanelRequest = useCodeStore((s) => s.clearFocusPanelRequest);
+
+  useEffect(() => {
+    if (!focusRequest || focusRequest.sessionId !== sessionId) return;
+    dispatch({ type: 'focus', id: focusRequest.panelId });
+    clearFocusPanelRequest();
+  }, [focusRequest, sessionId, clearFocusPanelRequest]);
+
+  const setSessionProcs = useCodeStore((s) => s.setSessionProcs);
+  const panelsRef = useRef(panels);
+  panelsRef.current = panels;
+  const terminalProcsRef = useRef(
+    new Map<string, { command: string; port?: number; terminalId: string }>(),
+  );
+
+  useEffect(() => {
+    if (!currentProjectId) return;
+    const onProcessInfo = (
+      _event: unknown,
+      payload: {
+        terminalId: string;
+        panelId?: string;
+        command: string;
+        ports: number[];
+        alive: boolean;
+      },
+    ) => {
+      const { panelId } = payload;
+      if (!panelId || !panelsRef.current.some((p) => p.id === panelId)) return;
+
+      if (payload.alive && payload.command) {
+        terminalProcsRef.current.set(panelId, {
+          command: payload.command,
+          port: payload.ports[0],
+          terminalId: payload.terminalId,
+        });
+      } else {
+        terminalProcsRef.current.delete(panelId);
+      }
+
+      const procs = panelsRef.current.flatMap((p) => {
+        const info = terminalProcsRef.current.get(p.id);
+        return info
+          ? [
+              {
+                cmd: info.command,
+                status: 'live' as const,
+                port: info.port,
+                terminalId: info.terminalId,
+                panelId: p.id,
+              },
+            ]
+          : [];
+      });
+      setSessionProcs(currentProjectId, sessionId, procs);
+    };
+
+    window.api.on('terminal:process-info', onProcessInfo);
+    return () => {
+      window.api.off('terminal:process-info', onProcessInfo);
+    };
+  }, [currentProjectId, sessionId, setSessionProcs]);
+
   const occupied = useMemo(() => getOccupiedPanes(paneTabs), [paneTabs]);
   const rects = useMemo(() => computeRects(occupied, sizes), [occupied, sizes]);
 

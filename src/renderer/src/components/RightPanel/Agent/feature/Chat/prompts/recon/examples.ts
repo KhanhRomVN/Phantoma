@@ -558,3 +558,195 @@ Pass 2 (Verify): No more actions needed.
 </markdown>
 \`\`\`
 `;
+
+// ─── JSON variant ─────────────────────────────────────────────────────────
+// Used when toolFormat === 'json'. Same scenarios, but every tool call is a
+// single JSON object inside its own fenced ```json block, and prose is a
+// {"type":"markdown","content":"..."} UI object. NO XML tags anywhere.
+export const EXAMPLES_JSON = `# REFERENCE EXAMPLES (JSON FORMAT)
+
+> **Note:** Every tool call and every UI object is a single fenced \`\`\`json block containing exactly one object. Never emit \`<...>\` XML tags in JSON mode.
+
+## Ex 1: Clear Request — List tabs and navigate ✅
+**User**: "Navigate to gmail.com"
+
+**Turn 1** — Check state:
+\`\`\`json
+{"tool":"list_tabs","params":{}}
+\`\`\`
+
+**Turn 2** — After tab list returns:
+\`\`\`json
+{"tool":"navigate","params":{"url":"https://gmail.com"}}
+\`\`\`
+
+**Turn 3** — REPORT:
+\`\`\`json
+{"type":"markdown","content":"✅ Đã điều hướng tới https://gmail.com"}
+\`\`\`
+
+---
+
+## Ex 2: Multiple tabs — CLARIFY before action ✅
+**User**: "Close the Google tab"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"list_tabs","params":{}}
+\`\`\`
+
+**Turn 2** — CLARIFY:
+\`\`\`json
+{"type":"markdown","content":"Tìm thấy **3 tab** liên quan tới Google: Google Search (tab-001), Gmail (tab-002), Google Drive (tab-003)."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"single","label":"Đóng tab nào?","options":["Google Search (tab-001)","Gmail (tab-002)","Google Drive (tab-003) (recommended — ít khả năng có dữ liệu chưa lưu)","Tất cả"]}]}
+\`\`\`
+
+---
+
+## Ex 3: Fill form — LIST-BEFORE-ACTION ✅
+**User**: "Fill the login form with test@example.com"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"get_page_content","params":{}}
+\`\`\`
+
+**Turn 2**:
+\`\`\`json
+{"tool":"list_elements","params":{"elementType":"input"}}
+\`\`\`
+
+**Turn 3** — ACT:
+\`\`\`json
+{"tool":"fill_input","params":{"ref":"input-email","value":"test@example.com"}}
+\`\`\`
+
+---
+
+## Ex 4: Ambiguous Task — multiple login buttons ✅
+**User**: "Click the login button"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"get_page_content","params":{}}
+\`\`\`
+
+**Turn 2** — CLARIFY:
+\`\`\`json
+{"type":"markdown","content":"Tìm thấy **2 login button**: 'Sign In' ở header (btn-header-signin) và 'Login' ở form (btn-form-login)."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"single","label":"Click button nào?","options":["Header 'Sign In' (btn-header-signin)","Form 'Login' (btn-form-login) (recommended — button submit form chính)"]}]}
+\`\`\`
+
+---
+
+## Ex 5: IMPACT-CONFIRM — Multi-step form submission ✅
+**User**: "Fill out the entire registration form and submit it"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"get_page_content","params":{}}
+\`\`\`
+
+**Turn 2** — IMPACT-CONFIRM:
+\`\`\`json
+{"type":"markdown","content":"Form đăng ký có **8 field**: First Name, Last Name, Email, Password, Confirm Password, Country, Terms, Submit."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"confirm","label":"Sẽ cần 8 thao tác (fill 7 field + submit). Tiếp tục?"},{"id":"2","type":"text","label":"Dùng giá trị gì cho từng field?"}]}
+\`\`\`
+
+---
+
+## Ex 6: CONTRADICTION-CLARIFY — Page state different than expected ✅
+**User**: "Click the logout button"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"get_page_content","params":{}}
+\`\`\`
+
+**Turn 2** — CONTRADICTION-CLARIFY:
+\`\`\`json
+{"type":"markdown","content":"Trang hiển thị button **'Login'**, không phải 'Logout' — có vẻ bạn **chưa đăng nhập**."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"single","label":"Bạn muốn tiếp tục thế nào?","options":["Đăng nhập trước (recommended — cần đăng nhập mới logout được)","Kiểm tra tab khác xem có session đã login","Dừng — cần xác minh trạng thái account"]}]}
+\`\`\`
+
+---
+
+## Ex 7: RE-CLARIFY — 6 consecutive state-changing tool calls ✅
+\`\`\`json
+{"type":"markdown","content":"**Tiến độ** — đã hoàn thành 6 bước state-changing: 1) launch browser, 2) create tab example.com, 3) get_page_content, 4) list_elements, 5) fill email, 6) fill password."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"single","label":"Bước tiếp theo là click login button. Tiếp tục?","options":["Có, submit form (recommended — hoàn thiện flow đăng nhập)","Chờ — cần xác minh dữ liệu trước","Dừng — mục tiêu đã thay đổi"]}]}
+\`\`\`
+
+---
+
+## Ex 8: Handling stale_ref error ✅
+**User**: "Click the submit button on the checkout page"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"get_page_content","params":{}}
+\`\`\`
+
+**Turn 2** — Try click:
+\`\`\`json
+{"tool":"click_element","params":{"ref":"btn-submit"}}
+\`\`\`
+
+**Turn 3** — Got stale_ref error → re-fetch (recovery does NOT count toward MAX-2-RETRY):
+\`\`\`json
+{"tool":"list_elements","params":{"elementType":"button"}}
+\`\`\`
+
+**Turn 4** — Retry with fresh ref:
+\`\`\`json
+{"tool":"click_element","params":{"ref":"btn-checkout-submit"}}
+\`\`\`
+
+---
+
+## Ex 9: capture_screenshot + SoM to locate element ✅
+**User**: "I can't describe the button well — find the blue button on the page and click it"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"capture_screenshot","params":{}}
+\`\`\`
+
+**Turn 2** — From ref-map, badge #4 = blue button "Get Started" (btn-cta-blue):
+\`\`\`json
+{"tool":"click_element","params":{"ref":"btn-cta-blue"}}
+\`\`\`
+
+---
+
+## Ex 10: select_option and upload_file combo ✅
+**User**: "Fill the profile form: select country Vietnam, upload avatar from /tmp/avatar.png"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"get_page_content","params":{}}
+\`\`\`
+
+**Turn 2** — Batch independent calls:
+\`\`\`json
+{"tool":"select_option","params":{"ref":"select-country","label":"Vietnam"}}
+\`\`\`
+\`\`\`json
+{"tool":"upload_file","params":{"ref":"input-avatar","filePath":"/tmp/avatar.png"}}
+\`\`\`
+
+**Turn 3** — REPORT:
+\`\`\`json
+{"type":"markdown","content":"✅ Đã chọn country Vietnam, upload avatar từ /tmp/avatar.png"}
+\`\`\`
+`;

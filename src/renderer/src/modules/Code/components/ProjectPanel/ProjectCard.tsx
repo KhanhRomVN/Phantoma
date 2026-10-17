@@ -24,6 +24,7 @@ import {
   type BranchInfo,
   type TaskStatus,
   type MenuPosition,
+  type ProcessInteractHandler,
   STATUS_ORDER,
   TASK_STATUSES,
   getNewestSession,
@@ -74,7 +75,7 @@ interface ProjectCardProps {
   /** Toggle Task Manager view for this project */
   onToggleTaskManager: (projectId: string) => void;
   onNewSession: (projectId: string, branchName: string) => void;
-  onKillProcess: (sessionId: string, index: number) => void;
+  onProcessInteract: ProcessInteractHandler;
   onSessionContextMenu?: (e: React.MouseEvent, sessionId: string) => void;
   // Drag & Drop Handlers passed from Parent
   onDragStart: (
@@ -178,7 +179,7 @@ function CollapsedTree({
   selectedSessionId,
   onSelectSession,
   onOpenTaskMenu,
-  onKillProcess,
+  onProcessInteract,
   onSessionContextMenu,
   onOpenDropdown,
   onNewSession,
@@ -192,7 +193,7 @@ function CollapsedTree({
   selectedSessionId: string | null;
   onSelectSession: (id: string) => void;
   onOpenTaskMenu: ProjectCardProps['onOpenTaskMenu'];
-  onKillProcess: ProjectCardProps['onKillProcess'];
+  onProcessInteract: ProjectCardProps['onProcessInteract'];
   onSessionContextMenu?: ProjectCardProps['onSessionContextMenu'];
   onOpenDropdown: ProjectCardProps['onOpenDropdown'];
   onNewSession: ProjectCardProps['onNewSession'];
@@ -251,7 +252,7 @@ function CollapsedTree({
                 onOpenDropdown={onOpenDropdown}
                 onOpenTaskMenu={onOpenTaskMenu}
                 onNewSession={onNewSession}
-                onKillProcess={onKillProcess}
+                onProcessInteract={onProcessInteract}
                 onSessionContextMenu={onSessionContextMenu}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
@@ -344,7 +345,7 @@ const BranchBlock = memo(function BranchBlock({
   onOpenDropdown,
   onOpenTaskMenu,
   onNewSession,
-  onKillProcess,
+  onProcessInteract,
   onSessionContextMenu,
   onDragStart,
   onDragEnd,
@@ -358,7 +359,7 @@ const BranchBlock = memo(function BranchBlock({
   onOpenDropdown: ProjectCardProps['onOpenDropdown'];
   onOpenTaskMenu: ProjectCardProps['onOpenTaskMenu'];
   onNewSession: ProjectCardProps['onNewSession'];
-  onKillProcess: ProjectCardProps['onKillProcess'];
+  onProcessInteract: ProjectCardProps['onProcessInteract'];
   onSessionContextMenu?: ProjectCardProps['onSessionContextMenu'];
   onDragStart: ProjectCardProps['onDragStart'];
   onDragEnd: ProjectCardProps['onDragEnd'];
@@ -423,7 +424,7 @@ const BranchBlock = memo(function BranchBlock({
           selectedSessionId={selectedSessionId}
           onSelect={onSelectSession}
           onOpenTaskMenu={onOpenTaskMenu}
-          onKillProcess={onKillProcess}
+          onProcessInteract={onProcessInteract}
           onContextMenu={onSessionContextMenu}
           // Explicitly disable drag on SessionCard to prevent accidental loss of parent Branch context
           draggable={false} 
@@ -460,7 +461,7 @@ export const ProjectCard = memo(function ProjectCard({
   onOpenTaskMenu,
   onToggleTaskManager,
   onNewSession,
-  onKillProcess,
+  onProcessInteract,
   onSessionContextMenu,
   onDragStart,
   onDragEnd,
@@ -578,7 +579,7 @@ export const ProjectCard = memo(function ProjectCard({
             selectedSessionId={selectedSessionId}
             onSelectSession={onSelectSession}
             onOpenTaskMenu={onOpenTaskMenu}
-            onKillProcess={onKillProcess}
+            onProcessInteract={onProcessInteract}
             onSessionContextMenu={onSessionContextMenu}
             onOpenDropdown={onOpenDropdown}
             onNewSession={onNewSession}
@@ -604,7 +605,7 @@ export const ProjectCard = memo(function ProjectCard({
                 onOpenDropdown={onOpenDropdown}
                 onOpenTaskMenu={onOpenTaskMenu}
                 onNewSession={onNewSession}
-                onKillProcess={onKillProcess}
+                onProcessInteract={onProcessInteract}
                 onSessionContextMenu={onSessionContextMenu}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}

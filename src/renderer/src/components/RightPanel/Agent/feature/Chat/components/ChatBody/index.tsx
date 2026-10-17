@@ -115,6 +115,8 @@ export interface ExtendedChatBodyProps extends ChatBodyProps {
   searchQuery?: string;
   onSearchQueryChange?: (q: string) => void;
   onCloseSearch?: () => void;
+  onApproveDangerousAction?: (actionId: string) => void;
+  onRejectDangerousAction?: (actionId: string) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -238,6 +240,8 @@ interface MessageBoxProps {
   responseNumber?: number | null;
   onRetryRequest?: (messageId: string) => void;
   isRestored?: boolean;
+  onApproveDangerousAction?: (actionId: string) => void;
+  onRejectDangerousAction?: (actionId: string) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -328,6 +332,8 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   isGitStatusVisible = true,
   onBackToHome,
   isLoadingConversation = false,
+  onApproveDangerousAction,
+  onRejectDangerousAction,
 }: ExtendedChatBodyProps) => {
   const { permissionMode } = useSettings();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -592,6 +598,8 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                   isGitStatusVisible={isGitStatusVisible}
                   onBackToHome={onBackToHome}
                   isRestored={isRestored}
+                  onApproveDangerousAction={onApproveDangerousAction}
+                  onRejectDangerousAction={onRejectDangerousAction}
                   onRetryRequest={(messageId: string) => {
                     const msgIndex = messages.findIndex((m) => m.id === messageId);
                     if (msgIndex <= 0) return;

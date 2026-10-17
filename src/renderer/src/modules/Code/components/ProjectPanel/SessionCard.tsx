@@ -16,7 +16,7 @@ import { memo, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 
 // ── Icons ─
-import { Terminal, Loader2, AlertTriangle, Square, X, ChevronDown } from 'lucide-react';
+import { Terminal, Loader2, AlertTriangle, ChevronDown } from 'lucide-react';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -100,6 +100,8 @@ export interface ProcessInfo {
   status: ProcessStatus;
   port?: number;
   exitCode?: number;
+  terminalId?: string;
+  panelId?: string;
 }
 
 export interface SessionSummary {
@@ -346,15 +348,22 @@ export function ProcessPill({ procs }: { procs: ProcessInfo[] }) {
   );
 }
 
+export type ProcessInteractHandler = (
+  action: 'select' | 'menu',
+  sessionId: string,
+  index: number,
+  e: MouseEvent,
+) => void;
+
 /** Background process list inside a session card */
 function ProcessList({
   sessionId,
   procs,
-  onKill,
+  onInteract,
 }: {
   sessionId: string;
   procs: ProcessInfo[];
-  onKill?: (sessionId: string, index: number) => void;
+  onInteract?: ProcessInteractHandler;
 }) {
   if (!procs.length) return null;
   return (
@@ -362,7 +371,13 @@ function ProcessList({
       {procs.map((p, i) => (
         <div
           key={`${p.cmd}-${i}`}
-          className="group/pr flex items-center gap-[7px] min-w-0 px-[5px] py-[3px] rounded font-mono text-[11px] hover:bg-card-hover"
+          className="flex items-center gap-[7px] min-w-0 px-[5px] py-[3px] rounded font-mono text-[11px] cursor-pointer hover:bg-card-hover"
+          onClick={(e) => onInteract?.('select', sessionId, i, e)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onInteract?.('menu', sessionId, i, e);
+          }}
         >
           <span className="shrink-0" style={{ color: PROCESS_COLORS[p.status] }}>
             {p.status === 'busy' ? (
@@ -390,20 +405,7 @@ function ProcessList({
           {p.status === 'crashed' && (
             <span className="text-[10px] text-[#ff4757]">exit {p.exitCode ?? 1}</span>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onKill?.(sessionId, i);
-            }}
-            className="opacity-0 group-hover/pr:opacity-100 w-[18px] h-[18px] rounded flex items-center justify-center text-text-secondary hover:bg-dropdown-item-hover hover:text-[#ff4757] cursor-pointer"
-            title={p.status === 'crashed' ? 'Dismiss' : 'Stop process'}
-          >
-            {p.status === 'crashed' ? (
-              <X className="w-2.5 h-2.5" />
-            ) : (
-              <Square className="w-2.5 h-2.5" />
-            )}
-          </button>
+
         </div>
       ))}
     </div>
@@ -458,7 +460,7 @@ export const SessionCard = memo(function SessionCard({
   selectedSessionId,
   onSelect,
   onOpenTaskMenu,
-  onKillProcess,
+  onProcessInteract,
   onContextMenu,
   draggable = true, // Default to true, but can be overridden by parent if needed
 }: {
@@ -466,7 +468,7 @@ export const SessionCard = memo(function SessionCard({
   selectedSessionId: string | null;
   onSelect: (id: string) => void;
   onOpenTaskMenu?: (sessionId: string, pos: MenuPosition) => void;
-  onKillProcess?: (sessionId: string, index: number) => void;
+  onProcessInteract?: ProcessInteractHandler;
   onContextMenu?: (e: React.MouseEvent, sessionId: string) => void;
   draggable?: boolean;
 }) {
@@ -518,7 +520,11 @@ export const SessionCard = memo(function SessionCard({
 
       {/* Background processes - Only if exists */}
       {(session.procs?.length ?? 0) > 0 && (
-        <ProcessList sessionId={session.id} procs={session.procs!} onKill={onKillProcess} />
+        <ProcessList
+          sessionId={session.id}
+          procs={session.procs!}
+          onInteract={onProcessInteract}
+        />
       )}
     </div>
   );

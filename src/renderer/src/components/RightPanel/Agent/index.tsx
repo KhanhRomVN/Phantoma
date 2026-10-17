@@ -45,12 +45,29 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
     files: any[];
     model: any;
     account: any;
+    conversationOverrides?: {
+      diagnosticEnabled?: boolean;
+      useSkillEnabled?: boolean;
+      memoryEnabled?: boolean;
+      toolFormat?: 'xml' | 'json';
+    };
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
 
   const handleHomeSendMessage = useCallback(
-    (content: string, files: any[], model: any, account: any) => {
-      setInitialMessageData({ content, files, model, account });
+    (
+      content: string,
+      files: any[],
+      model: any,
+      account: any,
+      conversationOverrides?: {
+        diagnosticEnabled?: boolean;
+        useSkillEnabled?: boolean;
+        memoryEnabled?: boolean;
+        toolFormat?: 'xml' | 'json';
+      },
+    ) => {
+      setInitialMessageData({ content, files, model, account, conversationOverrides });
       const newSession: ChatSession = {
         sessionId: Date.now(),
         folderPath: (window as any).__zenWorkspaceFolderPath || null,

@@ -186,6 +186,7 @@ export type WorkspaceAction =
   | { type: 'add'; panel: WorkspacePanel; pane?: PaneId }
   | { type: 'close'; id: string }
   | { type: 'select'; pane: PaneId; id: string }
+  | { type: 'focus'; id: string }
   | { type: 'move'; id: string; to: PaneId }
   | { type: 'resize'; handle: ResizeHandle; value: number }
   | { type: 'updatePanel'; id: string; patch: Partial<Omit<WorkspacePanel, 'id'>> };
@@ -277,6 +278,17 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
         paneActive: { ...state.paneActive, [action.pane]: action.id },
         focusedPane: action.pane,
       };
+
+    case 'focus': {
+      const pane = findPaneOfPanel(state.paneTabs, action.id);
+      if (!pane) return state;
+      if (state.paneActive[pane] === action.id && state.focusedPane === pane) return state;
+      return {
+        ...state,
+        paneActive: { ...state.paneActive, [pane]: action.id },
+        focusedPane: pane,
+      };
+    }
 
     case 'move': {
       const from = findPaneOfPanel(state.paneTabs, action.id);

@@ -74,6 +74,11 @@ interface ChatPanelProps {
     files: any[];
     model: any;
     account: any;
+    conversationOverrides?: {
+      useSkillEnabled?: boolean;
+      memoryEnabled?: boolean;
+      toolFormat?: 'xml' | 'json';
+    };
   } | null;
   onClearInitialData?: () => void;
 }
@@ -212,16 +217,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     totalDeletions: number;
   } | null>(null);
 
-  // Per-conversation overrides — restored từ conversation cũ (tool format, memory, skill, diagnostic)
+  // Per-conversation overrides — restored từ conversation cũ (tool format, memory, skill)
   const [restoredConversationOverrides, setRestoredConversationOverrides] = useState<
     | {
-        diagnosticEnabled?: boolean;
         useSkillEnabled?: boolean;
         memoryEnabled?: boolean;
         toolFormat?: 'xml' | 'json';
       }
     | undefined
-  >(undefined);
+  >(initialMessageData?.conversationOverrides);
+
+  // Sync khi initialMessageData đổi (conversation mới từ Home với settings khác)
+  useEffect(() => {
+    if (initialMessageData?.conversationOverrides !== undefined) {
+      setRestoredConversationOverrides(initialMessageData.conversationOverrides);
+    }
+  }, [initialMessageData?.conversationOverrides]);
 
   // --- Chat LLM Hook ---
   const {
@@ -401,6 +412,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     singleLineReviewActions,
     confirmSingleLineAction,
     rejectSingleLineAction,
+    approveDangerousAction,
+    rejectDangerousAction,
   } = useToolExecution({
     conversationIdRef: currentConversationIdRef,
     messagesRef: messagesRef,
@@ -729,6 +742,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         singleLineReviewActions={singleLineReviewActions}
         onConfirmSingleLineAction={confirmSingleLineAction}
         onRejectSingleLineAction={rejectSingleLineAction}
+        onApproveDangerousAction={approveDangerousAction}
+        onRejectDangerousAction={rejectDangerousAction}
         isSearchOpen={isSearchOpen}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}

@@ -185,6 +185,7 @@ interface CodeState {
   // ── Content Panel View State ──
   contentViewMode: ContentViewMode;
   activeWorkspaceSessionId: string | null;
+  focusPanelRequest: { sessionId: string; panelId: string; nonce: number } | null;
 
   // Actions
   addProject: (project: ProjectInput) => void;
@@ -250,6 +251,13 @@ interface CodeState {
   // Content View actions
   setContentViewMode: (mode: ContentViewMode) => void;
   setActiveWorkspaceSessionId: (sessionId: string | null) => void;
+  requestFocusPanel: (sessionId: string, panelId: string) => void;
+  clearFocusPanelRequest: () => void;
+  setSessionProcs: (
+    projectId: string,
+    sessionId: string,
+    procs: NonNullable<BranchInfo['sessions'][number]['procs']>,
+  ) => void;
   // ── NEW: ZenCLI binding actions ──
   updatePanelZenCliBinding: (
     projectId: string,
@@ -463,6 +471,7 @@ export const useCodeStore = create<CodeState>()(
         // ── Content View State Defaults ──
         contentViewMode: 'files' as ContentViewMode,
         activeWorkspaceSessionId: null as string | null,
+  focusPanelRequest: null as { sessionId: string; panelId: string; nonce: number } | null,
 
         // ── Project Actions ──
 
@@ -1103,6 +1112,26 @@ export const useCodeStore = create<CodeState>()(
         // ── Content View Actions ──
         setContentViewMode: (mode) => set({ contentViewMode: mode }),
         setActiveWorkspaceSessionId: (sessionId) => set({ activeWorkspaceSessionId: sessionId }),
+        requestFocusPanel: (sessionId, panelId) =>
+          set({ focusPanelRequest: { sessionId, panelId, nonce: Date.now() } }),
+        clearFocusPanelRequest: () => set({ focusPanelRequest: null }),
+        setSessionProcs: (projectId, sessionId, procs) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id !== projectId
+                ? p
+                : {
+                    ...p,
+                    branches: (p.branches || []).map((b) => ({
+                      ...b,
+                      sessions: b.sessions.map((s) =>
+                        s.id === sessionId ? { ...s, procs } : s,
+                      ),
+                    })),
+                  },
+            ),
+          }));
+        },
 
         // ── NEW: ZenCLI Binding Action ──
         updatePanelZenCliBinding: (projectId, panelId, binding) => {
@@ -1152,6 +1181,7 @@ export const useCodeStore = create<CodeState>()(
         return {
           ...state,
           projects: partializedProjects,
+          focusPanelRequest: null,
           isProjectManagerOpen: false,
           isNewProjectOpen: false,
           pendingAction: null,

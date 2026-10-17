@@ -346,6 +346,7 @@ const PanelBody = memo(function PanelBody({
       return (
         <CodeTerminal
           cwd={effectiveCwd}
+          panelId={panel.id}
           onProviderChange={handleProvider}
           initialCommand={buildZenCliCommand(panel)}
           onProcessExit={handleExit}

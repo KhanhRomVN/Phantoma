@@ -27,6 +27,7 @@ import { useAgentFeature } from '../../../../context/FeatureContext';
 // ── Utils ──
 export { getPermissionDecision } from '../../utils/permissionUtils';
 import { getPermissionDecision } from '../../utils/permissionUtils';
+import { detectDangerousCommand } from '../../utils/dangerousCommandDetector';
 
 // ── Constants ──
 import {
@@ -110,6 +111,8 @@ export const useToolExecution = ({
   >({});
 
   const clickedActionsRef = useRef<Set<string>>(new Set());
+  // actionId của các dangerous command đã được user approve — bỏ qua warning ở lần execute
+  const approvedDangerousRef = useRef<Set<string>>(new Set());
   const pendingToolResolvers = useRef<Map<string, (result: string | null) => void>>(new Map());
   const commandStartTimes = useRef<Map<string, number>>(new Map());
   const earlyCommandResults = useRef<Map<string, any>>(new Map());
@@ -335,6 +338,26 @@ export const useToolExecution = ({
             });
             clickedActionsRef.current.delete(actionId);
             setClickedActions(new Set(clickedActionsRef.current));
+            break;
+          }
+        }
+
+        // Dangerous command guard: chặn auto-execute nếu command nguy hiểm và chưa được user accept.
+        // Chỉ áp dụng cho auto-trigger (LLM tự đề xuất); user click thủ công bỏ qua guard.
+        if (
+          isAutoTrigger &&
+          actionType !== TOOL_ACTION_TYPES.ACCEPT &&
+          action.type === 'run_command' &&
+          !approvedDangerousRef.current.has(actionId)
+        ) {
+          const commandText = action.params?.command;
+          if (typeof commandText === 'string' && detectDangerousCommand(commandText)) {
+            wasInterruptedByManual = true;
+            setExecutionState({
+              total: actions.length,
+              completed: index,
+              status: 'idle',
+            });
             break;
           }
         }
@@ -692,6 +715,15 @@ export const useToolExecution = ({
     [singleLineReviewActions, messagesRef],
   );
 
+  // ── Dangerous command approval API ──
+  const approveDangerousAction = useCallback((actionId: string) => {
+    approvedDangerousRef.current.add(actionId);
+  }, []);
+
+  const rejectDangerousAction = useCallback((actionId: string) => {
+    approvedDangerousRef.current.delete(actionId);
+  }, []);
+
   return {
     executionState,
     toolOutputs,
@@ -701,5 +733,7 @@ export const useToolExecution = ({
     singleLineReviewActions,
     confirmSingleLineAction,
     rejectSingleLineAction,
+    approveDangerousAction,
+    rejectDangerousAction,
   };
 };

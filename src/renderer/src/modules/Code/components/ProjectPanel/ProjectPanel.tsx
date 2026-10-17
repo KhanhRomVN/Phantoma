@@ -41,6 +41,7 @@ import {
   Unlink,
   Link2,
   GitBranch,
+  Square,
 } from 'lucide-react';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
@@ -73,6 +74,7 @@ import {
   type BranchInfo,
   type TaskStatus,
   type ProcessInfo,
+  type ProcessInteractHandler,
   type MenuPosition,
   STATUS_ORDER,
   STATUS_LABELS,
@@ -137,6 +139,7 @@ type DropdownTarget =
   | { kind: 'header-config'; pos: MenuPosition }
   | { kind: 'task'; sessionId: string; pos: MenuPosition }
   | { kind: 'session'; sessionId: string; projectId: string; pos: MenuPosition }
+  | { kind: 'process'; sessionId: string; index: number; pos: MenuPosition }
   | { kind: 'move-to-group'; projectId: string; pos: MenuPosition };
 
 // ─── Constants & Helpers ────────────────────────────────────────────────
@@ -372,7 +375,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
   const updateProject = useCodeStore((s) => s.updateProject);
-
 
   // Content View Actions
   const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
@@ -799,7 +801,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const exists = project.branches.some((b) => b.name === result.branch);
       const newBranches: BranchInfo[] = exists
         ? project.branches.map((b) => (b.name === result.branch ? { ...b, path: result.path } : b))
-        : [...project.branches, { name: result.branch, visible: true, sessions: [], path: result.path }];
+        : [
+            ...project.branches,
+            { name: result.branch, visible: true, sessions: [], path: result.path },
+          ];
       patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
       updateProject(project.id, { branches: newBranches } as any);
       showToast(`Created branch "${result.branch}"`);
@@ -929,14 +934,48 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [updateProject],
   );
 
+  const findProcess = useCallback(
+    (sessionId: string, index: number) =>
+      projects
+        .flatMap((p) => p.branches ?? [])
+        .flatMap((b) => b.sessions)
+        .find((s) => s.id === sessionId)?.procs?.[index],
+    [projects],
+  );
+
   const handleKillProcess = useCallback(
     (sessionId: string, index: number) => {
+      const target = findProcess(sessionId, index);
+      if (target?.terminalId && target.status !== 'crashed') {
+        window.api.invoke('terminal:kill-foreground', target.terminalId).catch(() => {});
+      }
       patchSession(sessionId, (s) => ({
         ...s,
         procs: (s.procs ?? []).filter((_, i) => i !== index),
       }));
     },
-    [patchSession],
+    [patchSession, findProcess],
+  );
+
+  const requestFocusPanel = useCodeStore((s) => s.requestFocusPanel);
+
+  const handleProcessInteract: ProcessInteractHandler = useCallback(
+    (action, sessionId, index, e) => {
+      if (action === 'menu') {
+        setDropdownTarget({
+          kind: 'process',
+          sessionId,
+          index,
+          pos: { top: e.clientY, left: e.clientX },
+        });
+        return;
+      }
+      e.stopPropagation();
+      const panelId = findProcess(sessionId, index)?.panelId;
+      handleSelectSession(sessionId);
+      if (panelId) requestFocusPanel(sessionId, panelId);
+    },
+    [findProcess, handleSelectSession, requestFocusPanel],
   );
 
   // ── Task actions ──
@@ -1196,7 +1235,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       onOpenTaskMenu={handleOpenTaskMenu}
       onToggleTaskManager={handleToggleTaskManager}
       onNewSession={handleNewSession}
-      onKillProcess={handleKillProcess}
+      onProcessInteract={handleProcessInteract}
       onSessionContextMenu={handleSessionContextMenu}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -1599,17 +1638,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   icon={<Folder className="w-3.5 h-3.5" />}
                   onClick={async () => {
                     const target = activeBranch.path ?? activeProject.path;
-                    console.log('[DEBUG] open-folder click', {
-                      branch: activeBranch.name,
-                      branchPath: activeBranch.path,
-                      projectPath: activeProject.path,
-                      target,
-                      hasApi: !!(window as any).api?.invoke,
-                    });
                     closeDropdown();
                     try {
                       const err = await (window as any).api.invoke('shell:open-path', target);
-                      console.log('[DEBUG] open-folder result', JSON.stringify(err));
                       if (err) showToast(`Cannot open folder: ${err}`);
                     } catch (e) {
                       console.error('[DEBUG] open-folder invoke failed', e);
@@ -1785,6 +1816,24 @@ export const ProjectPanel = memo(function ProjectPanel() {
               </>
             )}
 
+            {/* PROCESS CONTEXT MENU */}
+            {dropdownTarget.kind === 'process' && (
+              <>
+                <DropdownItem
+                  icon={<Square className="w-3 h-3" />}
+                  variant="error"
+                  onClick={() => {
+                    handleKillProcess(dropdownTarget.sessionId, dropdownTarget.index);
+                    closeDropdown();
+                  }}
+                >
+                  {findProcess(dropdownTarget.sessionId, dropdownTarget.index)?.status === 'crashed'
+                    ? 'Dismiss'
+                    : 'Stop process'}
+                </DropdownItem>
+              </>
+            )}
+
             {/* SESSION CONTEXT MENU */}
             {dropdownTarget.kind === 'session' && (
               <>
@@ -1912,7 +1961,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
         projectName={createBranchProject?.name ?? ''}
         branches={(createBranchProject?.branches ?? []).map((b) => b.name)}
         defaultSource={createBranchProject?.defaultBranch}
-        onCreated={(result) => createBranchProject && handleBranchCreated(createBranchProject, result)}
+        onCreated={(result) =>
+          createBranchProject && handleBranchCreated(createBranchProject, result)
+        }
       />
 
       <ConfirmDeleteBranchModal

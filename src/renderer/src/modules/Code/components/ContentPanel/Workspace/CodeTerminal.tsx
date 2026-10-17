@@ -30,6 +30,7 @@ import { Copy, ClipboardPaste, SquareMousePointer, Trash2, PowerOff, Zap } from 
 
 interface CodeTerminalProps {
   projectId?: string;
+  panelId?: string;
   cwd?: string;
   onProviderChange?: (providerId: string | null, status?: 'running' | 'idle') => void;
 
@@ -45,6 +46,7 @@ interface CodeTerminalProps {
 }
 
 export const CodeTerminal = ({
+  panelId,
   cwd,
   onProviderChange,
   initialCommand,
@@ -63,6 +65,8 @@ export const CodeTerminal = ({
   const [contextMenuPos, setContextMenuPos] = useState<{ top: number; left: number } | null>(null);
   // Track if shell has been spawned to prevent double-spawn on re-render/resize
   const hasSpawnedRef = useRef(false);
+  const panelIdRef = useRef(panelId);
+  panelIdRef.current = panelId;
 
   // State for detected AI agent (used for UI display if needed elsewhere, though mostly driven by signals now)
   const [_detectedAgent, setDetectedAgent] = useState<TuiAgentId | null>(null);
@@ -343,6 +347,7 @@ export const CodeTerminal = ({
             cwd: effectiveCwd,
           });
           const info: any = await window.api.invoke('terminal:spawn', {
+            panelId: panelIdRef.current,
             terminalId: terminalIdRef.current,
             cwd: effectiveCwd,
           });

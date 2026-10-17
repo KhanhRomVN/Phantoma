@@ -687,3 +687,160 @@ This matches the exact format returned by get_repeater_detail.
 </markdown>
 \`\`\`
 `;
+
+// ─── JSON variant ─────────────────────────────────────────────────────────
+// Used when toolFormat === 'json'. Same scenarios, but every tool call is a
+// single JSON object inside its own fenced ```json block, and prose is a
+// {"type":"markdown","content":"..."} UI object. NO XML tags anywhere.
+export const EXAMPLES_JSON = `# REFERENCE EXAMPLES (JSON FORMAT)
+
+> **Note:** All examples below are shown as they must be EMITTED — every tool call and every UI object is a single fenced \`\`\`json block containing exactly one object. Never emit \`<...>\` XML tags in JSON mode.
+
+## Ex 1: Clear Request — List and view details ✅
+**User**: "View details of the POST request to api.example.com that returned 500"
+
+**Turn 1** — EXPLORE:
+\`\`\`json
+{"type":"markdown","content":"Đang liệt kê các request để tìm request POST tới api.example.com trả về 500."}
+\`\`\`
+\`\`\`json
+{"tool":"list_https","params":{"limit":50}}
+\`\`\`
+
+**Turn 2** — Result returns a list; inspect the matching request (stt=7 is POST to api.example.com with 500):
+\`\`\`json
+{"type":"markdown","content":"Đã tìm thấy request stt=7 (POST api.example.com, status 500). Đang lấy chi tiết."}
+\`\`\`
+\`\`\`json
+{"tool":"get_https_detail","params":{"index":7}}
+\`\`\`
+
+**Turn 3** — REPORT:
+\`\`\`json
+{"type":"markdown","content":"Request \`POST /api/orders\` (stt=7) trả về **500 Internal Server Error**. Response body: \`{\"error\": \"DB connection timeout\"}\`. Request header thiếu \`Idempotency-Key\` — có thể liên quan đến race condition khi retry."}
+\`\`\`
+
+---
+
+## Ex 2: Multiple matching requests — CLARIFY before detail ✅
+**User**: "Check the file upload API for errors"
+
+**Turn 1** — EXPLORE:
+\`\`\`json
+{"tool":"list_https","params":{"limit":50}}
+\`\`\`
+
+**Turn 2** — Results show multiple upload-related requests → CLARIFY:
+\`\`\`json
+{"type":"markdown","content":"Tìm thấy **4 request** liên quan đến \`/upload\`: POST /api/upload/image (stt=2, 200), POST /api/upload/video (stt=5, 413), POST /api/upload/document (stt=9, 200), DELETE /api/upload/cleanup (stt=12, 204)."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"multi","label":"Chọn request cần kiểm tra:","options":["POST /api/upload/image (stt=2)","POST /api/upload/video (stt=5) — status 413, đáng ngờ (recommended — lỗi duy nhất, khả năng cao là nguyên nhân gốc)","POST /api/upload/document (stt=9)","Tất cả"]}]}
+\`\`\`
+
+---
+
+## Ex 3: No matching requests — MAX-2-FILTER ✅
+**User**: "View requests to payment-gateway.internal"
+
+**Turn 1**:
+\`\`\`json
+{"tool":"list_https","params":{}}
+\`\`\`
+
+**Turn 2** — Retry once:
+\`\`\`json
+{"tool":"list_https","params":{"limit":100}}
+\`\`\`
+
+**Turn 3** — Still no results → stop and ask:
+\`\`\`json
+{"type":"markdown","content":"Đã kiểm tra toàn bộ request — không có request nào tới host \`payment-gateway.internal\`."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"text","label":"Bạn có thể xác nhận host/domain chính xác, hoặc mô tả request (method, path gần đúng)?"}]}
+\`\`\`
+
+---
+
+## Ex 4: CONTRADICTION-CLARIFY — Request detail contradicts expectation ✅
+**User**: "Check if the login API returns a standard JWT token"
+
+**Turn 1** — EXPLORE:
+\`\`\`json
+{"tool":"list_https","params":{"limit":50}}
+\`\`\`
+
+**Turn 2** — Found stt=4 → READ:
+\`\`\`json
+{"tool":"get_https_detail","params":{"index":4}}
+\`\`\`
+
+**Turn 3** — Result contradicts expectation:
+\`\`\`json
+{"type":"markdown","content":"Request \`POST /api/login\` (stt=4) KHÔNG trả về JWT trong body — thay vào đó server set cookie \`session_id\` (HttpOnly, Secure)."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"single","label":"Cơ chế auth thực tế là session cookie, không phải JWT. Bạn muốn tiếp tục thế nào?","options":["Phân tích bảo mật của session cookie này (recommended — đây là cơ chế auth thực tế đang dùng)","Kiểm tra xem endpoint khác có trả về JWT không (vd /api/auth/token)","Dừng — cần xác nhận kiến trúc auth trước"]}]}
+\`\`\`
+
+---
+
+## Ex 5: RE-CLARIFY — 6 consecutive tool calls with no user message ✅
+*(After 6 consecutive tool-call turns with no new user message)*
+\`\`\`json
+{"type":"markdown","content":"**Tiến độ** — đã hoàn thành 6 bước: 1) list_https (15 request /api/auth), 2) get_https_detail stt=3, 3) get_https_detail stt=5, 4) get_https_detail stt=8, 5) list_https /api/user, 6) get_https_detail stt=12."}
+\`\`\`
+\`\`\`json
+{"type":"question","questions":[{"id":"1","type":"single","label":"Bước tiếp theo là phân tích 3 request user-related còn lại. Tiếp tục?","options":["Tiếp tục phân tích (recommended — hoàn thiện bức tranh auth + user flow)","Xem tóm tắt 6 bước trước","Dừng — mục tiêu đã thay đổi"]}]}
+\`\`\`
+
+---
+
+## Ex 6: update_repeater_content — Full LIST → READ → UPDATE → VERIFY flow ✅
+**User**: "Add an auth_token payload variable to the login request in Repeater"
+
+**Turn 1** — LIST:
+\`\`\`json
+{"tool":"list_repeaters","params":{}}
+\`\`\`
+
+**Turn 2** — READ detail:
+\`\`\`json
+{"tool":"get_repeater_detail","params":{"repeater_id":"repeater_0"}}
+\`\`\`
+
+**Turn 3** — UPDATE (single-line case, no multi-line escaping needed):
+\`\`\`json
+{"tool":"update_repeater_content","params":{"repeater_id":"repeater_0","target":"headers","old_content":"\"Authorization\": \"Bearer eyJhbGciOi...\"","new_content":"\"Authorization\": \"Bearer \${auth_token}\""}}
+\`\`\`
+
+**Turn 4** — VERIFY:
+\`\`\`json
+{"tool":"get_repeater_detail","params":{"repeater_id":"repeater_0"}}
+\`\`\`
+
+**Turn 5** — REPORT:
+\`\`\`json
+{"type":"markdown","content":"Đã thay thế token hardcoded trong repeater_0 bằng payload variable \`\${auth_token}\`. Placeholder này chưa có giá trị — các payload tools tương lai sẽ cho phép gán giá trị và preview fuzz results."}
+\`\`\`
+
+---
+
+## Ex 7: update_repeater_content — CRITICAL multi-line JSON escaping ✅
+**User**: "Add test3 param value 3 to repeater_0"
+
+After \`get_repeater_detail\` returns a pretty-printed JSON array with 2 params, the update call must:
+- preserve the EXACT pretty-printed format (2-space indent, newlines) in BOTH \`old_content\` and \`new_content\`,
+- escape every real newline as \\n in the outer JSON value,
+- escape every double-quote as \\\" .
+
+\`\`\`json
+{"tool":"update_repeater_content","params":{"repeater_id":"repeater_0","target":"params","old_content":"[\n  {\n    \"key\": \"test1\",\n    \"value\": \"1\",\n    \"enabled\": true\n  },\n  {\n    \"key\": \"test2\",\n    \"value\": \"2\",\n    \"enabled\": true\n  }\n]","new_content":"[\n  {\n    \"key\": \"test1\",\n    \"value\": \"1\",\n    \"enabled\": true\n  },\n  {\n    \"key\": \"test2\",\n    \"value\": \"2\",\n    \"enabled\": true\n  },\n  {\n    \"key\": \"test3\",\n    \"value\": \"3\",\n    \"enabled\": true\n  }\n]"}}
+\`\`\`
+**❌ WRONG** (compact JSON would fail to match):
+\`\`\`json
+{"tool":"update_repeater_content","params":{"repeater_id":"repeater_0","target":"params","old_content":"[{\"key\":\"test1\",\"value\":\"1\",\"enabled\":true},{\"key\":\"test2\",\"value\":\"2\",\"enabled\":true}]","new_content":"..."}}
+\`\`\`
+The tool will silently fail — the \`old_content\` does not match the pretty-printed file.
+`;

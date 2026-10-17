@@ -111,7 +111,6 @@ export const saveConversation = async (
     totalDeletions: number;
   },
   conversationOverrides?: {
-    diagnosticEnabled?: boolean;
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';

@@ -14,8 +14,6 @@ export interface PromptModeConfig {
   language: string;
   systemInfo: SystemInfo;
   promptLengthMode?: PromptLengthMode;
-  /** Khi false, thêm constraint LSP-DIAGNOSTICS-FALLBACK vào system prompt */
-  diagnosticEnabled?: boolean;
   /** Định dạng tool calls: 'xml' (mặc định) hoặc 'json' */
   toolFormat?: "xml" | "json";
 }
@@ -40,7 +38,6 @@ export function buildPromptForMode(
     language,
     systemInfo,
     promptLengthMode = "long",
-    diagnosticEnabled = true,
     toolFormat = "xml",
   } = config;
 
@@ -71,7 +68,7 @@ export function buildPromptForMode(
       toolsRef,
       buildIdentityPrompt(language, mode, toolFormat),
       buildWorkflow(mode, toolFormat),
-      buildConstraints(mode, language, diagnosticEnabled, toolFormat),
+      buildConstraints(mode, language, toolFormat),
       buildSystemContext(systemInfo, mode),
     ];
     return sections.join("\n\n---\n\n");
@@ -85,7 +82,7 @@ export function buildPromptForMode(
     buildExample(mode, toolFormat),
     buildIdentityPrompt(language, mode, toolFormat),
     buildWorkflow(mode, toolFormat),
-    buildConstraints(mode, language, diagnosticEnabled, toolFormat),
+    buildConstraints(mode, language, toolFormat),
     buildSystemContext(systemInfo, mode),
   ];
   return sections.join("\n\n---\n\n");
