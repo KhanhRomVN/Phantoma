@@ -1,9 +1,23 @@
 import React from 'react';
 import { Plus, X } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
+import { MentionPopup } from './MentionPopup';
+import { useMentionEditor } from './hooks/useMentionEditor';
+import {
+  getFileBadgePath,
+  placeCaretAtEnd,
+  renderMessageToEditor,
+  resolveMentionTokens,
+  serializeEditor,
+} from './mentionEditor';
+import EffortDropdown, { getModelEffortInfo } from './EffortDropdown';
+import type { EffortLevel } from './EffortDropdown';
+import GitRepoPickerDrawer from './GitRepoPickerDrawer';
+import { useGitRepoScanner } from '../../feature/Chat/hooks/workspace/useGitRepoScanner';
 
 import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
 import { useSettings } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
-import { LANGUAGES } from '../../feature/Setting/components/LanguageSelector';
+import { useProject } from '../../context/ProjectContext';
 import { combinePromptsForMode } from '../../feature/Chat/prompts/code';
 import type { SystemInfo } from '../../feature/Chat/prompts/code';
 // Use existing Phantoma drawer component
@@ -20,6 +34,7 @@ import { getClientId } from '@renderer/utils/clientId';
 import { countTokens } from '@renderer/utils/tokenizer';
 import { buildAcceptString } from '../../feature/Chat/utils/fileUtils';
 import type { MessageInputProps, UploadedFile, ToggleButtonProps } from './types';
+
 // Fallback for missing modules in Phantoma to allow compilation
 // TODO: Implement actual time-block logic and claude prompt builder in Phantoma backend/services
 
@@ -29,6 +44,7 @@ const getBlockedRangeLabel = (_ranges: any) => '';
 const getBlockedHoursDescription = (_ranges: any) => '';
 
 import { useWorkspaceZipSize } from './hooks/useWorkspaceZipSize';
+import { useAccountStats } from '../../feature/Chat/hooks/api/useAccountStats';
 import { ClaudeZipBadge } from './ClaudeZipBadge';
 import { ZenCliHintBar } from './ZenCliHintBar';
 import { SimpleTooltip, TooltipRow, TooltipCard } from './SimpleTooltip';
@@ -117,49 +133,6 @@ const useToggleState = (key: string, defaultValue: boolean = false) => {
   }, [key]);
 
   return [state, toggle, setState] as const;
-};
-
-/**
- * Hook tính thời gian còn lại (ms) cho cooldown request.
- * Trả về `remaining` (ms) > 0 khi đang trong giai đoạn cooldown, 0 khi đã hết.
- * Cập nhật mỗi 100ms để UI đếm ngược mượt.
- */
-const useCooldownTimer = (
-  lastResponseEndTime: number | null | undefined,
-  cooldownMs: number,
-): number => {
-  const [remaining, setRemaining] = React.useState(0);
-
-  React.useEffect(() => {
-    if (!lastResponseEndTime || cooldownMs <= 0) {
-      setRemaining(0);
-      return;
-    }
-
-    let rafId: number;
-
-    const tick = () => {
-      const elapsed = Date.now() - lastResponseEndTime;
-      const left = Math.max(0, cooldownMs - elapsed);
-
-      // Chỉ update state nếu giá trị thay đổi đáng kể hoặc về 0 để tránh re-render vô ích
-      setRemaining((prev) => {
-        if (prev === left) return prev;
-        return left;
-      });
-
-      if (left > 0) {
-        rafId = requestAnimationFrame(tick);
-      }
-    };
-
-    // Bắt đầu loop ngay lập tức
-    tick();
-
-    return () => cancelAnimationFrame(rafId);
-  }, [lastResponseEndTime, cooldownMs]);
-
-  return remaining;
 };
 
 const useModelCapabilities = (
@@ -410,12 +383,7 @@ const TooltipToggle = ({
   accentColor: string;
 }) => (
   <TooltipCard>
-    <TooltipRow
-      label={label}
-      value={isOn ? 'ON' : 'OFF'}
-      color={accentColor}
-      active={isOn}
-    />
+    <TooltipRow label={label} value={isOn ? 'ON' : 'OFF'} color={accentColor} active={isOn} />
   </TooltipCard>
 );
 
@@ -453,9 +421,9 @@ const IconToggleButton: React.FC<
               ? `color-mix(in srgb, ${accentColor} 22%, transparent)`
               : `color-mix(in srgb, ${accentColor} 14%, transparent)`
             : isHovered
-              ? 'rgba(128, 128, 128, 0.16)'
+              ? `color-mix(in srgb, ${$('--text-secondary')} 16%, transparent)`
               : 'transparent',
-          color: isOn ? accentColor : '#ffffff', // text-text-primary
+          color: isOn ? accentColor : $('--text-primary'),
           opacity: isOn ? 1 : isHovered ? 1 : 0.75,
           padding: 0,
         }}
@@ -466,13 +434,16 @@ const IconToggleButton: React.FC<
   );
 };
 
+const THINKING_COLOR = $('--purple');
+const SEARCH_COLOR = $('--blue');
+
 const ThinkingButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => (
   <IconToggleButton
     isOn={isOn}
     onClick={onClick}
     title={title}
-    accentColor="#a855f7"
-    tooltipContent={<TooltipToggle label="Thinking" isOn={isOn} accentColor="#a855f7" />}
+    accentColor={THINKING_COLOR}
+    tooltipContent={<TooltipToggle label="Thinking" isOn={isOn} accentColor={THINKING_COLOR} />}
   >
     <BrainCogIcon />
   </IconToggleButton>
@@ -483,15 +454,12 @@ const SearchButton: React.FC<ToggleButtonProps> = ({ isOn, onClick, title }) => 
     isOn={isOn}
     onClick={onClick}
     title={title}
-    accentColor="#0ea5e9"
-    tooltipContent={<TooltipToggle label="Search" isOn={isOn} accentColor="#0ea5e9" />}
+    accentColor={SEARCH_COLOR}
+    tooltipContent={<TooltipToggle label="Search" isOn={isOn} accentColor={SEARCH_COLOR} />}
   >
     <GlobeIcon />
   </IconToggleButton>
 );
-
-// GlobalPermissionButton removed as it is not rendered in the new UI structure
-// and its dependencies (PERMISSION_MODE constant from original Zen) are stubbed out.
 
 const PROMPT_HISTORY_KEY = 'zen:user_prompt_history';
 const MAX_PROMPT_HISTORY = 50;
@@ -523,7 +491,7 @@ const savePromptToHistory = (prompt: string) => {
 const MessageInput: React.FC<MessageInputProps> = React.memo(
   ({
     message,
-    // setMessage, // Unused in this version
+    setMessage,
     isHistoryMode = false,
     uploadedFiles,
     attachedItems = [],
@@ -555,20 +523,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     isLaunchingBrowser = false,
     onLaunchBrowserSession,
     onGitPullRequest,
-    // isGitLoading, // Unused
-    // isGitStatusVisible, // Unused
-    // gitStatus, // Unused
-    // onOpenGitStatus, // Unused
-    conversationFileStats,
-    // onReviewClick, // Unused
-    // responseRange, // Unused
     responseRanges = [],
     onModelSwitch,
-    // onRevertConversation, // Unused
-    // autoScrollPaused, // Unused
-    // scrollToBottom, // Unused
-    enableViewOnlyMode = false,
-    isViewOnly = false,
     onSelectRule,
     onSelectSkills,
     onRemoveAttachedItem,
@@ -580,12 +536,14 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     onConversationUseSkillToggle,
     onConversationMemoryToggle,
     onConversationToolFormatToggle,
-    lastResponseEndTime,
-    requestCooldownMs = 0,
   }) => {
     const onSendMessage = () => {
-      if (message.trim()) {
-        savePromptToHistory(message);
+      const resolved = resolveMentionTokens(message);
+      if (resolved.trim()) {
+        savePromptToHistory(resolved);
+      }
+      if (resolved !== message) {
+        setMessage(resolved);
       }
       handleSend(currentModel, currentAccount);
     };
@@ -613,6 +571,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     } | null>(null);
     const [isModelSwitchMode, setIsModelSwitchMode] = React.useState(false);
     const [isPlusHovered, setIsPlusHovered] = React.useState(false);
+    const [showGitRepoPicker, setShowGitRepoPicker] = React.useState(false);
 
     // Use custom hooks
     const [isThinking, toggleThinking, setIsThinking] = useToggleState('zen-thinking-enabled');
@@ -652,45 +611,87 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       };
     }, [currentAccount?.id, apiUrl]);
 
-    // ─── Cooldown timer ──────────────────────────────────────────────
-    // Đếm ngược từ lúc nhận xong response đến khi hết cooldown.
-    const effectiveCooldownMs =
-      requestCooldownMs && requestCooldownMs > 0 ? requestCooldownMs : 0;
-    const cooldownRemaining = useCooldownTimer(
-      lastResponseEndTime,
-      effectiveCooldownMs,
-    );
-    // isCoolingDown = true khi đang trong giai đoạn chờ
-    const isCoolingDown = cooldownRemaining > 0;
-
     const { currentProviderConfig, currentModelConfig } = useProvidersConfig(
       currentModel,
       providers,
     );
 
-    // ─── Claude workspace zip-size badge ─────────────────────────────
-    const rootPath = folderPath; // Simplified assumption for Phantoma context
-    const isClaudeProvider = currentModel?.providerId?.toLowerCase() === 'claude';
+    // ─── Anti-System-Prompt-Injection detection ──────────────────────
+    // Cờ này lấy từ backend constant. Nếu true, toàn bộ cơ chế đặc thù (zip badge, ẩn dropdown, prompt riêng) sẽ bật.
+    const isAntiInjectionProvider = !!(currentProviderConfig as any)?.anti_system_prompt_injection;
+
+    // ─── Effort info (dropdown tren toolbar) ────────────────────────
+    const effortInfo = React.useMemo(
+      () => getModelEffortInfo(providers, currentModel?.providerId, currentModel?.id),
+      [providers, currentModel?.providerId, currentModel?.id],
+    );
+
+    const handleEffortChange = React.useCallback(
+      (lvl: EffortLevel) => {
+        if (!currentModel || !effortInfo) return;
+        const nextId = `${effortInfo.base}-${lvl}`;
+        const prov = providers.find(
+          (p: any) => p.provider_id?.toLowerCase() === currentModel.providerId?.toLowerCase(),
+        );
+        const modelObj = prov?.models?.find((m: any) => m.id === nextId);
+        if (!modelObj) return;
+        setCurrentModel({
+          ...currentModel,
+          id: nextId,
+          modelId: nextId,
+          name: modelObj.name || nextId,
+          is_thinking: modelObj.is_thinking ?? false,
+          is_search: modelObj.is_search ?? false,
+          is_image_upload: modelObj.is_image_upload ?? false,
+          is_video_upload: modelObj.is_video_upload ?? false,
+          is_audio_upload: modelObj.is_audio_upload ?? false,
+          is_file_upload: modelObj.is_file_upload ?? false,
+        });
+      },
+      [currentModel, effortInfo, providers, setCurrentModel],
+    );
+
+    // ─── Mention editor (contenteditable thay textarea) ─────────────
+    const editorRef = React.useRef<HTMLDivElement>(null);
+    const syncEditorToMessage = React.useCallback(() => {
+      const editor = editorRef.current;
+      const hidden = textareaRef.current;
+      if (!editor || !hidden) return;
+      hidden.value = serializeEditor(editor);
+      handleTextareaChange({
+        target: hidden,
+        currentTarget: hidden,
+      } as React.ChangeEvent<HTMLTextAreaElement>);
+    }, [textareaRef, handleTextareaChange]);
+
+    const { rootPath: mentionRootPath } = useProject();
+    const mention = useMentionEditor(editorRef, syncEditorToMessage, folderPath || mentionRootPath);
+
+    React.useEffect(() => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      if (serializeEditor(editor) === message) return;
+      renderMessageToEditor(editor, message);
+      if (document.activeElement === editor) placeCaretAtEnd(editor);
+    }, [message]);
+
+    // ─── Git repo scanner (cho GitRepoPickerDrawer) ──────────────────
+    const {
+      repos: gitRepos,
+      loading: gitReposLoading,
+      error: gitReposError,
+      scan: refreshGitRepos,
+    } = useGitRepoScanner();
+
+    // ─── Workspace zip-size badge ────────────────────────────────────
+    // Chỉ kích hoạt khi provider có anti-injection flag = true.
+    const { rootPath } = useProject();
+    // triggerKey: đổi khi rootPath hoặc model đổi → invalidate cache, chạy lại
     const zipTriggerKey = React.useMemo(() => {
-      if (!isClaudeProvider || !rootPath) return null;
+      if (!isAntiInjectionProvider || !rootPath) return null;
       return `${rootPath}::${currentModel?.id ?? ''}`;
-    }, [isClaudeProvider, rootPath, currentModel?.id]);
-    const zipSizeState = useWorkspaceZipSize(isClaudeProvider, zipTriggerKey);
-
-    // ─── View-only mode detection ────────────────────────────────────
-    const isViewOnlyProvider = React.useMemo(() => {
-      if (!enableViewOnlyMode) return false;
-      if (!currentProviderConfig) return false;
-
-      const isLoadedFromHistory = conversationFileStats != null;
-      if (!isLoadedFromHistory) return false;
-
-      const authMethod = currentProviderConfig.auth_method;
-      const isNoAuth = Array.isArray(authMethod) && authMethod.length === 0;
-      const isSessionCleanup = (currentProviderConfig as any).supports_session_cleanup === true;
-      const result = isNoAuth || isSessionCleanup;
-      return result;
-    }, [enableViewOnlyMode, currentProviderConfig, conversationFileStats]);
+    }, [isAntiInjectionProvider, rootPath, currentModel?.id]);
+    const zipSizeState = useWorkspaceZipSize(isAntiInjectionProvider, zipTriggerKey);
 
     // ─── Time-block detection ────────────────────────────────────────
     const [timeBlockTick, setTimeBlockTick] = React.useState(0);
@@ -723,6 +724,15 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 
     useTextareaAutoResize(textareaRef, message);
 
+    // ─── Live account stats (30s refresh) ───────────────────────────
+    useAccountStats({
+      accountId: currentAccount?.id,
+      onStats: (freshAccount) => {
+        setCurrentAccount((prev: any) => ({ ...prev, ...freshAccount }));
+      },
+      refreshInterval: 30_000,
+    });
+
     const displayModel = React.useMemo(() => {
       return currentModel || null;
     }, [currentModel]);
@@ -745,14 +755,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       if (isProcessing) {
         return 'Processing...';
       }
-      if (isViewOnlyProvider) {
-        return 'View only — this conversation cannot be continued';
-      }
       if (isTimeBlocked && timeBlockLabel) {
         return `DeepSeek is blocked during ${timeBlockLabel.all}`;
-      }
-      if (isCoolingDown) {
-        return `Please wait ${(cooldownRemaining / 1000).toFixed(1)}s before sending next message...`;
       }
       if (!currentModel) {
         return 'Select a model to start';
@@ -768,11 +772,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       isConnected,
       isLoadingCache,
       isProcessing,
-      isViewOnlyProvider,
       isTimeBlocked,
       timeBlockLabel,
-      isCoolingDown,
-      cooldownRemaining,
       currentModel,
       currentAccount,
       supportsUpload,
@@ -798,14 +799,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         try {
           let systemPrompt: string;
 
-          if (currentModel?.providerId?.toLowerCase() === 'claude') {
-            // Claude dùng prompt riêng
+          if (isAntiInjectionProvider) {
+            // Anti-injection provider dùng prompt riêng — không phụ thuộc promptLengthMode/systemPromptMode
             systemPrompt = buildClaudePrompt({ language: preferredLanguage });
           } else {
             // Generic providers: build theo mode + length
-            // Adjusting call to match Phantoma's combinePromptsForMode signature if different
-            // Assuming it takes config object and mode separately or combined.
-            // Using 'as any' for safety during migration until types are perfectly aligned.
             systemPrompt = combinePromptsForMode(
               {
                 language: preferredLanguage,
@@ -817,6 +815,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   cwd: folderPath || '.',
                   language: preferredLanguage,
                 } as SystemInfo,
+                promptLengthMode,
               } as any,
               systemPromptMode as any,
             );
@@ -1074,7 +1073,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       <div
         style={{
           padding: '12px 16px',
-          backgroundColor: '#1e1e1e', // bg-card-background
           position: 'relative',
         }}
       >
@@ -1094,19 +1092,25 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               position: 'relative',
               borderRadius: '6px',
               border: !isConnected
-                ? '1px dashed #f44336' // text-error
+                ? `1px dashed ${$('--error')}`
                 : isTimeBlocked
-                  ? '1px dashed #f97316' // text-warn
+                  ? `1px dashed ${$('--warn')}`
                   : isTokenLimitExceeded
-                    ? '2px dashed #f44336' // text-error
-                    : isViewOnlyProvider
-                      ? '1px dashed #eab308'
-                      : '1px solid rgba(255,255,255,0.1)', // border-border
+                    ? `2px dashed ${$('--error')}`
+                    : `1px solid ${$('--border')}`,
               transition: 'border 0.3s ease',
+              backgroundColor: $('--input-background'),
             }}
           >
-            {/* 🆕 HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
-            {!isConversationStarted && (
+            {mention.isOpen && (
+              <MentionPopup
+                items={mention.items}
+                query={mention.query ?? ''}
+                onSelect={mention.selectItem}
+              />
+            )}
+            {/* HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
+            {!isConversationStarted && !mention.isOpen && (
               <div
                 onClick={() => {
                   setShowModelDrawer((v) => !v);
@@ -1115,8 +1119,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   position: 'absolute',
                   bottom: '100%',
                   left: '8px',
-                  backgroundColor: '#3c3c3c', // bg-input-background
-                  color: '#ffffff', // text-text-primary
+                  backgroundColor: $('--input-background'),
+                  color: $('--text-primary'),
                   padding: '5px 10px',
                   fontSize: '11px',
                   fontWeight: 600,
@@ -1128,15 +1132,13 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   boxShadow: '0 -2px 6px rgba(0,0,0,0.1)',
                   transition: 'all 0.2s ease',
                   marginBottom:
-                    !isConnected || isTimeBlocked || isTokenLimitExceeded || isViewOnlyProvider
-                      ? '1px'
-                      : '-1px',
+                    !isConnected || isTimeBlocked || isTokenLimitExceeded ? '1px' : '-1px',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                  e.currentTarget.style.backgroundColor = $('--card-background-hover');
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgb(var(--input-background))';
+                  e.currentTarget.style.backgroundColor = $('--input-background');
                 }}
                 title="Click to select Model and Account"
               >
@@ -1185,11 +1187,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       ] as const;
                       type EffortLvl = (typeof EFFORT_LEVELS_TRIGGER)[number];
                       const EFFORT_COLOR_TRIGGER: Record<EffortLvl, string> = {
-                        low: '#6b7280',
-                        medium: '#3b82f6',
-                        high: '#10b981',
-                        xhigh: '#f59e0b',
-                        max: '#ef4444',
+                        low: $('--text-secondary'),
+                        medium: $('--blue'),
+                        high: $('--green'),
+                        xhigh: $('--yellow'),
+                        max: $('--red'),
                       };
                       const EFFORT_LABEL_TRIGGER: Record<EffortLvl, string> = {
                         low: 'Low',
@@ -1249,7 +1251,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           gap: '2px',
                           opacity: 0.75,
                           marginLeft: '4px',
-                          color: '#8b8b8b', // text-text-secondary
+                          color: $('--text-secondary'),
                         }}
                       >
                         <svg
@@ -1258,7 +1260,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           height="9"
                           viewBox="0 0 24 24"
                           fill="none"
-                          stroke="#22c55e" // text-success
+                          stroke={$('--success')}
                           strokeWidth="2.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -1276,7 +1278,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           gap: '2px',
                           opacity: 0.75,
                           marginLeft: '2px',
-                          color: '#8b8b8b', // text-text-secondary
+                          color: $('--text-secondary'),
                         }}
                       >
                         <svg
@@ -1285,7 +1287,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           height="9"
                           viewBox="0 0 24 24"
                           fill="none"
-                          stroke="#f97316" // text-warn
+                          stroke={$('--warn')}
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -1309,10 +1311,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         const usageNum = Number(displayAccount.usage);
                         const usageColor =
                           usageNum >= 90
-                            ? '#ef4444' // text-error
+                            ? $('--error')
                             : usageNum >= 70
-                              ? '#f97316' // text-warn
-                              : '#8b8b8b'; // text-text-secondary
+                              ? $('--warn')
+                              : $('--text-secondary');
                         return (
                           <span
                             style={{
@@ -1361,6 +1363,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 apiUrl={apiUrl}
                 onRefresh={refreshProviders}
                 isLoadingProviders={isLoadingProviders}
+                currentEffort={effortInfo?.effort}
                 onSelect={(selected) => {
                   const prov = providers.find((p: any) => p.provider_id === selected.providerId);
                   const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
@@ -1451,8 +1454,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 <div
                   onClick={(e) => e.stopPropagation()}
                   style={{
-                    backgroundColor: '#1e1e1e', // bg-card-background
-                    border: '1px solid rgba(255,255,255,0.1)', // border-border
+                    backgroundColor: $('--card-background'),
+                    border: `1px solid ${$('--border')}`,
                     borderRadius: '8px',
                     padding: '20px',
                     maxWidth: '400px',
@@ -1464,7 +1467,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       fontSize: '16px',
                       fontWeight: 600,
                       marginBottom: '12px',
-                      color: '#ffffff', // text-text-primary
+                      color: $('--text-primary'),
                     }}
                   >
                     Switch Model?
@@ -1473,7 +1476,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     style={{
                       fontSize: '13px',
                       marginBottom: '16px',
-                      color: '#8b8b8b', // text-text-secondary
+                      color: $('--text-secondary'),
                       lineHeight: 1.5,
                     }}
                   >
@@ -1482,10 +1485,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       style={{
                         marginTop: '8px',
                         padding: '8px 12px',
-                        backgroundColor: '#3c3c3c', // bg-input-background
+                        backgroundColor: $('--input-background'),
                         borderRadius: '4px',
                         fontSize: '12px',
-                        fontFamily: "'Courier New', monospace", // font-mono
+                        fontFamily: "'Courier New', monospace",
                       }}
                     >
                       <strong>
@@ -1510,15 +1513,14 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       style={{
                         padding: '6px 16px',
                         borderRadius: '4px',
-                        border: '1px solid rgba(255,255,255,0.1)', // border-border
+                        border: `1px solid ${$('--border')}`,
                         backgroundColor: 'transparent',
-                        color: '#ffffff', // text-text-primary
+                        color: $('--text-primary'),
                         fontSize: '13px',
                         cursor: 'pointer',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          'rgba(255,255,255,0.05)'; // hover approximation
+                        e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-primary')} 5%, transparent)`;
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = 'transparent';
@@ -1582,18 +1584,17 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         padding: '6px 16px',
                         borderRadius: '4px',
                         border: 'none',
-                        backgroundColor: '#007acc', // bg-primary / --primary
-                        color: '#ffffff', // text-text-primary
+                        backgroundColor: $('--primary'),
+                        color: $('--text-primary'),
                         fontSize: '13px',
                         fontWeight: 600,
                         cursor: 'pointer',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                          '#005a9e'; // darker primary for hover
+                        e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--primary')} 80%, black)`;
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#007acc';
+                        e.currentTarget.style.backgroundColor = $('--primary');
                       }}
                     >
                       Confirm Switch
@@ -1603,50 +1604,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               </div>
             )}
 
-            {/* Border Depletion Progress — conic-gradient driven by cooldown timer */}
-            {isCoolingDown &&
-              !isViewOnly &&
-              !isStreaming &&
-              !isProcessing &&
-              isConnected &&
-              !isTimeBlocked &&
-              !isTokenLimitExceeded &&
-              (() => {
-                // remainingRatio: 1 at start → 0 when finished
-                const remainingRatio =
-                  effectiveCooldownMs > 0
-                    ? Math.max(
-                        0,
-                        Math.min(1, cooldownRemaining / effectiveCooldownMs),
-                      )
-                    : 0;
-                // Angle of the visible arc (clockwise from top-left)
-                const deg = remainingRatio * 360;
-                // Muted primary color (~50% opacity)
-                const borderColor =
-                  'color-mix(in srgb, #007acc 50%, transparent)'; // primary at 50% opacity
-
-                return (
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      borderRadius: '6px',
-                      padding: '1px',
-                      // Arc drawn clockwise starting from top-left (-90deg origin in conic space)
-                      background: `conic-gradient(from -90deg at 50% 50%, ${borderColor} 0deg, ${borderColor} ${deg}deg, transparent ${deg}deg, transparent 360deg)`,
-                      WebkitMask:
-                        'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                      WebkitMaskComposite: 'xor',
-                      maskComposite: 'exclude',
-                      pointerEvents: 'none',
-                      zIndex: 5,
-                    }}
-                  />
-                );
-              })()}
-
             {/* Browser session warning */}
             {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
               <div
@@ -1655,13 +1612,13 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   position: 'absolute',
                   top: '100%',
                   right: '8px',
-                  backgroundColor: 'rgba(251, 146, 60, 0.15)',
+                  backgroundColor: `color-mix(in srgb, ${$('--warn')} 15%, transparent)`,
                   padding: '4px 10px',
                   fontSize: '11px',
                   fontWeight: 500,
                   borderBottomLeftRadius: '8px',
                   borderBottomRightRadius: '8px',
-                  border: '1px solid rgba(251, 146, 60, 0.3)',
+                  border: `1px solid color-mix(in srgb, ${$('--warn')} 30%, transparent)`,
                   borderTop: 'none',
                   zIndex: 20,
                   display: 'flex',
@@ -1673,11 +1630,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 }}
                 onMouseEnter={(e) => {
                   if (!isLaunchingBrowser) {
-                    e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.25)';
+                    e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--warn')} 25%, transparent)`;
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(251, 146, 60, 0.15)';
+                  e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--warn')} 15%, transparent)`;
                 }}
               >
                 <span style={{ fontSize: '11px', fontWeight: 500 }}>
@@ -1691,7 +1648,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             <div
               style={{
                 position: 'relative',
-                backgroundColor: '#3c3c3c', // bg-input-background
+                backgroundColor: $('--input-background'),
                 borderTopLeftRadius: '6px',
                 borderTopRightRadius: '6px',
                 padding: '12px',
@@ -1712,17 +1669,17 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             margin: 4px 0;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: var(--scrollbar-thumb, rgba(255,255,255,0.2));
+            background-color: color-mix(in srgb, var(--text-secondary) 20%, transparent);
             border-radius: 10px;
             border: 2px solid transparent;
             background-clip: padding-box;
             min-height: 40px;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background-color: var(--scrollbar-thumb-hover, rgba(255,255,255,0.35));
+            background-color: color-mix(in srgb, var(--text-secondary) 35%, transparent);
           }
           .custom-scrollbar::-webkit-scrollbar-thumb:active {
-            background-color: var(--scrollbar-thumb-hover, rgba(255,255,255,0.4));
+            background-color: color-mix(in srgb, var(--text-secondary) 40%, transparent);
           }
           .custom-scrollbar::-webkit-scrollbar-corner {
             background: transparent;
@@ -1732,9 +1689,48 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               <textarea
                 ref={textareaRef}
                 value={message}
-                onChange={(e) => {
-                  handleTextareaChange(e);
+                readOnly
+                tabIndex={-1}
+                aria-hidden="true"
+                style={{ display: 'none' }}
+              />
+              <style>{`
+                .zen-message-input { position: relative; }
+                .zen-message-input[data-empty="true"]::before {
+                  content: attr(data-placeholder);
+                  position: absolute;
+                  left: 0;
+                  right: 0;
+                  top: 0;
+                  overflow: hidden;
+                  white-space: nowrap;
+                  text-overflow: ellipsis;
+                  pointer-events: none;
+                  color: ${$('--text-secondary')};
+                  opacity: 0.6;
+                }
+              `}</style>
+              <div
+                ref={editorRef}
+                contentEditable="plaintext-only"
+                suppressContentEditableWarning
+                role="textbox"
+                aria-multiline="true"
+                data-empty={message === '' ? 'true' : 'false'}
+                onInput={() => {
+                  syncEditorToMessage();
+                  mention.updateFromSelection();
                 }}
+                onKeyUp={mention.updateFromSelection}
+                onClick={(e) => {
+                  const badgePath = getFileBadgePath(e.target);
+                  if (badgePath) {
+                    (window as any).api?.invoke?.('shell:open-path', badgePath).catch(() => {});
+                    return;
+                  }
+                  mention.updateFromSelection();
+                }}
+                onBlur={mention.closePopup}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -1744,13 +1740,12 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       !isLoadingCache &&
                       !isProcessing &&
                       !isTokenLimitExceeded &&
-                      !isTimeBlocked &&
-                      !isCoolingDown
+                      !isTimeBlocked
                     ) {
                       onSendMessage();
                     }
                   } else {
-                    handleKeyDown(e);
+                    handleKeyDown(e as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
                   }
                 }}
                 onPaste={(e) => {
@@ -1761,7 +1756,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     e.preventDefault();
                     return;
                   }
-                  handlePaste(e);
+                  handlePaste(e as unknown as React.ClipboardEvent<HTMLTextAreaElement>);
                 }}
                 onDragOver={handleDragOver}
                 onDrop={(e) => {
@@ -1771,14 +1766,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   }
                   handleDrop(e);
                 }}
-                onFocus={(e) => {
-                  e.target.style.border = 'none';
-                  e.target.style.boxShadow = 'none';
-                }}
                 className="zen-message-input"
-                placeholder={placeholderText}
-                disabled={isViewOnlyProvider}
-                rows={1}
+                data-placeholder={placeholderText}
                 style={{
                   width: '100%',
                   minHeight: '24px',
@@ -1787,12 +1776,13 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   outline: 'none',
                   resize: 'none',
                   fontFamily: 'inherit',
-                  fontSize: '13px', // text-sm equivalent
+                  fontSize: '13px',
                   backgroundColor: 'transparent',
-                  color: '#ffffff', // text-text-primary
-                  overflow: 'hidden',
+                  color: $('--text-primary'),
+                  overflowX: 'hidden',
+                  overflowY: 'auto',
                   whiteSpace: 'pre-wrap',
-                  wordWrap: 'break-word',
+                  wordBreak: 'break-word',
                   opacity: 1,
                   cursor: 'text',
                   boxSizing: 'border-box',
@@ -1803,17 +1793,14 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             {/* Bottom Part: Toolbar */}
             <div
               style={{
-                backgroundColor: '#3c3c3c', // bg-input-background
+                backgroundColor: $('--input-background'),
                 borderBottomLeftRadius: '6px',
                 borderBottomRightRadius: '6px',
                 padding: '8px 12px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                pointerEvents:
-                  !isConnected || isTimeBlocked || isViewOnlyProvider || isCoolingDown
-                    ? 'none'
-                    : undefined,
+                pointerEvents: !isConnected || isTimeBlocked ? 'none' : undefined,
               }}
             >
               {/* Left Icons */}
@@ -1839,7 +1826,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   onSelectImageGenerator={() => {}}
                   onSelectVideoGenerator={() => {}}
                   onSelectDeepResearch={() => {}}
-                  onSelectPullRequest={onGitPullRequest}
+                  onSelectPullRequest={() => {
+                    if (onGitPullRequest) onGitPullRequest();
+                    else setShowGitRepoPicker(true);
+                  }}
                   showImageGenerator={supportsImageGenerator}
                   showVideoGenerator={supportsVideoGenerator}
                   showDeepResearch={supportsDeepResearch}
@@ -1847,10 +1837,12 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   currentModelConfig={currentModelConfig}
                   onSelectRule={onSelectRule}
                   onSelectSkills={(items) => {
-                    setSelectedSkills(items.map((i: any) => ({ slug: i.id.replace('skill-', ''), name: i.path })));
+                    setSelectedSkills(
+                      items.map((i: any) => ({ slug: i.id.replace('skill-', ''), name: i.path })),
+                    );
                     // TODO: Sync with parent attachedItems when backend ready
                   }}
-                  selectedSkillSlugs={selectedSkills.map(s => s.slug)}
+                  selectedSkillSlugs={selectedSkills.map((s) => s.slug)}
                   triggerButton={
                     <div
                       onMouseEnter={() => setIsPlusHovered(true)}
@@ -1865,11 +1857,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         borderRadius: '4px',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease-in-out',
-                        border: '1px solid rgba(128, 128, 128, 0.2)',
+                        border: `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
                         background: isPlusHovered
-                          ? 'rgba(128, 128, 128, 0.2)'
-                          : 'rgba(128, 128, 128, 0.12)',
-                        color: '#ffffff', // text-text-primary
+                          ? `color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`
+                          : `color-mix(in srgb, ${$('--text-secondary')} 12%, transparent)`,
+                        color: $('--text-primary'),
                         opacity: isPlusHovered ? 0.9 : 0.7,
                       }}
                       title={supportsUpload ? 'Attach files' : 'Attach text files only'}
@@ -1899,11 +1891,19 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   style={{
                     width: '1px',
                     height: '16px',
-                    background: 'rgba(255,255,255,0.1)', // border-border
+                    background: $('--border'),
                     margin: '0 2px',
                     flexShrink: 0,
                   }}
                 />
+
+                {!isConversationStarted && effortInfo && effortInfo.options.length > 1 && (
+                  <EffortDropdown
+                    effort={effortInfo.effort}
+                    options={effortInfo.options}
+                    onChange={handleEffortChange}
+                  />
+                )}
 
                 {/* Prompt Settings (Style · Diagnostics · Skill) — Home only, ẩn khi promptLength=none */}
                 {!isConversationStarted && promptLengthMode !== 'none' && (
@@ -1911,13 +1911,12 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     <PromptSettingsDropdown
                       systemPromptMode={systemPromptMode}
                       onSelectSystemPromptMode={(mode) => {
-                        if (
-                          !!(currentProviderConfig as any)?.anti_system_prompt_injection
-                        )
-                          return;
+                        if (!!(currentProviderConfig as any)?.anti_system_prompt_injection) return;
                         setSystemPromptMode(mode as any);
                       }}
-                      isAntiInjection={!!(currentProviderConfig as any)?.anti_system_prompt_injection}
+                      isAntiInjection={
+                        !!(currentProviderConfig as any)?.anti_system_prompt_injection
+                      }
                       diagnosticEnabled={!!conversationDiagnosticEnabled}
                       onDiagnosticToggle={onConversationDiagnosticToggle}
                       skillEnabled={!!conversationUseSkillEnabled}
@@ -1929,24 +1928,17 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         onConversationToolFormatToggle?.();
                       }}
                     />
-                    
-
                   </>
                 )}
 
-                {/* Prompt Length Selector - Home only, hidden for Claude */}
-                {!isConversationStarted && currentModel?.providerId?.toLowerCase() !== 'claude' && (
+                {/* Prompt Length Selector - Home only, hidden when anti-injection is active */}
+                {!isConversationStarted && !isAntiInjectionProvider && (
                   <PromptLengthDropdown
-                    currentMode={promptLengthMode as any} // Cast to any to bypass strict enum check if types differ slightly
+                    currentMode={promptLengthMode as any}
                     onSelect={(mode: any) => {
-                      if (
-                        !!(currentProviderConfig as any)?.anti_system_prompt_injection &&
-                        mode !== 'none'
-                      )
-                        return;
+                      if (isAntiInjectionProvider && mode !== 'none') return;
                       setPromptLengthMode(mode);
                     }}
-                    // isNoneOnly prop removed as it doesn't exist in Phantoma's component definition yet
                     triggerButton={(() => {
                       const meta =
                         PROMPT_LENGTH_MODE_META.find((m) => m.key === promptLengthMode) ??
@@ -1977,7 +1969,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                               transition: 'all 0.15s ease-in-out',
                               border: '1px solid transparent',
                               background: isPromptLengthHovered
-                                ? 'rgba(128, 128, 128, 0.16)'
+                                ? `color-mix(in srgb, ${$('--text-secondary')} 16%, transparent)`
                                 : 'transparent',
                               color: meta.color,
                               opacity: 1,
@@ -2005,6 +1997,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 {(() => {
                   const activeRule = attachedItems?.find((i: any) => i.type === 'rule');
                   if (!activeRule) return null;
+                  const ruleColor = $('--yellow');
                   return (
                     <div
                       style={{
@@ -2015,8 +2008,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: 600,
-                        color: '#facc15',
-                        backgroundColor: 'color-mix(in srgb, #facc15 12%, transparent)',
+                        color: ruleColor,
+                        backgroundColor: `color-mix(in srgb, ${ruleColor} 12%, transparent)`,
                         whiteSpace: 'nowrap',
                       }}
                       title={`Rule: ${activeRule.path}`}
@@ -2049,37 +2042,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   );
                 })()}
 
-                {/* Claude workspace zip-size badge */}
-                {isClaudeProvider && <ClaudeZipBadge state={zipSizeState} />}
-
-                {/* View Only badge */}
-                {isViewOnly && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '2px 8px',
-                      height: '22px',
-                      boxSizing: 'border-box',
-                      borderRadius: '4px',
-                      backgroundColor: 'color-mix(in srgb, #eab308 14%, transparent)',
-                      border: '1px solid color-mix(in srgb, #eab308 40%, transparent)',
-                      color: '#ca8a04',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      letterSpacing: '0.04em',
-                      pointerEvents: 'none',
-                      userSelect: 'none',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    View Only
-                  </div>
-                )}
+                {/* Workspace zip-size badge — chỉ hiện khi provider có anti-injection flag = true */}
+                {isAntiInjectionProvider && <ClaudeZipBadge state={zipSizeState} />}
 
                 {/* Token Count Badge / Stop Button */}
-                {isConnected && !isViewOnly && (
+                {isConnected && (
                   <div
                     style={{
                       cursor:
@@ -2087,7 +2054,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           ? 'not-allowed'
                           : isStreaming || isProcessing
                             ? 'pointer'
-                            : isTokenLimitExceeded || isTimeBlocked || isCoolingDown
+                            : isTokenLimitExceeded || isTimeBlocked
                               ? 'not-allowed'
                               : message.trim() || uploadedFiles.length > 0
                                 ? 'pointer'
@@ -2100,26 +2067,24 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       justifyContent: 'center',
                       color:
                         isHistoryMode || isLoadingCache
-                          ? '#8b8b8b' // text-text-secondary
+                          ? $('--text-secondary')
                           : isStreaming || isProcessing
-                            ? '#f44336' // text-error
-                            : isTokenLimitExceeded || isTimeBlocked || isCoolingDown
-                              ? '#f44336' // text-error
-                              : '#8b8b8b', // text-text-secondary
+                            ? $('--error')
+                            : isTokenLimitExceeded || isTimeBlocked
+                              ? $('--error')
+                              : $('--text-secondary'),
                       pointerEvents:
                         isHistoryMode ||
                         isLoadingCache ||
-                        ((isTokenLimitExceeded || isTimeBlocked || isCoolingDown) &&
-                          !isStreaming &&
-                          !isProcessing)
+                        ((isTokenLimitExceeded || isTimeBlocked) && !isStreaming && !isProcessing)
                           ? 'none'
                           : 'auto',
                       backgroundColor:
                         isStreaming || isProcessing
                           ? 'transparent'
-                          : isTokenLimitExceeded || isTimeBlocked || isCoolingDown
-                            ? 'color-mix(in srgb, #f44336 12%, transparent)' // error bg
-                            : 'color-mix(in srgb, #8b8b8b 8%, transparent)', // secondary bg
+                          : isTokenLimitExceeded || isTimeBlocked
+                            ? `color-mix(in srgb, ${$('--error')} 12%, transparent)`
+                            : `color-mix(in srgb, ${$('--text-secondary')} 8%, transparent)`,
                       fontSize: '11px',
                       fontWeight: 600,
                       letterSpacing: '0.3px',
@@ -2131,7 +2096,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         return;
                       }
 
-                      if (isTokenLimitExceeded || isTimeBlocked || isCoolingDown) {
+                      if (isTokenLimitExceeded || isTimeBlocked) {
                         return;
                       }
 
@@ -2143,23 +2108,20 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     }}
                     onMouseEnter={(e) => {
                       if (isStreaming || isProcessing) {
-                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; // hover approximation
-                      } else if (isTokenLimitExceeded || isTimeBlocked || isCoolingDown) {
-                        e.currentTarget.style.backgroundColor =
-                          'color-mix(in srgb, #f44336 18%, transparent)'; // error bg hover
+                        e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-primary')} 5%, transparent)`;
+                      } else if (isTokenLimitExceeded || isTimeBlocked) {
+                        e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--error')} 18%, transparent)`;
                       } else if (message.trim() || uploadedFiles.length > 0) {
-                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; // hover approximation
+                        e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-primary')} 5%, transparent)`;
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (isStreaming || isProcessing) {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                      } else if (isTokenLimitExceeded || isTimeBlocked || isCoolingDown) {
-                        e.currentTarget.style.backgroundColor =
-                          'color-mix(in srgb, #f44336 12%, transparent)'; // error bg default
+                      } else if (isTokenLimitExceeded || isTimeBlocked) {
+                        e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--error')} 12%, transparent)`;
                       } else {
-                        e.currentTarget.style.backgroundColor =
-                          'color-mix(in srgb, #8b8b8b 8%, transparent)'; // secondary bg default
+                        e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 8%, transparent)`;
                       }
                     }}
                     title={
@@ -2201,40 +2163,23 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 )}
               </div>
             </div>
-
-            {/* Language Badge - HomePanel only */}
-            {!isConversationStarted &&
-              isConnected &&
-              LANGUAGES.some((l: { code: string }) => l.code === preferredLanguage) && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    backgroundColor: '#007acc', // --primary / badge background
-                    color: '#ffffff', // text-text-primary / badge foreground
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    zIndex: 5,
-                    opacity: 0.8,
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <span>
-                    {LANGUAGES.find((l: any) => l.code === preferredLanguage)?.flag || '🇺'}{' '}
-                    {preferredLanguage.toUpperCase()}
-                  </span>
-                </div>
-              )}
           </div>
 
           {/* ─── Bậc 3: ZenCLI hint bar (ngoài border, chỉ HomePanel) ─── */}
-          {!isConversationStarted && <ZenCliHintBar isClaudeProvider={isClaudeProvider} />}
+          <GitRepoPickerDrawer
+            isOpen={showGitRepoPicker}
+            repos={gitRepos}
+            loading={gitReposLoading}
+            error={gitReposError}
+            onClose={() => setShowGitRepoPicker(false)}
+            onRefresh={refreshGitRepos}
+            onSelect={(repo) => {
+              setShowGitRepoPicker(false);
+              (window as any).api?.invoke?.('shell:open-path', repo.absPath).catch(() => {});
+            }}
+          />
+
+          {!isConversationStarted && <ZenCliHintBar isClaudeProvider={isAntiInjectionProvider} />}
         </div>
       </div>
     );
@@ -2258,9 +2203,6 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     prevProps.conversationUseSkillEnabled === nextProps.conversationUseSkillEnabled;
   const memorySame = prevProps.conversationMemoryEnabled === nextProps.conversationMemoryEnabled;
   const toolFormatSame = prevProps.conversationToolFormat === nextProps.conversationToolFormat;
-  const lastResponseEndTimeSame =
-    prevProps.lastResponseEndTime === nextProps.lastResponseEndTime;
-  const requestCooldownMsSame = prevProps.requestCooldownMs === nextProps.requestCooldownMs;
 
   const shouldSkip =
     messageSame &&
@@ -2275,9 +2217,7 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     diagnosticSame &&
     useSkillSame &&
     memorySame &&
-    toolFormatSame &&
-    lastResponseEndTimeSame &&
-    requestCooldownMsSame;
+    toolFormatSame;
 
   return shouldSkip;
 });

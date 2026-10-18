@@ -25,11 +25,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
+  Copy,
+  RefreshCw,
+  Loader2,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import AccountCard from './components/AccountCard';
 import AddAccountDrawer from './components/AddAccountDrawer';
 import EditAccountDrawer from './components/EditAccountDrawer';
-import ConfirmDeleteDrawer from './components/ConfirmDeleteDrawer';
+import ConfirmDeleteAccountDrawer from './components/ConfirmDeleteAccountDrawer';
+import ImportDuplicatesDrawer, { DuplicateEntry } from './components/ImportDuplicatesDrawer';
 import { AccountListSkeleton } from './components/AccountListSkeleton';
 import {
   Dropdown,
@@ -41,12 +47,12 @@ import { useAccounts } from './hooks/useAccounts';
 import { useSettings } from '../../context/SettingsContext';
 import { useActiveDatabaseManagerName } from '../../hooks/useActiveDatabaseManagerName';
 
-import { extensionService } from '../../services/ExtensionService';
+import { extensionService, messageDispatcher } from '../../services/ExtensionService';
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
 import { Input } from '@renderer/components/ui/Input';
 import { $ } from '@renderer/utils/color';
-import { getFaviconUrl } from './utils';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { FlatAccount } from './types';
 
 interface AccountPanelProps {
@@ -54,14 +60,73 @@ interface AccountPanelProps {
   onClose: () => void;
 }
 
+// ─── SelectionOverlayBar Sub-components ─────────────────────────────────
+const OverlayBarButton: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  variant?: 'default' | 'danger';
+  title?: string;
+}> = ({ icon, label, onClick, variant = 'default', title }) => {
+  const [hovered, setHovered] = useState(false);
+  const isDanger = variant === 'danger';
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={title ?? label}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: hovered ? '6px' : '0',
+        padding: hovered ? '6px 10px' : '6px 8px',
+        borderRadius: '8px',
+        border: 'none',
+        backgroundColor: isDanger
+          ? hovered ? `color-mix(in srgb, ${$('--error')} 18%, transparent)` : `color-mix(in srgb, ${$('--error')} 8%, transparent)`
+          : hovered ? `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)` : 'transparent',
+        color: isDanger
+          ? $('--error')
+          : $('--text-primary'),
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: 500,
+        transition: 'all 0.15s ease',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        maxWidth: hovered ? '140px' : '32px',
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{icon}</span>
+      <span style={{
+        overflow: 'hidden',
+        maxWidth: hovered ? '100px' : '0',
+        opacity: hovered ? 1 : 0,
+        transition: 'max-width 0.15s ease, opacity 0.1s ease',
+        whiteSpace: 'nowrap',
+      }}>
+        {label}
+      </span>
+    </button>
+  );
+};
+
 const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<FlatAccount | null>(null);
   const { apiUrl } = useSettings();
   const activeDbName = useActiveDatabaseManagerName();
 
+  // Import preview state
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false);
+  const [importDuplicates, setImportDuplicates] = useState<DuplicateEntry[]>([]);
+  const [importLoading, setImportLoading] = useState(false);
+
   const {
     accounts,
+    allAccounts,
     loading,
     providerConfigs,
     searchQuery,
@@ -88,22 +153,154 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
     setStatsPeriod,
   } = useAccounts(isOpen);
 
-  const handleImport = async () => {
+  const handleImport = () => {
+    const requestId = `import-${Date.now()}`;
+
+    // Lắng nghe preview response từ extension
+    messageDispatcher.register(
+      requestId,
+      (msg) => {
+        // Intermediate status: file đã chọn, đang gọi API
+        if (msg.status === 'analyzing') {
+          setImportLoading(true);
+          return true; // Giữ handler — còn chờ preview result
+        }
+
+        setImportLoading(false);
+
+        if (msg.error) {
+          console.error('[Import] Error:', msg.error);
+          return false; // Gỡ handler
+        }
+
+        // SQLite path: backend import thẳng, không qua preview
+        if (msg.isSqlite) {
+          fetchAccounts(pagination.page, pagination.limit, true);
+          return false; // Gỡ handler
+        }
+
+        // JSON path: nhận preview data → mở drawer để user confirm
+        const previewAccounts = msg.preview?.data?.accounts;
+        if (!Array.isArray(previewAccounts) || previewAccounts.length === 0) {
+          console.warn('[Import] Preview returned empty accounts');
+          return false; // Gỡ handler
+        }
+
+        setImportDuplicates(previewAccounts);
+        setImportPreviewOpen(true);
+        return false; // Gỡ handler sau khi hoàn tất
+      },
+      60_000,
+      () => {
+        setImportLoading(false);
+        console.warn('[Import] Timeout after 60s');
+      },
+    );
+
+    extensionService.postMessage({
+      command: 'importAccounts',
+      apiUrl,
+      requestId,
+    });
+  };
+
+  /**
+   * Gọi sau khi user confirm trong drawer.
+   * selectedEntries là các preview entries được chọn.
+   * - New      → insert qua /import
+   * - Changed  → override qua /accounts/override
+   * - Identical→ bỏ qua
+   */
+  const handleConfirmImport = async (selectedEntries: DuplicateEntry[]) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    
+    // Lọc các entry mới (kind === 'new') để insert
+    const toInsert = selectedEntries
+      .filter((e) => e.kind === 'new')
+      .map((e) => e.incoming);
+
+    // Lọc các entry đã thay đổi (kind === 'changed') để override
+    const toOverride = selectedEntries.filter((e) => e.kind === 'changed');
+
     try {
-      extensionService.postMessage({ command: 'importAccounts', apiUrl });
-      setTimeout(() => fetchAccounts(pagination.page, pagination.limit, true), 1200);
-    } catch (error) {
-      console.error('Failed to import:', error);
+      await Promise.all([
+        // Insert new accounts
+        toInsert.length > 0
+          ? fetch(`${apiUrl}/v1/accounts/import`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(toInsert),
+            })
+          : Promise.resolve(),
+
+        // Override changed accounts
+        ...toOverride.map((entry) =>
+          fetch(`${apiUrl}/v1/accounts/override`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ 
+              existingId: entry.existing?.id, 
+              incoming: entry.incoming 
+            }),
+          }),
+        ),
+      ]);
+
+      fetchAccounts(pagination.page, pagination.limit, true);
+    } catch (err) {
+      console.error('Failed to confirm import:', err);
     }
   };
 
   const handleExport = () => {
-    const fileName = `phantoma-${accounts.length}-${Date.now()}.json`;
+    const fileName = `phantoma-all-${Date.now()}.json`;
     extensionService.postMessage({
       command: 'exportAccounts',
       fileName,
-      content: JSON.stringify(accounts, null, 2),
+      content: JSON.stringify(allAccounts, null, 2),
     });
+  };
+
+  const handleExportSelected = () => {
+    const selectedData = allAccounts.filter((acc) => selectedAccounts.has(acc.id));
+    const fileName = `phantoma-selected-${selectedData.length}-${Date.now()}.json`;
+    extensionService.postMessage({
+      command: 'exportAccounts',
+      fileName,
+      content: JSON.stringify(selectedData, null, 2),
+    });
+  };
+
+  const handleCopySelected = async () => {
+    const selectedData = allAccounts.filter((acc) => selectedAccounts.has(acc.id));
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(selectedData, null, 2));
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set());
+
+  const handleRefreshSelected = async () => {
+    const ids = Array.from(selectedAccounts);
+    if (ids.length === 0) return;
+    
+    setRefreshingIds(new Set(ids));
+    try {
+      // Gọi API refresh token cho từng account đã chọn
+      await Promise.all(
+        ids.map(async (id) => {
+          const acc = allAccounts.find((a) => a.id === id);
+          if (acc) {
+            await refreshAccountToken(id, acc.provider_id);
+          }
+        })
+      );
+      fetchAccounts(pagination.page, pagination.limit, true);
+    } finally {
+      setRefreshingIds(new Set());
+    }
   };
 
   const handlePrevPage = () => {
@@ -150,24 +347,24 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
       <div className="px-4 pt-3 pb-2 shrink-0 flex gap-2 items-center bg-background">
         {/* Search Input */}
         <div className="flex-1">
-          <Input
-            type="text"
-            placeholder="Search by email, provider ID or provider name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            leftIcon={<Search size={14} className="text-text-secondary" />}
-            containerClassName="gap-0 [&>div]:relative"
-            inputClassName="h-[34px] text-[13px] rounded-lg"
-            className="border-none"
-            style={{ backgroundColor: $('--input-bg') }}
-          />
+            <Input
+              type="text"
+              placeholder="Search by email, provider ID or provider name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              leftIcon={<Search size={14} className="text-text-secondary" />}
+              containerClassName="gap-0 [&>div]:relative"
+              inputClassName="h-[34px] text-[13px] rounded-lg"
+              className="border-none"
+              style={{ backgroundColor: $('--input-background') }}
+            />
         </div>
 
         <Dropdown align="end" sideOffset={4}>
           <DropdownTrigger asChild>
             <button
               className="w-[34px] h-[34px] rounded-lg flex items-center justify-center shrink-0 cursor-pointer text-text-secondary"
-              style={{ backgroundColor: $('--input-bg'), border: 'none' }}
+              style={{ backgroundColor: $('--input-background'), border: 'none' }}
               title="Filter by provider"
             >
               <Filter size={16} />
@@ -178,7 +375,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
               icon={
                 <div
                   className="w-4 h-4 rounded-[3px] flex items-center justify-center text-[9px] font-bold text-text-secondary"
-                  style={{ backgroundColor: 'rgba(128,128,128,0.15)' }}
+                  style={{ backgroundColor: $('--text-secondary', 0.15) }}
                 >
                   All
                 </div>
@@ -229,7 +426,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
           <DropdownTrigger asChild>
             <button
               className="w-[34px] h-[34px] rounded-lg flex items-center justify-center shrink-0 cursor-pointer text-text-secondary"
-              style={{ backgroundColor: $('--input-bg'), border: 'none' }}
+              style={{ backgroundColor: $('--input-background'), border: 'none' }}
               title="More options"
             >
               <svg
@@ -281,8 +478,8 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
               title={disabled ? 'No data source yet' : `Filter: ${b.label}`}
               className="text-[11px] px-2 py-[3px] rounded-full border-none"
               style={{
-                backgroundColor: isOn ? 'rgba(59,130,246,0.2)' : $('--input-bg'),
-                color: isOn ? '#3b82f6' : 'var(--text-secondary)',
+                backgroundColor: isOn ? `color-mix(in srgb, ${$('--primary')} 20%, transparent)` : $('--input-background'),
+                color: isOn ? $('--primary') : $('--text-secondary'),
                 cursor: disabled ? 'not-allowed' : 'pointer',
                 opacity: disabled ? 0.5 : 1,
               }}
@@ -293,19 +490,92 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
         })}
       </div>
 
-      {/* Bulk Actions Bar */}
+      {/* ── Selection Overlay Bar ─────────────────────────────────────── */}
       {selectedAccounts.size > 0 && (
-        <div className="mt-2 mx-4 px-3 py-2 rounded-[10px] flex items-center justify-between bg-sidebar-item-hover/10">
-          <span className="text-xs text-text-primary">{selectedAccounts.size} selected</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleSelectAll}>
-              {allVisibleSelected ? 'Deselect All' : 'Select All'}
-            </Button>
-            <Button variant="error" size="sm" onClick={handleBulkDelete}>
-              <Trash2 size={12} />
-              Delete
-            </Button>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'min(90%, calc(100% - 32px))',
+            backgroundColor: $('--dropdown-background'),
+            border: `1.5px dashed color-mix(in srgb, ${$('--primary')} 50%, transparent)`,
+            borderRadius: '14px',
+            padding: '6px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            zIndex: 200,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+            animation: 'overlaySlideUp 0.2s ease',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          {/* Count badge */}
+          <div style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            color: $('--primary'),
+            backgroundColor: `color-mix(in srgb, ${$('--primary')} 12%, transparent)`,
+            padding: '3px 8px',
+            borderRadius: '6px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            marginRight: '4px',
+          }}>
+            {selectedAccounts.size} selected
           </div>
+
+          {/* Divider */}
+          <div style={{ width: '1px', height: '20px', backgroundColor: $('--border'), flexShrink: 0 }} />
+
+          {/* Select All / Deselect All */}
+          <OverlayBarButton
+            icon={allVisibleSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+            label={allVisibleSelected ? 'Deselect All' : 'Select All'}
+            onClick={handleSelectAll}
+            title={allVisibleSelected ? 'Deselect all visible' : 'Select all visible'}
+          />
+
+          {/* Copy */}
+          <OverlayBarButton
+            icon={<Copy size={14} />}
+            label="Copy JSON"
+            onClick={handleCopySelected}
+            title="Copy selected as JSON"
+          />
+
+          {/* Refresh Token */}
+          <OverlayBarButton
+            icon={refreshingIds.size > 0 ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            label="Refresh Tokens"
+            onClick={handleRefreshSelected}
+            title="Refresh tokens for selected"
+          />
+
+          {/* Export */}
+          <OverlayBarButton
+            icon={<Download size={14} />}
+            label="Export"
+            onClick={handleExportSelected}
+            title="Export selected to JSON file"
+          />
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+
+          {/* Divider */}
+          <div style={{ width: '1px', height: '20px', backgroundColor: $('--border'), flexShrink: 0 }} />
+
+          {/* Delete */}
+          <OverlayBarButton
+            icon={<Trash2 size={14} />}
+            label="Delete"
+            onClick={handleBulkDelete}
+            variant="danger"
+            title="Delete selected accounts"
+          />
         </div>
       )}
 
@@ -315,20 +585,20 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
           <span className="text-[13px] font-semibold text-text-primary">List Account</span>
           <span
             className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md text-text-secondary"
-            style={{ backgroundColor: 'rgba(128,128,128,0.1)' }}
+            style={{ backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)` }}
           >
             {accounts.length}
           </span>
         </div>
-        <div className="flex gap-1 p-[3px] rounded-lg" style={{ backgroundColor: $('--input-bg') }}>
-          {(['day', 'week', 'month'] as const).map((p) => (
+        <div className="flex gap-1 p-[3px] rounded-lg" style={{ backgroundColor: $('--input-background') }}>
+          {(['day', 'week', 'month', 'year', 'all'] as const).map((p) => (
             <button
               key={p}
               onClick={() => setStatsPeriod(p)}
               className="px-3 py-1 rounded-md border-none text-[11px] font-medium capitalize"
               style={{
-                backgroundColor: statsPeriod === p ? 'rgba(59,130,246,0.15)' : 'transparent',
-                color: statsPeriod === p ? '#3b82f6' : 'var(--text-secondary)',
+                backgroundColor: statsPeriod === p ? `color-mix(in srgb, ${$('--primary')} 15%, transparent)` : 'transparent',
+                color: statsPeriod === p ? $('--primary') : $('--text-secondary'),
                 cursor: 'pointer',
               }}
             >
@@ -428,7 +698,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
         }
       />
 
-      <ConfirmDeleteDrawer
+      <ConfirmDeleteAccountDrawer
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         onConfirm={executeDelete}
@@ -438,6 +708,73 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
         websiteUrl={deleteItem?.website_url}
         count={deleteItem ? 1 : selectedAccounts.size}
       />
+
+      <ImportDuplicatesDrawer
+        open={importPreviewOpen}
+        onOpenChange={setImportPreviewOpen}
+        duplicates={importDuplicates as any}
+        providerConfigs={providerConfigs}
+        onOverride={handleConfirmImport}
+        onDone={() => {
+          setImportPreviewOpen(false);
+          fetchAccounts(pagination.page, pagination.limit, true);
+        }}
+      />
+
+      {/* ── Import Loading Toast ── */}
+      {importLoading && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 300,
+            backgroundColor: $('--dropdown-background'),
+            border: `1px solid ${$('--border')}`,
+            borderRadius: '10px',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+            whiteSpace: 'nowrap',
+            animation: 'importToastIn 0.2s ease',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <Loader2
+            size={14}
+            style={{
+              animation: 'importSpin 1s linear infinite',
+              color: $('--primary'),
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ fontSize: '12px', fontWeight: 500, color: $('--text-primary') }}>
+            Đang phân tích file import…
+          </span>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes overlaySlideUp {
+          from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes importToastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes importSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .account-search-input::placeholder {
+          color: var(--text-secondary);
+          opacity: 0.7;
+        }
+      `}</style>
     </Drawer>
   );
 };

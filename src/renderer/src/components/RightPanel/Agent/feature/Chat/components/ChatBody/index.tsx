@@ -91,6 +91,7 @@ interface ChatBodyProps {
   isGitStatusVisible?: boolean;
   onBackToHome?: (summary: string) => void;
   isLoadingConversation?: boolean;
+  feature?: string | null;
 }
 
 export interface ExtendedChatBodyProps extends ChatBodyProps {
@@ -332,6 +333,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   isGitStatusVisible = true,
   onBackToHome,
   isLoadingConversation = false,
+  feature,
   onApproveDangerousAction,
   onRejectDangerousAction,
 }: ExtendedChatBodyProps) => {
@@ -378,7 +380,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     const result = messages.map((msg) => {
       const cached = cache.get(msg.content);
       if (!cached || cached === undefined) {
-        const parsed = parseAIResponse(msg.content);
+        const parsed = parseAIResponse(msg.content, 'xml', feature);
         cache.set(msg.content, parsed);
       }
       return { ...msg, parsed: cache.get(msg.content)! };
@@ -386,7 +388,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
 
     lastParsedMessagesRef.current = result;
     return result;
-  }, [messages]);
+  }, [messages, feature]);
 
   const { collapsedSections, toggleCollapse } = useCollapseSections();
   const { clickedActions, handleToolClick, failedActions, rejectedActions } = useToolActions({
@@ -419,7 +421,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     if (!isRestored || messages.length === 0) return false;
     const lastMessage = messages[messages.length - 1];
     if (lastMessage.role !== 'assistant') return false;
-    const parsed = parseAIResponse(lastMessage.content);
+    const parsed = parseAIResponse(lastMessage.content, 'xml', feature);
     if (!parsed.actions || parsed.actions.length === 0) return false;
     const firstPendingAction = parsed.actions.find((_action: any, idx: number) => {
       const actionId = `${lastMessage.id}-action-${idx}`;
@@ -429,7 +431,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     });
     if (!firstPendingAction) return false;
     return false;
-  }, [messages, isRestored, toolOutputs, permissionMode, clickedActions]);
+  }, [messages, isRestored, toolOutputs, permissionMode, clickedActions, feature]);
 
   const visibleMessages = useMemo(() => {
     const filtered = messages.filter((msg) => !msg.uiHidden && !msg.isCancelled);

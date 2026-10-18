@@ -163,7 +163,7 @@ export const Dropdown = React.memo(function Dropdown({
       }
     }
 
-    return { top: finalTop, left: finalLeft, width: triggerRect.width };
+    return { top: finalTop, left: finalLeft, width: width ?? triggerRect.width };
   };
 
   // Calculate position for context menu at cursor, clamped to viewport.

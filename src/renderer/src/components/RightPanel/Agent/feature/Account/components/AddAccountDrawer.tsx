@@ -16,8 +16,9 @@ import { useDbFetch } from '../../../services/useDbFetch';
 import { useActiveDatabaseManagerName } from '../../../hooks/useActiveDatabaseManagerName';
 import { useSettings } from '../../../context/SettingsContext';
 import { extensionService, messageDispatcher } from '../../../services/ExtensionService';
-import { getFaviconUrl } from '../utils';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { CopyableText } from '../utils';
+import { $ } from '@renderer/utils/color';
 
 interface Provider {
   provider_id: string;
@@ -82,7 +83,7 @@ const MethodCard: React.FC<{
         gap: '14px',
         padding: '12px 14px',
         borderRadius: '10px',
-        backgroundColor: hovered && !disabled ? 'rgba(128,128,128,0.07)' : 'var(--input-bg)',
+        backgroundColor: hovered && !disabled ? `color-mix(in srgb, ${$('--text-secondary')} 7%, transparent)` : $('--input-background'),
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.45 : 1,
         transition: 'all 0.13s ease',
@@ -94,25 +95,25 @@ const MethodCard: React.FC<{
           width: '36px',
           height: '36px',
           borderRadius: '9px',
-          backgroundColor: 'rgba(128,128,128,0.1)',
+          backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          color: 'var(--text-primary)',
+          color: $('--text-primary'),
         }}
       >
         {icon}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
-        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', opacity: 0.7 }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: $('--text-primary') }}>{label}</div>
+        <div style={{ fontSize: '11px', color: $('--text-secondary'), marginTop: '2px', opacity: 0.7 }}>
           {desc}
         </div>
       </div>
       <ChevronLeft
         size={15}
-        style={{ color: 'var(--text-secondary)', transform: 'rotate(180deg)', opacity: 0.5, flexShrink: 0 }}
+        style={{ color: $('--text-secondary'), transform: 'rotate(180deg)', opacity: 0.5, flexShrink: 0 }}
       />
     </div>
   );
@@ -132,10 +133,13 @@ const ProviderRow: React.FC<{
   const connectionType = provider.connection_type || 'https';
   const authMethods = parseAuthMethods(provider.auth_method ?? provider.auth_methods);
 
+  const warnColor = $('--warn');
+  const successColor = $('--success');
+  
   const connectionBadgeColor =
     connectionType === 'browser'
-      ? { bg: 'rgba(251,146,60,0.12)', color: '#f97316' }
-      : { bg: 'rgba(34,197,94,0.1)', color: '#22c55e' };
+      ? { bg: `color-mix(in srgb, ${warnColor} 12%, transparent)`, color: warnColor }
+      : { bg: `color-mix(in srgb, ${successColor} 10%, transparent)`, color: successColor };
 
   return (
     <div
@@ -153,7 +157,7 @@ const ProviderRow: React.FC<{
         gap: '12px',
         padding: '10px 12px',
         borderRadius: '10px',
-        backgroundColor: hovered && !disabled ? 'rgba(128,128,128,0.07)' : 'var(--input-bg)',
+        backgroundColor: hovered && !disabled ? `color-mix(in srgb, ${$('--text-secondary')} 7%, transparent)` : $('--input-background'),
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.45 : 1,
         transition: 'all 0.13s ease',
@@ -191,7 +195,7 @@ const ProviderRow: React.FC<{
             style={{
               fontSize: '13px',
               fontWeight: 600,
-              color: 'var(--text-primary)',
+              color: $('--text-primary'),
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -224,7 +228,7 @@ const ProviderRow: React.FC<{
           <div
             style={{
               fontSize: '11px',
-              color: 'var(--text-secondary)',
+              color: $('--text-secondary'),
               marginTop: '4px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -240,7 +244,7 @@ const ProviderRow: React.FC<{
             {authMethods.map((method) => (
               <div
                 key={method}
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-secondary)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: $('--text-secondary') }}
               >
                 <Key size={11} />
                 <span>{method}</span>
@@ -290,7 +294,7 @@ const ProfileCard: React.FC<{
         gap: '14px',
         padding: '12px 14px',
         borderRadius: '10px',
-        backgroundColor: hovered && !disabled ? 'rgba(128,128,128,0.07)' : 'var(--input-bg)',
+        backgroundColor: hovered && !disabled ? `color-mix(in srgb, ${$('--text-secondary')} 7%, transparent)` : $('--input-background'),
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.45 : 1,
         transition: 'all 0.13s ease',
@@ -318,7 +322,7 @@ const ProfileCard: React.FC<{
           style={{
             fontSize: '13px',
             fontWeight: 600,
-            color: 'var(--text-primary)',
+            color: $('--text-primary'),
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -327,14 +331,14 @@ const ProfileCard: React.FC<{
           {label}
         </div>
         {desc && (
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', opacity: 0.7 }}>
+          <div style={{ fontSize: '11px', color: $('--text-secondary'), marginTop: '2px', opacity: 0.7 }}>
             {desc}
           </div>
         )}
       </div>
       <ChevronLeft
         size={15}
-        style={{ color: 'var(--text-secondary)', transform: 'rotate(180deg)', opacity: 0.5, flexShrink: 0 }}
+        style={{ color: $('--text-secondary'), transform: 'rotate(180deg)', opacity: 0.5, flexShrink: 0 }}
       />
     </div>
   );
@@ -362,8 +366,15 @@ const ProfilePicker: React.FC<{
 
   const getTone = (folder: string) => {
     const first = folder.trim().charAt(0).toUpperCase();
+    // Generate a deterministic hue-based color using standard HSL syntax
+    // Note: Since $() resolves theme vars, dynamic hues are generated via raw CSS strings here.
+    // This is an exception case for unique avatars where static theme vars don't apply well.
     const hue = ((first.charCodeAt(0) || 0) * 47) % 360;
-    return { first: first || '?', bg: `hsla(${hue}, 70%, 55%, 0.15)`, color: `hsl(${hue}, 70%, 55%)` };
+    return { 
+      first: first || '?', 
+      bg: `hsla(${hue}, 70%, 55%, 0.15)`, 
+      color: `hsl(${hue}, 70%, 55%)` 
+    };
   };
 
   return (
@@ -372,7 +383,7 @@ const ProfilePicker: React.FC<{
         <div style={{ position: 'relative' }}>
           <Search
             size={14}
-            style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }}
+            style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: $('--text-secondary'), pointerEvents: 'none' }}
           />
           <input
             autoFocus
@@ -384,10 +395,10 @@ const ProfilePicker: React.FC<{
               width: '100%',
               padding: '8px 12px 8px 32px',
               fontSize: '13px',
-              backgroundColor: 'var(--input-bg)',
+              backgroundColor: $('--input-background'),
               border: 'none',
               borderRadius: '8px',
-              color: 'var(--text-primary)',
+              color: $('--text-primary'),
               outline: 'none',
               boxSizing: 'border-box',
               height: '34px',
@@ -399,8 +410,8 @@ const ProfilePicker: React.FC<{
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <ProfileCard
           badge={<UserX size={18} />}
-          badgeBg="rgba(59,130,246,0.12)"
-          badgeColor="#3b82f6"
+          badgeBg={`color-mix(in srgb, ${$('--primary')} 12%, transparent)`}
+          badgeColor={$('--primary')}
           label="No profile"
           desc="Login as default with a fresh browser window"
           onClick={() => onSelect()}
@@ -408,14 +419,14 @@ const ProfilePicker: React.FC<{
         />
 
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', color: $('--text-secondary'), fontSize: '12px' }}>
             <Loader2 size={14} style={{ animation: 'aaSpin 1s linear infinite' }} />
             Loading profiles…
           </div>
         )}
 
         {!loading && error && (
-          <div style={{ backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: 'var(--vscode-errorForeground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
             <AlertCircle size={12} />
             <span>{error}</span>
           </div>
@@ -440,7 +451,7 @@ const ProfilePicker: React.FC<{
           })}
 
         {!loading && !error && filtered.length === 0 && (
-          <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '12px', fontSize: '12px' }}>
+          <div style={{ textAlign: 'center', color: $('--text-secondary'), padding: '12px', fontSize: '12px' }}>
             {query.trim() ? 'No matching profiles' : 'No available profiles'}
           </div>
         )}
@@ -491,7 +502,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
 
   const sharedBackdrop = (onClickBackdrop: () => void) => (
     <div
-      style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 200, animation: 'aaFadeIn 0.15s ease' }}
+      style={{ position: 'fixed', inset: 0, backgroundColor: 'rgb(0,0,0,0.55)', zIndex: 200, animation: 'aaFadeIn 0.15s ease' }}
       onClick={onClickBackdrop}
     />
   );
@@ -503,9 +514,9 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgb(var(--card-background))',
-        borderTop: '1px solid var(--border)',
-        boxShadow: '0 -8px 32px rgba(0,0,0,0.25)',
+        backgroundColor: $('--card-background'),
+        borderTop: `1px solid ${$('--border')}`,
+        boxShadow: '0 -8px 32px rgb(0,0,0,0.25)',
         zIndex: 201,
         height,
         display: 'flex',
@@ -845,7 +856,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             <div
               style={{
                 padding: '12px 16px',
-                borderBottom: '1px solid var(--border)',
+                borderBottom: `1px solid ${$('--border')}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -853,16 +864,16 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
               }}
             >
               <div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
                   Authorize in Browser
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7, marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', color: $('--text-secondary'), opacity: 0.7, marginTop: '2px' }}>
                   {deviceCodeInfo.provider.provider_name}
                 </div>
               </div>
               <button
                 onClick={() => setDeviceCodeInfo(null)}
-                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 <X size={16} />
               </button>
@@ -876,8 +887,8 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                     fontWeight: 700,
                     letterSpacing: '0.15em',
                     fontFamily: 'monospace',
-                    color: 'var(--text-primary)',
-                    backgroundColor: 'var(--input-bg)',
+                    color: $('--text-primary'),
+                    backgroundColor: $('--input-background'),
                     padding: '0 16px',
                     borderRadius: '8px',
                     border: 'none',
@@ -900,9 +911,9 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                     width: '34px',
                     height: '34px',
                     borderRadius: '8px',
-                    backgroundColor: 'var(--input-bg)',
+                    backgroundColor: $('--input-background'),
                     border: 'none',
-                    color: 'var(--text-secondary)',
+                    color: $('--text-secondary'),
                     flexShrink: 0,
                     textDecoration: 'none',
                   }}
@@ -919,9 +930,9 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                     width: '100%',
                     padding: '8px 36px 8px 12px',
                     borderRadius: '8px',
-                    backgroundColor: 'var(--input-bg)',
+                    backgroundColor: $('--input-background'),
                     border: 'none',
-                    color: 'var(--text-secondary)',
+                    color: $('--text-secondary'),
                     fontSize: '12px',
                     fontFamily: 'monospace',
                     outline: 'none',
@@ -944,7 +955,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                     borderRadius: '4px',
                     border: 'none',
                     background: 'transparent',
-                    color: 'var(--text-secondary)',
+                    color: $('--text-secondary'),
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -957,13 +968,13 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 </button>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: $('--text-secondary'), fontSize: '12px' }}>
                 <Loader2 size={14} style={{ animation: 'aaSpin 1s linear infinite' }} />
                 Waiting for authorization…
               </div>
 
               {error && (
-                <div style={{ width: '100%', backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: 'var(--vscode-errorForeground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '100%', backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <AlertCircle size={12} />
                   <span>{error}</span>
                 </div>
@@ -1004,7 +1015,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             <div
               style={{
                 padding: '12px 16px',
-                borderBottom: '1px solid var(--border)',
+                borderBottom: `1px solid ${$('--border')}`,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
@@ -1013,16 +1024,16 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             >
               <button
                 onClick={backToMethods}
-                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
               >
                 <ChevronLeft size={16} />
               </button>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary'), display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <ProviderFavicon provider={profileStepProvider} />
                   <span>{profileStepProvider.provider_name}</span>
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                <div style={{ fontSize: '11px', color: $('--text-secondary'), opacity: 0.7 }}>
                   Select a Chromium profile
                 </div>
               </div>
@@ -1071,7 +1082,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             <div
               style={{
                 padding: '12px 16px',
-                borderBottom: '1px solid var(--border)',
+                borderBottom: `1px solid ${$('--border')}`,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
@@ -1080,7 +1091,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             >
               <button
                 onClick={() => setSelectedProvider(null)}
-                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
               >
                 <ChevronLeft size={16} />
               </button>
@@ -1095,10 +1106,10 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 />
               )}
               <div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
                   {selectedProvider.provider_name}
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                <div style={{ fontSize: '11px', color: $('--text-secondary'), opacity: 0.7 }}>
                   Select a login method
                 </div>
               </div>
@@ -1125,7 +1136,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             </div>
 
             {error && (
-              <div style={{ margin: '0 16px 12px', backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: 'var(--vscode-errorForeground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ margin: '0 16px 12px', backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <AlertCircle size={12} />
                 <span>{error}</span>
               </div>
@@ -1157,7 +1168,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             <div
               style={{
                 padding: '4px 16px 12px',
-                borderBottom: '1px solid var(--border)',
+                borderBottom: `1px solid ${$('--border')}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -1165,14 +1176,14 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '9px', backgroundColor: 'rgba(251,146,60,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AlertCircle size={16} color="#f97316" />
+                <div style={{ width: '32px', height: '32px', borderRadius: '9px', backgroundColor: `color-mix(in srgb, ${$('--warn')} 12%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertCircle size={16} color={$('--warn')} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
                     Enter Email
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                  <div style={{ fontSize: '12px', color: $('--text-secondary'), opacity: 0.7 }}>
                     Browser closed. Please enter your email to continue.
                   </div>
                 </div>
@@ -1181,7 +1192,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
               <div>
-                <label style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 500, color: $('--text-secondary'), display: 'block', marginBottom: '5px' }}>
                   Email Address
                 </label>
                 <input
@@ -1193,9 +1204,9 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                     width: '100%',
                     padding: '9px 11px',
                     borderRadius: '9px',
-                    backgroundColor: 'var(--input-bg)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
+                    backgroundColor: $('--input-background'),
+                    border: `1px solid ${$('--border')}`,
+                    color: $('--text-primary'),
                     fontSize: '13px',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -1204,14 +1215,14 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 />
               </div>
               {error && (
-                <div style={{ marginTop: '12px', backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: 'var(--vscode-errorForeground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ marginTop: '12px', backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <AlertCircle size={12} />
                   <span>{error}</span>
                 </div>
               )}
             </div>
 
-            <div style={{ padding: '12px 16px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <div style={{ padding: '12px 16px 20px', borderTop: `1px solid ${$('--border')}`, display: 'flex', gap: '8px', flexShrink: 0 }}>
               <button
                 onClick={() => {
                   setShowEmailDrawer(false);
@@ -1219,7 +1230,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                   setEmailInput('');
                   setLoading(false);
                 }}
-                style={{ flex: 1, padding: '9px', borderRadius: '9px', backgroundColor: 'rgba(128,128,128,0.1)', border: 'none', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '9px', borderRadius: '9px', backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`, border: 'none', color: $('--text-secondary'), fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1230,9 +1241,9 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                   flex: 2,
                   padding: '9px',
                   borderRadius: '9px',
-                  backgroundColor: 'var(--vscode-button-background)',
+                  backgroundColor: $('--button-solid-background'),
                   border: 'none',
-                  color: 'var(--vscode-button-foreground)',
+                  color: $('--button-solid-text'),
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: emailSubmitting ? 'not-allowed' : 'pointer',
@@ -1280,7 +1291,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             <div
               style={{
                 padding: '12px 16px 12px',
-                borderBottom: '1px solid var(--border)',
+                borderBottom: `1px solid ${$('--border')}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -1288,10 +1299,10 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
               }}
             >
               <div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
                   Confirm Account
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                <div style={{ fontSize: '12px', color: $('--text-secondary'), opacity: 0.7 }}>
                   Review captured details
                 </div>
               </div>
@@ -1300,7 +1311,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                   setShowConfirm(false);
                   setPendingAccount(null);
                 }}
-                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
                 <X size={16} />
               </button>
@@ -1309,7 +1320,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 500, color: $('--text-secondary'), display: 'block', marginBottom: '5px' }}>
                     Email / Identifier
                   </label>
                   <input
@@ -1320,9 +1331,9 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                       width: '100%',
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      backgroundColor: 'var(--input-bg)',
+                      backgroundColor: $('--input-background'),
                       border: 'none',
-                      color: 'var(--text-primary)',
+                      color: $('--text-primary'),
                       fontSize: '13px',
                       outline: 'none',
                       boxSizing: 'border-box',
@@ -1333,14 +1344,14 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
 
                 {credValue && (
                   <div>
-                    <label style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '5px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 500, color: $('--text-secondary'), display: 'block', marginBottom: '5px' }}>
                       {pendingAccount.user_data_dir ? 'User Data Dir' : 'Credential / Token'}
                     </label>
                     <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {credParsed ? (
                         Object.entries(credParsed).map(([key, val]) => (
                           <div key={key} style={{ minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: $('--text-secondary'), marginBottom: '2px' }}>
                               <KeyRound size={10} />
                               {key}
                             </div>
@@ -1349,7 +1360,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                         ))
                       ) : (
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: $('--text-secondary'), marginBottom: '2px' }}>
                             <KeyRound size={10} />
                             {pendingAccount.user_data_dir ? 'Path' : 'Token'}
                           </div>
@@ -1361,7 +1372,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 )}
 
                 {error && (
-                  <div style={{ backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: 'var(--vscode-errorForeground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <AlertCircle size={12} />
                     <span>{error}</span>
                   </div>
@@ -1369,13 +1380,13 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
               </div>
             </div>
 
-            <div style={{ padding: '12px 16px 12px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px', flexShrink: 0 }}>
+            <div style={{ padding: '12px 16px 12px', borderTop: `1px solid ${$('--border')}`, display: 'flex', justifyContent: 'flex-end', gap: '8px', flexShrink: 0 }}>
               <button
                 onClick={() => {
                   setShowConfirm(false);
                   setPendingAccount(null);
                 }}
-                style={{ padding: '8px 14px', borderRadius: '9px', backgroundColor: 'rgba(128,128,128,0.08)', border: 'none', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '8px 14px', borderRadius: '9px', backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 8%, transparent)`, border: 'none', color: $('--text-secondary'), fontSize: '12px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 Cancel
               </button>
@@ -1385,9 +1396,9 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 style={{
                   padding: '8px 14px',
                   borderRadius: '9px',
-                  backgroundColor: 'rgba(34,197,94,0.12)',
+                  backgroundColor: `color-mix(in srgb, ${$('--success')} 12%, transparent)`,
                   border: 'none',
-                  color: 'var(--success, #22c55e)',
+                  color: $('--success'),
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: confirmLoading || !pendingAccount.email ? 'not-allowed' : 'pointer',
@@ -1423,7 +1434,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
           <div
             style={{
               padding: '12px 16px 12px',
-              borderBottom: '1px solid var(--border)',
+              borderBottom: `1px solid ${$('--border')}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1431,21 +1442,21 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             }}
           >
             <div>
-              <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ fontSize: '17px', fontWeight: 700, color: $('--text-primary'), display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Add Account
                 {activeDbName && (
-                  <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 7px', borderRadius: '4px', backgroundColor: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 7px', borderRadius: '4px', backgroundColor: `color-mix(in srgb, ${$('--primary')} 12%, transparent)`, color: $('--primary'), whiteSpace: 'nowrap' }}>
                     {activeDbName}
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', opacity: 0.7, marginTop: '3px' }}>
+              <div style={{ fontSize: '13px', color: $('--text-secondary'), opacity: 0.7, marginTop: '3px' }}>
                 Choose a provider to continue
               </div>
             </div>
             <button
               onClick={() => onOpenChange(false)}
-              style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center' }}
             >
               <X size={16} />
             </button>
@@ -1453,7 +1464,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
 
           <div style={{ position: 'relative', padding: '12px 16px 0 16px', flexShrink: 0 }}>
             <div style={{ position: 'absolute', left: '26px', top: '12px', height: '34px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-              <Search size={14} style={{ color: 'var(--text-secondary)' }} />
+              <Search size={14} style={{ color: $('--text-secondary') }} />
             </div>
             <input
               autoFocus
@@ -1465,10 +1476,10 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 width: '100%',
                 padding: '8px 12px 8px 32px',
                 fontSize: '13px',
-                backgroundColor: 'var(--input-bg)',
+                backgroundColor: $('--input-background'),
                 border: 'none',
                 borderRadius: '8px',
-                color: 'var(--text-primary)',
+                color: $('--text-primary'),
                 outline: 'none',
                 boxSizing: 'border-box',
                 height: '34px',
@@ -1478,7 +1489,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
 
           <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px' }}>
             {loadingProviders ? (
-              <div style={{ height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', color: 'var(--text-secondary)' }}>
+              <div style={{ height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', color: $('--text-secondary') }}>
                 <Loader2 size={24} style={{ animation: 'aaSpin 1s linear infinite' }} />
                 <span style={{ fontSize: '12px' }}>Loading providers…</span>
               </div>
@@ -1498,7 +1509,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                   />
                 ))}
                 {filteredProviders.length === 0 && (
-                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px', fontSize: '12px' }}>
+                  <div style={{ textAlign: 'center', color: $('--text-secondary'), padding: '20px', fontSize: '12px' }}>
                     No providers found
                   </div>
                 )}
@@ -1512,8 +1523,8 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                     position: 'fixed',
                     top: contextMenu.y,
                     left: contextMenu.x,
-                    backgroundColor: 'rgb(var(--card-background))',
-                    border: '1px solid var(--border)',
+                    backgroundColor: $('--dropdown-background'),
+                    border: `1px solid ${$('--border')}`,
                     borderRadius: '10px',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
                     zIndex: 99999,
@@ -1524,7 +1535,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                 >
                   <button
                     onClick={() => handleLogin(contextMenu.provider, 'basic')}
-                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', backgroundColor: 'transparent', color: 'var(--text-primary)', fontSize: '12px', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
+                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', backgroundColor: 'transparent', color: $('--text-primary'), fontSize: '12px', cursor: 'pointer', textAlign: 'left', borderBottom: `1px solid ${$('--border')}` }}
                   >
                     <span style={{ fontSize: '14px' }}>🌐</span>
                     <div>
@@ -1534,7 +1545,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                   </button>
                   <button
                     onClick={() => handleLogin(contextMenu.provider, 'cdp')}
-                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', backgroundColor: 'transparent', color: 'var(--text-primary)', fontSize: '12px', cursor: 'pointer', textAlign: 'left' }}
+                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', backgroundColor: 'transparent', color: $('--text-primary'), fontSize: '12px', cursor: 'pointer', textAlign: 'left' }}
                   >
                     <span style={{ fontSize: '14px' }}>🛡️</span>
                     <div>
@@ -1547,7 +1558,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
               )}
 
             {error && (
-              <div style={{ marginTop: '10px', backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: 'var(--vscode-errorForeground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ marginTop: '10px', backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <AlertCircle size={12} />
                 <span>{error}</span>
               </div>
@@ -1555,7 +1566,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
           </div>
 
           {loading && (
-            <div style={{ padding: '10px 16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', color: 'var(--text-secondary)', fontSize: '12px', flexShrink: 0 }}>
+            <div style={{ padding: '10px 16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', color: $('--text-secondary'), fontSize: '12px', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Loader2 size={14} style={{ animation: 'aaSpin 1s linear infinite' }} />
                 Logging in…
@@ -1565,7 +1576,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
                   onOpenChange(false);
                   setLoading(false);
                 }}
-                style={{ padding: '5px 10px', borderRadius: '6px', backgroundColor: 'rgba(128,128,128,0.1)', border: 'none', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 500, cursor: 'pointer' }}
+                style={{ padding: '5px 10px', borderRadius: '6px', backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`, border: 'none', color: $('--text-secondary'), fontSize: '11px', fontWeight: 500, cursor: 'pointer' }}
               >
                 Cancel
               </button>

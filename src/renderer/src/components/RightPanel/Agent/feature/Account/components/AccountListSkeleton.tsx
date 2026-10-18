@@ -1,4 +1,5 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 
 function SkeletonLine({
   width,
@@ -18,7 +19,7 @@ function SkeletonLine({
         width,
         height,
         borderRadius: radius,
-        backgroundColor: 'rgba(128,128,128,0.15)',
+        backgroundColor: $('--text-secondary', 0.15),
         ...style,
       }}
     />
@@ -30,7 +31,7 @@ function AccountCardSkeleton() {
   return (
     <div
       style={{
-        backgroundColor: 'var(--input-bg)',
+        backgroundColor: $('--input-background'),
         borderRadius: '12px',
         padding: '10px 12px',
         display: 'flex',

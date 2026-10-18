@@ -135,19 +135,12 @@ export async function detectProjectStack(path: string): Promise<StackInfo> {
   // In a real app, you'd call another IPC 'fs:get-directory-size'
   const estimatedSize = files.length * 1024 * 50;
 
-  // Generate Languages breakdown from detected primary/frameworks
-  const languageStats: LanguageStat[] = [];
-  if (baseInfo.primaryLanguage) {
-    languageStats.push({
-      id: baseInfo.primaryLanguage,
-      name: baseInfo.primaryLanguage.charAt(0).toUpperCase() + baseInfo.primaryLanguage.slice(1),
-      percentage: 70,
-    });
-  }
-  // Add secondary guesses if frameworks imply other langs (e.g. React implies JS/TS)
-  if (baseInfo.frameworks.includes('react') && !languageStats.find((l) => l.id === 'javascript')) {
-    languageStats.push({ id: 'javascript', name: 'JavaScript', percentage: 20 });
-    languageStats.push({ id: 'css', name: 'CSS', percentage: 10 });
+  let languageStats: LanguageStat[] = [];
+  try {
+    const res = await window.api.invoke('git:get-language-stats', path);
+    if (Array.isArray(res)) languageStats = res;
+  } catch (err) {
+    console.error('[ERROR DetectStack] Failed to fetch language stats via IPC:', err);
   }
 
   // FETCH REAL GIT INFO VIA IPC

@@ -94,6 +94,10 @@ export const TERMINAL_STATUS = {
 
 export type TerminalStatus = (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS];
 
+// ===== UI CONSTANTS =====
+/** Chiều cao mặc định cho khung hiển thị streaming output */
+export const STREAM_BOX_HEIGHT = 154;
+
 // ===== SHARED TAG REGISTRY (UI tags only) =====
 export const SHARED_TAG_REGISTRY: Record<string, TagDefinition> = {
   // UI TAGS

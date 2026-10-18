@@ -19,11 +19,24 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { Plus, Terminal as TerminalIcon, Globe, FileText, MonitorPlay, X } from 'lucide-react';
+import {
+  Plus,
+  Terminal as TerminalIcon,
+  Globe,
+  FileText,
+  MonitorPlay,
+  X,
+  Circle,
+  Bot,
+} from 'lucide-react';
+import { useCodeStore } from '../../../hooks/useCodeStore';
 import { cn } from '@renderer/shared/utils/cn';
 import { CodeTerminal } from './CodeTerminal';
 import { CodeBrowser } from './CodeBrowser';
 import { CodeMarkdown } from './CodeMarkdown';
+import { CodeFile } from './CodeFile';
+import { CodeAgent } from './CodeAgent';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
 import type { SessionStatus } from '../../ProjectPanel/SessionCard';
 import {
@@ -69,6 +82,10 @@ export function getPanelMeta(
       return { icon: <Globe className={iconClass} />, label: 'Browser' };
     case 'note':
       return { icon: <FileText className={iconClass} />, label: 'Markdown' };
+    case 'file':
+      return { icon: <FileText className={iconClass} />, label: 'File' };
+    case 'agent':
+      return { icon: <Bot className={iconClass} />, label: 'Agent' };
     case 'emulator':
       return { icon: <MonitorPlay className={iconClass} />, label: 'Emulator' };
     default:
@@ -77,7 +94,7 @@ export function getPanelMeta(
 }
 
 /** Panel types offered by the "+" dropdown. */
-const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'note'];
+const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'note', 'agent'];
 
 // ─── Tab ──────────────────────────────────────────────────────────────
 
@@ -92,6 +109,11 @@ interface WorkspaceTabProps {
 
 function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: WorkspaceTabProps) {
   const meta = getPanelMeta(panel.type);
+  const isDirty = useCodeStore((s) => {
+    if (panel.type !== 'file') return false;
+    const project = s.projects.find((p) => p.id === s.currentProjectId);
+    return project?.unsavedFiles?.has(panel.id) ?? false;
+  });
 
   // Determine if we should show Agent info instead of generic panel icon/title
   // This assumes panel.content or a specific field holds the providerId when detected.
@@ -132,6 +154,14 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
             e.currentTarget.style.display = 'none';
           }}
         />
+      ) : panel.type === 'file' ? (
+        <img
+          src={getFileIconPath(displayTitle)}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
+        />
       ) : (
         <span className="shrink-0 opacity-70" style={{ pointerEvents: 'none' }}>
           {meta.icon}
@@ -139,6 +169,13 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
       )}
 
       <span style={{ pointerEvents: 'none' }}>{showAgentBadge ? agentId : displayTitle}</span>
+
+      {isDirty && (
+        <Circle
+          className="w-2.5 h-2.5 ml-auto shrink-0 fill-current group-hover/tab:hidden"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
 
       <button
         draggable={false}
@@ -148,7 +185,7 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
           e.stopPropagation();
           onClose();
         }}
-        className="opacity-0 group-hover/tab:opacity-100 transition-opacity ml-auto w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 p-0 border-0 outline-none focus:outline-none"
+        className={`opacity-0 group-hover/tab:opacity-100 transition-opacity w-5 h-5 items-center justify-center rounded hover:bg-white/10 p-0 border-0 outline-none focus:outline-none ${isDirty ? 'hidden group-hover/tab:flex' : 'flex ml-auto'}`}
         style={{ cursor: 'pointer' }}
         aria-label={`Close ${displayTitle}`}
       >
@@ -357,8 +394,12 @@ const PanelBody = memo(function PanelBody({
     }
     case 'website':
       return <CodeBrowser initialUrl={panel.content} />;
+    case 'file':
+      return <CodeFile filePath={panel.filePath} fileId={panel.id} />;
     case 'note':
       return <CodeMarkdown initialContent={panel.content} onContentChange={handleContent} />;
+    case 'agent':
+      return <CodeAgent />;
     case 'emulator':
       return (
         <div className="flex-1 h-full flex items-center justify-center bg-black text-gray-500">

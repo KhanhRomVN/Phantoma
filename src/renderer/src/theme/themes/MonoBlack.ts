@@ -7,6 +7,7 @@ import { ThemeConfig } from '../types/theme.types';
 export const MonoBlack: ThemeConfig = {
   id: 'mono_black',
   name: 'MonoBlack',
+  type: 'dark',
   monaco: {
     base: 'vs-dark',
     inherit: true,

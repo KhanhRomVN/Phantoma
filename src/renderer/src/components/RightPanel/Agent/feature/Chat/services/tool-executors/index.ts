@@ -163,6 +163,15 @@ import {
   executeEvaluateJs,
 } from './ReconExecutor';
 
+// ── Design tool executors ───────────────────────────────────────────
+import {
+  executeDesignReadFile,
+  executeDesignCreateFile,
+  executeDesignUpdateFile,
+  executeDesignListFiles,
+  executeDesignGrep,
+} from './DesignExecutor';
+
 // ═══════════════════════════════════════════════════════════════════════
 // Factory
 // ═══════════════════════════════════════════════════════════════════════
@@ -579,6 +588,33 @@ export function getExecutor(actionType: string): ToolExecutor | null {
           const result = await executeEvaluateJs(action.params || {});
           return result.success ? result.output || null : result.error || null;
         },
+      };
+
+    // ── Design tools ─────────────────────────────────────────────
+    case 'design_read_file':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) =>
+          executeDesignReadFile(action.params),
+      };
+    case 'design_create_file':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) =>
+          executeDesignCreateFile(action.params),
+      };
+    case 'design_update_file':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) =>
+          executeDesignUpdateFile(action.params),
+      };
+    case 'design_list_files':
+      return {
+        execute: async (_action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) =>
+          executeDesignListFiles(),
+      };
+    case 'design_grep':
+      return {
+        execute: async (action: any, _ctx: ExecutorContext, _options?: ExecutorOptions) =>
+          executeDesignGrep(action.params),
       };
 
     // ── Memory / Skill / Title tools ─────────────────────────────

@@ -63,6 +63,8 @@ function getModuleIdFromContext(sessionId: number, folderPath: string | null): s
     return `code:${projectId}`;
   } else if (feature === 'recon' && targetId) {
     return `recon:${targetId}`;
+  } else if (feature === 'design' && (window as any).__activeDesignId) {
+    return `design:${(window as any).__activeDesignId}`;
   }
 
   // Fallback to old format (will be migrated)

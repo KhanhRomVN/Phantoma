@@ -99,6 +99,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/sqlite3": "^3.1.11",
+    "@vscode/ripgrep": "^1.18.0",
     "@xyflow/react": "^12.10.0",
     "adm-zip": "^0.6.0",
     "axios": "^1.20.0",
@@ -144,7 +145,10 @@
     "ws": "^8.18.3",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "esbuild": "^0.21.5",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^1.0.1",
@@ -175,12 +179,10 @@
     "globals": "^16.5.0",
     "jsdom": "^27.3.0",
     "knip": "^6.34.0",
-    "postcss": "^8.4.32",
     "prettier": "^3.7.4",
     "prisma": "^7.3.0",
     "puppeteer": "^25.13.0",
     "react-scan": "^0.5.7",
-    "tailwindcss": "^3.3.0",
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0",

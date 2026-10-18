@@ -13,11 +13,41 @@
  */
 
 import { memo, useCallback, useState, useMemo } from 'react';
-import { GitBranch, ChevronRight, ChevronDown, MoreVertical, Plus, Kanban } from 'lucide-react';
+import { useCodeStore } from '../../hooks/useCodeStore';
+import { useSessionTasks } from '../../hooks/useSessionTasks';
+import { taskService, type StoredTask } from '../../services/task.service';
+import {
+  GitBranch,
+  ChevronRight,
+  ChevronDown,
+  MoreVertical,
+  Plus,
+  Kanban,
+  GitGraph,
+  Circle,
+  Square,
+  Triangle,
+  Diamond,
+  Pentagon,
+  Hexagon,
+  Octagon,
+  Star,
+  Heart,
+  Moon,
+  Sun,
+  Cloud,
+  Zap,
+  Flame,
+  Droplet,
+  Leaf,
+  Bookmark,
+  Flag,
+  type LucideIcon,
+} from 'lucide-react';
 
 // ── Utils ─
 import { cn } from '@renderer/shared/utils/cn';
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+
 // ── Types & Constants ──
 import {
   type SessionStatus,
@@ -56,6 +86,10 @@ interface ProjectCardProps {
   selectedSessionId: string | null;
   /** Whether the Task Manager view is currently active for THIS project */
   isTaskManagerActive: boolean;
+  /** Whether the Git view is currently active for THIS project */
+  isGitActive?: boolean;
+  /** Toggle Git view for this project */
+  onToggleGit?: (projectId: string) => void;
   /** Project drag is only enabled with Manual sort */
   draggable: boolean;
   /** True if ANY item in the list is being dragged — forces visual collapse */
@@ -112,11 +146,15 @@ export function getProjectTokens(project: ProjectExtended): number {
 }
 
 /** Task counts per status across ALL branches */
-export function getTaskCounts(project: ProjectExtended): Record<TaskStatus, number> {
+export function getTaskCounts(
+  project: ProjectExtended,
+  bySession: Record<string, StoredTask>,
+): Record<TaskStatus, number> {
   const c: Record<TaskStatus, number> = { todo: 0, progress: 0, review: 0, done: 0 };
   project.branches?.forEach((b) =>
     b.sessions?.forEach((s) => {
-      if (s.task) c[s.task.status]++;
+      const t = bySession[s.id];
+      if (t) c[t.status]++;
     }),
   );
   return c;
@@ -161,14 +199,60 @@ export const KebabButton = memo(function KebabButton({
   );
 });
 
+const PROJECT_ICONS: LucideIcon[] = [
+  Circle,
+  Square,
+  Triangle,
+  Diamond,
+  Pentagon,
+  Hexagon,
+  Octagon,
+  Star,
+  Heart,
+  Moon,
+  Sun,
+  Cloud,
+  Zap,
+  Flame,
+  Droplet,
+  Leaf,
+  Bookmark,
+  Flag,
+];
+
+const PROJECT_COLORS = [
+  '#f97316',
+  '#3b82f6',
+  '#22c55e',
+  '#a855f7',
+  '#ec4899',
+  '#eab308',
+  '#06b6d4',
+  '#ef4444',
+];
+
+/** Stable pseudo-random icon + color per project (same seed → same result). */
+export function getProjectIdentity(seed: string): { color: string; Icon: LucideIcon } {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const abs = Math.abs(hash);
+  return {
+    color: PROJECT_COLORS[abs % PROJECT_COLORS.length],
+    Icon: PROJECT_ICONS[Math.floor(abs / PROJECT_COLORS.length) % PROJECT_ICONS.length],
+  };
+}
+
 /** Colored project icon (color-mix tinted background) */
-function ProjectIcon({ color }: { color: string }) {
+function ProjectIcon({ color, Icon }: { color: string; Icon: LucideIcon }) {
   return (
     <span
       className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0 self-center"
       style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)` }}
     >
-      <GitBranch className="w-[15px] h-[15px]" />
+      <Icon className="w-[15px] h-[15px]" />
     </span>
   );
 }
@@ -384,7 +468,7 @@ const BranchBlock = memo(function BranchBlock({
       onDragStart={(e) => onDragStart(e, 'branch', project.id, branch.name)}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e, 'branch', project.id, branch.name)}
+      onDrop={onDrop}
     >
       {/* Branch header */}
       <div
@@ -426,6 +510,12 @@ const BranchBlock = memo(function BranchBlock({
           onOpenTaskMenu={onOpenTaskMenu}
           onProcessInteract={onProcessInteract}
           onContextMenu={onSessionContextMenu}
+          projectName={project.name}
+          branchName={branch.name}
+          onDropTask={(taskId, sessionId) => {
+            const path = useCodeStore.getState().projects.find((p) => p.id === project.id)?.path;
+            if (path) void taskService.update(path, taskId, { sessionId, branchName: branch.name });
+          }}
           // Explicitly disable drag on SessionCard to prevent accidental loss of parent Branch context
           draggable={false} 
         />
@@ -452,10 +542,11 @@ export const ProjectCard = memo(function ProjectCard({
   isSelected,
   selectedSessionId,
   isTaskManagerActive,
+  isGitActive = false,
+  onToggleGit,
   draggable,
   isGlobalDragging = false,
   onToggleProject,
-  onOpenProject,
   onSelectSession,
   onOpenDropdown,
   onOpenTaskMenu,
@@ -468,21 +559,13 @@ export const ProjectCard = memo(function ProjectCard({
   onDragOver,
   onDrop,
 }: ProjectCardProps) {
-  const counts = getTaskCounts(project);
+  const bySession = useSessionTasks((s) => s.bySession);
+  const counts = getTaskCounts(project, bySession);
   const visBranches = getVisibleBranches(project);
-  const { accentColors, toRgba } = useAccentColors();
-
-  // Generate stable random color based on project ID/name hash
-  const projectGlowColor = useMemo(() => {
-    let hash = 0;
-    const str = project.id + project.name;
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash |= 0;
-    }
-    const idx = Math.abs(hash) % accentColors.length;
-    return accentColors[idx];
-  }, [project.id, project.name, accentColors]);
+  const identity = useMemo(
+    () => getProjectIdentity(project.id + project.name),
+    [project.id, project.name],
+  );
 
   const openMenuAt = useCallback(
     (e: React.MouseEvent) => {
@@ -504,7 +587,7 @@ export const ProjectCard = memo(function ProjectCard({
       onDragStart={(e) => onDragStart(e, 'project', project.id)}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e, 'project', project.id)}
+      onDrop={onDrop}
       onContextMenu={openMenuAt}
     >
       {/* ── Top: name row + task chips ── */}
@@ -513,7 +596,7 @@ export const ProjectCard = memo(function ProjectCard({
         onClick={() => onToggleProject(project.id)}
       >
         <div className="flex items-center gap-2">
-          <ProjectIcon color={project.color} />
+          <ProjectIcon color={identity.color} Icon={identity.Icon} />
           <span
             className={cn(
               'font-display font-semibold text-[12.5px] truncate flex-1 min-w-0 transition-colors group-hover/top:text-text-primary',
@@ -544,6 +627,22 @@ export const ProjectCard = memo(function ProjectCard({
             title={isTaskManagerActive ? 'Close Task Manager' : 'Open Task Manager'}
           >
             <Kanban className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleGit?.(project.id);
+            }}
+            className={cn(
+              'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors cursor-pointer',
+              isGitActive
+                ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
+                : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+            )}
+            title={isGitActive ? 'Close Git' : 'Open Git'}
+          >
+            <GitGraph className="w-3.5 h-3.5" />
           </button>
 
           {isSelected ? (

@@ -65,6 +65,8 @@ function getCurrentModuleId(): string | null {
     return `code:${projectId}`;
   } else if (feature === 'recon' && targetId) {
     return `recon:${targetId}`;
+  } else if (feature === 'design' && (window as any).__activeDesignId) {
+    return `design:${(window as any).__activeDesignId}`;
   }
 
   return null;
@@ -97,7 +99,6 @@ const DashboardStats = React.memo(
     modelDistribution,
     providerFavicons,
     dailyUsage,
-    accounts,
     statsPeriod,
   }: {
     todayTokens: number;
@@ -152,7 +153,8 @@ const HomePanel: React.FC<HomePanelProps> = ({ onSendMessage, onLoadConversation
   const { apiUrl } = useSettings();
 
   const folderPath = (window as any).__zenWorkspaceFolderPath as string | null | undefined;
-  const imagesUri = (window as any).__zenImagesUri;
+  // Fallback to '/images' if __zenImagesUri is not set (common in dev/build without injection)
+  const imagesUri = (window as any).__zenImagesUri || '/images';
   const zenUpdateInfo = useZenUpdate();
 
   // Model & Account state with persistence
@@ -466,7 +468,7 @@ const HomePanel: React.FC<HomePanelProps> = ({ onSendMessage, onLoadConversation
       {/* Dashboard scroll area */}
       <div className="flex-1 overflow-auto flex flex-col">
         <div
-          className="flex-1 flex flex-col items-center justify-start p-8 text-primary"
+          className="flex-1 flex flex-col items-center justify-start py-8 px-4 text-primary"
           style={{
             animation: 'fadeIn 0.5s ease-out',
             maxWidth: '680px',
@@ -506,8 +508,16 @@ const HomePanel: React.FC<HomePanelProps> = ({ onSendMessage, onLoadConversation
         </div>
       </div>
 
-      {/* Bottom Input Area */}
-      <div className="shrink-0 px-4 pb-2">
+      {/* Bottom Input Area — aligned with dashboard maxWidth 680px */}
+      <div
+        className="shrink-0 pb-2 bg-transparent"
+        style={{
+          maxWidth: '680px',
+          margin: '0 auto',
+          width: '100%',
+          boxSizing: 'border-box',
+        }}
+      >
         <input
           ref={fileInputRef}
           type="file"

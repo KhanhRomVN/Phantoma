@@ -51,10 +51,11 @@ import { ipcMain } from 'electron';
 // ── Node.js ──
 import * as fs from 'fs';
 import * as path from 'path';
-import { exec as execCallback } from 'child_process';
+import { exec as execCallback, spawn, ChildProcess } from 'child_process';
 
 // ── External ──
 import chokidar, { FSWatcher } from 'chokidar';
+
 
 // ── Internal ──
 import { logger } from '../utils/logger';
@@ -98,6 +99,56 @@ function buildSearchRegex(
   if (wholeWord) source = `\\b(?:${source})\\b`;
   const flags = caseSensitive ? 'g' : 'gi';
   return new RegExp(source, flags);
+}
+
+const RG_BIN = require
+  .resolve(
+    `@vscode/ripgrep-${process.platform}-${process.arch}/bin/${process.platform === 'win32' ? 'rg.exe' : 'rg'}`,
+  )
+  .replace('app.asar', 'app.asar.unpacked');
+const RG_EXCLUDE_DIRS = ['node_modules', '.git', 'dist', 'build'];
+const RG_MAX_MATCHES = 10000;
+const RG_FLUSH_MS = 50;
+
+interface RgSearchOptions {
+  caseSensitive?: boolean;
+  wholeWord?: boolean;
+  isRegex?: boolean;
+  includePattern?: string;
+  excludePattern?: string;
+}
+
+interface RgFileResult {
+  file: string;
+  matches: Array<{ lineNumber: number; lineContent: string; column: number }>;
+}
+
+const activeSearches = new Map<string, ChildProcess>();
+
+function splitGlobs(pattern?: string): string[] {
+  return (pattern ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+function rgText(field: { text?: string; bytes?: string } | undefined): string | null {
+  if (!field) return null;
+  if (typeof field.text === 'string') return field.text;
+  if (typeof field.bytes === 'string') return Buffer.from(field.bytes, 'base64').toString('utf-8');
+  return null;
+}
+
+function buildRgArgs(query: string, options: RgSearchOptions, searchPath: string): string[] {
+  const args = ['--json', '--hidden', '--no-ignore', '--engine', 'auto'];
+  args.push(options.caseSensitive ? '--case-sensitive' : '--ignore-case');
+  if (options.wholeWord) args.push('--word-regexp');
+  if (!options.isRegex) args.push('--fixed-strings');
+  for (const glob of splitGlobs(options.includePattern)) args.push('--glob', glob);
+  for (const dir of RG_EXCLUDE_DIRS) args.push('--glob', `!**/${dir}/**`);
+  for (const glob of splitGlobs(options.excludePattern)) args.push('--glob', `!${glob}`);
+  args.push('--regexp', query, '--', searchPath);
+  return args;
 }
 
 // ─── Watcher Manager ─────────────────────────────────────────────────────────
@@ -332,102 +383,125 @@ export function setupFSHandlers() {
     return results.map((p) => ({ path: p }));
   });
 
-  // Search content across files with VS Code-like options (case/word/regex + include/exclude)
+  // Streaming content search powered by ripgrep (results pushed via fs:search-chunk / fs:search-done)
   ipcMain.handle(
-    'fs:search',
-    async (
-      _,
-      targetPath: string,
+    'fs:search-start',
+    (
+      event,
+      searchId: string,
+      projectPath: string,
       query: string,
-      options: {
-        caseSensitive?: boolean;
-        wholeWord?: boolean;
-        isRegex?: boolean;
-        includePattern?: string;
-        excludePattern?: string;
-        maxResults?: number;
-      } = {},
+      options: RgSearchOptions = {},
     ) => {
-      const { includePattern, excludePattern, maxResults = 500 } = options;
-      if (!query) return { results: [], totalMatches: 0, totalFilesSearched: 0 };
+      const sender = event.sender;
+      const send = (channel: string, payload: unknown) => {
+        if (!sender.isDestroyed()) sender.send(channel, payload);
+      };
 
-      let regex: RegExp;
-      try {
-        regex = buildSearchRegex(query, options);
-      } catch {
-        throw new Error('Invalid search pattern');
-      }
+      const proc = spawn(RG_BIN, buildRgArgs(query, options, projectPath), { windowsHide: true });
+      activeSearches.set(searchId, proc);
 
-      const includeRe = includePattern ? globToRegex(includePattern) : null;
-      const excludeRe = excludePattern ? globToRegex(excludePattern) : null;
-
-      const results: Array<{
-        file: string;
-        matches: Array<{ lineNumber: number; lineContent: string; column: number }>;
-      }> = [];
+      let buffer = '';
+      let stderr = '';
+      let current: RgFileResult | null = null;
+      let pending: RgFileResult[] = [];
       let totalMatches = 0;
-      const MAX_FILE_SIZE = 2 * 1024 * 1024;
+      let totalFiles = 0;
+      let truncated = false;
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-      const searchInFile = (filePath: string) => {
-        if (totalMatches >= maxResults) return;
-        if (includeRe && !includeRe.test(filePath)) return;
-        if (excludeRe && excludeRe.test(filePath)) return;
+      const flush = () => {
+        if (flushTimer) {
+          clearTimeout(flushTimer);
+          flushTimer = null;
+        }
+        if (pending.length === 0) return;
+        send('fs:search-chunk', { searchId, results: pending });
+        pending = [];
+      };
+
+      const handleLine = (line: string) => {
+        if (!line) return;
+        let msg: any;
         try {
-          const stat = fs.statSync(filePath);
-          if (stat.size > MAX_FILE_SIZE) return;
-          const content = fs.readFileSync(filePath, 'utf-8');
-          if (content.includes('\u0000')) return;
-          const lines = content.split(/\r?\n/);
-          const matches: Array<{ lineNumber: number; lineContent: string; column: number }> = [];
-          for (let i = 0; i < lines.length; i++) {
-            if (totalMatches + matches.length >= maxResults) break;
-            regex.lastIndex = 0;
-            const m = regex.exec(lines[i]);
-            if (m) {
-              matches.push({
-                lineNumber: i + 1,
-                lineContent: lines[i].substring(0, 500),
-                column: m.index + 1,
-              });
-            }
-          }
-          if (matches.length > 0) {
-            results.push({ file: filePath, matches });
-            totalMatches += matches.length;
-          }
+          msg = JSON.parse(line);
         } catch {
-          logger.warn(`[fs:search] Skipping unreadable file: ${filePath}`);
+          return;
+        }
+        const data = msg.data;
+        if (msg.type === 'begin') {
+          const file = rgText(data.path);
+          current = file ? { file, matches: [] } : null;
+        } else if (msg.type === 'match' && current) {
+          const text = rgText(data.lines);
+          if (text === null) return;
+          const content = text.replace(/\r?\n$/, '');
+          const startByte: number = data.submatches?.[0]?.start ?? 0;
+          const column = Buffer.from(content).subarray(0, startByte).toString('utf-8').length + 1;
+          current.matches.push({
+            lineNumber: data.line_number,
+            lineContent: content.substring(0, 500),
+            column,
+          });
+          totalMatches++;
+          if (totalMatches >= RG_MAX_MATCHES && !truncated) {
+            truncated = true;
+            proc.kill();
+          }
+        } else if (msg.type === 'end' && current) {
+          if (current.matches.length > 0) {
+            pending.push(current);
+            totalFiles++;
+            if (!flushTimer) flushTimer = setTimeout(flush, RG_FLUSH_MS);
+          }
+          current = null;
         }
       };
 
-      const stat = fs.statSync(targetPath);
-      if (stat.isFile()) {
-        searchInFile(targetPath);
-      } else if (stat.isDirectory()) {
-        const walk = (dir: string, depth: number) => {
-          if (depth > 20 || totalMatches >= maxResults) return;
-          try {
-            for (const entry of fs.readdirSync(dir)) {
-              if (entry.startsWith('.') || entry === 'node_modules') continue;
-              const fullPath = path.join(dir, entry);
-              try {
-                const s = fs.statSync(fullPath);
-                if (s.isDirectory()) walk(fullPath, depth + 1);
-                else if (s.isFile()) searchInFile(fullPath);
-              } catch {
-                logger.warn(`[fs:search] Skipping inaccessible path: ${fullPath}`);
-              }
-            }
-          } catch {
-            logger.warn(`[fs:search] Skipping inaccessible directory: ${dir}`);
-          }
-        };
-        walk(targetPath, 0);
-      }
+      proc.stdout.setEncoding('utf-8');
+      proc.stdout.on('data', (chunk: string) => {
+        buffer += chunk;
+        let nl: number;
+        while ((nl = buffer.indexOf('\n')) >= 0) {
+          handleLine(buffer.slice(0, nl));
+          buffer = buffer.slice(nl + 1);
+        }
+      });
 
-      return { results, totalMatches, totalFilesSearched: results.length };
+      proc.stderr.on('data', (chunk) => {
+        if (stderr.length < 2000) stderr += chunk.toString();
+      });
+
+      proc.on('error', (err) => {
+        if (!activeSearches.delete(searchId)) return;
+        send('fs:search-done', { searchId, totalMatches, totalFiles, truncated, error: err.message });
+      });
+
+      proc.on('close', (code) => {
+        if (!activeSearches.delete(searchId)) return;
+        if (buffer) handleLine(buffer);
+        if (current && current.matches.length > 0) {
+          pending.push(current);
+          totalFiles++;
+        }
+        flush();
+        const failed = code === 2 && totalMatches === 0;
+        send('fs:search-done', {
+          searchId,
+          totalMatches,
+          totalFiles,
+          truncated,
+          error: failed ? stderr.trim().split('\n')[0] || 'Search failed' : undefined,
+        });
+      });
     },
   );
+
+  ipcMain.handle('fs:search-cancel', async (_, searchId: string) => {
+    const proc = activeSearches.get(searchId);
+    activeSearches.delete(searchId);
+    proc?.kill();
+  });
 
   // Replace all matches in the given files (used by the Search panel)
   ipcMain.handle(

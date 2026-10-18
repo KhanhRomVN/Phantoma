@@ -1,0 +1,166 @@
+.pw {
+  --pw-bg: rgb(var(--background));
+  --pw-fg: rgb(var(--text-primary));
+  --pw-mu: rgb(var(--text-secondary));
+  --pw-accent: rgb(var(--primary));
+  --pw-accent2: rgb(var(--info, var(--primary)));
+  --pw-grad: linear-gradient(90deg, var(--pw-accent), var(--pw-accent2));
+  --pw-glow: rgb(var(--primary) / 0.18);
+  --pw-gh: rgb(var(--text-primary));
+  --pw-ey: rgb(var(--background));
+  --pw-bd: rgb(var(--border));
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: var(--pw-bg);
+  color: var(--pw-fg);
+  cursor: pointer;
+  transition: opacity 0.8s ease;
+}
+
+.pw-stop-a {
+  stop-color: var(--pw-accent);
+}
+
+.pw-stop-b {
+  stop-color: var(--pw-accent2);
+}
+
+.pw--exit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pw-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 24px;
+  transform: translateY(-3vh);
+}
+
+.pw-glyph {
+  position: relative;
+  width: min(150px, 40vw);
+  aspect-ratio: 1.1;
+  margin-bottom: 6px;
+}
+
+.pw-glyph::before {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  background: radial-gradient(circle, var(--pw-glow), transparent 62%);
+}
+
+.pw-glyph svg {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pw-wordmark {
+  font-weight: 800;
+  font-size: clamp(36px, 7vw, 52px);
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.pw-tagline {
+  color: var(--pw-mu);
+  font-size: 15px;
+}
+
+.pw-slogan {
+  max-width: 30em;
+  margin: 22px 0 0;
+  text-wrap: balance;
+  font-size: clamp(17px, 2.4vw, 22px);
+  line-height: 1.55;
+}
+
+
+.pw-progress {
+  width: min(300px, 70vw);
+  margin-top: 26px;
+}
+
+.pw-track {
+  height: 3px;
+  border-radius: 3px;
+  background: var(--pw-bd);
+  overflow: hidden;
+}
+
+.pw-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--pw-grad);
+  border-radius: 3px;
+}
+
+.pw-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-family: ui-monospace, 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  color: var(--pw-mu);
+}
+
+.pw-legend b {
+  font-weight: 500;
+  color: var(--pw-fg);
+}
+
+.pw-skip {
+  position: absolute;
+  bottom: 28px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: ui-monospace, 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--pw-mu);
+}
+
+.pw-fi {
+  opacity: 0;
+  animation: pw-fade 1s var(--d, 0s) ease forwards;
+}
+
+@keyframes pw-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-height: 640px) {
+  .pw-glyph {
+    width: 100px;
+  }
+  .pw-stage {
+    gap: 10px;
+  }
+  .pw-slogan {
+    margin-top: 12px;
+  }
+  .pw-progress {
+    margin-top: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw,
+  .pw-fi {
+    animation-duration: 0.01s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01s !important;
+  }
+}

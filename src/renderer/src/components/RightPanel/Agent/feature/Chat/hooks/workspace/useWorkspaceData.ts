@@ -2,8 +2,8 @@
  * ------------------------------------------------------------------
  * useWorkspaceData
  * ------------------------------------------------------------------
- * Hook quản lý dữ liệu workspace (files, folders, rules).
- * Lắng nghe responses từ VSCode extension và load rules từ localStorage.
+ * Hook quản lý dữ liệu workspace (files, folders, rules). Gọi IPC
+ * `workspace:get-files` để lấy dữ liệu từ main process.
  *
  * Main returns:
  * - availableFiles   : Danh sách files trong workspace
@@ -12,63 +12,52 @@
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
-// ── Utils ──
-
-
 // ── React ──
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 // ── Types ──
 import { Rule, WorkspaceItem } from '../../types/workspace';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
-export const useWorkspaceData = () => {
-  const renderCountRef = useRef(0);
-  const filesUpdateCountRef = useRef(0);
-  const foldersUpdateCountRef = useRef(0);
-
-  renderCountRef.current += 1;
-
+export const useWorkspaceData = (rootPath?: string | null) => {
   const [availableFiles, setAvailableFiles] = useState<WorkspaceItem[]>([]);
   const [availableFolders, setAvailableFolders] = useState<WorkspaceItem[]>([]);
   const [availableRules, setAvailableRules] = useState<Rule[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Listen for workspace files/folders responses from extension
+  // Fetch workspace files/folders via IPC
   useEffect(() => {
-    const handleWorkspaceResponse = (event: MessageEvent) => {
-      const data = event.data;
-
-      if (data.command === 'workspaceFilesResponse') {
-        if (data.files && !data.error) {
-          filesUpdateCountRef.current += 1;
-          setAvailableFiles(data.files);
-        }
-      } else if (data.command === 'workspaceFoldersResponse') {
-        if (data.folders && !data.error) {
-          foldersUpdateCountRef.current += 1;
-          setAvailableFolders(data.folders);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleWorkspaceResponse);
-
-    // Eagerly fetch workspace folders to ensure we have a fallback path
-    const vscodeApi = (window as any).vscodeApi;
-    if (vscodeApi) {
-      vscodeApi.postMessage({ command: 'getWorkspaceFolders' });
+    if (!rootPath) {
+      setAvailableFiles([]);
+      setAvailableFolders([]);
+      return;
     }
-
+    let cancelled = false;
+    setIsLoading(true);
+    (async () => {
+      try {
+        const api = (window as any).api;
+        if (!api?.invoke) return;
+        const res = await api.invoke('workspace:get-files', rootPath);
+        if (cancelled) return;
+        if (res?.success) {
+          setAvailableFiles((res.files ?? []) as WorkspaceItem[]);
+          setAvailableFolders((res.folders ?? []) as WorkspaceItem[]);
+        }
+      } catch (err) {
+        console.warn('[useWorkspaceData] Failed to fetch workspace:', err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
     return () => {
-      window.removeEventListener('message', handleWorkspaceResponse);
+      cancelled = true;
     };
-  }, []);
+  }, [rootPath]);
 
   // Load rules from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('zen-rules');
-
     if (stored) {
       try {
         const rules = JSON.parse(stored);
@@ -83,5 +72,6 @@ export const useWorkspaceData = () => {
     availableFiles,
     availableFolders,
     availableRules,
+    isLoading,
   };
 };

@@ -56,10 +56,10 @@ interface WorkspaceViewsProps {
 const NO_PANELS: StoredWorkspacePanel[] = [];
 
 const EMPTY_ACTION_TO_PANEL_TYPE: Record<EmptyWorkspaceAction, PanelType> = {
-  session: 'note',
+  browser: 'website',
   terminal: 'terminal',
-  file: 'note',
-  preview: 'website',
+  agent: 'agent',
+  markdown: 'note',
 };
 
 const createPanelId = (type: PanelType) =>
@@ -221,6 +221,29 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     dispatch({ type: 'focus', id: focusRequest.panelId });
     clearFocusPanelRequest();
   }, [focusRequest, sessionId, clearFocusPanelRequest]);
+
+  const openFileRequest = useCodeStore((s) => s.openFileRequest);
+  const clearOpenFileRequest = useCodeStore((s) => s.clearOpenFileRequest);
+
+  useEffect(() => {
+    if (!openFileRequest || openFileRequest.sessionId !== sessionId) return;
+    const existing = panels.find((p) => p.type === 'file' && p.filePath === openFileRequest.filePath);
+    if (existing) {
+      dispatch({ type: 'focus', id: existing.id });
+    } else {
+      dispatch({
+        type: 'add',
+        panel: {
+          id: createPanelId('file'),
+          type: 'file',
+          title: openFileRequest.name,
+          filePath: openFileRequest.filePath,
+          cwd: currentProjectPath,
+        },
+      });
+    }
+    clearOpenFileRequest();
+  }, [openFileRequest, sessionId, panels, currentProjectPath, clearOpenFileRequest]);
 
   const setSessionProcs = useCodeStore((s) => s.setSessionProcs);
   const panelsRef = useRef(panels);

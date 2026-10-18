@@ -9,6 +9,7 @@ import { ThemeConfig } from '../types/theme.types';
 export const EmberVoid: ThemeConfig = {
   id: 'ember_void',
   name: 'EmberVoid',
+  type: 'dark',
   monaco: {
     base: 'vs-dark',
     inherit: true,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { $ } from '@renderer/utils/color';
 import { Loader2 } from 'lucide-react';
 import type { ZipSizeState } from './hooks/useWorkspaceZipSize';
 
@@ -7,12 +8,12 @@ import type { ZipSizeState } from './hooks/useWorkspaceZipSize';
  * Gradient 6 mức: xanh lá → xanh mint → vàng nhạt → cam nhạt → cam đậm → đỏ.
  */
 const SIZE_THRESHOLDS = [
-  { maxBytes: 1 * 1024 * 1024, fg: "#22c55e", bgAlpha: 0.12, label: "Rất nhẹ" },        // <1MB
-  { maxBytes: 5 * 1024 * 1024, fg: "#10b981", bgAlpha: 0.12, label: "Nhẹ" },             // <5MB
-  { maxBytes: 15 * 1024 * 1024, fg: "#eab308", bgAlpha: 0.14, label: "Vừa" },            // <15MB
-  { maxBytes: 30 * 1024 * 1024, fg: "#f97316", bgAlpha: 0.16, label: "Nặng" },           // <30MB
-  { maxBytes: 60 * 1024 * 1024, fg: "#ea580c", bgAlpha: 0.18, label: "Rất nặng" },       // <60MB
-  { maxBytes: Infinity, fg: "#ef4444", bgAlpha: 0.20, label: "Cực nặng" },               // >=60MB
+  { maxBytes: 1 * 1024 * 1024, fg: $('--success'), bgAlpha: 0.12, label: "Rất nhẹ" },
+  { maxBytes: 5 * 1024 * 1024, fg: $('--teal'), bgAlpha: 0.12, label: "Nhẹ" },
+  { maxBytes: 15 * 1024 * 1024, fg: $('--yellow'), bgAlpha: 0.14, label: "Vừa" },
+  { maxBytes: 30 * 1024 * 1024, fg: $('--warn'), bgAlpha: 0.16, label: "Nặng" },
+  { maxBytes: 60 * 1024 * 1024, fg: $('--orange'), bgAlpha: 0.18, label: "Rất nặng" },
+  { maxBytes: Infinity, fg: $('--error'), bgAlpha: 0.20, label: "Cực nặng" },
 ];
 
 const pickTier = (bytes: number) =>

@@ -16,4 +16,10 @@ export interface ConversationItem {
   totalTasks?: number;
   completedTasks?: number;
   uniqueTaskCount?: number;
+  providerId?: string;
+  modelId?: string;
+  /** Per-conversation override: bật/tắt VSCode diagnostics */
+  diagnosticEnabled?: boolean;
+  /** Per-conversation override: bật/tắt SKILL trong system prompt */
+  useSkillEnabled?: boolean;
 }

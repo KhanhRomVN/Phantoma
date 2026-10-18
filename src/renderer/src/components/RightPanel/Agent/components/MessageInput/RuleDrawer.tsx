@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 
 interface RuleDrawerProps {
   isOpen: boolean;
@@ -68,10 +69,10 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
     width: '100%',
     padding: '8px 10px',
     fontSize: '13px',
-    backgroundColor: '#3c3c3c', // bg-input-background
-    border: '1px solid rgba(255,255,255,0.1)', // border-border
+    backgroundColor: $('--input-background'),
+    border: `1px solid ${$('--border')}`,
     borderRadius: '6px',
-    color: '#ffffff', // text-text-primary
+    color: $('--text-primary'),
     outline: 'none',
     boxSizing: 'border-box',
   };
@@ -97,8 +98,8 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
           left: 0,
           right: 0,
           maxHeight: '80vh',
-          backgroundColor: '#1e1e1e', // bg-card-background
-          borderTop: '1px solid rgba(255,255,255,0.1)', // border-border
+          backgroundColor: $('--card-background'),
+          borderTop: `1px solid ${$('--border')}`,
           boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.3)',
           zIndex: 99999,
           display: 'flex',
@@ -112,7 +113,7 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '12px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.1)', // border-border
+            borderBottom: `1px solid ${$('--border')}`,
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -121,7 +122,7 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
                 margin: 0,
                 fontSize: '14px',
                 fontWeight: 600,
-                color: '#ffffff', // text-text-primary
+                color: $('--text-primary'),
               }}
             >
               New Rule
@@ -129,7 +130,7 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
             <div
               style={{
                 fontSize: '11px',
-                color: '#8b8b8b', // text-text-secondary
+                color: $('--text-secondary'),
               }}
             >
               Saved to ~/.khanhromvn-zen/rules.json
@@ -144,7 +145,7 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
               padding: '6px',
               display: 'flex',
               borderRadius: '4px',
-              color: '#ffffff', // text-text-primary
+              color: $('--text-primary'),
             }}
           >
             <X size={18} />
@@ -167,7 +168,7 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
               style={{
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#ffffff', // text-text-primary
+                color: $('--text-primary'),
               }}
             >
               Rule name
@@ -194,7 +195,7 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
               style={{
                 fontSize: '12px',
                 fontWeight: 600,
-                color: '#ffffff', // text-text-primary
+                color: $('--text-primary'),
               }}
             >
               Rule content
@@ -217,7 +218,7 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
             <div
               style={{
                 fontSize: '12px',
-                color: '#f44336', // text-error
+                color: $('--error'),
               }}
             >
               {error}
@@ -232,7 +233,7 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
             justifyContent: 'flex-end',
             gap: '8px',
             padding: '12px 16px',
-            borderTop: '1px solid rgba(255,255,255,0.1)', // border-border
+            borderTop: `1px solid ${$('--border')}`,
           }}
         >
           <button
@@ -240,9 +241,9 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
             style={{
               padding: '6px 14px',
               borderRadius: '6px',
-              border: '1px solid rgba(255,255,255,0.1)', // border-border
+              border: `1px solid ${$('--border')}`,
               backgroundColor: 'transparent',
-              color: '#ffffff', // text-text-primary
+              color: $('--text-primary'),
               fontSize: '13px',
               cursor: 'pointer',
             }}
@@ -256,8 +257,8 @@ const RuleDrawer: React.FC<RuleDrawerProps> = ({ isOpen, onClose, onSave }) => {
               padding: '6px 14px',
               borderRadius: '6px',
               border: 'none',
-              backgroundColor: '#007acc', // bg-primary / --primary
-              color: '#ffffff', // text-text-primary
+              backgroundColor: $('--primary'),
+              color: $('--text-primary'),
               fontSize: '13px',
               fontWeight: 600,
               cursor: canSave ? 'pointer' : 'not-allowed',

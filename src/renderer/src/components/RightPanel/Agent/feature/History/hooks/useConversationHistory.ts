@@ -17,6 +17,8 @@ function getCurrentModuleId(): string | null {
     return `code:${projectId}`;
   } else if (feature === 'recon' && targetId) {
     return `recon:${targetId}`;
+  } else if (feature === 'design' && (window as any).__activeDesignId) {
+    return `design:${(window as any).__activeDesignId}`;
   }
 
   return null;
@@ -55,6 +57,28 @@ export const useConversationHistory = (isOpen: boolean) => {
               .map((m) => m.content.substring(0, 50))
               .join(' ');
 
+            // Extract metadata from messages
+            // Note: Cast to any because Message type in ConversationService might not yet expose these optional fields fully typed,
+            // but they are present in the runtime payload from IPC.
+            let providerId: string | undefined;
+            let modelId: string | undefined;
+            let totalTokenUsage = 0;
+            let totalRequests = 0;
+
+            for (const rawMsg of data.messages) {
+              const msg = rawMsg as any;
+              if (msg.role === 'user') {
+                totalRequests++;
+              }
+              if (msg.role === 'assistant' && !msg.isError) {
+                if (!providerId && msg.providerId) providerId = msg.providerId;
+                if (!modelId && msg.modelId) modelId = msg.modelId;
+                if (msg.tokenUsage) {
+                  totalTokenUsage += msg.tokenUsage;
+                }
+              }
+            }
+
             return {
               id: data.conversationId,
               title,
@@ -66,8 +90,10 @@ export const useConversationHistory = (isOpen: boolean) => {
               sessionId: -1, // Legacy field, not used in new system
               folderPath: null, // Legacy field, not used in new system
               tabId: -1,
-              totalRequests: 0,
-              totalTokenUsage: 0,
+              totalRequests,
+              totalTokenUsage,
+              providerId,
+              modelId,
             } as ConversationItem;
           } catch (error) {
             console.warn(`[useConversationHistory] Failed to load conversation ${id}:`, error);

@@ -1,0 +1,1727 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Phantoma — The desktop platform for security and network analysis</title>
+    <meta
+      name="description"
+      content="Recon, traffic interception, an AI agent and a code workspace in one open-source desktop app."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      try {
+        var t =
+          localStorage.getItem('pt') ||
+          (matchMedia('(prefers-color-scheme:light)').matches ? 'light' : 'dark');
+        document.documentElement.dataset.theme = t;
+      } catch (e) {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    </script>
+    <style>
+      :root {
+        --bg: #f6f6fc;
+        --s: #fff;
+        --s2: #eeeefa;
+        --bd: #e0e0f0;
+        --fg: #14142b;
+        --mu: #5f5f7e;
+        --p: #6a45f5;
+        --c: #0891b2;
+        --g: linear-gradient(115deg, #6a45f5, #0ea5c6);
+        --glow: rgba(106, 69, 245, 0.2);
+        --gh: #12121f;
+        --ey: #fff;
+        --logo: url(data:image/png;base64,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);
+      }
+      [data-theme='dark'] {
+        --bg: #07070d;
+        --s: #0f0f1a;
+        --s2: #171728;
+        --bd: #26263a;
+        --fg: #f4f4fb;
+        --mu: #9a9ab8;
+        --p: #8b6dff;
+        --c: #22d3ee;
+        --g: linear-gradient(115deg, #8b6dff, #22d3ee);
+        --glow: rgba(139, 109, 255, 0.28);
+        --gh: #f4f4fb;
+        --ey: #0a0a14;
+        --logo: url(data:image/png;base64,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);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 84px;
+      }
+      body {
+        font:
+          16px/1.65 Inter,
+          system-ui,
+          sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+        transition:
+          background 0.3s,
+          color 0.3s;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      :focus-visible {
+        outline: 2px solid var(--p);
+        outline-offset: 3px;
+        border-radius: 8px;
+      }
+      .w {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .mono {
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      }
+      .gr {
+        background: var(--g);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .i {
+        width: 1.15em;
+        height: 1.15em;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .i.f {
+        fill: currentColor;
+        stroke: none;
+      }
+      [data-i] {
+        display: inline-flex;
+      }
+      .logo {
+        width: 34px;
+        height: 34px;
+        background: var(--logo) center/contain no-repeat;
+        flex: none;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(16px);
+        background: color-mix(in srgb, var(--bg) 78%, transparent);
+        border-bottom: 1px solid var(--bd);
+      }
+      header .w {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        height: 66px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 19px;
+        letter-spacing: -0.02em;
+      }
+      .nl {
+        display: flex;
+        gap: 22px;
+        margin-left: auto;
+        font-size: 14.5px;
+        color: var(--mu);
+      }
+      .nl a:hover {
+        color: var(--fg);
+      }
+      .btn {
+        display: inline-flex;
+        gap: 9px;
+        align-items: center;
+        justify-content: center;
+        padding: 11px 20px;
+        border-radius: 12px;
+        font:
+          600 15px Inter,
+          sans-serif;
+        border: 1px solid var(--bd);
+        background: var(--s);
+        color: var(--fg);
+        cursor: pointer;
+        transition:
+          transform 0.2s,
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        border-color: var(--p);
+      }
+      .btn.pr {
+        background: var(--g);
+        color: #fff;
+        border: 0;
+        box-shadow: 0 10px 32px var(--glow);
+      }
+      .btn.sm {
+        padding: 7px 13px;
+        font-size: 13.5px;
+        border-radius: 10px;
+      }
+      .star {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .star b {
+        font-weight: 600;
+        padding-left: 9px;
+        border-left: 1px solid var(--bd);
+      }
+      .ic {
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: 11px;
+      }
+      .hero {
+        position: relative;
+        padding: 76px 0 40px;
+      }
+      .aur {
+        position: absolute;
+        inset: -80px 0 auto;
+        height: 640px;
+        pointer-events: none;
+        z-index: -1;
+        background:
+          radial-gradient(600px 380px at 78% 30%, var(--glow), transparent 70%),
+          radial-gradient(520px 320px at 10% 0%, rgba(34, 211, 238, 0.13), transparent 70%);
+      }
+      .hg {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 30px;
+        align-items: center;
+      }
+      .pill {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 5px 13px 5px 8px;
+        border: 1px solid var(--bd);
+        border-radius: 99px;
+        background: var(--s);
+        font-size: 13.5px;
+        color: var(--mu);
+      }
+      .pill i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--c);
+        box-shadow: 0 0 0 4px var(--glow);
+        animation: pl 2.4s infinite;
+      }
+      @keyframes pl {
+        50% {
+          box-shadow: 0 0 0 8px transparent;
+        }
+      }
+      h1 {
+        font-size: clamp(42px, 6.2vw, 78px);
+        line-height: 1.02;
+        letter-spacing: -0.045em;
+        font-weight: 800;
+        margin: 22px 0;
+      }
+      .lead {
+        font-size: 19px;
+        color: var(--mu);
+        max-width: 520px;
+      }
+      .verbs {
+        margin: 22px 0 30px;
+        font-size: 15px;
+        color: var(--mu);
+      }
+      .verbs b {
+        color: var(--p);
+        display: inline-block;
+        min-width: 92px;
+        font-weight: 500;
+      }
+      .cta {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .note {
+        margin-top: 14px;
+        font-size: 13.5px;
+        color: var(--mu);
+      }
+      .gh {
+        position: relative;
+        aspect-ratio: 1;
+        max-width: 470px;
+        margin: auto;
+        width: 100%;
+      }
+      .gh svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        animation: fl 6s ease-in-out infinite;
+      }
+      @keyframes fl {
+        50% {
+          transform: translateY(-12px);
+        }
+      }
+      .chip {
+        position: absolute;
+        padding: 7px 12px;
+        border-radius: 11px;
+        background: var(--s);
+        border: 1px solid var(--bd);
+        font-size: 12.5px;
+        box-shadow: 0 12px 30px var(--glow);
+        animation: fl 5s ease-in-out infinite;
+      }
+      .chip em {
+        font-style: normal;
+        color: var(--c);
+      }
+      .app {
+        margin-top: 46px;
+        border: 1px solid var(--bd);
+        border-radius: 20px;
+        background: var(--s);
+        box-shadow: 0 40px 90px -30px var(--glow);
+        overflow: hidden;
+      }
+      .bar {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--bd);
+        background: var(--s2);
+        font-size: 12.5px;
+        color: var(--mu);
+      }
+      .bar i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--bd);
+      }
+      .am {
+        display: grid;
+        grid-template-columns: 150px 1fr 250px;
+        min-height: 300px;
+        font-size: 13px;
+      }
+      .am > div {
+        padding: 14px;
+      }
+      .sd {
+        border-right: 1px solid var(--bd);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .sd span {
+        padding: 7px 10px;
+        border-radius: 9px;
+        color: var(--mu);
+      }
+      .sd .on {
+        background: var(--s2);
+        color: var(--fg);
+      }
+      .tr {
+        display: grid;
+        grid-template-columns: 54px 1fr 44px 52px;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: var(--mu);
+      }
+      .tr.hl {
+        background: var(--glow);
+        color: var(--fg);
+        position: relative;
+      }
+      .m {
+        font-weight: 500;
+      }
+      .g {
+        color: #16a34a;
+      }
+      .po {
+        color: var(--p);
+      }
+      .r {
+        color: #e11d48;
+      }
+      .ag {
+        border-left: 1px solid var(--bd);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .bb {
+        padding: 9px 12px;
+        border-radius: 12px;
+        background: var(--s2);
+        color: var(--mu);
+        font-size: 12.5px;
+      }
+      .tc {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px dashed var(--p);
+        font-size: 12px;
+      }
+      .tc b {
+        color: var(--p);
+      }
+      section {
+        padding: 96px 0;
+      }
+      h2 {
+        font-size: clamp(30px, 4vw, 46px);
+        line-height: 1.1;
+        letter-spacing: -0.035em;
+        font-weight: 800;
+        max-width: 680px;
+      }
+      .sub {
+        color: var(--mu);
+        margin-top: 14px;
+        max-width: 560px;
+        font-size: 17px;
+      }
+      .mq {
+        overflow: hidden;
+        border-block: 1px solid var(--bd);
+        padding: 18px 0;
+        margin-top: 56px;
+        mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+      }
+      .mt {
+        display: flex;
+        gap: 44px;
+        width: max-content;
+        animation: mq 38s linear infinite;
+        color: var(--mu);
+        font-size: 15px;
+      }
+      .mt span {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+      }
+      .mt span:before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--g);
+      }
+      @keyframes mq {
+        to {
+          transform: translateX(-50%);
+        }
+      }
+      .mq p {
+        text-align: center;
+        font-size: 13.5px;
+        color: var(--mu);
+        margin-bottom: 14px;
+      }
+      .bento {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 16px;
+        margin-top: 48px;
+      }
+      .cd {
+        position: relative;
+        grid-column: span 2;
+        padding: 26px;
+        border: 1px solid var(--bd);
+        border-radius: 22px;
+        background: var(--s);
+        overflow: hidden;
+        transition: border-color 0.25s;
+      }
+      .cd.wd {
+        grid-column: span 4;
+      }
+      .cd:before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          320px circle at var(--x, 50%) var(--y, 0),
+          var(--glow),
+          transparent 70%
+        );
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .cd:hover {
+        border-color: var(--p);
+      }
+      .cd:hover:before {
+        opacity: 1;
+      }
+      .cd > * {
+        position: relative;
+      }
+      .cd .ico {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        background: var(--g);
+        color: #fff;
+        font-size: 20px;
+        margin-bottom: 18px;
+      }
+      .cd h3 {
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+      .cd p {
+        color: var(--mu);
+        margin: 8px 0 14px;
+        font-size: 15px;
+      }
+      .cd ul {
+        list-style: none;
+        padding: 0;
+        font-size: 14px;
+        display: grid;
+        gap: 5px;
+      }
+      .cd li {
+        display: flex;
+        gap: 9px;
+      }
+      .cd li:before {
+        content: '';
+        flex: none;
+        margin-top: 9px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--c);
+      }
+      .sp {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 40px;
+        margin-top: 48px;
+        align-items: start;
+      }
+      .tabs {
+        display: grid;
+        gap: 6px;
+      }
+      .tab {
+        text-align: left;
+        padding: 13px 16px;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        background: none;
+        color: var(--mu);
+        font:
+          500 15px Inter,
+          sans-serif;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .tab:hover {
+        color: var(--fg);
+      }
+      .tab[aria-selected='true'] {
+        background: var(--s);
+        border-color: var(--bd);
+        color: var(--fg);
+        box-shadow: 0 10px 30px -14px var(--glow);
+      }
+      .pn {
+        border: 1px solid var(--bd);
+        border-radius: 22px;
+        background: var(--s);
+        padding: 28px;
+        min-height: 280px;
+      }
+      .pn h3 {
+        font-size: 22px;
+        letter-spacing: -0.02em;
+      }
+      .pn p {
+        color: var(--mu);
+        margin: 10px 0 18px;
+      }
+      .tg {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .tg span {
+        padding: 5px 12px;
+        border-radius: 99px;
+        background: var(--s2);
+        font-size: 13px;
+      }
+      .pn[hidden] {
+        display: none;
+      }
+      .pn:not([hidden]) {
+        animation: in 0.35s;
+      }
+      @keyframes in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0;
+        margin-top: 52px;
+        position: relative;
+      }
+      .flow:before {
+        content: '';
+        position: absolute;
+        top: 21px;
+        left: 6%;
+        right: 6%;
+        height: 2px;
+        background: var(--g);
+        opacity: 0.4;
+      }
+      .st {
+        padding: 0 22px 0 0;
+        position: relative;
+      }
+      .st .n {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+        border: 2px solid var(--p);
+        font-weight: 700;
+        margin-bottom: 18px;
+      }
+      .st h3 {
+        font-size: 22px;
+      }
+      .st p {
+        color: var(--mu);
+        margin-top: 6px;
+        max-width: 300px;
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        align-items: center;
+      }
+      .sw {
+        display: inline-flex;
+        padding: 4px;
+        border-radius: 14px;
+        background: var(--s2);
+        margin: 22px 0 14px;
+      }
+      .sw button {
+        padding: 9px 16px;
+        border-radius: 11px;
+        border: 0;
+        background: none;
+        color: var(--mu);
+        font:
+          600 14px Inter,
+          sans-serif;
+        cursor: pointer;
+      }
+      .sw button[aria-pressed='true'] {
+        background: var(--s);
+        color: var(--fg);
+        box-shadow: 0 4px 14px -6px var(--glow);
+      }
+      .term {
+        border: 1px solid var(--bd);
+        border-radius: 18px;
+        background: var(--s);
+        padding: 20px;
+        font-size: 13px;
+        display: grid;
+        gap: 12px;
+      }
+      .term .tc {
+        border-style: solid;
+      }
+      .ok {
+        color: #16a34a;
+      }
+      .ask {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .ask span {
+        padding: 4px 12px;
+        border-radius: 8px;
+        background: var(--g);
+        color: #fff;
+        font-size: 12px;
+      }
+      .ask span + span {
+        background: var(--s2);
+        color: var(--fg);
+      }
+      .facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 22px;
+      }
+      .facts span {
+        padding: 6px 13px;
+        border: 1px solid var(--bd);
+        border-radius: 99px;
+        font-size: 13.5px;
+        color: var(--mu);
+      }
+      .dl {
+        border: 1px solid var(--bd);
+        border-radius: 28px;
+        background: var(--s);
+        padding: 44px;
+        position: relative;
+        overflow: hidden;
+      }
+      .dl:after {
+        content: '';
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        right: -120px;
+        top: -160px;
+        background: radial-gradient(var(--glow), transparent 70%);
+        pointer-events: none;
+      }
+      .os {
+        display: flex;
+        gap: 8px;
+        margin: 26px 0 18px;
+        flex-wrap: wrap;
+      }
+      .os button {
+        padding: 9px 18px;
+        border-radius: 12px;
+        border: 1px solid var(--bd);
+        background: none;
+        color: var(--mu);
+        font:
+          600 14px Inter,
+          sans-serif;
+        cursor: pointer;
+      }
+      .os button[aria-pressed='true'] {
+        border-color: var(--p);
+        color: var(--fg);
+        background: var(--s2);
+      }
+      .cp {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 26px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: var(--s2);
+        font-size: 13.5px;
+        max-width: 520px;
+      }
+      .cp code {
+        flex: 1;
+        overflow: auto;
+        white-space: nowrap;
+      }
+      .cm {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 44px;
+      }
+      .cm .cd {
+        grid-column: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .cm .btn {
+        margin-top: auto;
+      }
+      .big {
+        font-size: 36px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      details {
+        border-bottom: 1px solid var(--bd);
+        padding: 20px 0;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 17px;
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      summary:after {
+        content: '+';
+        color: var(--p);
+        font-size: 22px;
+        line-height: 1;
+        transition: transform 0.25s;
+      }
+      details[open] summary:after {
+        transform: rotate(45deg);
+      }
+      details p {
+        color: var(--mu);
+        margin-top: 10px;
+        max-width: 680px;
+      }
+      footer {
+        border-top: 1px solid var(--bd);
+        padding: 48px 0 36px;
+        font-size: 14px;
+        color: var(--mu);
+      }
+      .fg {
+        display: flex;
+        gap: 40px;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+      .fl {
+        display: flex;
+        gap: 42px;
+      }
+      .fl div {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+      }
+      .fl b {
+        color: var(--fg);
+      }
+      .fl a:hover {
+        color: var(--fg);
+      }
+      .cr {
+        margin-top: 34px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 13px;
+      }
+      dialog {
+        margin: auto;
+        border: 1px solid var(--bd);
+        border-radius: 22px;
+        background: var(--s);
+        color: var(--fg);
+        padding: 28px;
+        width: min(480px, 92vw);
+      }
+      dialog::backdrop {
+        background: rgba(5, 5, 12, 0.6);
+        backdrop-filter: blur(4px);
+      }
+      dialog h3 {
+        font-size: 22px;
+        margin-bottom: 16px;
+      }
+      dialog label {
+        display: grid;
+        gap: 6px;
+        font-size: 13.5px;
+        color: var(--mu);
+        margin-bottom: 14px;
+      }
+      dialog input,
+      dialog select,
+      dialog textarea {
+        font:
+          15px Inter,
+          sans-serif;
+        padding: 11px 13px;
+        border-radius: 11px;
+        border: 1px solid var(--bd);
+        background: var(--bg);
+        color: var(--fg);
+      }
+      dialog textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+      .rv {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+          opacity 0.7s,
+          transform 0.7s;
+      }
+      .rv.in {
+        opacity: 1;
+        transform: none;
+      }
+      @media (max-width: 900px) {
+        .nl {
+          display: none;
+        }
+        header .w {
+          gap: 12px;
+        }
+        header .brand {
+          margin-right: auto;
+        }
+        .hg,
+        .sp,
+        .two {
+          grid-template-columns: 1fr;
+        }
+        .gh {
+          max-width: 340px;
+        }
+        .am {
+          grid-template-columns: 1fr;
+        }
+        .sd,
+        .ag {
+          display: none;
+        }
+        .bento {
+          grid-template-columns: 1fr 1fr;
+        }
+        .cd,
+        .cd.wd {
+          grid-column: span 2;
+        }
+        .flow {
+          grid-template-columns: 1fr;
+          gap: 34px;
+        }
+        .flow:before {
+          display: none;
+        }
+        .cm {
+          grid-template-columns: 1fr;
+        }
+        .dl {
+          padding: 28px;
+        }
+        section {
+          padding: 70px 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+        .rv {
+          opacity: 1;
+          transform: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute">
+      <defs>
+        <symbol id="terminal" viewBox="0 0 24 24"><path d="M4 17l6-6-6-6M12 19h8" /></symbol>
+        <symbol id="globe" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+        </symbol>
+        <symbol id="act" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4" /></symbol>
+        <symbol id="spark" viewBox="0 0 24 24">
+          <path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" />
+        </symbol>
+        <symbol id="layout" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <path d="M3 9h18M9 21V9" />
+        </symbol>
+        <symbol id="shield" viewBox="0 0 24 24">
+          <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
+        </symbol>
+        <symbol id="down" viewBox="0 0 24 24"><path d="M12 4v12m-5-5l5 5 5-5M4 20h16" /></symbol>
+        <symbol id="star" viewBox="0 0 24 24">
+          <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
+        </symbol>
+        <symbol id="sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"
+          />
+        </symbol>
+        <symbol id="moon" viewBox="0 0 24 24">
+          <path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10z" />
+        </symbol>
+        <symbol id="bug" viewBox="0 0 24 24">
+          <rect x="8" y="7" width="8" height="13" rx="4" />
+          <path d="M9 7a3 3 0 0 1 6 0M4 12h4M16 12h4M5 19l3-2M19 19l-3-2M5 5l3 2M19 5l-3 2" />
+        </symbol>
+        <symbol id="copy" viewBox="0 0 24 24">
+          <rect x="9" y="9" width="11" height="11" rx="2" />
+          <path d="M5 15V6a2 2 0 0 1 2-2h8" />
+        </symbol>
+        <symbol id="git" viewBox="0 0 24 24">
+          <path
+            d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z"
+          />
+        </symbol>
+      </defs>
+    </svg>
+
+    <header>
+      <div class="w">
+        <a class="brand" href="#top"><span class="logo"></span>Phantoma</a>
+        <nav class="nl">
+          <a href="#modules">Modules</a><a href="#emulate">Emulate</a
+          ><a href="#workflow">Workflow</a><a href="#agent">AI Agent</a
+          ><a href="#download">Download</a><a href="#faq">FAQ</a>
+        </nav>
+        <a
+          class="btn sm star"
+          href="https://github.com/KhanhRomVN/Phantoma"
+          target="_blank"
+          rel="noopener"
+          ><i data-i="git" class="f"></i>Star<b id="st">—</b></a
+        >
+        <button class="btn ic" id="th" aria-label="Switch theme"><i data-i="moon"></i></button>
+      </div>
+    </header>
+
+    <main id="top">
+      <div class="hero">
+        <div class="aur"></div>
+        <div class="w">
+          <div class="hg">
+            <div>
+              <span class="pill"><i></i>Open-source desktop app</span>
+              <h1>See everything.<br /><span class="gr">Leave nothing behind.</span></h1>
+              <p class="lead">
+                Recon, traffic interception, an AI agent and a code workspace in one desktop
+                platform for security and network analysis. Everything stays on your machine.
+              </p>
+              <p class="verbs mono">
+                <b id="vb">Map</b> the target, then <span id="vt">find what it hides.</span>
+              </p>
+              <div class="cta">
+                <a class="btn pr" id="dl1" href="#download"
+                  ><i data-i="down"></i><span>Download Phantoma</span></a
+                >
+                <a
+                  class="btn star"
+                  href="https://github.com/KhanhRomVN/Phantoma"
+                  target="_blank"
+                  rel="noopener"
+                  ><i data-i="git" class="f"></i>View on GitHub<b class="sc">—</b></a
+                >
+              </div>
+              <p class="note" id="ver">
+                Windows, macOS and Linux builds are published on GitHub Releases.
+              </p>
+            </div>
+            <div class="gh" id="gh">
+              <svg viewBox="0 0 420 380" aria-label="Phantoma ghost, eyes follow your cursor">
+                <defs>
+                  <linearGradient id="gp" x1="0" x2="1">
+                    <stop offset="0" stop-color="#7c4dff" />
+                    <stop offset="1" stop-color="#3b82f6" />
+                  </linearGradient>
+                  <linearGradient id="gc" x1="0" x2="1">
+                    <stop offset="0" stop-color="#22d3ee" />
+                    <stop offset="1" stop-color="#06b6d4" />
+                  </linearGradient>
+                </defs>
+                <path
+                  fill="var(--gh)"
+                  d="M60 255C95 220 105 165 135 105C155 55 205 28 255 38C315 52 340 130 340 190C340 232 362 248 380 258C300 238 190 218 60 255Z"
+                />
+                <g id="ey" fill="var(--ey)">
+                  <ellipse cx="250" cy="128" rx="13" ry="19" />
+                  <ellipse cx="296" cy="128" rx="13" ry="19" />
+                </g>
+                <path
+                  fill="url(#gp)"
+                  d="M50 278C125 244 190 228 248 254C292 274 345 274 395 252C358 300 292 306 246 289C192 268 140 268 50 278Z"
+                />
+                <path
+                  fill="url(#gc)"
+                  d="M112 312C158 290 200 300 240 322C282 344 336 338 380 312C346 360 282 370 234 346C196 326 156 322 112 312Z"
+                />
+              </svg>
+              <div class="chip mono" style="left: -2%; top: 22%; animation-delay: -1s">
+                <em>MITM</em> · 128 HTTPS
+              </div>
+              <div class="chip mono" style="right: -2%; top: 46%; animation-delay: -3s">
+                <em>Frida</em> hooked
+              </div>
+              <div class="chip mono" style="left: 8%; bottom: 6%; animation-delay: -2s">
+                <em>repeater</em> run #14
+              </div>
+            </div>
+          </div>
+
+          <div class="app rv" aria-hidden="true">
+            <div class="bar">
+              <i></i><i></i><i></i
+              ><span class="mono" style="margin-left: 10px">Phantoma — Emulate / example.com</span>
+            </div>
+            <div class="am">
+              <div class="sd">
+                <span>Recon</span><span class="on">Emulate</span><span>Code</span><span>Design</span
+                ><span style="margin-top: auto">Report</span>
+              </div>
+              <div class="mono">
+                <div class="tr">
+                  <span>Method</span><span>URL</span><span>Code</span><span>Time</span>
+                </div>
+                <div class="tr">
+                  <span class="m g">GET</span><span>/api/session</span><span>200</span
+                  ><span>84ms</span>
+                </div>
+                <div class="tr hl">
+                  <span class="m po">POST</span><span>/api/login · intercepted</span><span>—</span
+                  ><span>…</span>
+                </div>
+                <div class="tr">
+                  <span class="m g">GET</span><span>/static/app.wasm</span><span>200</span
+                  ><span>212ms</span>
+                </div>
+                <div class="tr">
+                  <span class="m r">GET</span><span>/admin/export</span><span>403</span
+                  ><span>41ms</span>
+                </div>
+                <div class="tr">
+                  <span class="m g">WS</span><span>/socket · 14 frames</span><span>101</span
+                  ><span>live</span>
+                </div>
+              </div>
+              <div class="ag">
+                <div class="bb">Which endpoints reject an unauthenticated request?</div>
+                <div class="tc mono">
+                  <b>list_https</b> status:403<br /><span style="color: var(--mu)"
+                    >1 match → /admin/export</span
+                  >
+                </div>
+                <div class="bb">Replaying with a modified header via the Repeater…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w">
+        <div class="mq">
+          <p>Detects about 40 AI coding agents running in your terminals</p>
+          <div class="mt" id="mt"></div>
+        </div>
+      </div>
+
+      <section id="modules">
+        <div class="w">
+          <h2 class="rv">Six tools. One workspace.</h2>
+          <p class="sub rv">
+            Stop juggling a browser, a proxy, a terminal, an editor and an AI chat. Phantoma keeps
+            them side by side.
+          </p>
+          <div class="bento">
+            <div class="cd rv">
+              <div class="ico"><i data-i="globe"></i></div>
+              <h3>Recon</h3>
+              <p>Drive a real browser to map targets, inspect pages and capture evidence.</p>
+              <ul>
+                <li>Navigate, click, fill, scroll and wait</li>
+                <li>Multi-tab sessions side by side</li>
+                <li>Screenshots and JS evaluation</li>
+              </ul>
+            </div>
+            <div class="cd wd rv">
+              <div class="ico"><i data-i="act"></i></div>
+              <h3>Emulate</h3>
+              <p>
+                Intercept HTTP, HTTPS and WebSocket traffic on websites, PC apps, Android apps and
+                CLI tools.
+              </p>
+              <ul>
+                <li>MITM, CDP or Frida interception</li>
+                <li>Filter by method, host, path, status, type, size and time</li>
+                <li>Replay and fuzz requests, inspect resources and sources</li>
+                <li>Write Markdown reports per target</li>
+              </ul>
+            </div>
+            <div class="cd wd rv">
+              <div class="ico"><i data-i="terminal"></i></div>
+              <h3>Code workspace</h3>
+              <p>
+                Terminals, files, notes and a built-in browser tiled in a 2×2 grid of draggable
+                panes.
+              </p>
+              <ul>
+                <li>Monaco editor with LSP and file watching</li>
+                <li>Git view with diff, commit detail and graph</li>
+                <li>Task Manager: Kanban, Table and Timeline</li>
+                <li>ZenCLI conversations resume per terminal</li>
+              </ul>
+            </div>
+            <div class="cd rv">
+              <div class="ico"><i data-i="spark"></i></div>
+              <h3>AI Agent</h3>
+              <p>An agent that reads, edits and runs commands inside your workspace.</p>
+              <ul>
+                <li>Reviewable edits on real files</li>
+                <li>Runs commands and reports output</li>
+              </ul>
+            </div>
+            <div class="cd rv">
+              <div class="ico"><i data-i="layout"></i></div>
+              <h3>Design</h3>
+              <p>Sketch page flows as a diagram and preview every page live.</p>
+              <ul>
+                <li>Live React and Tailwind preview</li>
+                <li>Device presets for responsive checks</li>
+              </ul>
+            </div>
+            <div class="cd wd rv">
+              <div class="ico"><i data-i="shield"></i></div>
+              <h3>Built for red team work</h3>
+              <p>
+                Purpose-built flows for pentest and red team engagements. Recon, analysis and notes
+                live in one place, and everything stays on your machine.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="emulate" style="padding-top: 20px">
+        <div class="w">
+          <h2 class="rv">Inside Emulate</h2>
+          <p class="sub rv">Seven tools around one intercepted target. Pick one.</p>
+          <div class="sp">
+            <div class="tabs" role="tablist" id="tabs"></div>
+            <div id="pns"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow" style="padding-top: 20px">
+        <div class="w">
+          <h2 class="rv">From first request to final report</h2>
+          <div class="flow">
+            <div class="st rv">
+              <div class="n">1</div>
+              <h3>Discover</h3>
+              <p>
+                Map the target with Recon and the built-in browser, collecting pages and endpoints.
+              </p>
+            </div>
+            <div class="st rv">
+              <div class="n">2</div>
+              <h3>Analyze</h3>
+              <p>Let the agent and Emulate tools dig into sources, resources and behaviour.</p>
+            </div>
+            <div class="st rv">
+              <div class="n">3</div>
+              <h3>Act</h3>
+              <p>Take notes, run commands and keep every result inside one workspace.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="agent" style="padding-top: 20px">
+        <div class="w two">
+          <div class="rv">
+            <h2>An agent that works inside the module you're in</h2>
+            <p class="sub">
+              One side panel for Code, Emulate, Recon and Design. Each target keeps its own
+              conversation, so switching never loses context.
+            </p>
+            <div class="sw" role="group" aria-label="Permission mode">
+              <button aria-pressed="true" data-m="full">Full Access</button
+              ><button aria-pressed="false" data-m="ask">Approval Required</button>
+            </div>
+            <p class="sub" style="margin: 0" id="md"></p>
+            <div class="facts">
+              <span>Claude</span><span>Codex</span><span>Gemini</span><span>DeepSeek</span
+              ><span>XML or JSON tools</span><span>Skills + MCP marketplace</span
+              ><span>Multi-account</span>
+            </div>
+          </div>
+          <div class="term mono rv">
+            <div class="bb">Fuzz the login with my payload list and tell me what changes.</div>
+            <div class="tc">
+              <b>run_repeater</b> login · payload list "usernames"
+              <div id="tr" class="ok" style="margin-top: 6px"></div>
+            </div>
+            <div class="bb">
+              Done. 2 of 40 runs returned a different status. Writing them to the report.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="download" style="padding-top: 20px">
+        <div class="w">
+          <div class="dl rv">
+            <h2>Get Phantoma</h2>
+            <p class="sub">Free and open source. Pick your platform.</p>
+            <div class="os" id="os">
+              <button data-o="win">Windows</button><button data-o="mac">macOS</button
+              ><button data-o="lin">Linux</button>
+            </div>
+            <a
+              class="btn pr"
+              id="dl2"
+              href="https://github.com/KhanhRomVN/Phantoma/releases"
+              target="_blank"
+              rel="noopener"
+              ><i data-i="down"></i><span>Download</span></a
+            >
+            <a
+              class="btn"
+              href="https://github.com/KhanhRomVN/Phantoma/releases"
+              target="_blank"
+              rel="noopener"
+              style="margin-left: 6px"
+              >All releases</a
+            >
+            <div class="cp mono">
+              <code id="cl">git clone https://github.com/KhanhRomVN/Phantoma</code
+              ><button class="btn sm ic" id="cb" aria-label="Copy command">
+                <i data-i="copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="community" style="padding-top: 20px">
+        <div class="w">
+          <h2 class="rv">Shape what comes next</h2>
+          <p class="sub rv">
+            Phantoma is built in the open by KhanhRomVN. Star it, report a problem, or send a pull
+            request.
+          </p>
+          <div class="cm">
+            <div class="cd rv">
+              <div class="big gr sc">—</div>
+              <h3>GitHub stars</h3>
+              <p>Starring helps other security engineers find the project.</p>
+              <a
+                class="btn pr"
+                href="https://github.com/KhanhRomVN/Phantoma"
+                target="_blank"
+                rel="noopener"
+                ><i data-i="star"></i>Star on GitHub</a
+              >
+            </div>
+            <div class="cd rv">
+              <div class="ico"><i data-i="bug"></i></div>
+              <h3>Submit an issue</h3>
+              <p>
+                Found a bug or need a feature? Describe it here and we'll open a pre-filled GitHub
+                issue.
+              </p>
+              <button class="btn" id="oi">Report a problem</button>
+            </div>
+            <div class="cd rv">
+              <div class="ico"><i data-i="git"></i></div>
+              <h3>Contribute</h3>
+              <p>
+                Fork the repository, make your change and open a pull request. Questions go to
+                khanhromvn@gmail.com.
+              </p>
+              <a
+                class="btn"
+                href="https://github.com/KhanhRomVN/Phantoma/fork"
+                target="_blank"
+                rel="noopener"
+                >Fork the repo</a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" style="padding-top: 20px">
+        <div class="w" style="max-width: 820px">
+          <h2 class="rv">Questions</h2>
+          <div style="margin-top: 30px">
+            <details>
+              <summary>Is Phantoma free?</summary>
+              <p>Yes. It is an open-source project hosted on GitHub.</p>
+            </details>
+            <details>
+              <summary>Where does my data go?</summary>
+              <p>
+                Everything stays on your machine. Phantoma keeps traffic, reports and projects
+                locally.
+              </p>
+            </details>
+            <details>
+              <summary>What can I intercept?</summary>
+              <p>
+                HTTP, HTTPS and WebSocket traffic from websites, PC desktop apps, Android apps and
+                CLI tools, using MITM, CDP or Frida. CLI capture also supports eBPF, PCAP and App
+                Debug.
+              </p>
+            </details>
+            <details>
+              <summary>Which AI providers work with the agent?</summary>
+              <p>
+                Multiple accounts and providers, including Claude, Codex, Gemini and DeepSeek. You
+                choose the provider and model per conversation.
+              </p>
+            </details>
+            <details>
+              <summary>Can the agent change my files?</summary>
+              <p>
+                Only as you allow. In Approval Required mode every file edit and shell command needs
+                your confirmation. Full Access lets it work without asking.
+              </p>
+            </details>
+            <details>
+              <summary>Has Phantoma been audited?</summary>
+              <p>
+                No. It has no certifications or security audits. Use it on systems you are
+                authorised to test.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="w">
+        <div class="fg">
+          <div>
+            <a class="brand" href="#top" style="color: var(--fg)"
+              ><span class="logo"></span>Phantoma</a
+            >
+            <p style="margin-top: 10px; max-width: 300px">
+              The desktop platform for security and network analysis.
+            </p>
+          </div>
+          <div class="fl">
+            <div>
+              <b>Product</b><a href="#modules">Modules</a><a href="#emulate">Emulate</a
+              ><a href="#agent">AI Agent</a><a href="#download">Download</a>
+            </div>
+            <div>
+              <b>Project</b
+              ><a href="https://github.com/KhanhRomVN/Phantoma" target="_blank" rel="noopener"
+                >GitHub</a
+              ><a
+                href="https://github.com/KhanhRomVN/Phantoma/releases"
+                target="_blank"
+                rel="noopener"
+                >Releases</a
+              ><a
+                href="https://github.com/KhanhRomVN/Phantoma/issues"
+                target="_blank"
+                rel="noopener"
+                >Issues</a
+              ><a href="mailto:khanhromvn@gmail.com">Contact</a>
+            </div>
+          </div>
+        </div>
+        <div class="cr">
+          <span>Built by KhanhRomVN. Open source on GitHub.</span><a href="#top">Back to top</a>
+        </div>
+      </div>
+    </footer>
+
+    <dialog id="dg">
+      <h3>Submit an issue</h3>
+      <label
+        >Type<select id="it">
+          <option>Bug</option>
+          <option>Feature request</option>
+          <option>Question</option>
+        </select></label
+      >
+      <label>Title<input id="ti" placeholder="What went wrong?" /></label>
+      <label
+        >Details<textarea
+          id="bd"
+          placeholder="Steps to reproduce, your OS and what you expected."
+        ></textarea>
+      </label>
+      <div style="display: flex; gap: 10px; justify-content: flex-end">
+        <button class="btn" id="cx">Cancel</button
+        ><button class="btn pr" id="go">Open on GitHub</button>
+      </div>
+    </dialog>
+
+    <script>
+      const $ = (s) => document.querySelector(s),
+        $$ = (s) => [...document.querySelectorAll(s)],
+        R = 'https://github.com/KhanhRomVN/Phantoma';
+      $$('[data-i]').forEach(
+        (e) =>
+          (e.innerHTML =
+            '<svg class="i' +
+            (e.classList.contains('f') ? ' f' : '') +
+            '"><use href="#' +
+            e.dataset.i +
+            '"/></svg>'),
+      );
+      const th = $('#th'),
+        setT = (t) => {
+          document.documentElement.dataset.theme = t;
+          th.innerHTML =
+            '<svg class="i"><use href="#' + (t == 'dark' ? 'sun' : 'moon') + '"/></svg>';
+          try {
+            localStorage.setItem('pt', t);
+          } catch (e) {}
+        };
+      setT(document.documentElement.dataset.theme);
+      th.onclick = () => setT(document.documentElement.dataset.theme == 'dark' ? 'light' : 'dark');
+      // ghost eyes follow cursor
+      const ey = $('#ey');
+      addEventListener('pointermove', (e) => {
+        const r = $('#gh').getBoundingClientRect(),
+          dx = e.clientX - (r.left + r.width * 0.6),
+          dy = e.clientY - (r.top + r.height * 0.33),
+          d = Math.hypot(dx, dy) || 1,
+          k = Math.min(9, d / 40);
+        ey.style.transform = `translate(${(dx / d) * k}px,${(dy / d) * k}px)`;
+      });
+      // verbs
+      const V = [
+        ['Map', 'find what it hides.'],
+        ['Inspect', 'every page and request.'],
+        ['Intercept', 'HTTP, HTTPS and WebSocket.'],
+        ['Replay', 'with your own headers.'],
+        ['Automate', 'the boring parts.'],
+        ['Report', 'in Markdown.'],
+      ];
+      let vi = 0;
+      setInterval(() => {
+        vi = (vi + 1) % V.length;
+        $('#vb').textContent = V[vi][0];
+        $('#vt').textContent = V[vi][1];
+      }, 2400);
+      // agents marquee
+      const A =
+        'Claude Codex Gemini Copilot Cursor Aider Goose Amp OpenCode Cline Continue Qoder Grok Kimi Devin Kiro Kilo Codebuff'.split(
+          ' ',
+        );
+      $('#mt').innerHTML = [...A, ...A].map((a) => '<span>' + a + '</span>').join('');
+      // spotlight + reveal
+      $$('.cd').forEach((c) =>
+        c.addEventListener('pointermove', (e) => {
+          const r = c.getBoundingClientRect();
+          c.style.setProperty('--x', e.clientX - r.left + 'px');
+          c.style.setProperty('--y', e.clientY - r.top + 'px');
+        }),
+      );
+      const io = new IntersectionObserver(
+        (l) =>
+          l.forEach((x) => {
+            if (x.isIntersecting) {
+              x.target.classList.add('in');
+              io.unobserve(x.target);
+            }
+          }),
+        { threshold: 0.12 },
+      );
+      $$('.rv').forEach((e) => io.observe(e));
+      // emulate tabs
+      const T = [
+        [
+          'Home',
+          'Request inspector and interceptor for HTTP and WebSocket traffic.',
+          ['Filters', 'Per-target', 'Live HTTPS count'],
+        ],
+        [
+          'Repeater',
+          'Replay requests with editable headers, body and params. Attach payload lists and fuzz, then compare every run.',
+          ['Body', 'Headers', 'Params', 'Payload', 'History'],
+        ],
+        [
+          'Resource',
+          'Preview images, video, audio, WASM, fonts and documents captured from the target.',
+          ['Image', 'Video', 'Audio', 'WASM', 'Font'],
+        ],
+        [
+          'Source',
+          'Browse the target’s source files in a tree viewer.',
+          ['File tree', 'Source detail'],
+        ],
+        [
+          'Report',
+          'Write and review Markdown reports per target, with a file list you can create, update and delete.',
+          ['Markdown', 'Per target'],
+        ],
+        ['Log', 'Stream Android logcat next to your traffic.', ['Android', 'logcat']],
+        ['Device', 'Manage Android devices for capture.', ['Android', 'Device panel']],
+      ];
+      $('#tabs').innerHTML = T.map(
+        (t, i) =>
+          `<button class="tab" role="tab" aria-selected="${!i}" data-t="${i}">${t[0]}</button>`,
+      ).join('');
+      $('#pns').innerHTML = T.map(
+        (t, i) =>
+          `<div class="pn" ${i ? 'hidden' : ''}><h3>${t[0]}</h3><p>${t[1]}</p><div class="tg">${t[2].map((x) => '<span>' + x + '</span>').join('')}</div>${i ? '' : '<p style="margin-top:18px;margin-bottom:0">Targets: website, PC app, Android app, CLI. Capture with MITM, CDP or Frida.</p>'}</div>`,
+      ).join('');
+      $$('.tab').forEach(
+        (b) =>
+          (b.onclick = () => {
+            $$('.tab').forEach((x) => x.setAttribute('aria-selected', x == b));
+            $$('.pn').forEach((p, i) => (p.hidden = i != b.dataset.t));
+          }),
+      );
+      // permission demo
+      const M = {
+        full: [
+          'Full Access: the agent uses every tool without asking.',
+          'Ran 40 requests…<br>2 differ from baseline',
+        ],
+        ask: [
+          'Approval Required: file edits and shell commands wait for your confirmation on each call.',
+          'Waiting for approval…<div class="ask"><span>Allow</span><span>Deny</span></div>',
+        ],
+      };
+      $$('.sw button').forEach(
+        (b) =>
+          (b.onclick = () => {
+            $$('.sw button').forEach((x) => x.setAttribute('aria-pressed', x == b));
+            $('#md').textContent = M[b.dataset.m][0];
+            $('#tr').innerHTML = M[b.dataset.m][1];
+          }),
+      );
+      $('.sw button').click();
+      // stars + releases
+      const fmt = (n) => (n >= 1e3 ? (n / 1e3).toFixed(1).replace('.0', '') + 'k' : n);
+      fetch('https://api.github.com/repos/KhanhRomVN/Phantoma')
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.stargazers_count != null) {
+            $('#st').textContent = fmt(d.stargazers_count);
+            $$('.sc').forEach((e) => (e.textContent = fmt(d.stargazers_count)));
+          }
+        })
+        .catch(() => {});
+      let rel = {},
+        os = /Mac/i.test(navigator.platform)
+          ? 'mac'
+          : /Linux|X11/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent)
+            ? 'lin'
+            : 'win';
+      const N = { win: 'Windows', mac: 'macOS', lin: 'Linux' },
+        X = { win: /\.(exe|msi)$/i, mac: /\.dmg$/i, lin: /\.(appimage|deb|rpm)$/i };
+      function pick(o) {
+        os = o;
+        $$('#os button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.o == o));
+        const a = (rel.assets || []).find((x) => X[o].test(x.name)),
+          u = a ? a.browser_download_url : R + '/releases';
+        [
+          ['#dl1', 'Download for ' + N[o]],
+          ['#dl2', 'Download for ' + N[o]],
+        ].forEach(([s, t]) => {
+          $(s).href = u;
+          $(s + ' span').textContent = t;
+          if (a) {
+            $(s).removeAttribute('target');
+          } else if (s == '#dl1') {
+            $(s).href = '#download';
+          }
+        });
+      }
+      $$('#os button').forEach((b) => (b.onclick = () => pick(b.dataset.o)));
+      pick(os);
+      fetch('https://api.github.com/repos/KhanhRomVN/Phantoma/releases/latest')
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.assets) {
+            rel = d;
+            $('#ver').textContent = 'Latest release ' + d.tag_name + ' on GitHub Releases.';
+            pick(os);
+          }
+        })
+        .catch(() => {});
+      // copy
+      $('#cb').onclick = () => {
+        navigator.clipboard && navigator.clipboard.writeText($('#cl').textContent);
+        $('#cb').innerHTML = '<svg class="i"><use href="#star"/></svg>';
+        setTimeout(() => ($('#cb').innerHTML = '<svg class="i"><use href="#copy"/></svg>'), 1400);
+      };
+      // issue dialog
+      const dg = $('#dg');
+      $('#oi').onclick = () => dg.showModal();
+      $('#cx').onclick = () => dg.close();
+      $('#go').onclick = () => {
+        const t = $('#ti').value.trim() || 'Issue',
+          b = encodeURIComponent(
+            'Type: ' + $('#it').value + '\n\n' + $('#bd').value + '\n\nOS: ' + navigator.platform,
+          );
+        open(
+          R +
+            '/issues/new?title=' +
+            encodeURIComponent('[' + $('#it').value + '] ' + t) +
+            '&body=' +
+            b,
+          '_blank',
+        );
+        dg.close();
+      };
+    </script>
+  </body>
+</html>

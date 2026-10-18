@@ -41,6 +41,7 @@ export class WindowManager {
       titleBarStyle: 'hidden', // Hide native titlebar
       trafficLightPosition: { x: 20, y: 20 }, // Adjust traffic light position for macOS
       title: windowConfig.title,
+      icon: join(app.getAppPath(), 'build/icon.png'),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         sandbox: false,

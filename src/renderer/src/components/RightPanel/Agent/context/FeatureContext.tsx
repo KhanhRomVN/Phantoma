@@ -14,7 +14,7 @@
 import React, { createContext, useContext, useState } from 'react';
 
 // ── Types ──
-export type AgentFeature = 'emulate' | 'code' | 'recon' | null;
+export type AgentFeature = 'emulate' | 'code' | 'recon' | 'design' | null;
 
 export interface EmulateState {
   activeTargetId: string | null;

@@ -87,9 +87,48 @@ interface CodeBlockProps {
   enableLSP?: boolean;
   /** Project root path for LSP workspace. If not provided, will try to extract from filePath */
   projectRoot?: string;
+  /** Nhảy tới dòng/cột này khi editor sẵn sàng (nonce đổi thì nhảy lại) */
+  revealPosition?: { line: number; column?: number; nonce: number } | null;
+  /** Gọi sau khi đã nhảy tới revealPosition */
+  onRevealed?: () => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
+const rgbToHex = (rgb: string | undefined, alpha = ''): string | undefined => {
+  const m = rgb?.match(/\d+/g);
+  if (!m || m.length < 3) return undefined;
+  const hex = m
+    .slice(0, 3)
+    .map((n) => Number(n).toString(16).padStart(2, '0'))
+    .join('');
+  return `#${hex}${alpha}`;
+};
+
+const buildWidgetColors = (tw: any): Record<string, string> => {
+  if (!tw) return {};
+  const entries: Record<string, string | undefined> = {
+    'editorWidget.background': rgbToHex(tw.dropdownBackground),
+    'editorWidget.foreground': rgbToHex(tw.textPrimary),
+    'editorWidget.border': rgbToHex(tw.border),
+    'input.background': rgbToHex(tw.inputBackground),
+    'input.foreground': rgbToHex(tw.textPrimary),
+    'input.border': rgbToHex(tw.border),
+    'inputOption.activeBackground': rgbToHex(tw.primary, '33'),
+    'inputOption.activeBorder': rgbToHex(tw.primary),
+    'focusBorder': rgbToHex(tw.primary),
+    'editor.findMatchBackground': rgbToHex(tw.primary, '66'),
+    'editor.findMatchHighlightBackground': rgbToHex(tw.primary, '33'),
+    'editorSuggestWidget.background': rgbToHex(tw.dropdownBackground),
+    'editorSuggestWidget.border': rgbToHex(tw.border),
+    'editorSuggestWidget.selectedBackground': rgbToHex(tw.dropdownItemHover),
+    'editorHoverWidget.background': rgbToHex(tw.tooltipBackground),
+    'editorHoverWidget.border': rgbToHex(tw.border),
+  };
+  return Object.fromEntries(
+    Object.entries(entries).filter((e): e is [string, string] => !!e[1]),
+  );
+};
+
 // Chuyển đổi theme sang định dạng Monaco
 const convertThemeToMonaco = (theme: any) => {
   const monacoTheme = theme.monaco;
@@ -104,7 +143,7 @@ const convertThemeToMonaco = (theme: any) => {
       background: rule.background,
       fontStyle: rule.fontStyle,
     })),
-    colors: monacoTheme.colors || {},
+    colors: { ...buildWidgetColors(theme.tailwind), ...(monacoTheme.colors || {}) },
   };
 };
 
@@ -251,6 +290,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     filePath,
     fileId,
     enableLSP = false,
+    revealPosition,
+    onRevealed,
   } = props;
 
   // ── Store ──
@@ -836,6 +877,23 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
       editor.revealLineInCenter(line);
     }
   }, [stableThemeConfig?.highlightLine, showLineNumbers]);
+
+  // Reveal a specific line/column (e.g. opened from Search results)
+  useEffect(() => {
+    if (!isEditorReady || !revealPosition || !editorInstance.current) return;
+    const editor = editorInstance.current;
+    const lineCount = editor.getModel()?.getLineCount() ?? revealPosition.line;
+    const line = Math.min(Math.max(1, revealPosition.line), lineCount);
+    const column = Math.max(1, revealPosition.column ?? 1);
+    const frame = requestAnimationFrame(() => {
+      editor.setPosition({ lineNumber: line, column });
+      editor.revealLineInCenter(line);
+      editor.focus();
+      onRevealed?.();
+    });
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditorReady, revealPosition?.nonce]);
 
   // ── Render ──
   return <div ref={editorRef} className={`w-full h-full min-h-[200px] ${className || ''}`} />;

@@ -22,6 +22,28 @@ import { Terminal, Loader2, AlertTriangle, ChevronDown } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
+// ── Task link ──
+import { useSessionTasks } from '../../hooks/useSessionTasks';
+import type { StoredTask } from '../../services/task.service';
+import { TASK_DRAG_TYPE } from '../ContentPanel/TaskManager/kanban/TaskDropZones';
+
+export function getTempSessionName(
+  sessionId: string,
+  projectName: string,
+  branchName: string,
+): string {
+  const ts = Number(sessionId.replace(/^n/, ''));
+  const time =
+    ts > 1e12
+      ? new Date(ts).toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
+      : sessionId.slice(-4);
+  return `${projectName} · ${branchName} · ${time}`;
+}
+
 // Helper to map common AI Agent names/IDs to their official domains for favicon fetching
 const AGENT_DOMAIN_MAP: Record<string, string> = {
   claude: 'https://claude.ai',
@@ -414,20 +436,20 @@ function ProcessList({
 
 /** Task row inside a session card (with status picker button) */
 function TaskRow({
-  session,
+  sessionId,
+  task: t,
   onOpenTaskMenu,
 }: {
-  session: SessionInfo;
+  sessionId: string;
+  task: StoredTask;
   onOpenTaskMenu?: (sessionId: string, pos: MenuPosition) => void;
 }) {
-  const t = session.task;
-  if (!t) return null;
   const label = TASK_STATUSES.find(([k]) => k === t.status)?.[1] ?? t.status;
 
   const openMenu = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     const r = e.currentTarget.getBoundingClientRect();
-    onOpenTaskMenu?.(session.id, { top: r.bottom + 4, left: r.left - 80 });
+    onOpenTaskMenu?.(sessionId, { top: r.bottom + 4, left: r.left - 80 });
   };
 
   return (
@@ -463,7 +485,13 @@ export const SessionCard = memo(function SessionCard({
   onProcessInteract,
   onContextMenu,
   draggable = true, // Default to true, but can be overridden by parent if needed
+  projectName = '',
+  branchName = '',
+  onDropTask,
 }: {
+  projectName?: string;
+  branchName?: string;
+  onDropTask?: (taskId: string, sessionId: string) => void;
   session: SessionInfo;
   selectedSessionId: string | null;
   onSelect: (id: string) => void;
@@ -474,6 +502,9 @@ export const SessionCard = memo(function SessionCard({
 }) {
   const st = session.status;
   const isSelected = selectedSessionId === session.id;
+  const task = useSessionTasks((s) => s.bySession[session.id]);
+  const displayName = task?.title ?? getTempSessionName(session.id, projectName, branchName);
+  const [dropOver, setDropOver] = useState(false);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -488,19 +519,36 @@ export const SessionCard = memo(function SessionCard({
         st === 'blocked' ? 'border-[rgba(255,71,87,0.35)]' : 'border-divider',
         // Subtle dashed border for selected state
         isSelected && 'border-[1.5px] border-dashed border-[#ff6a1f]/70',
+        dropOver && 'border-primary bg-primary/10',
       )}
       draggable={draggable}
+      onDragOver={(e) => {
+        if (!onDropTask || task || !e.dataTransfer.types.includes(TASK_DRAG_TYPE)) return;
+        e.preventDefault();
+        setDropOver(true);
+      }}
+      onDragLeave={() => setDropOver(false)}
+      onDrop={(e) => {
+        setDropOver(false);
+        const id = e.dataTransfer.getData(TASK_DRAG_TYPE);
+        if (!id || !onDropTask || task) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onDropTask(id, session.id);
+      }}
       onClick={() => onSelect(session.id)}
       onContextMenu={handleContextMenu}
     >
       {/* Title row */}
       <div className="flex items-center gap-[6px] text-[12.5px] font-semibold leading-none h-[16px]">
         <StatusDot status={st} size="small" />
-        <span className="flex-1 min-w-0 truncate text-text-primary">{session.title}</span>
+        <span className="flex-1 min-w-0 truncate text-text-primary" title={displayName}>
+          {displayName}
+        </span>
       </div>
 
       {/* Task - Only if exists */}
-      {session.task && <TaskRow session={session} onOpenTaskMenu={onOpenTaskMenu} />}
+      {task && <TaskRow sessionId={session.id} task={task} onOpenTaskMenu={onOpenTaskMenu} />}
 
       {/* Agents - Only if exists */}
       {session.agents.length > 0 && (

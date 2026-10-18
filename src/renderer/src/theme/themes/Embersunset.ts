@@ -8,6 +8,7 @@ import { ThemeConfig } from '../types/theme.types';
 export const EmberSunset: ThemeConfig = {
   id: 'ember_sunset',
   name: 'EmberSunset',
+  type: 'light',
   monaco: {
     base: 'vs',
     inherit: true,

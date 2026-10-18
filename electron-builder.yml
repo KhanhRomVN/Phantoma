@@ -13,6 +13,7 @@ files:
 asarUnpack:
   - resources/**
   - '**/*.node'
+  - '**/node_modules/@vscode/ripgrep*/**'
 extraResources:
   - from: resources
     to: resources
@@ -40,7 +41,7 @@ win:
         - x64
         - arm64
   executableName: Phantoma
-  # icon: build/icon.png  # Uncomment when icon exists
+  icon: build/icon.png
 
 # Windows NSIS Installer (.exe)
 nsis:
@@ -69,7 +70,7 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
-  # icon: build/icon.png # Uncomment when icon exists
+  icon: build/icon.png
 
 # macOS DMG
 dmg:
@@ -97,7 +98,7 @@ linux:
   maintainer: KhanhRomVN
   category: Utility
   executableName: phantoma
-  # icon: build/icons # Uncomment when icons exist
+  icon: build/icon.png
 
 # Linux Debian Package
 deb:

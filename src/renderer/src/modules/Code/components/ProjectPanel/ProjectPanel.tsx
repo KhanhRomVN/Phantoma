@@ -45,6 +45,14 @@ import {
 } from 'lucide-react';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
+import { useSessionTasks } from '../../hooks/useSessionTasks';
+import {
+  taskService,
+  getBlockers,
+  getUnfinishedChain,
+  type StoredTask,
+} from '../../services/task.service';
+import { ConfirmForceStartTaskModal } from '../ContentPanel/TaskManager/ConfirmForceStartTaskModal';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -139,6 +147,7 @@ type DropdownTarget =
   | { kind: 'header-config'; pos: MenuPosition }
   | { kind: 'task'; sessionId: string; pos: MenuPosition }
   | { kind: 'session'; sessionId: string; projectId: string; pos: MenuPosition }
+  | { kind: 'assign-task'; sessionId: string; projectId: string; pos: MenuPosition }
   | { kind: 'process'; sessionId: string; index: number; pos: MenuPosition }
   | { kind: 'move-to-group'; projectId: string; pos: MenuPosition };
 
@@ -479,6 +488,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   /** Tracks which project's Task Manager is currently open in ContentPanel */
   const [activeTaskManagerProjectId, setActiveTaskManagerProjectId] = useState<string | null>(null);
+  const [activeGitProjectId, setActiveGitProjectId] = useState<string | null>(null);
   const [showHidden] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('manual');
   const [filterStatus, setFilterStatus] = useState<'all' | SessionStatus>('all');
@@ -681,6 +691,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
       if (activeTaskManagerProjectId) {
         setActiveTaskManagerProjectId(null);
       }
+      if (activeGitProjectId) {
+        setActiveGitProjectId(null);
+      }
 
       // Switch ContentPanel to Workspace view for this session
       setActiveWorkspaceSessionId(sessionId);
@@ -692,7 +705,26 @@ export const ProjectPanel = memo(function ProjectPanel() {
       setActiveWorkspaceSessionId,
       setContentViewMode,
       activeTaskManagerProjectId,
+      activeGitProjectId,
     ],
+  );
+
+  /** Toggle Git view for a specific project. Clicking again closes it. */
+  const handleToggleGit = useCallback(
+    (projectId: string) => {
+      setSelectedSessionId(null);
+      setActiveTaskManagerProjectId(null);
+
+      if (activeGitProjectId === projectId) {
+        setActiveGitProjectId(null);
+        setContentViewMode('files');
+      } else {
+        setCurrentProject(projectId);
+        setActiveGitProjectId(projectId);
+        setContentViewMode('git');
+      }
+    },
+    [activeGitProjectId, setContentViewMode, setCurrentProject],
   );
 
   /** Toggle Task Manager for a specific project. Clicking again closes it. */
@@ -710,11 +742,13 @@ export const ProjectPanel = memo(function ProjectPanel() {
         setContentViewMode('files');
       } else {
         // Open for this project
+        setActiveGitProjectId(null);
+        setCurrentProject(projectId);
         setActiveTaskManagerProjectId(projectId);
         setContentViewMode('tasks');
       }
     },
-    [activeTaskManagerProjectId, setContentViewMode],
+    [activeTaskManagerProjectId, setContentViewMode, setCurrentProject],
   );
 
   const handleSessionContextMenu = useCallback(
@@ -979,15 +1013,57 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   // ── Task actions ──
+  const bySession = useSessionTasks((s) => s.bySession);
+  const tasksByPath = useSessionTasks((s) => s.byPath);
+  const loadSessionTasks = useSessionTasks((s) => s.load);
+
+  useEffect(() => {
+    projects.forEach((p) => {
+      if (p.path) void loadSessionTasks(p.path);
+    });
+  }, [projects.map((p) => p.path).join('|'), loadSessionTasks]);
+
+  const findSessionProjectPath = useCallback(
+    (sessionId: string) =>
+      projects.find((p) => p.branches.some((b) => b.sessions.some((s) => s.id === sessionId)))
+        ?.path,
+    [projects],
+  );
+
+  const [forceStart, setForceStart] = useState<{
+    path: string;
+    title: string;
+    chain: StoredTask[];
+    proceed: () => Promise<unknown>;
+  } | null>(null);
+
   const setTaskStatus = useCallback(
-    (sessionId: string, status: TaskStatus) =>
-      patchSession(sessionId, (s) => (s.task ? { ...s, task: { ...s.task, status } } : s)),
-    [patchSession],
+    (sessionId: string, status: TaskStatus) => {
+      const task = bySession[sessionId];
+      const path = findSessionProjectPath(sessionId);
+      if (!task || !path) return;
+      const all = tasksByPath[path] ?? [];
+      if (status !== 'todo' && status !== task.status && getBlockers(task, all).length > 0) {
+        setForceStart({
+          path,
+          title: task.title,
+          chain: getUnfinishedChain(task, all),
+          proceed: () => taskService.update(path, task.id, { status }),
+        });
+        return;
+      }
+      void taskService.update(path, task.id, { status });
+    },
+    [bySession, tasksByPath, findSessionProjectPath],
   );
 
   const removeTask = useCallback(
-    (sessionId: string) => patchSession(sessionId, (s) => ({ ...s, task: undefined })),
-    [patchSession],
+    (sessionId: string) => {
+      const task = bySession[sessionId];
+      const path = findSessionProjectPath(sessionId);
+      if (task && path) void taskService.update(path, task.id, { sessionId: null, branchName: null });
+    },
+    [bySession, findSessionProjectPath],
   );
 
   // ── Group actions ──
@@ -1210,9 +1286,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       : null;
   const activeTask =
     dropdownTarget?.kind === 'task'
-      ? (projects
-          .flatMap((p) => p.branches.flatMap((b) => b.sessions))
-          .find((s) => s.id === dropdownTarget.sessionId)?.task ?? null)
+      ? (bySession[dropdownTarget.sessionId] ?? null)
       : null;
   const activeProjectIndex = activeProject
     ? projects.findIndex((p) => p.id === activeProject.id)
@@ -1226,6 +1300,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
       isSelected={expandedIds.has(project.id)}
       selectedSessionId={selectedSessionId}
       isTaskManagerActive={activeTaskManagerProjectId === project.id}
+      isGitActive={activeGitProjectId === project.id}
+      onToggleGit={handleToggleGit}
       draggable={sortMode === 'manual'}
       isGlobalDragging={isGlobalDragging}
       onToggleProject={handleToggleProject}
@@ -1816,6 +1892,44 @@ export const ProjectPanel = memo(function ProjectPanel() {
               </>
             )}
 
+            {/* ASSIGN TASK PICKER */}
+            {dropdownTarget.kind === 'assign-task' &&
+              (() => {
+                const proj = projects.find((p) => p.id === dropdownTarget.projectId);
+                const path = proj?.path ?? '';
+                const branchName =
+                  proj?.branches.find((b) =>
+                    b.sessions.some((s) => s.id === dropdownTarget.sessionId),
+                  )?.name ?? null;
+                const candidates = (tasksByPath[path] ?? []).filter((t) => !t.archived && !t.sessionId);
+                if (candidates.length === 0) {
+                  return (
+                    <span className="block px-2 py-1 text-xs text-text-secondary/60">
+                      No unlinked tasks
+                    </span>
+                  );
+                }
+                return (
+                  <>
+                    {candidates.map((t) => (
+                      <DropdownItem
+                        key={t.id}
+                        icon={<TaskIcon status={t.status} />}
+                        onClick={() => {
+                          void taskService.update(path, t.id, {
+                            sessionId: dropdownTarget.sessionId,
+                            branchName,
+                          });
+                          closeDropdown();
+                        }}
+                      >
+                        {t.title}
+                      </DropdownItem>
+                    ))}
+                  </>
+                );
+              })()}
+
             {/* PROCESS CONTEXT MENU */}
             {dropdownTarget.kind === 'process' && (
               <>
@@ -1837,62 +1951,52 @@ export const ProjectPanel = memo(function ProjectPanel() {
             {/* SESSION CONTEXT MENU */}
             {dropdownTarget.kind === 'session' && (
               <>
-                <DropdownItem
-                  icon={<Pencil className="w-3 h-3" />}
-                  onClick={() => {
-                    const sessionId = dropdownTarget.sessionId;
-                    // Find current title to pre-fill if we had an inline edit state,
-                    // but for now just dispatch event or set a global rename target.
-                    // Assuming there's a mechanism to trigger rename via event or store update.
-                    window.dispatchEvent(
-                      new CustomEvent('phantoma:request-rename-session', { detail: sessionId }),
-                    );
-                    closeDropdown();
-                  }}
-                >
-                  Rename Session
-                </DropdownItem>
 
-                <DropdownSeparator />
+                {bySession[dropdownTarget.sessionId] ? (
+                  <>
+                    <DropdownItem
+                      icon={<Unlink className="w-3 h-3" />}
+                      onClick={() => {
+                        removeTask(dropdownTarget.sessionId);
+                        closeDropdown();
+                      }}
+                    >
+                      Unassign Task
+                    </DropdownItem>
 
-                <DropdownItem
-                  icon={<Link2 className="w-3 h-3" />}
-                  onClick={() => {
-                    // TODO: Implement assign task logic
-                    showToast('Assign Task clicked');
-                    closeDropdown();
-                  }}
-                >
-                  Assign Task...
-                </DropdownItem>
-                <DropdownItem
-                  icon={<Unlink className="w-3 h-3" />}
-                  onClick={() => {
-                    // TODO: Implement unassign task logic
-                    showToast('Unassign Task clicked');
-                    closeDropdown();
-                  }}
-                >
-                  Unassign Task
-                </DropdownItem>
+                    <DropdownSeparator />
 
-                <DropdownSeparator />
-
-                <span className="block px-2 py-1 text-[10px] font-semibold text-text-secondary/50 uppercase tracking-wider">
-                  Change Task Status
-                </span>
-                {TASK_STATUSES.map(([k, l]) => (
+                    <span className="block px-2 py-1 text-[10px] font-semibold text-text-secondary/50 uppercase tracking-wider">
+                      Change Task Status
+                    </span>
+                    {TASK_STATUSES.map(([k, l]) => (
+                      <DropdownItem
+                        key={k}
+                        icon={ck(bySession[dropdownTarget.sessionId]?.status === k, <TaskIcon status={k} />)}
+                        onClick={() => {
+                          setTaskStatus(dropdownTarget.sessionId, k);
+                          closeDropdown();
+                        }}
+                      >
+                        {l}
+                      </DropdownItem>
+                    ))}
+                  </>
+                ) : (
                   <DropdownItem
-                    key={k}
-                    icon={<TaskIcon status={k} />}
+                    icon={<Link2 className="w-3 h-3" />}
                     onClick={() => {
-                      setTaskStatus(dropdownTarget.sessionId, k);
-                      closeDropdown();
+                      setDropdownTarget({
+                        kind: 'assign-task',
+                        sessionId: dropdownTarget.sessionId,
+                        projectId: dropdownTarget.projectId,
+                        pos: dropdownTarget.pos,
+                      });
                     }}
                   >
-                    {l}
+                    Assign Task...
                   </DropdownItem>
-                ))}
+                )}
 
                 <DropdownSeparator />
 
@@ -1972,6 +2076,27 @@ export const ProjectPanel = memo(function ProjectPanel() {
         onConfirm={confirmDeleteBranch}
         branchName={confirmDeleteBranchTarget?.branchName ?? ''}
         projectName={confirmDeleteBranchTarget?.project.name ?? ''}
+      />
+
+      <ConfirmForceStartTaskModal
+        isOpen={!!forceStart}
+        taskTitle={forceStart?.title ?? ''}
+        chain={forceStart?.chain ?? []}
+        onClose={() => setForceStart(null)}
+        onConfirm={() => {
+          const pending = forceStart;
+          if (!pending) return;
+          void (async () => {
+            try {
+              for (const t of pending.chain) {
+                await taskService.update(pending.path, t.id, { status: 'done' });
+              }
+              await pending.proceed();
+            } catch (e: any) {
+              alert(`Error updating tasks: ${e.message}`);
+            }
+          })();
+        }}
       />
     </div>
   );

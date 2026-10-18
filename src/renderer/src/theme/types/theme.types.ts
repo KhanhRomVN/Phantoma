@@ -15,9 +15,12 @@ export interface MonacoTheme {
   colors: Record<string, string>;
 }
 
+export type ThemeType = 'light' | 'dark';
+
 export interface ThemeConfig {
   id: string;
   name: string;
+  type: ThemeType;
   monaco: MonacoTheme;
   tailwind: ThemeColors;
   accentColors: string[];

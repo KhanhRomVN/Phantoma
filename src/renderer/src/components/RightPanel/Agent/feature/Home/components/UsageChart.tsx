@@ -263,11 +263,12 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title, period = 'day' }) => {
               <button
                 key={m}
                 type="button"
-                className="zen-usage-chip inline-flex items-center gap-1.5 border rounded-[5px] px-2.5 py-0.5 text-[10px] font-semibold cursor-pointer"
+                className="zen-usage-chip inline-flex items-center gap-1.5 rounded-[5px] px-2.5 py-0.5 text-[10px] font-semibold cursor-pointer"
                 onClick={() => toggle(m)}
                 title={active ? `Hide ${METRIC_META[m].label}` : `Show ${METRIC_META[m].label}`}
                 style={{
-                  borderColor: active ? `color-mix(in srgb, ${c} 45%, transparent)` : $('--border'),
+                  border: 'none',
+                  outline: 'none',
                   color: active ? c : $('--text-secondary'),
                   backgroundColor: active ? `color-mix(in srgb, ${c} 12%, transparent)` : 'transparent',
                   opacity: active ? 1 : 0.7,
@@ -349,9 +350,9 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title, period = 'day' }) => {
                           className="zen-usage-bar absolute left-[12%] right-[12%] bottom-0 rounded-t min-h-[2px]"
                           style={{
                             height: `${pct}%`,
-                            background: `linear-gradient(to top, ${reqColor}59, ${reqColor})`,
+                            background: `linear-gradient(to top, color-mix(in srgb, ${reqColor} 35%, transparent), ${reqColor})`,
                             opacity: isHover || isPeak ? 1 : 0.6,
-                            filter: isPeak ? `drop-shadow(0 0 6px ${reqColor}99)` : 'none',
+                            filter: isPeak ? `drop-shadow(0 0 6px color-mix(in srgb, ${reqColor} 60%, transparent))` : 'none',
                           }}
                         />
                       )}
@@ -399,7 +400,7 @@ const DailyUsageChart: React.FC<Props> = ({ usage, title, period = 'day' }) => {
                   transform: 'translate(-50%, -50%)',
                   backgroundColor: tokColor,
                   borderColor: $('--card-background'),
-                  boxShadow: `0 0 0 3px ${tokColor}4D`,
+                  boxShadow: `0 0 0 3px color-mix(in srgb, ${tokColor} 30%, transparent)`,
                 }}
               />
             )}

@@ -474,7 +474,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     });
 
   // --- Message Parsing (with caching) ---
-  const parsedMessages = useMessageParsing(messages, isStreaming);
+  const parsedMessages = useMessageParsing(messages, isStreaming, feature);
 
   // --- Context Usage ---
   const contextUsage = useContextUsage(messages);
@@ -759,6 +759,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         isGitStatusVisible={showGitStatusBlock}
         onBackToHome={handleBackToHome}
         isLoadingConversation={isLoadingConversation}
+        feature={feature}
       />
       {/* ─── ChatFooter ─── */}
       <ChatFooter

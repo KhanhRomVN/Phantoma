@@ -8,18 +8,30 @@
  * ------------------------------------------------------------------
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
+  ArrowDown,
+  ArrowUp,
+  Download,
+  Layers,
+  Loader2,
+  Pencil,
+  RefreshCw,
   GitBranch,
+  Bell,
   Search,
   Plus,
   MoreVertical,
-  Pin,
-  Share2,
-  Trash2,
-  Pencil,
+  LayoutGrid,
+  List,
+  GanttChart,
+  Archive,
+  Palette,
+  FileText,
+  Link2,
 } from 'lucide-react';
 import { useCodeStore } from '../../hooks/useCodeStore';
+import { useDesignStore } from '../../hooks/useDesignStore';
 import {
   Dropdown,
   DropdownTrigger,
@@ -27,6 +39,11 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+
+import { useSessionTasks } from '../../hooks/useSessionTasks';
+import { getTempSessionName } from '../ProjectPanel/SessionCard';
+import { getProjectIdentity } from '../ProjectPanel/ProjectCard';
+import { ArchivedTasksModal } from './ArchivedTasksModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -46,14 +63,22 @@ export function ContentHeaderBar() {
     const p = s.projects.find((p) => p.id === s.currentProjectId);
     return p?.path ?? '';
   });
-  const activeWorkspaceSessionId = useCodeStore((s) => s.activeWorkspaceSessionId);
-  
-  const { accentColors, toRgba } = useAccentColors();
 
-  const [branch, setBranch] = useState<string | null>(null);
-  const [isEditingSession, setIsEditingSession] = useState(false);
-  const [tempSessionTitle, setTempSessionTitle] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const activeWorkspaceSessionId = useCodeStore((s) => s.activeWorkspaceSessionId);
+
+  const activeDesign = useDesignStore(
+    (s) => s.designs.find((d) => d.id === s.activeDesignId) ?? null,
+  );
+  const designLoading = useDesignStore((s) => s.loading);
+  const loadDesigns = useDesignStore((s) => s.loadDesigns);
+
+  const { accentColors, toRgba } = useAccentColors();
+  const identity = useMemo(
+    () => getProjectIdentity((currentProjectId ?? '') + projectName),
+    [currentProjectId, projectName],
+  );
+
+  const [gitBranch, setBranch] = useState<string | null>(null);
 
   useEffect(() => {
     if (!projectPath) {
@@ -81,7 +106,7 @@ export function ContentHeaderBar() {
     if (!activeWorkspaceSessionId || !currentProjectId) return null;
     const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
     if (!project || !project.branches) return null;
-    
+
     for (const b of project.branches) {
       const s = b.sessions.find((sess) => sess.id === activeWorkspaceSessionId);
       if (s) return s;
@@ -89,166 +114,412 @@ export function ContentHeaderBar() {
     return null;
   }, [activeWorkspaceSessionId, currentProjectId]);
 
-  const isValidWorkspaceSession = !!activeSession;
+  const sessionBranchName = useMemo(() => {
+    if (!activeWorkspaceSessionId || !currentProjectId) return null;
+    const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+    const owner = project?.branches?.find((b) =>
+      b.sessions.some((sess) => sess.id === activeWorkspaceSessionId),
+    );
+    return owner?.name ?? null;
+  }, [activeWorkspaceSessionId, currentProjectId]);
+
+  const branch = sessionBranchName ?? gitBranch;
+
+  const sessionTask = useSessionTasks((s) =>
+    activeWorkspaceSessionId ? s.bySession[activeWorkspaceSessionId] : undefined,
+  );
+  const sessionDisplayName = activeSession
+    ? (sessionTask?.title ??
+      getTempSessionName(activeSession.id, projectName ?? '', sessionBranchName ?? gitBranch ?? ''))
+    : '';
 
   // TaskManager specific state
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [taskLayout, setTaskLayout] = useState<'board' | 'table' | 'timeline'>(() => {
+    try {
+      const stored = localStorage.getItem('phantoma:task-layout');
+      return stored === 'table' || stored === 'timeline' ? stored : 'board';
+    } catch {
+      return 'board';
+    }
+  });
+  const [archiveOpen, setArchiveOpen] = useState(false);
+
+  const handleLayoutChange = (layout: 'board' | 'table' | 'timeline') => {
+    setTaskLayout(layout);
+    try {
+      localStorage.setItem('phantoma:task-layout', layout);
+    } catch {
+      /* storage unavailable */
+    }
+    window.dispatchEvent(new CustomEvent('phantoma:task-layout', { detail: layout }));
+  };
 
   const handleNewTaskClick = () => {
     window.dispatchEvent(new CustomEvent('phantoma:new-task'));
   };
 
+  // Git view state
+  const [gitSync, setGitSync] = useState<{
+    branch: string;
+    hasUpstream: boolean;
+    ahead: number;
+    behind: number;
+    changed: number;
+    staged: number;
+    stashes: number;
+  } | null>(null);
+  const [gitBusy, setGitBusy] = useState<'fetch' | 'pull' | 'push' | null>(null);
+  const [gitMsg, setGitMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const loadGitSync = useCallback(async () => {
+    if (!projectPath) return;
+    try {
+      const res = await window.api.invoke('git:sync-info', projectPath);
+      setGitSync(res?.error ? null : res);
+    } catch {
+      setGitSync(null);
+    }
+  }, [projectPath]);
+
+  useEffect(() => {
+    if (contentViewMode !== 'git' || !projectPath) return;
+    void loadGitSync();
+    const timer = setInterval(() => void loadGitSync(), 15000);
+    return () => clearInterval(timer);
+  }, [contentViewMode, projectPath, loadGitSync]);
+
+  const runGitOp = async (op: 'fetch' | 'pull' | 'push') => {
+    if (!projectPath || gitBusy) return;
+    setGitBusy(op);
+    try {
+      const res = await window.api.invoke(`git:${op}`, projectPath);
+      const ok = !res?.error;
+      setGitMsg({
+        ok,
+        text: ok ? `${op[0].toUpperCase()}${op.slice(1)} completed` : String(res.error).split('\n')[0],
+      });
+      window.dispatchEvent(new CustomEvent('phantoma:git-refresh'));
+      await loadGitSync();
+    } catch (e: any) {
+      setGitMsg({ ok: false, text: e?.message ?? String(e) });
+    } finally {
+      setGitBusy(null);
+      setTimeout(() => setGitMsg(null), 3500);
+    }
+  };
+
   return (
-    <div
-      className="w-full shrink-0 border-b border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center gap-3"
-      style={{ height: CONTENT_HEADER_HEIGHT }}
-    >
-      {/* LEFT SECTION: Session Name + Branch Badge */}
-      <div className="flex-1 min-w-0 flex items-center gap-3 z-10">
-        {contentViewMode === 'workspace' && activeSession && (
-          <>
-            {isEditingSession ? (
-              <input
-                ref={inputRef}
-                value={tempSessionTitle}
-                onChange={(e) => setTempSessionTitle(e.target.value)}
-                onBlur={() => {
-                  window.dispatchEvent(new CustomEvent('phantoma:update-session-title', { 
-                    detail: { sessionId: activeSession.id, newTitle: tempSessionTitle } 
-                  }));
-                  setIsEditingSession(false);
+    <>
+      <div
+        className="w-full shrink-0 border-b border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center gap-3"
+        style={{ height: CONTENT_HEADER_HEIGHT }}
+      >
+        {/* LEFT SECTION: Session Name + Branch Badge */}
+        <div className="flex-1 min-w-0 flex items-center gap-3 z-10">
+          {contentViewMode === 'tasks' && (
+            <>
+              <span
+                className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0"
+                style={{
+                  color: identity.color,
+                  backgroundColor: `color-mix(in srgb, ${identity.color} 15%, transparent)`,
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                     window.dispatchEvent(new CustomEvent('phantoma:update-session-title', { 
-                      detail: { sessionId: activeSession.id, newTitle: tempSessionTitle } 
-                    }));
-                    setIsEditingSession(false);
-                  } else if (e.key === 'Escape') {
-                    setIsEditingSession(false);
-                  }
-                }}
-                className="h-[26px] text-sm font-semibold text-text-primary bg-input border border-primary rounded-md px-2 py-0 focus:outline-none w-full max-w-[240px] shadow-sm"
-                autoFocus
-              />
-            ) : (
-              <span 
-                onClick={() => {
-                  setTempSessionTitle(activeSession.title);
-                  setIsEditingSession(true);
-                }}
-                className="group relative flex items-center gap-1.5 cursor-pointer select-none"
-                title="Click to rename session"
               >
-                <span className="text-sm font-semibold text-text-primary truncate max-w-[200px] group-hover:text-primary transition-colors">
-                  {activeSession.title}
-                </span>
-                <Pencil className="w-3 h-3 shrink-0 text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity absolute -right-4 top-1/2 -translate-y-1/2" />
+                <identity.Icon className="w-3.5 h-3.5" />
               </span>
-            )}
+              <span className="text-sm font-semibold text-text-primary truncate">
+                {projectName}
+              </span>
+            </>
+          )}
 
-            {/* Branch Badge next to Session Name */}
-            {branch && (() => {
-              let hash = 0;
-              for (let i = 0; i < branch.length; i++) {
-                hash = ((hash << 5) - hash) + branch.charCodeAt(i);
-                hash |= 0;
-              }
-              const colorIndex = Math.abs(hash) % accentColors.length;
-              const branchColor = accentColors[colorIndex];
-              
-              return (
-                <span 
-                  className="flex items-center gap-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded cursor-default border shrink-0"
-                  style={{
-                    color: branchColor,
-                    backgroundColor: toRgba(branchColor, 0.1),
-                    borderColor: toRgba(branchColor, 0.2),
-                  }}
-                >
-                  <GitBranch className="w-3 h-3" strokeWidth={1.5} />
-                  {branch}
-                </span>
-              );
-            })()}
-          </>
-        )}
-      </div>
-
-      {/* RIGHT SECTION: Actions */}
-      <div className="shrink-0 flex items-center gap-2 z-10">
-        {/* Workspace Quick Actions (FakeUI) */}
-        {contentViewMode === 'workspace' && activeWorkspaceSessionId && (
-          <>
-            <button
-              className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-primary transition-colors cursor-pointer group"
-              title="Pin Session"
-            >
-              <Pin className="w-3.5 h-3.5 group-hover:-rotate-12 transition-transform" />
-            </button>
-            <button
-              className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-blue-400 transition-colors cursor-pointer"
-              title="Share Context"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-red-500/10 hover:text-red-400 transition-colors cursor-pointer"
-              title="Clear Memory"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="h-4 w-px bg-divider mx-1" />
-          </>
-        )}
-
-        {/* Task Manager Controls — Only visible when tasks view is active */}
-        {contentViewMode === 'tasks' && (
-          <>
-            {/* Search Bar */}
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  window.dispatchEvent(
-                    new CustomEvent('phantoma:task-search', { detail: e.target.value }),
-                  );
+          {contentViewMode === 'git' && (
+            <>
+              <span
+                className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0"
+                style={{
+                  color: identity.color,
+                  backgroundColor: `color-mix(in srgb, ${identity.color} 15%, transparent)`,
                 }}
-                placeholder="Search tasks..."
-                className="w-full pl-7 pr-2 py-1.5 text-xs bg-input border border-border rounded-md text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-primary transition-colors"
-              />
+              >
+                <identity.Icon className="w-3.5 h-3.5" />
+              </span>
+              <span className="text-sm font-semibold text-text-primary truncate">{projectName}</span>
+              {gitSync && (
+                <>
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary shrink-0">
+                    <GitBranch className="w-3 h-3" strokeWidth={1.5} />
+                    {gitSync.branch}
+                  </span>
+                  <span
+                    title={
+                      gitSync.hasUpstream
+                        ? `${gitSync.ahead} ahead, ${gitSync.behind} behind upstream`
+                        : 'No upstream configured'
+                    }
+                    className="flex items-center gap-1.5 font-mono text-[11px] text-text-secondary shrink-0"
+                  >
+                    <span className={gitSync.ahead ? 'text-green' : ''}>
+                      <ArrowUp className="inline w-3 h-3" />
+                      {gitSync.ahead}
+                    </span>
+                    <span className={gitSync.behind ? 'text-orange-400' : ''}>
+                      <ArrowDown className="inline w-3 h-3" />
+                      {gitSync.behind}
+                    </span>
+                  </span>
+                  <span
+                    title={`${gitSync.changed} changed, ${gitSync.staged} staged`}
+                    className="flex items-center gap-1 text-[11px] text-text-secondary shrink-0"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    <span className="font-mono">{gitSync.changed}</span>
+                  </span>
+                  <span
+                    title={`${gitSync.stashes} stashes`}
+                    className="flex items-center gap-1 text-[11px] text-text-secondary shrink-0"
+                  >
+                    <Layers className="w-3 h-3" />
+                    <span className="font-mono">{gitSync.stashes}</span>
+                  </span>
+                </>
+              )}
+              {gitMsg && (
+                <span
+                  className={`text-[11px] truncate ${gitMsg.ok ? 'text-green' : 'text-red'}`}
+                  title={gitMsg.text}
+                >
+                  {gitMsg.text}
+                </span>
+              )}
+            </>
+          )}
+
+          {contentViewMode === 'design' && (
+            <>
+              <span className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
+                <Palette className="w-3.5 h-3.5" />
+              </span>
+              <span className="text-sm font-semibold text-text-primary truncate">
+                {activeDesign?.name ?? 'Design'}
+              </span>
+              {activeDesign && (
+                <>
+                  <span
+                    title={`${activeDesign.nodes.length} pages`}
+                    className="flex items-center gap-1 text-[11px] text-text-secondary shrink-0"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span className="font-mono">{activeDesign.nodes.length}</span>
+                  </span>
+                  <span
+                    title={`${activeDesign.edges.length} links`}
+                    className="flex items-center gap-1 text-[11px] text-text-secondary shrink-0"
+                  >
+                    <Link2 className="w-3 h-3" />
+                    <span className="font-mono">{activeDesign.edges.length}</span>
+                  </span>
+                </>
+              )}
+            </>
+          )}
+
+          {contentViewMode === 'workspace' && activeSession && (
+            <>
+              <span
+                className="text-sm font-semibold text-text-primary truncate max-w-[200px]"
+                title={sessionDisplayName}
+              >
+                {sessionDisplayName}
+              </span>
+
+              {/* Branch Badge next to Session Name */}
+              {branch &&
+                (() => {
+                  let hash = 0;
+                  for (let i = 0; i < branch.length; i++) {
+                    hash = (hash << 5) - hash + branch.charCodeAt(i);
+                    hash |= 0;
+                  }
+                  const colorIndex = Math.abs(hash) % accentColors.length;
+                  const branchColor = accentColors[colorIndex];
+
+                  return (
+                    <span
+                      className="flex items-center gap-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded cursor-default border shrink-0"
+                      style={{
+                        color: branchColor,
+                        backgroundColor: toRgba(branchColor, 0.1),
+                        borderColor: toRgba(branchColor, 0.2),
+                      }}
+                    >
+                      <GitBranch className="w-3 h-3" strokeWidth={1.5} />
+                      {branch}
+                    </span>
+                  );
+                })()}
+            </>
+          )}
+        </div>
+
+        {/* RIGHT SECTION: Actions */}
+        <div className="shrink-0 flex items-center gap-2 z-10">
+          {/* Task Manager Controls — Only visible when tasks view is active */}
+          {contentViewMode === 'tasks' && (
+            <>
+              {/* Search Bar */}
+              <div className="relative w-64">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    window.dispatchEvent(
+                      new CustomEvent('phantoma:task-search', { detail: e.target.value }),
+                    );
+                  }}
+                  placeholder="Search tasks..."
+                  className="w-full pl-7 pr-2 py-1.5 text-xs bg-input-background border border-border rounded-md text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-0 transition-colors"
+                />
+              </div>
+
+              <div className="h-[26px] p-0.5 rounded-md border border-border bg-card-background flex items-center gap-0.5">
+                {(
+                  [
+                    ['board', LayoutGrid, 'Board view'],
+                    ['table', List, 'Table view'],
+                    ['timeline', GanttChart, 'Timeline view'],
+                  ] as const
+                ).map(([key, Icon, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => handleLayoutChange(key)}
+                    title={label}
+                    className={`w-[22px] h-full rounded flex items-center justify-center transition-colors cursor-pointer ${
+                      taskLayout === key
+                        ? 'bg-primary/15 text-primary'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-card-hover'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setArchiveOpen(true)}
+                className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
+                title="Archived tasks"
+              >
+                <Archive className="w-3.5 h-3.5" />
+              </button>
+
+              <Dropdown trigger="click" align="end">
+                <DropdownTrigger asChild>
+                  <button
+                    className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
+                    title="Notifications"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                  </button>
+                </DropdownTrigger>
+                <DropdownContent>
+                  <div className="w-[260px] py-6 flex flex-col items-center gap-2 text-center">
+                    <span className="w-9 h-9 rounded-xl bg-card-hover grid place-items-center text-text-secondary">
+                      <Bell className="w-4 h-4" strokeWidth={1.5} />
+                    </span>
+                    <p className="text-xs font-medium text-text-primary">No notifications</p>
+                    <p className="text-[11px] text-text-secondary">You are all caught up.</p>
+                  </div>
+                </DropdownContent>
+              </Dropdown>
+
+              <button
+                onClick={handleNewTaskClick}
+                className="w-[26px] h-[26px] rounded-md flex items-center justify-center bg-primary/15 text-primary hover:bg-primary/25 transition-colors cursor-pointer"
+                title="New Task"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+
+          {contentViewMode === 'git' && (
+            <div className="h-[26px] p-0.5 rounded-md border border-border bg-card-background flex items-center gap-0.5">
+              {(
+                [
+                  ['fetch', Download, 'Fetch all remotes'],
+                  ['pull', ArrowDown, 'Pull'],
+                  ['push', ArrowUp, 'Push'],
+                ] as const
+              ).map(([op, Icon, label]) => (
+                <button
+                  key={op}
+                  onClick={() => void runGitOp(op)}
+                  disabled={gitBusy !== null}
+                  title={label}
+                  className="h-full px-1.5 rounded flex items-center gap-1 text-[11px] text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {gitBusy === op ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Icon className="w-3.5 h-3.5" />
+                  )}
+                  <span className="capitalize">{op}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('phantoma:git-refresh'));
+                  void loadGitSync();
+                }}
+                title="Refresh"
+                className="w-[22px] h-full rounded flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
             </div>
+          )}
 
-            {/* New Task Button */}
+          {contentViewMode === 'design' && (
             <button
-              onClick={handleNewTaskClick}
-              className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
-              title="New Task"
+              onClick={() => projectPath && void loadDesigns(projectPath)}
+              disabled={designLoading || !projectPath}
+              className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Reload designs"
             >
-              <Plus className="w-3.5 h-3.5" />
+              {designLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
             </button>
-          </>
-        )}
+          )}
 
-        {/* Global More Options */}
-        <Dropdown trigger="click" align="end">
-          <DropdownTrigger asChild>
-            <button
-              className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
-              title="More options"
-            >
-              <MoreVertical className="w-3.5 h-3.5" />
-            </button>
-          </DropdownTrigger>
-          <DropdownContent>
-            <DropdownItem disabled>No actions available yet</DropdownItem>
-          </DropdownContent>
-        </Dropdown>
+          {/* Global More Options */}
+          <Dropdown trigger="click" align="end">
+            <DropdownTrigger asChild>
+              <button
+                className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
+                title="More options"
+              >
+                <MoreVertical className="w-3.5 h-3.5" />
+              </button>
+            </DropdownTrigger>
+            <DropdownContent>
+              <DropdownItem disabled>No actions available yet</DropdownItem>
+            </DropdownContent>
+          </Dropdown>
+        </div>
       </div>
-    </div>
+      <ArchivedTasksModal
+        isOpen={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        projectPath={projectPath}
+      />
+    </>
   );
 }

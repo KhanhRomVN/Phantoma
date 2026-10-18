@@ -26,13 +26,15 @@
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-export type PanelType = 'terminal' | 'website' | 'note' | 'emulator';
+export type PanelType = 'terminal' | 'website' | 'note' | 'emulator' | 'file' | 'agent';
 
 export interface WorkspacePanel {
   id: string;
   type: PanelType;
   title: string;
   content?: string;
+  /** Đường dẫn tuyệt đối của file khi type === 'file' */
+  filePath?: string;
   /** Working directory for this specific panel (crucial to prevent restart on session switch) */
   cwd?: string;
   sessionId?: string;

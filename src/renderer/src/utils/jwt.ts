@@ -113,3 +113,72 @@ export function extractAccessToken(credential: string): string | null {
 
   return null;
 }
+
+/**
+ * Extract cookie session expiry timestamp from raw Cookie header string.
+ * Looks for common session cookies like __Secure-1PSID, _ga, etc., and parses expires/max-age attributes.
+ * Note: This is a simplified parser for display purposes only.
+ * @param cookieString - Raw Cookie header value
+ * @returns Expiry timestamp in ms since epoch, or null if not found/expired
+ */
+export function extractCookieSessionExpiry(cookieString: string): number | null {
+  if (!cookieString) return null;
+  
+  // Simple regex to find 'expires=' attribute in Set-Cookie style strings within credentials
+  // Or look for specific known patterns if credentials store serialized cookies
+  const match = cookieString.match(/expires=([^;]+)/i);
+  if (match) {
+    const expDate = new Date(match[1]);
+    if (!isNaN(expDate.getTime())) {
+      return expDate.getTime();
+    }
+  }
+  
+  // Fallback: Check for max-age relative expiration (less common in stored creds but possible)
+  const maxAgeMatch = cookieString.match(/max-age=(\d+)/i);
+  if (maxAgeMatch) {
+    const seconds = parseInt(maxAgeMatch[1], 10);
+    if (!isNaN(seconds)) {
+       // Assuming the credential was saved recently enough that we can't know exact start time without metadata,
+       // usually we'd need a 'saved_at' field. For UI display, returning null might be safer than guessing wrong.
+       // However, Zen implementation often relies on absolute dates in stored creds.
+       return null; 
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Format a millisecond timestamp into a human-readable expiry string.
+ * @param ts - Timestamp in ms since epoch
+ * @returns Formatted string e.g. "3d 5h", "Expired", or null if invalid
+ */
+export function formatExpiryMs(ts: number | null): string | null {
+  if (ts === null) return null;
+  
+  const now = Date.now();
+  const diff = ts - now;
+
+  if (diff <= 0) {
+    return 'Expired';
+  }
+
+  const minutes = Math.floor(diff / (60 * 1000));
+  const hours = Math.floor(diff / (60 * 60 * 1000));
+  const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+
+  if (hours === 0) {
+    return `${minutes}m`;
+  }
+
+  if (days === 0) {
+    return `${hours}h`;
+  }
+
+  const remainingHours = hours % 24;
+  if (remainingHours === 0) {
+    return `${days}d`;
+  }
+  return `${days}d ${remainingHours}h`;
+}

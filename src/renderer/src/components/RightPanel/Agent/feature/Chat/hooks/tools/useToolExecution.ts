@@ -68,7 +68,7 @@ export const useToolExecution = ({
   isStoppedRef,
 }: UseToolExecutionProps) => {
   const { permissionMode } = useSettings();
-  const { emulateState } = useAgentFeature();
+  const { emulateState, activeFeature } = useAgentFeature();
   const permissionModeRef = useRef<PermissionMode>(permissionMode);
   useLayoutEffect(() => {
     permissionModeRef.current = permissionMode;
@@ -506,7 +506,9 @@ export const useToolExecution = ({
 
         const currentMessage = messagesRef?.current.find((m) => m.id === message.id);
         const selectedOption = currentMessage?.selectedOption;
-        const parsed = parseAIResponse(message.content);
+        // Default to 'xml' as toolFormat is not directly accessible here without prop drilling.
+        // Real-time JSON parsing happens in useChatLLM. This hook handles post-execution state.
+        const parsed = parseAIResponse(message.content, 'xml', activeFeature);
         const hasQuestion = !!parsed.question;
         const isQuestionAnswered = hasQuestion ? !!selectedOption : true;
 
@@ -601,7 +603,7 @@ export const useToolExecution = ({
         setAvailableToolResultsBuffer((prev) => {
           const newBuffer = [...(prev[messageObj.id] || []), result];
 
-          const parsed = parseAIResponse(messageObj.content);
+          const parsed = parseAIResponse(messageObj.content, 'xml', activeFeature);
           const allActionIds = parsed.actions.map(
             (_: any, idx: number) => `${messageObj.id}-action-${idx}`,
           );
@@ -670,7 +672,7 @@ export const useToolExecution = ({
       setAvailableToolResultsBuffer((prev) => {
         const newBuffer = [...(prev[messageObj.id] || []), errorResult];
 
-        const parsed = parseAIResponse(messageObj.content);
+        const parsed = parseAIResponse(messageObj.content, 'xml', activeFeature);
         const allActionIds = parsed.actions.map(
           (_: any, idx: number) => `${messageObj.id}-action-${idx}`,
         );

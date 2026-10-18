@@ -153,14 +153,16 @@ export function ThemeProvider({
 
     let effectiveMode: 'light' | 'dark' = 'dark';
 
-    if (theme === 'system') {
+    if (currentPreset) {
+      effectiveMode = currentPreset.type;
+    } else if (theme === 'system') {
       effectiveMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     } else {
       effectiveMode = theme;
     }
 
     root.classList.add(effectiveMode);
-  }, [theme]);
+  }, [theme, currentPreset]);
 
   const value = {
     theme,

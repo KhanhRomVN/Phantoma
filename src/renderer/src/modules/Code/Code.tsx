@@ -224,6 +224,8 @@ export function Code() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setProjectManagerOpen, setNewProjectOpen]);
 
+  const isGitView = useCodeStore((s) => s.contentViewMode === 'git');
+
   // ── Render ──
   return (
     <div className="flex flex-col h-full w-full bg-background relative">
@@ -233,7 +235,7 @@ export function Code() {
           <ContentPanel />
           <ToastContainer />
         </div>
-        <ActivityPanel />
+        {!isGitView && <ActivityPanel />}
       </div>
       <FooterBar />
     </div>

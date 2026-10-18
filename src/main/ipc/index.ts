@@ -27,3 +27,5 @@ export { registerWorkspaceHandlers } from './webview.handlers';
 export { setupMemoryHandlers } from './memory.handlers';
 export { setupSkillHandlers } from './skill.handlers';
 export { setupTitleHandlers } from './title.handlers';
+export { setupWorkspaceDataHandlers } from './workspace.handlers';
+export { setupDesignHandlers } from './design.handlers';

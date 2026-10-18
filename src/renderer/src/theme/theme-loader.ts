@@ -1,6 +1,7 @@
 export interface ThemeConfig {
   id: string;
   name: string;
+  type: 'light' | 'dark';
   monaco: {
     base: string;
     inherit: boolean;

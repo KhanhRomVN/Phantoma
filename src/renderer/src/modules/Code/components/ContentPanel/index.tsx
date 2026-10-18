@@ -45,6 +45,8 @@ import { useCodeStore, type FileNode } from '../../hooks/useCodeStore';
 import { TaskManager } from './TaskManager';
 import { WorkspaceViews, EmptyState } from './Workspace';
 import { ContentHeaderBar } from './Headerbar';
+import { GitView } from './Git';
+import { DesignView } from './Design';
 
 // ── Services ─
 import { fileWatcherService } from '../../services/file-watcher.service';
@@ -431,6 +433,14 @@ const ContentPanelInner = memo(function ContentPanelInner() {
   // ── Special Views (Tasks / Workspace) ─────────────────────────────────────
   if (contentViewMode === 'tasks') {
     return <TaskManager />;
+  }
+
+  if (contentViewMode === 'git') {
+    return <GitView />;
+  }
+
+  if (contentViewMode === 'design') {
+    return <DesignView />;
   }
 
   // Only render Workspace if mode is 'workspace' AND the session ID is valid/existing

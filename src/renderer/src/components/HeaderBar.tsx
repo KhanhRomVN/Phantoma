@@ -31,7 +31,6 @@ import {
   Minus,
   Square,
   X,
-  Ghost,
   Cpu,
   HardDrive,
   Activity,
@@ -175,9 +174,18 @@ export function HeaderBar({
         {/* Left Section */}
         <div className="flex items-center gap-3 flex-1">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
-              <Ghost className="w-3.5 h-3.5 text-primary" strokeWidth={2} />
-            </div>
+            <img
+              src="/images/phantoma-dark-logo.png"
+              alt="Phantoma"
+              className="w-6 h-6 shrink-0 object-contain dark:hidden"
+              draggable={false}
+            />
+            <img
+              src="/images/phantoma-light-logo.png"
+              alt="Phantoma"
+              className="w-6 h-6 shrink-0 object-contain hidden dark:block"
+              draggable={false}
+            />
             <span className="text-[13px] font-semibold tracking-tight text-text-primary">Phantoma</span>
             <span className="text-[10px] font-mono text-text-secondary bg-border/30 px-1.5 py-0.5 rounded-full">
               1.2.34

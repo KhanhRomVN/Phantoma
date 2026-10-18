@@ -1,10 +1,10 @@
-import { parseToolAction } from '../utils/ToolParser';
 /**
  * ------------------------------------------------------------------
  * Response Parser
  * ------------------------------------------------------------------
  * Parse AI response để extract tool actions và content blocks.
  * Hỗ trợ interleaved text và tool calls trong cùng response.
+ * Hỗ trợ cả XML tags (default) và JSON fenced blocks.
  *
  * Main exports:
  * - ParsedResponse : Cấu trúc kết quả parse
@@ -13,16 +13,17 @@ import { parseToolAction } from '../utils/ToolParser';
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
+// ─── Imports ───────────────────────────────────────────────────────────
 // ── Constants ──
 import { getAllToolTypes } from '../constants/constants';
-
 // ── Types ──
 import { TagType } from '../types/tag-types';
 import type { ContentBlock } from '../types/renderer-types';
+import type { Question, QuestionType } from '../types/message';
 
-// ── Utils ──
+// ── Utils ─
 import { findClosingTagPosition } from '../utils/TagClosingFinder';
+import { parseToolAction } from '../utils/ToolParser';
 
 // ── Parsers ──
 import {
@@ -96,6 +97,92 @@ import { parseReadMemory } from './parsers/ReadMemoryParser';
 import { parseReadSkill } from './parsers/ReadSkillParser';
 import { parseUpdateMemory } from './parsers/UpdateMemoryParser';
 import { parseQuestion } from './parsers/QuestionParser';
+import {
+  parseDesignReadFile,
+  parseDesignCreateFile,
+  parseDesignUpdateFile,
+  parseDesignListFiles,
+  parseDesignGrep,
+} from './parsers/DesignParser';
+
+export const DESIGN_TOOL_NAMES = new Set([
+  'read_file',
+  'create_file',
+  'update_file',
+  'list_files',
+  'grep',
+]);
+
+/**
+ * Parse a raw inner-content string from JSON params into the same shape
+ * that XML parsers expect by converting the params object to pseudo-XML.
+ * e.g. { file_path: "foo.ts", start_line: 1 } → "<file_path>foo.ts</file_path><start_line>1</start_line>"
+ */
+const paramsToXmlInner = (params: Record<string, any>): string => {
+  return Object.entries(params)
+    .map(([key, val]) => {
+      if (val === null || val === undefined) return '';
+      return `<${key}>${String(val)}</${key}>`;
+    })
+    .join('');
+};
+
+/**
+ * Convert a JSON tool object to a ToolAction using the existing XML parsers.
+ */
+const jsonToolToAction = (
+  toolName: string,
+  params: Record<string, any>,
+  rawJson: string,
+): ToolAction | null => {
+  const inner = paramsToXmlInner(params);
+  // Reuse the same switch as the XML path
+  switch (toolName) {
+    case 'read_file':
+      return { type: 'read_file', params: parseReadFile(inner), rawXml: rawJson };
+    case 'write_to_file':
+      return { type: 'write_to_file', params: parseWriteToFile(inner), rawXml: rawJson };
+    case 'replace_in_file':
+      return { type: 'replace_in_file', params: parseReplaceInFile(inner), rawXml: rawJson };
+    case 'list_files':
+      return { type: 'list_files', params: parseListFiles(inner), rawXml: rawJson };
+    case 'find_files':
+      return { type: 'find_files', params: parseFindFiles(inner), rawXml: rawJson };
+    case 'grep':
+      return { type: 'grep', params: parseGrep(inner), rawXml: rawJson };
+    case 'delete_file':
+      return { type: 'delete_file', params: parseDeleteFile(inner), rawXml: rawJson };
+    case 'revert_file':
+      return { type: 'revert_file', params: parseRevertFile(inner), rawXml: rawJson };
+    case 'view_replace_history':
+      return {
+        type: 'view_replace_history',
+        params: parseViewReplaceHistory(inner),
+        rawXml: rawJson,
+      };
+    case 'run_command':
+      return { type: 'run_command', params: parseRunCommand(inner), rawXml: rawJson };
+    case 'git_status':
+      return { type: 'git_status', params: parseGitStatus(inner), rawXml: rawJson };
+    case 'git_diff':
+      return { type: 'git_diff', params: parseGitDiff(inner), rawXml: rawJson };
+    case 'commit_message': return { type: 'commit_message', params: {}, rawXml: rawJson };
+    case 'conversation_title':
+      return {
+        type: 'conversation_title',
+        params: parseConversationTitle(String(params.title ?? '')),
+        rawXml: rawJson,
+      };
+    case 'read_skill':
+      return { type: 'read_skill', params: parseReadSkill(inner), rawXml: rawJson };
+    case 'read_memory':
+      return { type: 'read_memory', params: parseReadMemory(inner), rawXml: rawJson };
+    case 'update_memory':
+      return { type: 'update_memory', params: parseUpdateMemory(inner), rawXml: rawJson };
+    default:
+      return null;
+  }
+};
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface ParsedResponse {
@@ -126,7 +213,204 @@ export interface ToolAction {
 const DEBUG_PARSER =
   typeof window !== 'undefined' && window.localStorage?.getItem('zen_debug_parser') === 'true';
 
-export const parseAIResponse = (content: string): ParsedResponse => {
+/**
+ * JSON format parser: scans response for ```json {...} ``` fenced blocks that match
+ * { tool, params } (tool call) or { type, ... } (markdown / code / question UI object).
+ * Text between blocks is treated as markdown.
+ */
+const parseAIResponseJson = (content: string, result: ParsedResponse): ParsedResponse => {
+  const { remainingContent: scanStr, thinkingBlocks } = extractThinkingBlocks(content);
+
+  let lastIndex = 0;
+
+  const pushMarkdown = (text: string) => {
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return;
+    result.contentBlocks.push({ type: 'markdown', content: trimmed });
+  };
+
+  const pushJsonCode = (body: string) => {
+    result.contentBlocks.push({ type: 'code', content: body, language: 'json' });
+  };
+
+  /**
+   * Balanced-fence scanner: ignores triple backticks that appear inside JSON string values
+   * by tracking in-string state (unescaped double quote toggles it).
+   */
+  const findNextJsonFence = (
+    fromIdx: number,
+  ): { openStart: number; bodyStart: number; bodyEnd: number; fenceEnd: number } | null => {
+    const OPEN = '```json';
+    const openIdx = scanStr.indexOf(OPEN, fromIdx);
+    if (openIdx === -1) return null;
+
+    const nlAfterOpen = scanStr.indexOf('\n', openIdx);
+    const bodyStart = nlAfterOpen !== -1 ? nlAfterOpen + 1 : openIdx + OPEN.length;
+
+    let inString = false;
+    let escape = false;
+    for (let i = bodyStart; i < scanStr.length; i++) {
+      const ch = scanStr[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (!inString && ch === '`' && scanStr.startsWith('```', i)) {
+        return { openStart: openIdx, bodyStart, bodyEnd: i, fenceEnd: i + 3 };
+      }
+    }
+    return null;
+  };
+
+  const GIT_STATUS_OPEN = '<git_status>';
+  const GIT_STATUS_CLOSE = '</git_status>';
+
+  while (lastIndex < scanStr.length) {
+    const fence = findNextJsonFence(lastIndex);
+    const gsOpen = scanStr.indexOf(GIT_STATUS_OPEN, lastIndex);
+    const gsClose =
+      gsOpen !== -1 ? scanStr.indexOf(GIT_STATUS_CLOSE, gsOpen + GIT_STATUS_OPEN.length) : -1;
+    const hasValidGs = gsOpen !== -1 && gsClose !== -1;
+
+    if (!fence && !hasValidGs) break;
+
+    if (hasValidGs && (!fence || gsOpen < fence.openStart)) {
+      pushMarkdown(scanStr.slice(lastIndex, gsOpen));
+
+      const inner = scanStr.slice(gsOpen + GIT_STATUS_OPEN.length, gsClose);
+      const rawXml = scanStr.slice(gsOpen, gsClose + GIT_STATUS_CLOSE.length);
+      const gitAction: ToolAction = { type: 'git_status', params: parseGitStatus(inner), rawXml };
+      result.contentBlocks.push({
+        type: 'tool',
+        action: gitAction,
+        actionIndex: result.actions.length,
+      });
+      result.actions.push(gitAction);
+      lastIndex = gsClose + GIT_STATUS_CLOSE.length;
+      continue;
+    }
+
+    if (!fence) break;
+
+    pushMarkdown(scanStr.slice(lastIndex, fence.openStart));
+
+    const rawJson = scanStr.slice(fence.openStart, fence.fenceEnd);
+    const jsonBody = scanStr.slice(fence.bodyStart, fence.bodyEnd).trim();
+    lastIndex = fence.fenceEnd;
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonBody);
+    } catch {
+      pushJsonCode(jsonBody);
+      continue;
+    }
+
+    if (typeof parsed?.type === 'string' && typeof parsed?.tool === 'undefined') {
+      if (parsed.type === 'markdown' && typeof parsed.content === 'string') {
+        pushMarkdown(parsed.content);
+      } else if (parsed.type === 'code' && typeof parsed.content === 'string') {
+        const codeContent = parsed.content.trim();
+        const language = typeof parsed.language === 'string' ? parsed.language : 'text';
+        if (codeContent.length > 0) {
+          result.contentBlocks.push({ type: 'code', content: codeContent, language });
+        }
+      } else if (parsed.type === 'question' && Array.isArray(parsed.questions)) {
+        const questions: Question[] = [];
+        for (const q of parsed.questions) {
+          if (
+            !q ||
+            typeof q.id !== 'string' ||
+            typeof q.type !== 'string' ||
+            typeof q.label !== 'string'
+          ) {
+            continue;
+          }
+          const qType = q.type as QuestionType;
+          const options: string[] = Array.isArray(q.options)
+            ? q.options.filter((o: unknown) => typeof o === 'string')
+            : [];
+          if ((qType === 'single' || qType === 'multi') && options.length < 2) continue;
+          questions.push({
+            id: q.id,
+            type: qType,
+            label: q.label,
+            options: options.length > 0 ? options : undefined,
+          });
+        }
+        if (questions.length > 0) {
+          const questionBlock: ContentBlock = { type: 'question', options: [], questions };
+          result.contentBlocks.push(questionBlock);
+          result.question = questionBlock;
+        }
+      } else {
+        pushJsonCode(jsonBody);
+      }
+      continue;
+    }
+
+    if (
+      typeof parsed?.tool !== 'string' ||
+      typeof parsed?.params !== 'object' ||
+      parsed.params === null
+    ) {
+      pushJsonCode(jsonBody);
+      continue;
+    }
+
+    const action = jsonToolToAction(parsed.tool, parsed.params, rawJson);
+    if (!action) {
+      pushJsonCode(jsonBody);
+      continue;
+    }
+
+    result.contentBlocks.push({ type: 'tool', action, actionIndex: result.actions.length });
+    result.actions.push(action);
+  }
+
+  pushMarkdown(scanStr.slice(lastIndex));
+
+  const placeholderRegex = /__THINKING_(\d+)__/g;
+  const expandedBlocks: ContentBlock[] = [];
+  for (const block of result.contentBlocks) {
+    if (block.type === 'markdown' && placeholderRegex.test(block.content)) {
+      placeholderRegex.lastIndex = 0;
+      const parts = block.content.split(/__THINKING_(\d+)__/);
+      for (let i = 0; i < parts.length; i++) {
+        if (i % 2 === 0) {
+          if (parts[i].trim()) expandedBlocks.push({ type: 'markdown', content: parts[i] });
+        } else {
+          const thinkingIdx = parseInt(parts[i], 10);
+          expandedBlocks.push({ type: 'thinking', content: thinkingBlocks[thinkingIdx] ?? '' });
+        }
+      }
+    } else {
+      expandedBlocks.push(block);
+    }
+  }
+  result.contentBlocks = expandedBlocks;
+
+  result.displayText = result.contentBlocks
+    .filter((b: any) => b.type === 'markdown')
+    .map((b: any) => b.content)
+    .join('\n\n');
+
+  return result;
+};
+
+export const parseAIResponse = (
+  content: string,
+  toolFormat: 'xml' | 'json' = 'xml',
+  feature?: string | null,
+): ParsedResponse => {
   // Track parsing sequence for debugging
   const parsingSequence: { index: number; tag: string; subTags?: string[] }[] = [];
   let sequenceCounter = 0;
@@ -140,6 +424,12 @@ export const parseAIResponse = (content: string): ParsedResponse => {
     displayText: '',
     question: null,
   };
+
+  // ─── JSON format path ────────────────────────────────────────────────────
+  if (toolFormat === 'json') {
+    return parseAIResponseJson(content, result);
+  }
+  // ────────────────────────────────────────────────────────────────────────
 
   let remainingContent = content;
 
@@ -161,7 +451,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
     content.trim().length < 2000 && // Small content, likely incomplete
     !content.includes('</thinking>'); // No closing tag yet
 
-  if (remainingContent.trim().length === 0 && content.trim().length > 100 && !isLikelyStreaming) {
+  if (DEBUG_PARSER && remainingContent.trim().length === 0 && content.trim().length > 100 && !isLikelyStreaming) {
     console.warn('[Zen][Parser] ⚠️ All content consumed by thinking extraction!', {
       originalLength: content.length,
       thinkingBlocks: thinkingBlocks.length,
@@ -200,7 +490,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
     // 1. Try to find complete (closed) tags first using backtick-aware search
     for (const toolName of toolPatterns) {
       // Find opening tag
-      const openRegex = new RegExp(`<${toolName}(?:\\s+[^>]*)?>`, 'i');
+      const openRegex = new RegExp(`<${toolName}(?:\\s+[^>]*|\\s*/)?>`, 'i');
       const openMatch = openRegex.exec(str);
 
       if (!openMatch) continue;
@@ -241,7 +531,7 @@ export const parseAIResponse = (content: string): ParsedResponse => {
     // 2. If no closed tag found, check for unclosed start tags
     if (minIndex === -1) {
       for (const toolName of toolPatterns) {
-        const openRegex = new RegExp(`<${toolName}(?:\\s+[^>]*)?>`, 'i');
+        const openRegex = new RegExp(`<${toolName}(?:\\s+[^>]*|\\s*/)?>`, 'i');
         const match = openRegex.exec(str);
         if (match) {
           if (minIndex === -1 || match.index < minIndex) {
@@ -377,8 +667,12 @@ export const parseAIResponse = (content: string): ParsedResponse => {
           // It's a tool - delegate to individual tag parsers
           const actionIndex = result.actions.length;
           let action: ToolAction;
+          const effectiveTool =
+            feature === 'design' && DESIGN_TOOL_NAMES.has(toolName)
+              ? `design_${toolName}`
+              : toolName;
 
-          switch (toolName) {
+          switch (effectiveTool) {
             case 'read_file': {
               const params = parseReadFile(innerContent || '');
               // Validation moved to post-stream processing in useChatLLM
@@ -702,6 +996,31 @@ export const parseAIResponse = (content: string): ParsedResponse => {
               action = { type: 'wait_for' as const, params: params || {}, rawXml };
               break;
             }
+            case 'design_read_file': {
+              const params = parseDesignReadFile(innerContent || '');
+              action = { type: 'design_read_file' as const, params, rawXml };
+              break;
+            }
+            case 'design_create_file': {
+              const params = parseDesignCreateFile(innerContent || '');
+              action = { type: 'design_create_file' as const, params, rawXml };
+              break;
+            }
+            case 'design_update_file': {
+              const params = parseDesignUpdateFile(innerContent || '');
+              action = { type: 'design_update_file' as const, params, rawXml };
+              break;
+            }
+            case 'design_list_files': {
+              const params = parseDesignListFiles(innerContent || '');
+              action = { type: 'design_list_files' as const, params, rawXml };
+              break;
+            }
+            case 'design_grep': {
+              const params = parseDesignGrep(innerContent || '');
+              action = { type: 'design_grep' as const, params, rawXml };
+              break;
+            }
             default:
               // Fallback to ToolParser for any unhandled tools
               action = parseToolAction(toolName, innerContent || '', rawXml);
@@ -781,9 +1100,9 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   // Replace contentBlocks with expanded version
   result.contentBlocks = expandedBlocks;
 
-  // 🔍 ALWAYS log if contentBlocks is empty (potential bug)
+  // 🔍 Log if contentBlocks is empty (potential bug) - only in debug mode
   const isPartialTag = /^<[\/]?[a-zA-Z0-9_]*$/.test(content.trim());
-  if (result.contentBlocks.length === 0 && content.trim().length > 0 && !isPartialTag) {
+  if (DEBUG_PARSER && result.contentBlocks.length === 0 && content.trim().length > 0 && !isPartialTag) {
     console.warn('[Zen][Parser] ⚠️ No contentBlocks generated!', {
       contentLength: content.length,
       contentPreview: content.substring(0, 200),
@@ -802,12 +1121,14 @@ export const parseAIResponse = (content: string): ParsedResponse => {
   if (hasThinkingBlocks && !hasOtherContent && content.trim().length > 100) {
     // Only mark if content is substantial (> 100 chars) to avoid false positives
     result.onlyThinkingDetected = true;
-    console.warn('[Zen][Parser] ⚠️ ONLY-THINKING response detected!', {
-      thinkingBlocksCount: thinkingBlocks.length,
-      contentLength: content.length,
-      totalBlocks: result.contentBlocks.length,
-      nonThinkingBlocks: nonThinkingBlocks.length,
-    });
+    if (DEBUG_PARSER) {
+      console.warn('[Zen][Parser] ⚠️ ONLY-THINKING response detected!', {
+        thinkingBlocksCount: thinkingBlocks.length,
+        contentLength: content.length,
+        totalBlocks: result.contentBlocks.length,
+        nonThinkingBlocks: nonThinkingBlocks.length,
+      });
+    }
   }
 
   // 📊 Final parse summary
@@ -863,6 +1184,21 @@ export const formatActionForDisplay = (action: ToolAction): string => {
     case 'git_status':
       const count = action.params.items?.length || 0;
       return `git_status: ${count} changes`;
+
+    case 'design_read_file':
+      return `read_file: ${action.params.file_path || 'unknown'}`;
+
+    case 'design_create_file':
+      return `create_file: ${action.params.file_path || 'unknown'}`;
+
+    case 'design_update_file':
+      return `update_file: ${action.params.file_path || 'unknown'}`;
+
+    case 'design_list_files':
+      return 'list_files';
+
+    case 'design_grep':
+      return `grep: ${action.params.search_term || ''}`;
 
     default:
       return ``;

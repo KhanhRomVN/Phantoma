@@ -38,7 +38,7 @@ import type { MCP, MCPInput } from '../types/mcp';
 import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
-export type PanelType = 'terminal' | 'website' | 'note' | 'emulator';
+export type PanelType = 'terminal' | 'website' | 'note' | 'emulator' | 'file' | 'agent';
 
 export interface StoredWorkspacePanel {
   sessionId?: string;
@@ -47,6 +47,7 @@ export interface StoredWorkspacePanel {
   type: PanelType;
   title: string;
   content?: string;
+  filePath?: string;
   providerId?: string | null;
 
   // ── NEW: ZenCLI session binding for auto-resume ──
@@ -83,7 +84,7 @@ export interface Project {
   isBottomPanelOpen: boolean;
   // ── Activity panel per-project ──
   activityPanelTab:
-    'explore' | 'search' | 'source' | 'history' | 'agents' | 'design' | 'extension' | 'lsp';
+    'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -171,7 +172,7 @@ function createDefaultPerProject() {
 
 // ─── Store Interface ────────────────────────────────────────────────────
 
-export type ContentViewMode = 'files' | 'tasks' | 'workspace';
+export type ContentViewMode = 'files' | 'tasks' | 'workspace' | 'git' | 'design';
 
 interface CodeState {
   projects: Project[];
@@ -186,6 +187,7 @@ interface CodeState {
   contentViewMode: ContentViewMode;
   activeWorkspaceSessionId: string | null;
   focusPanelRequest: { sessionId: string; panelId: string; nonce: number } | null;
+  openFileRequest: { sessionId: string; filePath: string; name: string; nonce: number } | null;
 
   // Actions
   addProject: (project: ProjectInput) => void;
@@ -253,6 +255,15 @@ interface CodeState {
   setActiveWorkspaceSessionId: (sessionId: string | null) => void;
   requestFocusPanel: (sessionId: string, panelId: string) => void;
   clearFocusPanelRequest: () => void;
+  requestOpenFile: (
+    sessionId: string,
+    filePath: string,
+    name: string,
+    position?: { line: number; column?: number },
+  ) => void;
+  clearOpenFileRequest: () => void;
+  fileReveal?: { filePath: string; line: number; column?: number; nonce: number } | null;
+  clearFileReveal: () => void;
   setSessionProcs: (
     projectId: string,
     sessionId: string,
@@ -472,6 +483,12 @@ export const useCodeStore = create<CodeState>()(
         contentViewMode: 'files' as ContentViewMode,
         activeWorkspaceSessionId: null as string | null,
   focusPanelRequest: null as { sessionId: string; panelId: string; nonce: number } | null,
+        openFileRequest: null as {
+          sessionId: string;
+          filePath: string;
+          name: string;
+          nonce: number;
+        } | null,
 
         // ── Project Actions ──
 
@@ -1115,6 +1132,15 @@ export const useCodeStore = create<CodeState>()(
         requestFocusPanel: (sessionId, panelId) =>
           set({ focusPanelRequest: { sessionId, panelId, nonce: Date.now() } }),
         clearFocusPanelRequest: () => set({ focusPanelRequest: null }),
+        requestOpenFile: (sessionId, filePath, name, position) =>
+          set({
+            openFileRequest: { sessionId, filePath, name, nonce: Date.now() },
+            fileReveal: position
+              ? { filePath, line: position.line, column: position.column, nonce: Date.now() }
+              : null,
+          }),
+        clearOpenFileRequest: () => set({ openFileRequest: null }),
+        clearFileReveal: () => set({ fileReveal: null }),
         setSessionProcs: (projectId, sessionId, procs) => {
           set((state) => ({
             projects: state.projects.map((p) =>

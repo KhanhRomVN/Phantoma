@@ -17,12 +17,10 @@ import { useState, useRef, useEffect } from 'react';
 // ── Components ──
 import { AgentPanel } from './Agent';
 import HomePanel from './Agent/feature/Home';
-import AccountPanel from './Agent/feature/Account';
-import HistoryPanel from './Agent/feature/History';
-import SettingsPanel from './Agent/feature/Setting';
 
 // CONTEXT
 import { SettingsProvider } from './Agent/context/SettingsContext';
+import { ProjectProvider } from './Agent/context/ProjectContext';
 
 // ── Types ──
 import type { SubTarget } from '../../types/phantom-target';
@@ -37,12 +35,15 @@ import {
   BarChart3,
   Terminal as TerminalIcon,
   Plus,
-  MoreHorizontal,
+  Bot,
   User,
   Clock,
   Settings,
-  Bot,
+  MoreHorizontal,
 } from 'lucide-react';
+import AccountPanel from './Agent/feature/Account';
+import HistoryPanel from './Agent/feature/History';
+import SettingsPanel from './Agent/feature/Setting';
 
 // ── Constants ──
 const MIN_WIDTH = 300;
@@ -175,9 +176,14 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
   ];
 
   const ellipsisOptions = [
-    { label: 'Account', icon: User, subView: 'account' as AgentSubView },
-    { label: 'History', icon: Clock, subView: 'history' as AgentSubView },
-    { label: 'Setting', icon: Settings, subView: 'setting' as AgentSubView },
+    { label: 'Account', icon: User, subView: 'account' as AgentSubView, color: 'text-blue-400' },
+    { label: 'History', icon: Clock, subView: 'history' as AgentSubView, color: 'text-amber-400' },
+    {
+      label: 'Setting',
+      icon: Settings,
+      subView: 'setting' as AgentSubView,
+      color: 'text-emerald-400',
+    },
   ];
 
   return (
@@ -266,7 +272,7 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
                     return (
                       <DropdownItem
                         key={option.label}
-                        icon={<Icon className="w-4 h-4" />}
+                        icon={<Icon className={cn('w-4 h-4', option.color)} />}
                         onClick={() => setAgentSubView(option.subView)}
                       >
                         {option.label}
@@ -283,12 +289,14 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
         <div className="flex-1 min-h-0 overflow-hidden relative">
           {view === 'agent' && (
             <div className={cn('h-full', agentSubView !== null && 'hidden')}>
-              <AgentPanel />
+              <AgentPanel hideHeader />
             </div>
           )}
           {view === 'agent' && (
             <div className={cn('absolute inset-0', agentSubView !== 'home' && 'hidden')}>
-              <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />
+              <ProjectProvider>
+                <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />
+              </ProjectProvider>
             </div>
           )}
           {view === 'agent' && agentSubView === 'account' && (

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { $ } from '@renderer/utils/color';
 import { extensionService } from "../../services/ExtensionService";
 
 const ZENCLI_URL = "https://www.npmjs.com/package/@khanhromvn/zencli";
@@ -15,7 +16,7 @@ const ZENCLI_URL = "https://www.npmjs.com/package/@khanhromvn/zencli";
 export const ZenCliHintBar: React.FC<{ isClaudeProvider: boolean }> = ({
   isClaudeProvider,
 }) => {
-  const color = isClaudeProvider ? "rgb(244, 67, 54)" : "rgb(136, 136, 136)";
+  const color = isClaudeProvider ? $('--error') : $('--text-secondary');
 
   const title = isClaudeProvider
     ? "Use ZenCLI to avoid Claude path errors"

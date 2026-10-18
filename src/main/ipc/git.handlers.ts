@@ -37,7 +37,7 @@ import { ipcMain } from 'electron';
 import { execFile } from 'child_process';
 import { promises as fs } from 'fs';
 import { homedir, tmpdir } from 'os';
-import { basename, dirname, join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
 
 // ── Internal ──
 import { logger } from '../utils/logger';
@@ -62,6 +62,164 @@ function runGit(
 }
 
 export function setupGitHandlers(): void {
+  // ── Commit Diff ──
+  ipcMain.handle('git:commit-diff', async (_event, projectPath: string, hash: string) => {
+    try {
+      const result = await runGit(
+        ['show', '--format=', '--no-color', '-M', '--patch', hash],
+        projectPath || process.cwd(),
+      );
+      if (result.error) return { error: result.stderr || result.error.message };
+      return { diff: result.stdout };
+    } catch (e: any) {
+      logger.error('[git:commit-diff] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Checkout ──
+  ipcMain.handle('git:checkout', async (_event, projectPath: string, branch: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      let args = ['checkout', branch];
+      if (branch.startsWith('origin/')) {
+        const localName = branch.slice('origin/'.length);
+        const exists = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${localName}`], cwd);
+        args = exists.error ? ['checkout', '--track', branch] : ['checkout', localName];
+      }
+      const result = await runGit(args, cwd);
+      if (result.error) return { error: result.stderr || result.error.message };
+      return { ok: true };
+    } catch (e: any) {
+      logger.error('[git:checkout] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Fetch / Pull / Push ──
+  const registerRemoteOp = (channel: string, args: string[]) => {
+    ipcMain.handle(channel, async (_event, projectPath: string) => {
+      try {
+        const result = await runGit(args, projectPath || process.cwd());
+        if (result.error) return { error: result.stderr || result.error.message };
+        return { ok: true, output: result.stdout };
+      } catch (e: any) {
+        logger.error(`[${channel}] Error:`, e);
+        return { error: e.message || String(e) };
+      }
+    });
+  };
+  registerRemoteOp('git:fetch', ['fetch', '--all', '--prune']);
+  registerRemoteOp('git:pull', ['pull']);
+  registerRemoteOp('git:push', ['push']);
+
+  // ── Resolve Ref ──
+  ipcMain.handle('git:resolve-ref', async (_event, projectPath: string, ref: string) => {
+    try {
+      const result = await runGit(['rev-parse', '--verify', `${ref}^{commit}`], projectPath || process.cwd());
+      if (result.error) return { error: result.stderr || result.error.message };
+      return { hash: result.stdout.trim() };
+    } catch (e: any) {
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Sync Info (header bar) ──
+  ipcMain.handle('git:sync-info', async (_event, projectPath: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      const [branchRes, countRes, statusRes, stashRes] = await Promise.all([
+        runGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd),
+        runGit(['rev-list', '--left-right', '--count', '@{u}...HEAD'], cwd),
+        runGit(['status', '--porcelain'], cwd),
+        runGit(['stash', 'list'], cwd),
+      ]);
+      if (branchRes.error) return { error: branchRes.stderr || branchRes.error.message };
+
+      const [behind, ahead] = countRes.error
+        ? [0, 0]
+        : countRes.stdout.trim().split(/\s+/).map((n) => parseInt(n, 10) || 0);
+      const lines = statusRes.stdout.split('\n').filter((l) => l.length > 0);
+      const staged = lines.filter((l) => l[0] !== ' ' && l[0] !== '?').length;
+
+      return {
+        branch: branchRes.stdout.trim(),
+        hasUpstream: !countRes.error,
+        ahead,
+        behind,
+        changed: lines.length,
+        staged,
+        stashes: stashRes.stdout.split('\n').filter((l) => l.trim().length > 0).length,
+      };
+    } catch (e: any) {
+      logger.error('[git:sync-info] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Log (commit graph) ──
+  ipcMain.handle('git:log', async (_event, projectPath: string, limit?: number) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      const result = await runGit(
+        [
+          'log',
+          '--all',
+          '--date-order',
+          `--max-count=${limit ?? 300}`,
+          '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%D%x1f%s',
+        ],
+        cwd,
+      );
+      if (result.error) return { error: result.stderr || result.error.message };
+
+      const commits = result.stdout
+        .split('\n')
+        .filter((line) => line.trim().length > 0)
+        .map((line) => {
+          const [hash, parents, author, email, at, refs, subject] = line.split('\x1f');
+          return {
+            hash,
+            parents: parents ? parents.split(' ').filter(Boolean) : [],
+            author,
+            email,
+            date: (parseInt(at, 10) || 0) * 1000,
+            refs: refs ? refs.split(', ').filter(Boolean) : [],
+            subject,
+          };
+        });
+      return { commits };
+    } catch (e: any) {
+      logger.error('[git:log] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Commit Files ──
+  ipcMain.handle('git:commit-files', async (_event, projectPath: string, hash: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      const result = await runGit(['show', '--numstat', '--format=', hash], cwd);
+      if (result.error) return { error: result.stderr || result.error.message };
+
+      const files = result.stdout
+        .split('\n')
+        .filter((line) => line.trim().length > 0)
+        .map((line) => {
+          const parts = line.split('\t');
+          return {
+            added: parseInt(parts[0], 10) || 0,
+            deleted: parseInt(parts[1], 10) || 0,
+            path: parts.slice(2).join('\t'),
+          };
+        });
+      return { files };
+    } catch (e: any) {
+      logger.error('[git:commit-files] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
   // ── List Branches ──
   ipcMain.handle('git:list-branches', async (_event, projectPath: string) => {
     try {
@@ -199,6 +357,28 @@ export function setupGitHandlers(): void {
     }
   });
 
+  // ── Check Ready (workspace có .git + có staged chưa) ──
+  ipcMain.handle('git:check-ready', async (_event, projectPath: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      const inside = await runGit(['rev-parse', '--is-inside-work-tree'], cwd);
+      const hasGit = !inside.error && inside.stdout.trim() === 'true';
+      if (!hasGit) {
+        return { hasGit: false, hasStaged: false, reason: 'Workspace is not a git repository' };
+      }
+      const staged = await runGit(['diff', '--cached', '--name-only'], cwd);
+      const hasStaged = !staged.error && staged.stdout.trim().length > 0;
+      return {
+        hasGit: true,
+        hasStaged,
+        reason: hasStaged ? undefined : 'No staged changes. Run git add first.',
+      };
+    } catch (e: any) {
+      logger.error('[git:check-ready] Error:', e);
+      return { hasGit: false, hasStaged: false, reason: e.message || String(e) };
+    }
+  });
+
   // ── Unstage ──
   ipcMain.handle('git:unstage', async (_event, projectPath: string, files: string[]) => {
     try {
@@ -280,6 +460,71 @@ export function setupGitHandlers(): void {
       }
     },
   );
+
+  const LANGUAGE_BY_EXT = new Map<string, string>(
+    Object.entries({
+      ts: 'TypeScript',
+      tsx: 'TypeScript',
+      js: 'JavaScript',
+      jsx: 'JavaScript',
+      mjs: 'JavaScript',
+      cjs: 'JavaScript',
+      html: 'HTML',
+      htm: 'HTML',
+      css: 'CSS',
+      scss: 'SCSS',
+      vue: 'Vue',
+      py: 'Python',
+      go: 'Go',
+      rs: 'Rust',
+      java: 'Java',
+      rb: 'Ruby',
+      php: 'PHP',
+      cs: 'C#',
+      cpp: 'C++',
+      c: 'C',
+      swift: 'Swift',
+      kt: 'Kotlin',
+      sh: 'Shell',
+    }),
+  );
+  const IGNORED_LANGUAGE_PATH = /(^|\/)(node_modules|dist|build|out|monaco|vendor)\//;
+
+  // Extension-based byte count of tracked files — upgrade path: use github-linguist for content-based detection
+  ipcMain.handle('git:get-language-stats', async (_event, projectPath: string) => {
+    const list = await runGit(['ls-files', '-z'], projectPath);
+    if (list.error) return [];
+
+    const files = list.stdout
+      .split('\0')
+      .filter((f) => f && !IGNORED_LANGUAGE_PATH.test(f) && !f.endsWith('.min.js'));
+    const bytesByLang = new Map<string, number>();
+
+    for (let i = 0; i < files.length; i += 200) {
+      await Promise.all(
+        files.slice(i, i + 200).map(async (f) => {
+          const lang = LANGUAGE_BY_EXT.get(f.split('.').pop()?.toLowerCase() ?? '');
+          if (!lang) return;
+          try {
+            const { size } = await fs.stat(join(projectPath, f));
+            bytesByLang.set(lang, (bytesByLang.get(lang) ?? 0) + size);
+          } catch {
+            return;
+          }
+        }),
+      );
+    }
+
+    const total = [...bytesByLang.values()].reduce((a, b) => a + b, 0);
+    if (!total) return [];
+    return [...bytesByLang.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, bytes]) => ({
+        id: name.toLowerCase(),
+        name,
+        percentage: Math.round((bytes / total) * 1000) / 10,
+      }));
+  });
 
   /**
    * Get comprehensive Git info for Project Detail Panel

@@ -19,26 +19,114 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import HomePanel from './feature/Home';
 import ChatPanel from './feature/Chat';
 import AgentOverlay from './components/AgentOverlay';
+import AccountPanel from './feature/Account';
+import HistoryPanel from './feature/History';
+import MarketplacePanel from './feature/Marketplace';
+import SettingsPanel from './feature/Setting';
 
 // CONTEXT
 import { ProjectProvider } from './context/ProjectContext';
 import { useAgentFeature } from './context/FeatureContext';
+import { useDesignStore } from '@renderer/modules/Code/hooks/useDesignStore';
 
 // ── Types ──
 import { ChatSession } from './feature/Chat/types/chat';
 
 // ── Utils ── (icons)
-import { MousePointer } from 'lucide-react';
+import {
+  ArrowLeft,
+  Clock,
+  Home,
+  MessageSquare,
+  MoreHorizontal,
+  MousePointer,
+  Settings,
+  Store,
+  User,
+} from 'lucide-react';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+} from '@renderer/components/ui/Dropdown';
+
+// ─── Page switcher ─────────────────────────────────────────────────────────
+
+type SubView = 'history' | 'marketplace' | 'account' | 'setting' | null;
+type PageId = 'home' | 'chat' | 'history' | 'marketplace' | 'account' | 'setting';
+
+const PAGES: { id: PageId; label: string; icon: typeof Home; color: string }[] = [
+  { id: 'home', label: 'Home', icon: Home, color: 'text-primary' },
+  { id: 'history', label: 'History', icon: Clock, color: 'text-amber-400' },
+  { id: 'marketplace', label: 'Marketplace', icon: Store, color: 'text-pink-400' },
+  { id: 'account', label: 'Account', icon: User, color: 'text-blue-400' },
+  { id: 'setting', label: 'Setting', icon: Settings, color: 'text-emerald-400' },
+];
+
+function PageHeader({
+  active,
+  onSelect,
+  onBack,
+}: {
+  active: PageId;
+  onSelect: (id: PageId) => void;
+  onBack: () => void;
+}) {
+  const current = PAGES.find((p) => p.id === active) ?? PAGES[0];
+  const CurrentIcon = current.icon;
+  const isSubPage = active !== 'home' && active !== 'chat';
+
+  return (
+    <div className="flex items-center gap-2 h-8 px-2 shrink-0 border-b border-border bg-sidebar-background">
+      {isSubPage && (
+        <button
+          onClick={onBack}
+          title="Back"
+          className="p-1 rounded text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+        </button>
+      )}
+      <div className="flex items-center gap-1.5 min-w-0 text-[12px] font-medium text-text-primary">
+        <CurrentIcon className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
+        <span className="truncate">{current.label}</span>
+      </div>
+      <div className="ml-auto">
+        <Dropdown>
+          <DropdownTrigger>
+            <button className="p-1 rounded text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors">
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </DropdownTrigger>
+          <DropdownContent className="min-w-[160px]">
+            {PAGES.map(({ id, label, icon: Icon, color }) => (
+              <DropdownItem
+                key={id}
+                icon={<Icon className={`w-4 h-4 ${color}`} />}
+                onClick={() => onSelect(id)}
+                className={active === id ? 'bg-primary/10 text-primary' : undefined}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownContent>
+        </Dropdown>
+      </div>
+    </div>
+  );
+}
 
 // ─── AgentView (keep-alive unit) ───────────────────────────────────────────
 
 interface AgentViewProps {
   feature: string;
   isVisible: boolean;
+  hideHeader?: boolean;
 }
 
 /** Một instance Agent cho một target/project cụ thể — luôn mounted, ẩn/hiện bằng CSS */
-function AgentView({ feature, isVisible }: AgentViewProps) {
+function AgentView({ feature, isVisible, hideHeader }: AgentViewProps) {
   const [currentChat, setCurrentChat] = useState<ChatSession | null>(null);
   const [initialMessageData, setInitialMessageData] = useState<{
     content: string;
@@ -53,6 +141,7 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
     };
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
+  const [subView, setSubView] = useState<SubView>(null);
 
   const handleHomeSendMessage = useCallback(
     (
@@ -99,9 +188,35 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
         canAccept: true,
       };
       setCurrentChat(newSession);
+      setSubView(null);
     },
     [],
   );
+
+  const handleSelectPage = useCallback(
+    (id: PageId) => {
+      if (id === 'home') {
+        setSubView(null);
+        setCurrentChat(null);
+      } else if (id === 'chat') {
+        setSubView(null);
+        if (!currentChat) {
+          setInitialMessageData(null);
+          setCurrentChat({
+            sessionId: Date.now(),
+            folderPath: (window as any).__zenWorkspaceFolderPath || null,
+            conversationId: '',
+            canAccept: true,
+          });
+        }
+      } else {
+        setSubView(id);
+      }
+    },
+    [currentChat],
+  );
+
+  const activePage: PageId = subView ?? (currentChat ? 'chat' : 'home');
 
   // Listen for reset to home event from RightPanel Plus button
   useEffect(() => {
@@ -122,37 +237,56 @@ function AgentView({ feature, isVisible }: AgentViewProps) {
       className="flex-1 overflow-hidden bg-background flex flex-col"
       style={{ display: isVisible ? 'flex' : 'none' }}
     >
-      {(() => {
-        return null;
-      })()}
-      {currentChat ? (
-        <ChatPanel
-          key={currentChat.sessionId} // Force remount when sessionId changes
-          currentChat={currentChat}
-          onBack={handleBack}
-          feature={feature}
-          onLoadConversation={handleLoadConversation}
-          initialMessageData={initialMessageData}
-          onClearInitialData={() => setInitialMessageData(null)}
-        />
-      ) : (
-        <HomePanel
-          onSendMessage={handleHomeSendMessage}
-          onLoadConversation={handleLoadConversation}
-          initialValue={homeInitialValue}
+      {!hideHeader && (
+        <PageHeader
+          active={activePage}
+          onSelect={handleSelectPage}
+          onBack={() => setSubView(null)}
         />
       )}
+      <div className="relative flex-1 min-h-0 overflow-hidden flex flex-col">
+        {currentChat ? (
+          <ChatPanel
+            key={currentChat.sessionId} // Force remount when sessionId changes
+            currentChat={currentChat}
+            onBack={handleBack}
+            feature={feature}
+            onLoadConversation={handleLoadConversation}
+            initialMessageData={initialMessageData}
+            onClearInitialData={() => setInitialMessageData(null)}
+          />
+        ) : (
+          <HomePanel
+            onSendMessage={handleHomeSendMessage}
+            onLoadConversation={handleLoadConversation}
+            initialValue={homeInitialValue}
+          />
+        )}
+        {subView === 'history' && (
+          <HistoryPanel
+            isOpen={true}
+            onClose={() => setSubView(null)}
+            onLoadConversation={handleLoadConversation}
+          />
+        )}
+        {subView === 'marketplace' && (
+          <MarketplacePanel isOpen={true} onClose={() => setSubView(null)} />
+        )}
+        {subView === 'account' && <AccountPanel isOpen={true} onClose={() => setSubView(null)} />}
+        {subView === 'setting' && <SettingsPanel isOpen={true} onClose={() => setSubView(null)} />}
+      </div>
     </div>
   );
 }
 
 // ─── AgentPanel ────────────────────────────────────────────────────────────
 
-export function AgentPanel() {
+export function AgentPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const { activeFeature, emulateState, codeState, reconState } = useAgentFeature();
   const { activeTargetId, targetStates } = emulateState;
   const { currentProjectId } = codeState;
   const { activeTargetId: reconActiveTargetId, targets: reconTargets } = reconState;
+  const activeDesignId = useDesignStore((s) => s.activeDesignId);
   const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
   const isTargetActive = currentTargetState?.isActive || false;
   const isReconTargetActive = reconActiveTargetId
@@ -182,9 +316,29 @@ export function AgentPanel() {
       // Set global context for conversation service
       (window as any).__activeFeature = 'recon';
       (window as any).__activeTargetId = reconActiveTargetId;
+    } else if (activeFeature === 'design' && activeDesignId) {
+      key = `design:${activeDesignId}`;
+      (window as any).__activeFeature = 'design';
+      (window as any).__activeDesignId = activeDesignId;
     }
     return key;
-  }, [activeFeature, activeTargetId, isTargetActive, currentProjectId, reconActiveTargetId]);
+  }, [
+    activeFeature,
+    activeTargetId,
+    isTargetActive,
+    currentProjectId,
+    reconActiveTargetId,
+    activeDesignId,
+  ]);
+
+  useEffect(() => {
+    console.log('[DEBUG][AgentPanel] state', {
+      activeFeature,
+      currentProjectId,
+      activeKey,
+      openedKeys: Array.from(openedKeysRef.current),
+    });
+  }, [activeFeature, currentProjectId, activeKey]);
 
   // Khi activeKey thay đổi, thêm vào openedKeys
   useEffect(() => {
@@ -223,7 +377,11 @@ export function AgentPanel() {
 
   // Overlay checks
   const showGenericOverlay =
-    activeFeature !== 'emulate' && activeFeature !== 'code' && activeFeature !== 'recon';
+    activeFeature !== 'emulate' &&
+    activeFeature !== 'code' &&
+    activeFeature !== 'recon' &&
+    activeFeature !== 'design';
+  const showDesignOverlay = activeFeature === 'design' && !activeDesignId;
   const showEmulateOverlay = activeFeature === 'emulate' && (!activeTargetId || !isTargetActive);
   const showReconOverlay = activeFeature === 'recon' && !reconActiveTargetId;
 
@@ -260,6 +418,14 @@ export function AgentPanel() {
           />
         )}
 
+        {showDesignOverlay && (
+          <AgentOverlay
+            title="Open a design to start"
+            description="Please open or create a design to use the Design Agent"
+            icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
+          />
+        )}
+
         {/* Keep-alive views — tất cả đều mounted, chỉ activeKey hiển thị */}
         {!showGenericOverlay && !showEmulateOverlay && (
           <div className="flex-1 overflow-hidden bg-background flex flex-col">
@@ -270,9 +436,18 @@ export function AgentPanel() {
                   ? 'emulate'
                   : key.startsWith('recon:')
                     ? 'recon'
-                    : 'code';
+                    : key.startsWith('design:')
+                      ? 'design'
+                      : 'code';
                 const isVisible = key === activeKey;
-                return <AgentView key={key} feature={feature} isVisible={isVisible} />;
+                return (
+                  <AgentView
+                    key={key}
+                    feature={feature}
+                    isVisible={isVisible}
+                    hideHeader={hideHeader}
+                  />
+                );
               });
             })()}
           </div>

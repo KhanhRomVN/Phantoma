@@ -27,9 +27,17 @@ import {
   getDefaultPrompt as getReconDefaultPrompt,
   combinePrompts as combineReconPrompts,
 } from '../prompts/recon';
+import {
+  getDefaultPrompt as getDesignDefaultPrompt,
+  combinePrompts as combineDesignPrompts,
+} from '../prompts/design';
 
 // ── Services ──
 import { extensionService } from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+
+// NOTE: skillInstall.service is not yet available in Phantoma renderer context.
+// Skills injection is disabled until Marketplace integration is complete.
+// import { listInstalledSkills, readSkillContent } from '@renderer/features/marketplace/services/skillInstall.service';
 
 // ── Types ──
 import type { AgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
@@ -54,12 +62,16 @@ export interface PromptBuilderOptions {
   filterContext?: string;
   /** Enable Skill injection in system prompt */
   useSkillEnabled?: boolean;
+  /** Per-conversation override: bật/tắt VSCode diagnostics trong system prompt */
+  diagnosticEnabled?: boolean;
   /** Enable Memory context injection */
   memoryEnabled?: boolean;
   /** Tool output format preference ('xml' or 'json') */
   toolFormat?: 'xml' | 'json';
   /** Current provider ID for conditional prompting */
   providerId?: string;
+  /** Cờ anti_system_prompt_injection từ provider config — khi true, dùng claude-system-prompt riêng */
+  antiSystemPromptInjection?: boolean;
   /** Prompt length mode — controls which sections are included (Zen parity). */
   promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
 }
@@ -111,9 +123,11 @@ export class PromptBuilder {
       trafficContext,
       filterContext,
       useSkillEnabled = false,
+      diagnosticEnabled,
       memoryEnabled = false,
       toolFormat = 'xml',
       providerId,
+      antiSystemPromptInjection = false,
       promptLengthMode = 'long',
     } = options;
 
@@ -131,28 +145,69 @@ export class PromptBuilder {
         feature,
         {
           useSkillEnabled,
+          diagnosticEnabled,
           memoryEnabled,
           toolFormat,
           providerId,
+          antiSystemPromptInjection,
           promptLengthMode,
         },
         workspace,
       );
+
+      // Inject Memory & Agents.md only if NOT anti-injection
+      if (!antiSystemPromptInjection) {
+        if (memoryEnabled) {
+          const memorySection = await this.buildMemorySection();
+          systemPrompt += memorySection;
+        }
+
+        // AGENTS.md Injection (code mode only, skipped for Claude/Anti-injection)
+        if (workspace && feature === 'code') {
+          try {
+            const api = (window as any).api;
+            if (api?.invoke) {
+              const agentsPath = `${workspace.replace(/\/$/, '')}/AGENTS.md`;
+              const exists = await api
+                .invoke('fs:stat', agentsPath)
+                .then((s: any) => s?.isFile === true)
+                .catch(() => false);
+              if (exists) {
+                const agentsContent = await api.invoke('fs:read-file', agentsPath);
+                if (typeof agentsContent === 'string') {
+                  systemPrompt += buildAgentsMdSection(agentsContent);
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[PromptBuilder] Failed to inject AGENTS.md:', e);
+          }
+        }
+      }
+
       projectContextStr = this.buildProjectContext(treeView, workspace);
     }
 
     // Build attached context
     if (files && files.length > 0) {
       attachedContextStr = await this.buildAttachedContext(files);
+      // Append selected skills content if present in files
+      const skillsSection = await this.buildSelectedSkillsSection(files);
+      attachedContextStr += skillsSection;
     }
 
     // Build full content
-    const fullContent = skipFirstRequestLogic
-      ? content
-      : `## User Message\n<zen-user-content>\n${content}\n</zen-user-content>`;
+    // Detect tool results to avoid wrapping them in user-message tags
+    const trimmedContent = content.trim();
+    const isToolResult =
+      trimmedContent.startsWith('Output:') || /^\[.+?\] Result:/.test(trimmedContent);
 
-    // Tool format instruction (appended to every request if not handled in system prompt)
-    // Note: For simplicity, we append it here. Ideally, this should be part of the system prompt structure.
+    const fullContent =
+      skipFirstRequestLogic || isToolResult
+        ? content
+        : `## User Message\n<user-message>\n${content}\n</user-message>`;
+
+    // Tool format instruction
     const toolFormatInstruction = this.getToolFormatInstruction(toolFormat);
 
     // Combine all parts
@@ -160,7 +215,7 @@ export class PromptBuilder {
       ? `${systemPrompt}${projectContextStr}${attachedContextStr}${trafficContextStr}${filterContextStr}${toolFormatInstruction}\n\n${fullContent}`
       : `${attachedContextStr}${trafficContextStr}${filterContextStr}${toolFormatInstruction}\n\n${fullContent}`;
 
-    return promptPayload;
+    return promptPayload.trim();
   }
 
   private static getToolFormatInstruction(format: 'xml' | 'json'): string {
@@ -177,9 +232,11 @@ export class PromptBuilder {
     feature?: AgentFeature,
     overrides?: {
       useSkillEnabled?: boolean;
+      diagnosticEnabled?: boolean;
       memoryEnabled?: boolean;
       toolFormat?: 'xml' | 'json';
       providerId?: string;
+      antiSystemPromptInjection?: boolean;
       promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
     },
     workspace?: string,
@@ -191,6 +248,7 @@ export class PromptBuilder {
       homeDir: '~',
       cwd: '.',
       language: aiLanguage,
+      maxFilesPerSession: 3,
     };
 
     try {
@@ -200,6 +258,7 @@ export class PromptBuilder {
           ...systemInfo,
           ...fetchedInfo.data,
           language: aiLanguage,
+          maxFilesPerSession: 3,
         };
       }
     } catch (e) {
@@ -208,11 +267,20 @@ export class PromptBuilder {
 
     const effectiveLang = aiLanguage;
 
+    // ── Anti-Injection Priority ─────────────────────────────────────────
+    // Nếu provider bật anti-injection (VD: Claude), dùng prompt chuyên biệt
+    // và BỎ QUA mọi section động khác (Memory, Agents.md, Skills list).
+    if (overrides?.antiSystemPromptInjection) {
+      const claudePrompt = buildClaudePrompt({ language: effectiveLang });
+      if (!overrides?.useSkillEnabled) return claudePrompt;
+
+      // TODO: Enable real skills listing when Marketplace service is integrated in Phantoma renderer.
+      // For now, return a generic hint if enabled.
+      const skillsHint = `\n\n## Available Skills\nSpecialized capabilities are enabled. Follow any <skill_instructions> provided in the context strictly.`;
+      return `${claudePrompt}${skillsHint}`;
+    }
+
     // Select prompt module based on feature.
-    // Cast to a common signature: 3 modules expose nearly-identical
-    // combinePrompts(config) but their SystemInfo interfaces diverge
-    // (code has no `ide`, emulate/recon require it). The runtime contract is
-    // identical — only the TS types differ.
     type AnyCombine = (config: any) => string;
     let getDefaultPrompt: (lang: string) => string = getCodeDefaultPrompt;
     let combinePrompts: AnyCombine = combineCodePrompts as AnyCombine;
@@ -223,68 +291,62 @@ export class PromptBuilder {
     } else if (feature === 'recon') {
       getDefaultPrompt = getReconDefaultPrompt;
       combinePrompts = combineReconPrompts as AnyCombine;
+    } else if (feature === 'design') {
+      getDefaultPrompt = getDesignDefaultPrompt;
+      combinePrompts = combineDesignPrompts as AnyCombine;
     }
-
-    // ── Claude provider: dùng prompt riêng cho sandbox claude.ai ──
-    // Backend claude.ai hiện chưa emit __CLAUDE_TOOL__ markers ở Phantoma,
-    // nhưng prompt này vẫn được dùng để hướng dẫn tool_use format.
-    const isClaudeProvider = overrides?.providerId?.toLowerCase() === 'claude';
 
     let systemPrompt = getDefaultPrompt(effectiveLang);
 
-    if (isClaudeProvider) {
-      systemPrompt = buildClaudePrompt({ language: effectiveLang });
-    } else if (systemInfo.os !== 'Unknown OS') {
-      // Use real system info if we managed to fetch it
+    if (systemInfo.os !== 'Unknown OS') {
       systemPrompt = combinePrompts({
         language: effectiveLang,
         systemInfo,
         permissionMode,
-        promptLengthMode: overrides?.promptLengthMode,
-        toolFormat: overrides?.toolFormat,
+        promptLengthMode: overrides?.promptLengthMode ?? 'long',
+        toolFormat: overrides?.toolFormat ?? 'xml',
       });
-    }
-
-    // ── AGENTS.md Injection (code mode only) ────────────────────────────
-    // Đọc AGENTS.md ở workspace root (nếu có) và inject như một section
-    // project-level guidance. Bỏ qua với claude provider (dùng prompt riêng).
-    if (!isClaudeProvider && workspace) {
-      try {
-        const api = (window as any).api;
-        if (api?.invoke) {
-          const agentsPath = `${workspace.replace(/\/$/, '')}/AGENTS.md`;
-          const exists = await api
-            .invoke('fs:stat', agentsPath)
-            .then((s: any) => s?.isFile === true)
-            .catch(() => false);
-          if (exists) {
-            const content = await api.invoke('fs:read-file', agentsPath);
-            if (typeof content === 'string') {
-              systemPrompt += buildAgentsMdSection(content);
-            }
-          }
-        }
-      } catch (e) {
-        // Không có AGENTS.md hoặc không đọc được — bỏ qua, không chặn request.
-        console.warn('[PromptBuilder] Failed to inject AGENTS.md:', e);
-      }
-    }
-
-    // ── Memory Context Injection ────────────────────────────────────────
-    if (overrides?.memoryEnabled) {
-      // TODO: Fetch actual memory context from MemoryService when available.
-      // For now, inject a structural hint so the LLM knows to look for <memory_context>.
-      systemPrompt += `\n\n## Memory Protocol\nYou have access to persistent memory. Look for <memory_context> blocks in subsequent messages or tool outputs to retrieve relevant historical information.`;
     }
 
     // ── Skill Activation ────────────────────────────────────────────────
     if (overrides?.useSkillEnabled) {
-      // TODO: Load dynamic skills based on feature/provider.
-      // Placeholder to enable skill-aware prompting structure.
-      systemPrompt += `\n\n## Active Skills\nSpecialized capabilities are enabled. Follow any <skill_instructions> provided in the context strictly.`;
+      // TODO: Integrate with Marketplace service for dynamic skill listing.
+      const skillsHint = `\n\n## Active Skills\nSpecialized capabilities are enabled. Follow any <skill_instructions> provided in the context strictly.`;
+      systemPrompt += skillsHint;
     }
 
     return systemPrompt;
+  }
+
+  /**
+   * [DISABLED] Tạo section "Available Skills".
+   * TODO: Re-enable when Marketplace service is integrated in Phantoma renderer.
+   */
+  private static async buildSkillsSection(_homeDir?: string): Promise<string> {
+    return '';
+  }
+
+  /**
+   * [STUBBED] Đọc snapshot memory.md.
+   * ExtensionService.getMemorySnapshot chưa tồn tại trong Phantoma.
+   * Trả về rỗng để không inject noise vào prompt.
+   */
+  private static async buildMemorySection(): Promise<string> {
+    // Future implementation:
+    // try {
+    //   const content = await extensionService.getMemorySnapshot?.();
+    //   if (!content || content.trim().length === 0) return '';
+    //   return `\n\n# Memory\n${content}`;
+    // } catch (e) { ... }
+    return '';
+  }
+
+  /**
+   * [DISABLED] Nội dung SKILL.md của các skill người dùng chọn.
+   * TODO: Re-enable when skillInstall.service is available.
+   */
+  private static async buildSelectedSkillsSection(_files: any[]): Promise<string> {
+    return '';
   }
 
   private static buildProjectContext(treeView: string, workspace: string): string {

@@ -427,6 +427,75 @@ On the very first write into an empty/non-existent memory file, \`old_content\` 
 - \`new_content\`: Replacement text (may be empty to delete the matched snippet)
 - ⚠ JSON-STRINGS: Both \`old_content\` and \`new_content\` are multi-line strings — every newline must be escaped as \\n and every double-quote as \\" for the block to remain valid JSON.
 
+# EMULATE TOOLS (HTTP/API Testing)
+Use these tools to inspect HTTP traffic, manage sources/resources, and interact with repeaters/reports.
+
+**list_https**: List captured HTTPS requests/responses.
+- \`filter\`: (optional) Regex or keyword to filter URLs/methods.
+- Example: \`{"tool":"list_https","params":{"filter":"api/v1/users"}}\`
+
+**get_https_detail**: Get full details of a specific HTTPS transaction.
+- \`transaction_id\`: The unique ID of the transaction.
+- Example: \`{"tool":"get_https_detail","params":{"transaction_id":"tx_12345"}}\`
+
+**list_hosts**: List all hosts seen in traffic.
+- Example: \`{"tool":"list_hosts","params":{}}\`
+
+**list_sources / list_resources**: List data sources or resources available for analysis.
+- Example: \`{"tool":"list_sources","params":{}}\`
+
+**apply_filter**: Apply a complex filter to the current view/data set.
+- \`rules\`: Array of filter rules.
+- Example: \`{"tool":"apply_filter","params":{"rules":[{"field":"status_code","operator":"equals","value":"500"}]}}\`
+
+**send_to_repeater / run_repeater**: Send a request to a repeater tab or execute a saved repeater script.
+- \`repeater_id\`: ID of the target repeater.
+- \`request_data\`: (for send_to_repeater) The modified request payload.
+- Example: \`{"tool":"run_repeater","params":{"repeater_id":"rep_01"}}\`
+
+**create_report / read_report / update_report**: Manage test reports.
+- \`report_id\`: ID of the report.
+- \`content\`: Markdown content for creation/update.
+- Example: \`{"tool":"create_report","params":{"title":"Security Audit","content":"## Findings\\n..."}}\`
+
+**execute_command**: Execute a custom emulation command/script.
+- \`script_id\`: Identifier of the predefined script.
+- \`args\`: Arguments passed to the script.
+- Example: \`{"tool":"execute_command","params":{"script_id":"fuzz_login","args":{"username":"admin"}}}\`
+
+# RECON TOOLS (Browser Automation)
+Use these tools to control a headless browser instance for web reconnaissance.
+
+**navigate**: Load a URL in the active tab.
+- \`url\`: The destination URL.
+- Example: \`{"tool":"navigate","params":{"url":"https://example.com/login"}}\`
+
+**get_page_content**: Extract HTML/text/accessibility tree from the current page.
+- \`selector\`: (optional) CSS selector to limit extraction scope.
+- Example: \`{"tool":"get_page_content","params":{"selector":"main"}}\`
+
+**click_element**: Simulate a mouse click on an element.
+- \`selector\`: CSS selector or XPath of the target element.
+- Example: \`{"tool":"click_element","params":{"selector":"#submit-btn"}}\`
+
+**fill_input**: Type text into an input field.
+- \`selector\`: Target input field.
+- \`value\`: Text to enter.
+- Example: \`{"tool":"fill_input","params":{"selector":"input[name='email']","value":"test@example.com"}}\`
+
+**capture_screenshot**: Take a screenshot of the viewport or specific element.
+- \`selector\`: (optional) Element to crop.
+- Example: \`{"tool":"capture_screenshot","params":{}}\`
+
+**evaluate_js**: Run arbitrary JavaScript in the page context.
+- \`expression\`: JS code string to evaluate.
+- Example: \`{"tool":"evaluate_js","params":{"expression":"document.title"}}\`
+
+**wait_for**: Wait for an element to appear or disappear.
+- \`selector\`: Target element.
+- \`state\`: \`visible\`, \`hidden\`, \`attached\`, \`detached\`.
+- Example: \`{"tool":"wait_for","params":{"selector":".loading-spinner","state":"hidden"}}\`
+
 ## JSON Encoding Rules
 - All string values must use valid JSON escaping: \\n (newline), \\\\ (backslash), \\" (quote), \\t (tab).
 - Do NOT use HTML entities (&lt; &gt; &amp; &quot;) inside JSON string values — write raw code characters directly.

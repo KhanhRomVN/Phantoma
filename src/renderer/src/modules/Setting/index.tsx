@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { Settings, Palette, Database, Gauge, ChevronRight, Home } from 'lucide-react';
+import { Settings, Palette, ChevronRight, Home } from 'lucide-react';
 import General from './components/General';
 import Interface from './components/Interface';
-import DatabaseViewer from './components/Database';
-import Performance from './components/Performance';
 
 type SettingTab = 'general' | 'interface' | 'database' | 'performance';
 
@@ -16,10 +14,6 @@ const Setting: React.FC = () => {
         return 'General';
       case 'interface':
         return 'Interface';
-      case 'database':
-        return 'Database';
-      case 'performance':
-        return 'Performance';
       default:
         return '';
     }
@@ -63,28 +57,6 @@ const Setting: React.FC = () => {
             <Palette className="w-4 h-4" />
             <span>Interface</span>
           </button>
-          <button
-            onClick={() => setActiveTab('database')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-              activeTab === 'database'
-                ? 'bg-primary/10 text-primary'
-                : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
-            }`}
-          >
-            <Database className="w-4 h-4" />
-            <span>Database</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('performance')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-              activeTab === 'performance'
-                ? 'bg-primary/10 text-primary'
-                : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
-            }`}
-          >
-            <Gauge className="w-4 h-4" />
-            <span>Performance</span>
-          </button>
         </div>
 
         {/* Content area */}
@@ -97,16 +69,6 @@ const Setting: React.FC = () => {
           {activeTab === 'interface' && (
             <div className="overflow-auto p-5 h-full">
               <Interface />
-            </div>
-          )}
-          {activeTab === 'database' && (
-            <div className="h-full">
-              <DatabaseViewer />
-            </div>
-          )}
-          {activeTab === 'performance' && (
-            <div className="overflow-auto p-5 h-full">
-              <Performance />
             </div>
           )}
         </div>

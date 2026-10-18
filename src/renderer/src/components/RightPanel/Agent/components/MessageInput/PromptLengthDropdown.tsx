@@ -1,5 +1,6 @@
 import React from 'react';
 import { Ban } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 import {
   Dropdown,
   DropdownTrigger,
@@ -38,7 +39,7 @@ export const PROMPT_LENGTH_MODE_META: {
     label: 'No Prompt',
     shortLabel: 'None',
     barHeight: 4,
-    color: '#64748b',
+    color: $('--text-secondary'),
     desc: 'No system prompt — only your message is sent',
     isNoPrompt: true,
   },
@@ -47,7 +48,7 @@ export const PROMPT_LENGTH_MODE_META: {
     label: 'Short',
     shortLabel: 'Short',
     barHeight: 12,
-    color: '#14b8a6',
+    color: $('--teal'),
     desc: 'Ultra-compact prompt — fastest generation, minimal context',
   },
   {
@@ -55,7 +56,7 @@ export const PROMPT_LENGTH_MODE_META: {
     label: 'Medium',
     shortLabel: 'Medium',
     barHeight: 20,
-    color: '#f59e0b',
+    color: $('--warn'),
     desc: 'Balanced length — removes examples, keeps core instructions',
   },
   {
@@ -63,7 +64,7 @@ export const PROMPT_LENGTH_MODE_META: {
     label: 'Long',
     shortLabel: 'Long',
     barHeight: 28,
-    color: '#8b5cf6',
+    color: $('--purple'),
     desc: 'Full prompt — includes all examples and details',
   },
 ];

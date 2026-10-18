@@ -33,7 +33,7 @@ export const useAccounts = (isOpen: boolean) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [providerFilter, setProviderFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<AccountStatus | ''>('');
-  const [statsPeriod, setStatsPeriod] = useState<'day' | 'week' | 'month'>('day');
+  const [statsPeriod, setStatsPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('day');
   const [emailFilter, setEmailFilter] = useState<string[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
@@ -69,12 +69,12 @@ export const useAccounts = (isOpen: boolean) => {
   );
 
   const fetchAccounts = useCallback(
-    async (page = 1, limit = 20, silent = false) => {
+    async (page = 1, limit = 20, silent = false, forceProviders = false) => {
       if (!isOpen) return;
       if (!silent) setLoading(true);
       try {
-        // Fetch providers first if empty
-        if (providerConfigs.length === 0) {
+        // Fetch providers nếu chưa có, hoặc bị ép refetch (khi đổi database)
+        if (providerConfigs.length === 0 || forceProviders) {
           try {
             const pResult = await callBackend('/v1/providers');
             if (pResult.success && pResult.data) {
@@ -110,15 +110,34 @@ export const useAccounts = (isOpen: boolean) => {
                 let periodTokens = 0;
                 let periodRequests = 0;
 
-                if (statsResult.success && statsResult.data?.usage) {
-                  periodTokens = statsResult.data.usage.reduce(
-                    (sum: number, hour: any) => sum + (hour.tokens || 0),
-                    0,
-                  );
-                  periodRequests = statsResult.data.usage.reduce(
-                    (sum: number, hour: any) => sum + (hour.requests || 0),
-                    0,
-                  );
+                let totalRequests = acc.total_requests || 0;
+                let successfulRequests = acc.successful_requests || 0;
+                let totalTokens = acc.total_tokens || 0;
+
+                if (statsResult.success && statsResult.data) {
+                  // period_requests / period_tokens: tổng từ usage history
+                  if (statsResult.data.usage) {
+                    periodTokens = statsResult.data.usage.reduce(
+                      (sum: number, entry: any) => sum + (entry.tokens || 0),
+                      0,
+                    );
+                    periodRequests = statsResult.data.usage.reduce(
+                      (sum: number, entry: any) => sum + (entry.requests || 0),
+                      0,
+                    );
+                  }
+
+                  // total_requests / successful_requests / total_tokens: từ accounts stats
+                  if (statsResult.data.accounts?.length) {
+                    const accountStat = statsResult.data.accounts.find(
+                      (s: any) => s.id === acc.id,
+                    );
+                    if (accountStat) {
+                      totalRequests = accountStat.total_requests ?? totalRequests;
+                      successfulRequests = accountStat.successful_requests ?? successfulRequests;
+                      totalTokens = accountStat.total_tokens ?? totalTokens;
+                    }
+                  }
                 }
 
                 return {
@@ -126,15 +145,16 @@ export const useAccounts = (isOpen: boolean) => {
                   provider_id: acc.provider_id,
                   email: acc.email,
                   credential: acc.credential,
-                  total_requests: acc.total_requests || 0,
-                  successful_requests: acc.successful_requests || 0,
-                  total_tokens: acc.total_tokens || 0,
+                  total_requests: totalRequests,
+                  successful_requests: successfulRequests,
+                  total_tokens: totalTokens,
                   period_requests: periodRequests,
                   period_tokens: periodTokens,
                   user_data_dir: acc.user_data_dir,
                   is_active_cli: acc.is_active_cli,
                   usage: acc.usage ?? null,
                   reset_usage_at: acc.reset_usage_at ?? null,
+                  auth_method: acc.auth_method ?? null,
                 };
               } catch (err) {
                 console.warn(`Failed to fetch stats for account ${acc.id}:`, err);
@@ -152,6 +172,7 @@ export const useAccounts = (isOpen: boolean) => {
                   is_active_cli: acc.is_active_cli,
                   usage: acc.usage ?? null,
                   reset_usage_at: acc.reset_usage_at ?? null,
+                  auth_method: acc.auth_method ?? null,
                 };
               }
             }),
@@ -177,9 +198,12 @@ export const useAccounts = (isOpen: boolean) => {
   // ── Effects ──
   useEffect(() => {
     if (isOpen) {
+      // Reset về trang 1 + ép refetch providers mỗi khi panel mở HOẶC đổi
+      // database (tránh hiện account/provider của database trước đó).
       setPagination((prev) => ({ ...prev, page: 1 }));
-      fetchAccounts(1, pagination.limit, false);
+      fetchAccounts(1, pagination.limit, false, true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // searchQuery được filter client-side → không cần re-fetch khi gõ
@@ -248,16 +272,29 @@ export const useAccounts = (isOpen: boolean) => {
     }
   };
 
-  const refreshAccountToken = async (id: string, providerId: string) => {
+  const refreshAccountToken = async (
+    id: string,
+    providerId: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const result = await callBackend(`/v1/accounts/${id}/refresh-token`, 'POST', {
+      const url = `/v1/accounts/${id}/refresh-token`;
+      const result = await callBackend(url, 'POST', {
         provider_id: providerId,
       });
       if (result.success) {
         fetchAccounts(pagination.page, pagination.limit, true);
+        return { success: true };
       }
-    } catch (err) {
-      console.error('Failed to refresh token:', err);
+      const errMsg = result.message || result.error || 'Refresh failed';
+      console.warn(
+        '[useAccounts][refreshAccountToken] Failed:',
+        errMsg,
+        result,
+      );
+      return { success: false, error: errMsg };
+    } catch (err: any) {
+      console.error('[useAccounts][refreshAccountToken] Exception:', err);
+      return { success: false, error: err?.message || 'Network error' };
     }
   };
 

@@ -7,6 +7,7 @@ import { ThemeConfig } from '../types/theme.types';
 export const MidnightBlue: ThemeConfig = {
   id: 'midnight_blue',
   name: 'MidnightBlue',
+  type: 'dark',
   monaco: {
     base: 'vs-dark',
     inherit: true,

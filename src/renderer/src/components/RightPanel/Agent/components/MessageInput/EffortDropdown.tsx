@@ -10,6 +10,7 @@
 
 import React, { useRef, useState } from "react";
 import { Feather, Gauge, Flame, Sparkles, Cpu } from "lucide-react";
+import { $ } from '@renderer/utils/color';
 import {
   Dropdown,
   DropdownTrigger,
@@ -22,11 +23,11 @@ export type EffortLevel = (typeof EFFORT_LEVELS)[number];
 export const DEFAULT_EFFORT: EffortLevel = "medium";
 
 export const EFFORT_COLOR: Record<EffortLevel, string> = {
-  low: "#6b7280",
-  medium: "#3b82f6",
-  high: "#10b981",
-  xhigh: "#f59e0b",
-  max: "#ef4444",
+  low: $('--text-secondary'),
+  medium: $('--blue'),
+  high: $('--green'),
+  xhigh: $('--yellow'),
+  max: $('--red'),
 };
 
 export const EFFORT_LABEL: Record<EffortLevel, string> = {

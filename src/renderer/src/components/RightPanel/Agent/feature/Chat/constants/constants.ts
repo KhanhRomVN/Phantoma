@@ -20,6 +20,7 @@ export {
   TOOL_ACTION_TYPES,
   EXECUTION_STATUS,
   TERMINAL_STATUS,
+  STREAM_BOX_HEIGHT,
 } from './shared';
 export type { TerminalStatus } from './shared';
 export type {
@@ -37,6 +38,7 @@ import { SHARED_TAG_REGISTRY } from './shared';
 import { CODE_TAG_REGISTRY } from './code';
 import { EMULATE_TAG_REGISTRY } from './emulate';
 import { RECON_TAG_REGISTRY } from './recon';
+import { DESIGN_TAG_REGISTRY } from './design';
 import type { TagDefinition } from '../types/tag-types';
 
 export const TAG_REGISTRY: Record<string, TagDefinition> = {
@@ -44,6 +46,7 @@ export const TAG_REGISTRY: Record<string, TagDefinition> = {
   ...CODE_TAG_REGISTRY,
   ...EMULATE_TAG_REGISTRY,
   ...RECON_TAG_REGISTRY,
+  ...DESIGN_TAG_REGISTRY,
 };
 
 // Re-export individual registries
@@ -51,6 +54,7 @@ export { SHARED_TAG_REGISTRY } from './shared';
 export { CODE_TAG_REGISTRY } from './code';
 export { EMULATE_TAG_REGISTRY } from './emulate';
 export { RECON_TAG_REGISTRY } from './recon';
+export { DESIGN_TAG_REGISTRY } from './design';
 
 // ============= BACKWARD-COMPATIBLE WRAPPERS =============
 // Các hàm từ shared.ts yêu cầu tham số registry.
@@ -85,5 +89,33 @@ export const getToolLabel = (toolType: string): string => _getToolLabel(TAG_REGI
 
 // ============= FILE_MUTATION_TOOLS (backward compatibility) =============
 
-export type FileMutationTool = 'write_to_file' | 'replace_in_file' | 'revert_file';
+/** Danh sách các tool có khả năng thay đổi nội dung file trên disk.
+ *  Dùng cho logic revert, undo, và hiển thị diff summary. */
+export const FILE_MUTATION_TOOLS = Object.entries(TAG_REGISTRY)
+  .filter(([_, def]) => def.features?.isFileMutation === true)
+  .map(([key]) => key) as readonly ['write_to_file', 'replace_in_file', 'revert_file'];
+
+export type FileMutationTool = (typeof FILE_MUTATION_TOOLS)[number];
+
+// ===== PERMISSION MODE METADATA =====
+import React from 'react';
+import { Zap, ShieldCheck } from 'lucide-react';
+
+export const PERMISSION_MODE: Record<
+  string,
+  { label: string; desc: string; icon: React.ReactNode; color: string }
+> = {
+  fullAccess: {
+    label: 'Full Access',
+    desc: 'AI has unrestricted access to all project files and tools',
+    icon: React.createElement(Zap, { size: 11 }),
+    color: '#f59e0b', // Mapped from var(--vscode-editorBracketHighlight-foreground3)
+  },
+  approval: {
+    label: 'Approval Required',
+    desc: 'AI must request explicit approval before accessing files or running commands',
+    icon: React.createElement(ShieldCheck, { size: 11 }),
+    color: '#3b82f6', // Mapped from var(--vscode-symbolIcon-interfaceForeground)
+  },
+};
 

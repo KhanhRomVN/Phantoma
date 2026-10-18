@@ -44,6 +44,8 @@ import {
   setupMemoryHandlers,
   setupSkillHandlers,
   setupTitleHandlers,
+  setupWorkspaceDataHandlers,
+  setupDesignHandlers,
 } from './ipc';
 
 // Ensure certificate directory exists for http-mitm-proxy
@@ -73,6 +75,8 @@ app.whenReady().then(() => {
   setupMemoryHandlers();
   setupSkillHandlers();
   setupTitleHandlers();
+  setupWorkspaceDataHandlers();
+  setupDesignHandlers();
 
   // Create main window
   windowManager.createMainWindow();

@@ -7,6 +7,7 @@ import { ThemeConfig } from '../types/theme.types';
 export const CrispWhite: ThemeConfig = {
   id: 'crisp_white',
   name: 'CrispWhite',
+  type: 'light',
   monaco: {
     base: 'vs',
     inherit: true,

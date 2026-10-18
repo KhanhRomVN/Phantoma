@@ -19,7 +19,11 @@ import { Message } from '../../types/message';
 import { parseAIResponse } from '../../services/ResponseParser';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
-export const useMessageParsing = (messages: Message[], isStreaming: boolean) => {
+export const useMessageParsing = (
+  messages: Message[],
+  isStreaming: boolean,
+  feature?: string | null,
+) => {
   // Parse cache — reuse results across renders, avoiding redundant re-parses
   // when only unrelated state changes (same messages array, same content).
   const parseCacheRef = useRef<Map<string, ReturnType<typeof parseAIResponse>>>(new Map());
@@ -104,7 +108,7 @@ export const useMessageParsing = (messages: Message[], isStreaming: boolean) => 
     lastMessagesRef.current = messages; // Store current messages array for next comparison
 
     return result;
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, feature]);
 
   // Helper function to parse a single message with caching
   function parseMessageWithCache(
@@ -136,7 +140,13 @@ export const useMessageParsing = (messages: Message[], isStreaming: boolean) => 
     }
 
     // Parse fresh for streaming or cache miss
-    const parsed = parseAIResponse(msg.content);
+    // Note: useMessageParsing doesn't have direct access to conversationOverridesRef.
+    // We rely on the fact that most messages are already parsed by useChatLLM during generation,
+    // and this hook is mainly for display/restoration. Defaulting to 'xml' is safe here as
+    // JSON format parsing is handled in real-time by useChatLLM. If strict consistency is needed,
+    // we'd need to pass toolFormat down from ChatBody/index.tsx -> useMessageParsing.
+    // For Phase 1, keeping it simple with default 'xml' fallback which also handles basic text.
+    const parsed = parseAIResponse(msg.content, 'xml', feature);
 
     // Cache the parse result (but always create new object for streaming)
     if (!isAssistantStreaming) {

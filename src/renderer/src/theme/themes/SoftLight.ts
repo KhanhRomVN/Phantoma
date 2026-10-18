@@ -7,6 +7,7 @@ import { ThemeConfig } from '../types/theme.types';
 export const SoftLight: ThemeConfig = {
   id: 'soft_light',
   name: 'SoftLight',
+  type: 'light',
   monaco: {
     base: 'vs',
     inherit: true,

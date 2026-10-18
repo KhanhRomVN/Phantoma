@@ -177,9 +177,11 @@ interface FileExploreContextValue {
   onCutFile: (paths?: string[]) => void;
   onCopyFile: (paths?: string[]) => void;
   onPasteFile: () => void;
+  gitStatus: Record<string, 'added' | 'modified'>;
 }
 
 const FileExploreContext = createContext<FileExploreContextValue>({
+  gitStatus: {},
   creating: null,
   setCreating: () => {},
   clipboard: null,
@@ -326,6 +328,7 @@ const TreeNode = memo(function TreeNode({
     onCutFile,
     onCopyFile,
     onPasteFile,
+    gitStatus,
   } = useContext(FileExploreContext);
 
   const isActive = selectedNodeIds.has(node.id);
@@ -376,7 +379,10 @@ const TreeNode = memo(function TreeNode({
       // Chỉ xử lý folder expand/collapse — file click disabled
       if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
         if (!isFolder) {
-          // File click intentionally disabled
+          const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
+          if (sessionId && node.path) {
+            useCodeStore.getState().requestOpenFile(sessionId, node.path, node.name);
+          }
           return;
         }
 
@@ -521,9 +527,14 @@ const TreeNode = memo(function TreeNode({
             onClick={handleClick}
             className={cn(
               'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group',
-              isActive
-                ? 'bg-card-hover text-text-primary'
-                : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+              isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
+              gitStatus[node.path ?? ''] === 'added'
+                ? 'text-emerald-500'
+                : gitStatus[node.path ?? ''] === 'modified'
+                  ? 'text-orange-400'
+                  : isActive
+                    ? 'text-text-primary'
+                    : 'text-text-secondary hover:text-text-primary',
             )}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
           >
@@ -1102,6 +1113,57 @@ export function FileExplore() {
   }, [selectedNodeIds]);
 
   // ── Toolbar actions ───────────────────────────────────────────────────────
+  const gitRoot = project?.explorerRoot ?? project?.path;
+  const [gitStatus, setGitStatus] = useState<Record<string, 'added' | 'modified'>>({});
+
+  useEffect(() => {
+    if (!gitRoot) {
+      setGitStatus({});
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await window.api.invoke('git:status', gitRoot);
+        if (cancelled) return;
+        if (!res || res.error) {
+          setGitStatus({});
+          return;
+        }
+        const base = gitRoot.replace(/\/+$/, '');
+        const map: Record<string, 'added' | 'modified'> = {};
+        for (const line of String(res.output ?? '').split('\n')) {
+          const m = line.match(/^([ MADRCU?!]{1,2})\s+(.*)$/);
+          if (!m) continue;
+          const code = m[1].trim();
+          if (code.includes('D')) continue;
+          let rel = m[2].trim();
+          const arrow = rel.indexOf(' -> ');
+          if (arrow >= 0) rel = rel.slice(arrow + 4);
+          rel = rel.replace(/^"|"$/g, '').replace(/\/$/, '');
+          const status = code === '??' || code.includes('A') ? 'added' : 'modified';
+          let abs = `${base}/${rel}`;
+          map[abs] = status;
+          let idx = abs.lastIndexOf('/');
+          while (idx > base.length) {
+            abs = abs.slice(0, idx);
+            if (status === 'modified' || !map[abs]) map[abs] = status;
+            idx = abs.lastIndexOf('/');
+          }
+        }
+        setGitStatus(map);
+      } catch {
+        if (!cancelled) setGitStatus({});
+      }
+    };
+    void load();
+    const t = setInterval(() => void load(), 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [gitRoot]);
+
   const handleCollapseAll = useCallback(() => {
     if (currentProjectId) {
       collapseAllFolders(currentProjectId);
@@ -1200,8 +1262,10 @@ export function FileExplore() {
       onCutFile: handleCutFile,
       onCopyFile: handleCopyFile,
       onPasteFile: handlePasteFile,
+      gitStatus,
     }),
     [
+      gitStatus,
       creating,
       clipboard,
       handleCopyAbsolutePath,

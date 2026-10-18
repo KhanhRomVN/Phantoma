@@ -3,40 +3,37 @@
  * Activity Panel (Right Side)
  * ------------------------------------------------------------------
  * Right sidebar panel container with horizontal topbar for tab
- * switching (File Explorer, Search, Source Control). Includes a
+ * switching (File Explorer, Search, Design, History). Includes a
  * resizable width handle on the LEFT edge (200px–600px) and
  * delegates content rendering to the active tab component.
  *
- * Main features:
- * - Horizontal topbar (ActivityBar) + content area below
- * - Topbar height matches panel width for square aspect ratio
- * - 3 tabs: File Explorer, Search, Source Control
- * - Resizable width via LEFT drag handle
- * - Reads/writes panel width and active tab from Code store
+ * Design tab: leaving it restores the previous content view, while
+ * the design session (open design, agent UI) is kept in the store so
+ * clicking the Design icon again brings it back.
  * ------------------------------------------------------------------
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // ── UI ─
 import {
   Folder,
   Search as SearchIcon,
-  GitBranch,
-  History as HistoryIcon,
+  Palette,
 } from 'lucide-react';
 
 // ── Hooks ─
-import { useCodeStore } from '../../hooks/useCodeStore';
+import { useCodeStore, type ContentViewMode } from '../../hooks/useCodeStore';
+import { useDesignStore } from '../../hooks/useDesignStore';
 
 // ── Components ─
 import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
-import { SourceControl } from './SourceControl';
-import { History } from './History';
+import { Design } from './Design';
+
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 
@@ -45,14 +42,9 @@ const TABS = [
   { id: 'explore', icon: <Folder className="w-4 h-4" />, label: 'File Explorer' },
   { id: 'search', icon: <SearchIcon className="w-4 h-4" />, label: 'Search' },
   {
-    id: 'source',
-    icon: <GitBranch className="w-4 h-4" />,
-    label: 'Source Control',
-  },
-  {
-    id: 'history',
-    icon: <HistoryIcon className="w-4 h-4" />,
-    label: 'Conversation History',
+    id: 'design',
+    icon: <Palette className="w-4 h-4" />,
+    label: 'Design',
   },
 ];
 
@@ -69,15 +61,37 @@ export function ActivityPanel() {
   const setActivityPanelTab = useCodeStore((s) => s.setActivityPanelTab);
   const activityPanelWidth = useCodeStore((s) => s.activityPanelWidth);
   const setActivityPanelWidth = useCodeStore((s) => s.setActivityPanelWidth);
+  const contentViewMode = useCodeStore((s) => s.contentViewMode);
+  const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
+  const hasActiveDesign = useDesignStore((s) => s.activeDesignId !== null);
 
   // ── State ──
   const [isResizing, setIsResizing] = useState(false);
+  const [designMounted, setDesignMounted] = useState(activityPanelTab === 'design');
+
+  useEffect(() => {
+    if (activityPanelTab === 'design') setDesignMounted(true);
+  }, [activityPanelTab]);
 
   // ── Refs ──
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const lastViewModeRef = useRef<ContentViewMode>('files');
+
+  useEffect(() => {
+    if (contentViewMode !== 'design') lastViewModeRef.current = contentViewMode;
+  }, [contentViewMode]);
 
   // ── Handlers ──
+  const handleTabChange = (tab: string) => {
+    if (tab === 'design') {
+      if (hasActiveDesign) setContentViewMode('design');
+    } else if (contentViewMode === 'design') {
+      setContentViewMode(lastViewModeRef.current);
+    }
+    setActivityPanelTab(tab as any);
+  };
+
   // Resize from LEFT edge: dragging left increases width, dragging right decreases
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -108,10 +122,9 @@ export function ActivityPanel() {
         return <FileExplore />;
       case 'search':
         return <Search />;
-      case 'source':
-        return <SourceControl />;
-      case 'history':
-        return <History />;
+      case 'design':
+        return null;
+
       default:
         return <FileExplore />;
     }
@@ -134,14 +147,22 @@ export function ActivityPanel() {
       />
 
       {/* Topbar: height matches panel width */}
-      <ActivityBar
-        activeTab={activityPanelTab}
-        onTabChange={(tab: string) => setActivityPanelTab(tab as any)}
-        tabs={TABS}
-      />
+      <ActivityBar activeTab={activityPanelTab} onTabChange={handleTabChange} tabs={TABS} />
 
       {/* Content area below topbar */}
-      <div className="flex-1 overflow-hidden flex flex-col min-w-0">{renderContent()}</div>
+      <div className="flex-1 overflow-hidden flex flex-col min-w-0">
+        {designMounted && (
+          <div
+            className={cn(
+              'min-h-0 flex-1 flex-col',
+              activityPanelTab === 'design' ? 'flex' : 'hidden',
+            )}
+          >
+            <Design />
+          </div>
+        )}
+        {activityPanelTab !== 'design' && renderContent()}
+      </div>
     </div>
   );
 }

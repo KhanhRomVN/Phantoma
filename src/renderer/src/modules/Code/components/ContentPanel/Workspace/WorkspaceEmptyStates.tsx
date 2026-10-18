@@ -4,7 +4,7 @@
  *  - WorkspaceEmptyState → project selected but no panels open
  */
 
-import { memo, useMemo, useState, type ReactNode } from 'react';
+import { memo, useState, type ReactNode } from 'react';
 import {
   Plus,
   Terminal as TerminalIcon,
@@ -12,12 +12,9 @@ import {
   FileText,
   FolderOpen,
   GitBranch,
-  MessageSquare,
+  Bot,
   LayoutGrid,
 } from 'lucide-react';
-import { useCodeStore } from '../../../hooks/useCodeStore';
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
-import { cn } from '@renderer/shared/utils/cn';
 import { OpenProjectModal } from '../../modal/OpenProjectModal/index';
 import { CreateProjectModal } from '../../modal/CreateProjectModal';
 
@@ -121,21 +118,8 @@ function EmptyStateShell({ children }: { children: ReactNode }) {
 // ─── No project selected ──────────────────────────────────────────────
 
 export const EmptyState = memo(function EmptyState() {
-  const projects = useCodeStore((s) => s.projects);
-  const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
-  const currentProjectId = useCodeStore((s) => s.currentProjectId); // Get active project ID
-  const { accentColors, toRgba } = useAccentColors();
-
   const [openModalVisible, setOpenModalVisible] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
-
-  // Up to 5 most recent projects, excluding the currently active one
-  const recentProjects = useMemo(() => {
-    const filtered = currentProjectId 
-      ? projects.filter(p => p.id !== currentProjectId) 
-      : projects;
-    return filtered.slice(0, 5);
-  }, [projects, currentProjectId]);
 
   return (
     <EmptyStateShell>
@@ -151,7 +135,7 @@ export const EmptyState = memo(function EmptyState() {
         new one to work with agents.
       </p>
 
-      <div className="grid grid-cols-3 gap-2.5 mt-6 w-full">
+      <div className="flex flex-wrap justify-center gap-2.5 mt-6 w-full">
         <ActionCard
           accent="info"
           icon={<FolderOpen className="w-4 h-4" />}
@@ -175,88 +159,6 @@ export const EmptyState = memo(function EmptyState() {
         />
       </div>
 
-      {recentProjects.length > 0 && (
-        <div className="w-full mt-6 text-left">
-          <h2 className="text-[11px] font-medium text-text-secondary mb-2 ml-1 uppercase tracking-wider">
-            Recent Projects
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
-            {recentProjects.map((project) => {
-              const branchName = project.branches?.[0]?.name || 'main';
-              const sessionCount =
-                project.branches?.reduce((acc, b) => acc + (b.sessions?.length || 0), 0) || 0;
-
-              // Stable color hash — same technique as ProjectCard.tsx
-              let hash = 0;
-              const str = project.id + project.name;
-              for (let i = 0; i < str.length; i++) {
-                hash = (hash << 5) - hash + str.charCodeAt(i);
-                hash |= 0;
-              }
-              const glowColor = accentColors[Math.abs(hash) % accentColors.length];
-
-              return (
-                <button
-                  key={project.id}
-                  onClick={() => setCurrentProject(project.id)}
-                  className={cn(
-                    'group relative overflow-hidden rounded-xl border border-border bg-card-background',
-                    'p-3 text-left transition-all duration-200',
-                    'hover:-translate-y-0.5 hover:border-primary/40',
-                  )}
-                  style={{
-                    boxShadow: `inset 0 1px 0 0 ${toRgba(glowColor, 0.08)}, 0 1px 2px rgba(0,0,0,0.04)`,
-                  }}
-                >
-                  {/* Top-left accent glow */}
-                  <div
-                    className="absolute -top-8 -left-8 w-20 h-20 rounded-full pointer-events-none blur-xl opacity-25 group-hover:opacity-40 transition-opacity duration-500 ease-out"
-                    style={{
-                      backgroundColor: glowColor,
-                      boxShadow: `0 0 30px 8px ${toRgba(glowColor, 0.35)}`,
-                      zIndex: 0,
-                    }}
-                  />
-
-                  <div className="relative z-10 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-7 h-7 rounded-lg grid place-items-center shrink-0"
-                        style={{
-                          color: glowColor,
-                          backgroundColor: toRgba(glowColor, 0.14),
-                        }}
-                      >
-                        <GitBranch className="w-3.5 h-3.5" />
-                      </span>
-                      <span className="flex-1 min-w-0 font-display font-semibold text-[12.5px] text-text-primary truncate">
-                        {project.name}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2 text-[10.5px]">
-                      <span className="font-mono text-text-secondary truncate">{branchName}</span>
-                      <span
-                        className={cn(
-                          'shrink-0 px-1.5 py-0.5 rounded-md font-mono',
-                          sessionCount > 0
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-card-hover text-text-secondary/60',
-                        )}
-                      >
-                        {sessionCount > 0
-                          ? `${sessionCount} session${sessionCount > 1 ? 's' : ''}`
-                          : 'idle'}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <Hints
         items={[
           ['⌘ O', 'open project'],
@@ -266,14 +168,8 @@ export const EmptyState = memo(function EmptyState() {
       />
 
       {/* Project Modals */}
-      <OpenProjectModal
-        isOpen={openModalVisible}
-        onClose={() => setOpenModalVisible(false)}
-      />
-      <CreateProjectModal
-        isOpen={createModalVisible}
-        onClose={() => setCreateModalVisible(false)}
-      />
+      <OpenProjectModal isOpen={openModalVisible} onClose={() => setOpenModalVisible(false)} />
+      <CreateProjectModal isOpen={createModalVisible} onClose={() => setCreateModalVisible(false)} />
     </EmptyStateShell>
   );
 });
@@ -281,7 +177,7 @@ EmptyState.displayName = 'EmptyState';
 
 // ─── Project selected, no panels ──────────────────────────────────────
 
-export type EmptyWorkspaceAction = 'session' | 'terminal' | 'file' | 'preview';
+export type EmptyWorkspaceAction = 'browser' | 'terminal' | 'agent' | 'markdown';
 
 export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
   onAddPanel,
@@ -305,16 +201,16 @@ export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
 
       <h1 className="text-[17px] font-semibold text-text-primary mb-1.5">Workspace is empty</h1>
       <p className="text-sub text-[12.5px] max-w-[420px] text-text-secondary leading-relaxed">
-        Open terminal, file, or preview and drag tabs to split the workspace into up to 4 panes.
+        Open browser, terminal, agent, or markdown and drag tabs to split the workspace into up to 4 panes.
       </p>
 
       <div className="grid grid-cols-2 gap-2.5 mt-6 w-full">
         <ActionCard
-          accent="warn"
-          icon={<MessageSquare className="w-4 h-4" />}
-          title="New Session"
-          subtitle="Assign task to agent"
-          onClick={() => handleAction('session')}
+          accent="primary"
+          icon={<Globe className="w-4 h-4" />}
+          title="Browser"
+          subtitle="Preview localhost:5173"
+          onClick={() => handleAction('browser')}
         />
         <ActionCard
           accent="success"
@@ -324,18 +220,18 @@ export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
           onClick={() => handleAction('terminal')}
         />
         <ActionCard
-          accent="info"
-          icon={<FileText className="w-4 h-4" />}
-          title="Open File"
-          subtitle="Browse directory tree"
-          onClick={() => handleAction('file')}
+          accent="warn"
+          icon={<Bot className="w-4 h-4" />}
+          title="Agent"
+          subtitle="Assign task to agent"
+          onClick={() => handleAction('agent')}
         />
         <ActionCard
-          accent="primary"
-          icon={<Globe className="w-4 h-4" />}
-          title="Preview"
-          subtitle="localhost:5173"
-          onClick={() => handleAction('preview')}
+          accent="info"
+          icon={<FileText className="w-4 h-4" />}
+          title="Markdown"
+          subtitle="Write notes in markdown"
+          onClick={() => handleAction('markdown')}
         />
       </div>
 

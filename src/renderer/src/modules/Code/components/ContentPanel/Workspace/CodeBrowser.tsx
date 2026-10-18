@@ -7,7 +7,7 @@ interface CodeBrowserProps {
 }
 
 // ─── Device presets (CSS px) ──────────────────────────────────────────
-interface DevicePreset {
+export interface DevicePreset {
   id: string;
   label: string;
   width: number;
@@ -16,7 +16,7 @@ interface DevicePreset {
   mobile: boolean;
 }
 
-const DEVICE_PRESETS: DevicePreset[] = [
+export const DEVICE_PRESETS: DevicePreset[] = [
   { id: 'responsive', label: 'Responsive', width: 0, height: 0, dpr: 1, mobile: false },
   { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max', width: 430, height: 932, dpr: 3, mobile: true },
   { id: 'iphone-15', label: 'iPhone 15 / 14 / 13', width: 393, height: 852, dpr: 3, mobile: true },

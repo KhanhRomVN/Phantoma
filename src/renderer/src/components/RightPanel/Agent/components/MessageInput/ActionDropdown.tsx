@@ -9,16 +9,14 @@ import {
   Plus as PlusIcon,
   Sparkles,
 } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 import {
   Dropdown,
   DropdownTrigger,
   DropdownContent,
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
-import {
-  extensionService,
-  messageDispatcher,
-} from '@renderer/components/RightPanel/Agent/services/ExtensionService';
+// IPC: dùng window.api.invoke trực tiếp cho git:check-ready
 import {
   listRules,
   createRule,
@@ -60,8 +58,8 @@ interface ActionDropdownProps {
   selectedSkillSlugs?: string[];
 }
 
-const RULE_COLOR = "#facc15";
-const SKILL_COLOR = "#8b5cf6";
+const RULE_COLOR = $('--yellow');
+const SKILL_COLOR = $('--purple');
 
 /**
  * Menu "+" gộp nhiều action (attach, image/video generator, deep research,
@@ -128,24 +126,27 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
     const requestId = `gitCheckReady-${Date.now()}`;
     gitCheckIdRef.current = requestId;
     setGitReady({ checking: true, ok: false, reason: 'Checking git...' });
-    messageDispatcher.register(
-      requestId,
-      (msg: any) => {
+    (async () => {
+      try {
+        const api = (window as any).api;
+        if (!api?.invoke) throw new Error('IPC not available');
+        const res = await api.invoke('git:check-ready', undefined);
         if (gitCheckIdRef.current !== requestId) return;
-        const ok = !!msg.hasGit && !!msg.hasStaged;
-        setGitReady({ checking: false, ok, reason: ok ? undefined : msg.reason });
-      },
-      5000,
-      () => {
+        const ok = !!res?.hasGit && !!res?.hasStaged;
+        setGitReady({
+          checking: false,
+          ok,
+          reason: ok ? undefined : res?.reason,
+        });
+      } catch (err: any) {
         if (gitCheckIdRef.current !== requestId) return;
         setGitReady({
           checking: false,
           ok: false,
-          reason: 'Git check timed out, reopen the menu to retry',
+          reason: err?.message || 'Git check failed',
         });
-      },
-    );
-    extensionService.postMessage({ command: 'gitCheckReady', requestId });
+      }
+    })();
   };
 
   const getAttachDesc = () => {
@@ -162,7 +163,7 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
       key: 'attach',
       label: 'Attach',
       icon: <Paperclip size={14} />,
-      color: '#3b82f6',
+      color: $('--blue'),
       desc: getAttachDesc(),
       show: true,
     },
@@ -170,7 +171,7 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
       key: 'image-generator',
       label: 'Image Generator',
       icon: <Image size={14} />,
-      color: '#ec4899',
+      color: $('--pink'),
       desc: 'Generate images from text descriptions',
       show: showImageGenerator,
     },
@@ -178,7 +179,7 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
       key: 'video-generator',
       label: 'Video Generator',
       icon: <Video size={14} />,
-      color: '#8b5cf6',
+      color: $('--violet'),
       desc: 'Generate videos from text descriptions',
       show: showVideoGenerator,
     },
@@ -186,7 +187,7 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
       key: 'deep-research',
       label: 'Deep Research',
       icon: <Search size={14} />,
-      color: '#10b981',
+      color: $('--green'),
       desc: 'Comprehensive research and analysis',
       show: showDeepResearch,
     },
@@ -194,7 +195,7 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
       key: 'pull-request',
       label: 'Generate Commit Message',
       icon: <GitCommitHorizontal size={14} strokeWidth={2.3} />,
-      color: '#f59e0b',
+      color: $('--warn'),
       desc: 'Generate a commit message from staged changes',
       show: !!onSelectPullRequest,
       disabled: !gitReady.ok,

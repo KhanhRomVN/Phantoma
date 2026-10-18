@@ -15,6 +15,7 @@
  */
 
 import React, { useState } from 'react';
+import { $ } from '@renderer/utils/color';
 import { Ban, Stethoscope, Sparkles, Brain, Code2, Check } from 'lucide-react';
 import type { SystemPromptMode } from '../../feature/Chat/prompts/code';
 import {
@@ -43,28 +44,28 @@ export const STYLE_CODE_MODE_META: StyleCodeModeMeta[] = [
     key: 'fast',
     label: 'Fast',
     desc: 'Minimal confirmations, quick edits',
-    color: '#ef4444',
+    color: $('--error'),
     icon: <Ban size={14} />,
   },
   {
     key: 'balanced',
     label: 'Balanced',
     desc: 'Moderate confirmations, standard flow',
-    color: '#3b82f6',
+    color: $('--primary'),
     icon: <Stethoscope size={14} />,
   },
   {
     key: 'thorough',
     label: 'Thorough',
     desc: 'Extensive checks, detailed explanations',
-    color: '#a855f7',
+    color: $('--purple'),
     icon: <Sparkles size={14} />,
   },
   {
     key: 'autopilot',
     label: 'Autopilot',
     desc: 'Almost no confirmations, autonomous execution',
-    color: '#22c55e',
+    color: $('--success'),
     icon: <Brain size={14} />,
   },
 ];
@@ -84,7 +85,7 @@ const SkillIcon = Sparkles;
 const MemoryIcon = Brain;
 const FormatIcon = Code2;
 
-const FORMAT_COLORS = { json: '#3b82f6', xml: '#f59e0b' } as const;
+const FORMAT_COLORS = { json: $('--primary'), xml: $('--warn') } as const;
 
 const FormatText: React.FC<{ format: 'xml' | 'json' }> = ({ format }) => (
   <span
@@ -283,28 +284,28 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
         icon={<DiagnosticsIcon size={13} />}
         label="Diagnostics"
         value={diagnosticEnabled ? 'ON' : 'OFF'}
-        color="#22c55e"
+        color={$('--success')}
         active={diagnosticEnabled}
       />
       <TooltipRow
         icon={<SkillIcon size={13} />}
         label="Skill"
         value={skillEnabled ? 'ON' : 'OFF'}
-        color="#6366f1"
+        color={$('--violet')}
         active={skillEnabled}
       />
       <TooltipRow
         icon={<MemoryIcon size={13} />}
         label="Memory"
         value={memoryEnabled ? 'ON' : 'OFF'}
-        color="#a855f7"
+        color={$('--purple')}
         active={memoryEnabled}
       />
       <TooltipRow
         icon={<FormatIcon size={13} />}
         label="Format"
         value={toolFormat === 'json' ? 'JSON' : 'XML'}
-        color="#3b82f6"
+        color={$('--primary')}
       />
     </TooltipCard>
   );
@@ -317,6 +318,7 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
           align="start"
           sideOffset={4}
           onOpenChange={setDropdownOpen}
+          width={340}
         >
           <DropdownTrigger asChild>{pill}</DropdownTrigger>
           <DropdownContent size="lg">

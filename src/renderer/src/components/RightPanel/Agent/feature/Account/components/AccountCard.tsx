@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import {
   Trash2,
   RefreshCw,
@@ -13,9 +14,11 @@ import {
   Copy,
   Key,
   Pencil,
+  XCircle,
 } from 'lucide-react';
 import { FlatAccount } from '../types';
-import { CopyableText, getFaviconUrl } from '../utils';
+import { CopyableText } from '../utils';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import {
   Dropdown,
   DropdownTrigger,
@@ -23,7 +26,21 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { extensionService } from '../../../services/ExtensionService';
-import { extractAccessToken, formatJwtExpiry, isJwtExpired } from '@renderer/utils/jwt';
+import {
+  extractAccessToken,
+  formatJwtExpiry,
+  isJwtExpired,
+  extractCookieSessionExpiry,
+  formatExpiryMs,
+} from '@renderer/utils/jwt';
+import {
+  formatInUserTimezone,
+  parseIsoSafe,
+  getUserTimezone,
+  computeNextResetVN,
+} from '@renderer/utils/timezone';
+import AccountTooltip from './AccountTooltip';
+import { $ } from '@renderer/utils/color';
 
 interface AccountCardProps {
   account: FlatAccount;
@@ -32,9 +49,10 @@ interface AccountCardProps {
   onToggleSelect: () => void;
   onDelete: () => void;
   onSwitch: () => void;
-  onRefreshToken?: () => void;
+  onRefreshToken?: () => Promise<{ success: boolean; error?: string }>;
   onEdit?: () => void;
   providerConfig?: any;
+  statsPeriod?: 'day' | 'week' | 'month' | 'year' | 'all';
 }
 
 // Custom icon: lucide-square-dashed-mouse-pointer
@@ -73,46 +91,78 @@ const AccountCard: React.FC<AccountCardProps> = ({
   onRefreshToken,
   onEdit,
   providerConfig,
+  statsPeriod = 'day',
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const refreshStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Hover tooltip state ───────────────────────────────────────────────
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+    setTooltipVisible(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setTooltipVisible(false);
+  }, []);
 
   useEffect(() => {
     if (anySelected) setExpanded(false);
   }, [anySelected]);
 
+  // Cleanup timer khi unmount
+  useEffect(() => {
+    return () => {
+      if (refreshStatusTimerRef.current) clearTimeout(refreshStatusTimerRef.current);
+    };
+  }, []);
+
   const providerIconUrl = providerConfig?.website
     ? getFaviconUrl(providerConfig.website)
     : null;
 
+  /** Format ISO/SQLite date string theo timezone của người dùng */
   const formatIsoDate = (iso: string) => {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const hh = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+    const d = parseIsoSafe(iso);
+    return formatInUserTimezone(d, iso);
   };
 
   const isBrowserConnection = providerConfig?.connection_type === 'browser';
 
-  // Extract JWT token and check expiry
+  // Extract JWT token and check expiry (with cookie fallback)
   const accessToken = extractAccessToken(account.credential || '');
   const expiryToken = accessToken;
-  const tokenExpiry = expiryToken ? formatJwtExpiry(expiryToken) : null;
-  const isTokenExpired = expiryToken ? isJwtExpired(expiryToken) : false;
+  const tokenExpiry = expiryToken
+    ? formatJwtExpiry(expiryToken)
+    : (() => {
+        const cookieExpMs = extractCookieSessionExpiry(account.credential || '');
+        return cookieExpMs !== null ? formatExpiryMs(cookieExpMs) : null;
+      })();
+  const isTokenExpired = expiryToken
+    ? isJwtExpired(expiryToken)
+    : (() => {
+        const cookieExpMs = extractCookieSessionExpiry(account.credential || '');
+        return cookieExpMs !== null ? Date.now() >= cookieExpMs : false;
+      })();
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (anySelected) return;
+    // Khi đang ở selection mode: click bất kỳ đâu = toggle select
+    if (anySelected) {
+      onToggleSelect();
+      return;
+    }
     setExpanded(!expanded);
-  };
-
-  const handleSelectClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleSelect();
   };
 
   const handleCopyAccount = () => {
@@ -121,6 +171,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
       provider_id: account.provider_id,
       email: account.email,
       credential: account.credential,
+      auth_method: account.auth_method ?? null,
       usage: account.usage ?? null,
       reset_usage_at: account.reset_usage_at ?? null,
       is_active_cli: account.is_active_cli ?? false,
@@ -135,13 +186,55 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
   const handleRefreshToken = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!onRefreshToken || isRefreshing) return;
+    if (!onRefreshToken || isRefreshing) {
+      console.warn('[AccountCard][handleRefreshToken] Aborted', {
+        hasOnRefreshToken: !!onRefreshToken,
+        isRefreshing,
+      });
+      return;
+    }
     setIsRefreshing(true);
+    setRefreshStatus('idle');
+    setRefreshError(null);
+    // Clear previous timer
+    if (refreshStatusTimerRef.current) clearTimeout(refreshStatusTimerRef.current);
     try {
-      await onRefreshToken();
+      const result = await onRefreshToken();
+      if (result.success) {
+        setRefreshStatus('success');
+      } else {
+        setRefreshStatus('error');
+        setRefreshError(result.error || 'Refresh failed');
+      }
+    } catch (err: any) {
+      console.error('[AccountCard][handleRefreshToken] Exception:', err);
+      setRefreshStatus('error');
+      setRefreshError(err?.message || 'Refresh failed');
     } finally {
       setIsRefreshing(false);
+      // Auto-clear feedback sau 3s
+      refreshStatusTimerRef.current = setTimeout(() => {
+        setRefreshStatus('idle');
+        setRefreshError(null);
+      }, 3000);
     }
+  };
+
+  // ── Selected card style: subtle highlight, no dashed border ──────────
+  const primaryColor = $('--primary');
+  const inputBg = $('--input-background');
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: isSelected
+      ? `color-mix(in srgb, ${primaryColor} 10%, ${inputBg})`
+      : inputBg,
+    border: isSelected
+      ? `1.5px solid color-mix(in srgb, ${primaryColor} 60%, transparent)`
+      : '1.5px solid transparent',
+    borderRadius: '12px',
+    transition: 'all 0.15s ease',
+    position: 'relative',
+    cursor: anySelected ? 'pointer' : 'default',
   };
 
   return (
@@ -149,55 +242,58 @@ const AccountCard: React.FC<AccountCardProps> = ({
       <DropdownTrigger asChild>
         <div
           className="account-card"
-          style={{
-            backgroundColor: 'var(--input-bg)',
-            border: isSelected ? '1px dashed var(--primary)' : 'none',
-            borderRadius: '12px',
-            transition: 'all 0.2s ease',
-            position: 'relative',
-          }}
+          style={cardStyle}
+          onClick={handleCardClick}
+          onMouseEnter={handleMouseEnter}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
         >
+          {/* Hover tooltip — render qua portal để tránh bị clip */}
+          {tooltipVisible &&
+            ReactDOM.createPortal(
+              <AccountTooltip
+                account={account}
+                providerConfig={providerConfig}
+                x={tooltipPos.x}
+                y={tooltipPos.y}
+                visible={tooltipVisible}
+                statsPeriod={statsPeriod}
+              />,
+              document.body,
+            )}
+
           {/* Main Card Content */}
-          <div onClick={handleCardClick} style={{ padding: '10px 12px', cursor: 'pointer' }}>
-            {/* Selection checkbox */}
-            {anySelected && (
+          <div style={{ padding: '10px 12px' }}>
+            {/* Checkmark indicator when selected (top-right corner, subtle) */}
+            {isSelected && (
               <div
                 style={{
                   position: 'absolute',
-                  left: '8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '14px',
-                  height: '14px',
-                  borderRadius: '4px',
-                  border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
-                  backgroundColor: isSelected
-                    ? 'rgba(99,102,241,0.2)'
-                    : 'rgba(128,128,128,0.08)',
+                  top: '8px',
+                  right: '8px',
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  backgroundColor: $('--primary'),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 1,
+                  zIndex: 2,
                   flexShrink: 0,
-                  transition: 'all 0.15s ease',
                 }}
-                onClick={handleSelectClick}
               >
-                {isSelected && (
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--text-primary)"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#ffffff"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
               </div>
             )}
 
@@ -207,8 +303,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
-                paddingLeft: anySelected ? '24px' : '0px',
-                transition: 'padding-left 0.15s ease',
+                paddingRight: isSelected ? '24px' : '0',
+                transition: 'padding-right 0.15s ease',
               }}
             >
               {/* Provider icon */}
@@ -217,8 +313,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  backgroundColor: 'rgba(128,128,128,0.1)',
-                  color: 'var(--text-primary)',
+                  backgroundColor: $('--text-secondary', 0.1),
+                  color: $('--text-primary'),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -268,6 +364,43 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   <span style={{ color: 'var(--text-secondary)' }}>
                     {account.email || 'No email'}
                   </span>
+                  {account.auth_method &&
+                    (() => {
+                      const method = account.auth_method;
+                      const baseUri = (window as any).__zenImagesUri as string | undefined;
+                      const knownIcons = ['google', 'github', 'x'];
+                      const hasIcon = knownIcons.includes(method) && baseUri;
+                      return (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            marginLeft: '5px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            backgroundColor: $('--text-secondary', 0.1),
+                            color: $('--text-secondary'),
+                            letterSpacing: '0.02em',
+                            verticalAlign: 'middle',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {hasIcon ? (
+                            <img
+                              src={`${baseUri}/auth_icons/${method}.svg`}
+                              alt={method}
+                              style={{ width: '12px', height: '12px', objectFit: 'contain' }}
+                            />
+                          ) : (
+                            <Key size={11} />
+                          )}
+                          {method}
+                        </span>
+                      );
+                    })()}
                 </p>
 
                 {/* Period stats */}
@@ -287,12 +420,12 @@ const AccountCard: React.FC<AccountCardProps> = ({
                       alignItems: 'center',
                       gap: '4px',
                       fontSize: '10px',
-                      color: 'var(--text-secondary)',
+                      color: $('--text-secondary'),
                       flexShrink: 0,
                     }}
                   >
-                    <Activity size={11} style={{ color: 'var(--success, #22c55e)' }} />
-                    {(account.period_requests ?? 0).toLocaleString()} req
+                    <Activity size={11} style={{ color: $('--success') }} />
+                    {(account.period_requests ?? 0).toLocaleString()} msg
                   </span>
                   <span
                     style={{
@@ -300,11 +433,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
                       alignItems: 'center',
                       gap: '4px',
                       fontSize: '10px',
-                      color: 'var(--text-secondary)',
+                      color: $('--text-secondary'),
                       flexShrink: 0,
                     }}
                   >
-                    <Coins size={11} style={{ color: 'var(--warn, #f97316)' }} />
+                    <Coins size={11} style={{ color: $('--warn') }} />
                     {account.period_tokens !== undefined && account.period_tokens >= 1000000
                       ? (account.period_tokens / 1000000).toFixed(1) + 'M'
                       : account.period_tokens !== undefined && account.period_tokens >= 1000
@@ -312,45 +445,96 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         : (account.period_tokens ?? 0)}{' '}
                     tokens
                   </span>
-                  {account.usage != null && (
-                    <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '10px',
-                        color:
-                          Number(account.usage) >= 90
-                            ? 'var(--vscode-editorError-foreground, #ef4444)'
-                            : Number(account.usage) >= 70
-                              ? 'var(--vscode-editorWarning-foreground, #f97316)'
-                              : 'var(--text-secondary)',
-                        flexShrink: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        maxWidth: '60px',
-                      }}
-                    >
-                      <BarChart3
-                        size={11}
-                        style={{
-                          flexShrink: 0,
-                          color:
-                            Number(account.usage) >= 90
-                              ? 'var(--vscode-editorError-foreground, #ef4444)'
-                              : Number(account.usage) >= 70
-                                ? 'var(--vscode-editorWarning-foreground, #f97316)'
-                                : '#a855f7',
-                        }}
-                      />
-                      <span
-                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      >
-                        {Number(account.usage).toFixed(1)}%
-                      </span>
-                    </span>
-                  )}
+                  {account.usage != null &&
+                    (() => {
+                      const usageNum = Number(account.usage);
+                      const errorColor = $('--error');
+                      const warnColor = $('--warn');
+                      const purpleColor = $('--purple');
+                      const secondaryColor = $('--text-secondary');
+                      
+                      const usageColor =
+                        usageNum >= 90
+                          ? errorColor
+                          : usageNum >= 70
+                            ? warnColor
+                            : purpleColor;
+                            
+                      const textColor =
+                        usageNum >= 90
+                          ? errorColor
+                          : usageNum >= 70
+                            ? warnColor
+                            : secondaryColor;
+
+                      const resetTitle = account.reset_usage_at
+                        ? `Usage resets at: ${formatIsoDate(account.reset_usage_at)} (${getUserTimezone()})`
+                        : undefined;
+                      return (
+                        <span
+                          title={resetTitle}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '10px',
+                            color: textColor,
+                            flexShrink: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '80px',
+                          }}
+                        >
+                          <BarChart3 size={11} style={{ flexShrink: 0, color: usageColor }} />
+                          <span
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {usageNum.toFixed(1)}%
+                          </span>
+                        </span>
+                      );
+                    })()}
+                  {/* Reset countdown — hiển thị kể cả khi reset_usage_at cũ/expired */}
+                  {account.usage != null &&
+                    account.reset_usage_at != null &&
+                    (() => {
+                      const storedReset = parseIsoSafe(account.reset_usage_at);
+                      const resetDate =
+                        !isNaN(storedReset.getTime()) && storedReset.getTime() > Date.now()
+                          ? storedReset
+                          : computeNextResetVN('day');
+                      const diffMs = resetDate.getTime() - Date.now();
+                      if (diffMs <= 0) return null;
+                      const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+                      const label =
+                        diffHours < 1
+                          ? 'Resets <1h'
+                          : diffHours < 24
+                            ? `Resets ${diffHours}h`
+                            : `Resets ${Math.ceil(diffHours / 24)}d`;
+                      const resetLabel = formatInUserTimezone(resetDate);
+                      return (
+                        <span
+                          title={`Usage resets at: ${resetLabel} (${getUserTimezone()})`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            fontSize: '10px',
+                            color: $('--warn'),
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Clock size={10} style={{ flexShrink: 0 }} />
+                          <span>{label}</span>
+                        </span>
+                      );
+                    })()}
                   {tokenExpiry && (
                     <span
                       style={{
@@ -359,8 +543,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         gap: '4px',
                         fontSize: '10px',
                         color: isTokenExpired
-                          ? 'var(--vscode-editorError-foreground, #ef4444)'
-                          : 'var(--text-secondary)',
+                          ? $('--error')
+                          : $('--text-secondary'),
                         flexShrink: 1,
                         overflow: 'hidden',
                         minWidth: 0,
@@ -371,14 +555,68 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         style={{
                           flexShrink: 0,
                           color: isTokenExpired
-                            ? 'var(--vscode-editorError-foreground, #ef4444)'
-                            : '#3b82f6',
+                            ? $('--error')
+                            : $('--primary'),
                         }}
                       />
                       <span
                         style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                       >
                         {isTokenExpired ? 'Expired' : `Exp: ${tokenExpiry}`}
+                      </span>
+                    </span>
+                  )}
+
+                  {/* Refresh token feedback badge */}
+                  {isRefreshing && (
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '10px',
+                        color: $('--primary'),
+                        flexShrink: 0,
+                      }}
+                    >
+                      <RefreshCw size={10} style={{ animation: 'spin 1s linear infinite' }} />
+                      Refreshing…
+                    </span>
+                  )}
+                  {!isRefreshing && refreshStatus === 'success' && (
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '10px',
+                        color: $('--success'),
+                        flexShrink: 0,
+                      }}
+                    >
+                      <CheckCircle size={10} />
+                      Token refreshed
+                    </span>
+                  )}
+                  {!isRefreshing && refreshStatus === 'error' && (
+                    <span
+                      title={refreshError || 'Refresh failed'}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '10px',
+                        color: $('--error'),
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        maxWidth: '120px',
+                      }}
+                    >
+                      <XCircle size={10} style={{ flexShrink: 0 }} />
+                      <span
+                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {refreshError || 'Refresh failed'}
                       </span>
                     </span>
                   )}
@@ -395,9 +633,9 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   style={{
                     padding: '4px 8px',
                     borderRadius: '6px',
-                    backgroundColor: 'rgba(128,128,128,0.15)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-secondary)',
+                    backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 15%, transparent)`,
+                    border: `1px solid ${$('--border')}`,
+                    color: $('--text-secondary'),
                     fontSize: '10px',
                     fontWeight: 500,
                     cursor: 'pointer',
@@ -418,9 +656,9 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   style={{
                     padding: '4px 8px',
                     borderRadius: '6px',
-                    backgroundColor: 'rgba(34,197,94,0.1)',
-                    border: '1px solid rgba(34,197,94,0.3)',
-                    color: 'var(--success, #22c55e)',
+                    backgroundColor: `color-mix(in srgb, ${$('--success')} 10%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${$('--success')} 30%, transparent)`,
+                    color: $('--success'),
                     fontSize: '10px',
                     fontWeight: 500,
                     display: 'flex',
@@ -437,11 +675,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
           </div>
 
           {/* Expanded detail section */}
-          {expanded && (
+          {expanded && !anySelected && (
             <div
               style={{
-                borderTop: '1px solid var(--border)',
-                backgroundColor: 'var(--input-bg)',
+                borderTop: `1px solid ${$('--border')}`,
+                backgroundColor: $('--input-background'),
                 fontSize: '12px',
                 borderRadius: '0 0 12px 12px',
                 overflow: 'hidden',
@@ -462,7 +700,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                       alignItems: 'center',
                       gap: '4px',
                       fontSize: '10px',
-                      color: 'var(--text-secondary)',
+                      color: $('--text-secondary'),
                       marginBottom: '2px',
                     }}
                   >
@@ -496,7 +734,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                                   alignItems: 'center',
                                   gap: '4px',
                                   fontSize: '10px',
-                                  color: 'var(--text-secondary)',
+                                  color: $('--text-secondary'),
                                   marginBottom: '2px',
                                 }}
                               >
@@ -518,7 +756,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                             alignItems: 'center',
                             gap: '4px',
                             fontSize: '10px',
-                            color: 'var(--text-secondary)',
+                            color: $('--text-secondary'),
                             marginBottom: '2px',
                           }}
                         >
@@ -538,36 +776,46 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         alignItems: 'center',
                         gap: '4px',
                         fontSize: '10px',
-                        color: 'var(--text-secondary)',
+                        color: $('--text-secondary'),
                         marginBottom: '2px',
                       }}
                     >
                       <Clock size={10} />
-                      Reset At
+                      Reset At ({getUserTimezone()})
                     </div>
-                    <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                      {formatIsoDate(account.reset_usage_at)}
+                    <div style={{ fontSize: '11px', fontWeight: 500, color: $('--text-primary') }}>
+                      {(() => {
+                        const stored = parseIsoSafe(account.reset_usage_at!);
+                        const effectiveReset =
+                          !isNaN(stored.getTime()) && stored.getTime() > Date.now()
+                            ? stored
+                            : computeNextResetVN('day');
+                        return formatInUserTimezone(effectiveReset);
+                      })()}
                     </div>
                   </div>
                 )}
               </div>
 
               <div
-                onClick={() => setExpanded(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(false);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '10px',
-                  color: 'var(--text-secondary)',
+                  color: $('--text-secondary'),
                   paddingTop: '8px',
                   paddingBottom: '8px',
-                  borderTop: '1px dashed var(--border)',
+                  borderTop: `1px dashed ${$('--border')}`,
                   borderRadius: '0 0 12px 12px',
                   cursor: 'pointer',
                   transition: 'background-color 0.15s ease',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--hover-bg)')}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`)}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 Click again to collapse
@@ -578,8 +826,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
           <style>{`
             .account-card:hover {
               transform: translateY(-1px);
-              border-color: var(--primary);
-              box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+              box-shadow: 0 2px 8px rgb(0,0,0,0.12);
+            }
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
             }
           `}</style>
         </div>
@@ -599,13 +850,29 @@ const AccountCard: React.FC<AccountCardProps> = ({
             Edit Account
           </DropdownItem>
         )}
-        {onRefreshToken && (
+        {onRefreshToken && providerConfig?.can_refresh_token && (
           <DropdownItem
-            icon={<Key size={14} />}
+            icon={
+              isRefreshing ? (
+                <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : refreshStatus === 'success' ? (
+                <CheckCircle size={14} style={{ color: $('--success') }} />
+              ) : refreshStatus === 'error' ? (
+                <XCircle size={14} style={{ color: $('--error') }} />
+              ) : (
+                <Key size={14} />
+              )
+            }
             onClick={() => handleRefreshToken()}
             disabled={isRefreshing}
           >
-            {isRefreshing ? 'Refreshing Token...' : 'Refresh Token'}
+            {isRefreshing
+              ? 'Refreshing Token…'
+              : refreshStatus === 'success'
+                ? 'Token Refreshed!'
+                : refreshStatus === 'error'
+                  ? 'Retry Refresh Token'
+                  : 'Refresh Token'}
           </DropdownItem>
         )}
         {account.is_active_cli === false && (

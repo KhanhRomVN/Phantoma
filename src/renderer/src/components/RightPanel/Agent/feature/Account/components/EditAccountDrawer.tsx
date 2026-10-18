@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, X, AlertCircle } from 'lucide-react';
 import { useDbFetch } from '../../../services/useDbFetch';
-import { getFaviconUrl } from '../utils';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { $ } from '@renderer/utils/color';
 import { FlatAccount } from '../types';
 
 interface EditAccountDrawerProps {
@@ -19,55 +20,72 @@ const SINGLE_LINE_CHAR_THRESHOLD = 60;
 
 /**
  * Field input tự động chuyển giữa input 1 dòng và textarea nhiều dòng.
- * Textarea giới hạn max-height ~5 dòng (khoảng 5 * 18px + padding).
+ * Textarea giới hạn max-height ~5 dòng (khoảng 5 * 20px line-height + padding).
  */
 const AutoField: React.FC<{
   label: string;
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
-}> = ({ label, value, onChange, disabled }) => {
+  readOnly?: boolean;
+}> = ({ label, value, onChange, disabled, readOnly }) => {
   const useTextarea = value.length > SINGLE_LINE_CHAR_THRESHOLD || value.includes('\n');
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea: fit content up to 5 lines, then scroll
+  useEffect(() => {
+    if (!useTextarea) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const lineHeight = 20; // matches lineHeight below
+    const paddingV = 16;   // paddingTop + paddingBottom (8px each)
+    const maxH = lineHeight * 5 + paddingV;
+    el.style.height = `${Math.min(el.scrollHeight, maxH)}px`;
+    el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
+  }, [value, useTextarea]);
 
   const baseStyle: React.CSSProperties = {
     width: '100%',
     padding: '8px 12px',
     borderRadius: '8px',
-    backgroundColor: 'var(--input-bg)',
+    backgroundColor: $('--input-background'),
     border: 'none',
-    color: 'var(--text-primary)',
+    color: readOnly ? $('--text-secondary') : $('--text-primary'),
     fontSize: '13px',
-    fontFamily: useTextarea ? 'monospace' : 'inherit',
     outline: 'none',
     boxSizing: 'border-box',
     resize: 'none',
-    lineHeight: '18px',
+    lineHeight: '20px',
+    cursor: readOnly ? 'default' : 'text',
+    opacity: readOnly ? 0.85 : 1,
   };
 
   return (
     <div style={{ minWidth: 0 }}>
       <label
         style={{
-          fontSize: '11px',
+          fontSize: '12px',
           fontWeight: 500,
-          color: 'var(--text-secondary)',
+          color: $('--text-secondary'),
           display: 'block',
           marginBottom: '5px',
-          fontFamily: 'monospace',
         }}
       >
         {label}
       </label>
       {useTextarea ? (
         <textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
+          readOnly={readOnly}
           style={{
             ...baseStyle,
-            minHeight: '34px',
-            maxHeight: '108px',
-            overflowY: 'auto',
+            minHeight: '36px',
+            overflowY: 'hidden',
             paddingTop: '8px',
             paddingBottom: '8px',
           }}
@@ -78,6 +96,7 @@ const AutoField: React.FC<{
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
+          readOnly={readOnly}
           style={{ ...baseStyle, height: '34px' }}
         />
       )}
@@ -181,7 +200,7 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.55)',
+          backgroundColor: 'rgb(0,0,0,0.55)', // Overlay usually stays black/dark regardless of theme for contrast
           zIndex: 200,
           animation: 'eaFadeIn 0.15s ease',
         }}
@@ -193,8 +212,8 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: 'rgb(var(--card-background))',
-          borderTop: '1px solid var(--border)',
+          backgroundColor: $('--card-background'),
+          borderTop: `1px solid ${$('--border')}`,
           boxShadow: '0 -8px 32px rgba(0,0,0,0.25)',
           zIndex: 201,
           maxHeight: '80%',
@@ -207,7 +226,7 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
         <div
           style={{
             padding: '12px 16px',
-            borderBottom: '1px solid var(--border)',
+            borderBottom: `1px solid ${$('--border')}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -216,7 +235,7 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
                 Edit Account
               </div>
               <div
@@ -225,7 +244,7 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
                   alignItems: 'center',
                   gap: '5px',
                   fontSize: '11px',
-                  color: 'var(--text-secondary)',
+                  color: $('--text-secondary'),
                   opacity: 0.7,
                   minWidth: 0,
                 }}
@@ -257,19 +276,19 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
               borderRadius: '4px',
               border: 'none',
               background: 'transparent',
-              color: 'var(--text-secondary)',
+              color: $('--text-secondary'),
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(244,67,54,0.15)';
-              e.currentTarget.style.color = '#f44336';
+              e.currentTarget.style.backgroundColor = $('--error', 0.15);
+              e.currentTarget.style.color = $('--error');
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.color = $('--text-secondary');
             }}
           >
             <X size={16} />
@@ -287,7 +306,13 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
             gap: '12px',
           }}
         >
-          <AutoField label="email" value={email} onChange={setEmail} disabled={saving} />
+          <AutoField
+            label="email"
+            value={email}
+            onChange={setEmail}
+            disabled={saving}
+            readOnly
+          />
 
           {credFields.map((f) => (
             <AutoField
@@ -302,11 +327,11 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
           {error && (
             <div
               style={{
-                backgroundColor: 'var(--vscode-inputValidation-errorBackground, rgba(239,68,68,0.08))',
+                backgroundColor: $('--error', 0.08),
                 borderRadius: '8px',
                 padding: '8px 10px',
                 fontSize: '12px',
-                color: 'var(--vscode-errorForeground)',
+                color: $('--error'),
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -335,9 +360,9 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
             style={{
               padding: '8px 14px',
               borderRadius: '9px',
-              backgroundColor: 'rgba(128,128,128,0.08)',
+              backgroundColor: $('--text-secondary', 0.08),
               border: 'none',
-              color: 'var(--text-secondary)',
+              color: $('--text-secondary'),
               fontSize: '12px',
               fontWeight: 500,
               cursor: saving ? 'not-allowed' : 'pointer',
@@ -352,9 +377,9 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
             style={{
               padding: '8px 14px',
               borderRadius: '9px',
-              backgroundColor: 'rgba(34,197,94,0.12)',
+              backgroundColor: $('--success', 0.12),
               border: 'none',
-              color: 'var(--success, #22c55e)',
+              color: $('--success'),
               fontSize: '12px',
               fontWeight: 600,
               cursor: saving || !email.trim() ? 'not-allowed' : 'pointer',

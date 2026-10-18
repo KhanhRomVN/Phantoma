@@ -596,7 +596,8 @@ export const useChatLLM = ({
         for (let i = updatedMessages.length - 2; i >= 0; i--) {
           const msg = updatedMessages[i];
           if (msg.role === 'assistant') {
-            const parsed = parseAIResponse(msg.content);
+            const effectiveToolFormat = conversationOverridesRef.current?.toolFormat ?? 'xml';
+            const parsed = parseAIResponse(msg.content, effectiveToolFormat, feature);
             if (
               parsed.question &&
               parsed.question.type === 'question' &&
@@ -859,7 +860,8 @@ export const useChatLLM = ({
           const contentToParse =
             assistantMessage.rawResponse || assistantMessage.content;
 
-          parsed = parseAIResponse(contentToParse);
+          const effectiveToolFormat = conversationOverridesRef.current?.toolFormat ?? 'xml';
+          parsed = parseAIResponse(contentToParse, effectiveToolFormat, feature);
 
           // Attach parsed data to assistantMessage
           assistantMessage.parsed = parsed;

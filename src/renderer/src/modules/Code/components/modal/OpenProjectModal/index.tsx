@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { Loader2, FolderOpen, GitBranch, Search, Trash2, X } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Loader2, FolderOpen, GitBranch, Search, Trash2, X, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 
 import { useCodeStore } from '../../../hooks/useCodeStore';
@@ -9,10 +9,18 @@ import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
-import { NewRepositoryForm } from './NewRepositoryForm';
-import { ProjectDetailPanel } from './ProjectDetailPanel';
+import {
+  NewRepositoryForm,
+  RecentClones,
+  GIT_URL_REGEX,
+  deriveFolderName,
+} from './NewRepositoryForm';
+import { ProjectDetailPanel, shortenPath } from './ProjectDetailPanel';
 
-const GIT_URL_REGEX = /^(https?:\/\/|git@)\S+/i;
+const DEFAULT_CLONE_DEST = '/home/khanhromvn/projects';
+
+type Mode = 'local' | 'clone';
+type Selection = { type: 'folder' } | { type: 'project'; id: string } | null;
 
 interface OpenProjectModalProps {
   isOpen: boolean;
@@ -24,359 +32,405 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
   const projects = useCodeStore((s) => s.projects);
   const removeProject = useCodeStore((s) => s.removeProject);
-  const currentProjectId = useCodeStore((s) => s.currentProjectId); // Get active project ID
+  const currentProjectId = useCodeStore((s) => s.currentProjectId);
 
+  const [mode, setMode] = useState<Mode>('local');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [browsePath, setBrowsePath] = useState('');
-  const [subView, setSubView] = useState<'local' | 'clone'>('local');
+  const [selection, setSelection] = useState<Selection>(null);
   const [stackCache, setStackCache] = useState<Map<string, StackInfo>>(new Map());
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [isBrowseSelected, setIsBrowseSelected] = useState(false);
 
-  const isCloneMode = useMemo(() => GIT_URL_REGEX.test(searchQuery.trim()), [searchQuery]);
+  const [cloneUrl, setCloneUrl] = useState('');
+  const [cloneFolderName, setCloneFolderName] = useState('');
+  const [cloneDest, setCloneDest] = useState(DEFAULT_CLONE_DEST);
+  const [folderNameEdited, setFolderNameEdited] = useState(false);
 
-  const canSubmit = useMemo(() => {
-    if (isCloneMode) return true;
-    return !!browsePath;
-  }, [isCloneMode, browsePath]);
+  const fetchingPathsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (isOpen) {
-      setSearchQuery('');
-      setBrowsePath('');
-      setSelectedProjectId(null);
-      setIsBrowseSelected(false);
-      setSubView('local');
-    }
+    if (!isOpen) return;
+    setMode('local');
+    setLoading(false);
+    setError('');
+    setSearchQuery('');
+    setBrowsePath('');
+    setSelection(null);
+    setCloneUrl('');
+    setCloneFolderName('');
+    setCloneDest(DEFAULT_CLONE_DEST);
+    setFolderNameEdited(false);
   }, [isOpen]);
 
-  const filteredProjects = useMemo(() => {
-    let list = [...projects];
-
-    // Exclude the currently active project from recent list to avoid confusion/duplication
-    if (currentProjectId) {
-      list = list.filter((p) => p.id !== currentProjectId);
-    }
-
-    if (searchQuery && subView === 'local') {
-      const q = searchQuery.toLowerCase();
+  const recentProjects = useMemo(() => {
+    let list = projects.filter((p) => p.id !== currentProjectId);
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
       list = list.filter(
         (p) => p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q),
       );
     }
-    return list.reverse();
-  }, [projects, searchQuery, subView, currentProjectId]);
+    return [...list].reverse();
+  }, [projects, searchQuery, currentProjectId]);
 
-  // Ref to track paths currently being fetched to prevent duplicate calls during rapid re-renders
-  const fetchingPathsRef = useRef<Set<string>>(new Set());
+  const target = useMemo(() => {
+    if (mode !== 'local' || !selection) return null;
+    if (selection.type === 'folder' && browsePath) {
+      return { name: browsePath.split('/').pop() || 'Untitled', path: browsePath };
+    }
+    if (selection.type === 'project') {
+      const proj = projects.find((p) => p.id === selection.id);
+      if (proj) return { name: proj.name, path: proj.path };
+    }
+    return null;
+  }, [mode, selection, browsePath, projects]);
 
   useEffect(() => {
-    if (subView !== 'local') return;
+    const path = target?.path;
+    if (!path || stackCache.has(path) || fetchingPathsRef.current.has(path)) return;
 
-    // Collect all unique paths that might need detection:
-    // 1. From the list of recent projects
-    // 2. From the manually browsed folder (if any)
-    const pathsToCheck = new Set<string>();
-
-    filteredProjects.forEach((p) => pathsToCheck.add(p.path));
-    if (browsePath) pathsToCheck.add(browsePath);
-
-    // Filter out those already cached or currently fetching
-    const needsDetection = Array.from(pathsToCheck).filter(
-      (path) => !stackCache.has(path) && !fetchingPathsRef.current.has(path),
-    );
-
-    if (needsDetection.length === 0) return;
-
-    needsDetection.forEach(async (path) => {
-      // Determine name for logging purposes
-      const projName =
-        path === browsePath
-          ? browsePath.split('/').pop() || 'Browsed Folder'
-          : filteredProjects.find((p) => p.path === path)?.name || 'Unknown';
-
-      // Mark as fetching immediately
-      fetchingPathsRef.current.add(path);
-
-      try {
-        const info = await detectProjectStack(path);
-
-        // Update cache
-        setStackCache((prev) => {
-          const next = new Map(prev);
-          next.set(path, info);
-          return next;
-        });
-      } catch (err) {
-        console.error(`[ERROR OpenProjectModal] Detection failed for "${projName}":`, err);
-        // Cache empty result to stop retries
-        setStackCache((prev) => {
-          const next = new Map(prev);
-          next.set(path, { frameworks: [], languages: [], contributors: [], branches: [] });
-          return next;
-        });
-      } finally {
-        // Remove from fetching set regardless of success/failure
+    fetchingPathsRef.current.add(path);
+    detectProjectStack(path)
+      .then((info) => {
+        setStackCache((prev) => new Map(prev).set(path, info));
+      })
+      .catch((err) => {
+        console.error(`[OpenProjectModal] Detection failed for "${path}":`, err);
+        setStackCache((prev) =>
+          new Map(prev).set(path, {
+            frameworks: [],
+            languages: [],
+            contributors: [],
+            branches: [],
+          }),
+        );
+      })
+      .finally(() => {
         fetchingPathsRef.current.delete(path);
-      }
-    });
-  }, [filteredProjects, subView, stackCache, browsePath]); // Added browsePath to deps
+      });
+  }, [target?.path, stackCache]);
 
-  const groupedProjects = useMemo(() => {
-    const groups: Record<string, typeof filteredProjects> = {};
-    filteredProjects.forEach((proj, idx) => {
-      let label = 'Earlier';
-      if (idx < 2) label = 'Today';
-      else if (idx < 4) label = 'Yesterday';
-      else if (idx < 8) label = 'Last Week';
-      if (!groups[label]) groups[label] = [];
-      groups[label].push(proj);
-    });
-    return Object.entries(groups).map(([label, items]) => ({ label, items }));
-  }, [filteredProjects]);
+  const cloneUrlValid = GIT_URL_REGEX.test(cloneUrl.trim());
+  const cloneFolderValid = cloneFolderName.trim().length > 0 && !/[\\/]/.test(cloneFolderName);
+  const canSubmit =
+    mode === 'clone'
+      ? cloneUrlValid && cloneFolderValid && cloneDest.trim().length > 0
+      : selection !== null && target !== null;
 
-  const shortenPath = (path: string): string => {
-    if (!path) return '';
-    const parts = path.split('/').filter(Boolean);
-    if (parts.length <= 3) return path;
-    const start = parts[0] === 'home' || parts[0] === 'Users' ? '~/' : '';
-    const end = parts.slice(-2).join('/');
-    return `${start}.../${end}`;
+  const handleSearchChange = (value: string) => {
+    if (GIT_URL_REGEX.test(value.trim())) {
+      setMode('clone');
+      setCloneUrl(value.trim());
+      setCloneFolderName(deriveFolderName(value));
+      setFolderNameEdited(false);
+      setSearchQuery('');
+      return;
+    }
+    setSearchQuery(value);
+  };
+
+  const handleCloneUrlChange = (value: string) => {
+    setCloneUrl(value);
+    if (!folderNameEdited) setCloneFolderName(deriveFolderName(value));
+  };
+
+  const handleCloneFolderChange = (value: string) => {
+    setCloneFolderName(value);
+    setFolderNameEdited(true);
+  };
+
+  const pickDirectory = async (_title: string): Promise<string | null> => {
+    try {
+      const result = await window.api.invoke('dialog:select-paths', { kind: 'folder' });
+      return result?.success && result.paths?.[0] ? result.paths[0] : null;
+    } catch (err) {
+      console.error('[OpenProjectModal] Browse failed:', err);
+      return null;
+    }
   };
 
   const handleBrowseFolder = async () => {
-    try {
-      const result = await window.api.invoke('showOpenDialog', {
-        properties: ['openDirectory'],
-        title: 'Select Project Folder',
-      });
-      const isCanceled = result?.canceled === true || result?.success === false;
-      if (!isCanceled && result?.filePaths?.[0]) {
-        setBrowsePath(result.filePaths[0]);
-        setIsBrowseSelected(true);
-        setSelectedProjectId(null);
-      }
-    } catch (err) {
-      console.error('[OpenProjectModal] Browse failed:', err);
+    const picked = await pickDirectory('Select Project Folder');
+    if (picked) {
+      setBrowsePath(picked);
+      setSelection({ type: 'folder' });
+      setMode('local');
     }
   };
 
-  const handleSubmit = async (cloneData?: { url: string; dest: string; folderName: string }) => {
-    if (!canSubmit && !cloneData) return;
+  const handleBrowseDest = async () => {
+    const picked = await pickDirectory('Select Clone Destination');
+    if (picked) setCloneDest(picked);
+  };
 
+  const handleReuseClone = (entry: { url: string; name: string }) => {
+    setCloneUrl(entry.url);
+    setCloneFolderName(entry.name);
+    setFolderNameEdited(true);
+  };
+
+  const handleSubmit = useCallback(async () => {
+    if (!canSubmit || loading) return;
     setLoading(true);
+    setError('');
     try {
-      if (cloneData) {
-        // Clone flow handled by child component passing data up or triggering here
-        await window.api.invoke('git:clone', { url: cloneData.url, dest: cloneData.dest });
-        addCloneEntry(cloneData.url, cloneData.folderName, cloneData.dest);
-        addProject({
-          name: cloneData.folderName,
-          path: cloneData.dest,
-          color: '#4fa8e0',
-          template: 'blank',
-        });
-      } else if (isCloneMode) {
-        // Fallback for direct URL submission from top bar if needed, though NewRepositoryForm usually handles this
-        const match = searchQuery.match(/\/([^/]+?)(\.git)?$/);
-        const folderName = match ? match[1] : 'repo';
-        const destPath = `/home/khanhromvn/projects/${folderName}`;
-        await window.api.invoke('git:clone', { url: searchQuery.trim(), dest: destPath });
-        addCloneEntry(searchQuery.trim(), folderName, destPath);
-        addProject({ name: folderName, path: destPath, color: '#4fa8e0', template: 'blank' });
-      } else if (browsePath) {
+      if (mode === 'clone') {
+        const url = cloneUrl.trim();
+        const folderName = cloneFolderName.trim();
+        const dest = `${cloneDest.trim().replace(/\/+$/, '')}/${folderName}`;
+        await window.api.invoke('git:clone', { url, dest });
+        addCloneEntry(url, folderName, dest);
+        addProject({ name: folderName, path: dest, color: '#4fa8e0', template: 'blank' });
+      } else if (selection?.type === 'folder' && browsePath) {
         const name = browsePath.split('/').pop() || 'Untitled';
         addProject({ name, path: browsePath, color: '#4fa8e0', template: 'blank' });
-      } else if (selectedProjectId) {
-        setCurrentProject(selectedProjectId);
+      } else if (selection?.type === 'project') {
+        setCurrentProject(selection.id);
       }
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('[OpenProjectModal] Submit failed:', err);
+      setError(err?.message || String(err));
     } finally {
       setLoading(false);
     }
+  }, [
+    canSubmit,
+    loading,
+    mode,
+    cloneUrl,
+    cloneFolderName,
+    cloneDest,
+    selection,
+    browsePath,
+    addProject,
+    setCurrentProject,
+    onClose,
+  ]);
+
+  const handleOpenProjectDirect = (id: string) => {
+    setCurrentProject(id);
+    onClose();
   };
 
   const handleRemoveProject = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     removeProject(id);
+    if (selection?.type === 'project' && selection.id === id) setSelection(null);
   };
 
-  const handleSelectProject = (projId: string) => {
-    setSelectedProjectId(projId);
-    setIsBrowseSelected(false);
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError('');
   };
 
-  const handleToggleCloneView = () => {
-    setSubView((prev) => (prev === 'local' ? 'clone' : 'local'));
-    if (subView === 'clone') setSearchQuery('');
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && mode === 'clone' && !(e.target instanceof HTMLButtonElement)) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
-  const renderTopBar = () => (
-    <div className="flex items-center gap-3 mb-4">
-      <div className="flex-1 flex items-center gap-3 bg-sidebar-item-hover rounded-lg px-3 py-2 border border-border focus-within:border-primary/50 transition-colors">
-        <Search className="w-4 h-4 text-text-secondary shrink-0" strokeWidth={1.5} />
-        <input
-          type="text"
-          placeholder={
-            subView === 'clone'
-              ? 'Search repo by name, owner, or paste Git URL...'
-              : 'Search local projects...'
-          }
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 bg-transparent outline-none text-text-primary placeholder:text-text-secondary/60 text-sm font-mono"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery('')}
-            className="text-text-secondary hover:text-text-primary"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-      {subView === 'local' && (
+  const actionLabel =
+    mode === 'clone'
+      ? 'Clone & Open'
+      : selection?.type === 'folder'
+        ? 'Open Folder'
+        : 'Open Project';
+
+  const headerTitle = mode === 'clone' ? 'Clone Repository' : 'Open Project';
+  const headerDesc =
+    mode === 'clone'
+      ? 'Import a project from a remote Git URL'
+      : 'Pick a recent project or browse your filesystem';
+
+  const renderTabs = () => (
+    <div className="flex items-center p-0.5 rounded-lg bg-sidebar-item-hover border border-border shrink-0">
+      {(
+        [
+          { id: 'local', label: 'Local', icon: FolderOpen },
+          { id: 'clone', label: 'Clone', icon: GitBranch },
+        ] as const
+      ).map(({ id, label, icon: Icon }) => (
         <button
-          onClick={handleBrowseFolder}
-          title="Add Folder"
-          className="h-[38px] px-3 rounded-lg bg-transparent text-text-secondary hover:bg-white/[0.05] hover:text-text-primary flex items-center gap-2 transition-all border border-border/50 shrink-0"
+          key={id}
+          onClick={() => switchMode(id)}
+          className={cn(
+            'h-8 px-3 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all',
+            mode === id
+              ? 'bg-background text-text-primary shadow-sm border border-border'
+              : 'text-text-secondary hover:text-text-primary border border-transparent',
+          )}
         >
-          <FolderOpen className="w-4 h-4" />
-          <span className="text-xs font-medium">Add Folder</span>
+          <Icon className="w-3.5 h-3.5" />
+          {label}
         </button>
+      ))}
+    </div>
+  );
+
+  const renderToolbar = () => (
+    <div className="flex items-center gap-2.5 mb-4">
+      {renderTabs()}
+      {mode === 'local' && (
+        <>
+          <div className="flex-1 min-w-0 flex items-center gap-2.5 h-10 bg-sidebar-item-hover rounded-lg px-3 border border-border focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15 transition-all">
+            <Search className="w-4 h-4 text-text-secondary shrink-0" strokeWidth={1.5} />
+            <input
+              type="text"
+              autoFocus
+              spellCheck={false}
+              placeholder="Search projects, or paste a Git URL..."
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent outline-none text-text-primary placeholder:text-text-secondary/50 text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-text-secondary hover:text-text-primary"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleBrowseFolder}
+            className="h-10 w-10 rounded-lg text-text-secondary hover:bg-white/[0.05] hover:text-text-primary flex items-center justify-center transition-all border border-border shrink-0"
+            title="Browse"
+            aria-label="Browse folder"
+          >
+            <FolderOpen className="w-4 h-4" />
+          </button>
+        </>
       )}
-      <button
-        onClick={handleToggleCloneView}
+    </div>
+  );
+
+  const renderRow = (opts: {
+    key: string;
+    name: string;
+    path: string;
+    selected: boolean;
+    onSelect: () => void;
+    onOpen?: () => void;
+    onRemove?: (e: React.MouseEvent) => void;
+  }) => (
+    <div
+      key={opts.key}
+      role="button"
+      tabIndex={0}
+      onClick={opts.onSelect}
+      onDoubleClick={opts.onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          opts.onSelect();
+        }
+      }}
+      className={cn(
+        'group flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border focus:outline-none focus-visible:border-primary/40',
+        opts.selected
+          ? 'bg-primary/[0.07] border-primary/30'
+          : 'border-transparent hover:bg-white/[0.04] hover:border-border',
+      )}
+    >
+      <div
         className={cn(
-          'h-[38px] px-3 rounded-lg text-xs font-medium border transition-all flex items-center gap-2 shrink-0',
-          subView === 'clone'
+          'w-9 h-9 rounded-lg grid place-items-center shrink-0 border transition-colors',
+          opts.selected
             ? 'bg-primary/10 border-primary/30 text-primary'
-            : 'bg-sidebar-item-hover border-border text-text-secondary hover:text-text-primary hover:bg-sidebar-item-active',
+            : 'bg-white/[0.05] border-border text-text-secondary',
         )}
       >
-        <GitBranch className="w-3.5 h-3.5" />
-        <span>{subView === 'clone' ? 'Exit Clone' : 'Clone Repo'}</span>
-      </button>
+        {opts.selected ? <Check className="w-4 h-4" /> : <FolderOpen className="w-4 h-4" />}
+      </div>
+      <div className="flex-1 min-w-0 text-left">
+        <div className="font-medium text-sm text-text-primary truncate">{opts.name}</div>
+        <small className="block text-[11px] font-mono text-text-secondary/60 truncate" title={opts.path}>
+          {shortenPath(opts.path)}
+        </small>
+      </div>
+      {opts.onRemove && (
+        <button
+          onClick={opts.onRemove}
+          className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-7 h-7 rounded-md grid place-items-center text-text-secondary/50 hover:text-error hover:bg-error/10 transition-all shrink-0"
+          title="Remove from recent"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 
   const renderLocalList = () => {
-    if (groupedProjects.length === 0 && !browsePath) {
+    if (recentProjects.length === 0 && !browsePath) {
       return (
-        <div className="h-full flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
-          <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
-            <FolderOpen className="w-6 h-6" />
+        <div className="h-full flex flex-col items-center justify-center p-6 text-center gap-4">
+          <div className="w-14 h-14 rounded-2xl border border-dashed border-border grid place-items-center text-text-secondary/40">
+            <FolderOpen className="w-6 h-6" strokeWidth={1.5} />
           </div>
           <div>
-            <p className="text-sm font-medium text-text-primary mb-1">No local projects found</p>
-            <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
-              Create or open a project to get started.
+            <p className="text-sm font-medium text-text-primary/90 mb-1">
+              {searchQuery ? 'No matching projects' : 'No recent projects yet'}
+            </p>
+            <p className="text-xs text-text-secondary/60 max-w-[240px] mx-auto leading-relaxed">
+              {searchQuery
+                ? 'Try a different keyword, or browse for a folder.'
+                : 'Browse a folder or clone a repository to get started.'}
             </p>
           </div>
         </div>
       );
     }
+
     return (
-      <div className="space-y-6">
-        {browsePath && subView === 'local' && (
-          <div className="mb-4">
-            <h4 className="text-[10px] font-mono uppercase tracking-widest text-text-secondary/70 mb-2 pl-1 text-left">
-              Select Folder
+      <div className="space-y-5">
+        {browsePath && (
+          <div>
+            <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2 pl-1 text-left">
+              Selected folder
             </h4>
-            <div
-              onClick={() => {
-                setIsBrowseSelected(true);
-                setSelectedProjectId(null);
-              }}
-              className={cn(
-                'group flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all',
-                isBrowseSelected
-                  ? 'bg-text-secondary/10'
-                  : 'bg-text-secondary/5 hover:bg-text-secondary/10',
+            {renderRow({
+              key: 'browse',
+              name: browsePath.split('/').pop() || 'Untitled',
+              path: browsePath,
+              selected: selection?.type === 'folder',
+              onSelect: () => setSelection({ type: 'folder' }),
+            })}
+          </div>
+        )}
+        {recentProjects.length > 0 && (
+          <div>
+            <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2 pl-1 text-left">
+              Recent projects
+              <span className="ml-2 font-mono text-text-secondary/40">{recentProjects.length}</span>
+            </h4>
+            <div className="space-y-1">
+              {recentProjects.map((proj) =>
+                renderRow({
+                  key: proj.id,
+                  name: proj.name,
+                  path: proj.path,
+                  selected: selection?.type === 'project' && selection.id === proj.id,
+                  onSelect: () => setSelection({ type: 'project', id: proj.id }),
+                  onOpen: () => handleOpenProjectDirect(proj.id),
+                  onRemove: (e) => handleRemoveProject(e, proj.id),
+                }),
               )}
-            >
-              <div className="w-8 h-8 rounded-md grid place-items-center shrink-0 bg-white/[0.05] border border-border overflow-hidden">
-                <FolderOpen className="w-4 h-4 text-text-secondary" />
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="font-medium text-sm text-text-primary truncate">
-                  {browsePath.split('/').pop()}
-                </div>
-                <small className="block text-[11px] font-mono text-text-secondary/60 truncate">
-                  {shortenPath(browsePath)}
-                </small>
-              </div>
-              <div className="h-[60%] w-[1px] bg-border shrink-0 mx-1" />
             </div>
           </div>
         )}
-        {groupedProjects.map((group) => (
-          <div key={group.label}>
-            <h4 className="text-xs font-medium uppercase tracking-wide text-text-secondary/60 mb-2 pl-0">
-              {group.label}
-            </h4>
-            <div className="space-y-1">
-              {group.items.map((proj) => {
-                const isSelected = selectedProjectId === proj.id;
-                return (
-                  <div
-                    key={`${group.label}-${proj.id}`}
-                    onClick={() => handleSelectProject(proj.id)}
-                    className={cn(
-                      'group flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border',
-                      isSelected
-                        ? 'bg-white/[0.06] border-border shadow-sm'
-                        : 'border-transparent hover:bg-white/[0.03] hover:border-border',
-                    )}
-                  >
-                    <div className="w-8 h-8 rounded-md grid place-items-center shrink-0 bg-white/[0.05] border border-border overflow-hidden">
-                      <FolderOpen className="w-4 h-4 text-text-secondary" />
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <div className="font-medium text-sm text-text-primary truncate">
-                        {proj.name}
-                      </div>
-                      <small className="block text-[11px] font-mono text-text-secondary/60 truncate">
-                        {shortenPath(proj.path)}
-                      </small>
-                    </div>
-                    <button
-                      onClick={(e) => handleRemoveProject(e, proj.id)}
-                      className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded grid place-items-center text-text-secondary/40 hover:text-error hover:bg-error/10 transition-all shrink-0"
-                      title="Remove from recent"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
       </div>
     );
   };
-
-  const headerTitle = isCloneMode
-    ? 'Clone Repository'
-    : browsePath
-      ? 'Open Local Folder'
-      : 'Open Project';
-  const headerDesc = isCloneMode
-    ? 'Import a project from a remote Git URL'
-    : browsePath
-      ? 'Ready to open selected directory'
-      : 'Recent projects or browse local filesystem';
-  const actionLabel = isCloneMode ? 'Clone & Open' : browsePath ? 'Open Folder' : 'Open Project';
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-[1200px] h-[780px] p-0 overflow-hidden rounded-xl border border-border shadow-2xl flex flex-col bg-background"
+      className="max-w-[1080px] h-[680px] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl flex flex-col bg-background"
     >
       <ModalHeader
         title={headerTitle}
@@ -384,54 +438,72 @@ export function OpenProjectModal({ isOpen, onClose }: OpenProjectModalProps) {
         onClose={onClose}
         className="[&_h3]:text-left [&_p]:text-left px-6 py-4 border-b border-border bg-background"
       />
-      <ModalBody className="p-0 flex-1 overflow-hidden bg-background">
-        <div className="grid grid-cols-[1fr_400px] h-full w-full overflow-hidden bg-background">
+      <ModalBody className="p-0 flex-1 min-h-0 overflow-hidden bg-background">
+        <div
+          className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] h-full w-full overflow-hidden"
+          onKeyDown={handleKeyDown}
+        >
           <div className="flex flex-col min-w-0 h-full overflow-hidden p-5 pb-0">
-            {renderTopBar()}
+            {renderToolbar()}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 pb-5">
-              {subView === 'local' ? (
+              {mode === 'local' ? (
                 renderLocalList()
               ) : (
-                <NewRepositoryForm searchQuery={searchQuery} onCloneSuccess={handleSubmit} />
+                <NewRepositoryForm
+                  url={cloneUrl}
+                  folderName={cloneFolderName}
+                  dest={cloneDest}
+                  onUrlChange={handleCloneUrlChange}
+                  onFolderNameChange={handleCloneFolderChange}
+                  onDestChange={setCloneDest}
+                  onBrowseDest={handleBrowseDest}
+                />
               )}
             </div>
           </div>
           <div className="h-full border-l border-border bg-card-background/30 overflow-y-auto custom-scrollbar hidden lg:block">
-            <ProjectDetailPanel
-              selectedProjectId={selectedProjectId}
-              browsePath={browsePath}
-              stackCache={stackCache}
-              projects={projects}
-              onSubmit={handleSubmit}
-              onClose={onClose}
-            />
+            {mode === 'clone' ? (
+              <RecentClones onReuse={handleReuseClone} />
+            ) : (
+              <ProjectDetailPanel
+                target={target}
+                stackInfo={target ? stackCache.get(target.path) : undefined}
+              />
+            )}
           </div>
         </div>
       </ModalBody>
-      <ModalFooter className="justify-end px-5 py-4 bg-sidebar-background/50 border-t border-border">
-        <div className="flex-1 mr-auto text-[11.5px] text-text-secondary/60 flex items-center gap-3 min-w-0">
-          {isCloneMode && (
-            <span>Supports HTTPS and SSH · credentials use your system keychain</span>
+      <ModalFooter className="items-center px-5 py-3.5 bg-sidebar-background/50 border-t border-border">
+        <div className="flex-1 mr-auto min-w-0 text-[11.5px]">
+          {error ? (
+            <span className="flex items-center gap-1.5 text-error truncate" title={error}>
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{error}</span>
+            </span>
+          ) : (
+            <span className="text-text-secondary/60 truncate block">
+              {mode === 'local' && 'Double-click a recent project to open it instantly'}
+            </span>
           )}
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2.5">
           <button
             onClick={onClose}
-            className="h-[30px] px-3.5 text-xs font-medium rounded-md bg-transparent border border-border text-text-secondary hover:bg-white/[0.05] hover:text-text-primary transition-colors"
+            className="h-8 px-4 text-xs font-medium rounded-lg bg-transparent border border-border text-text-secondary hover:bg-white/[0.05] hover:text-text-primary transition-colors"
           >
             Cancel
           </button>
           <button
-            onClick={() => handleSubmit()}
+            onClick={handleSubmit}
             disabled={!canSubmit || loading}
             className={cn(
-              'h-[30px] px-3.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all border-none',
+              'h-8 px-4 text-xs font-semibold rounded-lg flex items-center gap-2 transition-all border-none',
               canSubmit && !loading
                 ? 'bg-primary text-white hover:bg-primary/90'
                 : 'bg-text-secondary/10 text-text-secondary/50 cursor-not-allowed',
             )}
           >
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {actionLabel}
           </button>
         </div>

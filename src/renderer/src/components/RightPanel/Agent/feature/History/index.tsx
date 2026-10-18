@@ -15,10 +15,10 @@
 
 import React, { useCallback, useState } from 'react';
 import HistoryCard from './components/HistoryCard';
+import ConfirmClearHistoryDrawer from './components/ConfirmClearHistoryDrawer';
 import { FolderOpen, Loader2, Search } from 'lucide-react';
 import { useConversationHistory } from './hooks/useConversationHistory';
 import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
-import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
@@ -31,6 +31,7 @@ interface HistoryPanelProps {
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConversation }) => {
   const {
     conversations,
+    totalCount,
     isLoading,
     searchQuery,
     setSearchQuery,
@@ -127,32 +128,13 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
         </button>
       </div>
 
-      {/* Confirm modal */}
-      {showConfirm && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50">
-          <div className="flex flex-col gap-3 p-5 w-[calc(100%-32px)] rounded-[10px] bg-card-background border border-border">
-            <p className="m-0 text-[15px] font-semibold text-text-primary">Clear All History</p>
-            <p className="m-0 text-[13px] opacity-80 text-text-secondary">
-              Are you sure? This will permanently delete all conversations.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => setShowConfirm(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="error"
-                size="sm"
-                onClick={() => {
-                  clearAllHistory();
-                  setShowConfirm(false);
-                }}
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirm drawer */}
+      <ConfirmClearHistoryDrawer
+        open={showConfirm}
+        onOpenChange={setShowConfirm}
+        onConfirm={clearAllHistory}
+        totalCount={totalCount}
+      />
 
       {/* List */}
       <DrawerBody className="p-3">
@@ -172,7 +154,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
                 {searchQuery ? 'No results found' : 'No conversations yet'}
               </h3>
               <p className="text-xs max-w-[200px] mx-auto opacity-70">
-                {searchQuery ? 'Try a different search term' : 'Start a new chat to begin'}
+                {searchQuery ? 'Try a different search term' : 'Start a new conversation to see it here'}
               </p>
             </div>
           </div>

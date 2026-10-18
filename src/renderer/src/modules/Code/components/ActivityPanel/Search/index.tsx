@@ -2,36 +2,26 @@
  * ------------------------------------------------------------------
  * Search
  * ------------------------------------------------------------------
- * VS Code-style search panel in the Activity sidebar. Searches file
- * content within the current project, with match-case / whole-word /
- * regex toggles, include / exclude pattern filters, a collapsible
- * replace row, and grouped results with highlighted matches.
+ * Project-wide content search panel (right sidebar), powered by
+ * ripgrep in the main process with results streamed in chunks.
  *
- * Main features:
- * - Debounced content search via `fs:search` IPC
- * - Inline toggles: match case, whole word, regex
- * - Collapsible replace row with live replace preview + replace-all
- * - "..." toggles include / exclude pattern inputs
- * - Results as flat list or folder tree, per-file dismiss / replace
- * - Highlighted matches inside each result line
+ * Files:
+ * - useSearch.ts         : debounce + stream + cancel logic
+ * - SearchResults.tsx    : result list / tree rendering
+ * - SearchEmptyState.tsx : vertically centered empty / error states
  * ------------------------------------------------------------------
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-// ── React ──
-import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 
-// ── UI ──
 import {
-  Search as SearchIcon,
-  ChevronRight,
-  ChevronDown,
   CaseSensitive,
   WholeWord,
   Regex,
-  ReplaceAll,
   Replace,
+  ReplaceAll,
   RefreshCw,
   Eraser,
   ListTree,
@@ -40,50 +30,18 @@ import {
   Loader2,
   AlertCircle,
   AlertTriangle,
-  Folder,
-  MoreHorizontal,
-  X,
+  SlidersHorizontal,
 } from 'lucide-react';
 
-// ── Components ──
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
-
-// ── Utils ──
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { cn } from '@renderer/shared/utils/cn';
 
-// ── Hooks ──
 import { useCodeStore } from '../../../hooks/useCodeStore';
-
-// ─── Types ──────────────────────────────────────────────────────────────
-interface SearchMatch {
-  lineNumber: number;
-  lineContent: string;
-  column: number;
-}
-
-interface FileResult {
-  file: string;
-  matches: SearchMatch[];
-}
-
-interface SearchResponse {
-  results: FileResult[];
-  totalMatches: number;
-  totalFilesSearched: number;
-}
-
-interface MatcherOptions {
-  matchCase: boolean;
-  wholeWord: boolean;
-  isRegex: boolean;
-}
+import { useSearch, type FileResult } from './useSearch';
+import { SearchResults, buildMatcher } from './SearchResults';
+import { SearchEmptyState, type EmptyVariant } from './SearchEmptyState';
 
 // ─── Constants ──────────────────────────────────────────────────────────
-const MAX_MATCHES_PER_FILE = 200;
-const MAX_LINE_LENGTH = 300;
-const FALLBACK_FILE_ICON = '/images/icon/file.svg';
-
 const INPUT_WRAP_CLASS =
   'flex items-center gap-0.5 px-2 py-1 bg-input-background border border-border rounded-md ' +
   'focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/30 ' +
@@ -94,18 +52,6 @@ const INPUT_CLASS =
 
 const ICON_BUTTON_CLASS =
   'p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors';
-
-// ─── Helpers ────────────────────────────────────────────────────────────
-/** Tạo RegExp (flag g) từ query + options. Trả về null nếu regex không hợp lệ. */
-function buildMatcher(query: string, opts: MatcherOptions): RegExp | null {
-  try {
-    let src = opts.isRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (opts.wholeWord) src = `\\b(?:${src})\\b`;
-    return new RegExp(src, opts.matchCase ? 'g' : 'gi');
-  } catch {
-    return null;
-  }
-}
 
 // ─── IconToggle ─────────────────────────────────────────────────────────
 interface IconToggleProps {
@@ -133,218 +79,42 @@ function IconToggle({ active, title, onClick, children }: IconToggleProps) {
   );
 }
 
-// ─── HighlightedLine ────────────────────────────────────────────────────
-interface HighlightedLineProps {
-  text: string;
-  matcher: RegExp | null;
-  singleMatcher: RegExp | null;
-  /** null = không hiển thị preview replace */
-  replacement: string | null;
+// ─── ToolbarToggle ──────────────────────────────────────────────────────
+interface ToolbarToggleProps {
+  active: boolean;
+  label: string;
+  title: string;
+  dot?: boolean;
+  onClick: () => void;
+  children: ReactNode;
 }
 
-interface LinePart {
-  text: string;
-  hit: boolean;
-  rep?: string;
-}
-
-const HighlightedLine = memo(function HighlightedLine({
-  text,
-  matcher,
-  singleMatcher,
-  replacement,
-}: HighlightedLineProps) {
-  const parts = useMemo<LinePart[]>(() => {
-    const line = text.trim().slice(0, MAX_LINE_LENGTH);
-    if (!matcher) return [{ text: line, hit: false }];
-
-    const out: LinePart[] = [];
-    let last = 0;
-    let m: RegExpExecArray | null;
-    matcher.lastIndex = 0;
-    while ((m = matcher.exec(line)) !== null) {
-      if (m[0].length === 0) {
-        matcher.lastIndex++;
-        continue;
-      }
-      if (m.index > last) out.push({ text: line.slice(last, m.index), hit: false });
-
-      let rep: string | undefined;
-      if (replacement !== null) {
-        try {
-          rep = singleMatcher ? m[0].replace(singleMatcher, replacement) : replacement;
-        } catch {
-          rep = replacement;
-        }
-      }
-      out.push({ text: m[0], hit: true, rep });
-      last = m.index + m[0].length;
-    }
-    if (last < line.length) out.push({ text: line.slice(last), hit: false });
-    return out;
-  }, [text, matcher, singleMatcher, replacement]);
-
+function ToolbarToggle({ active, label, title, dot, onClick, children }: ToolbarToggleProps) {
   return (
-    <>
-      {parts.map((p, i) =>
-        p.hit ? (
-          <span key={i}>
-            <span
-              className={cn(
-                'rounded-sm px-px bg-primary/25 text-text-primary',
-                p.rep !== undefined && 'bg-error/25 line-through decoration-error/60',
-              )}
-            >
-              {p.text}
-            </span>
-            {p.rep !== undefined && p.rep !== '' && (
-              <span className="rounded-sm px-px bg-success/25 text-text-primary">{p.rep}</span>
-            )}
-          </span>
-        ) : (
-          <span key={i}>{p.text}</span>
-        ),
+    <button
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={cn(
+        'relative flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] shrink-0 transition-colors',
+        active
+          ? 'text-primary bg-primary/10 border-primary/30'
+          : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-card-hover',
       )}
-    </>
+    >
+      {children}
+      <span>{label}</span>
+      {dot && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary" />}
+    </button>
   );
-});
-
-// ─── FileGroup ──────────────────────────────────────────────────────────
-interface FileGroupProps {
-  result: FileResult;
-  rel: string;
-  indent: number;
-  showDir: boolean;
-  isOpen: boolean;
-  canReplace: boolean;
-  matcher: RegExp | null;
-  singleMatcher: RegExp | null;
-  replacement: string | null;
-  onToggle: (file: string) => void;
-  onDismiss: (file: string) => void;
-  onReplaceFile: (file: string) => void;
 }
-
-const FileGroup = memo(function FileGroup({
-  result,
-  rel,
-  indent,
-  showDir,
-  isOpen,
-  canReplace,
-  matcher,
-  singleMatcher,
-  replacement,
-  onToggle,
-  onDismiss,
-  onReplaceFile,
-}: FileGroupProps) {
-  const slash = rel.lastIndexOf('/');
-  const fileName = slash >= 0 ? rel.slice(slash + 1) : rel;
-  const dir = slash >= 0 ? rel.slice(0, slash) : '';
-  const shown = result.matches.slice(0, MAX_MATCHES_PER_FILE);
-  const hidden = result.matches.length - shown.length;
-
-  return (
-    <div>
-      <div
-        className="group flex items-center gap-1 pr-1.5 rounded hover:bg-card-hover transition-colors"
-        style={{ paddingLeft: indent }}
-      >
-        <button
-          onClick={() => onToggle(result.file)}
-          className="flex-1 min-w-0 flex items-center gap-1.5 py-1 text-left"
-          title={rel}
-        >
-          {isOpen ? (
-            <ChevronDown className="w-3 h-3 shrink-0 text-text-secondary" strokeWidth={1.5} />
-          ) : (
-            <ChevronRight className="w-3 h-3 shrink-0 text-text-secondary" strokeWidth={1.5} />
-          )}
-          <img
-            src={getFileIconPath(fileName)}
-            alt=""
-            className="w-4 h-4 shrink-0"
-            onError={(e) => {
-              const img = e.target as HTMLImageElement;
-              if (img.src.endsWith(FALLBACK_FILE_ICON)) img.style.display = 'none';
-              else img.src = FALLBACK_FILE_ICON;
-            }}
-          />
-          <span className="text-xs text-text-primary truncate">{fileName}</span>
-          {showDir && dir && (
-            <span className="text-[10px] text-text-secondary/50 truncate">{dir}</span>
-          )}
-        </button>
-
-        <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
-          {canReplace && (
-            <button
-              onClick={() => onReplaceFile(result.file)}
-              className="p-0.5 rounded text-text-secondary hover:text-text-primary hover:bg-card-background"
-              title="Replace trong file này"
-            >
-              <Replace className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </button>
-          )}
-          <button
-            onClick={() => onDismiss(result.file)}
-            className="p-0.5 rounded text-text-secondary hover:text-text-primary hover:bg-card-background"
-            title="Loại khỏi kết quả"
-          >
-            <X className="w-3.5 h-3.5" strokeWidth={1.5} />
-          </button>
-        </div>
-
-        <span className="text-[10px] text-text-secondary/80 bg-card-background rounded-full px-1.5 shrink-0 tabular-nums group-hover:hidden">
-          {result.matches.length}
-        </span>
-      </div>
-
-      {isOpen && (
-        <div>
-          {shown.map((m, i) => (
-            <div
-              key={`${m.lineNumber}-${m.column}-${i}`}
-              className="flex items-baseline gap-2 pr-2 py-0.5 rounded hover:bg-card-hover cursor-pointer"
-              style={{ paddingLeft: indent + 22 }}
-              title={m.lineContent.trim()}
-            >
-              <span className="min-w-0 truncate text-[11px] font-mono text-text-secondary">
-                <HighlightedLine
-                  text={m.lineContent}
-                  matcher={matcher}
-                  singleMatcher={singleMatcher}
-                  replacement={replacement}
-                />
-              </span>
-              <span className="ml-auto text-[10px] text-text-secondary/40 tabular-nums shrink-0">
-                {m.lineNumber}
-              </span>
-            </div>
-          ))}
-          {hidden > 0 && (
-            <div
-              className="text-[10px] text-text-secondary/50 py-0.5"
-              style={{ paddingLeft: indent + 22 }}
-            >
-              +{hidden} kết quả nữa
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-});
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function Search() {
-  // ── Store ──
   const projectPath = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.path,
   );
 
-  // ── Refs ──
   const inputRef = useRef<HTMLInputElement>(null);
 
   // ── State — query & options ──
@@ -358,82 +128,48 @@ export function Search() {
   const [matchWholeWord, setMatchWholeWord] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
   const [viewAsTree, setViewAsTree] = useState(false);
-
-  // ── State — results ──
-  const [results, setResults] = useState<FileResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
-  const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // ── State — result view ──
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [openOverrides, setOpenOverrides] = useState<Map<string, boolean>>(new Map());
+  const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
+  const [actionError, setActionError] = useState<string | null>(null);
   const [isReplaceModalOpen, setIsReplaceModalOpen] = useState(false);
 
-  // ── Effect — focus input on mount ──
+  const options = useMemo(
+    () => ({
+      matchCase,
+      wholeWord: matchWholeWord,
+      isRegex: useRegex,
+      include: includePattern,
+      exclude: excludePattern,
+    }),
+    [matchCase, matchWholeWord, useRegex, includePattern, excludePattern],
+  );
+
+  const { results, status, error, truncated, session } = useSearch(
+    projectPath,
+    query,
+    options,
+    refreshKey,
+  );
+
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // ── Effect — debounced search ──
   useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed || !projectPath) {
-      setResults([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    const timer = setTimeout(async () => {
-      try {
-        const res: SearchResponse = await (window as any).api.invoke(
-          'fs:search',
-          projectPath,
-          trimmed,
-          {
-            caseSensitive: matchCase,
-            wholeWord: matchWholeWord,
-            isRegex: useRegex,
-            includePattern: includePattern.trim() || undefined,
-            excludePattern: excludePattern.trim() || undefined,
-          },
-        );
-        if (cancelled) return;
-        const list = res?.results || [];
-        setResults(list);
-        setDismissed(new Set());
-        setCollapsedDirs(new Set());
-        setExpandedFiles(new Set(list.slice(0, 20).map((r) => r.file)));
-      } catch (e: any) {
-        if (cancelled) return;
-        setError(e?.message || 'Search failed');
-        setResults([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [
-    query,
-    matchCase,
-    matchWholeWord,
-    useRegex,
-    includePattern,
-    excludePattern,
-    projectPath,
-    refreshKey,
-  ]);
+    setDismissed(new Set());
+    setOpenOverrides(new Map());
+    setCollapsedDirs(new Set());
+    setActionError(null);
+  }, [session]);
 
   // ── Derived ──
   const hasQuery = query.trim().length > 0;
+  const searching = status === 'searching';
+  const hasFilters = includePattern.trim() !== '' || excludePattern.trim() !== '';
 
   const visible = useMemo(
     () => results.filter((r) => !dismissed.has(r.file)),
@@ -485,28 +221,34 @@ export function Search() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [viewAsTree, visible, relPath]);
 
+  const emptyVariant: EmptyVariant | null = !projectPath
+    ? 'no-project'
+    : !hasQuery
+      ? 'idle'
+      : status === 'error' && visible.length === 0
+        ? 'error'
+        : status === 'done' && visible.length === 0
+          ? 'no-results'
+          : null;
+
+  const errorText = actionError ?? (visible.length > 0 ? error : null);
+  const showSummary = searching || (hasQuery && visible.length > 0);
+
   // ── Handlers ──
   const handleRefresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const handleClear = useCallback(() => {
     setQuery('');
-    setResults([]);
-    setError(null);
     inputRef.current?.focus();
   }, []);
 
   const handleCollapseAll = useCallback(() => {
-    setExpandedFiles(new Set());
+    setOpenOverrides(new Map(visible.map((r) => [r.file, false])));
     setCollapsedDirs(new Set(groups ? groups.map(([dir]) => dir) : []));
-  }, [groups]);
+  }, [visible, groups]);
 
-  const toggleFile = useCallback((file: string) => {
-    setExpandedFiles((prev) => {
-      const next = new Set(prev);
-      if (next.has(file)) next.delete(file);
-      else next.add(file);
-      return next;
-    });
+  const toggleFile = useCallback((file: string, nextOpen: boolean) => {
+    setOpenOverrides((prev) => new Map(prev).set(file, nextOpen));
   }, []);
 
   const toggleDir = useCallback((dir: string) => {
@@ -520,6 +262,13 @@ export function Search() {
 
   const dismissFile = useCallback((file: string) => {
     setDismissed((prev) => new Set(prev).add(file));
+  }, []);
+
+  const handleOpenMatch = useCallback((file: string, line: number, column: number) => {
+    const { activeWorkspaceSessionId, requestOpenFile } = useCodeStore.getState();
+    if (!activeWorkspaceSessionId) return;
+    const name = file.split(/[\\/]/).pop() ?? file;
+    requestOpenFile(activeWorkspaceSessionId, file, name, { line, column });
   }, []);
 
   const replaceOptions = useMemo(
@@ -539,7 +288,7 @@ export function Search() {
         );
         setRefreshKey((k) => k + 1);
       } catch (e: any) {
-        setError(e?.message || 'Replace failed');
+        setActionError(e?.message || 'Replace failed');
       }
     },
     [query, replaceQuery, replaceOptions],
@@ -560,37 +309,18 @@ export function Search() {
         replaceQuery,
         replaceOptions,
       );
-      setIsReplaceModalOpen(false);
       setRefreshKey((k) => k + 1);
     } catch (e: any) {
-      setError(e?.message || 'Replace failed');
+      setActionError(e?.message || 'Replace failed');
+    } finally {
       setIsReplaceModalOpen(false);
     }
   };
 
-  // ── Render helpers ──
-  const renderFile = (r: FileResult, indent: number, showDir: boolean) => (
-    <FileGroup
-      key={r.file}
-      result={r}
-      rel={relPath(r.file)}
-      indent={indent}
-      showDir={showDir}
-      isOpen={expandedFiles.has(r.file)}
-      canReplace={canReplace}
-      matcher={matcher}
-      singleMatcher={singleMatcher}
-      replacement={replacement}
-      onToggle={toggleFile}
-      onDismiss={dismissFile}
-      onReplaceFile={handleReplaceFile}
-    />
-  );
-
   // ── Render ──
   return (
     <div className="flex flex-col h-full bg-sidebar-background">
-      {/* HeaderBar — đồng bộ với FileExplore */}
+      {/* HeaderBar */}
       <div className="flex items-center justify-between h-9 px-2 border-b border-divider flex-shrink-0 bg-sidebar-background">
         <span className="text-[11px] font-medium uppercase tracking-wide text-text-secondary truncate">
           Search
@@ -619,233 +349,153 @@ export function Search() {
         </div>
       </div>
 
-      {/* Search form */}
-      <div className="shrink-0 p-2 border-b border-divider">
-        <div className="flex items-start gap-1">
-          <button
-            onClick={() => setShowReplace((v) => !v)}
-            className="mt-1 p-0.5 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors shrink-0"
-            title={showReplace ? 'Ẩn Replace' : 'Hiện Replace'}
+      {/* Search form — full width, no left gutter (panel lives on the right edge) */}
+      <div className="shrink-0 p-2 space-y-1.5 border-b border-divider">
+        <div className={INPUT_WRAP_CLASS}>
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleRefresh();
+              if (e.key === 'Escape') handleClear();
+            }}
+            className={INPUT_CLASS}
+          />
+          <IconToggle active={matchCase} title="Match Case" onClick={() => setMatchCase((v) => !v)}>
+            <CaseSensitive className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </IconToggle>
+          <IconToggle
+            active={matchWholeWord}
+            title="Match Whole Word"
+            onClick={() => setMatchWholeWord((v) => !v)}
           >
-            {showReplace ? (
-              <ChevronDown className="w-3.5 h-3.5" strokeWidth={1.5} />
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-            )}
-          </button>
+            <WholeWord className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </IconToggle>
+          <IconToggle
+            active={useRegex}
+            title="Use Regular Expression"
+            onClick={() => setUseRegex((v) => !v)}
+          >
+            <Regex className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </IconToggle>
+        </div>
 
-          <div className="flex-1 min-w-0 space-y-1.5">
-            {/* Query input + toggles */}
+        {/* Toolbar: toggles on the left, live summary pinned to the right */}
+        <div className="flex items-center gap-1 min-w-0">
+          <ToolbarToggle
+            active={showReplace}
+            label="Replace"
+            title={showReplace ? 'Ẩn Replace' : 'Hiện Replace'}
+            onClick={() => setShowReplace((v) => !v)}
+          >
+            <Replace className="w-3 h-3" strokeWidth={1.5} />
+          </ToolbarToggle>
+          <ToolbarToggle
+            active={showDetails}
+            label="Filters"
+            title="Files to include / exclude"
+            dot={hasFilters && !showDetails}
+            onClick={() => setShowDetails((v) => !v)}
+          >
+            <SlidersHorizontal className="w-3 h-3" strokeWidth={1.5} />
+          </ToolbarToggle>
+
+          {showSummary && (
+            <div className="ml-auto min-w-0 flex items-center gap-1 text-[11px] text-text-secondary/70">
+              {searching && (
+                <Loader2 className="w-3 h-3 animate-spin shrink-0" strokeWidth={1.5} />
+              )}
+              <span className="truncate tabular-nums" title={truncated ? 'Đã giới hạn số kết quả' : undefined}>
+                {visibleMatches} in {visible.length} file{visible.length !== 1 ? 's' : ''}
+                {truncated && !searching ? '+' : ''}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {showReplace && (
+          <div className={INPUT_WRAP_CLASS}>
+            <input
+              type="text"
+              placeholder="Replace"
+              value={replaceQuery}
+              onChange={(e) => setReplaceQuery(e.target.value)}
+              className={INPUT_CLASS}
+            />
+            <button
+              onClick={handleReplaceAllClick}
+              disabled={!hasQuery || visible.length === 0}
+              className="p-0.5 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Replace All"
+            >
+              <ReplaceAll className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </button>
+          </div>
+        )}
+
+        {showDetails && (
+          <div className="space-y-1.5">
             <div className={INPUT_WRAP_CLASS}>
+              <span className="w-12 shrink-0 text-[10px] text-text-secondary/60">Include</span>
               <input
-                ref={inputRef}
                 type="text"
-                placeholder="Search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleRefresh();
-                  if (e.key === 'Escape') handleClear();
-                }}
+                placeholder="*.ts, src/**"
+                value={includePattern}
+                onChange={(e) => setIncludePattern(e.target.value)}
                 className={INPUT_CLASS}
               />
-              <IconToggle
-                active={matchCase}
-                title="Match Case"
-                onClick={() => setMatchCase((v) => !v)}
-              >
-                <CaseSensitive className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </IconToggle>
-              <IconToggle
-                active={matchWholeWord}
-                title="Match Whole Word"
-                onClick={() => setMatchWholeWord((v) => !v)}
-              >
-                <WholeWord className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </IconToggle>
-              <IconToggle
-                active={useRegex}
-                title="Use Regular Expression"
-                onClick={() => setUseRegex((v) => !v)}
-              >
-                <Regex className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </IconToggle>
             </div>
-
-            {/* Replace row */}
-            {showReplace && (
-              <div className="flex items-center gap-1">
-                <div className={cn(INPUT_WRAP_CLASS, 'flex-1')}>
-                  <input
-                    type="text"
-                    placeholder="Replace"
-                    value={replaceQuery}
-                    onChange={(e) => setReplaceQuery(e.target.value)}
-                    className={INPUT_CLASS}
-                  />
-                </div>
-                <button
-                  onClick={handleReplaceAllClick}
-                  disabled={!hasQuery || visible.length === 0}
-                  className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-                  title="Replace All"
-                >
-                  <ReplaceAll className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-              </div>
-            )}
-
-            {/* Details toggle */}
-            <div className="flex items-center">
-              <IconToggle
-                active={showDetails}
-                title="Toggle Search Details (include / exclude)"
-                onClick={() => setShowDetails((v) => !v)}
-              >
-                <MoreHorizontal className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </IconToggle>
+            <div className={INPUT_WRAP_CLASS}>
+              <span className="w-12 shrink-0 text-[10px] text-text-secondary/60">Exclude</span>
+              <input
+                type="text"
+                placeholder="*.test.ts, dist/**"
+                value={excludePattern}
+                onChange={(e) => setExcludePattern(e.target.value)}
+                className={INPUT_CLASS}
+              />
             </div>
-
-            {/* Include / exclude */}
-            {showDetails && (
-              <div className="space-y-1.5">
-                <div>
-                  <div className="text-[10px] text-text-secondary/70 mb-0.5">files to include</div>
-                  <div className={INPUT_WRAP_CLASS}>
-                    <input
-                      type="text"
-                      placeholder="e.g. *.ts, src/**/include"
-                      value={includePattern}
-                      onChange={(e) => setIncludePattern(e.target.value)}
-                      className={INPUT_CLASS}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] text-text-secondary/70 mb-0.5">files to exclude</div>
-                  <div className={INPUT_WRAP_CLASS}>
-                    <input
-                      type="text"
-                      placeholder="e.g. *.test.ts, dist/**"
-                      value={excludePattern}
-                      onChange={(e) => setExcludePattern(e.target.value)}
-                      className={INPUT_CLASS}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Status row */}
-      {(loading || error || (hasQuery && visible.length > 0)) && (
-        <div className="shrink-0 px-3 py-1.5 border-b border-divider text-[11px] text-text-secondary/70 flex items-center gap-2">
-          {loading ? (
-            <>
-              <Loader2 className="w-3 h-3 animate-spin" strokeWidth={1.5} />
-              <span>Searching…</span>
-            </>
-          ) : error ? (
-            <>
-              <AlertCircle className="w-3 h-3 text-error shrink-0" strokeWidth={1.5} />
-              <span className="truncate text-error">{error}</span>
-            </>
-          ) : (
-            <span>
-              {visibleMatches} result{visibleMatches !== 1 ? 's' : ''} in {visible.length} file
-              {visible.length !== 1 ? 's' : ''}
-            </span>
-          )}
+      {errorText && (
+        <div className="shrink-0 px-3 py-1.5 border-b border-divider text-[11px] flex items-center gap-2">
+          <AlertCircle className="w-3 h-3 text-error shrink-0" strokeWidth={1.5} />
+          <span className="truncate text-error">{errorText}</span>
         </div>
       )}
 
-      {/* Results */}
-      <div className="flex-1 overflow-y-auto py-1 px-1">
-        {!projectPath && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
-            <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
-              <Folder className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-text-primary mb-1">No project selected</p>
-              <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
-                Open a project to search its files.
-              </p>
-            </div>
-          </div>
+      {/* Results — flex column so the empty state can center vertically */}
+      <div
+        className={cn(
+          'flex-1 min-h-0 flex flex-col overflow-y-auto',
+          !emptyVariant && 'py-1 px-1',
         )}
-
-        {projectPath && !hasQuery && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
-            <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
-              <SearchIcon className="w-6 h-6" strokeWidth={1.5} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-text-primary mb-1">Ready to search</p>
-              <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
-                Type a keyword above to find matches in your project files.
-              </p>
-            </div>
-          </div>
+      >
+        {emptyVariant ? (
+          <SearchEmptyState variant={emptyVariant} message={error} />
+        ) : (
+          <SearchResults
+            files={visible}
+            groups={groups}
+            relPath={relPath}
+            openOverrides={openOverrides}
+            collapsedDirs={collapsedDirs}
+            canReplace={canReplace}
+            matcher={matcher}
+            singleMatcher={singleMatcher}
+            replacement={replacement}
+            onToggleFile={toggleFile}
+            onToggleDir={toggleDir}
+            onDismiss={dismissFile}
+            onReplaceFile={handleReplaceFile}
+            onOpenMatch={handleOpenMatch}
+          />
         )}
-
-        {projectPath && hasQuery && !loading && !error && visible.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
-            <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
-              <X className="w-6 h-6" strokeWidth={1.5} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-text-primary mb-1">No results found</p>
-              <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
-                Try adjusting your query or removing filters.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* List mode */}
-        {!viewAsTree && visible.map((r) => renderFile(r, 4, true))}
-
-        {/* Tree mode */}
-        {viewAsTree &&
-          groups?.map(([dir, files]) => {
-            const dirCollapsed = collapsedDirs.has(dir);
-            const dirMatches = files.reduce((sum, f) => sum + f.matches.length, 0);
-            return (
-              <div key={dir || '__root__'}>
-                {dir && (
-                  <button
-                    onClick={() => toggleDir(dir)}
-                    className="w-full flex items-center gap-1.5 pl-1 pr-1.5 py-1 rounded hover:bg-card-hover text-left transition-colors"
-                    title={dir}
-                  >
-                    {dirCollapsed ? (
-                      <ChevronRight
-                        className="w-3 h-3 shrink-0 text-text-secondary"
-                        strokeWidth={1.5}
-                      />
-                    ) : (
-                      <ChevronDown
-                        className="w-3 h-3 shrink-0 text-text-secondary"
-                        strokeWidth={1.5}
-                      />
-                    )}
-                    <Folder
-                      className="w-3.5 h-3.5 shrink-0 text-text-secondary/70"
-                      strokeWidth={1.5}
-                    />
-                    <span className="text-xs text-text-secondary truncate">{dir}</span>
-                    <span className="ml-auto text-[10px] text-text-secondary/60 bg-card-background rounded-full px-1.5 shrink-0 tabular-nums">
-                      {dirMatches}
-                    </span>
-                  </button>
-                )}
-                {!dirCollapsed && files.map((r) => renderFile(r, dir ? 18 : 4, false))}
-              </div>
-            );
-          })}
       </div>
 
       {/* Replace-All confirmation modal */}

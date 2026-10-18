@@ -1,9 +1,10 @@
 import * as React from "react";
+import { $ } from '@renderer/utils/color';
 
 export const TOOLTIP_BG =
-  "color-mix(in srgb, rgb(30, 30, 30) 86%, #000)"; // bg-card-background approximate
+  `color-mix(in srgb, ${$('--card-background')} 86%, black)`;
 
-const MUTED = "#8b8b8b"; // text-text-secondary approximate
+const getMuted = () => $('--text-secondary');
 
 const KEYFRAMES = `@keyframes zenTooltipIn{from{opacity:0;transform:translate(-50%,-92%)}to{opacity:1;transform:translate(-50%,-100%)}}`;
 
@@ -46,12 +47,13 @@ export const SimpleTooltip: React.FC<{
             transform: "translate(-50%, -100%)",
             animation: "zenTooltipIn 0.14s ease-out",
             zIndex: 99999,
-            backgroundColor: TOOLTIP_BG,
-            borderRadius: "10px",
+            backgroundColor: $('--dropdown-background'),
+            border: `1px solid ${$('--border')}`,
+            borderRadius: "6px",
             padding: "10px 12px",
             fontSize: "12px",
             lineHeight: 1.4,
-            color: "#ffffff", // text-text-primary
+            color: $('--text-primary'),
             whiteSpace: "nowrap",
             pointerEvents: "none",
             boxShadow: "0 6px 20px rgba(0,0,0,0.45)",
@@ -100,6 +102,7 @@ export const TooltipRow: React.FC<{
   color: string;
   active?: boolean;
 }> = ({ icon, label, value, color, active = true }) => {
+  const MUTED = getMuted();
   const c = active ? color : MUTED;
   return (
     <div
@@ -116,7 +119,7 @@ export const TooltipRow: React.FC<{
           display: "flex",
           alignItems: "center",
           gap: "7px",
-          color: active ? "#ffffff" : MUTED, // text-text-primary vs muted
+          color: active ? $('--text-primary') : MUTED,
         }}
       >
         {icon && (

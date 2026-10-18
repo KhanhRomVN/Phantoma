@@ -128,6 +128,26 @@ Quản lý qua IPC channels `task:list`, `task:get`, `task:create`, `task:update
 
 ---
 
+<a name="designs"></a>
+### Designs
+
+Lưu trữ các design UI tạm thời (dùng mockData) theo từng project của module Code. Mỗi design là một thư mục `design_{id}` chứa `meta.json` và các file page `.tsx` được tạo từ template.
+
+
+~/.phantoma/code:{system_path}/designs/
+└── design_{id}/
+    ├── meta.json
+    ├── mockData.ts
+    ├── Home.tsx
+    └── Profile.tsx
+
+
+`meta.json` gồm `id`, `name`, `description`, `nodes` (mỗi node: `id`, `name`, `route`, `file`, `x`, `y`), `createdAt`, `updatedAt`. Mỗi node tương ứng một page (`file`) và được hiển thị dưới dạng diagram.
+
+Page `.tsx` được biên dịch lúc chạy bằng esbuild ở main process rồi nạp vào iframe. Quản lý qua IPC channels `design:list`, `design:create`, `design:update`, `design:delete`, `design:compile-page` (xem `src/main/ipc/design.handlers.ts`, `src/main/storage/DesignStorage.ts`).
+
+---
+
 <a name="extensions"></a>
 ### Extensions
 

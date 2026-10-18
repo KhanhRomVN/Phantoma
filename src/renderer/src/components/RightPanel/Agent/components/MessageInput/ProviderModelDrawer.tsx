@@ -3,16 +3,28 @@ import ReactDOM from 'react-dom';
 import {
   Search,
   ChevronRight,
+  ChevronDown,
   X,
   ChevronLeft,
   Brain,
   Circle,
   Video,
   Image,
+  Activity,
+  Coins,
+  Volume2,
+  ImagePlus,
+  Film,
+  SearchCheck,
+  BarChart3,
+  Clock,
+  Key,
   RefreshCw,
 } from 'lucide-react';
+import { $ } from '@renderer/utils/color';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
-import { DEFAULT_EFFORT, EFFORT_LEVELS, type EffortLevel } from './EffortDropdown';
+import { DEFAULT_EFFORT, EFFORT_LEVELS, splitModelAndEffort } from './EffortDropdown';
+import type { EffortLevel } from './EffortDropdown';
 
 interface Provider {
   provider_id: string;
@@ -21,6 +33,7 @@ interface Provider {
   is_enabled: boolean;
   models: any[];
   models_error?: string;
+  auth_method?: string | string[] | null;
 }
 
 interface Account {
@@ -58,8 +71,8 @@ interface ProviderModelDrawerProps {
 }
 
 const BoolBadge: React.FC<{ value: boolean }> = ({ value }) => (
-  <span className={value ? 'text-success font-bold' : 'text-error font-bold'}>
-    {value ? '✓' : '✗'}
+  <span style={{ color: value ? $('--success') : $('--error'), fontWeight: 600 }}>
+    {value ? '\u2713' : '\u2717'}
   </span>
 );
 
@@ -67,6 +80,12 @@ const formatContextLength = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (n >= 1_000) return `${Math.round(n / 1000)}K`;
   return n.toLocaleString();
+};
+
+const formatTokens = (n: number) => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return `${n}`;
 };
 
 const ModelTooltip: React.FC<{ model: any; x: number; y: number }> = ({ model, x, y }) => {
@@ -84,7 +103,7 @@ const ModelTooltip: React.FC<{ model: any; x: number; y: number }> = ({ model, x
         model.max_context_length != null || model.context_length != null ? (
           `${Number(model.max_context_length ?? model.context_length).toLocaleString()} tokens`
         ) : (
-          <span className="opacity-40">—</span>
+          <span style={{ opacity: 0.4 }}>\u2014</span>
         ),
     },
     { label: 'Thinking', value: <BoolBadge value={!!model.is_thinking} /> },
@@ -113,18 +132,60 @@ const ModelTooltip: React.FC<{ model: any; x: number; y: number }> = ({ model, x
 
   return (
     <div
-      className="fixed z-[99999] w-[210px] bg-dropdown-background border border-border rounded-md p-2 text-xs text-text-primary leading-relaxed pointer-events-none shadow-lg"
-      style={{ left, top }}
+      style={{
+        position: 'fixed',
+        left,
+        top,
+        width: TOOLTIP_W,
+        backgroundColor: $('--tooltip-background'),
+        border: `1px solid ${$('--border')}`,
+        borderRadius: '6px',
+        padding: '8px 10px',
+        fontSize: '11px',
+        color: $('--text-primary'),
+        lineHeight: 1.7,
+        pointerEvents: 'none',
+        zIndex: 99999,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+      }}
     >
-      <div className="font-bold mb-1.5 text-sm border-b border-border/30 pb-1">{model.name}</div>
+      <div
+        style={{
+          fontWeight: 700,
+          marginBottom: '6px',
+          fontSize: '12px',
+          borderBottom: `1px solid ${$('--divider')}`,
+          paddingBottom: '5px',
+        }}
+      >
+        {model.name}
+      </div>
       {model.description && (
-        <div className="mb-2 pb-1.5 border-b border-border/20 text-[10.5px] opacity-85 italic line-clamp-3">
+        <div
+          style={{
+            marginBottom: '8px',
+            paddingBottom: '6px',
+            borderBottom: `1px solid ${$('--divider')}`,
+            fontSize: '10.5px',
+            opacity: 0.85,
+            fontStyle: 'italic',
+            lineHeight: 1.4,
+            maxHeight: '60px',
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
           {model.description}
         </div>
       )}
       {rows.map((r) => (
-        <div key={r.label} className="flex justify-between gap-3">
-          <span className="opacity-55">{r.label}</span>
+        <div
+          key={r.label}
+          style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}
+        >
+          <span style={{ opacity: 0.55 }}>{r.label}</span>
           <span>{r.value}</span>
         </div>
       ))}
@@ -132,11 +193,24 @@ const ModelTooltip: React.FC<{ model: any; x: number; y: number }> = ({ model, x
   );
 };
 
-function DrawerSkeletonLine({ width, height = 10, radius = 4 }: { width: string | number; height?: number; radius?: number }) {
+function DrawerSkeletonLine({
+  width,
+  height = 10,
+  radius = 4,
+}: {
+  width: string | number;
+  height?: number;
+  radius?: number;
+}) {
   return (
     <div
-      className="animate-pulse bg-gray-500/15"
-      style={{ width, height, borderRadius: radius }}
+      style={{
+        width,
+        height,
+        borderRadius: radius,
+        backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 15%, transparent)`,
+        animation: 'drawerShimmer 1.4s ease-in-out infinite',
+      }}
     />
   );
 }
@@ -145,17 +219,52 @@ function ModelListSkeleton() {
   return (
     <div>
       {[0, 1, 2].map((pi) => (
-        <div key={pi} className="mb-4">
-          <div className="flex items-center gap-1.5 mb-2.5">
+        <div key={pi} style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
             <DrawerSkeletonLine width={16} height={16} radius={3} />
             <DrawerSkeletonLine width={120} height={13} />
           </div>
           {[0, 1].map((mi) => (
-            <div key={mi} className="py-2 px-3 flex flex-col gap-1.5">
+            <div
+              key={mi}
+              style={{
+                padding: '8px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
               <DrawerSkeletonLine width="45%" height={12} />
               <DrawerSkeletonLine width="70%" height={9} />
             </div>
           ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AccountListSkeleton() {
+  return (
+    <div>
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          style={{
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
+          <DrawerSkeletonLine width={28} height={28} radius={7} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <DrawerSkeletonLine width="60%" height={11} />
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+              <DrawerSkeletonLine width={52} height={9} />
+              <DrawerSkeletonLine width={52} height={9} />
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -167,8 +276,9 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
   onClose,
   providers,
   isLoadingProviders = false,
+  apiUrl,
   onRefresh,
-  currentEffort = DEFAULT_EFFORT,
+  currentEffort,
   onSelect,
 }) => {
   const [step, setStep] = useState<'model' | 'account'>('model');
@@ -176,24 +286,24 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
   const [selectedModel, setSelectedModel] = useState<any | null>(null);
   const [providerAccounts, setProviderAccounts] = useState<Account[]>([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
+  const [accountSearchQuery, setAccountSearchQuery] = useState('');
   const [collapsedProviders, setCollapsedProviders] = useState<Set<string>>(new Set());
-  
-  // Tooltip state
-  const [tooltipModel, setTooltipModel] = useState<{ model: any; x: number; y: number } | null>(null);
+  const [tooltipModel, setTooltipModel] = useState<{ model: any; x: number; y: number } | null>(
+    null,
+  );
   const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mousePos = useRef({ x: 0, y: 0 });
-
-  // Local effort state for the drawer interaction
-  const [localEffort, setLocalEffort] = useState<EffortLevel>(currentEffort);
+  const activeRowRect = useRef<DOMRect | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setStep('model');
     setSearchQuery('');
+    setAccountSearchQuery('');
     setSelectedModel(null);
     setProviderAccounts([]);
-    setLocalEffort(currentEffort);
-  }, [isOpen, currentEffort]);
+    setTooltipModel(null);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -204,314 +314,942 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
+  // Hide tooltip khi con trỏ ra ngoài row
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      mousePos.current = { x: e.clientX, y: e.clientY };
+      if (tooltipModel && activeRowRect.current) {
+        const r = activeRowRect.current;
+        const PADDING = 4;
+        const outside =
+          e.clientX < r.left - PADDING ||
+          e.clientX > r.right + PADDING ||
+          e.clientY < r.top - PADDING ||
+          e.clientY > r.bottom + PADDING;
+        if (outside) {
+          setTooltipModel(null);
+          activeRowRect.current = null;
+        } else {
+          setTooltipModel((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
+        }
+      }
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    return () => window.removeEventListener('mousemove', onMouseMove);
+  }, [tooltipModel]);
+
+  // Fetch accounts khi bước sang account (poll 15s)
+  useEffect(() => {
+    if (step !== 'account' || !selectedModel || !apiUrl) return;
+    let isMounted = true;
+
+    const load = (showLoading: boolean) => {
+      if (showLoading) setIsLoadingAccounts(true);
+      fetch(
+        `${apiUrl}/v1/accounts?page=1&limit=50&provider_id=${encodeURIComponent(selectedModel.provider_id)}`,
+      )
+        .then((res) => res.json())
+        .then((result) => {
+          if (isMounted && result.success && result.data?.accounts) {
+            setProviderAccounts(result.data.accounts);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted && showLoading) setIsLoadingAccounts(false);
+        });
+    };
+
+    load(true);
+    const id = setInterval(() => load(false), 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(id);
+    };
+  }, [step, selectedModel, apiUrl]);
+
+  const providerNeedsAuth = (provider: Provider): boolean => {
+    const raw = (provider as any).auth_method ?? (provider as any).auth_methods;
+    if (!raw) return false;
+    if (Array.isArray(raw))
+      return raw.filter((m: any) => typeof m === 'string' && m.length > 0).length > 0;
+    if (typeof raw === 'string' && raw.trim()) {
+      try {
+        const parsed = JSON.parse(raw.trim());
+        return Array.isArray(parsed) ? parsed.filter((m: any) => m).length > 0 : false;
+      } catch {
+        return (
+          raw
+            .trim()
+            .split(/[,;|\s]+/)
+            .filter((m: string) => m.length > 0).length > 0
+        );
+      }
+    }
+    return false;
+  };
+
   const filteredProviders = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return providers.filter(p => p.is_enabled);
-    
-    return providers.filter(p => {
-      if (!p.is_enabled) return false;
-      // Match provider name or any model name/id within it
-      const matchProv = p.provider_name.toLowerCase().includes(q);
-      const matchModels = p.models?.some(m => 
-        m.id?.toLowerCase().includes(q) || 
-        m.name?.toLowerCase().includes(q)
-      );
-      return matchProv || matchModels;
+    const mapped = (providers || [])
+      .filter((p) => p.is_enabled !== false)
+      .map((provider) => {
+        const providerNameMatch = (provider.provider_name || '')
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
+        const filteredModels = providerNameMatch
+          ? provider.models || []
+          : (provider.models || []).filter(
+              (m) =>
+                (m.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (m.id || '').toLowerCase().includes(searchQuery.toLowerCase()),
+            );
+        return { ...provider, models: filteredModels };
+      })
+      .filter((p) => p.models.length > 0 || !!(p as any).models_error);
+
+    return [...mapped].sort((a, b) => {
+      const aHas = a.models.length > 0 ? 0 : 1;
+      const bHas = b.models.length > 0 ? 0 : 1;
+      return aHas - bHas;
     });
   }, [providers, searchQuery]);
 
-  const handleMouseMove = (e: React.MouseEvent, model: any) => {
-    mousePos.current = { x: e.clientX, y: e.clientY };
+  const handleModelMouseEnter = (model: any, e: React.MouseEvent<HTMLDivElement>) => {
+    activeRowRect.current = e.currentTarget.getBoundingClientRect();
     if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
     tooltipTimer.current = setTimeout(() => {
-      setTooltipModel({ model, x: mousePos.current.x, y: mousePos.current.y });
-    }, 300);
+      const { x, y } = mousePos.current;
+      setTooltipModel({ model, x, y });
+    }, 100);
   };
 
-  const handleMouseLeave = () => {
-    if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
-    setTooltipModel(null);
-  };
-
-  const toggleCollapse = (pid: string) => {
-    setCollapsedProviders(prev => {
+  const toggleProvider = (providerId: string) => {
+    setCollapsedProviders((prev) => {
       const next = new Set(prev);
-      if (next.has(pid)) next.delete(pid);
-      else next.add(pid);
+      if (next.has(providerId)) next.delete(providerId);
+      else next.add(providerId);
       return next;
     });
   };
 
-  const handleSelectModel = (prov: Provider, model: any) => {
-    // If model has effort variants, we might need to construct the ID differently
-    // For now, assume standard selection
-    setSelectedModel(model);
-    // Simulate fetching accounts for this provider/model combo
-    // In a real app, this would call an API
-    setIsLoadingAccounts(true);
-    setTimeout(() => {
-      setProviderAccounts([
-        { id: 'default', name: 'Default Account', email: 'user@example.com', provider_id: prov.provider_id }
-      ]);
-      setIsLoadingAccounts(false);
-      setStep('account');
-    }, 300);
-  };
-
-  const handleConfirmSelection = (account?: Account) => {
-    if (!selectedModel) return;
-    
-    const finalModelId = selectedModel.id; // Could append effort suffix here if needed
-    
-    onSelect({
-      providerId: selectedModel._providerId || '', // Need to track which provider was clicked
-      modelId: finalModelId,
-      accountId: account?.id,
-      email: account?.email,
-      usage: account?.usage,
-      period_requests: account?.period_requests,
-      period_tokens: account?.period_tokens,
-    });
-    onClose();
-  };
-
   if (!isOpen) return null;
+
+  // Find the closest ancestor with overflow hidden or specific ID to constrain portal
+  const getContainer = () => {
+    const el = document.getElementById('code-agent-root');
+    if (el) return el;
+    // Fallback to body if not found (e.g., in other contexts)
+    return document.body;
+  };
+
+  const container = getContainer();
 
   return ReactDOM.createPortal(
     <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
+      {/* Overlay */}
+      <div
         onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(2px)',
+          zIndex: 10000,
+        }}
       />
-
-      {/* Drawer Panel */}
-      <div className="fixed bottom-0 left-0 right-0 h-[85vh] max-h-[800px] bg-card-background border-t border-border shadow-2xl z-[10001] flex flex-col animate-slide-up rounded-t-2xl overflow-hidden">
-        
+      {/* Panel */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '50%', // Chiếm 50% chiều cao của #code-agent-root
+          maxHeight: '50%',
+          backgroundColor: $('--card-background'),
+          borderTop: `1px solid ${$('--border')}`,
+          boxShadow: '0 -8px 24px rgba(0,0,0,0.2)',
+          zIndex: 10001,
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'pmdSlideUpDrawer 0.25s ease-out',
+          color: $('--text-primary'),
+          overflow: 'hidden',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-          <div className="flex items-center gap-2">
+        <div
+          style={{
+            padding: '12px 16px',
+            borderBottom: `1px solid ${$('--border')}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {step === 'account' && (
-              <button 
-                onClick={() => setStep('model')}
-                className="p-1 hover:bg-sidebar-item-hover rounded-md text-text-secondary transition-colors"
+              <button
+                onClick={() => {
+                  setStep('model');
+                  setAccountSearchQuery('');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  color: $('--text-secondary'),
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={16} />
               </button>
             )}
-            <h2 className="text-base font-bold text-text-primary">
-              {step === 'model' ? 'Select Model' : 'Select Account'}
-            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '17px', fontWeight: 700, color: $('--text-primary') }}>
+                {step === 'model' ? 'Select Model' : 'Select Account'}
+              </span>
+              <span style={{ fontSize: '11px', color: $('--text-secondary'), opacity: 0.7 }}>
+                {step === 'model'
+                  ? 'Choose a model to continue'
+                  : selectedModel
+                    ? `${selectedModel.provider_id}/${selectedModel.id}`
+                    : ''}
+              </span>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-             {step === 'model' && (
-               <>
-                 <button 
-                   onClick={onRefresh}
-                   className="p-1.5 hover:bg-sidebar-item-hover rounded-md text-text-secondary transition-colors"
-                   title="Refresh Providers"
-                 >
-                   <RefreshCw size={14} />
-                 </button>
-                 <div className="relative">
-                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-                   <input
-                     type="text"
-                     placeholder="Search models..."
-                     value={searchQuery}
-                     onChange={(e) => setSearchQuery(e.target.value)}
-                     className="pl-8 pr-3 py-1.5 text-xs rounded-md bg-input-background border border-transparent focus:border-primary outline-none text-text-primary w-48"
-                     autoFocus
-                   />
-                 </div>
-               </>
-             )}
-             <button 
-               onClick={onClose}
-               className="p-1.5 hover:bg-red-500/10 hover:text-red-500 rounded-md text-text-secondary transition-colors"
-             >
-               <X size={18} />
-             </button>
-          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px',
+              borderRadius: '4px',
+              color: $('--text-secondary'),
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <X size={16} />
+          </button>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {isLoadingProviders ? (
-            <div className="p-4"><ModelListSkeleton /></div>
-          ) : step === 'model' ? (
-            <div className="p-2">
-              {filteredProviders.length === 0 ? (
-                <div className="py-10 text-center text-sm text-text-secondary opacity-70">
-                  No providers found matching "{searchQuery}"
+        {step === 'model' ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Search */}
+            <div
+              style={{
+                position: 'relative',
+                padding: '12px 12px 0 12px',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <div style={{ position: 'relative', flex: 1 }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: 0,
+                    height: '34px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <Search size={14} style={{ color: $('--text-secondary') }} />
                 </div>
-              ) : (
-                filteredProviders.map(prov => {
-                  const isCollapsed = collapsedProviders.has(prov.provider_id);
-                  const models = prov.models || [];
-                  
-                  // Filter models by search query if active
-                  const visibleModels = searchQuery 
-                    ? models.filter(m => 
-                        m.id?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        m.name?.toLowerCase().includes(searchQuery.toLowerCase())
-                      )
-                    : models;
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search models..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 32px',
+                    fontSize: '13px',
+                    backgroundColor: `color-mix(in srgb, ${$('--text-primary')} 8%, ${$('--card-background')})`,
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: $('--text-primary'),
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    height: '34px',
+                  }}
+                />
+              </div>
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={isLoadingProviders}
+                  title="Refresh models"
+                  style={{
+                    flexShrink: 0,
+                    width: '34px',
+                    height: '34px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: $('--input-background'),
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: isLoadingProviders ? 'not-allowed' : 'pointer',
+                    color: $('--text-secondary'),
+                    opacity: isLoadingProviders ? 0.5 : 1,
+                  }}
+                >
+                  <RefreshCw
+                    size={14}
+                    style={{
+                      animation: isLoadingProviders ? 'pmdSpin 1s linear infinite' : 'none',
+                    }}
+                  />
+                </button>
+              )}
+            </div>
 
-                  if (visibleModels.length === 0 && searchQuery) return null;
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+              {isLoadingProviders ? (
+                <ModelListSkeleton />
+              ) : (
+                filteredProviders.map((provider) => {
+                  const hasModels = provider.models.length > 0;
+                  const needsAuth = providerNeedsAuth(provider);
+                  const isCollapsed = collapsedProviders.has(provider.provider_id);
 
                   return (
-                    <div key={prov.provider_id} className="mb-2 last:mb-0">
-                      {/* Provider Header */}
-                      <div 
-                        className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-sidebar-item-hover rounded-md transition-colors"
-                        onClick={() => toggleCollapse(prov.provider_id)}
+                    <div key={provider.provider_id} style={{ marginBottom: '16px' }}>
+                      <div
+                        onClick={() => toggleProvider(provider.provider_id)}
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          color: $('--text-primary'),
+                          paddingBottom: '5px',
+                          marginBottom: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                        }}
                       >
-                        <img 
-                          src={getFaviconUrl(prov.website)} 
-                          alt="" 
-                          className="w-4 h-4 rounded-sm object-contain"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                        <span className="text-xs font-semibold text-text-primary flex-1 truncate">
-                          {prov.provider_name}
-                        </span>
-                        <span className="text-[10px] text-text-secondary opacity-60">
-                          {models.length} models
-                        </span>
-                        <ChevronRight 
-                          size={14} 
-                          className={`text-text-secondary transition-transform duration-200 ${!isCollapsed ? 'rotate-90' : ''}`} 
-                        />
+                        {(() => {
+                          const favUrl = getFaviconUrl(provider.website);
+                          if (!favUrl) return null;
+                          return (
+                            <div
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '3px',
+                                backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <img
+                                src={favUrl}
+                                alt=""
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.opacity = '0';
+                                }}
+                              />
+                            </div>
+                          );
+                        })()}
+                        {provider.provider_name || provider.provider_id}
+                        {provider.models_error &&
+                          (() => {
+                            const isNoAcc = provider.models_error.startsWith('No accounts');
+                            const errColor = isNoAcc ? $('--warn') : $('--error');
+                            return (
+                              <span
+                                title={provider.models_error}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  fontSize: '10px',
+                                  fontWeight: 500,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: `color-mix(in srgb, ${errColor} 10%, transparent)`,
+                                  color: errColor,
+                                  maxWidth: '200px',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {isNoAcc ? 'No accounts' : 'Error'}
+                              </span>
+                            );
+                          })()}
+                        {needsAuth && (
+                          <span
+                            style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}
+                          >
+                            {isCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+                          </span>
+                        )}
                       </div>
 
-                      {/* Models List */}
-                      {!isCollapsed && (
-                        <div className="ml-2 pl-2 border-l border-border/30 mt-1 space-y-0.5">
-                          {visibleModels.map(model => {
+                      {!isCollapsed &&
+                        hasModels &&
+                        (() => {
+                          const seen = new Set<string>();
+                          const deduped = provider.models.filter((m: any) => {
+                            const { base } = splitModelAndEffort(m.id);
+                            if (seen.has(base)) return false;
+                            seen.add(base);
+                            return true;
+                          });
+                          return deduped.map((model: any) => {
+                            const successColor =
+                              model.success_rate >= 80
+                                ? $('--success')
+                                : model.success_rate >= 50
+                                  ? $('--yellow')
+                                  : $('--red');
                             return (
                               <div
                                 key={model.id}
-                                onMouseMove={(e) => handleMouseMove(e, model)}
-                                onMouseLeave={handleMouseLeave}
-                                onClick={() => handleSelectModel(prov, model)}
-                                className="group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-primary/10 transition-colors"
+                                onClick={() => {
+                                  const { base: baseId } = splitModelAndEffort(model.id);
+                                  const availableEfforts = (provider.models as any[])
+                                    .map((m: any) => splitModelAndEffort(m.id))
+                                    .filter((p) => p.base === baseId && p.effort !== null)
+                                    .map((p) => p.effort as EffortLevel);
+                                  const pickedEffort =
+                                    currentEffort && availableEfforts.includes(currentEffort)
+                                      ? currentEffort
+                                      : availableEfforts.includes(DEFAULT_EFFORT)
+                                        ? DEFAULT_EFFORT
+                                        : EFFORT_LEVELS.find((lvl) =>
+                                            availableEfforts.includes(lvl),
+                                          );
+                                  const finalModelId = pickedEffort
+                                    ? `${baseId}-${pickedEffort}`
+                                    : model.id;
+
+                                  if (needsAuth) {
+                                    setSelectedModel({
+                                      ...model,
+                                      id: finalModelId,
+                                      provider_id: provider.provider_id,
+                                    });
+                                    setStep('account');
+                                  } else {
+                                    onSelect({
+                                      providerId: provider.provider_id,
+                                      modelId: finalModelId,
+                                    });
+                                    onClose();
+                                  }
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 15%, transparent)`;
+                                  handleModelMouseEnter(model, e);
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }}
+                                style={{
+                                  padding: '8px 12px',
+                                  cursor: 'pointer',
+                                  borderRadius: '6px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '4px',
+                                }}
                               >
-                                <Circle size={6} className="fill-current text-text-secondary group-hover:text-primary transition-colors" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-xs font-medium text-text-primary truncate group-hover:text-primary transition-colors">
-                                    {model.name || model.id}
-                                  </div>
-                                  {(model.max_context_length || model.context_length) && (
-                                    <div className="text-[10px] text-text-secondary opacity-70">
-                                      {formatContextLength(Number(model.max_context_length ?? model.context_length))} ctx
-                                    </div>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: '13px',
+                                      fontWeight: 600,
+                                      color: $('--text-primary'),
+                                    }}
+                                  >
+                                    {splitModelAndEffort(model.id).base === model.id
+                                      ? model.name
+                                      : (() => {
+                                          const suffixes = [
+                                            'Low',
+                                            'Medium',
+                                            'High',
+                                            'Extra',
+                                            'Max',
+                                          ];
+                                          let baseName = model.name;
+                                          for (const s of suffixes) {
+                                            if (baseName.endsWith(` ${s}`)) {
+                                              baseName = baseName.slice(0, -(s.length + 1));
+                                              break;
+                                            }
+                                          }
+                                          return baseName;
+                                        })()}
+                                  </span>
+                                  {model.is_thinking && (
+                                    <span
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: 500,
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        backgroundColor: `color-mix(in srgb, ${$('--purple')} 12%, transparent)`,
+                                        color: $('--purple'),
+                                      }}
+                                    >
+                                      <Brain size={11} />
+                                      Thinking
+                                    </span>
+                                  )}
+                                  {model.is_search && (
+                                    <Search size={12} style={{ color: $('--text-secondary') }} />
+                                  )}
+                                  {model.max_context_length != null && (
+                                    <span
+                                      style={{
+                                        fontSize: '10.5px',
+                                        color: $('--text-secondary'),
+                                        opacity: 0.7,
+                                      }}
+                                    >
+                                      {formatContextLength(model.max_context_length)}
+                                    </span>
+                                  )}
+                                  {model.is_video_upload && (
+                                    <Video size={12} style={{ color: $('--violet') }} />
+                                  )}
+                                  {model.is_audio_upload && (
+                                    <Volume2 size={12} style={{ color: $('--yellow') }} />
+                                  )}
+                                  {model.is_image_upload && (
+                                    <Image size={12} style={{ color: $('--green') }} />
+                                  )}
+                                  {model.is_image_generator && (
+                                    <ImagePlus size={12} style={{ color: $('--pink') }} />
+                                  )}
+                                  {model.is_video_generator && (
+                                    <Film size={12} style={{ color: $('--purple') }} />
+                                  )}
+                                  {model.is_deep_research && (
+                                    <SearchCheck size={12} style={{ color: $('--teal') }} />
+                                  )}
+                                  {model.success_rate != null && (
+                                    <span
+                                      style={{
+                                        marginLeft: 'auto',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '11px',
+                                        color: successColor,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <Circle size={10} fill={successColor} color={successColor} />
+                                      {model.success_rate.toFixed(1)}%
+                                    </span>
                                   )}
                                 </div>
-                                
-                                {/* Quick Badges */}
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {model.is_thinking && <Brain size={10} className="text-violet" />}
-                                  {model.is_image_upload && <Image size={10} className="text-teal" />}
-                                  {model.is_video_upload && <Video size={10} className="text-blue" />}
-                                </div>
+                                {model.description && (
+                                  <div
+                                    style={{
+                                      fontSize: '11px',
+                                      color: $('--text-secondary'),
+                                      opacity: 0.7,
+                                      lineHeight: 1.4,
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 1,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                    }}
+                                  >
+                                    {model.description}
+                                  </div>
+                                )}
                               </div>
                             );
-                          })}
-                          
-                          {visibleModels.length === 0 && (
-                             <div className="px-2 py-1 text-[10px] text-text-secondary opacity-50 italic">
-                               No models in this provider
-                             </div>
-                          )}
-                        </div>
-                      )}
+                          });
+                        })()}
                     </div>
                   );
                 })
               )}
-            </div>
-          ) : (
-            /* Step: Account Selection */
-            <div className="p-4">
-              <div className="mb-4 p-3 bg-input-background rounded-lg border border-border">
-                <div className="text-xs font-bold text-text-primary mb-1">Selected Model:</div>
-                <div className="text-sm text-primary">{selectedModel?.name || selectedModel?.id}</div>
-                
-                {/* Effort Selector Inline */}
-                <div className="mt-3 pt-3 border-t border-border/30">
-                  <div className="text-[10px] uppercase font-bold text-text-secondary tracking-wider mb-2">Effort Level</div>
-                  <div className="flex gap-1">
-                    {EFFORT_LEVELS.map(lvl => (
-                      <button
-                        key={lvl}
-                        onClick={() => setLocalEffort(lvl)}
-                        className={`flex-1 py-1 text-[10px] font-semibold rounded transition-colors ${
-                          localEffort === lvl 
-                            ? 'bg-primary text-white' 
-                            : 'bg-gray-500/10 text-text-secondary hover:bg-gray-500/20'
-                        }`}
-                      >
-                        {lvl.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
+              {!isLoadingProviders && filteredProviders.length === 0 && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    color: $('--text-secondary'),
+                    padding: '20px',
+                    fontSize: '12px',
+                  }}
+                >
+                  No models found
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Available Accounts</div>
-                {isLoadingAccounts ? (
-                  <div className="py-4 text-center text-xs text-text-secondary">Loading accounts...</div>
-                ) : providerAccounts.length === 0 ? (
-                  <div className="py-4 text-center text-xs text-text-secondary opacity-70">No accounts configured</div>
-                ) : (
-                  providerAccounts.map(acc => (
-                    <div
-                      key={acc.id}
-                      onClick={() => handleConfirmSelection(acc)}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-all group"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-                        {(acc.name || acc.email || '?')[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-text-primary truncate group-hover:text-primary transition-colors">
-                          {acc.name || acc.email}
-                        </div>
-                        {acc.usage !== undefined && (
-                          <div className="text-[10px] text-text-secondary opacity-70">
-                            Usage: {acc.usage}%
-                          </div>
-                        )}
-                      </div>
-                      <ChevronRight size={16} className="text-text-secondary opacity-50 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  ))
-                )}
-              </div>
-              
-              <button
-                onClick={() => handleConfirmSelection(providerAccounts[0])} // Auto-select first if exists
-                disabled={providerAccounts.length === 0}
-                className="w-full mt-6 py-2.5 rounded-lg bg-primary text-white font-semibold text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Confirm Selection
-              </button>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                padding: '12px 12px 0 12px',
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '22px',
+                  top: '12px',
+                  height: '34px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  pointerEvents: 'none',
+                }}
+              >
+                <Search size={14} style={{ color: $('--text-secondary') }} />
+              </div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search accounts..."
+                value={accountSearchQuery}
+                onChange={(e) => setAccountSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px 8px 32px',
+                  fontSize: '13px',
+                  backgroundColor: $('--input-background'),
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: $('--text-primary'),
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  height: '34px',
+                }}
+              />
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+              {isLoadingAccounts ? (
+                <AccountListSkeleton />
+              ) : providerAccounts.length > 0 ? (
+                (() => {
+                  const filtered = providerAccounts.filter((acc) =>
+                    (acc.email || '').toLowerCase().includes(accountSearchQuery.toLowerCase()),
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          color: $('--text-secondary'),
+                          padding: '20px',
+                          fontSize: '12px',
+                        }}
+                      >
+                        No accounts match your search.
+                      </div>
+                    );
+                  }
+                  return filtered.map((acc) => {
+                    return (
+                      <div
+                        key={acc.id}
+                        onClick={() => {
+                          onSelect({
+                            providerId: selectedModel.provider_id,
+                            modelId: selectedModel.id,
+                            accountId: acc.id,
+                            email: acc.email,
+                            accountProviderId: acc.provider_id,
+                            usage: acc.usage ?? null,
+                            period_requests: acc.period_requests ?? null,
+                            period_tokens: acc.period_tokens ?? null,
+                          });
+                          onClose();
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 15%, transparent)`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '7px',
+                            backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
+                            color: $('--text-secondary'),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {(acc.email?.[0] || acc.name?.[0] || '?').toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 500,
+                              color: $('--text-primary'),
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              minWidth: 0,
+                            }}
+                          >
+                            <span
+                              style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {acc.email || acc.name || acc.id}
+                            </span>
+                            {acc.auth_method && (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  padding: '2px 7px',
+                                  borderRadius: '4px',
+                                  backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
+                                  color: $('--text-secondary'),
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Key size={11} />
+                                {acc.auth_method}
+                              </span>
+                            )}
+                            {(acc.used_by_windows ?? 0) > 0 && (
+                              <span
+                                title={`Đang được dùng bởi ${acc.used_by_windows} cửa sổ khác`}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  fontSize: '9px',
+                                  fontWeight: 600,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: `color-mix(in srgb, ${$('--warn')} 16%, transparent)`,
+                                  color: $('--warn'),
+                                  flexShrink: 0,
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                In use
+                              </span>
+                            )}
+                          </span>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              marginTop: '2px',
+                              overflow: 'hidden',
+                              minWidth: 0,
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '10px',
+                                color: $('--text-secondary'),
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Activity size={11} style={{ color: $('--success') }} />
+                              {(acc.period_requests ?? 0).toLocaleString()} msg
+                            </span>
+                            <span
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '10px',
+                                color: $('--text-secondary'),
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Coins size={11} style={{ color: $('--warn') }} />
+                              {formatTokens(acc.period_tokens ?? 0)} tokens
+                            </span>
+                            {acc.usage != null &&
+                              (() => {
+                                const n = Number(acc.usage);
+                                const c =
+                                  n >= 90
+                                    ? $('--error')
+                                    : n >= 70
+                                      ? $('--warn')
+                                      : $('--text-secondary');
+                                return (
+                                  <span
+                                    title={
+                                      acc.reset_usage_at
+                                        ? `Resets at: ${new Date(acc.reset_usage_at).toLocaleString()}`
+                                        : undefined
+                                    }
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      fontSize: '10px',
+                                      color: c,
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <BarChart3 size={10} style={{ color: c }} />
+                                    {n.toFixed(1)}%
+                                  </span>
+                                );
+                              })()}
+                            {acc.usage != null &&
+                              acc.reset_usage_at != null &&
+                              (() => {
+                                const reset = new Date(acc.reset_usage_at);
+                                if (isNaN(reset.getTime())) return null;
+                                const diffMs = reset.getTime() - Date.now();
+                                if (diffMs <= 0) return null;
+                                const h = Math.ceil(diffMs / 3_600_000);
+                                const label =
+                                  h < 1
+                                    ? 'Resets <1h'
+                                    : h < 24
+                                      ? `Resets ${h}h`
+                                      : `Resets ${Math.ceil(h / 24)}d`;
+                                return (
+                                  <span
+                                    title={`Usage resets at: ${reset.toLocaleString()}`}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      fontSize: '10px',
+                                      color: $('--warn'),
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <Clock size={10} />
+                                    {label}
+                                  </span>
+                                );
+                              })()}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()
+              ) : (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    color: $('--text-secondary'),
+                    padding: '20px',
+                    fontSize: '12px',
+                  }}
+                >
+                  No accounts available for this provider.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <style>{`
+          @keyframes pmdSlideUpDrawer {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          @keyframes pmdSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @keyframes drawerShimmer {
+            0% { opacity: .55; }
+            50% { opacity: 1; }
+            100% { opacity: .55; }
+          }
+        `}</style>
       </div>
 
-      {tooltipModel && <ModelTooltip {...tooltipModel} />}
-      
-      <style>{`
-        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      `}</style>
+      {tooltipModel &&
+        ReactDOM.createPortal(
+          <ModelTooltip model={tooltipModel.model} x={tooltipModel.x} y={tooltipModel.y} />,
+          getContainer(),
+        )}
     </>,
-    document.body
+    getContainer(),
   );
 };
 

@@ -164,8 +164,6 @@ export function DropdownSub({
             style={{
               top: position.top,
               left: position.left,
-              boxShadow:
-                '0 0 0 1px rgb(var(--primary) / 0.10), 0 2px 8px rgb(var(--primary) / 0.06), 0 8px 24px rgb(var(--primary) / 0.04)',
             }}
             onMouseEnter={handleContentMouseEnter}
             onMouseLeave={handleContentMouseLeave}

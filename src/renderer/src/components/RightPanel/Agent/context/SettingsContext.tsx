@@ -43,6 +43,12 @@ interface SettingsContextType {
   setActiveDatabaseManagerId: (id: string | null) => void;
   chromiumProfileDir: string;
   setChromiumProfileDir: (dir: string) => void;
+  chromiumProfileSubpath: string;
+  setChromiumProfileSubpath: (subpath: string) => void;
+  showMetadataBar: boolean;
+  setShowMetadataBar: (value: boolean) => void;
+  memoryEnabled: boolean;
+  setMemoryEnabled: (value: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -59,6 +65,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [promptLengthMode, setPromptLengthModeState] = useState<PromptLengthMode>('long');
   const [activeDatabaseManagerId, setActiveDatabaseManagerIdState] = useState<string | null>(null);
   const [chromiumProfileDir, setChromiumProfileDirState] = useState<string>('');
+  const [chromiumProfileSubpath, setChromiumProfileSubpathState] = useState<string>('');
+  const [showMetadataBar, setShowMetadataBarState] = useState<boolean>(true);
+  const [memoryEnabled, setMemoryEnabledState] = useState<boolean>(false);
 
   useEffect(() => {
     try {
@@ -99,6 +108,18 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const savedChromiumProfileDir = localStorage.getItem('zen-chromium-profile-dir');
       if (savedChromiumProfileDir) {
         setChromiumProfileDirState(savedChromiumProfileDir);
+      }
+      const savedChromiumProfileSubpath = localStorage.getItem('zen-chromium-profile-subpath');
+      if (savedChromiumProfileSubpath !== null) {
+        setChromiumProfileSubpathState(savedChromiumProfileSubpath);
+      }
+      const savedShowMetadataBar = localStorage.getItem('zen-show-metadata-bar');
+      if (savedShowMetadataBar !== null) {
+        setShowMetadataBarState(savedShowMetadataBar !== 'false');
+      }
+      const savedMemoryEnabled = localStorage.getItem('zen-memory-enabled');
+      if (savedMemoryEnabled !== null) {
+        setMemoryEnabledState(savedMemoryEnabled === 'true');
       }
     } catch (e) {
       console.warn('[SettingsContext] Failed to load settings from localStorage:', e);
@@ -217,6 +238,33 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const setChromiumProfileSubpath = (subpath: string) => {
+    setChromiumProfileSubpathState(subpath);
+    try {
+      localStorage.setItem('zen-chromium-profile-subpath', subpath);
+    } catch (e) {
+      console.warn('[SettingsContext] Failed to save chromium profile subpath:', e);
+    }
+  };
+
+  const setShowMetadataBar = (value: boolean) => {
+    setShowMetadataBarState(value);
+    try {
+      localStorage.setItem('zen-show-metadata-bar', String(value));
+    } catch (e) {
+      console.warn('[SettingsContext] Failed to save show metadata bar:', e);
+    }
+  };
+
+  const setMemoryEnabled = (value: boolean) => {
+    setMemoryEnabledState(value);
+    try {
+      localStorage.setItem('zen-memory-enabled', String(value));
+    } catch (e) {
+      console.warn('[SettingsContext] Failed to save memory enabled:', e);
+    }
+  };
+
   return (
     <SettingsContext.Provider
       value={{
@@ -242,6 +290,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setActiveDatabaseManagerId,
         chromiumProfileDir,
         setChromiumProfileDir,
+        chromiumProfileSubpath,
+        setChromiumProfileSubpath,
+        showMetadataBar,
+        setShowMetadataBar,
+        memoryEnabled,
+        setMemoryEnabled,
       }}
     >
       {children}

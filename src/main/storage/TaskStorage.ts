@@ -18,7 +18,47 @@ import { logger } from '../utils/logger';
 export type TaskStatus = 'todo' | 'progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
-export interface StoredTask {
+export interface TaskTag {
+  id: string;
+  label: string;
+  color: string;
+}
+
+export interface TaskChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface TaskAttachment {
+  path: string;
+  kind: 'file' | 'folder';
+}
+
+export interface TaskExtras {
+  tags: TaskTag[];
+  checklist: TaskChecklistItem[];
+  attachments: TaskAttachment[];
+}
+
+function normalizeTask(t: any): StoredTask {
+  const { dueDate, ...rest } = t;
+  return {
+    ...rest,
+    tags: t.tags ?? [],
+    checklist: t.checklist ?? [],
+    attachments: t.attachments ?? [],
+    archived: t.archived ?? false,
+    order: t.order ?? t.createdAt ?? 0,
+    startDate: t.startDate ?? null,
+    startTime: t.startTime ?? null,
+    endDate: t.endDate ?? dueDate ?? null,
+    endTime: t.endTime ?? null,
+    dependsOn: t.dependsOn ?? [],
+  };
+}
+
+export interface StoredTask extends TaskExtras {
   id: string;
   title: string;
   description: string;
@@ -26,29 +66,45 @@ export interface StoredTask {
   priority: TaskPriority;
   sessionId: string | null;
   branchName: string | null;
-  dueDate: number | null;
+  startDate: number | null;
+  startTime: string | null;
+  endDate: number | null;
+  endTime: string | null;
+  dependsOn: string[];
+  archived: boolean;
+  order?: number;
   createdAt: number;
   updatedAt: number;
 }
 
-export interface CreateTaskInput {
+export interface CreateTaskInput extends Partial<TaskExtras> {
   title: string;
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
   sessionId?: string | null;
   branchName?: string | null;
-  dueDate?: number | null;
+  startDate?: number | null;
+  startTime?: string | null;
+  endDate?: number | null;
+  endTime?: string | null;
+  dependsOn?: string[];
 }
 
-export interface UpdateTaskInput {
+export interface UpdateTaskInput extends Partial<TaskExtras> {
+  archived?: boolean;
+  order?: number;
   title?: string;
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
   sessionId?: string | null;
   branchName?: string | null;
-  dueDate?: number | null;
+  startDate?: number | null;
+  startTime?: string | null;
+  endDate?: number | null;
+  endTime?: string | null;
+  dependsOn?: string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -87,7 +143,7 @@ function readJsonSafe(filePath: string): StoredTask[] {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     const parsed = JSON.parse(content);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeTask) : [];
   } catch (err) {
     logger.warn('[TaskStorage] Corrupt file, returning empty array.', { filePath, err });
     return [];
@@ -119,7 +175,15 @@ class TaskStorageService {
       priority: input.priority ?? 'medium',
       sessionId: input.sessionId ?? null,
       branchName: input.branchName ?? null,
-      dueDate: input.dueDate ?? null,
+      startDate: input.startDate ?? null,
+      startTime: input.startTime ?? null,
+      endDate: input.endDate ?? null,
+      endTime: input.endTime ?? null,
+      dependsOn: input.dependsOn ?? [],
+      tags: input.tags ?? [],
+      checklist: input.checklist ?? [],
+      attachments: input.attachments ?? [],
+      archived: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -150,12 +214,19 @@ class TaskStorageService {
   public deleteTask(projectPath: string, taskId: string): boolean {
     const tasks = this.listTasks(projectPath);
     const initialLength = tasks.length;
-    const filtered = tasks.filter(t => t.id !== taskId);
+    const filtered = tasks
+      .filter(t => t.id !== taskId)
+      .map(t =>
+        t.dependsOn.includes(taskId)
+          ? { ...t, dependsOn: t.dependsOn.filter(id => id !== taskId) }
+          : t,
+      );
     
-    if (filtered.length === initialLength) return false;
-
-    this.saveTasks(projectPath, filtered);
-    return true;
+    if (filtered.length === initialLength - 1) {
+      this.saveTasks(projectPath, filtered);
+      return true;
+    }
+    return false;
   }
 
   private saveTasks(projectPath: string, tasks: StoredTask[]) {
