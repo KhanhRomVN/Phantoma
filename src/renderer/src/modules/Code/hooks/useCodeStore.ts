@@ -55,6 +55,10 @@ export interface StoredWorkspacePanel {
   zencliConversationId?: string | null;
   /** Timestamp lần cuối user tương tác với conversation này (để quyết định "active"). */
   zencliLastActiveAt?: number | null;
+  /** Conversation ID của Agent panel, dùng để khôi phục sau khi restart app. */
+  agentConversationId?: string | null;
+  /** Title conversation hiện tại của Agent panel, hiển thị trên tab dạng 'Zen|<title>'. */
+  agentTitle?: string | null;
 }
 
 export interface Project {
@@ -93,6 +97,7 @@ export interface Project {
   // ── Workspace Panels Persistence ──
   workspacePanels: StoredWorkspacePanel[];
   activeWorkspacePanelId: string | null;
+  workspaceLayouts?: Record<string, import('../utils/workspaceLayout').WorkspaceLayoutSnapshot>;
 }
 
 export type ProjectInput = Omit<

@@ -15,12 +15,12 @@
 import { useState, useRef, useEffect } from 'react';
 
 // ── Components ──
-import { AgentPanel } from './Agent';
-import HomePanel from './Agent/feature/Home';
+import { AgentPanel } from './Zen';
+import HomePanel from './Zen/feature/Home';
 
 // CONTEXT
-import { SettingsProvider } from './Agent/context/SettingsContext';
-import { ProjectProvider } from './Agent/context/ProjectContext';
+import { SettingsProvider } from './Zen/context/SettingsContext';
+import { ProjectProvider } from './Zen/context/ProjectContext';
 
 // ── Types ──
 import type { SubTarget } from '../../types/phantom-target';
@@ -41,9 +41,9 @@ import {
   Settings,
   MoreHorizontal,
 } from 'lucide-react';
-import AccountPanel from './Agent/feature/Account';
-import HistoryPanel from './Agent/feature/History';
-import SettingsPanel from './Agent/feature/Setting';
+import AccountPanel from './Zen/feature/Account';
+import HistoryPanel from './Zen/feature/History';
+import SettingsPanel from './Zen/feature/Setting';
 
 // ── Constants ──
 const MIN_WIDTH = 300;

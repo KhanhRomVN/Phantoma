@@ -1,0 +1,127 @@
+import type { FileMutationTool } from '../../feature/Chat/constants/constants';
+
+export interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  content: string; // Base64 or text content
+  file_id?: string;
+  isUploading?: boolean;
+  error?: string;
+}
+
+export interface AttachedItem {
+  id: string;
+  path: string;
+  type: 'file' | 'snippet' | 'rule';
+  content?: string;
+  ruleId?: number;
+}
+
+export interface MessageInputProps {
+  message: string;
+  setMessage: React.Dispatch<React.SetStateAction<string>>;
+  isHistoryMode?: boolean;
+  uploadedFiles: UploadedFile[];
+  attachedItems?: AttachedItem[]; // Text snippets, external files, and rules
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  handleTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  handlePaste: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  handleDragOver: (e: React.DragEvent) => void;
+  handleDrop: (e: React.DragEvent) => void;
+  setShowAtMenu?: (show: boolean) => void;
+  handleFileSelect: (accept?: string, textOnly?: boolean) => void;
+  fileInputRef?: React.RefObject<HTMLInputElement>;
+  onOpenProjectStructure: () => void;
+  showChangesDropdown: boolean;
+  setShowChangesDropdown: (show: boolean) => void;
+  messages: any[];
+  handleSend: (model: any, account: any) => void;
+  hasProjectContext: boolean;
+  onOpenProjectContext: () => void;
+  folderPath?: string | null;
+  isConversationStarted?: boolean;
+  currentModel: any;
+  setCurrentModel: (model: any) => void;
+  currentAccount: any;
+  setCurrentAccount: (account: any) => void;
+  isProcessing?: boolean;
+  isStreaming?: boolean;
+  onStopGeneration?: () => void;
+  showBrowserWarning?: boolean;
+  isLaunchingBrowser?: boolean;
+  onLaunchBrowserSession?: () => void;
+  onGitPullRequest?: () => void;
+  isGitLoading?: boolean;
+  isGitStatusVisible?: boolean;
+  gitStatus?: { items?: any[]; branch?: string } | null;
+  onOpenGitStatus?: () => void;
+  conversationFileStats?: {
+    totalFiles: number;
+    totalAdditions: number;
+    totalDeletions: number;
+    responseNumber?: number;
+  };
+  onReviewClick?: () => void;
+  responseRange?: { start: number; end: number } | null;
+  responseRanges?: Array<{
+    start: number;
+    end: number;
+    isCurrent: boolean;
+    fileChanges: Map<
+      string,
+      {
+        additions: number;
+        deletions: number;
+        toolType?: FileMutationTool;
+        content?: string;
+        oldContent?: string;
+        newContent?: string;
+      }
+    >;
+  }>;
+  onOpenModelDrawer?: () => void;
+  onModelSwitch?: (
+    newModel: any,
+    newAccount: any,
+    contextData: {
+      fileChanges: Array<{
+        path: string;
+        additions: number;
+        deletions: number;
+      }>;
+      userMessages: Array<{ content: string; responseNumber: number }>;
+    },
+  ) => void;
+  onRevertConversation?: (messageId: string, timestamp: number) => void;
+  autoScrollPaused?: boolean;
+  scrollToBottom?: () => void;
+  /** Gọi khi người dùng chọn (hoặc vừa tạo) 1 rule để gắn vào input. */
+  onSelectRule?: (item: AttachedItem) => void;
+  /** Gọi khi xác nhận chọn skill — truyền toàn bộ tập skill mới (thay thế tập cũ). */
+  onSelectSkills?: (items: AttachedItem[]) => void;
+  /** Gỡ 1 attached item theo id — dùng để gỡ badge Rule khỏi toolbar. */
+  onRemoveAttachedItem?: (id: string) => void;
+
+  /** Per-conversation override: skill enabled (chỉ hiển thị ở Home panel) */
+  conversationUseSkillEnabled?: boolean;
+  /** Per-conversation override: memory enabled (chỉ hiển thị ở Home panel) */
+  conversationMemoryEnabled?: boolean;
+  /** Per-conversation override: tool format 'xml' | 'json' */
+  conversationToolFormat?: 'xml' | 'json';
+
+  /** Callback khi toggle skill thay đổi */
+  onConversationUseSkillToggle?: () => void;
+  /** Callback khi toggle memory thay đổi */
+  onConversationMemoryToggle?: () => void;
+  /** Callback khi toggle tool format thay đổi */
+  onConversationToolFormatToggle?: () => void;
+}
+
+export interface ToggleButtonProps {
+  isOn: boolean;
+  onClick: () => void;
+  title: string;
+}

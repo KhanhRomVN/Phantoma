@@ -35,7 +35,7 @@ import { installRuntimeWsBridge, wsBus } from './services/runtime-ws-bridge';
 import { EmulateController } from '../../controller/EmulateController';
 
 // ── UI ──
-import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
+import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
 import { initialFilterState } from './components/WorkspacePanel/Home/Home';
 import WorkspacePanel from './components/WorkspacePanel';
 import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
@@ -402,7 +402,7 @@ export default React.memo(function Emulate({
   // Refs for latest values
   const activeTargetIdRef = useRef(activeTargetId);
   const targetStatesRef = useRef(targetStates);
-  
+
   // Use refs to hold callbacks so the WS effect doesn't depend on their declaration order
   const stopTargetRef = useRef<(id: string) => void>(() => {});
   const clearRequestsRef = useRef<() => void>(() => {});
@@ -414,9 +414,9 @@ export default React.memo(function Emulate({
     // Helper to perform cleanup logic shared by both immediate and permanent disconnects
     const handleCleanupOnDisconnect = async (reason: string) => {
       console.warn(`[Emulate] WS disconnected (${reason}) — cleaning up active targets.`);
-      
+
       const currentState = targetStatesRef.current;
-      const activeIds = Object.keys(currentState).filter(id => currentState[id]?.isActive);
+      const activeIds = Object.keys(currentState).filter((id) => currentState[id]?.isActive);
 
       if (activeIds.length === 0) return;
 
@@ -433,9 +433,9 @@ export default React.memo(function Emulate({
             stopTargetRef.current(tid);
             await runtimeApi.unregisterTarget(tid).catch(() => {});
           }
-        })
+        }),
       );
-      
+
       clearRequestsRef.current();
     };
 
@@ -446,7 +446,7 @@ export default React.memo(function Emulate({
 
     // 2. Permanent failure notification (fires after max retries exhausted)
     const unsubPermanent = wsBus.on('ws:permanently-disconnected', () => {
-      // Already handled by immediate disconnect usually, but kept for safety 
+      // Already handled by immediate disconnect usually, but kept for safety
       // in case immediate didn't trigger due to some edge case logic change.
       handleCleanupOnDisconnect('permanent-failure');
     });
@@ -622,9 +622,19 @@ export default React.memo(function Emulate({
 
   // CLI Capture method handlers
   const handleStartEbpf = useCallback(
-    async (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => {
+    async (
+      targetId: string,
+      executablePath?: string,
+      useSandbox?: boolean,
+      sudoPassword?: string,
+    ) => {
       try {
-        const result = await runtimeApi.startCliEbpf(targetId, executablePath, useSandbox, sudoPassword);
+        const result = await runtimeApi.startCliEbpf(
+          targetId,
+          executablePath,
+          useSandbox,
+          sudoPassword,
+        );
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
         } else {
@@ -660,9 +670,19 @@ export default React.memo(function Emulate({
   );
 
   const handleStartPcap = useCallback(
-    async (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => {
+    async (
+      targetId: string,
+      executablePath?: string,
+      useSandbox?: boolean,
+      sudoPassword?: string,
+    ) => {
       try {
-        const result = await runtimeApi.startCliPcap(targetId, executablePath, useSandbox, sudoPassword);
+        const result = await runtimeApi.startCliPcap(
+          targetId,
+          executablePath,
+          useSandbox,
+          sudoPassword,
+        );
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
         } else {
@@ -741,8 +761,7 @@ export default React.memo(function Emulate({
       } catch (error) {
         console.error('[Emulate] Edit target failed:', error);
         alert(
-          'Failed to update target: ' +
-            (error instanceof Error ? error.message : 'Unknown error'),
+          'Failed to update target: ' + (error instanceof Error ? error.message : 'Unknown error'),
         );
       }
     },

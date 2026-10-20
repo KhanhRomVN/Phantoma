@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
+import { SerializeAddon } from 'xterm-addon-serialize';
 import 'xterm/css/xterm.css';
 import {
   detectAgentFromCommandLine,
@@ -67,6 +68,7 @@ export const CodeTerminal = ({
   const hasSpawnedRef = useRef(false);
   const panelIdRef = useRef(panelId);
   panelIdRef.current = panelId;
+  const saveHistoryRef = useRef<(() => void) | null>(null);
 
   // State for detected AI agent (used for UI display if needed elsewhere, though mostly driven by signals now)
   const [_detectedAgent, setDetectedAgent] = useState<TuiAgentId | null>(null);
@@ -102,6 +104,29 @@ export const CodeTerminal = ({
     let term: XTerm | null = null;
     let fitAddon: FitAddon | null = null;
     let isOpened = false;
+
+    const HISTORY_SCROLLBACK = 5000;
+    const persistHistory = !initialCommand;
+    const serializeAddon = new SerializeAddon();
+    let historyReady = false;
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const saveHistory = () => {
+      if (!persistHistory || !historyReady || !term) return;
+      if (term.buffer.active.type === 'alternate') return;
+      window.api?.send('terminal:history-save', {
+        panelId: panelIdRef.current,
+        data: serializeAddon.serialize({ scrollback: HISTORY_SCROLLBACK }),
+      });
+    };
+    const scheduleSave = () => {
+      if (!persistHistory) return;
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveHistory, 1500);
+    };
+    saveHistoryRef.current = saveHistory;
+    window.addEventListener('beforeunload', saveHistory);
+    cleanupFunctions.push(() => window.removeEventListener('beforeunload', saveHistory));
 
     const createTerminalInstance = () => {
       const sidebarBg = resolveCssRgbVarToHex('--sidebar-background', '#1a1b1e');
@@ -158,6 +183,7 @@ export const CodeTerminal = ({
         const onData = (_event: any, payload: { terminalId: string; data: string }) => {
           if (payload.terminalId === terminalIdRef.current && term) {
             term.write(payload.data);
+            scheduleSave();
 
             // --- AI Agent Detection Logic ---
 
@@ -342,6 +368,15 @@ export const CodeTerminal = ({
 
         try {
           hasSpawnedRef.current = true;
+          if (persistHistory) {
+            const saved: string = await window.api
+              .invoke('terminal:history-load', panelIdRef.current)
+              .catch(() => '');
+            if (!isMounted || !term) return;
+            term.loadAddon(serializeAddon);
+            if (saved) term.write(saved + '\r\n');
+          }
+          historyReady = true;
           console.log('[DEBUG] CodeTerminal spawning', {
             terminalId: terminalIdRef.current,
             cwd: effectiveCwd,
@@ -442,6 +477,9 @@ export const CodeTerminal = ({
       isOpened = false;
       hasSpawnedRef.current = false;
 
+      if (saveTimer) clearTimeout(saveTimer);
+      saveHistory();
+
       cleanupFunctions.forEach((fn) => fn());
       cleanupFunctions = [];
 
@@ -506,6 +544,7 @@ export const CodeTerminal = ({
   const handleClear = () => {
     if (xtermRef.current) {
       xtermRef.current.clear();
+      saveHistoryRef.current?.();
     }
     setContextMenuOpen(false);
   };

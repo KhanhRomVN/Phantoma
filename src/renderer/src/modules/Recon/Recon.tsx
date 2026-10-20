@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ReconController, ReconTarget } from '../../controller/ReconController';
-import { useAgentFeature } from '../../components/RightPanel/Agent/context/FeatureContext';
+import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
 
-// ── Components 
+// ── Components
 import LeftPanel from './components/LeftPanel';
 import ContentPanel from './components/ContentPanel';
 import TargetModal from './components/TargetModal';
@@ -37,7 +37,7 @@ export function Recon({}: ReconProps) {
 
     // Initial load (empty or fetch from storage if implemented later)
     // For now, we start with an empty list unless there's persisted data
-    
+
     return () => {
       unsubTargets?.();
       unsubActive?.();
@@ -101,7 +101,7 @@ export function Recon({}: ReconProps) {
       setEditingTarget(target);
       setIsModalOpen(true);
     },
-    [targets]
+    [targets],
   );
 
   const closeModal = useCallback(() => {
@@ -130,7 +130,7 @@ export function Recon({}: ReconProps) {
 
       closeModal();
     },
-    [editingTarget, closeModal]
+    [editingTarget, closeModal],
   );
 
   return (
@@ -156,7 +156,7 @@ export function Recon({}: ReconProps) {
           ) : activeTargetId === 'mock-report-nva' ? (
             <ContentPanel onOpenSettings={() => setIsSettingsOpen(true)} />
           ) : activeTargetId ? (
-             <div className="flex-1 flex items-center justify-center text-text-secondary">
+            <div className="flex-1 flex items-center justify-center text-text-secondary">
               <div className="text-center space-y-4">
                 <div className="text-lg">
                   Target:{' '}
@@ -164,14 +164,16 @@ export function Recon({}: ReconProps) {
                     {targets.find((t) => t.id === activeTargetId)?.email}
                   </span>
                 </div>
-                <div className="text-sm opacity-60">Use the Agent panel to control the browser →</div>
+                <div className="text-sm opacity-60">
+                  Use the Agent panel to control the browser →
+                </div>
               </div>
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center text-text-secondary">
-               <div className="text-center space-y-2">
-                 <p className="text-sm opacity-60">Chọn một target hoặc thêm mới để bắt đầu.</p>
-               </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm opacity-60">Chọn một target hoặc thêm mới để bắt đầu.</p>
+              </div>
             </div>
           )}
 
@@ -182,7 +184,6 @@ export function Recon({}: ReconProps) {
             onSubmit={handleSubmitTarget}
             target={editingTarget}
           />
-
         </div>
       </div>
     </ReconSettingsProvider>

@@ -13,7 +13,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import { InspectorFilter } from '../types/filter.types';
-import type { ApplyFilterParams } from '@renderer/components/RightPanel/Agent/feature/Chat/services/parsers/EmulateParser';
+import type { ApplyFilterParams } from '@renderer/components/RightPanel/Zen/feature/Chat/services/parsers/EmulateParser';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 export class ApplyFilterHandler {

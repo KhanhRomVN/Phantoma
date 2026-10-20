@@ -9,7 +9,7 @@
  *   CodeController.getInstance().handleMessage({ command: 'readFile', requestId: 'r1', path: 'x.ts' });
  *   CodeController.getInstance().onResult((result) => { ... });
  */
-import { extensionService } from '../components/RightPanel/Agent/services/ExtensionService';
+import { extensionService } from '../components/RightPanel/Zen/services/ExtensionService';
 import { useCodeStore } from '../modules/Code/hooks/useCodeStore';
 
 // HANDLERS — Tool

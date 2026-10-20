@@ -47,7 +47,7 @@ import { Modal, ModalBody } from '../components/ui/Modal';
 import {
   FeatureProvider,
   useAgentFeature,
-} from '../components/RightPanel/Agent/context/FeatureContext';
+} from '../components/RightPanel/Zen/context/FeatureContext';
 
 // ── Types ──
 import { PhantomModule } from '../types/phantom-module';
@@ -97,7 +97,7 @@ const MainLayoutContent = () => {
       // Tự ẩn sau 8 giây nếu user không bấm dismiss
       setTimeout(() => setCrashNotice(null), 8000);
     };
-    
+
     ipcRenderer.on('window:renderer-crashed', handleCrashed);
     return () => {
       ipcRenderer.removeListener('window:renderer-crashed', handleCrashed);

@@ -126,7 +126,13 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
   const agentId = (panel as any).providerId; // Accessing potentially dynamic field
   const faviconUrl = agentId ? getAgentFavicon(agentId) : undefined;
 
-  const displayTitle = panel.title || meta.label;
+  const isAgentTab = panel.type === 'agent';
+  const zenLogoUrl = `${(window as any).__zenImagesUri || '/images'}/zen-logo.png`;
+  const displayTitle = isAgentTab
+    ? panel.agentTitle
+      ? `Zen|${panel.agentTitle}`
+      : 'Zen'
+    : panel.title || meta.label;
   const showAgentBadge = !!agentId && panel.type === 'terminal';
 
   return (
@@ -154,6 +160,14 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
             e.currentTarget.style.display = 'none';
           }}
         />
+      ) : isAgentTab ? (
+        <img
+          src={zenLogoUrl}
+          alt="Zen"
+          className="w-3.5 h-3.5 shrink-0 object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
+        />
       ) : panel.type === 'file' ? (
         <img
           src={getFileIconPath(displayTitle)}
@@ -168,7 +182,12 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
         </span>
       )}
 
-      <span style={{ pointerEvents: 'none' }}>{showAgentBadge ? agentId : displayTitle}</span>
+      <span
+        className={isAgentTab ? 'max-w-[180px] truncate' : undefined}
+        style={{ pointerEvents: 'none' }}
+      >
+        {showAgentBadge ? agentId : displayTitle}
+      </span>
 
       {isDirty && (
         <Circle
@@ -339,6 +358,8 @@ interface PanelBodyProps {
   onProcessExit?: (panelId: string) => void;
   onBindConversation?: (panelId: string, conversationId: string) => void;
   onResetConversation?: (panelId: string) => void;
+  onAgentConversationChange?: (panelId: string, conversationId: string | null) => void;
+  onAgentTitleChange?: (panelId: string, title: string | null) => void;
 }
 
 const PanelBody = memo(function PanelBody({
@@ -349,6 +370,8 @@ const PanelBody = memo(function PanelBody({
   onProcessExit,
   onBindConversation,
   onResetConversation,
+  onAgentConversationChange,
+  onAgentTitleChange,
 }: PanelBodyProps) {
   const handleProvider = useCallback(
     (providerId: string | null, status?: 'running' | 'idle') =>
@@ -374,6 +397,16 @@ const PanelBody = memo(function PanelBody({
     onResetConversation?.(panel.id);
   }, [onResetConversation, panel.id]);
 
+  const handleAgentConversation = useCallback(
+    (conversationId: string | null) => onAgentConversationChange?.(panel.id, conversationId),
+    [onAgentConversationChange, panel.id],
+  );
+
+  const handleAgentTitle = useCallback(
+    (title: string | null) => onAgentTitleChange?.(panel.id, title),
+    [onAgentTitleChange, panel.id],
+  );
+
   switch (panel.type) {
     case 'terminal': {
       // Use the panel's stored CWD if available, otherwise fallback to the current workspace path.
@@ -393,13 +426,19 @@ const PanelBody = memo(function PanelBody({
       );
     }
     case 'website':
-      return <CodeBrowser initialUrl={panel.content} />;
+      return <CodeBrowser initialUrl={panel.content} onUrlChange={handleContent} />;
     case 'file':
       return <CodeFile filePath={panel.filePath} fileId={panel.id} />;
     case 'note':
       return <CodeMarkdown initialContent={panel.content} onContentChange={handleContent} />;
     case 'agent':
-      return <CodeAgent />;
+      return (
+        <CodeAgent
+          initialConversationId={panel.agentConversationId}
+          onConversationChange={handleAgentConversation}
+          onTitleChange={handleAgentTitle}
+        />
+      );
     case 'emulator':
       return (
         <div className="flex-1 h-full flex items-center justify-center bg-black text-gray-500">
@@ -486,6 +525,8 @@ export interface WorkspacePanesProps {
   onProcessExit?: (panelId: string) => void;
   onBindConversation?: (panelId: string, conversationId: string) => void;
   onResetConversation?: (panelId: string) => void;
+  onAgentConversationChange?: (panelId: string, conversationId: string | null) => void;
+  onAgentTitleChange?: (panelId: string, title: string | null) => void;
 }
 
 export const WorkspacePanes = memo(function WorkspacePanes({
@@ -503,6 +544,8 @@ export const WorkspacePanes = memo(function WorkspacePanes({
   onProcessExit,
   onBindConversation,
   onResetConversation,
+  onAgentConversationChange,
+  onAgentTitleChange,
 }: WorkspacePanesProps) {
   // Divider positions, derived from which panes exist
   const leftRect = rects.tl ?? rects.bl;
@@ -536,6 +579,8 @@ export const WorkspacePanes = memo(function WorkspacePanes({
                   onProcessExit={onProcessExit}
                   onBindConversation={onBindConversation}
                   onResetConversation={onResetConversation}
+                  onAgentConversationChange={onAgentConversationChange}
+                  onAgentTitleChange={onAgentTitleChange}
                 />
               </div>
             </div>

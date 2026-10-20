@@ -46,6 +46,10 @@ export interface WorkspacePanel {
   zencliConversationId?: string | null;
   /** Timestamp lần cuối user tương tác với conversation này (để quyết định "active"). */
   zencliLastActiveAt?: number | null;
+  /** Conversation ID của Agent panel, dùng để khôi phục sau khi restart app. */
+  agentConversationId?: string | null;
+  /** Title conversation hiện tại của Agent panel, hiển thị trên tab dạng 'Zen|<title>'. */
+  agentTitle?: string | null;
 }
 
 export type PaneId = 'tl' | 'tr' | 'bl' | 'br';
@@ -184,7 +188,7 @@ export function getPaneAtPoint(
 // ─── Reducer ──────────────────────────────────────────────────────────
 
 export type WorkspaceAction =
-  | { type: 'reset'; panels: WorkspacePanel[]; activeId: string | null }
+  | { type: 'reset'; panels: WorkspacePanel[]; activeId: string | null; layout?: WorkspaceLayoutSnapshot }
   | { type: 'add'; panel: WorkspacePanel; pane?: PaneId }
   | { type: 'close'; id: string }
   | { type: 'select'; pane: PaneId; id: string }
@@ -193,11 +197,43 @@ export type WorkspaceAction =
   | { type: 'resize'; handle: ResizeHandle; value: number }
   | { type: 'updatePanel'; id: string; patch: Partial<Omit<WorkspacePanel, 'id'>> };
 
+export interface WorkspaceLayoutSnapshot {
+  paneTabs: PaneTabs;
+  paneActive: PaneActive;
+  focusedPane: PaneId;
+  sizes: LayoutSizes;
+}
+
 export function createInitialState(
   panels: WorkspacePanel[],
   activeId: string | null,
+  layout?: WorkspaceLayoutSnapshot,
 ): WorkspaceState {
   const ids = panels.map((p) => p.id);
+  if (layout) {
+    const valid = new Set(ids);
+    const placed = new Set<string>();
+    const paneTabs = emptyTabs();
+    const paneActive = noActive();
+    for (const pane of PANE_IDS) {
+      paneTabs[pane] = (layout.paneTabs?.[pane] ?? []).filter((id) => valid.has(id) && !placed.has(id));
+      paneTabs[pane].forEach((id) => placed.add(id));
+      const saved = layout.paneActive?.[pane];
+      paneActive[pane] = saved && paneTabs[pane].includes(saved) ? saved : (paneTabs[pane][0] ?? null);
+    }
+    const orphans = ids.filter((id) => !placed.has(id));
+    if (orphans.length > 0) {
+      paneTabs.tl = [...paneTabs.tl, ...orphans];
+      paneActive.tl = paneActive.tl ?? orphans[0];
+    }
+    return normalize({
+      panels,
+      paneTabs,
+      paneActive,
+      focusedPane: layout.focusedPane ?? 'tl',
+      sizes: { ...DEFAULT_SIZES, ...layout.sizes },
+    });
+  }
   const active = activeId && ids.includes(activeId) ? activeId : (ids[0] ?? null);
   return {
     panels,
@@ -249,7 +285,7 @@ function normalize(state: WorkspaceState): WorkspaceState {
 export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction): WorkspaceState {
   switch (action.type) {
     case 'reset':
-      return createInitialState(action.panels, action.activeId);
+      return createInitialState(action.panels, action.activeId, action.layout);
 
     case 'add': {
       const pane = action.pane ?? state.focusedPane;

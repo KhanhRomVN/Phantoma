@@ -40,6 +40,7 @@ import {
   type PaneId,
   type PanelType,
   type ResizeHandle,
+  type WorkspaceLayoutSnapshot,
   type WorkspacePanel,
 } from '../../../utils/workspaceLayout';
 
@@ -54,6 +55,7 @@ interface WorkspaceViewsProps {
 
 // Stable reference so the zustand selectors below don't return a fresh [] every call
 const NO_PANELS: StoredWorkspacePanel[] = [];
+const NO_LAYOUTS: Record<string, WorkspaceLayoutSnapshot> = {};
 
 const EMPTY_ACTION_TO_PANEL_TYPE: Record<EmptyWorkspaceAction, PanelType> = {
   browser: 'website',
@@ -82,6 +84,10 @@ export const WorkspaceViews = memo(function WorkspaceViews({
   const storedActiveId = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.activeWorkspacePanelId ?? null,
   );
+  const storedLayouts = useCodeStore(
+    (s) => s.projects.find((p) => p.id === s.currentProjectId)?.workspaceLayouts ?? NO_LAYOUTS,
+  );
+  const storedLayout = storedLayouts[sessionId];
   const currentProjectPath = useCodeStore((s) => {
     const project = s.projects.find((p) => p.id === s.currentProjectId);
     const branch = (project as any)?.branches?.find((b: any) =>
@@ -129,6 +135,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     return createInitialState(
       normalized,
       normalized.some((p) => p.id === storedActiveId) ? storedActiveId : null,
+      storedLayout,
     );
   });
   const { panels, paneTabs, paneActive, focusedPane, sizes } = state;
@@ -148,7 +155,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     // Normalize stored panels before resetting state to prevent missing CWD issues
     const { panels: normalizedStored, changed } = normalizePanelsCwd(storedPanels as WorkspacePanel[], currentProjectPath || '');
     
-    dispatch({ type: 'reset', panels: normalizedStored, activeId: storedActiveId });
+    dispatch({ type: 'reset', panels: normalizedStored, activeId: storedActiveId, layout: storedLayout });
     
     // If we had to fix missing CWDs, sync back to store immediately so next time it's clean
     if (changed && currentProjectId) {
@@ -184,7 +191,12 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     if (needsUpdate) {
       console.log('[DEBUG_WORKSPACE_SYNC_CWD] Updating all terminal panels to new session path:', currentProjectPath);
       // Use 'reset' to atomically update state without causing partial re-renders or loops
-      dispatch({ type: 'reset', panels: updatedPanels, activeId: focusedActiveId });
+      dispatch({
+        type: 'reset',
+        panels: updatedPanels,
+        activeId: focusedActiveId,
+        layout: { paneTabs, paneActive, focusedPane, sizes },
+      });
       
       // Persist immediately to store so reload keeps correct paths
       if (currentProjectId) {
@@ -202,14 +214,17 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     }
     const panelsChanged = JSON.stringify(storedPanels) !== JSON.stringify(tagPanels(panels));
     const activeChanged = isActive && storedActiveId !== focusedActiveId;
-    if (panelsChanged || activeChanged) {
+    const layout: WorkspaceLayoutSnapshot = { paneTabs, paneActive, focusedPane, sizes };
+    const layoutChanged = JSON.stringify(storedLayout ?? null) !== JSON.stringify(layout);
+    if (panelsChanged || activeChanged || layoutChanged) {
       updateProject(currentProjectId, {
         workspacePanels: mergeSessionPanels(panels),
+        workspaceLayouts: { ...storedLayouts, [sessionId]: layout },
         ...(isActive ? { activeWorkspacePanelId: focusedActiveId } : {}),
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panels, focusedActiveId, currentProjectId, updateProject, storedPanels, storedActiveId, isActive]);
+  }, [panels, paneTabs, paneActive, focusedPane, sizes, focusedActiveId, currentProjectId, updateProject, storedPanels, storedActiveId, storedLayout, storedLayouts, isActive]);
 
   // ─── Derived layout ─────────────────────────────────────────────────
 
@@ -370,7 +385,10 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     [occupied, sizes],
   );
 
-  const closePanel = useCallback((id: string) => dispatch({ type: 'close', id }), []);
+  const closePanel = useCallback((id: string) => {
+    window.api?.send('terminal:history-delete', id);
+    dispatch({ type: 'close', id });
+  }, []);
   const selectTab = useCallback(
     (pane: PaneId, id: string) => dispatch({ type: 'select', pane, id }),
     [],
@@ -382,6 +400,18 @@ export const WorkspaceViews = memo(function WorkspaceViews({
   );
   const updatePanelContent = useCallback(
     (id: string, content: string) => dispatch({ type: 'updatePanel', id, patch: { content } }),
+    [],
+  );
+
+  const updatePanelAgentConversation = useCallback(
+    (id: string, conversationId: string | null) =>
+      dispatch({ type: 'updatePanel', id, patch: { agentConversationId: conversationId } }),
+    [],
+  );
+
+  const updatePanelAgentTitle = useCallback(
+    (id: string, title: string | null) =>
+      dispatch({ type: 'updatePanel', id, patch: { agentTitle: title } }),
     [],
   );
 
@@ -572,6 +602,8 @@ export const WorkspaceViews = memo(function WorkspaceViews({
                 onResizeStart={dnd.startResize}
                 onProviderChange={updatePanelProvider}
                 onContentChange={updatePanelContent}
+                onAgentConversationChange={updatePanelAgentConversation}
+                onAgentTitleChange={updatePanelAgentTitle}
                 onProcessExit={handleProcessExit}
                 onBindConversation={handleBindConversation}
                 onResetConversation={handleResetConversation}

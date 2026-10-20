@@ -1,11 +1,21 @@
 import { memo, useEffect } from 'react';
-import { AgentPanel } from '@renderer/components/RightPanel/Agent';
-import { SettingsProvider } from '@renderer/components/RightPanel/Agent/context/SettingsContext';
-import { useAgentFeature } from '@renderer/components/RightPanel/Agent/context/FeatureContext';
+import { AgentPanel } from '@renderer/components/RightPanel/Zen';
+import { SettingsProvider } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
+import { useAgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { useDesignStore } from '../../../hooks/useDesignStore';
 
-export const CodeAgent = memo(function CodeAgent() {
+interface CodeAgentProps {
+  initialConversationId?: string | null;
+  onConversationChange?: (conversationId: string | null) => void;
+  onTitleChange?: (title: string | null) => void;
+}
+
+export const CodeAgent = memo(function CodeAgent({
+  initialConversationId,
+  onConversationChange,
+  onTitleChange,
+}: CodeAgentProps) {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const hasActiveDesign = useDesignStore((s) => s.activeDesignId !== null);
   const { activeFeature, codeState, setActiveFeature, setCodeState } = useAgentFeature();
@@ -35,7 +45,11 @@ export const CodeAgent = memo(function CodeAgent() {
   return (
     <div id="code-agent-root" className="relative flex-1 h-full min-h-0 overflow-hidden">
       <SettingsProvider>
-        <AgentPanel />
+        <AgentPanel
+          initialConversationId={initialConversationId}
+          onConversationChange={onConversationChange}
+          onTitleChange={onTitleChange}
+        />
       </SettingsProvider>
     </div>
   );

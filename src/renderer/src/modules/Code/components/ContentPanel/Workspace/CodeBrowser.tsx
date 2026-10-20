@@ -4,6 +4,7 @@ import { cn } from '@renderer/shared/utils/cn';
 
 interface CodeBrowserProps {
   initialUrl?: string;
+  onUrlChange?: (url: string) => void;
 }
 
 // ─── Device presets (CSS px) ──────────────────────────────────────────
@@ -29,7 +30,10 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   { id: 'surface-duo', label: 'Surface Duo', width: 540, height: 720, dpr: 2.5, mobile: true },
 ];
 
-export const CodeBrowser = ({ initialUrl = 'https://google.com' }: CodeBrowserProps) => {
+export const CodeBrowser = ({ initialUrl = 'https://google.com', onUrlChange }: CodeBrowserProps) => {
+  const initialUrlRef = useRef(initialUrl);
+  const onUrlChangeRef = useRef(onUrlChange);
+  onUrlChangeRef.current = onUrlChange;
   const [url, setUrl] = useState(initialUrl);
   const [inputUrl, setInputUrl] = useState(initialUrl);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -97,7 +101,7 @@ export const CodeBrowser = ({ initialUrl = 'https://google.com' }: CodeBrowserPr
       window.api
         .invoke('browser:create', {
           browserId: browserViewIdRef.current,
-          url: initialUrl,
+          url: initialUrlRef.current,
         })
         .then(syncBounds)
         .catch((err) => {
@@ -143,7 +147,7 @@ export const CodeBrowser = ({ initialUrl = 'https://google.com' }: CodeBrowserPr
       mo?.disconnect();
       window.removeEventListener('resize', onWindowResize);
     };
-  }, [initialUrl, syncBounds]);
+  }, [syncBounds]);
 
   // Re-sync mỗi khi đổi device preset (letterbox làm viewport div đổi size)
   useEffect(() => {
@@ -172,6 +176,7 @@ export const CodeBrowser = ({ initialUrl = 'https://google.com' }: CodeBrowserPr
       if (payload.browserId === browserViewIdRef.current) {
         setUrl(payload.url);
         setInputUrl(payload.url);
+        onUrlChangeRef.current?.(payload.url);
       }
     };
 
@@ -317,7 +322,7 @@ export const CodeBrowser = ({ initialUrl = 'https://google.com' }: CodeBrowserPr
     }
   };
 
-  const handleHome = () => handleNavigate(initialUrl);
+  const handleHome = () => handleNavigate(initialUrlRef.current);
 
   const handleOpenExternal = () => {
     if (window.api?.send) window.api.send('browser:open-external', url);

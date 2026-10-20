@@ -27,11 +27,12 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Electron ──
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 
 // ── Node.js ──
 import * as os from 'os';
 import * as fs from 'fs';
+import * as path from 'path';
 import { execFile } from 'child_process';
 
 // ── External ──
@@ -227,7 +228,49 @@ function getShellArgs(shell: string): string[] {
   }
 }
 
+const HISTORY_MAX_CHARS = 2 * 1024 * 1024;
+const deletedHistoryPanels = new Set<string>();
+
+const historyFile = (panelId: string) =>
+  path.join(
+    app.getPath('userData'),
+    'terminal-history',
+    `${panelId.replace(/[^a-zA-Z0-9_-]/g, '_')}.txt`,
+  );
+
 export function setupTerminalHandlers(): void {
+  ipcMain.on('terminal:history-save', (_event, payload: { panelId: string; data: string }) => {
+    if (!payload?.panelId || typeof payload.data !== 'string') return;
+    if (payload.data.length > HISTORY_MAX_CHARS || deletedHistoryPanels.has(payload.panelId)) return;
+    try {
+      const file = historyFile(payload.panelId);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, payload.data);
+    } catch (err) {
+      logger.error('[Terminal] Failed to save history:', err);
+    }
+  });
+
+  ipcMain.handle('terminal:history-load', (_event, panelId: string) => {
+    try {
+      const file = historyFile(panelId);
+      return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+    } catch (err) {
+      logger.error('[Terminal] Failed to load history:', err);
+      return '';
+    }
+  });
+
+  ipcMain.on('terminal:history-delete', (_event, panelId: string) => {
+    if (!panelId) return;
+    deletedHistoryPanels.add(panelId);
+    try {
+      fs.rmSync(historyFile(panelId), { force: true });
+    } catch (err) {
+      logger.error('[Terminal] Failed to delete history:', err);
+    }
+  });
+
   // Spawn a new PTY and pipe I/O
   // Now accepts terminalId parameter for multiple terminals
   ipcMain.handle('terminal:spawn', (event, payload: { terminalId: string; cwd?: string; panelId?: string; sessionId?: string }) => {
