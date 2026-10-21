@@ -34,6 +34,7 @@ import { buildSkillPreview } from "./utils/skillPreview";
 import type { SkillSummary } from "./types/skill.types";
 import { extensionService } from '../../services/ExtensionService';
 import { $ } from '@renderer/utils/color';
+import AgentNavBadge, { type NavTarget } from '../../components/AgentNavBadge';
 
 /* ==================================================================
  * SkillSearchBar — thanh tìm kiếm skill.
@@ -293,11 +294,13 @@ export function SkillPanel() {
 interface MarketplacePanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onNavigate: (target: NavTarget) => void;
 }
 
 const MarketplacePanel: React.FC<MarketplacePanelProps> = ({
   isOpen,
   onClose,
+  onNavigate,
 }) => {
   const [closeHover, setCloseHover] = useState(false);
   const [activeTab, setActiveTab] = useState("SKILL");
@@ -306,7 +309,7 @@ const MarketplacePanel: React.FC<MarketplacePanelProps> = ({
 
   const borderColor = $('--border');
   const secondaryBg = $('--background'); // Using main background as surface for full-screen overlay
-  const tertiaryBg = $('--card-background'); // Header/Tab bar background
+
   const textPrimary = $('--text-primary');
   const textSecondary = $('--text-secondary');
   const primaryColor = $('--primary');
@@ -323,7 +326,6 @@ const MarketplacePanel: React.FC<MarketplacePanelProps> = ({
       {/* Header */}
       <div
         className="px-4 pt-4 pb-2 shrink-0"
-        style={{ backgroundColor: tertiaryBg }}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -342,6 +344,7 @@ const MarketplacePanel: React.FC<MarketplacePanelProps> = ({
               >
                 Install skills and MCP servers
               </p>
+              <AgentNavBadge className="mt-2" current="marketplace" onSelect={onNavigate} />
             </div>
           </div>
           <button
@@ -365,10 +368,7 @@ const MarketplacePanel: React.FC<MarketplacePanelProps> = ({
       {/* Tabbar */}
       <div
         className="flex items-center gap-1 px-4 border-b shrink-0"
-        style={{
-          borderBottomColor: borderColor,
-          backgroundColor: tertiaryBg,
-        }}
+        style={{ borderBottomColor: borderColor }}
       >
         {["SKILL", "MCP"].map((tab) => (
           <span

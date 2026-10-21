@@ -40,6 +40,7 @@ import * as pty from 'node-pty';
 
 // ── Internal ──
 import { logger } from '../utils/logger';
+import { toDisplayCommand } from '../utils/commandDisplay';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 // Track active PTY processes: Map<terminalId, PTY>
@@ -144,6 +145,7 @@ function emitTerminalProcessInfo(
     panelId: meta.panelId,
     sessionId: meta.sessionId,
     command,
+    displayCommand: toDisplayCommand(command),
     ports,
     alive,
   });

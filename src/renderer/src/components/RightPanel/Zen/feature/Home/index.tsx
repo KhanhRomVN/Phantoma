@@ -26,9 +26,7 @@ import ModelDistribution from './components/ModelDistribution';
 import UsageChart from './components/UsageChart';
 import HomeHeader from './components/HomeHeader';
 import AgentNavBadge, { type NavTarget } from '../../components/AgentNavBadge';
-import ZenUpdateBanner from './components/ZenUpdateBanner';
-import AIWeb2APIUpdateBanner from './components/AIWeb2APIUpdateBanner';
-import ConnectionErrorBanner from './components/ConnectionErrorBanner';
+import HomeBanner from './components/HomeBanner';
 import { ConversationItem } from '../History/types';
 import { useSettings } from '../../context/SettingsContext';
 import MessageInput from '../../components/MessageInput';
@@ -87,8 +85,8 @@ interface HomePanelProps {
   ) => void;
   onLoadConversation: (conversationId: string, tabId: number, folderPath: string | null) => void;
   initialValue?: string;
-  /** Có giá trị khi topBar bị ẩn (ngoài CodeAgent) → hiện AgentNavBadge dạng overlay. */
-  onOpenSubView?: (target: NavTarget) => void;
+  /** Điều hướng sang Account / History / Marketplace / Setting từ AgentNavBadge (luôn hiển thị). */
+  onOpenSubView: (target: NavTarget) => void;
 }
 
 // Memoized dashboard stats component
@@ -477,8 +475,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* overlayBadge: luôn nằm góc phải trên cùng, chỉ hiện khi topBar bị ẩn (ngoài CodeAgent) */}
-      {onOpenSubView && <AgentNavBadge variant="overlay" onSelect={onOpenSubView} />}
+
       {/* Dashboard scroll area */}
       <div className="flex-1 overflow-auto flex flex-col">
         <div
@@ -493,10 +490,16 @@ const HomePanel: React.FC<HomePanelProps> = ({
         >
           <HomeHeader imagesUri={imagesUri} />
 
-          <div className="w-full mb-4 flex flex-col gap-3">
-            <ConnectionErrorBanner isConnected={true} />
-            <ZenUpdateBanner updateInfo={zenUpdateInfo} />
-            <AIWeb2APIUpdateBanner updateInfo={null} />
+          <AgentNavBadge className="w-full mb-2" onSelect={onOpenSubView} />
+
+          <div className="w-full mb-4 flex flex-col gap-3 empty:hidden">
+            <HomeBanner
+              isConnected={true}
+              zenUpdateInfo={zenUpdateInfo}
+              apiUpdateInfo={null}
+              totalAccounts={totalAccounts}
+              accountsLoaded={!isLoading}
+            />
           </div>
 
           <div className="w-full flex flex-col gap-4">

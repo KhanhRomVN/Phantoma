@@ -85,6 +85,15 @@ class MessageDispatcher {
     this.timers.set(requestId, timer);
     this.handlers.set(requestId, handler);
   }
+
+  /** Resolve a pending request locally (no IPC round-trip). */
+  public resolve(requestId: string, msg: any) {
+    const handler = this.handlers.get(requestId);
+    if (handler) {
+      this.cleanup(requestId);
+      handler(msg);
+    }
+  }
 }
 
 export const messageDispatcher = new MessageDispatcher();
@@ -219,6 +228,28 @@ class ExtensionService {
   // Uses ipcInvoke but caller doesn't need to await.
   // Falls back to no-op if IPC is unavailable.
   public postMessage(message: any): void {
+    // storage* commands are localStorage-only: no IPC handler exists in main,
+    // so handle them locally and reply through messageDispatcher.
+    const cmd = message?.command;
+    if (cmd === 'storageGet' || cmd === 'storageSet' || cmd === 'storageDelete' || cmd === 'storageList') {
+      const { requestId, key, value, prefix } = message;
+      const reply = (data: any) => {
+        if (requestId) {
+          messageDispatcher.resolve(requestId, { command: 'storageResult', requestId, data });
+        }
+      };
+      if (cmd === 'storageGet') {
+        storageGet(key || '').then((r) => reply({ key, value: r?.value ?? null }));
+      } else if (cmd === 'storageSet') {
+        storageSet(key || '', value ?? '').then(() => reply({ key, success: true }));
+      } else if (cmd === 'storageDelete') {
+        storageDelete(key || '').then((r) => reply({ key, success: r.deleted }));
+      } else {
+        storageList(prefix).then((r) => reply({ keys: r.keys }));
+      }
+      return;
+    }
+
     const api = getApi();
     if (!api) {
       return;

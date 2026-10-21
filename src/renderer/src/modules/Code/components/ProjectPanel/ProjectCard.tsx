@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------
  */
 
-import { memo, useCallback, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { taskService, type StoredTask } from '../../services/task.service';
@@ -246,7 +246,7 @@ export function getProjectIdentity(seed: string): { color: string; Icon: LucideI
 }
 
 /** Colored project icon (color-mix tinted background) */
-function ProjectIcon({ color, Icon }: { color: string; Icon: LucideIcon }) {
+export function ProjectIcon({ color, Icon }: { color: string; Icon: LucideIcon }) {
   return (
     <span
       className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0 self-center"
@@ -559,8 +559,19 @@ export const ProjectCard = memo(function ProjectCard({
   onDragOver,
   onDrop,
 }: ProjectCardProps) {
-  const bySession = useSessionTasks((s) => s.bySession);
-  const counts = getTaskCounts(project, bySession);
+  const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === project.id)?.path ?? '');
+  const projectTasks = useSessionTasks((s) => s.byPath[projectPath]);
+  const loadTasks = useSessionTasks((s) => s.load);
+  useEffect(() => {
+    void loadTasks(projectPath);
+  }, [loadTasks, projectPath]);
+  const counts = useMemo(() => {
+    const c: Record<TaskStatus, number> = { todo: 0, progress: 0, review: 0, done: 0 };
+    (projectTasks ?? []).forEach((t) => {
+      if (!t.archived) c[t.status]++;
+    });
+    return c;
+  }, [projectTasks]);
   const visBranches = getVisibleBranches(project);
   const identity = useMemo(
     () => getProjectIdentity(project.id + project.name),
@@ -579,7 +590,7 @@ export const ProjectCard = memo(function ProjectCard({
   return (
     <div
       className={cn(
-        'relative border-y border-divider overflow-hidden', // Changed to border-y (top + bottom)
+        'relative shrink-0 border-y border-divider overflow-hidden', // Changed to border-y (top + bottom)
         project.hidden && 'opacity-50',
       )}
       draggable={draggable}
@@ -592,140 +603,143 @@ export const ProjectCard = memo(function ProjectCard({
     >
       {/* ── Top: name row + task chips ── */}
       <div
-        className="group/top flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
-        onClick={() => onToggleProject(project.id)}
+        className={cn(
+          "group/top flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none transition-colors",
+          !isGlobalDragging && "hover:bg-white/[0.02]"
+        )}
+        onClick={() => !isGlobalDragging && onToggleProject(project.id)}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-drag-row>
           <ProjectIcon color={identity.color} Icon={identity.Icon} />
           <span
             className={cn(
-              'font-display font-semibold text-[12.5px] truncate flex-1 min-w-0 transition-colors group-hover/top:text-text-primary',
+              'font-display font-semibold text-[12.5px] truncate flex-1 min-w-0 transition-colors',
+              !isGlobalDragging && 'group-hover/top:text-text-primary',
               isSelected ? 'text-text-primary' : 'text-text-secondary',
             )}
           >
             {project.name}
           </span>
-          {project.hidden && (
-            <span className="text-[9.5px] text-text-secondary/50 border border-border rounded px-[5px]">
-              hidden
-            </span>
-          )}
-
-          <KebabButton onClick={openMenuAt} />
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleTaskManager(project.id);
-            }}
-            className={cn(
-              'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors cursor-pointer',
-              isTaskManagerActive
-                ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
-                : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+          
+          {/* Elements hidden via CSS during drag to preserve DOM structure and prevent flickering/layout shifts */}
+          <div data-drag-hide className={cn("contents", isGlobalDragging && "hidden")}>
+             {project.hidden && (
+              <span className="text-[9.5px] text-text-secondary/50 border border-border rounded px-[5px]">
+                hidden
+              </span>
             )}
-            title={isTaskManagerActive ? 'Close Task Manager' : 'Open Task Manager'}
-          >
-            <Kanban className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleGit?.(project.id);
-            }}
-            className={cn(
-              'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors cursor-pointer',
-              isGitActive
-                ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
-                : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+            <KebabButton onClick={openMenuAt} />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleTaskManager(project.id);
+              }}
+              className={cn(
+                'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors cursor-pointer',
+                isTaskManagerActive
+                  ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
+                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+              )}
+              title={isTaskManagerActive ? 'Close Task Manager' : 'Open Task Manager'}
+            >
+              <Kanban className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleGit?.(project.id);
+              }}
+              className={cn(
+                'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors cursor-pointer',
+                isGitActive
+                  ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
+                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+              )}
+              title={isGitActive ? 'Close Git' : 'Open Git'}
+            >
+              <GitGraph className="w-3.5 h-3.5" />
+            </button>
+            {isSelected ? (
+              <ChevronDown className="w-[14px] h-[14px] shrink-0 text-text-secondary" />
+            ) : (
+              <ChevronRight className="w-[14px] h-[14px] shrink-0 text-text-secondary" />
             )}
-            title={isGitActive ? 'Close Git' : 'Open Git'}
-          >
-            <GitGraph className="w-3.5 h-3.5" />
-          </button>
-
-          {isSelected ? (
-            <ChevronDown className="w-[14px] h-[14px] shrink-0 text-text-secondary" />
-          ) : (
-            <ChevronRight className="w-[14px] h-[14px] shrink-0 text-text-secondary" />
-          )}
+          </div>
         </div>
 
-        {/* Task status count chips */}
-        <div className="flex gap-1 pl-[30px]">
-          {TASK_STATUSES.map(([k, label]) => (
-            <span
-              key={k}
-              title={`${label}: ${counts[k]}`}
-              className={cn(
-                'inline-flex items-center justify-center gap-[5px] h-5 pl-1.5 pr-[7px] rounded-[5px] font-mono text-[10.5px] font-medium leading-none text-text-secondary bg-card-background border border-divider',
-                !counts[k] && 'opacity-40',
-              )}
-            >
-              <TaskIcon status={k} />
-              {counts[k]}
-            </span>
-          ))}
+        {/* Task status count chips - Hidden via wrapper during drag */}
+        <div className={cn(isGlobalDragging && "hidden")}>
+           <div className="flex gap-1 pl-[30px] mt-1.5">
+            {TASK_STATUSES.map(([k, label]) => (
+              <span
+                key={k}
+                title={`${label}: ${counts[k]}`}
+                className={cn(
+                  'inline-flex items-center justify-center gap-[5px] h-5 pl-1.5 pr-[7px] rounded-[5px] font-mono text-[10.5px] font-medium leading-none text-text-secondary bg-card-background border border-divider',
+                  !counts[k] && 'opacity-40',
+                )}
+              >
+                <TaskIcon status={k} />
+                {counts[k]}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ── CONTENT AREA: Collapses visually when global drag is active ── */}
-      {!isGlobalDragging && !isSelected && (
-        <div className="flex flex-col gap-px pl-3 pr-2 pb-2.5 transition-opacity duration-150">
-          <CollapsedTree
-            project={project}
-            selectedSessionId={selectedSessionId}
-            onSelectSession={onSelectSession}
-            onOpenTaskMenu={onOpenTaskMenu}
-            onProcessInteract={onProcessInteract}
-            onSessionContextMenu={onSessionContextMenu}
-            onOpenDropdown={onOpenDropdown}
-            onNewSession={onNewSession}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            onExpandProject={() => onToggleProject(project.id)}
-          />
-        </div>
-      )}
+      {/* ── CONTENT AREA: Hidden via CSS during drag to preserve DOM structure ── */}
+      <div className={cn(isGlobalDragging && "hidden")}>
+        {!isSelected && (
+          <div className="flex flex-col gap-px pl-3 pr-2 pb-2.5 transition-opacity duration-150">
+            <CollapsedTree
+              project={project}
+              selectedSessionId={selectedSessionId}
+              onSelectSession={onSelectSession}
+              onOpenTaskMenu={onOpenTaskMenu}
+              onProcessInteract={onProcessInteract}
+              onSessionContextMenu={onSessionContextMenu}
+              onOpenDropdown={onOpenDropdown}
+              onNewSession={onNewSession}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onExpandProject={() => onToggleProject(project.id)}
+            />
+          </div>
+        )}
 
-      {!isGlobalDragging && isSelected && (
-        <div className="px-3 pt-0.5 pb-3 flex flex-col gap-3.5 relative animate-in fade-in slide-in-from-top-1 duration-150">
-          {visBranches.length > 0 ? (
-            visBranches.map((branch) => (
-              <BranchBlock
-                key={branch.name}
-                project={project}
-                branch={branch}
-                selectedSessionId={selectedSessionId}
-                onSelectSession={onSelectSession}
-                onOpenDropdown={onOpenDropdown}
-                onOpenTaskMenu={onOpenTaskMenu}
-                onNewSession={onNewSession}
-                onProcessInteract={onProcessInteract}
-                onSessionContextMenu={onSessionContextMenu}
-                onDragStart={onDragStart}
-                onDragEnd={onDragEnd}
-                onDragOver={onDragOver}
-                onDrop={onDrop}
-              />
-            ))
-          ) : (
-            <div className="text-center text-text-secondary/50 text-[11.5px] px-2.5 py-6">
-              No branches shown.
-              <br />
-              Right-click the project to add one.
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Placeholder during drag to maintain layout height without rendering heavy children */}
-      {isGlobalDragging && (
-        <div className="h-8 w-full" /> 
-      )}
+        {isSelected && (
+          <div className="px-3 pt-0.5 pb-3 flex flex-col gap-3.5 relative animate-in fade-in slide-in-from-top-1 duration-150">
+            {visBranches.length > 0 ? (
+              visBranches.map((branch) => (
+                <BranchBlock
+                  key={branch.name}
+                  project={project}
+                  branch={branch}
+                  selectedSessionId={selectedSessionId}
+                  onSelectSession={onSelectSession}
+                  onOpenDropdown={onOpenDropdown}
+                  onOpenTaskMenu={onOpenTaskMenu}
+                  onNewSession={onNewSession}
+                  onProcessInteract={onProcessInteract}
+                  onSessionContextMenu={onSessionContextMenu}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  onDragOver={onDragOver}
+                  onDrop={onDrop}
+                />
+              ))
+            ) : (
+              <div className="text-center text-text-secondary/50 text-[11.5px] px-2.5 py-6">
+                No branches shown.
+                <br />
+                Right-click the project to add one.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 });

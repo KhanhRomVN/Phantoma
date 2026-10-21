@@ -15,7 +15,7 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 import type { Message } from '../types/message';
-import AgentNavBadge, { type NavTarget } from '../../../components/AgentNavBadge';
+import { NAV_ITEMS, type NavTarget } from '../../../components/AgentNavBadge';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ChatHeaderProps {
@@ -141,6 +141,7 @@ interface ConversationMenuProps {
   onCopyAsJson?: () => void;
   onDelete?: () => void;
   onExportAsJson?: () => void;
+  onNavigate?: (target: NavTarget) => void;
 }
 
 const ConversationMenu: React.FC<ConversationMenuProps> = ({
@@ -148,6 +149,7 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
   onCopyAsJson,
   onDelete,
   onExportAsJson,
+  onNavigate,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [hov, setHov] = React.useState(false);
@@ -169,8 +171,14 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
     danger?: boolean;
     sep?: boolean;
   }[] = [
+    ...NAV_ITEMS.map(({ id, label, icon: Icon, color }) => ({
+      label,
+      icon: <Icon size={13} className={color} />,
+      action: onNavigate ? () => onNavigate(id) : undefined,
+    })),
     {
       label: 'Copy as Markdown',
+      sep: true,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
@@ -473,10 +481,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             onCopyAsJson={onCopyAsJson}
             onDelete={onDeleteConversation}
             onExportAsJson={onExportAsJson}
+            onNavigate={onOpenSubView}
           />
-
-          {/* Hàng icon điều hướng (Account/History/Marketplace/Setting): chỉ hiện khi topBar bị ẩn (ngoài CodeAgent). Không có icon Chat. */}
-          {onOpenSubView && <AgentNavBadge variant="inline" onSelect={onOpenSubView} />}
         </div>
 
         {/* Row 2: favicon · provider/model · email · stats */}

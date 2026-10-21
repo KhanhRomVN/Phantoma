@@ -105,8 +105,10 @@ const runCheck = async (
  * mở tab.
  */
 const DatabaseSettings: React.FC = () => {
-  const { apiUrl, activeDatabaseManagerId, setActiveDatabaseManagerId } =
-    useSettings();
+  const { apiUrl } = useSettings();
+  const [activeDatabaseManagerId, setActiveDatabaseManagerId] = React.useState<
+    string | null
+  >(null);
   const dbFetch = useDbFetch();
   const dbFetchRef = React.useRef(dbFetch);
   dbFetchRef.current = dbFetch;

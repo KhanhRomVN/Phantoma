@@ -13,12 +13,12 @@ import {
   UserX,
 } from 'lucide-react';
 import { useDbFetch } from '../../../services/useDbFetch';
-import { useActiveDatabaseManagerName } from '../../../hooks/useActiveDatabaseManagerName';
 import { useSettings } from '../../../context/SettingsContext';
-import { extensionService, messageDispatcher } from '../../../services/ExtensionService';
+import { listChromiumProfiles } from '../../../services/chromeProfiles';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { CopyableText } from '../utils';
 import { $ } from '@renderer/utils/color';
+import { Banner, bannerStyles, BannerAccountIcon } from '../../Home/components/HomeBanner';
 
 interface Provider {
   provider_id: string;
@@ -34,6 +34,65 @@ interface Provider {
   connection_type?: string;
   auth_method?: string;
 }
+
+let providersCache: Provider[] | null = null;
+
+const AUTH_LABELS: Record<string, string> = {
+  google: 'Google',
+  github: 'GitHub',
+  microsoft: 'Microsoft',
+  apple: 'Apple',
+  x: 'X / xAI',
+  basic: 'Basic',
+};
+const ICON_METHODS = ['google', 'github', 'microsoft', 'apple', 'x'];
+
+const authIconFile = (method: string): string =>
+  method === 'apple' || method === 'microsoft' ? `${method}.png` : `${method}.svg`;
+
+const splitAuthMethod = (method: string): string[] => method.split('_').filter(Boolean);
+
+const isMergedAuth = (method: string): boolean => splitAuthMethod(method).length > 1;
+
+
+const AuthGlyph: React.FC<{ method: string; size?: number }> = ({ method, size = 11 }) => {
+  const [failed, setFailed] = useState(false);
+  const baseUri = (window as any).__zenImagesUri as string | undefined;
+  if (!baseUri || failed || !ICON_METHODS.includes(method)) {
+    return <Key size={size} />;
+  }
+  return (
+    <img
+      src={`${baseUri}/auth_icons/${authIconFile(method)}`}
+      alt={method}
+      style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain' }}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
+const MergedAuthNotice: React.FC<{ methods: string[] }> = ({ methods }) => {
+  const merged = methods.filter(isMergedAuth);
+  if (merged.length === 0) return null;
+  const labels = (m: string) =>
+    splitAuthMethod(m)
+      .map((part) => AUTH_LABELS[part] ?? part)
+      .join(' / ');
+  return (
+    <>
+      <style>{bannerStyles}</style>
+      <Banner
+        variant="info"
+        icon={BannerAccountIcon}
+        title="Merged login methods"
+        badge={merged.map(labels).join(' | ')}
+      >
+        Sign in with any of these methods ({merged.map(labels).join('; ')}). If they resolve to
+        the same email, they count as a single account.
+      </Banner>
+    </>
+  );
+};
 
 interface AddAccountDrawerProps {
   open: boolean;
@@ -92,13 +151,17 @@ const MethodCard: React.FC<{
     >
       <div
         style={{
-          width: '36px',
+          minWidth: '36px',
+          width: 'fit-content',
           height: '36px',
+          padding: '0 8px',
+          boxSizing: 'border-box',
           borderRadius: '9px',
           backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: '4px',
           flexShrink: 0,
           color: $('--text-primary'),
         }}
@@ -246,8 +309,25 @@ const ProviderRow: React.FC<{
                 key={method}
                 style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: $('--text-secondary') }}
               >
-                <Key size={11} />
-                <span>{method}</span>
+                {splitAuthMethod(method).map((part) => {
+                  const baseUri = (window as any).__zenImagesUri as string | undefined;
+                  if (baseUri && ICON_METHODS.includes(part)) {
+                    return (
+                      <img
+                        key={part}
+                        src={`${baseUri}/auth_icons/${authIconFile(part)}`}
+                        alt={part}
+                        style={{ width: '11px', height: '11px', objectFit: 'contain' }}
+                      />
+                    );
+                  }
+                  return <AuthGlyph key={part} method={part} size={11} />;
+                })}
+                <span>
+                  {splitAuthMethod(method)
+                    .map((part) => AUTH_LABELS[part] ?? part)
+                    .join(' · ')}
+                </span>
               </div>
             ))}
           </div>
@@ -497,7 +577,6 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
   const profileReqRef = useRef(0);
 
   const dbFetch = useDbFetch();
-  const activeDbName = useActiveDatabaseManagerName();
   const { chromiumProfileDir } = useSettings();
 
   const sharedBackdrop = (onClickBackdrop: () => void) => (
@@ -529,7 +608,12 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
   );
 
   const fetchProviders = async () => {
-    setLoadingProviders(true);
+    if (providersCache) {
+      setProviders(providersCache);
+      setLoadingProviders(false);
+    } else {
+      setLoadingProviders(true);
+    }
     try {
       const response = await dbFetch(`/v1/providers`);
       const data = await response.json();
@@ -538,10 +622,11 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
           if (a.is_enabled === b.is_enabled) return 0;
           return a.is_enabled ? -1 : 1;
         });
+        providersCache = sorted;
         setProviders(sorted);
       }
     } catch {
-      setError('Failed to load providers');
+      if (!providersCache) setError('Failed to load providers');
     } finally {
       setLoadingProviders(false);
     }
@@ -561,20 +646,14 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
     }
 
     setProfilesLoading(true);
-    const requestId = `listChromiumProfiles-${Date.now()}`;
 
-    const foldersPromise = new Promise<string[]>((resolve, reject) => {
-      messageDispatcher.register(
-        requestId,
-        (msg: any) => {
-          if (msg.error) reject(new Error(msg.error));
-          else resolve(Array.isArray(msg.folders) ? msg.folders : []);
-        },
-        8000,
-        () => reject(new Error('Quét Chromium Profile Folder quá thời gian')),
-      );
-      extensionService.postMessage({ command: 'listChromiumProfiles', requestId, path: chromiumProfileDir });
-    });
+    const profilesPromise = listChromiumProfiles(chromiumProfileDir || '').then((result) => ({
+      entries:
+        result.profiles.length > 0
+          ? result.profiles
+          : result.folders.map((f: string) => ({ folder: f })),
+      isDefaultChrome: result.is_default_chrome,
+    }));
 
     const emailsPromise = dbFetch(
       `/v1/accounts?page=1&limit=1000&provider_id=${encodeURIComponent(provider.provider_id)}`,
@@ -590,10 +669,10 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
       )
       .catch(() => new Set<string>());
 
-    Promise.all([foldersPromise, emailsPromise])
-      .then(([folders, emails]) => {
+    Promise.all([profilesPromise, emailsPromise])
+      .then(([profiles, emails]) => {
         if (profileReqRef.current !== reqToken) return;
-        setProfileFolders(folders);
+        setProfileFolders(profiles.entries.map((e: any) => e.folder));
         setExistingEmails(emails);
       })
       .catch((err: any) => {
@@ -615,12 +694,13 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
     setError('');
     setContextMenu(null);
     try {
+      const bodyObj: any = { method: loginMethod };
+      if (profileFolder) {
+        bodyObj.profile_folder = profileFolder;
+      }
       const response = await dbFetch(`/v1/accounts/login/${provider.provider_id}`, {
         method: 'POST',
-        body: JSON.stringify({
-          method: loginMethod,
-          ...(profileFolder ? { profile_folder: profileFolder } : {}),
-        }),
+        body: JSON.stringify(bodyObj),
       });
       const data = await response.json();
       if (data.success && data.account) {
@@ -1070,6 +1150,37 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
       github: { label: 'GitHub', desc: 'Sign in with your GitHub account via OAuth', icon: <Key size={18} /> },
       x: { label: 'X / xAI', desc: 'Sign in via device code — browser will open automatically', icon: <Key size={18} /> },
       basic: { label: 'Basic', desc: 'Enter your email and password directly — no OAuth required', icon: <Key size={18} /> },
+      microsoft: {
+        label: 'Microsoft',
+        desc: 'Sign in with your Microsoft account via OAuth',
+        icon: <AuthGlyph method="microsoft" size={20} />,
+      },
+      apple: {
+        label: 'Apple',
+        desc: 'Sign in with your Apple account via OAuth',
+        icon: <AuthGlyph method="apple" size={20} />,
+      },
+      google_github: {
+        label: 'Google / GitHub',
+        desc: 'Either provider works — same email counts as one account',
+        icon: (
+          <span style={{ display: 'inline-flex', gap: '3px' }}>
+            <AuthGlyph method="google" size={18} />
+            <AuthGlyph method="github" size={18} />
+          </span>
+        ),
+      },
+      google_github_microsoft: {
+        label: 'Google / GitHub / Microsoft',
+        desc: 'Any of the three works — same email counts as one account',
+        icon: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <AuthGlyph method="google" size={18} />
+            <AuthGlyph method="github" size={18} />
+            <AuthGlyph method="microsoft" size={18} />
+          </span>
+        ),
+      },
     };
 
     const iconUrl = getFaviconUrl(selectedProvider.website_url || selectedProvider.website);
@@ -1116,6 +1227,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <MergedAuthNotice methods={methods} />
               {methods.map((method) => {
                 const meta = methodMeta[method] ?? {
                   label: method,
@@ -1444,11 +1556,6 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             <div>
               <div style={{ fontSize: '17px', fontWeight: 700, color: $('--text-primary'), display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Add Account
-                {activeDbName && (
-                  <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 7px', borderRadius: '4px', backgroundColor: `color-mix(in srgb, ${$('--primary')} 12%, transparent)`, color: $('--primary'), whiteSpace: 'nowrap' }}>
-                    {activeDbName}
-                  </span>
-                )}
               </div>
               <div style={{ fontSize: '13px', color: $('--text-secondary'), opacity: 0.7, marginTop: '3px' }}>
                 Choose a provider to continue

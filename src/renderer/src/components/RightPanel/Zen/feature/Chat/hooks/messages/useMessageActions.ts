@@ -8,11 +8,8 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { useCallback } from 'react';
-
-// ─── Types ──────────────────────────────────────────────────────────────
-import { Message } from '../../types/message';
-import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
+import { useCallback } from "react";
+import { Message } from "../../types/message";
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface UseMessageActionsProps {
@@ -40,8 +37,6 @@ export function useMessageActions({
   onSendMessage,
   onRevertConversation,
 }: UseMessageActionsProps) {
-  const { permissionMode } = useSettings();
-
   /**
    * Regenerate a user message: revert to this message then resend its own
    * rawRequest content unchanged.
@@ -69,15 +64,6 @@ export function useMessageActions({
         shouldSkipLogic = true;
       }
 
-      const permissionModePattern =
-        /<permission-mode>Active:\s*(approval|full-access|fullAccess)<\/permission-mode>/;
-      if (!shouldSkipLogic && permissionModePattern.test(contentToSend)) {
-        contentToSend = contentToSend.replace(
-          permissionModePattern,
-          `<permission-mode>Active: ${permissionMode}</permission-mode>`,
-        );
-      }
-
       if (userMsg.providerFid) {
         onSendMessage(
           contentToSend,
@@ -103,7 +89,7 @@ export function useMessageActions({
         onSendMessage(contentToSend, userMsg.uploadedFiles, undefined, undefined, shouldSkipLogic);
       }, 100);
     },
-    [messages, onRevertConversation, onSendMessage, permissionMode],
+    [messages, onRevertConversation, onSendMessage],
   );
 
   /**
@@ -119,14 +105,6 @@ export function useMessageActions({
       if (!onSendMessage) return;
 
       let rawTemplate = userMsg.rawRequest || '';
-      const permissionModePattern =
-        /<permission-mode>Active:\s*(approval|full-access|fullAccess)<\/permission-mode>/;
-      if (permissionModePattern.test(rawTemplate)) {
-        rawTemplate = rawTemplate.replace(
-          permissionModePattern,
-          `<permission-mode>Active: ${permissionMode}</permission-mode>`,
-        );
-      }
 
       const hasWrapper = /<user-message>/.test(rawTemplate);
       const shouldSkipLogic = !hasWrapper;
@@ -184,7 +162,7 @@ export function useMessageActions({
         onSendMessage(newContent, userMsg.uploadedFiles, undefined, undefined, shouldSkipLogic);
       }, 100);
     },
-    [messages, onRevertConversation, onSendMessage, permissionMode],
+    [messages, onRevertConversation, onSendMessage],
   );
 
   /**
@@ -215,15 +193,6 @@ export function useMessageActions({
         setTimeout(() => {
           let rawReq = prevUserMsg!.rawRequest || '';
 
-          const permissionModePattern =
-            /<permission-mode>Active:\s*(approval|full-access|fullAccess)<\/permission-mode>/;
-          if (permissionModePattern.test(rawReq)) {
-            rawReq = rawReq.replace(
-              permissionModePattern,
-              `<permission-mode>Active: ${permissionMode}</permission-mode>`,
-            );
-          }
-
           const userContentMatch = rawReq.match(/<user-message>\n?([\s\S]*?)\n?<\/user-message>/);
           let contentToSend: string;
           let shouldSkipLogic: boolean;
@@ -246,7 +215,7 @@ export function useMessageActions({
         }, 100);
       }
     },
-    [messages, onRevertConversation, onSendMessage, permissionMode],
+    [messages, onRevertConversation, onSendMessage],
   );
 
   return { handleRegenerateRequest, handleEditRequest, handleRetryRequest };

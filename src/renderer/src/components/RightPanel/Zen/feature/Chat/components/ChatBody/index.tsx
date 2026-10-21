@@ -33,7 +33,7 @@ import { useScrollBehavior } from '../../hooks/ui/useScrollBehavior';
 import { useMessagePagination } from '../../hooks/ui/useMessagePagination';
 
 // ── Context ──
-import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
+
 
 // ── Components ──
 import ChatBodySkeleton from './ChatBodySkeleton';
@@ -346,7 +346,6 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
   onApproveDangerousAction,
   onRejectDangerousAction,
 }: ExtendedChatBodyProps) => {
-  const { permissionMode } = useSettings();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -441,7 +440,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     });
     if (!firstPendingAction) return false;
     return false;
-  }, [messages, isRestored, toolOutputs, permissionMode, clickedActions, feature, toolFormat]);
+  }, [messages, isRestored, toolOutputs, clickedActions, feature, toolFormat]);
 
   const visibleMessages = useMemo(() => {
     const filtered = messages.filter((msg) => !msg.uiHidden && !msg.isCancelled);
@@ -512,9 +511,10 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     <div
       ref={bodyRef}
       className={cn(
-        'chat-body-scroll bg-background flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-2 text-sm relative',
+        'chat-body-scroll bg-background flex-1 overflow-y-auto overflow-x-hidden py-4 flex flex-col gap-2 text-sm relative',
         visibleMessages.length > 0 ? 'pb-[200px]' : 'pb-4',
       )}
+      style={{ paddingInline: 'max(16px, calc((100% - 680px) / 2 + 16px))' }}
     >
       {isLoadingConversation ? (
         <>

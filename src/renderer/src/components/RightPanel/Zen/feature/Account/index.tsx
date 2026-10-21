@@ -45,19 +45,21 @@ import {
 } from '@renderer/components/ui/Dropdown';
 import { useAccounts } from './hooks/useAccounts';
 import { useSettings } from '../../context/SettingsContext';
-import { useActiveDatabaseManagerName } from '../../hooks/useActiveDatabaseManagerName';
 
 import { extensionService, messageDispatcher } from '../../services/ExtensionService';
-import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
+import { Drawer, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import { Button } from '@renderer/components/ui/Button';
 import { Input } from '@renderer/components/ui/Input';
 import { $ } from '@renderer/utils/color';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { FlatAccount } from './types';
+import type { NavTarget } from '../../components/AgentNavBadge';
+import NavPanelHeader from '../../components/NavPanelHeader';
 
 interface AccountPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onNavigate: (target: NavTarget) => void;
 }
 
 // ─── SelectionOverlayBar Sub-components ─────────────────────────────────
@@ -113,11 +115,10 @@ const OverlayBarButton: React.FC<{
   );
 };
 
-const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
+const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<FlatAccount | null>(null);
   const { apiUrl } = useSettings();
-  const activeDbName = useActiveDatabaseManagerName();
 
   // Import preview state
   const [importPreviewOpen, setImportPreviewOpen] = useState(false);
@@ -337,9 +338,11 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose }) => {
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} height="100%" strategy="absolute">
-      <DrawerHeader
-        title={activeDbName ? `Accounts · ${activeDbName}` : 'Accounts'}
+      <NavPanelHeader
+        title="Accounts"
         description="Manage your API accounts"
+        current="account"
+        onNavigate={onNavigate}
         onClose={onClose}
       />
 

@@ -18,9 +18,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ToolAction } from '../../services/ResponseParser';
 import { Message } from '../../types/message';
 
-// ── Context ──
-import { useSettings } from '../../../../context/SettingsContext';
-
 // ── Hooks ──
 import { getPermissionDecision } from './useToolExecution';
 
@@ -53,7 +50,6 @@ export const useToolActions = ({
   isProcessing = false,
   isRestored = false,
 }: UseToolActionsProps) => {
-  const { permissionMode } = useSettings();
   const [clickedActions, setClickedActions] = useState<Set<string>>(new Set());
   const [failedActions, setFailedActions] = useState<Set<string>>(new Set());
   const [rejectedActions, setRejectedActions] = useState<Set<string>>(new Set());
@@ -222,32 +218,24 @@ export const useToolActions = ({
         }
       }
     },
-    [onSendToolRequest, onToolAction, clickedActions, permissionMode],
+    [onSendToolRequest, onToolAction, clickedActions],
   );
 
   // Auto-execute tools logic
   const prevParsedLengthRef = useRef(0);
-  const prevPermissionModeRef = useRef(permissionMode);
 
   useEffect(() => {
-    // Check if permission mode changed
-    const permissionModeChanged = prevPermissionModeRef.current !== permissionMode;
-    if (permissionModeChanged) {
-      prevPermissionModeRef.current = permissionMode;
-    }
-
-    // Only run when parsedMessages actually changes (new message or new actions) OR permission mode changes
+    // Only run when parsedMessages actually changes (new message or new actions)
     const currentLength = parsedMessages.length;
     const lengthUnchanged = currentLength === prevParsedLengthRef.current;
 
-    if (lengthUnchanged && !permissionModeChanged && !isProcessing) {
-      // No new messages and permission unchanged, skip
+    if (lengthUnchanged && !isProcessing) {
+      // No new messages, skip
       return;
     }
     prevParsedLengthRef.current = currentLength;
 
     // Early returns to prevent unnecessary processing
-    // ALWAYS skip if restored (even if permission mode changed)
     if (isRestored || !onSendToolRequest || parsedMessages.length === 0) {
       return;
     }
@@ -314,8 +302,8 @@ export const useToolActions = ({
         return;
       }
 
-      // Check if settings specify this tool runs auto or deny
-      const decision = getPermissionDecision(permissionMode, action.type);
+      // Check if this tool is registered
+      const decision = getPermissionDecision(action.type);
       if (decision === 'allow' || decision === TOOL_ACTION_TYPES.REJECT) {
         // Collect for batch update
         actionsToMarkTriggered.push(actionId);
@@ -357,7 +345,6 @@ export const useToolActions = ({
     onSendToolRequest,
     clickedActions,
     failedActions,
-    permissionMode,
     isProcessing,
     isRestored,
   ]);

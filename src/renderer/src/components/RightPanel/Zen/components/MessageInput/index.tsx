@@ -23,6 +23,7 @@ import { combinePromptsForMode } from '../../feature/Chat/prompts/code';
 import type { SystemInfo } from '../../feature/Chat/prompts/code';
 // Use existing Phantoma drawer component
 import ProviderModelDrawer from './ProviderModelDrawer';
+import { cacheGet, cacheSet, providersKey } from './providerModelCache';
 import SkillPickerDrawer, { type PickedSkill } from './SkillPickerDrawer';
 import PromptLengthDropdown, {
   PromptLengthTriggerIcon,
@@ -526,9 +527,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     onGitPullRequest,
     responseRanges = [],
     onModelSwitch,
-    onSelectRule,
     onSelectSkills,
-    onRemoveAttachedItem,
     conversationUseSkillEnabled,
     conversationMemoryEnabled,
     conversationToolFormat,
@@ -591,13 +590,15 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       const accountId = currentAccount?.id;
       if (!accountId) return;
       const clientId = getClientId();
+      const projectName =
+        (folderPath || '').replace(/[\\/]+$/, '').split(/[\\/]/).pop() || '';
       let cancelled = false;
       const beat = () => {
         if (cancelled) return;
         fetch(`${apiUrl}/v1/accounts/${accountId}/presence`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId }),
+          body: JSON.stringify({ clientId, projectName }),
         }).catch(() => {});
       };
       beat();
@@ -610,7 +611,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
           { method: 'DELETE' },
         ).catch(() => {});
       };
-    }, [currentAccount?.id, apiUrl]);
+    }, [currentAccount?.id, apiUrl, folderPath]);
 
     const { currentProviderConfig, currentModelConfig } = useProvidersConfig(
       currentModel,
@@ -857,20 +858,30 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       return maxInputTokens !== null && messageTokenCount > maxInputTokens;
     }, [messageTokenCount, maxInputTokens]);
 
-    const fetchProviders = React.useCallback(async () => {
-      try {
-        setIsLoadingProviders(true);
-        const response = await fetch(`${apiUrl}/v1/providers`);
-        const result = await response.json();
-        if (result.success) {
-          setProviders(result.data.filter((p: any) => p.is_enabled));
+    const providersScope = 'default';
+
+    const fetchProviders = React.useCallback(
+      async (force = false) => {
+        const cacheKey = providersKey(providersScope);
+        const cached = cacheGet<any[]>(cacheKey);
+        if (cached) setProviders(cached);
+        try {
+          if (!cached || force === true) setIsLoadingProviders(true);
+          const response = await fetch(`${apiUrl}/v1/providers`);
+          const result = await response.json();
+          if (result.success) {
+            const enabled = result.data.filter((p: any) => p.is_enabled);
+            cacheSet(cacheKey, enabled);
+            setProviders(enabled);
+          }
+        } catch (error) {
+          console.error('Failed to fetch providers:', error);
+        } finally {
+          setIsLoadingProviders(false);
         }
-      } catch (error) {
-        console.error('Failed to fetch providers:', error);
-      } finally {
-        setIsLoadingProviders(false);
-      }
-    }, [apiUrl]);
+      },
+      [apiUrl],
+    );
 
     const refreshProviders = React.useCallback(async () => {
       try {
@@ -879,7 +890,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       } catch {
         // non-fatal
       }
-      await fetchProviders();
+      await fetchProviders(true);
     }, [apiUrl, fetchProviders]);
 
     // Initial fetch
@@ -1364,6 +1375,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 apiUrl={apiUrl}
                 onRefresh={refreshProviders}
                 isLoadingProviders={isLoadingProviders}
+                cacheScope={providersScope}
+                currentProviderId={currentModel?.providerId}
+                currentModelId={currentModel?.id}
+                currentAccountId={currentAccount?.id}
                 currentEffort={effortInfo?.effort}
                 onSelect={(selected) => {
                   const prov = providers.find((p: any) => p.provider_id === selected.providerId);
@@ -1836,7 +1851,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   showDeepResearch={supportsDeepResearch}
                   currentModel={currentModel}
                   currentModelConfig={currentModelConfig}
-                  onSelectRule={onSelectRule}
                   onSelectSkills={(items) => {
                     setSelectedSkills(
                       items.map((i: any) => ({ slug: i.id.replace('skill-', ''), name: i.path })),
@@ -1993,55 +2007,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   alignItems: 'center',
                 }}
               >
-                {/* Rule Badge */}
-                {(() => {
-                  const activeRule = attachedItems?.find((i: any) => i.type === 'rule');
-                  if (!activeRule) return null;
-                  const ruleColor = $('--yellow');
-                  return (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        color: ruleColor,
-                        backgroundColor: `color-mix(in srgb, ${ruleColor} 12%, transparent)`,
-                        whiteSpace: 'nowrap',
-                      }}
-                      title={`Rule: ${activeRule.path}`}
-                    >
-                      <span
-                        style={{
-                          maxWidth: '120px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {activeRule.path}
-                      </span>
-                      {onRemoveAttachedItem && (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveAttachedItem(activeRule.id);
-                          }}
-                          style={{
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <X size={11} strokeWidth={2.5} />
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-
                 {/* Workspace zip-size badge — chỉ hiện khi provider có anti-injection flag = true */}
                 {isAntiInjectionProvider && <ClaudeZipBadge state={zipSizeState} />}
 

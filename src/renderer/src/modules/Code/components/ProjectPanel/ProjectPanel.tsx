@@ -36,6 +36,7 @@ import {
   Trash2,
   SlidersHorizontal,
   Folder,
+  FolderPlus,
   Pencil,
   X,
   Unlink,
@@ -74,6 +75,7 @@ import { ConfirmDeleteBranchModal } from '../modal/ConfirmDeleteBranchModal';
 
 // ── Group Picker Form ──
 import { GroupPickerForm, GROUP_ICONS } from './GroupPickerForm';
+import { NewGroupModal } from './NewGroupModal';
 
 // ── Shared definitions ──
 import {
@@ -302,10 +304,6 @@ function GroupHeader({
     onRenameDone(commit ? (inputRef.current?.value ?? null) : null);
   };
 
-  // Resolve icon component from ID
-  const IconComp = GROUP_ICONS.find((g) => g.id === group.iconId)?.icon || (
-    <Folder className="w-[11px] h-[11px]" />
-  );
 
   // Generate stable random color based on group ID/name hash
   const groupColor = useMemo(() => {
@@ -329,9 +327,21 @@ function GroupHeader({
       onDrop={onDrop}
       className={cn(
         // Removed 'uppercase' and 'tracking-[0.05em]' to preserve raw case
-        'group/gh flex items-center gap-[7px] px-3 py-[7px] bg-white/[0.02] border-b border-divider cursor-pointer select-none font-mono text-[10.5px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
+        'group/gh flex items-center gap-[7px] px-3 py-[7px] border-b border-divider cursor-pointer select-none font-mono text-[14px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
+        group.open ? 'bg-white/[0.02]' : 'bg-card-background',
         draggable && 'hover:bg-card-hover',
       )}
+      style={
+        group.open
+          ? {
+              backgroundImage: `linear-gradient(to left, color-mix(in srgb, ${groupColor} 12%, transparent) 0%, transparent 50%)`,
+              backgroundSize: '200% 100%',
+              backgroundPosition: '100% 0',
+              backgroundRepeat: 'no-repeat',
+              animation: 'pp-group-sweep 0.6s ease-out',
+            }
+          : undefined
+      }
       onClick={onToggle}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -348,10 +358,6 @@ function GroupHeader({
         <ChevronRight className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
       )}
 
-      {/* Dynamic Icon Container with Random Accent Color */}
-      <span className="shrink-0 [&_svg]:w-[11px] [&_svg]:h-[11px]" style={{ color: groupColor }}>
-        {IconComp}
-      </span>
 
       {renaming ? (
         <input
@@ -366,11 +372,11 @@ function GroupHeader({
           className="flex-1 min-w-0 bg-background border border-[#ff6a1f] rounded-[5px] text-text-primary font-mono text-[11px] font-medium normal-case tracking-normal px-1.5 py-0.5 outline-none"
         />
       ) : (
-        <span className="flex-1 min-w-0 truncate">{group.name}</span>
+        <span className="min-w-0 truncate">{group.name}</span>
       )}
       <span className="font-medium text-text-secondary/50">{count}</span>
+      <span className="flex-1" />
       <KebabButton
-        className="opacity-0 group-hover/gh:opacity-100"
         onClick={(e) => onOpenMenu({ top: e.clientY, left: e.clientX })}
       />
     </div>
@@ -378,6 +384,27 @@ function GroupHeader({
 }
 
 // ── Main Component ─────────────────────────────────────────────────────
+
+const LAYOUT_STORAGE_KEY = 'phantoma_project_layout_v1';
+
+function applyProjectLayout(list: ProjectExtended[]): ProjectExtended[] {
+  try {
+    const raw = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+    if (!raw) return list;
+    const saved = JSON.parse(raw) as {
+      order?: string[];
+      groupIds?: Record<string, string | null>;
+    };
+    const groupIds = saved.groupIds ?? {};
+    const rank = new Map((saved.order ?? []).map((id, i) => [id, i]));
+    return list
+      .map((p, i) => ({ p, i }))
+      .sort((a, b) => (rank.get(a.p.id) ?? 1e9 + a.i) - (rank.get(b.p.id) ?? 1e9 + b.i))
+      .map(({ p }) => (p.id in groupIds ? { ...p, groupId: groupIds[p.id] } : p));
+  } catch {
+    return list;
+  }
+}
 
 export const ProjectPanel = memo(function ProjectPanel() {
   const rawProjects = useCodeStore((s) => s.projects);
@@ -397,7 +424,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
   }, [setCurrentProject, setContentViewMode, setActiveWorkspaceSessionId]);
 
   // Local state mirrors store projects but adds UI-only fields (color, group, hidden, branches)
-  const [projects, setProjects] = useState<ProjectExtended[]>(() => rawProjects.map(seedProject));
+  const [projects, setProjects] = useState<ProjectExtended[]>(() =>
+    applyProjectLayout(rawProjects.map(seedProject)),
+  );
 
   // ── Group Persistence Key ──
   const GROUP_STORAGE_KEY = 'phantoma_project_groups_v1';
@@ -470,7 +499,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
         .map((p, i) => ({ p, i }))
         .filter(({ p }) => !known.has(p.id))
         .map(({ p, i }) => seedProject(p, i));
-      return [...kept, ...added];
+      return [...kept, ...applyProjectLayout(added)];
     });
   }, [rawProjects]);
 
@@ -482,6 +511,22 @@ export const ProjectPanel = memo(function ProjectPanel() {
       console.error('Failed to save groups to storage:', e);
     }
   }, [groups]);
+
+  // Persist project order + group assignment whenever they change
+  useEffect(() => {
+    if (projects.length === 0) return;
+    try {
+      window.localStorage.setItem(
+        LAYOUT_STORAGE_KEY,
+        JSON.stringify({
+          order: projects.map((p) => p.id),
+          groupIds: Object.fromEntries(projects.map((p) => [p.id, p.groupId ?? null])),
+        }),
+      );
+    } catch (e) {
+      console.error('Failed to save project layout to storage:', e);
+    }
+  }, [projects]);
 
   // ── UI state ──
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -518,6 +563,25 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
   // Global flag to trigger collapse-all during drag
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
+  const [ungroupedOpen, setUngroupedOpen] = useState(true);
+  const UNGROUP_ID = '__ungroup__';
+  const UNGROUP_INDEX_KEY = 'phantoma_ungroup_index_v1';
+  const [ungroupIndex, setUngroupIndex] = useState<number>(() => {
+    try {
+      const v = parseInt(window.localStorage.getItem(UNGROUP_INDEX_KEY) ?? '', 10);
+      return Number.isNaN(v) ? Number.MAX_SAFE_INTEGER : v;
+    } catch {
+      return Number.MAX_SAFE_INTEGER;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(UNGROUP_INDEX_KEY, String(ungroupIndex));
+    } catch (e) {
+      console.error('Failed to save ungroup index:', e);
+    }
+  }, [ungroupIndex]);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
@@ -1087,7 +1151,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
   // ── Drag & Drop Engine (Multi-level: Group / Project / Branch) ──
   const clearDragMarks = () =>
-    document.querySelectorAll('.pp-dragover').forEach((el) => el.classList.remove('pp-dragover'));
+    document.querySelectorAll('.pp-dragover').forEach((el) => {
+      el.classList.remove('pp-dragover');
+      delete (el as HTMLElement).dataset.dropPos;
+    });
 
   const handleDragStart = useCallback(
     (
@@ -1101,7 +1168,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       if (type === 'project') {
         count = shownProjects.length;
       } else if (type === 'group') {
-        count = groups.length;
+        count = groups.length + 1; // +1: Ungroup section
       } else if (type === 'branch') {
         // Count branches in the specific project being dragged from
         const proj = projects.find((p) => p.id === idOrPid);
@@ -1130,16 +1197,80 @@ export const ProjectPanel = memo(function ProjectPanel() {
       }
 
       dragRef.current = { type, projectId, branchName, groupId, el };
+      e.dataTransfer.setData('text/plain', idOrPid);
       e.dataTransfer.effectAllowed = 'move';
       e.stopPropagation();
       el.classList.add('pp-dragging');
-      setIsGlobalDragging(true); // Trigger UI collapse
+
+      if (type === 'project') {
+        const row = el.querySelector('[data-drag-row]') as HTMLElement | null;
+        if (row) {
+          const ghost = row.cloneNode(true) as HTMLElement;
+          ghost.querySelectorAll('[data-drag-hide]').forEach((n) => n.remove());
+          ghost.className = 'flex items-center gap-2 px-3 py-2 rounded-none bg-card-background border-y border-divider text-text-primary';
+          Object.assign(ghost.style, {
+            position: 'fixed',
+            top: '-1000px',
+            left: '-1000px',
+            width: `${el.offsetWidth}px`,
+            borderRadius: '0',
+            boxSizing: 'border-box',
+          });
+          document.body.appendChild(ghost);
+          e.dataTransfer.setDragImage(ghost, 16, 16);
+          setTimeout(() => ghost.remove(), 0);
+        }
+      }
+
+      if (type === 'group') {
+        const ghost = document.createElement('div');
+        ghost.textContent = el.querySelector('span')?.textContent ?? '';
+        ghost.className =
+          'px-3 py-[7px] bg-card-background text-text-primary font-mono text-[14px] font-semibold truncate';
+        // Native drag image bị OS vẽ viền trắng → ẩn nó và tự vẽ ghost bám theo con trỏ
+        const blank = document.createElement('canvas');
+        blank.width = 1;
+        blank.height = 1;
+        e.dataTransfer.setDragImage(blank, 0, 0);
+        Object.assign(ghost.style, {
+          position: 'fixed',
+          zIndex: '9999',
+          pointerEvents: 'none',
+          opacity: '0.9',
+          width: `${el.offsetWidth}px`,
+          boxSizing: 'border-box',
+          left: `${e.clientX + 12}px`,
+          top: `${e.clientY + 8}px`,
+        });
+        document.body.appendChild(ghost);
+        const move = (ev: DragEvent) => {
+          ghost.style.left = `${ev.clientX + 12}px`;
+          ghost.style.top = `${ev.clientY + 8}px`;
+        };
+        const cleanup = () => {
+          ghost.remove();
+          document.removeEventListener('dragover', move);
+          document.removeEventListener('dragend', cleanup);
+          document.removeEventListener('drop', cleanup);
+        };
+        document.addEventListener('dragover', move);
+        document.addEventListener('dragend', cleanup);
+        document.addEventListener('drop', cleanup);
+      }
+
+      // Defer collapse: changing layout inside dragstart makes the browser cancel the drag for cards below the first one
+      setTimeout(() => {
+        if (!dragRef.current) return;
+        el.style.opacity = '0.4';
+        setIsGlobalDragging(true);
+      }, 0);
     },
     [shownProjects, groups, projects],
   );
 
   const handleDragEnd = useCallback(() => {
     dragRef.current?.el?.classList.remove('pp-dragging');
+    if (dragRef.current?.el) dragRef.current.el.style.opacity = '';
     dragRef.current = null;
     clearDragMarks();
     setIsGlobalDragging(false); // Restore UI
@@ -1163,12 +1294,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
     let isValidDrop = false;
 
-    // Rule 1: Cannot drop Group into Group
-    if (drag.type === 'group' && targetGroupId) {
-      isValidDrop = false;
-    }
     // Rule 2: Branch reorder only within same project
-    else if (drag.type === 'branch') {
+    if (drag.type === 'branch') {
       isValidDrop = !!targetBranchName && targetProjectId === drag.projectId && zoneEl !== drag.el;
     }
     // Rule 3: Project can drop on Project (reorder) or Group (assign)
@@ -1194,6 +1321,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
     clearDragMarks();
     // Highlight the ZONE element, not necessarily the immediate hover target
     zoneEl.classList.add('pp-dragover');
+    const isReorder = drag.type === 'branch' || drag.type === 'group' || !!targetProjectId;
+    if (isReorder) {
+      const r = zoneEl.getBoundingClientRect();
+      zoneEl.dataset.dropPos = e.clientY > r.top + r.height / 2 ? 'after' : 'before';
+    }
   }, []);
 
   const handleDrop = useCallback(
@@ -1201,8 +1333,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const drag = dragRef.current;
       if (!drag) return;
       e.preventDefault();
+      // Debug log - có thể xóa sau khi fix
+      console.log('[DEBUG] handleDrop', {
+        type: drag.type,
+        groupId: drag.groupId,
+        targetGid: (e.currentTarget as HTMLElement).dataset.gid,
+      });
       clearDragMarks();
       drag.el?.classList.remove('pp-dragging');
+      if (drag.el) drag.el.style.opacity = '';
       dragRef.current = null;
       setIsGlobalDragging(false);
 
@@ -1214,6 +1353,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const targetProjectId = zoneEl.dataset.pid;
       const targetBranchName = zoneEl.dataset.branch;
 
+      const dropRect = zoneEl.getBoundingClientRect();
+      const dropAfter = e.clientY > dropRect.top + dropRect.height / 2;
+
       // --- Logic Dispatcher ---
 
       // 1. Branch Reorder (Same Project)
@@ -1223,7 +1365,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
           const dst = p.branches.findIndex((b) => b.name === targetBranchName);
           if (src < 0 || dst < 0 || src === dst) return p;
           const branches = [...p.branches];
-          branches.splice(dst, 0, branches.splice(src, 1)[0]);
+          const [movedBranch] = branches.splice(src, 1);
+          const at = branches.findIndex((b) => b.name === targetBranchName);
+          branches.splice(at + (dropAfter ? 1 : 0), 0, movedBranch);
           return { ...p, branches };
         });
         return;
@@ -1231,7 +1375,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       // 2. Project -> Group (Assign Group)
       if (drag.type === 'project' && targetGroupId) {
-        patchProject(drag.projectId!, (p) => ({ ...p, groupId: targetGroupId }));
+        patchProject(drag.projectId!, (p) => ({
+          ...p,
+          groupId: targetGroupId === UNGROUP_ID ? null : targetGroupId,
+        }));
         showToast(`Moved "${projects.find((pr) => pr.id === drag.projectId)?.name}" to group`);
         return;
       }
@@ -1245,9 +1392,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
           if (srcIdx < 0 || tgtIdx < 0 || srcIdx === tgtIdx) return prev;
 
           const next = [...prev];
-          const [moved] = next.splice(srcIdx, 1);
+          const [picked] = next.splice(srcIdx, 1);
+          const moved = { ...picked, groupId: prev[tgtIdx].groupId ?? null };
           const newTgtIdx = next.findIndex((p) => p.id === targetProjectId);
-          next.splice(newTgtIdx, 0, moved);
+          next.splice(newTgtIdx + (dropAfter ? 1 : 0), 0, moved);
           return next;
         });
         return;
@@ -1255,20 +1403,21 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       // 4. Group -> Group (Reorder)
       if (drag.type === 'group' && targetGroupId) {
-        setGroups((prev) => {
-          const srcIdx = prev.findIndex((g) => g.id === drag.groupId);
-          const tgtIdx = prev.findIndex((g) => g.id === targetGroupId);
-          if (srcIdx < 0 || tgtIdx < 0 || srcIdx === tgtIdx) return prev;
-          const next = [...prev];
-          const [moved] = next.splice(srcIdx, 1);
-          const newTgtIdx = next.findIndex((g) => g.id === targetGroupId);
-          next.splice(newTgtIdx, 0, moved);
-          return next;
-        });
+        const ids = groups.map((g) => g.id);
+        ids.splice(Math.min(Math.max(ungroupIndex, 0), ids.length), 0, UNGROUP_ID);
+        const srcIdx = ids.indexOf(drag.groupId!);
+        const tgtIdx = ids.indexOf(targetGroupId);
+        if (srcIdx < 0 || tgtIdx < 0 || srcIdx === tgtIdx) return;
+        ids.splice(srcIdx, 1);
+        const at = ids.indexOf(targetGroupId);
+        ids.splice(at + (dropAfter ? 1 : 0), 0, drag.groupId!);
+        const byId = new Map(groups.map((g) => [g.id, g]));
+        setGroups(ids.filter((id) => id !== UNGROUP_ID).map((id) => byId.get(id)!));
+        setUngroupIndex(ids.indexOf(UNGROUP_ID));
         return;
       }
     },
-    [patchProject, projects, showToast, setProjects, setGroups],
+    [patchProject, projects, showToast, setProjects, setGroups, groups, ungroupIndex],
   );
 
   // ── Resolve dropdown subjects ──
@@ -1321,9 +1470,14 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   const handleCreateGroup = useCallback(
-    (iconId: string, name: string) => {
+    (name: string, projectIds: string[]) => {
       const id = `g${Date.now()}`;
-      setGroups((prev) => [...prev, { id, name, open: true, iconId }]);
+      setGroups((prev) => [...prev, { id, name, open: true, iconId: 'folder' }]);
+      if (projectIds.length > 0) {
+        setProjects((prev) =>
+          prev.map((p) => (projectIds.includes(p.id) ? { ...p, groupId: id } : p)),
+        );
+      }
       setGroupFormOpen(false);
       showToast(`Created group "${name}"`);
     },
@@ -1345,6 +1499,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const headerBtnOn = 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]';
 
   const ungrouped = shownProjects.filter((p) => !groups.some((g) => g.id === p.groupId));
+  const draggingGroup = isGlobalDragging && dragRef.current?.type === 'group';
+  const ungroupPos = Math.min(Math.max(ungroupIndex, 0), groups.length);
 
   // ── Render ──
   return (
@@ -1367,7 +1523,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
             className={cn(headerBtn, headerBtnIdle)}
             title="Create new group"
           >
-            <Folder className="w-3.5 h-3.5" />
+            <FolderPlus className="w-3.5 h-3.5" />
           </button>
 
           {/* Expand / Collapse all */}
@@ -1413,12 +1569,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
       </div>
 
       {/* Project list */}
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm">
+      <div className="flex-1 min-h-0 overflow-y-auto select-none flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm">
         {/* Group Creation Form */}
         {groupFormOpen && (
-          <div className="px-3 py-2 sticky top-0 z-10 bg-sidebar-background/95 backdrop-blur-sm border-b border-divider">
-            <GroupPickerForm onSave={handleCreateGroup} onCancel={() => setGroupFormOpen(false)} />
-          </div>
+          <NewGroupModal
+            projects={projects}
+            groups={groups}
+            onSave={handleCreateGroup}
+            onCancel={() => setGroupFormOpen(false)}
+          />
         )}
 
         {shownProjects.length === 0 && groups.length === 0 && !groupFormOpen ? (
@@ -1439,13 +1598,18 @@ export const ProjectPanel = memo(function ProjectPanel() {
           </div>
         ) : (
           <>
-            {groups.map((g) => {
+            {groups.map((g, gi) => {
               const members = shownProjects.filter((p) => p.groupId === g.id);
               // Hide empty groups when filtering unless explicitly looking for them?
               // For now, keep structure stable.
 
               return (
-                <div key={g.id} data-gid={g.id}>
+                <div
+                  key={g.id}
+                  data-gid={g.id}
+                  className="shrink-0"
+                  style={{ order: gi < ungroupPos ? gi + 1 : gi + 2 }}
+                >
                   {editingGroupId === g.id ? (
                     <div className="px-2 py-1.5 bg-sidebar-background/50">
                       <GroupPickerForm
@@ -1478,7 +1642,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     />
                   )}
 
-                  {g.open && (
+                  {g.open && !draggingGroup && (
                     <div className="pl-2">
                       {members.length ? (
                         members.map(renderCard)
@@ -1493,13 +1657,34 @@ export const ProjectPanel = memo(function ProjectPanel() {
               );
             })}
 
-            {groups.length > 0 && ungrouped.length > 0 && (
-              <div className="px-3 pt-3 pb-1 font-mono text-[10px] uppercase tracking-[0.05em] text-text-secondary/50 flex items-center gap-2">
-                <span>Ungrouped</span>
-                <div className="h-px flex-1 bg-divider" />
+            {ungrouped.length > 0 && (
+              <div className="shrink-0" style={{ order: ungroupPos + 1 }}>
+                <div
+                  draggable
+                  data-gid={UNGROUP_ID}
+                  onDragStart={(e) => handleDragStart(e, 'group', UNGROUP_ID)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => setUngroupedOpen((o) => !o)}
+                  className={cn(
+                    'flex items-center gap-[7px] px-3 py-[7px] border-b border-divider cursor-pointer select-none font-mono text-[14px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
+                    ungroupedOpen ? 'bg-white/[0.02]' : 'bg-card-background',
+                  )}
+                >
+                  {ungroupedOpen ? (
+                    <ChevronDown className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
+                  ) : (
+                    <ChevronRight className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
+                  )}
+                  <span className="min-w-0 truncate">Ungroup</span>
+                  <span className="font-medium text-text-secondary/50">{ungrouped.length}</span>
+                  <span className="flex-1" />
+                  <span className="w-5 h-5 shrink-0" />
+                </div>
+                {ungroupedOpen && !draggingGroup && ungrouped.map(renderCard)}
               </div>
             )}
-            {ungrouped.map(renderCard)}
           </>
         )}
       </div>

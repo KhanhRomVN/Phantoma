@@ -35,6 +35,7 @@ export interface WorkspacePanel {
   content?: string;
   /** Đường dẫn tuyệt đối của file khi type === 'file' */
   filePath?: string;
+  preview?: boolean;
   /** Working directory for this specific panel (crucial to prevent restart on session switch) */
   cwd?: string;
   sessionId?: string;

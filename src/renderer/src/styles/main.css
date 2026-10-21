@@ -206,3 +206,47 @@
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--border) / 0.5) transparent;
 }
+
+/* ProjectPanel Drag & Drop Visual Feedback */
+.pp-dragging {
+  /* Giảm nhẹ opacity để vẫn thấy rõ màu sắc/icon, không bị mờ quá mức gây mất theme */
+  opacity: 0.6;
+  /* Bỏ transform scale để tránh lệch bounding box khi kéo, giúp drop zone chính xác hơn */
+  cursor: grabbing !important;
+}
+
+.pp-dragover {
+  position: relative;
+  /* Nền highlight nhẹ cho vùng thả */
+  background-color: rgb(var(--primary) / 0.14) !important;
+  background-image: none !important;
+  box-shadow: inset 0 0 0 1px rgb(var(--primary) / 0.7);
+  border-radius: var(--radius);
+}
+
+/* Đường kẻ sáng báo hiệu vị trí chèn/thả */
+.pp-dragover[data-drop-pos] {
+  background-color: transparent !important;
+  box-shadow: none;
+}
+
+.pp-dragover[data-drop-pos='before']::before,
+.pp-dragover[data-drop-pos='after']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: rgb(var(--primary));
+  box-shadow: 0 0 6px rgb(var(--primary) / 0.6);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.pp-dragover[data-drop-pos='before']::before {
+  top: 0;
+}
+
+.pp-dragover[data-drop-pos='after']::after {
+  bottom: 0;
+}

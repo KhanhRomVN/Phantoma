@@ -50,7 +50,6 @@ export interface PromptBuilderOptions {
   isReq1: boolean;
   skipFirstRequestLogic: boolean;
   aiLanguage: string;
-  permissionMode: string;
   treeView: string;
   workspace: string;
   files?: any[];
@@ -114,7 +113,6 @@ export class PromptBuilder {
       isReq1,
       skipFirstRequestLogic,
       aiLanguage,
-      permissionMode,
       treeView,
       workspace,
       files,
@@ -141,7 +139,6 @@ export class PromptBuilder {
     if (isReq1) {
       systemPrompt = await this.buildSystemPrompt(
         aiLanguage,
-        permissionMode,
         feature,
         {
           useSkillEnabled,
@@ -227,7 +224,6 @@ export class PromptBuilder {
 
   private static async buildSystemPrompt(
     aiLanguage: string,
-    permissionMode: string,
     feature?: AgentFeature,
     overrides?: {
       useSkillEnabled?: boolean;
@@ -302,7 +298,6 @@ export class PromptBuilder {
       systemPrompt = combinePrompts({
         language: effectiveLang,
         systemInfo,
-        permissionMode,
         promptLengthMode: overrides?.promptLengthMode ?? 'long',
         toolFormat: overrides?.toolFormat ?? 'xml',
       });

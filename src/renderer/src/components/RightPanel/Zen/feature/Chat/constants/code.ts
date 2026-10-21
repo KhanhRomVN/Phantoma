@@ -20,10 +20,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "READ",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
     features: {
       showFileStats: true,
     },
@@ -34,10 +30,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "WRITE",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "allow",
-    },
     features: {
       showFileStats: true,
       isFileMutation: true,
@@ -49,10 +41,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "UPDATE",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "allow",
-    },
     features: {
       validateFuzzyMatch: true,
       isFileMutation: true,
@@ -64,10 +52,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "REVERT",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "allow",
-    },
     features: {
       isFileMutation: true,
     },
@@ -78,10 +62,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "HISTORY REPLACE",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   list_files: {
@@ -89,10 +69,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "LIST",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   find_files: {
@@ -100,10 +76,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "FIND",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   grep: {
@@ -111,10 +83,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "GREP",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   delete_file: {
@@ -122,10 +90,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "DELETE",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "allow",
-    },
   },
 
   run_command: {
@@ -133,10 +97,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "EXECUTE",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "confirm",
-      fullAccess: "confirm",
-    },
   },
 
   git_status: {
@@ -144,10 +104,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "GIT STATUS",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   commit_message: {
@@ -155,10 +111,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "COMMIT MESSAGE",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   git_diff: {
@@ -166,10 +118,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "DIFF",
     category: "tool",
     timeout: 60000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   read_skill: {
@@ -177,10 +125,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "READ SKILL",
     category: "tool",
     timeout: 20000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   read_memory: {
@@ -188,10 +132,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "READ MEMORY",
     category: "tool",
     timeout: 30000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   update_memory: {
@@ -199,10 +139,6 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "UPDATE MEMORY",
     category: "tool",
     timeout: 30000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   conversation_title: {

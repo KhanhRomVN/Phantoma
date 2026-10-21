@@ -24,7 +24,7 @@ export type DbFetch = (path: string, init?: RequestInit) => Promise<Response>;
  * @returns Hàm `dbFetch(path, init?)`. `path` bắt đầu bằng "/".
  */
 export const useDbFetch = (): DbFetch => {
-  const { apiUrl, activeDatabaseManagerId } = useSettings();
+  const { apiUrl } = useSettings();
 
   return useCallback(
     (path: string, init?: RequestInit) => {
@@ -32,11 +32,8 @@ export const useDbFetch = (): DbFetch => {
       if (!headers.has('Content-Type') && init?.body) {
         headers.set('Content-Type', 'application/json');
       }
-      if (activeDatabaseManagerId) {
-        headers.set(DB_MANAGER_HEADER, activeDatabaseManagerId);
-      }
       return fetch(`${apiUrl}${path}`, { ...init, headers });
     },
-    [apiUrl, activeDatabaseManagerId],
+    [apiUrl],
   );
 };

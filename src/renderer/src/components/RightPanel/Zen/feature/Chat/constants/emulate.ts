@@ -20,10 +20,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "LIST HTTPS",
     category: "tool",
     timeout: 30000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   get_https_detail: {
@@ -31,10 +27,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "HTTPS DETAIL",
     category: "tool",
     timeout: 30000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   list_hosts: {
@@ -42,10 +34,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "LIST HOSTS",
     category: "tool",
     timeout: 15000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   list_sources: {
@@ -53,10 +41,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "LIST SOURCES",
     category: "tool",
     timeout: 15000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   list_resources: {
@@ -64,10 +48,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "LIST RESOURCES",
     category: "tool",
     timeout: 15000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   get_source_detail: {
@@ -75,10 +55,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "SOURCE DETAIL",
     category: "tool",
     timeout: 15000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   get_resource_content: {
@@ -86,10 +62,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "RESOURCE CONTENT",
     category: "tool",
     timeout: 15000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   apply_filter: {
@@ -97,10 +69,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "APPLY FILTER",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   send_to_repeater: {
@@ -108,10 +76,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "SEND TO REPEATER",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   list_repeaters: {
@@ -119,10 +83,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "LIST REPEATERS",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   delete_repeater: {
@@ -130,10 +90,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "DELETE REPEATER",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   get_repeater_detail: {
@@ -141,10 +97,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "GET REPEATER DETAIL",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   update_repeater_content: {
@@ -152,10 +104,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "UPDATE REPEATER CONTENT",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   run_repeater: {
@@ -163,10 +111,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "RUN REPEATER",
     category: "tool",
     timeout: 30000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   list_reports: {
@@ -174,10 +118,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "LIST REPORTS",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   create_report: {
@@ -185,10 +125,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "CREATE REPORT",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   read_report: {
@@ -196,10 +132,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "READ REPORT",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   update_report: {
@@ -207,10 +139,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "UPDATE REPORT",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   list_report_files: {
@@ -218,10 +146,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "LIST REPORT FILES",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   create_report_file: {
@@ -229,10 +153,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "CREATE REPORT FILE",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   read_report_file: {
@@ -240,10 +160,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "READ REPORT FILE",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   update_report_file: {
@@ -251,10 +167,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "UPDATE REPORT FILE",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   delete_report_file: {
@@ -262,10 +174,6 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "DELETE REPORT FILE",
     category: "tool",
     timeout: 5000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 
   execute_command: {
@@ -273,9 +181,5 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: "EXECUTE COMMAND",
     category: "tool",
     timeout: 30000,
-    permissions: {
-      approval: "allow",
-      fullAccess: "allow",
-    },
   },
 };

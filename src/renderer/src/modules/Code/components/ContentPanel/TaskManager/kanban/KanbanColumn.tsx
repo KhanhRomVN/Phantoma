@@ -156,7 +156,7 @@ export const KanbanColumn = memo(function KanbanColumn({
         const id = e.dataTransfer.getData(TASK_DRAG_TYPE);
         if (id) onDropTask(id, status, index);
       }}
-      className="flex-1 min-w-[260px] flex flex-col min-h-0 rounded-xl border bg-sidebar-background/50 overflow-hidden transition-colors"
+      className="flex-1 min-w-0 basis-0 flex flex-col min-h-0 rounded-xl border bg-sidebar-background/50 overflow-hidden transition-colors"
       style={{ borderColor: over ? $(accent, 0.7) : undefined }}
     >
       <div className="shrink-0 px-3.5 py-3 flex items-center gap-2 border-b border-divider">

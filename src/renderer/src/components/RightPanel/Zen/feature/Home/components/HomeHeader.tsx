@@ -137,6 +137,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ imagesUri }) => {
           {SLOGANS[sloganIndex]}
         </div>
       </div>
+
     </div>
   );
 };

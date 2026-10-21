@@ -37,7 +37,6 @@ export type PromptLengthMode = 'short' | 'medium' | 'long' | 'none';
 export interface PromptConfig {
   language: string;
   systemInfo: SystemInfo;
-  permissionMode?: string;
   /** Which sections of the prompt to include. Default: 'long' (full). */
   promptLengthMode?: PromptLengthMode;
   /** Tool output format — 'xml' (default) or 'json'. */

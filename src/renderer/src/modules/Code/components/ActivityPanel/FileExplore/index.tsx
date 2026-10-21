@@ -525,6 +525,15 @@ const TreeNode = memo(function TreeNode({
         <DropdownTrigger asChild>
           <button
             onClick={handleClick}
+            draggable={!isFolder && !!node.path}
+            onDragStart={(e) => {
+              if (isFolder || !node.path) return;
+              e.dataTransfer.effectAllowed = 'copy';
+              e.dataTransfer.setData(
+                'application/json',
+                JSON.stringify({ type: 'phantoma-file', filePath: node.path, name: node.name }),
+              );
+            }}
             className={cn(
               'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group',
               isActive ? 'bg-card-hover' : 'hover:bg-card-hover',

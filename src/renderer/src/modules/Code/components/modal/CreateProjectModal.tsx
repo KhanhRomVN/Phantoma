@@ -15,7 +15,8 @@ import {
   Bot,
 } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
-import { $ } from '@renderer/utils/color';
+import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+
 
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { Modal } from '@renderer/components/ui/Modal';
@@ -245,9 +246,9 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
         className="[&_h3]:text-left [&_p]:text-left px-6 py-4 border-b border-border bg-background"
       />
       <ModalBody className="p-0 flex-1 overflow-hidden bg-background">
-        <div className="grid grid-cols-[1fr_340px] h-full gap-4 p-4 overflow-hidden">
+        <div className="grid grid-cols-[minmax(0,1fr)_340px] h-full gap-4 p-4 overflow-hidden">
           {/* Left: Form */}
-          <div className="flex flex-col gap-3 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+          <div className="flex flex-col gap-3 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pr-1 custom-scrollbar">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] font-mono uppercase tracking-widest text-text-secondary/50 mb-1.5">
@@ -435,93 +436,6 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
 
               <div className="h-3 shrink-0" />
 
-              {/* Mini Editor Simulation */}
-              <div className="mx-3.5 h-[116px] shrink-0 rounded-md border border-border bg-sidebar-background flex flex-col overflow-hidden">
-                <div className="h-[18px] border-b border-border flex gap-1 items-center px-2">
-                  <i className="w-1 h-1 rounded-full bg-border" />
-                  <i className="w-1 h-1 rounded-full bg-border" />
-                  <i className="w-1 h-1 rounded-full bg-border" />
-                </div>
-                <div className="flex-1 grid grid-cols-[34px_1fr] min-h-0">
-                  <div className="border-r border-border p-1.5 flex flex-col gap-1">
-                    <i
-                      className="w-full h-1 rounded-sm"
-                      style={{ background: selectedTemplate.accentColor }}
-                    />
-                    <i className="w-full h-1 rounded-sm bg-border" />
-                    <i className="w-full h-1 rounded-sm bg-border" />
-                    <i className="w-full h-1 rounded-sm bg-border" />
-                  </div>
-                  <div className="p-2 flex flex-col gap-1 min-w-0">
-                    {selectedTemplate.lay === 'app' ? (
-                      <>
-                        <i
-                          className="w-1/2 h-1 rounded-sm"
-                          style={{
-                            background: `color-mix(in srgb, ${selectedTemplate.accentColor} 70%, transparent)`,
-                          }}
-                        />
-                        <div className="grid grid-cols-3 gap-1">
-                          <i
-                            className="h-5 rounded-sm"
-                            style={{
-                              background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)`,
-                            }}
-                          />
-                          <i
-                            className="h-5 rounded-sm"
-                            style={{
-                              background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)`,
-                            }}
-                          />
-                          <i
-                            className="h-5 rounded-sm"
-                            style={{
-                              background: `color-mix(in srgb, ${selectedTemplate.accentColor} 15%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${selectedTemplate.accentColor} 25%, transparent)`,
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 rounded-sm bg-white/[0.02] border border-border" />
-                      </>
-                    ) : selectedTemplate.lay === 'api' ? (
-                      [70, 55, 80, 45].map((w, i) => (
-                        <div key={i} className="flex gap-1.5 items-center">
-                          <em
-                            className="w-4 h-1.5 rounded-sm"
-                            style={{
-                              background: `color-mix(in srgb, ${selectedTemplate.accentColor} 32%, transparent)`,
-                            }}
-                          />
-                          <i
-                            className="h-1 rounded-sm"
-                            style={{ width: `${w}%`, background: $('--border') }}
-                          />
-                        </div>
-                      ))
-                    ) : (
-                      [40, 70, 55, 30, 62].map((w, i) => (
-                        <i
-                          key={i}
-                          className="h-1 rounded-sm"
-                          style={{
-                            width: `${w}%`,
-                            background:
-                              i % 2 === 0
-                                ? `color-mix(in srgb, ${selectedTemplate.accentColor} 70%, transparent)`
-                                : $('--border'),
-                          }}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-2.5 shrink-0" />
-
               {/* Tree Preview */}
               <div className="mx-3.5 p-2 rounded-md bg-sidebar-background border border-border font-mono text-[11px] leading-relaxed text-text-secondary flex-1 min-h-0 overflow-hidden">
                 {selectedTemplate.treePreview.map((node, idx) => (
@@ -530,36 +444,21 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                     style={{ paddingLeft: `${node.depth * 14}px` }}
                     className="flex items-center gap-1.5 whitespace-nowrap"
                   >
-                    <span className={cn(node.isFolder ? 'text-warn' : '')}>
-                      {node.isFolder ? (
-                        <FolderOpen className="w-3 h-3" />
-                      ) : (
-                        <FileText className="w-3 h-3" />
-                      )}
-                    </span>
+                    <img
+                      src={
+                        node.isFolder
+                          ? getFolderIconPath(node.label, true)
+                          : getFileIconPath(node.label)
+                      }
+                      alt=""
+                      className="w-4 h-4 shrink-0"
+                    />
                     {node.label}
                   </div>
                 ))}
               </div>
 
-              <div className="h-2.5 shrink-0" />
-
-              {/* Stack Tags */}
-              <div className="mx-3.5 pb-3 flex flex-wrap gap-1.5">
-                {selectedTemplate.stack.map((s) => (
-                  <span
-                    key={s}
-                    className="text-[10px] font-mono px-1.5 py-0.5 rounded border text-text-secondary"
-                    style={{
-                      backgroundColor: `color-mix(in srgb, ${selectedTemplate.accentColor} 11%, transparent)`,
-                      borderColor: `color-mix(in srgb, ${selectedTemplate.accentColor} 22%, transparent)`,
-                      color: selectedTemplate.accentColor,
-                    }}
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
+              <div className="h-3.5 shrink-0" />
             </div>
           </div>
         </div>

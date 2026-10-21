@@ -2,7 +2,6 @@ export type SystemPromptMode =
   | "fast"
   | "balanced"
   | "thorough"
-  | "autopilot"
   | "short"
   | "none";
 
@@ -85,15 +84,6 @@ export const MODE_BEHAVIORS: Record<SystemPromptMode, ModeBehaviorConfig> = {
     readBeforeEdit: true,
     maxBatchSize: 2,
     runVerifyAfterChange: true,
-  },
-  autopilot: {
-    askConfirmation: "almost-never",
-    commentStyle: "standard",
-    testBehavior: "propose-existing",
-    explanationLevel: "brief",
-    readBeforeEdit: true,
-    maxBatchSize: 4,
-    runVerifyAfterChange: false,
   },
   // "short" and "none" (SystemPromptMode) intentionally mirror "fast" behavior.
   // They exist so a caller can pick a SystemPromptMode even when only

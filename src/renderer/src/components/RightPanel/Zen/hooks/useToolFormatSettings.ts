@@ -4,11 +4,11 @@
  * ------------------------------------------------------------------
  * Quản lý toolFormat ('xml' | 'json') per (providerId, modelId).
  *
- * Mặc định là 'xml' (false = XML, true = JSON).
+ * Mặc định là 'json'.
  * Lưu vào localStorage với key:
  *   zen_tool_format__<providerId>__<modelId>
  *
- * Khi chưa có preset cho model đó → fallback về 'xml'.
+ * Khi chưa có preset cho model đó → fallback về 'json'.
  * Khi model thay đổi → tự động load lại preset của model mới.
  * ------------------------------------------------------------------
  */
@@ -24,12 +24,12 @@ const loadToolFormat = (providerId: string, modelId: string): 'xml' | 'json' => 
   try {
     const key = storageKey(providerId, modelId);
     const raw = localStorage.getItem(key);
-    const result: 'xml' | 'json' = raw === 'json' ? 'json' : 'xml';
+    const result: 'xml' | 'json' = raw === 'xml' ? 'xml' : 'json';
     return result;
   } catch (e) {
     console.warn('[ToolFormat] load failed:', e);
   }
-  return 'xml';
+  return 'json';
 };
 
 const saveToolFormat = (providerId: string, modelId: string, format: 'xml' | 'json') => {
@@ -70,7 +70,7 @@ export function useToolFormatSettings(
     if (providerId && modelId) {
       return loadToolFormat(providerId, modelId);
     }
-    return 'xml';
+    return 'json';
   });
 
   // Track model key để detect khi model thực sự thay đổi
@@ -88,7 +88,7 @@ export function useToolFormatSettings(
       const loaded = loadToolFormat(providerId, modelId);
       setToolFormatState(loaded);
     } else {
-      setToolFormatState('xml');
+      setToolFormatState('json');
     }
   }, [providerId, modelId]);
 

@@ -1,37 +1,36 @@
 /**
  * ------------------------------------------------------------------
- * Group Picker Form
+ * Group Picker Form (Modal)
  * ------------------------------------------------------------------
- * Inline form to create or edit a Project Group.
- * - Icon picker: Custom dropdown with Lucide icons.
- * - Name input: Limited length, validated on blur/enter.
- * - Drag handle: Allows reordering groups in the list.
+ * Dialog to create or edit a Project Group.
+ * - Live preview of the group header.
+ * - Icon grid: pick from Lucide icons.
+ * - Name input: limited length, Enter to save, Esc to cancel.
  * ------------------------------------------------------------------
  */
 
-import { useState, useRef, useEffect, memo } from 'react';
-import { 
-  Folder, 
-  FolderOpen, 
-  FolderGit2, 
-  Package, 
-  Layers, 
-  Box, 
-  Archive, 
-  Briefcase, 
-  HardDrive, 
-  Server, 
-  Cloud, 
-  Database, 
-  Terminal, 
-  Code, 
-  GitBranch, 
-  Check,
-  X,
-  GripVertical
+import { useState, memo } from 'react';
+import {
+  Folder,
+  FolderOpen,
+  FolderGit2,
+  Package,
+  Layers,
+  Box,
+  Archive,
+  Briefcase,
+  HardDrive,
+  Server,
+  Cloud,
+  Database,
+  Terminal,
+  Code,
+  GitBranch,
 } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
+import { Button } from '@renderer/components/ui/Button';
+import { Input } from '@renderer/components/ui/Input';
 
 // ─── Available Icons for Groups ──────────────────────────────────────
 export const GROUP_ICONS = [
@@ -61,7 +60,7 @@ interface GroupPickerFormProps {
   onCancel: () => void;
   /** If true, this is an existing group being edited, not a new one */
   isEditing?: boolean;
-  /** Drag handlers for reordering groups */
+  /** Legacy inline-form props, no longer used by the modal */
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
   onDragOver?: (e: React.DragEvent) => void;
@@ -75,121 +74,95 @@ export const GroupPickerForm = memo(function GroupPickerForm({
   onSave,
   onCancel,
   isEditing = false,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
-  isDragging = false,
 }: GroupPickerFormProps) {
   const [name, setName] = useState(initialName);
   const [selectedIconId, setSelectedIconId] = useState(initialIconId);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!isEditing) {
-      inputRef.current?.focus();
-    }
-  }, [isEditing]);
+  const trimmed = name.trim();
+  const currentIcon = GROUP_ICONS.find((g) => g.id === selectedIconId) || GROUP_ICONS[0];
 
   const handleSubmit = () => {
-    const trimmed = name.trim();
     if (!trimmed) return;
     onSave(selectedIconId, trimmed.slice(0, MAX_NAME_LENGTH));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSubmit();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
-    }
-  };
-
-  const currentIconObj = GROUP_ICONS.find((g) => g.id === selectedIconId) || GROUP_ICONS[0];
-
   return (
-    <div
-      draggable={!!onDragStart}
-      onDragStart={(e) => {
-        // Prevent dragging if interacting with inputs/buttons inside
-        const target = e.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.closest('button')) {
-          e.stopPropagation();
-          return;
-        }
-        onDragStart?.(e);
-      }}
-      onDragEnd={onDragEnd}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      className={cn(
-        'group/gh',
-        isDragging && 'opacity-50 scale-[0.98]',
-      )}
-    >
-      {/* Drag Handle (visible on hover) */}
-      {onDragStart && (
-        <span className="cursor-grab active:cursor-grabbing text-text-secondary/30 hover:text-text-secondary opacity-0 group-hover/gh:opacity-100 transition-opacity shrink-0 float-left mr-2 mt-1.5">
-          <GripVertical className="w-3.5 h-3.5" />
-        </span>
-      )}
+    <Modal isOpen onClose={onCancel} className="max-w-[400px]">
+      <ModalHeader
+        title={isEditing ? 'Edit group' : 'New group'}
+        description="Organize related projects together"
+        onClose={onCancel}
+      />
 
-      {/* Container for Button + Input 
-          - Fixed height h-9 (36px) to define the row size explicitly.
-          - No vertical padding on container, spacing is internal or via margin if needed, but here we want tight fit.
-          - Items center vertically.
-      */}
-      <div className="w-full h-9 flex items-center gap-2">
-        {/* Icon Picker Button */}
-        <Dropdown open={dropdownOpen} onOpenChange={setDropdownOpen} trigger="click" align="start">
-          <DropdownTrigger asChild>
-            <button
-              type="button"
-              className="h-full aspect-square rounded-md bg-text-secondary/10 hover:bg-text-secondary/20 transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-              title="Pick icon"
-            >
-              {/* Force red color for the icon itself, full opacity */}
-              <span className="text-[#ff4757] [&_svg]:w-4 [&_svg]:h-4">
-                {currentIconObj.icon}
-              </span>
-            </button>
-          </DropdownTrigger>
-          <DropdownContent className="grid grid-cols-5 gap-1 p-1 max-w-[220px]">
-            {GROUP_ICONS.map((g) => (
-              <DropdownItem
-                key={g.id}
-                onClick={() => {
-                  setSelectedIconId(g.id);
-                  setDropdownOpen(false);
-                }}
-                className={cn(
-                  'flex items-center justify-center p-2 rounded-md min-w-0',
-                  selectedIconId === g.id ? 'bg-primary/10 text-primary' : 'hover:bg-card-hover text-text-secondary',
-                )}
-                title={g.label}
-              >
-                {g.icon}
-              </DropdownItem>
-            ))}
-          </DropdownContent>
-        </Dropdown>
+      <ModalBody className="flex flex-col gap-4 py-4">
+        {/* Live preview */}
+        <div className="flex items-center gap-2.5 px-3 h-11 rounded-lg border border-divider bg-card-background">
+          <span className="w-7 h-7 rounded-md grid place-items-center shrink-0 bg-[rgba(255,71,87,0.12)] text-[#ff4757]">
+            {currentIcon.icon}
+          </span>
+          <span
+            className={cn(
+              'font-display font-semibold text-[12.5px] truncate',
+              trimmed ? 'text-text-primary' : 'text-text-secondary/50',
+            )}
+          >
+            {trimmed || 'Group name'}
+          </span>
+        </div>
 
-        {/* Name Input */}
-        <input
-          ref={inputRef}
+        {/* Name */}
+        <Input
+          label="Name"
+          autoFocus
           value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Group name..."
           maxLength={MAX_NAME_LENGTH}
-          className="h-full flex-1 min-w-0 bg-text-secondary/10 border-none outline-none rounded-md px-2 text-[12px] font-medium text-text-primary placeholder:text-text-secondary/40 font-display focus:bg-text-secondary/15 transition-colors"
+          placeholder="e.g. Backend services"
+          hint={`${name.length}/${MAX_NAME_LENGTH}`}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
         />
-      </div>
-      
-    </div>
+
+        {/* Icon grid */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-text-primary">Icon</span>
+          <div className="grid grid-cols-5 gap-1.5">
+            {GROUP_ICONS.map((g) => {
+              const active = g.id === selectedIconId;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  title={g.label}
+                  onClick={() => setSelectedIconId(g.id)}
+                  className={cn(
+                    'h-10 rounded-lg border flex items-center justify-center cursor-pointer transition-colors',
+                    active
+                      ? 'border-[#ff6a1f]/60 bg-[rgba(255,106,31,0.1)] text-[#ff6a1f]'
+                      : 'border-divider bg-card-background text-text-secondary hover:bg-card-hover hover:text-text-primary',
+                  )}
+                >
+                  {g.icon}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </ModalBody>
+
+      <ModalFooter>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button variant="solid" disabled={!trimmed} onClick={handleSubmit}>
+          {isEditing ? 'Save' : 'Create group'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 });
 

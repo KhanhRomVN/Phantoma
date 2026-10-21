@@ -246,16 +246,29 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     if (existing) {
       dispatch({ type: 'focus', id: existing.id });
     } else {
-      dispatch({
-        type: 'add',
-        panel: {
-          id: createPanelId('file'),
-          type: 'file',
-          title: openFileRequest.name,
-          filePath: openFileRequest.filePath,
-          cwd: currentProjectPath,
-        },
-      });
+      const codeState = useCodeStore.getState();
+      const unsaved = codeState.projects.find((p) => p.id === codeState.currentProjectId)?.unsavedFiles;
+      const previewPanel = panels.find((p) => p.type === 'file' && p.preview && !unsaved?.has(p.id));
+      if (previewPanel) {
+        dispatch({
+          type: 'updatePanel',
+          id: previewPanel.id,
+          patch: { title: openFileRequest.name, filePath: openFileRequest.filePath },
+        });
+        dispatch({ type: 'focus', id: previewPanel.id });
+      } else {
+        dispatch({
+          type: 'add',
+          panel: {
+            id: createPanelId('file'),
+            type: 'file',
+            title: openFileRequest.name,
+            filePath: openFileRequest.filePath,
+            cwd: currentProjectPath,
+            preview: true,
+          },
+        });
+      }
     }
     clearOpenFileRequest();
   }, [openFileRequest, sessionId, panels, currentProjectPath, clearOpenFileRequest]);
@@ -275,6 +288,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         terminalId: string;
         panelId?: string;
         command: string;
+        displayCommand?: string;
         ports: number[];
         alive: boolean;
       },
@@ -284,7 +298,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
       if (payload.alive && payload.command) {
         terminalProcsRef.current.set(panelId, {
-          command: payload.command,
+          command: payload.displayCommand || payload.command,
           port: payload.ports[0],
           terminalId: payload.terminalId,
         });
@@ -346,6 +360,35 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
         const payload = JSON.parse(dataStr);
 
+        if (payload.type === 'phantoma-file' && payload.filePath) {
+          const existing = panels.find((p) => p.type === 'file' && p.filePath === payload.filePath);
+          if (existing) {
+            dispatch({ type: 'focus', id: existing.id });
+            return;
+          }
+
+          const fileRect = contentRef.current?.getBoundingClientRect();
+          let filePane: PaneId | undefined;
+          if (fileRect && fileRect.width > 0 && fileRect.height > 0) {
+            const fx = ((e.clientX - fileRect.left) / fileRect.width) * 100;
+            const fy = ((e.clientY - fileRect.top) / fileRect.height) * 100;
+            filePane = getPaneAtPoint(fx, fy, occupied, sizes);
+          }
+
+          dispatch({
+            type: 'add',
+            pane: filePane,
+            panel: {
+              id: createPanelId('file'),
+              type: 'file',
+              title: payload.name,
+              filePath: payload.filePath,
+              cwd: currentProjectPath,
+            },
+          });
+          return;
+        }
+
         // Verify it's a ZenCLI resume action
         if (payload.type !== 'zencli-resume' || !payload.conversationId) return;
 
@@ -382,7 +425,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         console.error('[Workspace] Failed to process history drop:', err);
       }
     },
-    [occupied, sizes],
+    [occupied, sizes, panels, currentProjectPath],
   );
 
   const closePanel = useCallback((id: string) => {

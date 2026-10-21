@@ -3,10 +3,9 @@
  * Tag Types
  * ------------------------------------------------------------------
  * Định nghĩa các type cho hệ thống tag và tool.
- * Bao gồm permission types, tag definition, và tool type unions.
+ * Bao gồm tag definition và tool type unions.
  *
  * Main types:
- * - PermissionMode  : Chế độ permission (fullAccess/approval)
  * - TagDefinition   : Cấu trúc metadata cho một tag/tool
  * - ToolType        : Union type cho các tool
  * - TagCategory     : Phân loại tag (tool/ui)
@@ -14,11 +13,6 @@
  */
 
 // ─── Types ──────────────────────────────────────────────────────────────
-// ============= PERMISSION TYPES =============
-
-export type PermissionMode = "fullAccess" | "approval";
-export type PermissionValue = "allow" | "confirm" | "reject" | RegExp;
-
 // ============= TAG TYPES =============
 
 export type TagCategory = "tool" | "ui";
@@ -27,12 +21,6 @@ export interface TagDefinition {
   id: string;
   title?: string | null;
   category: TagCategory;
-
-  // Only tools have permissions
-  permissions?: {
-    approval: PermissionValue;
-    fullAccess: PermissionValue;
-  };
 
   timeout?: number;
 

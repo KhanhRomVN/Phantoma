@@ -3,6 +3,8 @@ import {
   buildMatcher,
   getMentionContext,
   insertBadgeAt,
+  insertBadgesAtCaret,
+  removeMentionBadge,
 } from '../mentionEditor';
 import type { MentionContext, MentionItem } from '../mentionEditor';
 
@@ -17,7 +19,62 @@ export const useMentionEditor = (
   const [allItems, setAllItems] = React.useState<MentionItem[]>([]);
   const fetchedRef = React.useRef(false);
   const contextRef = React.useRef<MentionContext | null>(null);
+  const undoStackRef = React.useRef<Node[][]>([]);
   const isOpen = query !== null;
+
+  React.useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const data = event.data;
+      const root = editorRef.current;
+      if (data?.command !== 'addMention' || !root) return;
+      if (!Array.isArray(data.items) || data.items.length === 0) return;
+      const inserted = insertBadgesAtCaret(root, data.items as MentionItem[]);
+      if (inserted.length > 0) undoStackRef.current.push(inserted);
+      onContentChange();
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [editorRef, onContentChange]);
+
+  React.useEffect(() => {
+    const root = editorRef.current;
+    if (!root) return;
+    const handler = (event: MouseEvent) => {
+      if (!removeMentionBadge(event.target)) return;
+      event.preventDefault();
+      onContentChange();
+    };
+    root.addEventListener('click', handler);
+    return () => root.removeEventListener('click', handler);
+  }, [editorRef, onContentChange]);
+
+  React.useEffect(() => {
+    const root = editorRef.current;
+    if (!root) return;
+    const onInput = () => {
+      undoStackRef.current = [];
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isUndo =
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === 'z';
+      if (!isUndo) return;
+      const last = undoStackRef.current.pop();
+      if (!last) return;
+      event.preventDefault();
+      last.forEach((node) => {
+        if (root.contains(node)) node.parentNode?.removeChild(node);
+      });
+      onContentChange();
+    };
+    root.addEventListener('input', onInput);
+    root.addEventListener('keydown', onKeyDown);
+    return () => {
+      root.removeEventListener('input', onInput);
+      root.removeEventListener('keydown', onKeyDown);
+    };
+  }, [editorRef, onContentChange]);
 
   React.useEffect(() => {
     fetchedRef.current = false;

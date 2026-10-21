@@ -1,12 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Paperclip,
   Image,
   Video,
   Search,
   GitCommitHorizontal,
-  ScrollText,
-  Plus as PlusIcon,
   Sparkles,
 } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
@@ -16,14 +14,7 @@ import {
   DropdownContent,
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
-// IPC: dùng window.api.invoke trực tiếp cho git:check-ready
-import {
-  listRules,
-  createRule,
-  type Rule,
-} from '../../services/ruleService';
 import type { AttachedItem } from './types';
-import RuleDrawer from './RuleDrawer';
 import SkillPickerDrawer, { type PickedSkill } from './SkillPickerDrawer';
 
 interface AttachmentOption {
@@ -50,20 +41,17 @@ interface ActionDropdownProps {
   triggerButton: React.ReactNode;
   currentModel?: any;
   currentModelConfig?: any;
-  /** Gọi khi người dùng chọn (hoặc vừa tạo) 1 rule để gắn vào input. */
-  onSelectRule?: (item: AttachedItem) => void;
   /** Gọi khi xác nhận chọn skill — truyền toàn bộ tập skill mới (thay thế tập cũ). */
   onSelectSkills?: (items: AttachedItem[]) => void;
   /** Slug các skill đang gắn vào input — dùng để tick sẵn trong drawer. */
   selectedSkillSlugs?: string[];
 }
 
-const RULE_COLOR = $('--yellow');
 const SKILL_COLOR = $('--purple');
 
 /**
  * Menu "+" gộp nhiều action (attach, image/video generator, deep research,
- * generate commit message, rule, skills) — tương đương ActionDropdown bản gốc.
+ * generate commit message, skills) — tương đương ActionDropdown bản gốc.
  */
 const ActionDropdown: React.FC<ActionDropdownProps> = ({
   onSelectAttach,
@@ -77,7 +65,6 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
   triggerButton,
   currentModel,
   currentModelConfig,
-  onSelectRule,
   onSelectSkills,
   selectedSkillSlugs,
 }) => {
@@ -94,34 +81,8 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
   }>({ checking: false, ok: false });
   const gitCheckIdRef = useRef<string | null>(null);
 
-  // Rule submenu state — danh sách rule đã lưu + drawer tạo mới
-  const [ruleListOpen, setRuleListOpen] = useState(false);
-  const [rules, setRules] = useState<Rule[]>([]);
-  const [rulesLoading, setRulesLoading] = useState(false);
-  const [ruleDrawerOpen, setRuleDrawerOpen] = useState(false);
-
-  useEffect(() => {
-    if (!ruleListOpen) return;
-    setRulesLoading(true);
-    listRules()
-      .then(setRules)
-      .catch(() => setRules([]))
-      .finally(() => setRulesLoading(false));
-  }, [ruleListOpen]);
-
-  const ruleToAttachedItem = (rule: Rule): AttachedItem => ({
-    id: `rule-${rule.id}`,
-    path: rule.name,
-    type: 'rule',
-    content: rule.content,
-    ruleId: Number(rule.id),
-  });
-
   // Mỗi lần mở dropdown: hỏi main process xem workspace có .git và đã git add chưa
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      setRuleListOpen(false);
-    }
     if (!open || !onSelectPullRequest) return;
     const requestId = `gitCheckReady-${Date.now()}`;
     gitCheckIdRef.current = requestId;
@@ -272,79 +233,6 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
             </DropdownItem>
           ))}
 
-          {/* Rule — chỉ hiển thị nếu onSelectRule được truyền */}
-          {onSelectRule && (
-            <>
-              <DropdownItem
-                onClick={() => setRuleListOpen((v) => !v)}
-                noPadding
-                closeOnSelect={false}
-              >
-                <div className={rowClass}>
-                  <span className={badgeClass()} style={badgeStyle(RULE_COLOR)}>
-                    <ScrollText size={14} />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-text-primary mb-0.5">
-                      Rule
-                    </div>
-                    <div className="text-[11px] text-text-secondary leading-tight">
-                      Attach a rule for the agent to follow
-                    </div>
-                  </div>
-                </div>
-              </DropdownItem>
-
-              {ruleListOpen && (
-                <div className="pl-3 ml-5 border-l-2 border-yellow-500/30">
-                  <DropdownItem
-                    onClick={() => {
-                      setRuleListOpen(false);
-                      setRuleDrawerOpen(true);
-                    }}
-                    noPadding
-                  >
-                    <div className={`${rowClass} py-2`}>
-                      <span className={badgeClass()} style={badgeStyle(RULE_COLOR)}>
-                        <PlusIcon size={14} />
-                      </span>
-                      <div className="text-[12.5px] font-semibold text-text-primary">
-                        New Rule
-                      </div>
-                    </div>
-                  </DropdownItem>
-
-                  {rulesLoading && (
-                    <div className="py-2 px-3 text-[11px] text-text-secondary">
-                      Loading rules...
-                    </div>
-                  )}
-
-                  {!rulesLoading && rules.length === 0 && (
-                    <div className="py-2 px-3 text-[11px] text-text-secondary">
-                      No saved rules yet
-                    </div>
-                  )}
-
-                  {!rulesLoading &&
-                    rules.map((rule) => (
-                      <DropdownItem
-                        key={rule.id}
-                        onClick={() => onSelectRule(ruleToAttachedItem(rule))}
-                        noPadding
-                      >
-                        <div className={`${rowClass} py-2`}>
-                          <div className="text-[12.5px] font-semibold text-text-primary truncate">
-                            {rule.name}
-                          </div>
-                        </div>
-                      </DropdownItem>
-                    ))}
-                </div>
-              )}
-            </>
-          )}
-
           {/* Skills — chỉ hiển thị nếu onSelectSkills được truyền */}
           {onSelectSkills && (
             <DropdownItem onClick={() => setSkillDrawerOpen(true)} noPadding>
@@ -381,17 +269,6 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
               })),
             )
           }
-        />
-      )}
-
-      {onSelectRule && (
-        <RuleDrawer
-          isOpen={ruleDrawerOpen}
-          onClose={() => setRuleDrawerOpen(false)}
-          onSave={async (name, content) => {
-            const rule = await createRule(name, content);
-            onSelectRule(ruleToAttachedItem(rule));
-          }}
         />
       )}
     </>

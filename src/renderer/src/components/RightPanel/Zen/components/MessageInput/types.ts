@@ -14,9 +14,8 @@ export interface UploadedFile {
 export interface AttachedItem {
   id: string;
   path: string;
-  type: 'file' | 'snippet' | 'rule';
+  type: 'file' | 'snippet';
   content?: string;
-  ruleId?: number;
 }
 
 export interface MessageInputProps {
@@ -98,12 +97,8 @@ export interface MessageInputProps {
   onRevertConversation?: (messageId: string, timestamp: number) => void;
   autoScrollPaused?: boolean;
   scrollToBottom?: () => void;
-  /** Gọi khi người dùng chọn (hoặc vừa tạo) 1 rule để gắn vào input. */
-  onSelectRule?: (item: AttachedItem) => void;
   /** Gọi khi xác nhận chọn skill — truyền toàn bộ tập skill mới (thay thế tập cũ). */
   onSelectSkills?: (items: AttachedItem[]) => void;
-  /** Gỡ 1 attached item theo id — dùng để gỡ badge Rule khỏi toolbar. */
-  onRemoveAttachedItem?: (id: string) => void;
 
   /** Per-conversation override: skill enabled (chỉ hiển thị ở Home panel) */
   conversationUseSkillEnabled?: boolean;

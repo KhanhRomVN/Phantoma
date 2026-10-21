@@ -16,15 +16,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 // Services
 import { extensionService } from '../services/ExtensionService';
 
-export type PermissionMode = 'fullAccess' | 'approval';
-export type SystemPromptMode = 'fast' | 'balanced' | 'thorough' | 'autopilot';
+export type SystemPromptMode = 'fast' | 'balanced' | 'thorough';
 export type PromptLengthMode = 'none' | 'short' | 'medium' | 'long';
 
 interface SettingsContextType {
   apiUrl: string;
   setApiUrl: (url: string) => void;
-  permissionMode: PermissionMode;
-  setPermissionMode: (mode: PermissionMode) => void;
   isSimpleMode: boolean;
   setIsSimpleMode: (value: boolean) => void;
   liveWritePreview: boolean;
@@ -39,8 +36,6 @@ interface SettingsContextType {
   setSystemPromptMode: (mode: SystemPromptMode) => void;
   promptLengthMode: PromptLengthMode;
   setPromptLengthMode: (mode: PromptLengthMode) => void;
-  activeDatabaseManagerId: string | null;
-  setActiveDatabaseManagerId: (id: string | null) => void;
   chromiumProfileDir: string;
   setChromiumProfileDir: (dir: string) => void;
   chromiumProfileSubpath: string;
@@ -57,7 +52,6 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [apiUrl, setApiUrlState] = useState('http://localhost:8888');
-  const [permissionModeState, setPermissionModeState] = useState<PermissionMode>('fullAccess');
   const [isSimpleMode, setIsSimpleModeState] = useState<boolean>(true);
   const [liveWritePreview, setLiveWritePreviewState] = useState<boolean>(true);
   const [commitMessageLanguage, setCommitMessageLanguageState] = useState<'en' | 'vi'>('en');
@@ -65,22 +59,23 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [aiLanguage, setAiLanguageState] = useState<string>('');
   const [systemPromptMode, setSystemPromptModeState] = useState<SystemPromptMode>('balanced');
   const [promptLengthMode, setPromptLengthModeState] = useState<PromptLengthMode>('long');
-  const [activeDatabaseManagerId, setActiveDatabaseManagerIdState] = useState<string | null>(null);
   const [chromiumProfileDir, setChromiumProfileDirState] = useState<string>('');
   const [chromiumProfileSubpath, setChromiumProfileSubpathState] = useState<string>('');
   const [showMetadataBar, setShowMetadataBarState] = useState<boolean>(true);
   const [useSkillEnabled, setUseSkillEnabledState] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('zen-use-skill-enabled') === 'true';
+      const v = localStorage.getItem('zen-use-skill-enabled');
+      return v === null ? true : v === 'true';
     } catch {
-      return false;
+      return true;
     }
   });
   const [memoryEnabled, setMemoryEnabledState] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('zen-memory-enabled') === 'true';
+      const v = localStorage.getItem('zen-memory-enabled');
+      return v === null ? true : v === 'true';
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -106,10 +101,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (
         savedSystemPromptMode === 'fast' ||
         savedSystemPromptMode === 'balanced' ||
-        savedSystemPromptMode === 'thorough' ||
-        savedSystemPromptMode === 'autopilot'
+        savedSystemPromptMode === 'thorough'
       ) {
         setSystemPromptModeState(savedSystemPromptMode);
+      } else if (savedSystemPromptMode === 'autopilot') {
+        // Legacy: "autopilot" removed as a mode; fall back to "balanced".
+        setSystemPromptModeState('balanced');
       }
       const savedPromptLengthMode = localStorage.getItem('zen-prompt-length-mode');
       if (
@@ -147,34 +144,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     });
 
-    storage.get('zen_permission_mode').then((res: any) => {
-      if (res?.value) {
-        const val = res.value;
-        // Migrate old 4-mode values to new 3-mode system
-        const migrationMap: Record<string, PermissionMode> = {
-          bypassPermissions: 'fullAccess',
-          acceptEdits: 'approval',
-          auto: 'approval',
-          plan: 'approval',
-          fullAccess: 'fullAccess',
-          approval: 'approval',
-          readOnly: 'approval',
-        };
-        setPermissionModeState(migrationMap[val] ?? 'fullAccess');
-      }
-    });
   }, []);
 
   const setApiUrl = (url: string) => {
     setApiUrlState(url);
     const storage = extensionService.getStorage();
     storage.set('backend-api-url', url);
-  };
-
-  const setPermissionMode = (mode: PermissionMode) => {
-    setPermissionModeState(mode);
-    const storage = extensionService.getStorage();
-    storage.set('zen_permission_mode', mode);
   };
 
   const setIsSimpleMode = (value: boolean) => {
@@ -229,10 +204,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (e) {
       console.warn('[SettingsContext] Failed to save system prompt mode:', e);
     }
-  };
-
-  const setActiveDatabaseManagerId = (id: string | null) => {
-    setActiveDatabaseManagerIdState(id);
   };
 
   const setChromiumProfileDir = (dir: string) => {
@@ -296,8 +267,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       value={{
         apiUrl,
         setApiUrl,
-        permissionMode: permissionModeState,
-        setPermissionMode,
         isSimpleMode,
         setIsSimpleMode,
         liveWritePreview,
@@ -312,8 +281,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setSystemPromptMode,
         promptLengthMode,
         setPromptLengthMode,
-        activeDatabaseManagerId,
-        setActiveDatabaseManagerId,
         chromiumProfileDir,
         setChromiumProfileDir,
         chromiumProfileSubpath,

@@ -77,6 +77,11 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pp-group-sweep {
+  from { background-size: 0% 100%; opacity: 0.4; }
+  to { background-size: 200% 100%; opacity: 1; }
+}
+
 @keyframes pp-aa-spin {
   to { transform: rotate(360deg); }
 }

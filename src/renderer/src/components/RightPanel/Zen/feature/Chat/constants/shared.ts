@@ -10,15 +10,12 @@
  * - EXECUTION_STATUS      : Trạng thái thực thi tool
  * - SHARED_TAG_REGISTRY   : Registry cho UI tags (markdown, thinking, question)
  * - getTagDef()           : Tra cứu định nghĩa tag
- * - requiresConfirmation() : Kiểm tra tool có cần xác nhận không
  * ------------------------------------------------------------------
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import type {
-  PermissionMode,
-  PermissionValue,
   TagCategory,
   TagDefinition,
   ToolType,
@@ -29,8 +26,6 @@ import type {
 // ─── Re-exports ─────────────────────────────────────────────────────────
 // Re-export types for backward compatibility
 export type {
-  PermissionMode,
-  PermissionValue,
   TagCategory,
   TagDefinition,
   ToolType,
@@ -150,21 +145,6 @@ export const getAllUITagTypes = (registry: Record<string, TagDefinition>): strin
  */
 export const getAllTagTypes = (registry: Record<string, TagDefinition>): string[] => {
   return Object.keys(registry);
-};
-
-/**
- * Kiểm tra xem tool có yêu cầu xác nhận hay không dựa trên permission mode hiện tại
- */
-export const requiresConfirmation = (
-  registry: Record<string, TagDefinition>,
-  type: string,
-  mode: 'approval' | 'fullAccess' = 'approval',
-): boolean => {
-  const tag = registry[type];
-  if (!tag || tag.category !== 'tool' || !tag.permissions) return false;
-
-  const permission = tag.permissions[mode];
-  return permission === 'confirm';
 };
 
 // ============= HELPER FUNCTIONS FOR FILE STATS =============

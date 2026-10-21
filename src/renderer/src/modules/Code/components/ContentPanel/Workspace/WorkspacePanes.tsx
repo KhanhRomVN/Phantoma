@@ -183,7 +183,7 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
       )}
 
       <span
-        className={isAgentTab ? 'max-w-[180px] truncate' : undefined}
+        className={cn(isAgentTab && 'max-w-[180px] truncate', panel.preview && !isDirty && 'italic')}
         style={{ pointerEvents: 'none' }}
       >
         {showAgentBadge ? agentId : displayTitle}

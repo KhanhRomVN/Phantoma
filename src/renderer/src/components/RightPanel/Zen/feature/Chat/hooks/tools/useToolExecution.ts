@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 /**
  * ------------------------------------------------------------------
  * useToolExecution
@@ -17,11 +17,11 @@ import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react
 // ── Types ──
 import { Message } from '../../types/message';
 import { parseAIResponse } from '../../services/ResponseParser';
-import type { PermissionMode } from '../../types/tag-types';
+
 import type { ExecutorContext } from '../../types/executor-types';
 
 // ── Context ──
-import { useSettings } from '../../../../context/SettingsContext';
+
 import { useAgentFeature } from '../../../../context/FeatureContext';
 
 // ── Utils ──
@@ -69,12 +69,7 @@ export const useToolExecution = ({
   isStoppedRef,
   toolFormat = 'xml',
 }: UseToolExecutionProps) => {
-  const { permissionMode } = useSettings();
   const { emulateState, activeFeature } = useAgentFeature();
-  const permissionModeRef = useRef<PermissionMode>(permissionMode);
-  useLayoutEffect(() => {
-    permissionModeRef.current = permissionMode;
-  }, [permissionMode]);
 
   const [executionState, setExecutionState] = useState<{
     total: number;
@@ -276,7 +271,6 @@ export const useToolExecution = ({
       conversationToolOverrides: Record<string, 'auto'> = {},
       actionType?: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
     ) => {
-      const currentPermissionMode = permissionModeRef.current;
       let wasInterruptedByManual = false;
 
       const actions = (Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions]).map(
@@ -354,19 +348,8 @@ export const useToolExecution = ({
           }
         }
 
-        const decision = getPermissionDecision(currentPermissionMode, action.type);
+        const decision = getPermissionDecision(action.type);
         const isConversationAuto = conversationToolOverrides[action.type] === 'auto';
-        const shouldPauseForManual = decision === 'confirm' && !isConversationAuto;
-
-        if (isAutoTrigger && shouldPauseForManual) {
-          wasInterruptedByManual = true;
-          setExecutionState({
-            total: actions.length,
-            completed: index,
-            status: 'idle',
-          });
-          break;
-        }
 
         let result: string | null = null;
         if (actionType === TOOL_ACTION_TYPES.REJECT) {
@@ -377,7 +360,7 @@ export const useToolExecution = ({
           });
           window.postMessage({ command: 'markActionRejected', actionId }, '*');
         } else if (decision === TOOL_ACTION_TYPES.REJECT) {
-          result = `Output: [${action.type}] Tool execution blocked by permission policy (${permissionModeRef.current}).`;
+          result = `Output: [${action.type}] Tool execution blocked by permission policy.`;
         } else {
           result = await executeSingleAction(
             { ...action, actionId },

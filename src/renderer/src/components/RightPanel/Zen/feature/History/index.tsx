@@ -18,17 +18,25 @@ import HistoryCard from './components/HistoryCard';
 import ConfirmClearHistoryDrawer from './components/ConfirmClearHistoryDrawer';
 import { FolderOpen, Loader2, Search } from 'lucide-react';
 import { useConversationHistory } from './hooks/useConversationHistory';
-import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
+import { Drawer, DrawerBody } from '@renderer/components/ui/Drawer';
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
+import type { NavTarget } from '../../components/AgentNavBadge';
+import NavPanelHeader from '../../components/NavPanelHeader';
 
 interface HistoryPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onLoadConversation?: (conversationId: string, tabId: number, folderPath: string | null) => void;
+  onNavigate: (target: NavTarget) => void;
 }
 
-const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConversation }) => {
+const HistoryPanel: React.FC<HistoryPanelProps> = ({
+  isOpen,
+  onClose,
+  onLoadConversation,
+  onNavigate,
+}) => {
   const {
     conversations,
     totalCount,
@@ -80,14 +88,16 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ isOpen, onClose, onLoadConv
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} height="100%" strategy="absolute">
-      <DrawerHeader
+      <NavPanelHeader
         title="History"
         description="Browse and manage your conversation history"
+        current="history"
+        onNavigate={onNavigate}
         onClose={onClose}
       />
 
       {/* Search */}
-      <div className="flex gap-2 items-center px-4 py-3 border-b border-divider bg-background">
+      <div className="flex gap-2 items-center px-4 py-3 bg-background">
         <div className="relative flex-1">
           <input
             type="text"

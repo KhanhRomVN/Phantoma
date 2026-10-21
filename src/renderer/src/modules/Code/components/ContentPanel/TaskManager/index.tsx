@@ -400,7 +400,7 @@ export const TaskManager = memo(function TaskManager() {
           />
         )}
         {layout === 'board' && (
-          <div className="flex-1 flex gap-4 min-h-0 overflow-x-auto custom-scrollbar">
+          <div className="flex-1 min-w-0 flex gap-4 min-h-0 overflow-x-hidden">
             {COLUMNS.map((status) => (
               <KanbanColumn
                 key={status}

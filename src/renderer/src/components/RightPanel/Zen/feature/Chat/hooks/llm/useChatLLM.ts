@@ -197,7 +197,7 @@ export const useChatLLM = ({
 
   // NOTE: useSkillEnabled & memoryEnabled are not yet in SettingsContext for Phantoma.
   // We rely solely on conversationOverridesRef for now. Default to false if no override provided.
-  const { aiLanguage, permissionMode, promptLengthMode } = useSettings();
+  const { aiLanguage, promptLengthMode } = useSettings();
   const { workspace, treeView } = useProject();
   const { uploadFiles } = useFileUpload(apiUrl);
 
@@ -529,7 +529,6 @@ export const useChatLLM = ({
         isReq1,
         skipFirstRequestLogic: skipFirstRequestLogic || false,
         aiLanguage,
-        permissionMode,
         treeView,
         workspace,
         files,
@@ -1049,7 +1048,6 @@ export const useChatLLM = ({
       apiUrl,
       selectedTab,
       aiLanguage,
-      permissionMode,
       treeView,
       workspace,
       uploadFiles,

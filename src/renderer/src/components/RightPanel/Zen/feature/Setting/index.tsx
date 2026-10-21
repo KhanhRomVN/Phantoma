@@ -15,12 +15,14 @@
 
 import React, { useState } from 'react';
 import { SlidersHorizontal, Database, Sparkles, Info } from 'lucide-react';
-import { Drawer, DrawerHeader, DrawerBody } from '@renderer/components/ui/Drawer';
+import { Drawer, DrawerBody } from '@renderer/components/ui/Drawer';
 import { $ } from '@renderer/utils/color';
 import GeneralSettings from './components/general/General';
 import DatabaseSettings from './components/database/Database';
 import FeatureSettings from './components/feature/Feature';
 import AboutSettings from './components/about/About';
+import type { NavTarget } from '../../components/AgentNavBadge';
+import NavPanelHeader from '../../components/NavPanelHeader';
 
 const TABS: Array<{
   id: string;
@@ -37,18 +39,21 @@ const TABS: Array<{
 interface SettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onNavigate: (target: NavTarget) => void;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose, onNavigate }) => {
   const [activeTab, setActiveTab] = useState('General');
 
   if (!isOpen) return null;
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} height="100%" strategy="absolute">
-      <DrawerHeader
+      <NavPanelHeader
         title="Zen Settings"
         description="Configure Zen extension settings"
+        current="setting"
+        onNavigate={onNavigate}
         onClose={onClose}
       />
 

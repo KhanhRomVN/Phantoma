@@ -21,7 +21,7 @@ import { getPermissionDecision } from '../../../../../utils/permissionUtils';
 import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Zen/utils/diffUtils';
 
 // ── Hooks ──
-import { useSettings } from '../../../../../../../context/SettingsContext';
+
 
 // ── Services ──
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
@@ -90,8 +90,6 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
 }) => {
   const [, setIsCollapsed] = React.useState(true);
 
-  const { permissionMode } = useSettings();
-
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawPath = action.params.file_path || action.params.path || '';
   const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
@@ -155,40 +153,14 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   const isRejected = rejectedActions?.has(actionId);
 
   // Debug logs
-  const permissionDecision = getPermissionDecision(permissionMode, 'replace_in_file');
+  const permissionDecision = getPermissionDecision('replace_in_file');
 
-  // Fetch full file content for approval mode
+  // Fetch full file content (dùng cho preview đầy đủ khi cần)
   const [fullFileContent, setFullFileContent] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (permissionDecision !== 'confirm' || !rawPath) {
-      return;
-    }
-
-    const requestId = `file-content-${actionId}`;
-    const handleMessage = (event: MessageEvent) => {
-      const msg = event.data;
-      if (msg.command === 'getFileContentResult' && msg.requestId === requestId) {
-        setFullFileContent(msg.content || null);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    extensionService.postMessage({
-      command: 'getFileContent',
-      path: rawPath,
-      requestId,
-    });
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [permissionDecision, rawPath, actionId]);
-
-  // Build diff preview data for approval mode
+  // Build diff preview data
   const approvalDiffData = React.useMemo(() => {
-    if (permissionDecision !== 'confirm') return null;
+    if (permissionDecision === 'reject') return null;
 
     const oldContent = action.params.old_content || action.params.old_str;
     const newContent = action.params.new_content || action.params.new_str;
@@ -406,7 +378,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
       {!shouldHideContent &&
         !isCompleted &&
         !isPartial &&
-        getPermissionDecision(permissionMode, 'replace_in_file') === 'confirm' && (
+        permissionDecision === 'allow' && (
           <ActionBar
             action={action}
             messageId={messageId}

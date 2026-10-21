@@ -25,6 +25,7 @@ import { $ } from '@renderer/utils/color';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { DEFAULT_EFFORT, EFFORT_LEVELS, splitModelAndEffort } from './EffortDropdown';
 import type { EffortLevel } from './EffortDropdown';
+import { accountsKey, cacheGet, cacheSet } from './providerModelCache';
 
 interface Provider {
   provider_id: string;
@@ -47,6 +48,7 @@ interface Account {
   period_tokens?: number;
   last_used_at?: number | null;
   used_by_windows?: number;
+  used_by_projects?: string[];
   auth_method?: string | null;
 }
 
@@ -57,6 +59,12 @@ interface ProviderModelDrawerProps {
   isLoadingProviders?: boolean;
   apiUrl: string;
   onRefresh?: () => void;
+  /** Scope cache (theo database manager đang active) */
+  cacheScope?: string;
+  /** Provider/model/account đang dùng — ưu tiên lên đầu và gắn badge */
+  currentProviderId?: string;
+  currentModelId?: string;
+  currentAccountId?: string;
   currentEffort?: EffortLevel;
   onSelect: (model: {
     providerId: string;
@@ -278,6 +286,10 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
   isLoadingProviders = false,
   apiUrl,
   onRefresh,
+  cacheScope,
+  currentProviderId,
+  currentModelId,
+  currentAccountId,
   currentEffort,
   onSelect,
 }) => {
@@ -343,15 +355,20 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
     if (step !== 'account' || !selectedModel || !apiUrl) return;
     let isMounted = true;
 
+      const cacheKey = accountsKey(cacheScope ?? 'default', selectedModel.provider_id);
+      const cachedAccounts = cacheGet<Account[]>(cacheKey);
+      if (cachedAccounts) setProviderAccounts(cachedAccounts);
+
     const load = (showLoading: boolean) => {
-      if (showLoading) setIsLoadingAccounts(true);
+      if (showLoading && !cachedAccounts) setIsLoadingAccounts(true);
       fetch(
         `${apiUrl}/v1/accounts?page=1&limit=50&provider_id=${encodeURIComponent(selectedModel.provider_id)}`,
       )
         .then((res) => res.json())
         .then((result) => {
-          if (isMounted && result.success && result.data?.accounts) {
-            setProviderAccounts(result.data.accounts);
+          if (result.success && result.data?.accounts) {
+            cacheSet(cacheKey, result.data.accounts);
+            if (isMounted) setProviderAccounts(result.data.accounts);
           }
         })
         .catch(() => {})
@@ -366,7 +383,7 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
       isMounted = false;
       clearInterval(id);
     };
-  }, [step, selectedModel, apiUrl]);
+  }, [step, selectedModel, apiUrl, cacheScope]);
 
   const providerNeedsAuth = (provider: Provider): boolean => {
     const raw = (provider as any).auth_method ?? (provider as any).auth_methods;
@@ -408,11 +425,14 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
       .filter((p) => p.models.length > 0 || !!(p as any).models_error);
 
     return [...mapped].sort((a, b) => {
+      const aIsCurrent = a.provider_id === currentProviderId ? 0 : 1;
+      const bIsCurrent = b.provider_id === currentProviderId ? 0 : 1;
+      if (aIsCurrent !== bIsCurrent) return aIsCurrent - bIsCurrent;
       const aHas = a.models.length > 0 ? 0 : 1;
       const bHas = b.models.length > 0 ? 0 : 1;
       return aHas - bHas;
     });
-  }, [providers, searchQuery]);
+  }, [providers, searchQuery, currentProviderId]);
 
   const handleModelMouseEnter = (model: any, e: React.MouseEvent<HTMLDivElement>) => {
     activeRowRect.current = e.currentTarget.getBoundingClientRect();
@@ -441,8 +461,6 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
     // Fallback to body if not found (e.g., in other contexts)
     return document.body;
   };
-
-  const container = getContainer();
 
   return ReactDOM.createPortal(
     <>
@@ -727,7 +745,23 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
                             seen.add(base);
                             return true;
                           });
-                          return deduped.map((model: any) => {
+                          const isCurrentProvider =
+                            provider.provider_id === currentProviderId;
+                          const currentBase = currentModelId
+                            ? splitModelAndEffort(currentModelId).base
+                            : null;
+                          const isCurrentModelRow = (m: any) =>
+                            isCurrentProvider &&
+                            currentBase !== null &&
+                            splitModelAndEffort(m.id).base === currentBase;
+                          return [...deduped]
+                            .sort(
+                              (a: any, b: any) =>
+                                Number(isCurrentModelRow(b)) -
+                                Number(isCurrentModelRow(a)),
+                            )
+                            .map((model: any) => {
+                            const isCurrentModel = isCurrentModelRow(model);
                             const successColor =
                               model.success_rate >= 80
                                 ? $('--success')
@@ -821,6 +855,23 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
                                           return baseName;
                                         })()}
                                   </span>
+                                  {isCurrentModel && (
+                                    <span
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        fontSize: '9px',
+                                        fontWeight: 600,
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        backgroundColor: `color-mix(in srgb, ${$('--success')} 16%, transparent)`,
+                                        color: $('--success'),
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      In use
+                                    </span>
+                                  )}
                                   {model.is_thinking && (
                                     <span
                                       style={{
@@ -998,7 +1049,13 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
                       </div>
                     );
                   }
-                  return filtered.map((acc) => {
+                  return [...filtered]
+                    .sort(
+                      (a, b) =>
+                        Number(b.id === currentAccountId) -
+                        Number(a.id === currentAccountId),
+                    )
+                    .map((acc) => {
                     return (
                       <div
                         key={acc.id}
@@ -1087,9 +1144,8 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
                                 {acc.auth_method}
                               </span>
                             )}
-                            {(acc.used_by_windows ?? 0) > 0 && (
+                            {acc.id === currentAccountId && (
                               <span
-                                title={`Đang được dùng bởi ${acc.used_by_windows} cửa sổ khác`}
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
@@ -1097,13 +1153,30 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
                                   fontWeight: 600,
                                   padding: '1px 6px',
                                   borderRadius: '4px',
-                                  backgroundColor: `color-mix(in srgb, ${$('--warn')} 16%, transparent)`,
-                                  color: $('--warn'),
+                                  backgroundColor: `color-mix(in srgb, ${$('--success')} 16%, transparent)`,
+                                  color: $('--success'),
                                   flexShrink: 0,
                                   textTransform: 'uppercase',
                                 }}
                               >
                                 In use
+                              </span>
+                            )}
+                            {(acc.used_by_projects?.length ?? 0) > 0 && (
+                              <span
+                                title={`Also in use by ${acc.used_by_projects!.length} other VSCode window(s): ${acc.used_by_projects!.join(', ')}`}
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 500,
+                                  color: $('--warn'),
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  minWidth: 0,
+                                  flexShrink: 1,
+                                }}
+                              >
+                                {acc.used_by_projects!.join(', ')}
                               </span>
                             )}
                           </span>

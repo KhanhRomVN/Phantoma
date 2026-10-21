@@ -44,6 +44,7 @@ import {
 import AccountPanel from './Zen/feature/Account';
 import HistoryPanel from './Zen/feature/History';
 import SettingsPanel from './Zen/feature/Setting';
+import MarketplacePanel from './Zen/feature/Marketplace';
 
 // ── Constants ──
 const MIN_WIDTH = 300;
@@ -53,7 +54,14 @@ const DEFAULT_WIDTH = 450;
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 type PanelView = 'agent' | 'analytic' | 'terminal';
-type AgentSubView = 'home' | 'session' | 'account' | 'history' | 'setting' | null;
+type AgentSubView =
+  | 'home'
+  | 'session'
+  | 'account'
+  | 'history'
+  | 'marketplace'
+  | 'setting'
+  | null;
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
@@ -289,24 +297,47 @@ export function RightPanel({ subTarget: _subTarget }: { subTarget: SubTarget }) 
         <div className="flex-1 min-h-0 overflow-hidden relative">
           {view === 'agent' && (
             <div className={cn('h-full', agentSubView !== null && 'hidden')}>
-              <AgentPanel hideHeader />
+              <AgentPanel />
             </div>
           )}
           {view === 'agent' && (
             <div className={cn('absolute inset-0', agentSubView !== 'home' && 'hidden')}>
               <ProjectProvider>
-                <HomePanel onSendMessage={() => {}} onLoadConversation={() => {}} />
+                <HomePanel
+                  onSendMessage={() => {}}
+                  onLoadConversation={() => {}}
+                  onOpenSubView={setAgentSubView}
+                />
               </ProjectProvider>
             </div>
           )}
           {view === 'agent' && agentSubView === 'account' && (
-            <AccountPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+            <AccountPanel
+              isOpen={true}
+              onClose={() => setAgentSubView(null)}
+              onNavigate={setAgentSubView}
+            />
           )}
           {view === 'agent' && agentSubView === 'history' && (
-            <HistoryPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+            <HistoryPanel
+              isOpen={true}
+              onClose={() => setAgentSubView(null)}
+              onNavigate={setAgentSubView}
+            />
+          )}
+          {view === 'agent' && agentSubView === 'marketplace' && (
+            <MarketplacePanel
+              isOpen={true}
+              onClose={() => setAgentSubView(null)}
+              onNavigate={setAgentSubView}
+            />
           )}
           {view === 'agent' && agentSubView === 'setting' && (
-            <SettingsPanel isOpen={true} onClose={() => setAgentSubView(null)} />
+            <SettingsPanel
+              isOpen={true}
+              onClose={() => setAgentSubView(null)}
+              onNavigate={setAgentSubView}
+            />
           )}
         </div>
       </div>

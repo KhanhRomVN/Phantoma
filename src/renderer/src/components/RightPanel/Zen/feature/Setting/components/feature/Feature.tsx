@@ -10,30 +10,13 @@
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { ShieldCheck, MessageSquare, Brain, RefreshCw } from 'lucide-react';
+import { MessageSquare, Brain, RefreshCw } from 'lucide-react';
 import { useSettings } from '../../../../context/SettingsContext';
-import type { PermissionMode } from '../../../Chat/types/tag-types';
 import GroupSection from '../shared/GroupSection';
 import { extensionService } from '../../../../services/ExtensionService';
 import { $ } from '@renderer/utils/color';
 const ACCENT = $('--primary');
 
-const PERMISSION_OPTIONS: {
-  value: PermissionMode;
-  label: string;
-  desc: string;
-}[] = [
-  {
-    value: 'approval',
-    label: 'Ask for approval',
-    desc: 'The agent must ask for your approval before writing, replacing or deleting files and before running commands.',
-  },
-  {
-    value: 'fullAccess',
-    label: 'Full access',
-    desc: 'The agent can read, write, delete files and run commands automatically without asking.',
-  },
-];
 
 interface ToggleRowProps {
   title: string;
@@ -226,8 +209,6 @@ const MemoryViewer: React.FC<{ enabled: boolean }> = ({ enabled }) => {
 
 const FeatureSettings: React.FC = () => {
   const {
-    permissionMode,
-    setPermissionMode,
     showMetadataBar,
     setShowMetadataBar,
     memoryEnabled,
@@ -238,46 +219,6 @@ const FeatureSettings: React.FC = () => {
     <div
       className="flex flex-col gap-7"
     >
-      {/* Agent Permission */}
-      <GroupSection
-        icon={<ShieldCheck size={16} />}
-        color={$('--green')}
-        title="Agent Permission"
-        description="Choose how much the agent is allowed to do on its own."
-      >
-        <div
-          role="radiogroup"
-          className="flex flex-col gap-2"
-        >
-          {PERMISSION_OPTIONS.map((option) => {
-            const selected = permissionMode === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => setPermissionMode(option.value)}
-                className={`flex flex-col gap-0.5 text-left p-2.5 rounded-lg cursor-pointer bg-input-background transition-all ${
-                  selected ? 'border border-blue-600' : 'border border-transparent hover:bg-gray-500/10'
-                }`}
-              >
-                <span
-                  className="text-[13px] font-semibold text-text-primary"
-                >
-                  {option.label}
-                </span>
-                <span
-                  className="text-[11.5px] text-text-secondary leading-snug"
-                >
-                  {option.desc}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </GroupSection>
-
       {/* Conversation */}
       <GroupSection
         icon={<MessageSquare size={16} />}
