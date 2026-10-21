@@ -160,7 +160,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
 
                 if (fileCount === 0) return null;
 
-                const parts = [];
+                const parts: string[] = [];
 
                 if (depth !== undefined && depth !== null) {
                   parts.push(`depth: ${depth}`);

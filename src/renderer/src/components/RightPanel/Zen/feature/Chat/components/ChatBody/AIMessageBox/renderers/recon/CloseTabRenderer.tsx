@@ -89,7 +89,7 @@ interface ParsedCloseTabResult {
 function parseCloseTabOutput(output: string): ParsedCloseTabResult | null {
   try {
     const tabIdMatch = output.match(/tabId:\s*(.+)/i);
-    
+
     if (tabIdMatch) {
       return {
         tabId: tabIdMatch[1].trim(),
@@ -102,9 +102,9 @@ function parseCloseTabOutput(output: string): ParsedCloseTabResult | null {
   }
 }
 
-function CloseTabBlock({ tabId, output, isError }: CloseTabBlockProps) {
+function CloseTabBlock({ output, isError }: CloseTabBlockProps) {
   const parsed = output ? parseCloseTabOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import {
   GitBranch,
   GitCommit,
@@ -191,7 +191,7 @@ function NotificationsWidget() {
   );
 }
 
-const WIDGET_COMPONENTS: Record<HeaderWidgetId, () => JSX.Element> = {
+const WIDGET_COMPONENTS: Record<HeaderWidgetId, () => ReactElement> = {
   git: GitWidget,
   commit: CommitWidget,
   agent: AgentWidget,

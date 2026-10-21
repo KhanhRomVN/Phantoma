@@ -7,7 +7,6 @@ import { RequestPanel } from './WorkspacePanel/RequestPanel';
 import { RequestList } from './RequestList';
 
 // ── Types ──
-import type { HistoryEntry } from '../../../types/repeater.types';
 import type { NetworkRequest } from '../Home/FilterPanel';
 
 // Services

@@ -35,22 +35,10 @@ import { useDbFetch } from '../../../../services/useDbFetch';
 import { $ } from '@renderer/utils/color';
 
 export type ManagerType = 'local-file' | 'connection';
-export type DbType =
-  | 'sqlite'
-  | 'postgres'
-  | 'mysql'
-  | 'mariadb'
-  | 'mssql'
-  | 'mongodb';
+export type DbType = 'sqlite' | 'postgres' | 'mysql' | 'mariadb' | 'mssql' | 'mongodb';
 
 /** Các db_type hợp lệ cho kết nối từ xa (loại sqlite vì đã có 'local-file'). */
-const CONNECTION_DB_TYPES: DbType[] = [
-  'postgres',
-  'mysql',
-  'mariadb',
-  'mssql',
-  'mongodb',
-];
+const CONNECTION_DB_TYPES: DbType[] = ['postgres', 'mysql', 'mariadb', 'mssql', 'mongodb'];
 
 /** File logo trong images/database_icons theo db_type (khớp DatabaseManagerCard). */
 const DB_ICON_FILES: Partial<Record<DbType, string>> = {
@@ -61,10 +49,7 @@ const DB_ICON_FILES: Partial<Record<DbType, string>> = {
 };
 
 /** Logo engine từ images/database_icons; engine chưa có logo (VD: mssql) → icon Server. */
-const DbTypeIcon: React.FC<{ type: DbType; size?: number }> = ({
-  type,
-  size = 16,
-}) => {
+const DbTypeIcon: React.FC<{ type: DbType; size?: number }> = ({ type, size = 16 }) => {
   const file = DB_ICON_FILES[type];
   if (!file) return <Server size={size} style={{ flexShrink: 0 }} />;
   const base = (window as any).__zenImagesUri || '/images';
@@ -106,18 +91,8 @@ interface DatabaseManagerDrawerProps {
   onSaved: () => void;
 }
 
-const SSL_MODES = [
-  'disable',
-  'allow',
-  'prefer',
-  'require',
-  'verify-ca',
-  'verify-full',
-];
+const SSL_MODES = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'];
 const CHANNEL_BINDINGS = ['disable', 'prefer', 'require'];
-
-const PRIMARY = $('--primary');
-const PRIMARY_SOFT = `color-mix(in srgb, ${PRIMARY} 14%, transparent)`;
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -140,10 +115,7 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 };
 
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
-  label,
-  children,
-}) => (
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="flex flex-col min-w-0">
     <label style={labelStyle}>{label}</label>
     {children}
@@ -188,23 +160,16 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
   const [name, setName] = useState(initial?.name ?? '');
   const [type, setType] = useState<ManagerType>(initial?.type ?? 'local-file');
   const [dbType, setDbType] = useState<DbType>(
-    initial?.db_type ??
-      (initial?.type === 'connection' ? 'postgres' : 'sqlite'),
+    initial?.db_type ?? (initial?.type === 'connection' ? 'postgres' : 'sqlite'),
   );
   const [filePath, setFilePath] = useState(initial?.file_path ?? '');
   const [host, setHost] = useState(initial?.host ?? '');
-  const [port, setPort] = useState<string>(
-    initial?.port != null ? String(initial.port) : '',
-  );
-  const [databaseName, setDatabaseName] = useState(
-    initial?.database_name ?? '',
-  );
+  const [port, setPort] = useState<string>(initial?.port != null ? String(initial.port) : '');
+  const [databaseName, setDatabaseName] = useState(initial?.database_name ?? '');
   const [username, setUsername] = useState(initial?.username ?? '');
   const [password, setPassword] = useState(initial?.password ?? '');
   const [sslMode, setSslMode] = useState(initial?.ssl_mode ?? 'prefer');
-  const [channelBinding, setChannelBinding] = useState(
-    initial?.channel_binding ?? 'prefer',
-  );
+  const [channelBinding, setChannelBinding] = useState(initial?.channel_binding ?? 'prefer');
 
   const [testing, setTesting] = useState(false);
   const [testOk, setTestOk] = useState(false);
@@ -259,9 +224,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
   const isReservedName = RESERVED_NAMES.includes(name.trim().toLowerCase());
   const isReservedFile =
     type === 'local-file' &&
-    RESERVED_FILES.includes(
-      filePath.trim().split(/[\\/]/).pop()?.toLowerCase() ?? '',
-    );
+    RESERVED_FILES.includes(filePath.trim().split(/[\\/]/).pop()?.toLowerCase() ?? '');
 
   // local-file yêu cầu file tồn tại; connection yêu cầu test connection thành công.
   const canSave =
@@ -277,10 +240,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
     db_type: type === 'connection' ? dbType : 'sqlite',
     file_path: type === 'local-file' ? filePath.trim() : undefined,
     host: type === 'connection' ? host.trim() : undefined,
-    port:
-      type === 'connection' && port.trim() !== ''
-        ? Number(port.trim())
-        : undefined,
+    port: type === 'connection' && port.trim() !== '' ? Number(port.trim()) : undefined,
     database_name: type === 'connection' ? databaseName.trim() : undefined,
     username: type === 'connection' ? username.trim() : undefined,
     password: type === 'connection' ? password : undefined,
@@ -336,9 +296,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
     setError('');
     try {
       const payload = buildPayload();
-      const path = isEdit
-        ? `/v1/database-managers/${initial!.id}`
-        : `/v1/database-managers`;
+      const path = isEdit ? `/v1/database-managers/${initial!.id}` : `/v1/database-managers`;
       const res = await dbFetch(path, {
         method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -369,25 +327,15 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
       />
 
       {/* Bottom Sheet */}
-      <div
-        className="fixed bottom-0 left-0 right-0 bg-tertiary-bg border-t border-border shadow-[0_-8px_32px_rgba(0,0,0,0.25)] z-[201] max-h-[80%] flex flex-col animate-slideUp"
-      >
+      <div className="fixed bottom-0 left-0 right-0 bg-tertiary-bg border-t border-border shadow-[0_-8px_32px_rgba(0,0,0,0.25)] z-[201] max-h-[80%] flex flex-col animate-slideUp">
         {/* Header */}
-        <div
-          className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0"
-        >
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
           <div className="min-w-0">
-            <div
-              className="text-base font-bold text-text-primary"
-            >
+            <div className="text-base font-bold text-text-primary">
               {isEdit ? 'Edit Database Manager' : 'Add Database Manager'}
             </div>
-            <div
-              className="text-[11px] text-text-secondary opacity-70 overflow-hidden text-ellipsis whitespace-nowrap"
-            >
-              {isEdit
-                ? initial?.name
-                : 'Local SQLite file or remote connection'}
+            <div className="text-[11px] text-text-secondary opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">
+              {isEdit ? initial?.name : 'Local SQLite file or remote connection'}
             </div>
           </div>
           <button
@@ -400,9 +348,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
         </div>
 
         {/* Fields */}
-        <div
-          className="flex-1 overflow-y-auto px-4 py-3.5 flex flex-col gap-3"
-        >
+        <div className="flex-1 overflow-y-auto px-4 py-3.5 flex flex-col gap-3">
           <Field label="Name">
             <input
               type="text"
@@ -632,13 +578,8 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
               {/* Test + result (chỉ áp dụng cho loại connection) */}
               <div className="flex flex-col gap-2">
                 {testing && !testMessage && (
-                  <div
-                    className="flex items-center gap-1.5 py-2 px-2.5 rounded-lg bg-gray-500/10 text-text-secondary text-xs"
-                  >
-                    <Loader2
-                      size={14}
-                      style={{ animation: 'spin 1s linear infinite' }}
-                    />
+                  <div className="flex items-center gap-1.5 py-2 px-2.5 rounded-lg bg-gray-500/10 text-text-secondary text-xs">
+                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
                     Testing connection… (this can take a few seconds)
                   </div>
                 )}
@@ -647,26 +588,16 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
                   <div
                     role="status"
                     className={`flex items-start gap-2 py-2 px-2.5 rounded-lg text-xs leading-normal break-words ${
-                      testOk
-                        ? 'bg-green-500/14 text-green-500'
-                        : 'bg-red-500/14 text-red-500'
+                      testOk ? 'bg-green-500/14 text-green-500' : 'bg-red-500/14 text-red-500'
                     }`}
                   >
                     {testOk ? (
-                      <CheckCircle2
-                        size={14}
-                        style={{ flexShrink: 0, marginTop: '1px' }}
-                      />
+                      <CheckCircle2 size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
                     ) : (
-                      <XCircle
-                        size={14}
-                        style={{ flexShrink: 0, marginTop: '1px' }}
-                      />
+                      <XCircle size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
                     )}
                     <span className="min-w-0">
-                      {testOk
-                        ? 'Connection succeeded — '
-                        : 'Connection failed — '}
+                      {testOk ? 'Connection succeeded — ' : 'Connection failed — '}
                       {testMessage}
                     </span>
                   </div>
@@ -676,9 +607,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
           )}
 
           {(isReservedName || isReservedFile) && (
-            <div
-              className="bg-red-500/8 rounded-lg py-2 px-2.5 text-xs text-red-500 flex items-center gap-1.5"
-            >
+            <div className="bg-red-500/8 rounded-lg py-2 px-2.5 text-xs text-red-500 flex items-center gap-1.5">
               <AlertCircle size={12} style={{ flexShrink: 0 }} />
               <span>
                 {isReservedName
@@ -689,9 +618,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
           )}
 
           {error && (
-            <div
-              className="bg-red-500/8 rounded-lg py-2 px-2.5 text-xs text-red-500 flex items-center gap-1.5"
-            >
+            <div className="bg-red-500/8 rounded-lg py-2 px-2.5 text-xs text-red-500 flex items-center gap-1.5">
               <AlertCircle size={12} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
@@ -699,9 +626,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
         </div>
 
         {/* Actions */}
-        <div
-          className="px-4 py-3 border-t border-border flex justify-end gap-2 shrink-0"
-        >
+        <div className="px-4 py-3 border-t border-border flex justify-end gap-2 shrink-0">
           {type === 'connection' && (
             <button
               type="button"
@@ -709,12 +634,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
               onClick={testConnection}
               disabled={testing || saving}
             >
-              {testing && (
-                <Loader2
-                  size={12}
-                  style={{ animation: 'spin 1s linear infinite' }}
-                />
-              )}
+              {testing && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
               {testing ? 'Testing…' : 'Test connection'}
             </button>
           )}
@@ -739,12 +659,7 @@ const DrawerBody: React.FC<Omit<DatabaseManagerDrawerProps, 'open'>> = ({
               saveDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-500/20'
             }`}
           >
-            {saving && (
-              <Loader2
-                size={13}
-                style={{ animation: 'spin 1s linear infinite' }}
-              />
-            )}
+            {saving && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
             {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create'}
           </button>
         </div>
@@ -772,13 +687,7 @@ const DatabaseManagerDrawer: React.FC<DatabaseManagerDrawerProps> = ({
   onSaved,
 }) => {
   if (!open) return null;
-  return (
-    <DrawerBody
-      initial={initial}
-      onOpenChange={onOpenChange}
-      onSaved={onSaved}
-    />
-  );
+  return <DrawerBody initial={initial} onOpenChange={onOpenChange} onSaved={onSaved} />;
 };
 
 export default DatabaseManagerDrawer;

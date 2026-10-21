@@ -96,7 +96,7 @@ function parseSelectOptionOutput(output: string): ParsedSelectOptionResult | nul
     const refMatch = output.match(/ref:\s*(.+)/i);
     const valueMatch = output.match(/value:\s*(.+)/i);
     const labelMatch = output.match(/label:\s*(.+)/i);
-    
+
     if (refMatch) {
       return {
         ref: refMatch[1].trim(),
@@ -111,15 +111,9 @@ function parseSelectOptionOutput(output: string): ParsedSelectOptionResult | nul
   }
 }
 
-function SelectOptionBlock({
-  ref,
-  value,
-  label,
-  output,
-  isError,
-}: SelectOptionBlockProps) {
+function SelectOptionBlock({ output, isError }: SelectOptionBlockProps) {
   const parsed = output ? parseSelectOptionOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

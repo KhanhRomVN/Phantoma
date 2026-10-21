@@ -53,7 +53,7 @@ const EXT_MAP: Record<string, string> = {
 };
 
 // Simple heuristic based on package.json dependencies or specific files
-function detectFromManifest(files: string[], contentHints?: Record<string, string>): StackInfo {
+function detectFromManifest(files: string[]): StackInfo {
   const langs = new Set<string>();
   const fwks = new Set<string>();
 

@@ -140,6 +140,7 @@ export const ReportViewPanel: React.FC<ReportViewPanelProps> = ({
 
       return () => resizeObserver.disconnect();
     }
+    return;
   }, [isHtmlView, previewDevice]);
 
   const handleWheelZoom = (e: React.WheelEvent) => {

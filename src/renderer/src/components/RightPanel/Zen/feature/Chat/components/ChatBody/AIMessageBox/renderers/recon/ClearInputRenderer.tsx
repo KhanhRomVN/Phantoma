@@ -59,11 +59,7 @@ export const ClearInputRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <ClearInputBlock
-          ref={action.params.ref}
-          output={outputData?.output}
-          isError={isError}
-        />
+        <ClearInputBlock ref={action.params.ref} output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -88,7 +84,7 @@ interface ParsedClearInputResult {
 function parseClearInputOutput(output: string): ParsedClearInputResult | null {
   try {
     const refMatch = output.match(/ref:\s*(.+)/i);
-    
+
     if (refMatch) {
       return {
         ref: refMatch[1].trim(),
@@ -101,13 +97,9 @@ function parseClearInputOutput(output: string): ParsedClearInputResult | null {
   }
 }
 
-function ClearInputBlock({
-  ref,
-  output,
-  isError,
-}: ClearInputBlockProps) {
+function ClearInputBlock({ output, isError }: ClearInputBlockProps) {
   const parsed = output ? parseClearInputOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

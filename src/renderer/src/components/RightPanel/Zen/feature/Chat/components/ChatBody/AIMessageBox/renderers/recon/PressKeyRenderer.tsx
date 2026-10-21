@@ -59,11 +59,7 @@ export const PressKeyRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <PressKeyBlock
-          key={action.params.key}
-          output={outputData?.output}
-          isError={isError}
-        />
+        <PressKeyBlock key={action.params.key} output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -90,9 +86,9 @@ function parsePressKeyOutput(output: string): ParsedPressKeyResult | null {
     // Parse markdown format:
     // [press_key] Key pressed
     // key: Enter
-    
+
     const keyMatch = output.match(/key:\s*(.+)/i);
-    
+
     if (keyMatch) {
       return {
         key: keyMatch[1].trim(),
@@ -105,13 +101,9 @@ function parsePressKeyOutput(output: string): ParsedPressKeyResult | null {
   }
 }
 
-function PressKeyBlock({
-  key,
-  output,
-  isError,
-}: PressKeyBlockProps) {
+function PressKeyBlock({ output, isError }: PressKeyBlockProps) {
   const parsed = output ? parsePressKeyOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

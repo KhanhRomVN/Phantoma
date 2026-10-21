@@ -89,7 +89,7 @@ interface ParsedSwitchTabResult {
 function parseSwitchTabOutput(output: string): ParsedSwitchTabResult | null {
   try {
     const tabIdMatch = output.match(/tabId:\s*(.+)/i);
-    
+
     if (tabIdMatch) {
       return {
         tabId: tabIdMatch[1].trim(),
@@ -102,9 +102,9 @@ function parseSwitchTabOutput(output: string): ParsedSwitchTabResult | null {
   }
 }
 
-function SwitchTabBlock({ tabId, output, isError }: SwitchTabBlockProps) {
+function SwitchTabBlock({ output, isError }: SwitchTabBlockProps) {
   const parsed = output ? parseSwitchTabOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

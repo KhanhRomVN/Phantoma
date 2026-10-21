@@ -14,7 +14,6 @@ import type {
   GraphEdge,
   TimelineEvent,
   ChecklistItem,
-  LinkItem,
   DonutItem,
   BarLineItem,
 } from './types';
@@ -607,21 +606,6 @@ function parseChecklist(body: string): ChecklistItem[] {
       (parent.children ??= []).push(item);
     } else {
       items.push(item);
-    }
-  }
-  return items;
-}
-
-function parseLinks(body: string): LinkItem[] {
-  const lines = body.split('\n');
-  const items: LinkItem[] = [];
-  for (const line of lines) {
-    const match = line.match(/^\-\s+(.+)$/);
-    if (match) {
-      const parts = match[1].split('|').map((s) => s.trim());
-      if (parts.length >= 2) {
-        items.push({ label: parts[0], url: parts[1], note: parts[2] });
-      }
     }
   }
   return items;

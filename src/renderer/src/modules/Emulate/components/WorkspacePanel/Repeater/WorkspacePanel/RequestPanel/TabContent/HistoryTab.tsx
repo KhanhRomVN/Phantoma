@@ -79,14 +79,7 @@ function StatusCell({ entry }: { entry: HistoryEntry }) {
   );
 }
 
-export function HistoryTab({
-  entries,
-  onSelect,
-  onClear,
-  onDelete,
-  selectedId,
-  onViewRuns,
-}: HistoryTabProps) {
+export function HistoryTab({ entries, onDelete, selectedId, onViewRuns }: HistoryTabProps) {
   const [menu, setMenu] = useState<{ x: number; y: number; entryId: string } | null>(null);
 
   // Close context menu on any click outside

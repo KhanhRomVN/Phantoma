@@ -34,17 +34,12 @@ export const ViewReplaceHistoryRenderer: React.FC<BaseRendererProps> = ({
 
   // Parse histories from output
   let histories: any[] = [];
-  let currentVersion: number | undefined;
   try {
     if (outputData?.output && typeof outputData.output === 'string') {
       if (outputData.output === 'No history') {
         histories = [];
       } else {
         histories = JSON.parse(outputData.output);
-        // Current version là version cao nhất
-        if (histories.length > 0) {
-          currentVersion = Math.max(...histories.map((h: any) => h.version));
-        }
       }
     }
   } catch (e) {

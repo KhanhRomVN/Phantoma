@@ -12,8 +12,6 @@
  * ------------------------------------------------------------------
  */
 
-import React from 'react';
-
 // Popular languages with emoji flags
 export const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇺🇸' },

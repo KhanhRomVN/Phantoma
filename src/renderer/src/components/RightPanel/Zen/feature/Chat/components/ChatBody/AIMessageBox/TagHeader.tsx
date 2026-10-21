@@ -83,7 +83,7 @@ const truncatePath = (fullPath: string, maxLength: number = 35): string => {
   }
 
   let rightIndex = parts.length - 2;
-  const foldersToAdd = [];
+  const foldersToAdd: string[] = [];
 
   while (rightIndex > 0) {
     const folderToTest = parts[rightIndex];

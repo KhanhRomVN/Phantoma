@@ -102,7 +102,6 @@ function parseHoverOutput(output: string): ParsedHoverResult | null {
 }
 
 function HoverBlock({
-  ref,
   output,
   isError,
 }: HoverBlockProps) {

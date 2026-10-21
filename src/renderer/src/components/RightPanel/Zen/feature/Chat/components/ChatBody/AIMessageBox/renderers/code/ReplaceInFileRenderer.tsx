@@ -22,7 +22,6 @@ import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Zen/ut
 
 // ── Hooks ──
 
-
 // ── Services ──
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
@@ -142,8 +141,6 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
     !isPartial && (!!isActionClicked || isError || !!toolOutputs?.[actionId] || !!nextUserMessage),
   );
 
-
-
   const shouldHideContent = false;
 
   // Check if action has validation error
@@ -156,7 +153,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   const permissionDecision = getPermissionDecision('replace_in_file');
 
   // Fetch full file content (dùng cho preview đầy đủ khi cần)
-  const [fullFileContent, setFullFileContent] = React.useState<string | null>(null);
+  const [fullFileContent] = React.useState<string | null>(null);
 
   // Build diff preview data
   const approvalDiffData = React.useMemo(() => {
@@ -375,21 +372,18 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
         />
       )}
 
-      {!shouldHideContent &&
-        !isCompleted &&
-        !isPartial &&
-        permissionDecision === 'allow' && (
-          <ActionBar
-            action={action}
-            messageId={messageId}
-            actionIndex={actionIndex}
-            hasError={hasValidationError || isError}
-            isCompleted={isCompleted}
-            onAction={(_e, type) => {
-              onToolClick(action, messageId, actionIndex, type);
-            }}
-          />
-        )}
+      {!shouldHideContent && !isCompleted && !isPartial && permissionDecision === 'allow' && (
+        <ActionBar
+          action={action}
+          messageId={messageId}
+          actionIndex={actionIndex}
+          hasError={hasValidationError || isError}
+          isCompleted={isCompleted}
+          onAction={(_e, type) => {
+            onToolClick(action, messageId, actionIndex, type);
+          }}
+        />
+      )}
     </div>
   );
 };

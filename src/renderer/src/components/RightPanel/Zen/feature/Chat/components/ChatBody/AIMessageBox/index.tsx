@@ -141,7 +141,9 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   // Handlers cho dangerous command actions
   const onProceedDangerousCommand = React.useCallback(
     (actionId: string) => {
-      const idx = parsedContent.actions.findIndex((_a, i) => `${message.id}-action-${i}` === actionId);
+      const idx = parsedContent.actions.findIndex(
+        (_a, i) => `${message.id}-action-${i}` === actionId,
+      );
       if (idx === -1) return;
       // Mark approve trước khi trigger execute để guard dangerous command bỏ qua.
       onApproveDangerousAction?.(actionId);
@@ -152,7 +154,9 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
 
   const onCancelDangerousCommand = React.useCallback(
     (actionId: string) => {
-      const idx = parsedContent.actions.findIndex((_a, i) => `${message.id}-action-${i}` === actionId);
+      const idx = parsedContent.actions.findIndex(
+        (_a, i) => `${message.id}-action-${i}` === actionId,
+      );
       if (idx === -1) return;
       onRejectDangerousAction?.(actionId);
       onToolClick(parsedContent.actions[idx], message, idx, 'reject');
@@ -443,7 +447,7 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
               clickedActions={clickedActions}
               failedActions={failedActions}
               rejectedActions={rejectedActions}
-              onToolClick={(action, msgId, actionIndex, type) =>
+              onToolClick={(action, _msgId, actionIndex, type) =>
                 onToolClick(action, message, actionIndex, type)
               }
               executionState={executionState}
@@ -565,7 +569,7 @@ const AIMessageBox = React.memo(AIMessageBoxInternal, (prevProps, nextProps) => 
     sameTerminalStatus;
 
   if (!shouldSkipRender) {
-    const changedProps = [];
+    const changedProps: string[] = [];
     if (!sameContent) changedProps.push('content');
     if (!sameParsed) changedProps.push('parsedContent');
     if (!sameIsLastMessage) changedProps.push('isLastMessage');

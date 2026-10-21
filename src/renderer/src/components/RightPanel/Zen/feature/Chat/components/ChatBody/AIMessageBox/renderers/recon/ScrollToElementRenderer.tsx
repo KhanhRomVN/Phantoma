@@ -102,7 +102,6 @@ function parseScrollToElementOutput(output: string): ParsedScrollToElementResult
 }
 
 function ScrollToElementBlock({
-  ref,
   output,
   isError,
 }: ScrollToElementBlockProps) {

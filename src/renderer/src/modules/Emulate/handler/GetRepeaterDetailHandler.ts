@@ -36,7 +36,7 @@ const scanPayloadVariables = (text: string): string[] => {
 // ─── Class ──────────────────────────────────────────────────────────────
 export class GetRepeaterDetailHandler {
   public async handle(
-    requests: NetworkRequest[],
+    _requests: NetworkRequest[],
     repeaterId: string,
     targetId?: string | null,
   ): Promise<{ text: string }> {

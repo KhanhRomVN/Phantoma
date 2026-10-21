@@ -87,7 +87,7 @@ export const NavigateRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function NavigateBlock({ url, output, isError }: NavigateBlockProps) {
+function NavigateBlock({ output, isError }: NavigateBlockProps) {
   return (
     <div className="text-xs space-y-2">
       {output && isError ? (

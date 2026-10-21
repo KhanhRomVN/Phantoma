@@ -727,7 +727,7 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
     const unsubscribes: (() => void)[] = [];
 
     // Helper to subscribe and store unsubscribe fn
-    const sub = (channel: string, handler: Listener) => {
+    const sub = (channel: string, handler: (event: unknown, data: unknown) => void) => {
       const unsub = wsBus.on(channel, handler);
       unsubscribes.push(unsub);
     };

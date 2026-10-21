@@ -39,7 +39,6 @@ import { MousePointer } from 'lucide-react';
 
 type SubView = 'history' | 'marketplace' | 'account' | 'setting' | null;
 
-
 // ─── AgentView (keep-alive unit) ───────────────────────────────────────────
 
 interface AgentViewProps {
@@ -142,7 +141,7 @@ function AgentView({
   }, []);
 
   const handleLoadConversation = useCallback(
-    (conversationId: string, sessionId: number, folderPath: string | null) => {
+    (conversationId: string, _sessionId: number, folderPath: string | null) => {
       // Clear any pending initial message data so each history load starts fresh
       setInitialMessageData(null);
       // Always generate a new sessionId to ensure useEffect in useConversationRestore triggers
@@ -157,7 +156,6 @@ function AgentView({
     },
     [],
   );
-
 
   // Listen for reset to home event from RightPanel Plus button
   useEffect(() => {
@@ -178,7 +176,6 @@ function AgentView({
       className="flex-1 overflow-hidden bg-background flex flex-col"
       style={{ display: isVisible ? 'flex' : 'none' }}
     >
-
       <div className="relative flex-1 min-h-0 overflow-hidden flex flex-col">
         {currentChat ? (
           <ChatPanel
@@ -210,7 +207,11 @@ function AgentView({
           />
         )}
         {subView === 'marketplace' && (
-          <MarketplacePanel isOpen={true} onClose={() => setSubView(null)} onNavigate={setSubView} />
+          <MarketplacePanel
+            isOpen={true}
+            onClose={() => setSubView(null)}
+            onNavigate={setSubView}
+          />
         )}
         {subView === 'account' && (
           <AccountPanel isOpen={true} onClose={() => setSubView(null)} onNavigate={setSubView} />
@@ -233,7 +234,6 @@ interface AgentPanelProps {
 }
 
 export function AgentPanel({
-
   initialConversationId,
   onConversationChange,
   onTitleChange,
@@ -246,11 +246,6 @@ export function AgentPanel({
   const activeDesignId = useDesignStore((s) => s.activeDesignId);
   const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
   const isTargetActive = currentTargetState?.isActive || false;
-  const isReconTargetActive = reconActiveTargetId
-    ? (reconTargets.find((t) => t.id === reconActiveTargetId)?.isActive ?? false)
-    : false;
-
-  // Tập hợp các view đã từng mở (keep-alive)
   const openedKeysRef = useRef<Set<string>>(new Set());
   const [, forceUpdate] = useState(0);
 

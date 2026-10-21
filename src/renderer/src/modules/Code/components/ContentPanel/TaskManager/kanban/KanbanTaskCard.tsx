@@ -13,6 +13,7 @@ import {
   ArrowRightLeft,
   Archive,
   Trash2,
+  Lock,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
@@ -59,6 +60,7 @@ interface KanbanTaskCardProps {
   onMove?: (task: StoredTask, status: TaskStatus) => void;
   onArchive?: (task: StoredTask) => void;
   onDelete?: (task: StoredTask) => void;
+  blockedBy?: number;
 }
 
 export const KanbanTaskCard = memo(function KanbanTaskCard({
@@ -70,6 +72,7 @@ export const KanbanTaskCard = memo(function KanbanTaskCard({
   onMove,
   onArchive,
   onDelete,
+  blockedBy = 0,
 }: KanbanTaskCardProps) {
   const prio = PRIORITY_CONFIG[task.priority];
   const isOverdue = task.endDate !== null && task.endDate < Date.now() && task.status !== 'done';
@@ -111,6 +114,16 @@ export const KanbanTaskCard = memo(function KanbanTaskCard({
               style={{ backgroundColor: $(prio.color) }}
               title={`${prio.label} priority`}
             />
+            {blockedBy > 0 && (
+              <span
+                className="inline-flex items-center gap-0.5 text-[10px] font-mono rounded px-1 py-px shrink-0"
+                style={{ color: $('--error'), backgroundColor: $('--error', 0.12) }}
+                title={`Blocked by ${blockedBy} task(s)`}
+              >
+                <Lock className="w-2.5 h-2.5" />
+                {blockedBy}
+              </span>
+            )}
             <h4 className="flex-1 min-w-0 text-[12.5px] font-semibold text-text-primary leading-snug line-clamp-2">
               {task.title}
             </h4>

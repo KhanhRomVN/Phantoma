@@ -84,10 +84,6 @@ export const Tooltip: React.FC<TooltipProps> = ({
       requestAnimationFrame(() => {
         calculatePosition();
         // Debug CSS variables
-        if (tooltipRef.current) {
-          const styles = getComputedStyle(tooltipRef.current);
-          const bgColor = styles.getPropertyValue('--color-tooltip-background');
-        }
       });
     }
   }, [isVisible]);

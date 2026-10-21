@@ -87,9 +87,9 @@ export const getToolLabel = (toolType: string): string => _getToolLabel(TAG_REGI
 
 /** Danh sách các tool có khả năng thay đổi nội dung file trên disk.
  *  Dùng cho logic revert, undo, và hiển thị diff summary. */
-export const FILE_MUTATION_TOOLS = Object.entries(TAG_REGISTRY)
+export const FILE_MUTATION_TOOLS: readonly string[] = Object.entries(TAG_REGISTRY)
   .filter(([_, def]) => def.features?.isFileMutation === true)
-  .map(([key]) => key) as readonly ['write_to_file', 'replace_in_file', 'revert_file'];
+  .map(([key]) => key);
 
 export type FileMutationTool = (typeof FILE_MUTATION_TOOLS)[number];
 

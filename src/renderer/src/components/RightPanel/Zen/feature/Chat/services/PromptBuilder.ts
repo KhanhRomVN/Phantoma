@@ -128,7 +128,6 @@ export class PromptBuilder {
     } = options;
     const promptLengthMode = feature === 'code' ? requestedPromptLengthMode : 'long';
 
-
     let systemPrompt = '';
     let projectContextStr = '';
     let attachedContextStr = '';
@@ -233,7 +232,7 @@ export class PromptBuilder {
       antiSystemPromptInjection?: boolean;
       promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
     },
-    workspace?: string,
+    _workspace?: string,
   ): Promise<string> {
     let systemInfo = {
       os: 'Unknown OS',
@@ -313,26 +312,7 @@ export class PromptBuilder {
     return systemPrompt;
   }
 
-  /**
-   * [DISABLED] Tạo section "Available Skills".
-   * TODO: Re-enable when Marketplace service is integrated in Phantoma renderer.
-   */
-  private static async buildSkillsSection(_homeDir?: string): Promise<string> {
-    return '';
-  }
-
-  /**
-   * [STUBBED] Đọc snapshot memory.md.
-   * ExtensionService.getMemorySnapshot chưa tồn tại trong Phantoma.
-   * Trả về rỗng để không inject noise vào prompt.
-   */
   private static async buildMemorySection(): Promise<string> {
-    // Future implementation:
-    // try {
-    //   const content = await extensionService.getMemorySnapshot?.();
-    //   if (!content || content.trim().length === 0) return '';
-    //   return `\n\n# Memory\n${content}`;
-    // } catch (e) { ... }
     return '';
   }
 

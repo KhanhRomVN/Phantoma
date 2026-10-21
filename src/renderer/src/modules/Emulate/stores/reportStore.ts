@@ -58,12 +58,6 @@ function parseTitle(content: string): string {
   return title || 'Untitled Report';
 }
 
-function generateId(): string {
-  return typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : 'report-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
-}
-
 // ─── Title Generator ────────────────────────────────────────────────────
 const TITLE_ADJECTIVES = [
   'Security',

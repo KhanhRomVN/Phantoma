@@ -58,7 +58,6 @@ export function parseResourceTable(text: string): FileNode[] {
     if (!match) continue;
 
     const filename = match[1].trim();
-    const type = match[2].trim();
     const sizeStr = match[3].trim();
 
     const node: FileNode = {

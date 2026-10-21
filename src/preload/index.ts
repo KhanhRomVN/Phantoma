@@ -26,7 +26,6 @@ if (process.contextIsolated) {
   }
 } else {
   // Fallback for non-context-isolated (development only)
-  // @ts-expect-error - window.electron is defined in d.ts
   window.electron = electronAPI;
   // @ts-expect-error - window.api is defined in d.ts
   window.api = api;

@@ -45,7 +45,7 @@ export const Website = forwardRef<WebsiteRef, WebsiteBodyProps>(function Website
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [duplicateError, setDuplicateError] = useState<{ name?: string; value?: string }>({});
-  const [suggestions, setSuggestions] = useState<
+  const [, setSuggestions] = useState<
     Array<{ name: string; url?: string; executablePath?: string }>
   >([]);
   const [faviconStatus, setFaviconStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(

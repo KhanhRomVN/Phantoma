@@ -142,7 +142,7 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
             actionIndex={actionIndex}
             hasError={hasValidationError || isError}
             isCompleted={isCompleted}
-            onAction={(e, type) => onToolClick(action, messageId, actionIndex, type)}
+            onAction={(_e, type) => onToolClick(action, messageId, actionIndex, type)}
           />
         </div>
       )}
@@ -157,6 +157,6 @@ export const RevertFileRenderer: React.FC<BaseRendererProps> = ({
   );
 };
 
-function calculateLineDiff(arg0: any, arg1: any): { additions: any; deletions: any } {
+function calculateLineDiff(_arg0: any, _arg1: any): { additions: any; deletions: any } {
   throw new Error('Function not implemented.');
 }

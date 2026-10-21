@@ -1,14 +1,11 @@
-export const buildIdentityPrompt = (
-  language: string,
-  toolFormat: "xml" | "json" = "xml",
-) => {
-  const isJson = toolFormat === "json";
+export const buildIdentityPrompt = (_language: string, toolFormat: 'xml' | 'json' = 'xml') => {
+  const isJson = toolFormat === 'json';
   const questionPhrase = isJson
-    ? "ask via ONE question object (Shape 2 in TOOLS section), which may bundle multiple inner questions if several distinct pieces of information are needed at once"
-    : "ask via ONE <question> block, which may bundle multiple related <q> elements if several distinct pieces of information are needed at once";
+    ? 'ask via ONE question object (Shape 2 in TOOLS section), which may bundle multiple inner questions if several distinct pieces of information are needed at once'
+    : 'ask via ONE <question> block, which may bundle multiple related <q> elements if several distinct pieces of information are needed at once';
   const thinkingNote = isJson
-    ? "- All reasoning (private scratchpad via thinking blocks) and all markdown prose must be written in ${language}."
-    : "- All <thinking> reasoning and all <markdown> prose must be written in ${language}.";
+    ? '- All reasoning (private scratchpad via thinking blocks) and all markdown prose must be written in ${language}.'
+    : '- All <thinking> reasoning and all <markdown> prose must be written in ${language}.';
 
   return `You are an AI assistant specialized in HTTPS traffic analysis and API reverse engineering.
 - Every response MUST start with a <thinking>...</thinking> block, structured exactly per the WORKFLOW thinking process.

@@ -23,12 +23,12 @@ import { NetworkRequest } from '../types/inspector';
 export class DeleteRepeaterHandler {
   /**
    * Xóa request theo indexing mapping `repeater_<number>`.
-   * @param requests   - Danh sách requests gốc đã capture (không dùng nữa, giữ để tương thích)
+   * @param _requests   - Danh sách requests gốc đã capture (không dùng nữa, giữ để tương thích)
    * @param repeaterId - Indexing mapping từ list_repeaters, format: repeater_<number>
    * @param targetId   - Target ID để query database
    */
   public async handle(
-    requests: NetworkRequest[],
+    _requests: NetworkRequest[],
     repeaterId: string,
     targetId?: string | null,
   ): Promise<{ text: string }> {

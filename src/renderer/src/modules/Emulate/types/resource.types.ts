@@ -15,9 +15,9 @@
 import { WasmItem } from '../utils/wasm-detector.util';
 
 // ── Types ──
-import { ResourceType } from '../constants/resource';
+import type { ResourceType } from '../constants/resource';
 
-export { ResourceType };
+export type { ResourceType };
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface ResourceItem {

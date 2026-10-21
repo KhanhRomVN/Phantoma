@@ -116,7 +116,7 @@ export const useMessageParsing = (
     msg: Message,
     isAssistantStreaming: boolean,
     cache: Map<string, ReturnType<typeof parseAIResponse>>,
-    lastStreaming: typeof lastStreamingParseRef.current,
+    _lastStreaming: typeof lastStreamingParseRef.current,
   ) {
     // STREAMING FIX: Always parse fresh for streaming messages to ensure
     // letter-by-letter animation works. No cache optimization during streaming.

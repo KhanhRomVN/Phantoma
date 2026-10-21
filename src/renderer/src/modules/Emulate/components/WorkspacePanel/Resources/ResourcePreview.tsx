@@ -19,7 +19,7 @@ import { Download, Cpu, FolderOpen, File } from 'lucide-react';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
 // ── Types ──
-import { ResourceItem } from '../../../../types/resource.types';
+import { ResourceItem } from '../../../types/resource.types';
 
 // ── Utils ──
 

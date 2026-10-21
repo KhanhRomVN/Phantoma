@@ -22,7 +22,7 @@ import { NetworkRequest } from '../types/inspector';
 // ─── Class ──────────────────────────────────────────────────────────────
 export class ListRepeatersHandler {
   public async handle(
-    requests: NetworkRequest[],
+    _requests: NetworkRequest[],
     targetId?: string | null,
   ): Promise<{ text: string }> {
     if (!targetId) {

@@ -23,7 +23,7 @@ export const GetSourceDetailRenderer: React.FC<BaseRendererProps> = ({
   isLastItemInList,
   toolOutputs,
 }) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [, setIsCollapsed] = React.useState(false);
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const filepath = action.params.filepath || '';

@@ -91,7 +91,7 @@ function parseCreateTabOutput(output: string): ParsedCreateTabResult | null {
   try {
     const tabIdMatch = output.match(/tabId:\s*(.+)/i);
     const urlMatch = output.match(/url:\s*(.+)/i);
-    
+
     return {
       tabId: tabIdMatch ? tabIdMatch[1].trim() : undefined,
       url: urlMatch ? urlMatch[1].trim() : undefined,
@@ -102,9 +102,9 @@ function parseCreateTabOutput(output: string): ParsedCreateTabResult | null {
   }
 }
 
-function CreateTabBlock({ url, output, isError }: CreateTabBlockProps) {
+function CreateTabBlock({ output, isError }: CreateTabBlockProps) {
   const parsed = output ? parseCreateTabOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
@@ -133,7 +133,9 @@ function CreateTabBlock({ url, output, isError }: CreateTabBlockProps) {
             {parsed.url && (
               <div className="flex items-start gap-2">
                 <span className="text-text-secondary shrink-0">URL:</span>
-                <span className="text-text-primary font-mono text-[11px] break-all">{parsed.url}</span>
+                <span className="text-text-primary font-mono text-[11px] break-all">
+                  {parsed.url}
+                </span>
               </div>
             )}
           </div>

@@ -92,7 +92,7 @@ function parseScrollOutput(output: string): ParsedScrollResult | null {
   try {
     const dirMatch = output.match(/direction:\s*(.+)/i);
     const amountMatch = output.match(/amount:\s*(\d+)/i);
-    
+
     if (dirMatch) {
       return {
         direction: dirMatch[1].trim(),
@@ -106,14 +106,9 @@ function parseScrollOutput(output: string): ParsedScrollResult | null {
   }
 }
 
-function ScrollBlock({
-  direction,
-  amount,
-  output,
-  isError,
-}: ScrollBlockProps) {
+function ScrollBlock({ output, isError }: ScrollBlockProps) {
   const parsed = output ? parseScrollOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

@@ -93,11 +93,11 @@ function parseUploadFileOutput(output: string): ParsedUploadFileResult | null {
   try {
     const refMatch = output.match(/ref:\s*(.+)/i);
     const filePathMatch = output.match(/file(?:Path)?:\s*(.+)/i);
-    
+
     if (refMatch) {
       const filePath = filePathMatch ? filePathMatch[1].trim() : undefined;
       const fileName = filePath ? filePath.split(/[\\/]/).pop() : undefined;
-      
+
       return {
         ref: refMatch[1].trim(),
         filePath,
@@ -111,14 +111,9 @@ function parseUploadFileOutput(output: string): ParsedUploadFileResult | null {
   }
 }
 
-function UploadFileBlock({
-  ref,
-  filePath,
-  output,
-  isError,
-}: UploadFileBlockProps) {
+function UploadFileBlock({ output, isError }: UploadFileBlockProps) {
   const parsed = output ? parseUploadFileOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
@@ -151,7 +146,9 @@ function UploadFileBlock({
             {parsed.filePath && (
               <div className="flex items-start gap-2">
                 <span className="text-text-secondary shrink-0">Path:</span>
-                <span className="text-text-primary font-mono text-[11px] break-all opacity-70">{parsed.filePath}</span>
+                <span className="text-text-primary font-mono text-[11px] break-all opacity-70">
+                  {parsed.filePath}
+                </span>
               </div>
             )}
           </div>

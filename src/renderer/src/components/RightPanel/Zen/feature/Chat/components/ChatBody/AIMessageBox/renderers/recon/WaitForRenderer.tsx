@@ -100,14 +100,17 @@ function parseWaitForOutput(output: string): ParsedWaitForResult | null {
     const refMatch = output.match(/ref:\s*(.+)/i);
     const textMatch = output.match(/text:\s*(.+)/i);
     const timeMatch = output.match(/timeout:\s*(\d+)/i);
-    
+
     if (condMatch) {
       return {
         condition: condMatch[1].trim(),
         ref: refMatch ? refMatch[1].trim() : undefined,
         text: textMatch ? textMatch[1].trim() : undefined,
         timeoutMs: timeMatch ? parseInt(timeMatch[1]) : undefined,
-        success: output.includes('Condition met') || output.includes('found') || output.includes('visible'),
+        success:
+          output.includes('Condition met') ||
+          output.includes('found') ||
+          output.includes('visible'),
       };
     }
     return null;
@@ -116,16 +119,9 @@ function parseWaitForOutput(output: string): ParsedWaitForResult | null {
   }
 }
 
-function WaitForBlock({
-  condition,
-  ref,
-  text,
-  timeoutMs,
-  output,
-  isError,
-}: WaitForBlockProps) {
+function WaitForBlock({ output, isError }: WaitForBlockProps) {
   const parsed = output ? parseWaitForOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

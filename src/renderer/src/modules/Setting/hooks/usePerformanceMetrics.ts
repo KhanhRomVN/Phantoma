@@ -40,7 +40,7 @@ interface UsePerformanceMetricsReturn {
 
 export function usePerformanceMetrics(): UsePerformanceMetricsReturn {
   const [components, setComponents] = useState<ComponentMetric[]>([]);
-  const [webVitals, setWebVitals] = useState<WebVitalMetric[]>([]);
+  const [webVitals] = useState<WebVitalMetric[]>([]);
   const [longTasks, setLongTasks] = useState<LongTask[]>([]);
   const [history, setHistory] = useState<PerformanceHistoryEntry[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -68,11 +68,10 @@ export function usePerformanceMetrics(): UsePerformanceMetricsReturn {
                     renderCount: c.renderCount + 1,
                     lastRenderTime: renderTime || Date.now(),
                     avgRenderTime:
-                      (c.avgRenderTime * c.renderCount + (renderTime || 0)) /
-                      (c.renderCount + 1),
+                      (c.avgRenderTime * c.renderCount + (renderTime || 0)) / (c.renderCount + 1),
                     totalRenderTime: c.totalRenderTime + (renderTime || 0),
                   }
-                : c
+                : c,
             );
           }
           return [
@@ -90,16 +89,10 @@ export function usePerformanceMetrics(): UsePerformanceMetricsReturn {
     };
 
     // Listen for custom events if react-scan dispatches them
-    window.addEventListener(
-      'react-scan:render',
-      handleComponentRender as EventListener
-    );
+    window.addEventListener('react-scan:render', handleComponentRender as EventListener);
 
     return () => {
-      window.removeEventListener(
-        'react-scan:render',
-        handleComponentRender as EventListener
-      );
+      window.removeEventListener('react-scan:render', handleComponentRender as EventListener);
     };
   }, []);
 
@@ -114,7 +107,9 @@ export function usePerformanceMetrics(): UsePerformanceMetricsReturn {
         .map((entry) => ({
           startTime: entry.startTime,
           duration: entry.duration,
-          attribution: (entry as any).attribution?.map((a: any) => a.containerName || a.name || 'unknown') || [],
+          attribution:
+            (entry as any).attribution?.map((a: any) => a.containerName || a.name || 'unknown') ||
+            [],
           timestamp: Date.now(),
         }));
 

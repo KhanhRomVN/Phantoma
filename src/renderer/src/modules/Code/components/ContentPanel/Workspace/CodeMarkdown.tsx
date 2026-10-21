@@ -15,7 +15,6 @@ import {
   Quote,
   Link as LinkIcon,
   Image as ImageIcon,
-  Eye,
   Code,
   WrapText,
   FileDown,
@@ -29,10 +28,7 @@ interface CodeMarkdownProps {
 
 type ViewMode = 'source' | 'rich';
 
-export const CodeMarkdown = ({ 
-  initialContent = '', 
-  onContentChange 
-}: CodeMarkdownProps) => {
+export const CodeMarkdown = ({ initialContent = '', onContentChange }: CodeMarkdownProps) => {
   const [content, setContent] = useState(initialContent);
   const [viewMode, setViewMode] = useState<ViewMode>('rich');
   const [wordWrap, setWordWrap] = useState(true);
@@ -50,10 +46,11 @@ export const CodeMarkdown = ({
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = content.substring(start, end);
-    const newText = content.substring(0, start) + before + selectedText + after + content.substring(end);
-    
+    const newText =
+      content.substring(0, start) + before + selectedText + after + content.substring(end);
+
     handleContentChange(newText);
-    
+
     // Restore focus and selection
     setTimeout(() => {
       textarea.focus();
@@ -69,9 +66,9 @@ export const CodeMarkdown = ({
     const start = textarea.selectionStart;
     const lineStart = content.lastIndexOf('\n', start - 1) + 1;
     const newText = content.substring(0, lineStart) + prefix + content.substring(lineStart);
-    
+
     handleContentChange(newText);
-    
+
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + prefix.length, start + prefix.length);
@@ -92,81 +89,81 @@ export const CodeMarkdown = ({
   };
 
   const toolbarButtons = [
-    { 
-      icon: <Type className="w-4 h-4" />, 
+    {
+      icon: <Type className="w-4 h-4" />,
       label: 'Body Text',
       action: () => insertAtLine(''),
     },
-    { 
-      icon: <Heading1 className="w-4 h-4" />, 
+    {
+      icon: <Heading1 className="w-4 h-4" />,
       label: 'Heading 1',
       action: () => insertAtLine('# '),
     },
-    { 
-      icon: <Heading2 className="w-4 h-4" />, 
+    {
+      icon: <Heading2 className="w-4 h-4" />,
       label: 'Heading 2',
       action: () => insertAtLine('## '),
     },
-    { 
-      icon: <Heading3 className="w-4 h-4" />, 
+    {
+      icon: <Heading3 className="w-4 h-4" />,
       label: 'Heading 3',
       action: () => insertAtLine('### '),
     },
-    { 
-      icon: <Heading4 className="w-4 h-4" />, 
+    {
+      icon: <Heading4 className="w-4 h-4" />,
       label: 'Heading 4',
       action: () => insertAtLine('#### '),
     },
-    { 
-      icon: <Heading5 className="w-4 h-4" />, 
+    {
+      icon: <Heading5 className="w-4 h-4" />,
       label: 'Heading 5',
       action: () => insertAtLine('##### '),
     },
     'separator',
-    { 
-      icon: <Bold className="w-4 h-4" />, 
+    {
+      icon: <Bold className="w-4 h-4" />,
       label: 'Bold',
       action: () => insertMarkdown('**', '**'),
     },
-    { 
-      icon: <Italic className="w-4 h-4" />, 
+    {
+      icon: <Italic className="w-4 h-4" />,
       label: 'Italic',
       action: () => insertMarkdown('*', '*'),
     },
-    { 
-      icon: <Strikethrough className="w-4 h-4" />, 
+    {
+      icon: <Strikethrough className="w-4 h-4" />,
       label: 'Strikethrough',
       action: () => insertMarkdown('~~', '~~'),
     },
     'separator',
-    { 
-      icon: <List className="w-4 h-4" />, 
+    {
+      icon: <List className="w-4 h-4" />,
       label: 'Bullet List',
       action: () => insertAtLine('- '),
     },
-    { 
-      icon: <ListOrdered className="w-4 h-4" />, 
+    {
+      icon: <ListOrdered className="w-4 h-4" />,
       label: 'Numbered List',
       action: () => insertAtLine('1. '),
     },
-    { 
-      icon: <CheckSquare className="w-4 h-4" />, 
+    {
+      icon: <CheckSquare className="w-4 h-4" />,
       label: 'Checklist',
       action: () => insertAtLine('- [ ] '),
     },
     'separator',
-    { 
-      icon: <Quote className="w-4 h-4" />, 
+    {
+      icon: <Quote className="w-4 h-4" />,
       label: 'Quote',
       action: () => insertAtLine('> '),
     },
-    { 
-      icon: <LinkIcon className="w-4 h-4" />, 
+    {
+      icon: <LinkIcon className="w-4 h-4" />,
       label: 'Link',
       action: () => insertMarkdown('[', '](url)'),
     },
-    { 
-      icon: <ImageIcon className="w-4 h-4" />, 
+    {
+      icon: <ImageIcon className="w-4 h-4" />,
       label: 'Image',
       action: () => insertMarkdown('![alt](', ')'),
     },
@@ -182,9 +179,9 @@ export const CodeMarkdown = ({
             onClick={() => setViewMode('rich')}
             className={cn(
               'px-2 py-1 text-xs rounded transition-colors',
-              viewMode === 'rich' 
-                ? 'bg-primary/20 text-primary' 
-                : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]'
+              viewMode === 'rich'
+                ? 'bg-primary/20 text-primary'
+                : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]',
             )}
           >
             Rich
@@ -193,9 +190,9 @@ export const CodeMarkdown = ({
             onClick={() => setViewMode('source')}
             className={cn(
               'px-2 py-1 text-xs rounded transition-colors flex items-center gap-1',
-              viewMode === 'source' 
-                ? 'bg-primary/20 text-primary' 
-                : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]'
+              viewMode === 'source'
+                ? 'bg-primary/20 text-primary'
+                : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]',
             )}
           >
             <Code className="w-3 h-3" />
@@ -210,7 +207,7 @@ export const CodeMarkdown = ({
               if (btn === 'separator') {
                 return <div key={`sep-${idx}`} className="w-px h-6 bg-divider mx-1" />;
               }
-              
+
               return (
                 <button
                   key={idx}
@@ -232,16 +229,16 @@ export const CodeMarkdown = ({
             onClick={() => setWordWrap(!wordWrap)}
             className={cn(
               'p-1.5 rounded transition-colors',
-              wordWrap 
-                ? 'bg-primary/20 text-primary' 
-                : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]'
+              wordWrap
+                ? 'bg-primary/20 text-primary'
+                : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.05]',
             )}
             title="Toggle Word Wrap"
             aria-label="Toggle Word Wrap"
           >
             <WrapText className="w-4 h-4" />
           </button>
-          
+
           <button
             onClick={handleExportPDF}
             className="p-1.5 rounded hover:bg-white/[0.05] text-text-secondary hover:text-text-primary transition-colors"
@@ -263,8 +260,8 @@ export const CodeMarkdown = ({
             onChange={(e) => handleContentChange(e.target.value)}
             placeholder="# Start writing markdown..."
             className={cn(
-              "w-full h-full bg-transparent border-none resize-none p-4 text-sm text-text-primary placeholder:text-text-secondary/30 focus:outline-none font-mono leading-relaxed",
-              wordWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre overflow-x-auto"
+              'w-full h-full bg-transparent border-none resize-none p-4 text-sm text-text-primary placeholder:text-text-secondary/30 focus:outline-none font-mono leading-relaxed',
+              wordWrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre overflow-x-auto',
             )}
             spellCheck={false}
           />
@@ -279,19 +276,19 @@ export const CodeMarkdown = ({
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="# Start writing markdown..."
                 className={cn(
-                  "w-full h-full bg-transparent border-none resize-none p-4 text-sm text-text-primary placeholder:text-text-secondary/30 focus:outline-none font-mono leading-relaxed",
-                  wordWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre overflow-x-auto"
+                  'w-full h-full bg-transparent border-none resize-none p-4 text-sm text-text-primary placeholder:text-text-secondary/30 focus:outline-none font-mono leading-relaxed',
+                  wordWrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre overflow-x-auto',
                 )}
                 spellCheck={false}
               />
             </div>
-            
+
             {/* Preview Pane */}
             <div className="flex-1 overflow-auto p-4">
-              <div 
+              <div
                 className="prose prose-invert prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ 
-                  __html: renderMarkdownPreview(content) 
+                dangerouslySetInnerHTML={{
+                  __html: renderMarkdownPreview(content),
                 }}
               />
             </div>
@@ -305,46 +302,49 @@ export const CodeMarkdown = ({
 // Simple markdown to HTML renderer (can be replaced with a proper markdown library like marked or remark)
 function renderMarkdownPreview(markdown: string): string {
   let html = markdown;
-  
+
   // Headers
   html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
   html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  
+
   // Bold
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  
+
   // Italic
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  
+
   // Strikethrough
   html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
-  
+
   // Links
-  html = html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  
+  html = html.replace(
+    /\[(.+?)\]\((.+?)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+  );
+
   // Images
   html = html.replace(/!\[(.+?)\]\((.+?)\)/g, '<img src="$2" alt="$1" />');
-  
+
   // Blockquotes
   html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-  
+
   // Unordered lists
   html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
   html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-  
+
   // Ordered lists
   html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-  
+
   // Checkboxes
   html = html.replace(/- \[ \] (.+)$/gm, '<li><input type="checkbox" disabled /> $1</li>');
   html = html.replace(/- \[x\] (.+)$/gm, '<li><input type="checkbox" checked disabled /> $1</li>');
-  
+
   // Paragraphs
   html = html.replace(/^(?!<[hbluo]|<\/[hbluo])(.+)$/gm, '<p>$1</p>');
-  
+
   return html;
 }
 

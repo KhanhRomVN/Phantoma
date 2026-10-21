@@ -17,9 +17,6 @@
 // ── React ──
 import { useState, useEffect } from 'react';
 
-// ── Types ──
-import { TargetTab } from '@renderer/modules/Emulate/types/target.types';
-
 // ─── Types ──────────────────────────────────────────────────────────────
 interface RunningTarget {
   id: string;
@@ -33,7 +30,7 @@ interface RunningTarget {
  * TODO: Refactor this hook to fetch data from Express Server API instead of IPC.
  * The old IPC channels ('target:list-running', 'target:status-changed') have been removed
  * as part of migrating Emulate functionality to the backend server.
- * 
+ *
  * Expected new implementation:
  * - Use SWR or React Query to poll/fetch `/api/v1/targets/running`
  * - Subscribe to WebSocket events for real-time updates if available.
@@ -47,7 +44,7 @@ export function useRunningTargets() {
     // Placeholder: Return empty array until Server integration is complete.
     // This prevents UI crashes while maintaining type safety.
     setRunningTargets([]);
-    
+
     /* Future Implementation Example:
     try {
       const response = await fetch('http://localhost:3000/api/v1/targets/running');
@@ -65,7 +62,7 @@ export function useRunningTargets() {
   useEffect(() => {
     // No longer listening to IPC events since handlers are gone.
     // Will subscribe to WS/SSE in future refactor.
-    
+
     loadRunningTargets();
 
     return () => {};

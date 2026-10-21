@@ -94,10 +94,10 @@ function parseFillInputOutput(output: string): ParsedFillInputResult | null {
     // [fill_input] Input filled
     // ref: search_query
     // value: vừng lá me bay
-    
+
     const refMatch = output.match(/ref:\s*(.+)/i);
     const valueMatch = output.match(/value:\s*(.+)/i);
-    
+
     if (refMatch && valueMatch) {
       return {
         ref: refMatch[1].trim(),
@@ -111,14 +111,9 @@ function parseFillInputOutput(output: string): ParsedFillInputResult | null {
   }
 }
 
-function FillInputBlock({
-  ref,
-  value,
-  output,
-  isError,
-}: FillInputBlockProps) {
+function FillInputBlock({ output, isError }: FillInputBlockProps) {
   const parsed = output ? parseFillInputOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

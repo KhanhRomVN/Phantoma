@@ -25,7 +25,7 @@ export const GetResourceContentRenderer: React.FC<BaseRendererProps> = ({
   toolOutputs,
   allMessages,
 }) => {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [, setIsCollapsed] = React.useState(false);
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawFilename = action.params.filename || '';

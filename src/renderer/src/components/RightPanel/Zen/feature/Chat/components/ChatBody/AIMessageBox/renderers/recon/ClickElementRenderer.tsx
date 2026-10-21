@@ -59,11 +59,7 @@ export const ClickElementRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <ClickElementBlock
-          ref={action.params.ref}
-          output={outputData?.output}
-          isError={isError}
-        />
+        <ClickElementBlock ref={action.params.ref} output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -90,9 +86,9 @@ function parseClickOutput(output: string): ParsedClickResult | null {
     // Parse markdown format:
     // [click_element] Element clicked
     // ref: some_button
-    
+
     const refMatch = output.match(/ref:\s*(.+)/i);
-    
+
     if (refMatch) {
       return {
         ref: refMatch[1].trim(),
@@ -105,13 +101,9 @@ function parseClickOutput(output: string): ParsedClickResult | null {
   }
 }
 
-function ClickElementBlock({
-  ref,
-  output,
-  isError,
-}: ClickElementBlockProps) {
+function ClickElementBlock({ output, isError }: ClickElementBlockProps) {
   const parsed = output ? parseClickOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
