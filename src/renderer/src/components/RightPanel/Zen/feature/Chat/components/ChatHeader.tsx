@@ -13,7 +13,15 @@
  */
 
 import React from 'react';
+import { Home } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+} from '@renderer/components/ui/Dropdown';
 import type { Message } from '../types/message';
 import { NAV_ITEMS, type NavTarget } from '../../../components/AgentNavBadge';
 
@@ -44,6 +52,8 @@ interface ChatHeaderProps {
   onTitleChange?: (title: string) => void;
   /** Optional: có giá trị khi topBar bị ẩn → hiện hàng icon AgentNavBadge (không có icon Chat). */
   onOpenSubView?: (target: NavTarget) => void;
+  /** Optional: quay về màn hình Home. */
+  onGoHome?: () => void;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────
@@ -142,6 +152,7 @@ interface ConversationMenuProps {
   onDelete?: () => void;
   onExportAsJson?: () => void;
   onNavigate?: (target: NavTarget) => void;
+  onGoHome?: () => void;
 }
 
 const ConversationMenu: React.FC<ConversationMenuProps> = ({
@@ -150,19 +161,11 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
   onDelete,
   onExportAsJson,
   onNavigate,
+  onGoHome,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [hov, setHov] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [open]);
 
   const items: {
     label: string;
@@ -171,6 +174,11 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
     danger?: boolean;
     sep?: boolean;
   }[] = [
+    {
+      label: 'Home',
+      icon: <Home size={13} className="text-primary" />,
+      action: onGoHome,
+    },
     ...NAV_ITEMS.map(({ id, label, icon: Icon, color }) => ({
       label,
       icon: <Icon size={13} className={color} />,
@@ -224,9 +232,9 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
   ];
 
   return (
-    <div ref={ref} className="relative">
+    <Dropdown open={open} onOpenChange={setOpen} align="end" side="bottom" sideOffset={4}>
+      <DropdownTrigger asChild>
       <button
-        onClick={() => setOpen((v) => !v)}
         title="More options"
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
@@ -242,41 +250,23 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
           <circle cx="12" cy="19" r="1" />
         </svg>
       </button>
-
-      {open && (
-        <div className="absolute top-[calc(100%+4px)] right-0 z-[9999] bg-[var(--vscode-menu-background,#1e1e1e)] border border-[var(--vscode-menu-border,#454545)] rounded-md shadow-[0_4px_16px_rgba(0,0,0,0.35)] min-w-[180px] py-1 overflow-hidden">
-          {items.map((item) => (
-            <React.Fragment key={item.label}>
-              {item.sep && <div className="h-px bg-foreground/[0.08] my-1" />}
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  item.action?.();
-                }}
-                disabled={!item.action}
-                className={cn(
-                  'w-full px-3 py-1.5 flex items-center gap-2 bg-transparent border-none text-xs text-left transition-colors',
-                  item.action ? 'cursor-pointer' : 'cursor-not-allowed opacity-40',
-                  item.danger ? 'text-error' : 'text-text-primary',
-                )}
-                onMouseEnter={(e) => {
-                  if (item.action)
-                    e.currentTarget.style.backgroundColor = item.danger
-                      ? 'color-mix(in srgb, var(--vscode-editorError-foreground, #ef4444) 12%, transparent)'
-                      : 'var(--vscode-menu-selectionBackground, rgba(255,255,255,0.06))';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <span className="shrink-0 flex items-center">{item.icon}</span>
-                {item.label}
-              </button>
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-    </div>
+      </DropdownTrigger>
+      <DropdownContent>
+        {items.map((item) => (
+          <React.Fragment key={item.label}>
+            {item.sep && <DropdownSeparator />}
+            <DropdownItem
+              icon={item.icon}
+              disabled={!item.action}
+              variant={item.danger ? 'error' : 'default'}
+              onClick={() => item.action?.()}
+            >
+              {item.label}
+            </DropdownItem>
+          </React.Fragment>
+        ))}
+      </DropdownContent>
+    </Dropdown>
   );
 };
 
@@ -420,6 +410,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onExportAsJson,
   onTitleChange,
   onOpenSubView,
+  onGoHome,
 }) => {
   const providerId = displayedModel?.providerId || '';
   const faviconUrl = getFaviconUrl(providerId, displayedModel?.favicon);
@@ -482,6 +473,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             onDelete={onDeleteConversation}
             onExportAsJson={onExportAsJson}
             onNavigate={onOpenSubView}
+            onGoHome={onGoHome}
           />
         </div>
 

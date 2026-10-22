@@ -28,12 +28,14 @@ import SettingsPanel from './feature/Setting';
 import { ProjectProvider } from './context/ProjectContext';
 import { useAgentFeature } from './context/FeatureContext';
 import { useDesignStore } from '@renderer/modules/Code/hooks/useDesignStore';
+import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
 
 // ── Types ──
 import { ChatSession } from './feature/Chat/types/chat';
 
 // ── Utils ── (icons)
 import { MousePointer } from 'lucide-react';
+import { AgentRootContext } from './context/AgentRootContext';
 
 // ─── Page switcher ─────────────────────────────────────────────────────────
 
@@ -239,6 +241,7 @@ export function AgentPanel({
   onTitleChange,
 }: AgentPanelProps) {
   const firstViewKeyRef = useRef<string | null>(null);
+  const [rootEl, setRootEl] = useState<HTMLElement | null>(null);
   const { activeFeature, emulateState, codeState, reconState } = useAgentFeature();
   const { activeTargetId, targetStates } = emulateState;
   const { currentProjectId } = codeState;
@@ -263,6 +266,9 @@ export function AgentPanel({
       // Set global context for conversation service
       (window as any).__activeFeature = 'code';
       (window as any).__currentProjectId = currentProjectId;
+      // Workspace folder path — key hash dùng CHUNG với Zen (PathService).
+      const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+      if (project?.path) (window as any).__zenWorkspaceFolderPath = project.path;
     } else if (activeFeature === 'recon' && reconActiveTargetId) {
       key = `recon:${reconActiveTargetId}`;
       // Set global context for conversation service
@@ -354,62 +360,67 @@ export function AgentPanel({
 
   return (
     <ProjectProvider>
-      <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
-        {/* Overlay cho feature không hỗ trợ */}
-        {showGenericOverlay && <AgentOverlay featureName={activeFeature || undefined} />}
+      <AgentRootContext.Provider value={rootEl}>
+        <div
+          ref={setRootEl}
+          className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative"
+        >
+          {/* Overlay cho feature không hỗ trợ */}
+          {showGenericOverlay && <AgentOverlay featureName={activeFeature || undefined} />}
 
-        {/* Overlay cho emulate khi chưa có target */}
-        {showEmulateOverlay && renderEmulateOverlay()}
+          {/* Overlay cho emulate khi chưa có target */}
+          {showEmulateOverlay && renderEmulateOverlay()}
 
-        {/* Overlay cho recon khi chưa có target */}
-        {showReconOverlay && (
-          <AgentOverlay
-            title="Select a target to start"
-            description="Please select a target from the left panel to use the Agent"
-            icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
-          />
-        )}
+          {/* Overlay cho recon khi chưa có target */}
+          {showReconOverlay && (
+            <AgentOverlay
+              title="Select a target to start"
+              description="Please select a target from the left panel to use the Agent"
+              icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
+            />
+          )}
 
-        {showDesignOverlay && (
-          <AgentOverlay
-            title="Open a design to start"
-            description="Please open or create a design to use the Design Agent"
-            icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
-          />
-        )}
+          {showDesignOverlay && (
+            <AgentOverlay
+              title="Open a design to start"
+              description="Please open or create a design to use the Design Agent"
+              icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
+            />
+          )}
 
-        {/* Keep-alive views — tất cả đều mounted, chỉ activeKey hiển thị */}
-        {!showGenericOverlay && !showEmulateOverlay && (
-          <div className="flex-1 overflow-hidden bg-background flex flex-col">
-            {(() => {
-              const keys = Array.from(openedKeysRef.current);
-              return keys.map((key) => {
-                const feature = key.startsWith('emulate:')
-                  ? 'emulate'
-                  : key.startsWith('recon:')
-                    ? 'recon'
-                    : key.startsWith('design:')
-                      ? 'design'
-                      : 'code';
-                const isVisible = key === activeKey;
-                if (firstViewKeyRef.current === null) firstViewKeyRef.current = key;
-                return (
-                  <AgentView
-                    key={key}
-                    feature={feature}
-                    isVisible={isVisible}
-                    initialConversationId={
-                      key === firstViewKeyRef.current ? initialConversationId : undefined
-                    }
-                    onConversationChange={onConversationChange}
-                    onTitleChange={onTitleChange}
-                  />
-                );
-              });
-            })()}
-          </div>
-        )}
-      </div>
+          {/* Keep-alive views — tất cả đều mounted, chỉ activeKey hiển thị */}
+          {!showGenericOverlay && !showEmulateOverlay && (
+            <div className="flex-1 overflow-hidden bg-background flex flex-col">
+              {(() => {
+                const keys = Array.from(openedKeysRef.current);
+                return keys.map((key) => {
+                  const feature = key.startsWith('emulate:')
+                    ? 'emulate'
+                    : key.startsWith('recon:')
+                      ? 'recon'
+                      : key.startsWith('design:')
+                        ? 'design'
+                        : 'code';
+                  const isVisible = key === activeKey;
+                  if (firstViewKeyRef.current === null) firstViewKeyRef.current = key;
+                  return (
+                    <AgentView
+                      key={key}
+                      feature={feature}
+                      isVisible={isVisible}
+                      initialConversationId={
+                        key === firstViewKeyRef.current ? initialConversationId : undefined
+                      }
+                      onConversationChange={onConversationChange}
+                      onTitleChange={onTitleChange}
+                    />
+                  );
+                });
+              })()}
+            </div>
+          )}
+        </div>
+      </AgentRootContext.Provider>
     </ProjectProvider>
   );
 }

@@ -43,6 +43,7 @@ import {
   getBlockedRangeLabel,
   getBlockedHoursDescription,
 } from '@renderer/utils/timeBlock';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { AccountStat } from './utils/format';
 import {
   useStatsPeriod,
@@ -301,7 +302,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
             prov.data.forEach((p: any) => {
               if (p.provider_id && p.website) {
                 try {
-                  favicons[p.provider_id] = `${new URL(p.website).origin}/favicon.ico`;
+                  favicons[p.provider_id] = getFaviconUrl(p.website);
                 } catch {
                   console.warn('[Home] Invalid website URL for favicon:', p.website);
                 }
@@ -330,7 +331,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
       try {
         const conversationIds = await ConversationService.list(moduleId);
         const conversationsData = await Promise.all(
-          conversationIds.slice(0, 10).map(async (id) => {
+          conversationIds.map(async (id) => {
             try {
               const data = await ConversationService.get(moduleId, id);
               if (!data) return null;
@@ -342,6 +343,19 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 .map((m) => m.content.substring(0, 50))
                 .join(' ');
 
+              let providerId: string | undefined;
+              let modelId: string | undefined;
+              let totalTokenUsage = 0;
+              let totalRequests = 0;
+              for (const m of data.messages) {
+                if (m.role === 'user') totalRequests++;
+                if (m.role === 'assistant') {
+                  if (!providerId && m.providerId) providerId = m.providerId;
+                  if (!modelId && m.modelId) modelId = m.modelId;
+                  if (!m.isError && m.tokenUsage) totalTokenUsage += m.tokenUsage;
+                }
+              }
+
               return {
                 id: data.conversationId,
                 title,
@@ -351,8 +365,10 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 createdAt: data.createdAt,
                 messageCount: data.messages.length,
                 tabId: -1,
-                totalRequests: 0,
-                totalTokenUsage: 0,
+                totalRequests,
+                totalTokenUsage,
+                providerId,
+                modelId,
                 folderPath: null,
               } as ConversationItem;
             } catch (error) {
@@ -479,7 +495,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
       {/* Dashboard scroll area */}
       <div className="flex-1 overflow-auto flex flex-col">
         <div
-          className="flex-1 flex flex-col items-center justify-start py-8 px-4 text-primary"
+          className="flex-1 flex flex-col items-center justify-start py-8 px-4 text-text-primary"
           style={{
             animation: 'fadeIn 0.5s ease-out',
             maxWidth: '680px',

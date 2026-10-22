@@ -18,7 +18,7 @@
  * ------------------------------------------------------------------
  */
 
-import { memo, useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../hooks/useCodeStore';
 import {
   attachAgentToProject,
@@ -29,6 +29,8 @@ import type { SessionStatus } from '../../ProjectPanel/SessionCard';
 import { getPanelMeta, TabBar } from './WorkspacePanes';
 import { WorkspacePanes } from './WorkspacePanes';
 import { WorkspaceEmptyState, type EmptyWorkspaceAction } from './WorkspaceEmptyStates';
+import { ConfirmWorkflowLayoutModal } from './ConfirmWorkflowLayoutModal';
+import { getWorkflowAgent } from './AgentWorkflow/agents';
 import { useWorkspaceInteractions } from '../../../hooks/useWorkspaceInteractions';
 import {
   computeRects,
@@ -61,7 +63,7 @@ const EMPTY_ACTION_TO_PANEL_TYPE: Record<EmptyWorkspaceAction, PanelType> = {
   browser: 'website',
   terminal: 'terminal',
   agent: 'agent',
-  markdown: 'note',
+  workflow: 'workflow',
 };
 
 const createPanelId = (type: PanelType) =>
@@ -97,6 +99,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
   });
 
   const isActive = useCodeStore((s) => s.activeWorkspaceSessionId === sessionId);
+  const isViewVisible = useCodeStore((s) => s.contentViewMode === 'workspace');
 
   const belongsToSession = (p: StoredWorkspacePanel) =>
     p.sessionId ? p.sessionId === sessionId : p.cwd === currentProjectPath;
@@ -306,6 +309,17 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         terminalProcsRef.current.delete(panelId);
       }
 
+      const rawName = (payload.displayCommand || payload.command || '').trim().split(/\s+/)[0];
+      const processName = rawName ? rawName.split('/').pop() || rawName : null;
+      dispatch({
+        type: 'updatePanel',
+        id: panelId,
+        patch: {
+          terminalRunning: !!payload.alive,
+          terminalProcess: payload.alive ? processName : null,
+        },
+      });
+
       const procs = panelsRef.current.flatMap((p) => {
         const info = terminalProcsRef.current.get(p.id);
         return info
@@ -347,6 +361,19 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       },
     });
   }, [currentProjectPath]);
+
+  const [pendingWorkflowPane, setPendingWorkflowPane] = useState<{ pane?: PaneId } | null>(null);
+
+  const requestAddPanel = useCallback(
+    (type: PanelType, pane?: PaneId) => {
+      if (type === 'workflow' && !panels.some((p) => p.type === 'workflow')) {
+        setPendingWorkflowPane({ pane });
+        return;
+      }
+      addPanel(type, pane);
+    },
+    [panels, addPanel],
+  );
 
   // ── NEW: Handle Drop from History Panel ──
   const handleDropHistory = useCallback(
@@ -457,6 +484,43 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       dispatch({ type: 'updatePanel', id, patch: { agentTitle: title } }),
     [],
   );
+
+  const updatePanelPatch = useCallback(
+    (id: string, patch: Partial<WorkspacePanel>) => dispatch({ type: 'updatePanel', id, patch }),
+    [],
+  );
+
+  const openWorkflowAgent = useCallback(
+    (agentId: string) => {
+      const existing = panels.find((p) => p.type === 'agent' && p.workflowAgentId === agentId);
+      if (existing) {
+        dispatch({ type: 'focus', id: existing.id });
+        return;
+      }
+      dispatch({
+        type: 'add',
+        panel: {
+          id: createPanelId('agent'),
+          type: 'agent',
+          title: `Zen - ${getWorkflowAgent(agentId)?.name ?? agentId}`,
+          providerId: null,
+          cwd: currentProjectPath,
+          workflowAgentId: agentId,
+        },
+      });
+    },
+    [panels, currentProjectPath],
+  );
+
+  const workflowLinks = useMemo(() => {
+    const links: Record<string, { title: string | null }> = {};
+    for (const p of panels) {
+      if (p.type === 'agent' && p.workflowAgentId) {
+        links[p.workflowAgentId] = { title: p.agentTitle ?? null };
+      }
+    }
+    return links;
+  }, [panels]);
 
   // Update provider info for a panel AND sync it to the store (SessionCard display)
   // Now supports optional status parameter to distinguish Idle vs Running
@@ -580,7 +644,8 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
   return (
     <div
-      className={`flex-1 flex-col min-h-0 bg-background relative ${isActive ? 'flex' : 'hidden'}`}
+      className="flex-1 flex-col min-h-0 bg-background relative"
+      style={{ display: isActive && isViewVisible ? 'flex' : 'none' }}
     >
       {/* Main workspace area */}
       <div className="flex-1 min-h-0 relative">
@@ -610,7 +675,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
                   onSelectTab={(id) => selectTab(pane, id)}
                   onCloseTab={closePanel}
                   onDragStart={dnd.startTabDrag}
-                  onAddPanel={(type) => addPanel(type, pane)}
+                  onAddPanel={(type) => requestAddPanel(type, pane)}
                 />
               </div>
             );
@@ -629,7 +694,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         >
           {panels.length === 0 ? (
             <WorkspaceEmptyState
-              onAddPanel={(action) => addPanel(EMPTY_ACTION_TO_PANEL_TYPE[action])}
+              onAddPanel={(action) => requestAddPanel(EMPTY_ACTION_TO_PANEL_TYPE[action])}
             />
           ) : (
             <>
@@ -647,6 +712,9 @@ export const WorkspaceViews = memo(function WorkspaceViews({
                 onContentChange={updatePanelContent}
                 onAgentConversationChange={updatePanelAgentConversation}
                 onAgentTitleChange={updatePanelAgentTitle}
+                onPanelPatch={updatePanelPatch}
+                onOpenWorkflowAgent={openWorkflowAgent}
+                workflowLinks={workflowLinks}
                 onProcessExit={handleProcessExit}
                 onBindConversation={handleBindConversation}
                 onResetConversation={handleResetConversation}
@@ -655,6 +723,12 @@ export const WorkspaceViews = memo(function WorkspaceViews({
           )}
         </div>
       </div>
+
+      <ConfirmWorkflowLayoutModal
+        isOpen={pendingWorkflowPane !== null}
+        onClose={() => setPendingWorkflowPane(null)}
+        onConfirm={() => addPanel('workflow', pendingWorkflowPane?.pane)}
+      />
     </div>
   );
 });

@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { useAgentRoot } from '../../context/AgentRootContext';
 import {
   Search,
   ChevronRight,
@@ -22,6 +23,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
+import { formatRelativeTime } from '@renderer/utils/relativeTime';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { DEFAULT_EFFORT, EFFORT_LEVELS, splitModelAndEffort } from './EffortDropdown';
 import type { EffortLevel } from './EffortDropdown';
@@ -52,7 +54,7 @@ interface Account {
   auth_method?: string | null;
 }
 
-interface ProviderModelDrawerProps {
+interface SelectModelAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   providers: Provider[];
@@ -279,7 +281,7 @@ function AccountListSkeleton() {
   );
 }
 
-const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
+const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
   isOpen,
   onClose,
   providers,
@@ -293,6 +295,7 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
   currentEffort,
   onSelect,
 }) => {
+  const agentRoot = useAgentRoot();
   const [step, setStep] = useState<'model' | 'account'>('model');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModel, setSelectedModel] = useState<any | null>(null);
@@ -452,12 +455,64 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
     });
   };
 
+  const [containerSize, setContainerSize] = useState(() => {
+    const r = (agentRoot ?? document.body).getBoundingClientRect();
+    return { width: r.width, height: r.height };
+  });
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const el = agentRoot ?? document.body;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setContainerSize({ width: r.width, height: r.height });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isOpen, agentRoot]);
+
+  // ASSUMED: panel rộng hơn 640px thì coi là vượt chuẩn bottom sheet
+  const MAX_SHEET_WIDTH = 640;
+  const MODAL_MAX_WIDTH = 560;
+  const isWide = containerSize.width > MAX_SHEET_WIDTH;
+  const modalWidth = Math.min(MODAL_MAX_WIDTH, Math.max(containerSize.width - 32, 0));
+  const modalHeight = Math.min(modalWidth * 1.1, containerSize.height * 0.9);
+
+  const panelLayoutStyle: React.CSSProperties = isWide
+    ? {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        margin: 'auto',
+        width: modalWidth,
+        height: modalHeight,
+        border: `1px solid ${$('--border')}`,
+        borderRadius: '12px',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+        animation: 'pmdFadeScaleModal 0.2s ease-out',
+      }
+    : {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        height: '50%',
+        maxHeight: '50%',
+        borderTop: `1px solid ${$('--border')}`,
+        boxShadow: '0 -8px 24px rgba(0,0,0,0.2)',
+        animation: 'pmdSlideUpDrawer 0.25s ease-out',
+      };
+
   if (!isOpen) return null;
 
   // Find the closest ancestor with overflow hidden or specific ID to constrain portal
   const getContainer = () => {
-    const el = document.getElementById('code-agent-root');
-    if (el) return el;
+    if (agentRoot) return agentRoot;
     // Fallback to body if not found (e.g., in other contexts)
     return document.body;
   };
@@ -481,19 +536,11 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
       {/* Panel */}
       <div
         style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '50%', // Chiếm 50% chiều cao của #code-agent-root
-          maxHeight: '50%',
+          ...panelLayoutStyle,
           backgroundColor: $('--card-background'),
-          borderTop: `1px solid ${$('--border')}`,
-          boxShadow: '0 -8px 24px rgba(0,0,0,0.2)',
           zIndex: 10001,
           display: 'flex',
           flexDirection: 'column',
-          animation: 'pmdSlideUpDrawer 0.25s ease-out',
           color: $('--text-primary'),
           overflow: 'hidden',
         }}
@@ -1277,6 +1324,35 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
                                   </span>
                                 );
                               })()}
+                            {(() => {
+                              const rel = formatRelativeTime(acc.last_used_at ?? null);
+                              if (!rel) return null;
+                              return (
+                                <span
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '10px',
+                                    color: $('--text-secondary'),
+                                    flexShrink: 1,
+                                    overflow: 'hidden',
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  <Clock size={11} style={{ flexShrink: 0, color: $('--blue') }} />
+                                  <span
+                                    style={{
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {rel}
+                                  </span>
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -1304,6 +1380,10 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
             from { transform: translateY(100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
           }
+          @keyframes pmdFadeScaleModal {
+            from { transform: scale(0.96); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+          }
           @keyframes pmdSpin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
@@ -1326,4 +1406,4 @@ const ProviderModelDrawer: React.FC<ProviderModelDrawerProps> = ({
   );
 };
 
-export default ProviderModelDrawer;
+export default SelectModelAccountModal;

@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { useWorkflowAgentSync } from '../context/WorkflowAgentContext';
 
 function getKey(base: string, folderPath: string | null | undefined): string {
   return `${base}:${folderPath || 'global'}`;
@@ -44,6 +45,8 @@ export function useModelAccount(
   options: UseModelAccountOptions = {},
 ): UseModelAccountReturn {
   const { initialModel, initialAccount } = options;
+  const sync = useWorkflowAgentSync();
+  const isSynced = !!sync;
 
   // Keep a ref to the latest initial values so the initializer can access them
   // without needing them in the dependency array (they only matter on first mount).
@@ -74,21 +77,28 @@ export function useModelAccount(
     return null;
   });
 
-  // Persist model changes
+  // Persist model changes (skipped when synced to a workflow agent)
   useEffect(() => {
-    if (currentModel) {
-      const key = getKey('zen_last_model', folderPath);
-      localStorage.setItem(key, JSON.stringify(currentModel));
-    }
-  }, [currentModel, folderPath]);
+    if (isSynced || !currentModel) return;
+    const key = getKey('zen_last_model', folderPath);
+    localStorage.setItem(key, JSON.stringify(currentModel));
+  }, [currentModel, folderPath, isSynced]);
 
-  // Persist account changes
+  // Persist account changes (skipped when synced to a workflow agent)
   useEffect(() => {
-    if (currentAccount) {
-      const key = getKey('zen_last_account', folderPath);
-      localStorage.setItem(key, JSON.stringify(currentAccount));
-    }
-  }, [currentAccount, folderPath]);
+    if (isSynced || !currentAccount) return;
+    const key = getKey('zen_last_account', folderPath);
+    localStorage.setItem(key, JSON.stringify(currentAccount));
+  }, [currentAccount, folderPath, isSynced]);
+
+  if (sync) {
+    return {
+      currentModel: sync.model,
+      setCurrentModel: sync.setModel,
+      currentAccount: sync.account,
+      setCurrentAccount: sync.setAccount,
+    };
+  }
 
   return { currentModel, setCurrentModel, currentAccount, setCurrentAccount };
 }

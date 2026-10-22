@@ -12,6 +12,8 @@ import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 const AGENT_DOMAIN_MAP: Record<string, string> = {
   claude: 'https://claude.ai',
   codex: 'https://openai.com',
+  chatgpt: 'https://chatgpt.com',
+  deepseek: 'https://deepseek.com',
   gemini: 'https://gemini.google.com',
   copilot: 'https://github.com/features/copilot',
   cursor: 'https://cursor.sh',

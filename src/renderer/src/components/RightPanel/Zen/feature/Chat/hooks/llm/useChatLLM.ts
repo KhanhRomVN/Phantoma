@@ -407,11 +407,6 @@ export const useChatLLM = ({
         if (model) lastUsedModelRef.current = model;
         if (account) lastUsedAccountRef.current = account;
         setConversationToolOverrides({});
-
-        extensionService.postMessage({
-          command: 'createEmptyChatLog',
-          chatUuid: effectiveChatUuid,
-        });
       }
 
       const isReq1 = filteredMessages.length === 0 && !skipFirstRequestLogic;

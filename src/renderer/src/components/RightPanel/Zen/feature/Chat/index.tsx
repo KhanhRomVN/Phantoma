@@ -746,6 +746,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         onDeleteConversation={handleDeleteConversation}
         onTitleChange={onTitleChange}
         onOpenSubView={onOpenSubView}
+        onGoHome={() => onBack()}
       />
 
       {/* ─── ChatBody ─── */}

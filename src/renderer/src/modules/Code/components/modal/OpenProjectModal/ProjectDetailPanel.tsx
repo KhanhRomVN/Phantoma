@@ -167,7 +167,13 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
       .catch((err) => console.error('Failed to copy path:', err));
   };
 
-  const overviewRows: { icon: ReactNode; label: string; value: string; title?: string; mono?: boolean }[] = [];
+  const overviewRows: {
+    icon: ReactNode;
+    label: string;
+    value: string;
+    title?: string;
+    mono?: boolean;
+  }[] = [];
   if (stackInfo?.repoUrl) {
     overviewRows.push({
       icon: <Link2 className="w-3.5 h-3.5" />,
@@ -178,7 +184,11 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
     });
   }
   if (stackInfo?.author) {
-    overviewRows.push({ icon: <User className="w-3.5 h-3.5" />, label: 'Author', value: stackInfo.author });
+    overviewRows.push({
+      icon: <User className="w-3.5 h-3.5" />,
+      label: 'Author',
+      value: stackInfo.author,
+    });
   }
   if (stackInfo?.sizeBytes) {
     overviewRows.push({
@@ -212,7 +222,10 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
         <div className="flex-1 min-w-0 text-left">
           <h3 className="text-base font-semibold text-text-primary truncate">{name}</h3>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <p className="text-[11px] font-mono text-text-secondary/60 truncate flex-1" title={path}>
+            <p
+              className="text-[11px] font-mono text-text-secondary/60 truncate flex-1"
+              title={path}
+            >
               {shortenPath(path)}
             </p>
             <button
@@ -345,7 +358,9 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <GitBranch className="w-3.5 h-3.5 text-text-secondary shrink-0" />
-                      <span className="text-xs text-text-primary font-mono truncate">{br.name}</span>
+                      <span className="text-xs text-text-primary font-mono truncate">
+                        {br.name}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 text-[10px] text-text-secondary/60 font-mono">
                       {br.lastCommitDate ? <span>{timeAgo(br.lastCommitDate)}</span> : null}
@@ -354,7 +369,9 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
                   </div>
                 ))}
                 {branches.length > 6 && (
-                  <p className="text-[10px] text-text-secondary/50 pl-1">+{branches.length - 6} more branches</p>
+                  <p className="text-[10px] text-text-secondary/50 pl-1">
+                    +{branches.length - 6} more branches
+                  </p>
                 )}
               </div>
             </div>

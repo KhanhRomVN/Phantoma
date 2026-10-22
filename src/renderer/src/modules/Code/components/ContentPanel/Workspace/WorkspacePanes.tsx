@@ -25,17 +25,18 @@ import {
   Globe,
   FileText,
   MonitorPlay,
+  Workflow,
   X,
   Circle,
-  Bot,
 } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { cn } from '@renderer/shared/utils/cn';
-import { CodeTerminal } from './CodeTerminal';
-import { CodeBrowser } from './CodeBrowser';
-import { CodeMarkdown } from './CodeMarkdown';
-import { CodeFile } from './CodeFile';
-import { CodeAgent } from './CodeAgent';
+import { CodeTerminal } from './Terminal';
+import { CodeBrowser } from './Browser';
+import { CodeFile } from './File';
+import { CodeAgent } from './Zen';
+import { AgentWorkflow } from './AgentWorkflow';
+import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
 import type { SessionStatus } from '../../ProjectPanel/SessionCard';
@@ -77,24 +78,43 @@ export function getPanelMeta(
 ): { icon: ReactNode; label: string } {
   switch (type) {
     case 'terminal':
-      return { icon: <TerminalIcon className={iconClass} />, label: 'Terminal' };
+      return {
+        icon: <TerminalIcon className={cn(iconClass, 'text-orange-400')} />,
+        label: 'Terminal',
+      };
     case 'website':
-      return { icon: <Globe className={iconClass} />, label: 'Browser' };
-    case 'note':
-      return { icon: <FileText className={iconClass} />, label: 'Markdown' };
+      return { icon: <Globe className={cn(iconClass, 'text-sky-400')} />, label: 'Browser' };
+    case 'workflow':
+      return {
+        icon: <Workflow className={cn(iconClass, 'text-violet-400')} />,
+        label: 'AgentWorkflow',
+      };
     case 'file':
-      return { icon: <FileText className={iconClass} />, label: 'File' };
+      return { icon: <FileText className={cn(iconClass, 'text-slate-400')} />, label: 'File' };
     case 'agent':
-      return { icon: <Bot className={iconClass} />, label: 'Agent' };
+      return {
+        icon: (
+          <img
+            src={`${(window as any).__zenImagesUri || '/images'}/zen-logo.png`}
+            alt="Zen"
+            className={cn(iconClass, 'object-contain')}
+            draggable={false}
+          />
+        ),
+        label: 'Zen',
+      };
     case 'emulator':
-      return { icon: <MonitorPlay className={iconClass} />, label: 'Emulator' };
+      return {
+        icon: <MonitorPlay className={cn(iconClass, 'text-pink-400')} />,
+        label: 'Emulator',
+      };
     default:
       return { icon: null, label: 'Unknown' };
   }
 }
 
 /** Panel types offered by the "+" dropdown. */
-const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'note', 'agent'];
+const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent', 'workflow'];
 
 // ─── Tab ──────────────────────────────────────────────────────────────
 
@@ -129,10 +149,16 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
   const isAgentTab = panel.type === 'agent';
   const zenLogoUrl = `${(window as any).__zenImagesUri || '/images'}/zen-logo.png`;
   const displayTitle = isAgentTab
-    ? panel.agentTitle
-      ? `Zen|${panel.agentTitle}`
-      : 'Zen'
-    : panel.title || meta.label;
+    ? panel.workflowAgentId
+      ? panel.title
+      : panel.agentTitle
+        ? `Zen|${panel.agentTitle}`
+        : 'Zen'
+    : panel.type === 'website'
+      ? panel.browserTitle || panel.title || meta.label
+      : panel.type === 'terminal'
+        ? panel.terminalProcess || panel.title || meta.label
+        : panel.title || meta.label;
   const showAgentBadge = !!agentId && panel.type === 'terminal';
 
   return (
@@ -167,6 +193,22 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
           className="w-3.5 h-3.5 shrink-0 object-contain"
           style={{ pointerEvents: 'none' }}
           draggable={false}
+        />
+      ) : panel.type === 'website' && panel.browserFavicon ? (
+        <img
+          src={panel.browserFavicon}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : panel.type === 'terminal' && panel.terminalRunning ? (
+        <TerminalIcon
+          className="w-3.5 h-3.5 shrink-0 text-green-500"
+          style={{ pointerEvents: 'none' }}
         />
       ) : panel.type === 'file' ? (
         <img
@@ -250,41 +292,28 @@ export function TabBar({
   onDragStart,
   onAddPanel,
 }: TabBarProps) {
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const menuOpenRef = useRef(false);
 
-  // Giữ ref đồng bộ với state để callback ổn định
-  useEffect(() => {
-    menuOpenRef.current = !!menuPos;
-  }, [menuPos]);
-
-  const openMenu = (e: MouseEvent<HTMLButtonElement>) => {
-    if (menuPos) {
-      setMenuPos(null);
-      broadcastOverlayClose();
-      return;
-    }
-    const rect = e.currentTarget.getBoundingClientRect();
-    broadcastOverlayOpen();
-    setMenuPos({ top: rect.bottom + 4, left: rect.left });
-  };
-
-  const closeMenu = useCallback(() => {
-    if (!menuOpenRef.current) return;
-    setMenuPos(null);
-    broadcastOverlayClose();
+  // Dropdown gọi onOpenChange cho mọi đường đóng/mở (click trigger, click ngoài, chọn item)
+  const handleMenuOpenChange = useCallback((open: boolean) => {
+    if (menuOpenRef.current === open) return;
+    menuOpenRef.current = open;
+    setMenuOpen(open);
+    if (open) broadcastOverlayOpen();
+    else broadcastOverlayClose();
   }, []);
 
-  // Đóng menu + notify khi click ra ngoài / Esc
+  // Đóng menu khi nhấn Esc
   useEffect(() => {
-    if (!menuPos) return;
+    if (!menuOpen) return;
     const onKeyDown = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape') closeMenu();
+      if (ev.key === 'Escape') handleMenuOpenChange(false);
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [menuPos, closeMenu]);
+  }, [menuOpen, handleMenuOpenChange]);
 
   // Unmount → đảm bảo không để browser ẩn vĩnh viễn
   useEffect(() => {
@@ -309,40 +338,34 @@ export function TabBar({
         />
       ))}
 
-      <button
-        onClick={openMenu}
-        className="h-9 w-9 flex items-center justify-center hover:bg-white/[0.05] text-text-secondary hover:text-text-primary transition-colors shrink-0"
-        aria-label="Add panel"
+      <Dropdown
+        open={menuOpen}
+        onOpenChange={handleMenuOpenChange}
+        align="start"
+        side="bottom"
+        sideOffset={4}
+        width={200}
+        className="shrink-0"
       >
-        <Plus className="w-4 h-4" />
-      </button>
-
-      {menuPos && (
-        <div className="fixed inset-0 z-[200]" onClick={closeMenu}>
-          <div
-            className="absolute bg-card-background border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
-            style={menuPos}
-            onClick={(e) => e.stopPropagation()}
+        <DropdownTrigger asChild>
+          <button
+            className="h-9 w-9 flex items-center justify-center hover:bg-white/[0.05] text-text-secondary hover:text-text-primary transition-colors shrink-0"
+            aria-label="Add panel"
           >
-            {ADD_MENU_TYPES.map((type) => {
-              const meta = getPanelMeta(type, 'w-4 h-4');
-              return (
-                <button
-                  key={type}
-                  onClick={() => {
-                    onAddPanel(type);
-                    closeMenu();
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-white/[0.05] transition-colors"
-                >
-                  {meta.icon}
-                  <span>{meta.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+            <Plus className="w-4 h-4" />
+          </button>
+        </DropdownTrigger>
+        <DropdownContent>
+          {ADD_MENU_TYPES.map((type) => {
+            const meta = getPanelMeta(type, 'w-4 h-4');
+            return (
+              <DropdownItem key={type} icon={meta.icon} onClick={() => onAddPanel(type)}>
+                {meta.label}
+              </DropdownItem>
+            );
+          })}
+        </DropdownContent>
+      </Dropdown>
     </div>
   );
 }
@@ -360,6 +383,9 @@ interface PanelBodyProps {
   onResetConversation?: (panelId: string) => void;
   onAgentConversationChange?: (panelId: string, conversationId: string | null) => void;
   onAgentTitleChange?: (panelId: string, title: string | null) => void;
+  onPanelPatch?: (panelId: string, patch: Partial<WorkspacePanel>) => void;
+  onOpenWorkflowAgent?: (agentId: string) => void;
+  workflowLinks?: Record<string, { title: string | null }>;
 }
 
 const PanelBody = memo(function PanelBody({
@@ -372,6 +398,9 @@ const PanelBody = memo(function PanelBody({
   onResetConversation,
   onAgentConversationChange,
   onAgentTitleChange,
+  onPanelPatch,
+  onOpenWorkflowAgent,
+  workflowLinks,
 }: PanelBodyProps) {
   const handleProvider = useCallback(
     (providerId: string | null, status?: 'running' | 'idle') =>
@@ -407,6 +436,15 @@ const PanelBody = memo(function PanelBody({
     [onAgentTitleChange, panel.id],
   );
 
+  const handleBrowserMeta = useCallback(
+    (meta: { title?: string; favicon?: string | null }) =>
+      onPanelPatch?.(panel.id, {
+        ...(meta.title !== undefined ? { browserTitle: meta.title } : {}),
+        ...(meta.favicon !== undefined ? { browserFavicon: meta.favicon } : {}),
+      }),
+    [onPanelPatch, panel.id],
+  );
+
   switch (panel.type) {
     case 'terminal': {
       // Use the panel's stored CWD if available, otherwise fallback to the current workspace path.
@@ -426,17 +464,24 @@ const PanelBody = memo(function PanelBody({
       );
     }
     case 'website':
-      return <CodeBrowser initialUrl={panel.content} onUrlChange={handleContent} />;
+      return (
+        <CodeBrowser
+          initialUrl={panel.content}
+          onUrlChange={handleContent}
+          onMetaChange={handleBrowserMeta}
+        />
+      );
     case 'file':
       return <CodeFile filePath={panel.filePath} fileId={panel.id} />;
-    case 'note':
-      return <CodeMarkdown initialContent={panel.content} onContentChange={handleContent} />;
+    case 'workflow':
+      return <AgentWorkflow onOpenAgent={onOpenWorkflowAgent} links={workflowLinks} />;
     case 'agent':
       return (
         <CodeAgent
           initialConversationId={panel.agentConversationId}
           onConversationChange={handleAgentConversation}
           onTitleChange={handleAgentTitle}
+          workflowAgentId={panel.workflowAgentId ?? undefined}
         />
       );
     case 'emulator':
@@ -527,6 +572,9 @@ export interface WorkspacePanesProps {
   onResetConversation?: (panelId: string) => void;
   onAgentConversationChange?: (panelId: string, conversationId: string | null) => void;
   onAgentTitleChange?: (panelId: string, title: string | null) => void;
+  onPanelPatch?: (panelId: string, patch: Partial<WorkspacePanel>) => void;
+  onOpenWorkflowAgent?: (agentId: string) => void;
+  workflowLinks?: Record<string, { title: string | null }>;
 }
 
 export const WorkspacePanes = memo(function WorkspacePanes({
@@ -546,6 +594,9 @@ export const WorkspacePanes = memo(function WorkspacePanes({
   onResetConversation,
   onAgentConversationChange,
   onAgentTitleChange,
+  onPanelPatch,
+  onOpenWorkflowAgent,
+  workflowLinks,
 }: WorkspacePanesProps) {
   // Divider positions, derived from which panes exist
   const leftRect = rects.tl ?? rects.bl;
@@ -581,6 +632,9 @@ export const WorkspacePanes = memo(function WorkspacePanes({
                   onResetConversation={onResetConversation}
                   onAgentConversationChange={onAgentConversationChange}
                   onAgentTitleChange={onAgentTitleChange}
+                  onPanelPatch={onPanelPatch}
+                  onOpenWorkflowAgent={onOpenWorkflowAgent}
+                  workflowLinks={workflowLinks}
                 />
               </div>
             </div>

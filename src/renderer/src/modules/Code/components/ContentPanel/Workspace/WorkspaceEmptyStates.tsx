@@ -177,7 +177,7 @@ EmptyState.displayName = 'EmptyState';
 
 // ─── Project selected, no panels ──────────────────────────────────────
 
-export type EmptyWorkspaceAction = 'browser' | 'terminal' | 'agent' | 'markdown';
+export type EmptyWorkspaceAction = 'browser' | 'terminal' | 'agent' | 'workflow';
 
 export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
   onAddPanel,
@@ -229,9 +229,9 @@ export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
         <ActionCard
           accent="info"
           icon={<FileText className="w-4 h-4" />}
-          title="Markdown"
-          subtitle="Write notes in markdown"
-          onClick={() => handleAction('markdown')}
+          title="AgentWorkflow"
+          subtitle="Theo dõi và điều phối agent"
+          onClick={() => handleAction('workflow')}
         />
       </div>
 

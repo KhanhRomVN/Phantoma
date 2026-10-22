@@ -431,32 +431,32 @@ const ContentPanelInner = memo(function ContentPanelInner() {
   }, [activeWorkspaceSessionId, isValidWorkspaceSession]);
 
   // ── Special Views (Tasks / Workspace) ─────────────────────────────────────
-  if (contentViewMode === 'tasks') {
-    return <TaskManager />;
-  }
+  const currentProject = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+  const existingSessionIds = new Set(
+    (currentProject?.branches ?? []).flatMap((b) => b.sessions.map((s) => s.id)),
+  );
+  const workspaceSessionIds = [
+    ...mountedSessionIds,
+    ...(isValidWorkspaceSession && activeWorkspaceSessionId ? [activeWorkspaceSessionId] : []),
+  ].filter((id, i, arr) => arr.indexOf(id) === i && existingSessionIds.has(id));
+  const workspaceViews = workspaceSessionIds.map((id) => (
+    <WorkspaceViews key={id} sessionId={id} />
+  ));
 
-  if (contentViewMode === 'git') {
-    return <GitView />;
-  }
+  const isWorkspaceMode = contentViewMode === 'workspace' && isValidWorkspaceSession;
 
-  if (contentViewMode === 'design') {
-    return <DesignView />;
-  }
-
-  // Only render Workspace if mode is 'workspace' AND the session ID is valid/existing
-  if (contentViewMode === 'workspace' && isValidWorkspaceSession) {
-    const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
-    const existingIds = new Set(
-      (project?.branches ?? []).flatMap((b) => b.sessions.map((s) => s.id)),
-    );
-    const sessionIds = [...mountedSessionIds, activeWorkspaceSessionId!].filter(
-      (id, i, arr) => arr.indexOf(id) === i && existingIds.has(id),
-    );
+  if (
+    contentViewMode === 'tasks' ||
+    contentViewMode === 'git' ||
+    contentViewMode === 'design' ||
+    isWorkspaceMode
+  ) {
     return (
       <>
-        {sessionIds.map((id) => (
-          <WorkspaceViews key={id} sessionId={id} />
-        ))}
+        {workspaceViews}
+        {contentViewMode === 'tasks' && <TaskManager />}
+        {contentViewMode === 'git' && <GitView />}
+        {contentViewMode === 'design' && <DesignView />}
       </>
     );
   }

@@ -24,7 +24,7 @@ import {
 
 // ─── Ref Pill ───────────────────────────────────────────────────────────
 const KIND_STYLE: Record<RefKind, string> = {
-  head: 'bg-primary/20 text-primary border-primary/40',
+  head: 'bg-card-background text-text-secondary border-border',
   local: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   remote: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
   tag: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',

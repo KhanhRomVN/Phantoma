@@ -24,7 +24,8 @@ import { ChatSession } from '../../types/chat';
 
 // ── Services ──
 import { ConversationCache } from '../../services/ConversationCache';
-import { deleteConversation } from '../../services/ConversationService';
+import { deleteConversation, getModuleIdFromContext } from '../../services/ConversationService';
+import { ConversationService as NewConversationService } from '@renderer/components/RightPanel/Zen/services/ConversationService';
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
 interface UseConversationRestoreProps {
@@ -80,6 +81,7 @@ export const useConversationRestore = ({
   const [isRestored, setIsRestored] = useState<boolean>(false);
   const revertMessageIdRef = useRef<string | null>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const applyConversationRef = useRef<((data: any) => void) | null>(null);
 
   useEffect(() => {
     if (isLoadingConversation) {
@@ -122,12 +124,16 @@ export const useConversationRestore = ({
 
       const convId = (currentChat as any).conversationId;
       if (convId) {
-        const requestId = `conv-${Date.now()}-${currentChat.sessionId}`;
-        extensionService.postMessage({
-          command: 'getConversation',
-          conversationId: convId,
-          requestId,
-        });
+        const moduleId = getModuleIdFromContext(currentChat.sessionId, currentChat.folderPath);
+        try {
+          const stored = await NewConversationService.get(moduleId, convId, currentChat.folderPath);
+          applyConversationRef.current?.({
+            command: 'getConversation',
+            data: stored ? { ...stored, conversationId: stored.conversationId || convId } : { messages: [] },
+          });
+        } catch (error: any) {
+          applyConversationRef.current?.({ command: 'getConversation', error: error?.message || String(error) });
+        }
       } else {
         // New chat session - reset everything immediately
         setMessages([]);
@@ -143,7 +149,7 @@ export const useConversationRestore = ({
   // Handle incoming messages via IPC
   useEffect(() => {
     // Listen for messageResponse (main IPC response channel)
-    const unsubMessageResponse = extensionService.onMessage('messageResponse', (data: any) => {
+    const handleMessageResponse = (data: any) => {
       // Handle getConversation response
       if (data?.command === 'getConversation') {
         if (data?.error) {
@@ -157,6 +163,7 @@ export const useConversationRestore = ({
           const restoredMessages = data.data.messages.map((msg: Message, i: number) => ({
             ...msg,
             id: msg.id || `restored-${Date.now()}-${i}`,
+            token_usage: msg.token_usage ?? (msg as any).tokenUsage,
           }));
 
           setMessages(restoredMessages);
@@ -252,7 +259,9 @@ export const useConversationRestore = ({
         setIsLoadingConversation(false);
         setIsProcessing(false);
       }
-    });
+    };
+    applyConversationRef.current = handleMessageResponse;
+    const unsubMessageResponse = extensionService.onMessage('messageResponse', handleMessageResponse);
 
     // Listen for commitError
     const unsubCommitError = extensionService.onMessage('commitError', (data: any) => {

@@ -26,7 +26,7 @@
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-export type PanelType = 'terminal' | 'website' | 'note' | 'emulator' | 'file' | 'agent';
+export type PanelType = 'terminal' | 'website' | 'workflow' | 'emulator' | 'file' | 'agent';
 
 export interface WorkspacePanel {
   id: string;
@@ -51,6 +51,16 @@ export interface WorkspacePanel {
   agentConversationId?: string | null;
   /** Title conversation hiện tại của Agent panel, hiển thị trên tab dạng 'Zen|<title>'. */
   agentTitle?: string | null;
+  /** ID của workflow agent (vd. 'orchestrator') mà Zen tab này đang liên kết; model + account được đồng bộ với AgentCard. */
+  workflowAgentId?: string | null;
+  /** Terminal đang chạy tiến trình foreground (runtime-only, dùng cho icon xanh trên tab). */
+  terminalRunning?: boolean;
+  /** Tên tiến trình đang chạy trong terminal (runtime-only). */
+  terminalProcess?: string | null;
+  /** Title trang web hiện tại của Browser panel (runtime-only). */
+  browserTitle?: string | null;
+  /** Favicon URL của trang web hiện tại của Browser panel (runtime-only). */
+  browserFavicon?: string | null;
 }
 
 export type PaneId = 'tl' | 'tr' | 'bl' | 'br';
@@ -227,13 +237,14 @@ export function createInitialState(
       paneTabs.tl = [...paneTabs.tl, ...orphans];
       paneActive.tl = paneActive.tl ?? orphans[0];
     }
-    return normalize({
+    const restored = normalize({
       panels,
       paneTabs,
       paneActive,
       focusedPane: layout.focusedPane ?? 'tl',
       sizes: { ...DEFAULT_SIZES, ...layout.sizes },
     });
+    return hasWorkflowPanel(panels) ? flattenToSinglePane(restored) : restored;
   }
   const active = activeId && ids.includes(activeId) ? activeId : (ids[0] ?? null);
   return {
@@ -264,6 +275,21 @@ function detachPanel(state: WorkspaceState, id: string) {
   return { paneTabs, paneActive };
 }
 
+/** Any AgentWorkflow panel locks the workspace to a single (1x1) pane. */
+export const hasWorkflowPanel = (panels: WorkspacePanel[]) => panels.some((p) => p.type === 'workflow');
+
+/** Merge every pane's tabs into `tl` (1x1 layout). */
+function flattenToSinglePane(state: WorkspaceState): WorkspaceState {
+  const all = PANE_IDS.flatMap((pane) => state.paneTabs[pane]);
+  const active = state.paneActive[state.focusedPane] ?? all[0] ?? null;
+  return {
+    ...state,
+    paneTabs: { ...emptyTabs(), tl: all },
+    paneActive: { ...noActive(), tl: active },
+    focusedPane: 'tl',
+  };
+}
+
 /** Keep the layout tidy: a lone pane always lives in `tl`; focus never points at an empty pane. */
 function normalize(state: WorkspaceState): WorkspaceState {
   const occupied = getOccupiedPanes(state.paneTabs);
@@ -289,13 +315,15 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       return createInitialState(action.panels, action.activeId, action.layout);
 
     case 'add': {
-      const pane = action.pane ?? state.focusedPane;
+      const locked = action.panel.type === 'workflow' || hasWorkflowPanel(state.panels);
+      const base = locked ? flattenToSinglePane(state) : state;
+      const pane: PaneId = locked ? 'tl' : (action.pane ?? state.focusedPane);
       const { id } = action.panel;
       return normalize({
-        ...state,
-        panels: [...state.panels, action.panel],
-        paneTabs: { ...state.paneTabs, [pane]: [...state.paneTabs[pane], id] },
-        paneActive: { ...state.paneActive, [pane]: id },
+        ...base,
+        panels: [...base.panels, action.panel],
+        paneTabs: { ...base.paneTabs, [pane]: [...base.paneTabs[pane], id] },
+        paneActive: { ...base.paneActive, [pane]: id },
         focusedPane: pane,
       });
     }
@@ -330,6 +358,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     }
 
     case 'move': {
+      if (hasWorkflowPanel(state.panels)) return state;
       const from = findPaneOfPanel(state.paneTabs, action.id);
       if (!from || from === action.to) return state;
 

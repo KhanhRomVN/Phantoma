@@ -122,8 +122,7 @@ export const CLI = forwardRef<CLIRef, CLIBodyProps>(function CLI(
         const hostname = new URL(withProtocol(url)).hostname;
         const candidates = [
           `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`,
-          `https://${hostname}/favicon.ico`,
-          `https://${hostname}/favicon.png`,
+          `https://icons.duckduckgo.com/ip3/${hostname}.ico`,
         ];
         for (const src of candidates) {
           const loaded = await checkImage(src);

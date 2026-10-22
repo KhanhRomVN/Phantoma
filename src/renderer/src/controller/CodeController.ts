@@ -190,7 +190,6 @@ export class CodeController {
   }
 
   private emitResult(result: CodeControllerResult): void {
-    extensionService.postMessage(result);
     this.resultListeners.forEach((fn) => {
       try {
         fn(result);

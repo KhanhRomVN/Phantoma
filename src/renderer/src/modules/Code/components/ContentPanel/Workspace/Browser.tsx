@@ -5,6 +5,7 @@ import { cn } from '@renderer/shared/utils/cn';
 interface CodeBrowserProps {
   initialUrl?: string;
   onUrlChange?: (url: string) => void;
+  onMetaChange?: (meta: { title?: string; favicon?: string | null }) => void;
 }
 
 // ─── Device presets (CSS px) ──────────────────────────────────────────
@@ -30,10 +31,16 @@ export const DEVICE_PRESETS: DevicePreset[] = [
   { id: 'surface-duo', label: 'Surface Duo', width: 540, height: 720, dpr: 2.5, mobile: true },
 ];
 
-export const CodeBrowser = ({ initialUrl = 'https://google.com', onUrlChange }: CodeBrowserProps) => {
+export const CodeBrowser = ({
+  initialUrl = 'https://google.com',
+  onUrlChange,
+  onMetaChange,
+}: CodeBrowserProps) => {
   const initialUrlRef = useRef(initialUrl);
   const onUrlChangeRef = useRef(onUrlChange);
   onUrlChangeRef.current = onUrlChange;
+  const onMetaChangeRef = useRef(onMetaChange);
+  onMetaChangeRef.current = onMetaChange;
   const [url, setUrl] = useState(initialUrl);
   const [inputUrl, setInputUrl] = useState(initialUrl);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -203,11 +210,29 @@ export const CodeBrowser = ({ initialUrl = 'https://google.com', onUrlChange }: 
     window.api.on('browser:load-start', onLoadStart);
     window.api.on('browser:load-stop', onLoadStop);
 
+    const onTitleUpdated = (_event: any, payload: { browserId: string; title: string }) => {
+      if (payload.browserId === browserViewIdRef.current) {
+        onMetaChangeRef.current?.({ title: payload.title });
+      }
+    };
+    const onFaviconUpdated = (
+      _event: any,
+      payload: { browserId: string; favicon: string | null },
+    ) => {
+      if (payload.browserId === browserViewIdRef.current) {
+        onMetaChangeRef.current?.({ favicon: payload.favicon });
+      }
+    };
+    window.api.on('browser:title-updated', onTitleUpdated);
+    window.api.on('browser:favicon-updated', onFaviconUpdated);
+
     return () => {
       window.api.off('browser:did-navigate', onDidNavigate);
       window.api.off('browser:navigation-state-changed', onNavigationStateChanged);
       window.api.off('browser:load-start', onLoadStart);
       window.api.off('browser:load-stop', onLoadStop);
+      window.api.off('browser:title-updated', onTitleUpdated);
+      window.api.off('browser:favicon-updated', onFaviconUpdated);
     };
   }, []);
 

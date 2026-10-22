@@ -38,7 +38,7 @@ import { EmulateController } from '../../controller/EmulateController';
 import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
 import { initialFilterState } from './components/WorkspacePanel/Home/Home';
 import WorkspacePanel from './components/WorkspacePanel';
-import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
+import { TargetModal } from './components/TargetListPanel/TargetModal';
 import TargetSidebar from './components/TargetListPanel';
 import { FooterBar } from './components/FooterBar';
 
@@ -856,7 +856,7 @@ export default React.memo(function Emulate({
 
       {/* Modals */}
       {addModalPlatform && (
-        <AddTargetModal
+        <TargetModal
           isOpen={isAddModalOpen}
           platform={addModalPlatform}
           onClose={() => {

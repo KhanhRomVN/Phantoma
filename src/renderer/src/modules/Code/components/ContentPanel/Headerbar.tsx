@@ -249,7 +249,7 @@ export function ContentHeaderBar() {
               <span className="text-sm font-semibold text-text-primary truncate">{projectName}</span>
               {gitSync && (
                 <>
-                  <span className="flex items-center gap-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded border border-primary/30 bg-primary/10 text-primary shrink-0">
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded border border-border bg-card-background text-text-secondary shrink-0">
                     <GitBranch className="w-3 h-3" strokeWidth={1.5} />
                     {gitSync.branch}
                   </span>
@@ -401,7 +401,7 @@ export function ContentHeaderBar() {
                     className={`w-[22px] h-full rounded flex items-center justify-center transition-colors cursor-pointer ${
                       taskLayout === key
                         ? 'bg-primary/15 text-primary'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-card-hover'
+                        : 'text-text-primary/80 hover:text-text-primary hover:bg-card-hover'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -448,7 +448,7 @@ export function ContentHeaderBar() {
           )}
 
           {contentViewMode === 'git' && (
-            <div className="h-[26px] p-0.5 rounded-md border border-border bg-card-background flex items-center gap-0.5">
+            <div className="h-[28px] p-0.5 rounded-md border border-border bg-card-hover flex items-center gap-0.5">
               {(
                 [
                   ['fetch', Download, 'Fetch all remotes'],
@@ -461,7 +461,7 @@ export function ContentHeaderBar() {
                   onClick={() => void runGitOp(op)}
                   disabled={gitBusy !== null}
                   title={label}
-                  className="h-full px-1.5 rounded flex items-center gap-1 text-[11px] text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-full px-2 rounded flex items-center gap-1 text-[11px] font-medium text-text-primary hover:bg-card-background transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {gitBusy === op ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -477,7 +477,7 @@ export function ContentHeaderBar() {
                   void loadGitSync();
                 }}
                 title="Refresh"
-                className="w-[22px] h-full rounded flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors cursor-pointer"
+                className="w-[24px] h-full rounded flex items-center justify-center text-text-primary hover:bg-card-background transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>

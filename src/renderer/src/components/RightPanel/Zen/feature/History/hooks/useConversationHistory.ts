@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { ConversationItem } from '../types';
-import ConversationService from '../../../services/ConversationService';
+import ConversationService, { getWorkspaceFolderPath } from '../../../services/ConversationService';
+import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
 
 /**
  * Get moduleId from current context
@@ -24,6 +25,30 @@ function getCurrentModuleId(): string | null {
   return null;
 }
 
+/**
+ * Key lưu conversation dùng CHUNG với Zen: hash của workspace folder path.
+ * Fallback về moduleId khi chưa có workspace (giống ConversationStorage).
+ */
+export function getHistoryKey(): string | null {
+  const folderPath = getWorkspaceFolderPath();
+  if (folderPath) return folderPath;
+
+  // Fallback: đọc trực tiếp từ Code store (project path thật) — đảm bảo
+  // cùng key hash với Chat kể cả khi __zenWorkspaceFolderPath chưa được set.
+  try {
+    const state = useCodeStore.getState();
+    const project = state.projects?.find((p) => p.id === state.currentProjectId);
+    if (project?.path) {
+      (window as any).__zenWorkspaceFolderPath = project.path;
+      return project.path;
+    }
+  } catch {
+    // ignore
+  }
+
+  return getCurrentModuleId();
+}
+
 export const useConversationHistory = (isOpen: boolean) => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,9 +56,9 @@ export const useConversationHistory = (isOpen: boolean) => {
   const [selectedSort, setSelectedSort] = useState<'recent' | 'oldest'>('recent');
 
   const loadHistory = useCallback(async () => {
-    const moduleId = getCurrentModuleId();
+    const moduleId = getHistoryKey();
     if (!moduleId) {
-      console.warn('[useConversationHistory] No active moduleId, cannot load history');
+      console.warn('[useConversationHistory] No active moduleId/folderPath, cannot load history');
       return;
     }
 
@@ -70,10 +95,10 @@ export const useConversationHistory = (isOpen: boolean) => {
               if (msg.role === 'user') {
                 totalRequests++;
               }
-              if (msg.role === 'assistant' && !msg.isError) {
+              if (msg.role === 'assistant') {
                 if (!providerId && msg.providerId) providerId = msg.providerId;
                 if (!modelId && msg.modelId) modelId = msg.modelId;
-                if (msg.tokenUsage) {
+                if (!msg.isError && msg.tokenUsage) {
                   totalTokenUsage += msg.tokenUsage;
                 }
               }
@@ -120,9 +145,9 @@ export const useConversationHistory = (isOpen: boolean) => {
   }, [isOpen, loadHistory]);
 
   const deleteConversation = useCallback(async (id: string) => {
-    const moduleId = getCurrentModuleId();
+    const moduleId = getHistoryKey();
     if (!moduleId) {
-      console.warn('[useConversationHistory] No active moduleId, cannot delete conversation');
+      console.warn('[useConversationHistory] No active moduleId/folderPath, cannot delete conversation');
       return;
     }
 
@@ -135,9 +160,9 @@ export const useConversationHistory = (isOpen: boolean) => {
   }, []);
 
   const clearAllHistory = useCallback(async () => {
-    const moduleId = getCurrentModuleId();
+    const moduleId = getHistoryKey();
     if (!moduleId) {
-      console.warn('[useConversationHistory] No active moduleId, cannot clear history');
+      console.warn('[useConversationHistory] No active moduleId/folderPath, cannot clear history');
       return;
     }
 

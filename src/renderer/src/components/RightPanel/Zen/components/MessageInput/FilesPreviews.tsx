@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
-import TextSnippetDrawer from './TextSnippetDrawer';
+import { Modal, ModalHeader, ModalBody } from '@renderer/components/ui/Modal';
 import { countTokens, formatTokenCount } from '@renderer/utils/tokenizer';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -266,6 +266,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
   const [drawerTitle, setDrawerTitle] = useState('');
   const [drawerSnippetNumber, setDrawerSnippetNumber] = useState<number | undefined>(undefined);
   const [drawerLineCount, setDrawerLineCount] = useState<number | undefined>(undefined);
+  const [previewImage, setPreviewImage] = useState<UploadedFile | null>(null);
 
   const handleTextSnippetClick = (item: AttachedItem, index: number) => {
     setDrawerTitle(item.path);
@@ -295,8 +296,6 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
       <div
         style={{
           padding: readOnly ? '8px 0' : '8px 16px',
-          borderTop: readOnly ? 'none' : `1px solid ${$('--border')}`,
-          backgroundColor: $('--card-background'),
         }}
       >
         {images.length > 0 && (
@@ -305,12 +304,7 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
               <div
                 key={file.id}
                 onClick={() => {
-                  (window as any).api
-                    ?.invoke?.('media:open-temp-image', {
-                      content: file.content,
-                      filename: file.name,
-                    })
-                    .catch(() => {});
+                  setPreviewImage(file);
                   onOpenImage(file);
                 }}
                 style={{
@@ -762,14 +756,43 @@ const FilesPreviews: React.FC<FilesPreviewsProps> = ({
         )}
       </div>
 
-      <TextSnippetDrawer
-        isOpen={drawerOpen}
-        content={drawerContent}
-        title={drawerTitle}
-        snippetNumber={drawerSnippetNumber}
-        lineCount={drawerLineCount}
-        onClose={() => setDrawerOpen(false)}
-      />
+      <Modal
+        isOpen={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        className="max-w-6xl h-[85vh]"
+      >
+        <ModalHeader
+          title={previewImage?.name}
+          description={previewImage ? formatFileSize(previewImage.size) : undefined}
+          onClose={() => setPreviewImage(null)}
+        />
+        <ModalBody className="flex items-center justify-center">
+          {previewImage && (
+            <img
+              src={previewImage.content}
+              alt={previewImage.name}
+              className="max-w-full max-h-[calc(85vh-6rem)] object-contain rounded-md"
+            />
+          )}
+        </ModalBody>
+      </Modal>
+
+      <Modal isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} className="max-w-2xl">
+        <ModalHeader
+          title={
+            drawerSnippetNumber && drawerLineCount
+              ? `Snippet[${drawerSnippetNumber}] (${drawerLineCount} lines)`
+              : drawerTitle
+          }
+          description="Large pasted text content"
+          onClose={() => setDrawerOpen(false)}
+        />
+        <ModalBody>
+          <pre className="m-0 font-mono text-[11px] leading-relaxed text-text-primary whitespace-pre-wrap break-words">
+            {drawerContent}
+          </pre>
+        </ModalBody>
+      </Modal>
     </>
   );
 };

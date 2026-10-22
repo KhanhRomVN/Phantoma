@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Palette, Plus } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { useDesignStore } from '../../../hooks/useDesignStore';
-import { CodeAgent } from '../../ContentPanel/Workspace/CodeAgent';
+import { CodeAgent } from '../../ContentPanel/Workspace/Zen';
 import { DesignModal } from './DesignModal';
 import { DesignCard } from './DesignCard';
 import { getTemplateFiles, getTemplateGraph } from './templateFiles';

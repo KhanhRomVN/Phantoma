@@ -22,7 +22,7 @@ import { useProject } from '../../context/ProjectContext';
 import { combinePromptsForMode } from '../../feature/Chat/prompts/code';
 import type { SystemInfo } from '../../feature/Chat/prompts/code';
 // Use existing Phantoma drawer component
-import ProviderModelDrawer from './ProviderModelDrawer';
+import SelectModelAccountModal from './SelectModelAccountModal';
 import { cacheGet, cacheSet, providersKey } from './providerModelCache';
 import SkillPickerDrawer, { type PickedSkill } from './SkillPickerDrawer';
 import PromptLengthDropdown, {
@@ -1368,7 +1368,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             )}
 
             {showModelDrawer && (
-              <ProviderModelDrawer
+              <SelectModelAccountModal
                 isOpen={showModelDrawer}
                 onClose={() => setShowModelDrawer(false)}
                 providers={providers}

@@ -54,9 +54,6 @@ export const getFaviconSources = (url?: string, size: number = 32): string[] => 
       `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`,
       `https://icons.duckduckgo.com/ip3/${domain}.ico`,
       `https://favicon.yandex.net/favicon/${domain}`,
-      `https://${domain}/favicon.ico`,
-      `https://${domain}/favicon.png`,
-      `https://${domain}/apple-touch-icon.png`,
       '/favicon-fallback.png',
     ];
   } catch {
@@ -122,7 +119,6 @@ export const useFavicon = (url?: string, size: number = 32) => {
               return;
             }
           } catch (err) {
-            console.error(`Failed to load favicon from ${src}:`, err);
             continue;
           }
         }
@@ -147,66 +143,33 @@ export const useFavicon = (url?: string, size: number = 32) => {
 // ─── Component ──────────────────────────────────────────────────────────
 export const Favicon: React.FC<FaviconProps> = ({
   url,
-  size = 32,
-  className = '',
-  alt,
+  size = 16,
+  className,
+  alt = '',
   fallbackIcon,
   onError,
   onLoad,
 }) => {
-  // ── State ──
-  const { faviconUrl, isLoading } = useFavicon(url, size);
-  const [hasErrored, setHasErrored] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  // ── Handlers ──
-  const handleError = () => {
-    setHasErrored(true);
-    onError?.();
-  };
+  useEffect(() => {
+    setFailed(false);
+  }, [url]);
 
-  const handleLoad = () => {
-    setHasErrored(false);
-    onLoad?.();
-  };
-
-  // ── Render ──
-  if (isLoading) {
-    return React.createElement('div', {
-      className: `animate-pulse bg-gray-200 dark:bg-gray-700 rounded ${className}`,
-      style: { width: size, height: size },
-    });
-  }
-
-  if (hasErrored || !faviconUrl) {
-    return React.createElement(
-      'div',
-      {
-        className: `flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded ${className}`,
-        style: { width: size, height: size },
-      },
-      fallbackIcon ||
-        React.createElement(
-          'svg',
-          {
-            className: 'w-1/2 h-1/2 text-gray-400',
-            fill: 'currentColor',
-            viewBox: '0 0 20 20',
-          },
-          React.createElement('path', {
-            fillRule: 'evenodd',
-            d: 'M10 2L3 7v11a1 1 0 001 1h12a1 1 0 001-1V7l-7-5zM10 4.414L5 8.586V16h10V8.586L10 4.414z',
-          }),
-        ),
-    );
+  if (!url || failed) {
+    return fallbackIcon ? React.createElement(React.Fragment, null, fallbackIcon) : null;
   }
 
   return React.createElement('img', {
-    src: faviconUrl,
-    alt: alt || `Favicon for ${url}`,
-    className: `object-contain ${className}`,
-    style: { width: size, height: size },
-    onError: handleError,
-    onLoad: handleLoad,
-    loading: 'lazy',
+    src: url,
+    width: size,
+    height: size,
+    alt,
+    className,
+    onLoad,
+    onError: () => {
+      setFailed(true);
+      onError?.();
+    },
   });
 };

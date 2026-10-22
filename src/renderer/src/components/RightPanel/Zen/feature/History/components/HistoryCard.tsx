@@ -15,6 +15,8 @@ import { createPortal } from 'react-dom';
 import { ConversationItem } from '../types';
 import { Trash2, Copy, FolderOpen, Zap, Clock } from 'lucide-react';
 import { extensionService } from '../../../services/ExtensionService';
+import ConversationService from '../../../services/ConversationService';
+import { getHistoryKey } from '../hooks/useConversationHistory';
 
 interface HistoryCardProps {
   item: ConversationItem;
@@ -31,10 +33,15 @@ interface TooltipPoint {
   y: number;
 }
 
+/** Class Tailwind (tĩnh) cho màu token theo ngưỡng sử dụng. */
+interface TokenTone {
+  text: string;
+  chip: string;
+}
+
 // ─── Constants ─────────────────────────────────────────────────────────
 const TOOLTIP_PREVIEW_CHARS = 600;
 const TOOLTIP_OFFSET = 14;
-const STYLE_ID = 'history-card-styles';
 
 const FAVICON_DOMAINS: Array<[string[], string]> = [
   [['openai', 'chatgpt', 'gpt'], 'openai.com'],
@@ -60,77 +67,13 @@ const FAVICON_DOMAINS: Array<[string[], string]> = [
   [['01wanwu', 'yi-'], '01.ai'],
 ];
 
-const CARD_CSS = `
-.hc-root { position: relative; width: 100%; }
-.hc-card { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 9px 10px 9px 12px; border-radius: 10px; border: 1px solid transparent; background: transparent; cursor: pointer; overflow: hidden; outline: none; transition: background-color .15s ease, border-color .15s ease, transform .12s ease; }
-.hc-card:hover, .hc-card:focus-visible { background: var(--card-background-hover); border-color: color-mix(in srgb, var(--border) 70%, transparent); }
-.hc-card:focus-visible { border-color: var(--primary); }
-.hc-card:active { transform: scale(.994); }
-.hc-card.selected { background: var(--card-background-hover); border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
-.hc-card.selected .hc-accent { height: 56%; }
-.hc-accent { position: absolute; left: 0; top: 50%; width: 3px; height: 0; border-radius: 0 3px 3px 0; background: var(--primary); transform: translateY(-50%); transition: height .18s ease; }
-.hc-card:hover .hc-accent, .hc-card:focus-visible .hc-accent { height: 56%; }
-.hc-avatar { flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--text-primary) 7%, transparent); border: 1px solid color-mix(in srgb, var(--border) 60%, transparent); font-size: 12px; font-weight: 700; color: var(--text-secondary); overflow: hidden; }
-.hc-avatar img { width: 16px; height: 16px; border-radius: 3px; }
-.hc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.hc-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.hc-title { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--text-primary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.hc-side { position: relative; flex-shrink: 0; display: grid; align-items: center; justify-items: end; }
-.hc-side > * { grid-area: 1 / 1; }
-.hc-time { font-size: 10px; font-weight: 500; color: var(--text-secondary); transition: opacity .12s ease; }
-.hc-actions { display: flex; gap: 2px; opacity: 0; pointer-events: none; transition: opacity .12s ease; }
-.hc-card:hover .hc-time, .hc-card:focus-within .hc-time { opacity: 0; }
-.hc-card:hover .hc-actions, .hc-card:focus-within .hc-actions { opacity: 1; pointer-events: auto; }
-.hc-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; transition: background-color .12s ease, color .12s ease; }
-.hc-icon-btn:hover { background: color-mix(in srgb, var(--text-primary) 12%, transparent); color: var(--text-primary); }
-.hc-icon-btn.danger:hover { background: color-mix(in srgb, var(--error) 16%, transparent); color: var(--error); }
-.hc-meta { gap: 8px; }
-.hc-model { max-width: 55%; padding: 1px 6px; border-radius: 4px; background: color-mix(in srgb, var(--text-primary) 7%, transparent); color: var(--text-secondary); font-size: 10px; font-weight: 500; line-height: 15px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.hc-stat { display: inline-flex; align-items: center; gap: 2px; font-size: 10px; font-weight: 500; color: var(--text-secondary); flex-shrink: 0; }
-.hc-spacer { flex: 1; }
-
-.hc-token { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; flex-shrink: 0; color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, transparent); border: none; }
-
-.hc-tip { position: fixed; z-index: 2000; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px; overflow: hidden; pointer-events: none; border-radius: 12px; background: var(--tooltip-background); border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(0,0,0,.35); }
-.hc-tip-title { font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
-.hc-tip-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.hc-tip-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 500; color: var(--text-secondary); background: color-mix(in srgb, var(--text-primary) 7%, transparent); }
-.hc-tip-chip img { width: 10px; height: 10px; border-radius: 2px; }
-.hc-tip-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-.hc-tip-stat { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-radius: 8px; background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
-.hc-tip-stat b { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.hc-tip-stat span { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-secondary); }
-.hc-tip-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-secondary); opacity: .8; }
-.hc-tip-preview { font-size: 12px; line-height: 1.5; color: var(--text-primary); white-space: pre-wrap; word-break: break-word; padding: 8px 10px; border-radius: 4px; background: color-mix(in srgb, var(--text-primary) 5%, transparent); display: -webkit-box; -webkit-line-clamp: 9; -webkit-box-orient: vertical; overflow: hidden; }
-.hc-tip-muted { font-size: 12px; color: var(--text-secondary); font-style: italic; }
-.hc-skel { height: 9px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--text-primary) 6%, transparent), color-mix(in srgb, var(--text-primary) 14%, transparent), color-mix(in srgb, var(--text-primary) 6%, transparent)); background-size: 200% 100%; animation: hc-shimmer 1.2s linear infinite; }
-@keyframes hc-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
-.hc-tip-hint { font-size: 10px; color: var(--text-secondary); opacity: .75; }
-
-.hc-menu { position: fixed; z-index: 1000; min-width: 190px; padding: 4px; border-radius: 10px; background: var(--dropdown-background); border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,.28); }
-.hc-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 12px; border: none; border-radius: 6px; background: transparent; color: var(--text-primary); font-size: 12px; text-align: left; cursor: pointer; }
-.hc-menu-item:hover { background: var(--card-background-hover); }
-.hc-menu-item.danger { color: var(--error); }
-.hc-menu-item.danger:hover { background: color-mix(in srgb, var(--error) 12%, transparent); }
-`;
-
 // ─── Helpers (pure) ─────────────────────────────────────────────────────
-/** Chèn CSS dùng chung vào document.head đúng 1 lần cho mọi card. */
-const ensureStyles = () => {
-  if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) return;
-  const el = document.createElement('style');
-  el.id = STYLE_ID;
-  el.textContent = CARD_CSS;
-  document.head.appendChild(el);
-};
-
-/** Màu token theo ngưỡng sử dụng. */
-const getTokenTone = (n: number): string => {
-  if (n >= 500000) return 'var(--red)';
-  if (n >= 100000) return 'var(--warn)';
-  if (n >= 50000) return 'var(--yellow)';
-  if (n >= 10000) return 'var(--success)';
-  return 'var(--primary)';
+/** Màu token theo ngưỡng sử dụng (class Tailwind tĩnh để JIT nhận diện). */
+const getTokenTone = (n: number): TokenTone => {
+  if (n >= 500000) return { text: 'text-error', chip: 'text-error bg-error/15' };
+  if (n >= 50000) return { text: 'text-warn', chip: 'text-warn bg-warn/15' };
+  if (n >= 10000) return { text: 'text-success', chip: 'text-success bg-success/15' };
+  return { text: 'text-primary', chip: 'text-primary bg-primary/15' };
 };
 
 const formatTokens = (n: number): string => {
@@ -208,6 +151,21 @@ const getTooltipStyle = (p: TooltipPoint): React.CSSProperties => {
       };
 };
 
+// ─── Class constants (Tailwind) ─────────────────────────────────────────
+const CARD_BASE =
+  'group relative flex w-full items-center gap-2 box-border py-1.5 pl-2.5 pr-2 rounded-lg border bg-transparent cursor-pointer overflow-hidden outline-none transition active:scale-[0.994]';
+const CARD_IDLE =
+  'border-transparent hover:bg-card-hover hover:border-border/70 focus-visible:bg-card-hover focus-visible:border-primary';
+const CARD_SELECTED =
+  'bg-card-hover border-primary/45 hover:border-primary/45 focus-visible:border-primary';
+const ACCENT_BASE =
+  'absolute left-0 top-1/2 w-[3px] rounded-r-[3px] bg-primary -translate-y-1/2 transition-[height] duration-200 group-hover:h-[56%] group-focus-visible:h-[56%]';
+const ICON_BTN =
+  'inline-flex items-center justify-center w-[22px] h-[22px] rounded-md border-none bg-transparent text-text-secondary cursor-pointer transition-colors duration-150';
+const CHIP =
+  'inline-flex items-center gap-1 px-[7px] py-0.5 rounded-[5px] text-[10px] font-medium text-text-secondary bg-text-primary/10';
+const CLAMP = '[display:-webkit-box] [-webkit-box-orient:vertical] overflow-hidden';
+
 // ─── Component ─────────────────────────────────────────────────────────
 const HistoryCard: React.FC<HistoryCardProps> = ({
   item,
@@ -228,7 +186,6 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
 
   // ── Refs ──
   const cardRef = React.useRef<HTMLDivElement | null>(null);
-  const loadTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Derived ──
   const userContent = React.useMemo(() => {
@@ -276,10 +233,6 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
   const hideTooltip = React.useCallback(() => setTooltip(null), []);
 
   // ── Effects ──
-  React.useLayoutEffect(() => {
-    ensureStyles();
-  }, []);
-
   // Fetch messages when shouldLoad becomes true
   React.useEffect(() => {
     if (!shouldLoad) return;
@@ -294,43 +247,39 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
 
     setIsLoadingMessages(true);
     setMessageFetchError(null);
-    const requestId = `hist-card-${Date.now()}`;
+    let cancelled = false;
 
-    // Map to Phantoma's IPC service pattern
-    extensionService.postMessage({
-      command: 'getConversation',
-      conversationId: item.id,
-      requestId,
-    });
+    const moduleId = getHistoryKey();
+    if (!moduleId) {
+      setMessageFetchError('No messages found');
+      setIsLoadingMessages(false);
+      return;
+    }
 
-    const handler = (data: any) => {
-      if (data.command === 'getConversation' && data.requestId === requestId) {
-        unsubscribe();
-        if (data.data?.messages) {
-          setMessages(data.data.messages);
-          // Update cache if available
+    ConversationService.get(moduleId, item.id)
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.messages) {
+          setMessages(data.messages);
           if ((window as any).ConversationCache) {
             (window as any).ConversationCache.set(item.id, {
-              messages: data.data.messages,
+              messages: data.messages,
               conversationId: item.id,
             });
           }
         } else {
           setMessageFetchError('No messages found');
         }
-        setIsLoadingMessages(false);
-      }
-    };
-
-    const unsubscribe = extensionService.onMessage('messageResponse', handler);
-    loadTimeoutRef.current = setTimeout(() => {
-      unsubscribe();
-      setIsLoadingMessages(false);
-    }, 5000);
+      })
+      .catch(() => {
+        if (!cancelled) setMessageFetchError('No messages found');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingMessages(false);
+      });
 
     return () => {
-      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-      unsubscribe();
+      cancelled = true;
     };
   }, [shouldLoad, item.id]);
 
@@ -355,30 +304,19 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
     onClick();
   };
 
-  const handleCopyContent = () => {
-    const requestId = `copy-${Date.now()}`;
-    extensionService.postMessage({
-      command: 'getConversation',
-      conversationId: item.id,
-      requestId,
-    });
-    const handler = (data: any) => {
-      if (data.command === 'getConversation' && data.requestId === requestId) {
-        unsubscribe();
-        if (data.data?.messages) {
-          const text = data.data.messages
-            .map((msg: any) => {
-              const content =
-                msg.role === 'user' ? parseUserContent(msg.content) || msg.content : msg.content;
-              return `[${String(msg.role).toUpperCase()}]\n${content}`;
-            })
-            .join('\n\n');
-          navigator.clipboard.writeText(text.trim());
-        }
-      }
-    };
-    const unsubscribe = extensionService.onMessage('messageResponse', handler);
-    setTimeout(() => unsubscribe(), 5000);
+  const handleCopyContent = async () => {
+    const moduleId = getHistoryKey();
+    if (!moduleId) return;
+    const data = await ConversationService.get(moduleId, item.id);
+    if (!data?.messages) return;
+    const text = data.messages
+      .map((msg: any) => {
+        const content =
+          msg.role === 'user' ? parseUserContent(msg.content) || msg.content : msg.content;
+        return `[${String(msg.role).toUpperCase()}]\n${content}`;
+      })
+      .join('\n\n');
+    navigator.clipboard.writeText(text.trim());
   };
 
   const handleOpenConversationFolder = () => {
@@ -411,10 +349,10 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
 
   // ── Render ──
   return (
-    <div className="hc-root">
+    <div className="relative w-full">
       <div
         ref={cardRef}
-        className={`hc-card${selected ? ' selected' : ''}`}
+        className={`${CARD_BASE} ${selected ? CARD_SELECTED : CARD_IDLE}`}
         aria-current={selected ? 'true' : undefined}
         role="button"
         tabIndex={0}
@@ -448,27 +386,36 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
           setMenuVisible(true);
         }}
       >
-        <span className="hc-accent" />
+        <span className={`${ACCENT_BASE} ${selected ? 'h-[56%]' : 'h-0'}`} />
 
         {/* Avatar provider */}
-        <div className="hc-avatar">
+        <div className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center bg-text-primary/10 border border-border/60 text-[10px] font-bold text-text-secondary overflow-hidden">
           {showFavicon ? (
-            <img src={favicon as string} alt="" onError={() => setFailedFavicon(favicon)} />
+            <img
+              className="w-3.5 h-3.5 rounded-[3px]"
+              src={favicon as string}
+              alt=""
+              onError={() => setFailedFavicon(favicon)}
+            />
           ) : (
             (providerId || '?').charAt(0).toUpperCase()
           )}
         </div>
 
-        <div className="hc-body">
+        <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
           {/* Row 1: tiêu đề + thời gian / hành động nhanh */}
-          <div className="hc-row">
-            <span className="hc-title">{displayTitle}</span>
-            <div className="hc-side">
-              <span className="hc-time">{timeText}</span>
-              <div className="hc-actions">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex-1 min-w-0 text-xs font-semibold leading-tight text-text-primary overflow-hidden whitespace-nowrap text-ellipsis">
+              {displayTitle}
+            </span>
+            <div className="relative shrink-0 grid items-center justify-items-end [&>*]:[grid-area:1/1]">
+              <span className="text-[10px] font-medium text-text-secondary transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
+                {timeText}
+              </span>
+              <div className="flex gap-0.5 opacity-0 pointer-events-none transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
                 <button
                   type="button"
-                  className="hc-icon-btn"
+                  className={`${ICON_BTN} hover:bg-text-primary/10 hover:text-text-primary`}
                   title="Copy content"
                   aria-label="Copy content"
                   onClick={(e) => {
@@ -480,7 +427,7 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
                 </button>
                 <button
                   type="button"
-                  className="hc-icon-btn danger"
+                  className={`${ICON_BTN} hover:bg-error/15 hover:text-error`}
                   title="Delete conversation"
                   aria-label="Delete conversation"
                   onClick={(e) => {
@@ -496,16 +443,22 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
           </div>
 
           {/* Row 2: model, tổng msg, badges */}
-          <div className="hc-row hc-meta">
-            {modelId && <span className="hc-model">{modelId}</span>}
-            <span className="hc-stat" title="Total messages">
+          <div className="flex items-center gap-2 min-w-0">
+            {modelId && (
+              <span className="max-w-[55%] px-1.5 py-px rounded bg-text-primary/10 text-text-secondary text-[10px] font-medium leading-[15px] overflow-hidden whitespace-nowrap text-ellipsis">
+                {modelId}
+              </span>
+            )}
+            <span
+              className="inline-flex items-center gap-0.5 text-[10px] font-medium text-text-secondary shrink-0"
+              title="Total messages"
+            >
               {totalMsgs} msg
             </span>
-            <span className="hc-spacer" />
+            <span className="flex-1" />
             {tokens > 0 && (
               <span
-                className="hc-token"
-                style={{ '--tone': tone } as React.CSSProperties}
+                className={`inline-flex items-center gap-[3px] px-[7px] py-px rounded text-[10px] font-bold shrink-0 ${tone.chip}`}
                 title={`${tokens.toLocaleString()} tokens`}
               >
                 <Zap size={9} />
@@ -519,54 +472,74 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
       {/* Custom tooltip (bám theo chuột, không delay) */}
       {tooltip &&
         createPortal(
-          <div className="hc-tip" role="tooltip" style={getTooltipStyle(tooltip)}>
-            <div className="hc-tip-title">{displayTitle}</div>
+          <div
+            className="fixed z-[2000] box-border flex flex-col gap-2 p-3 overflow-hidden pointer-events-none rounded-xl bg-tooltip-background border border-border shadow-2xl"
+            role="tooltip"
+            style={getTooltipStyle(tooltip)}
+          >
+            <div
+              className={`text-[13px] font-semibold leading-snug text-text-primary break-words [-webkit-line-clamp:2] ${CLAMP}`}
+            >
+              {displayTitle}
+            </div>
 
-            <div className="hc-tip-chips">
+            <div className="flex flex-wrap gap-[5px]">
               {providerId && (
-                <span className="hc-tip-chip">
-                  {showFavicon && <img src={favicon as string} alt="" />}
+                <span className={CHIP}>
+                  {showFavicon && (
+                    <img className="w-2.5 h-2.5 rounded-sm" src={favicon as string} alt="" />
+                  )}
                   {providerId}
                 </span>
               )}
-              {modelId && <span className="hc-tip-chip">{modelId}</span>}
+              {modelId && <span className={CHIP}>{modelId}</span>}
               {timestamp > 0 && (
-                <span className="hc-tip-chip">
+                <span className={CHIP}>
                   <Clock size={10} />
                   {new Date(timestamp).toLocaleString()}
                 </span>
               )}
             </div>
 
-            <div className="hc-tip-stats">
-              <div className="hc-tip-stat">
-                <b>{totalMsgs}</b>
-                <span>msg</span>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="flex flex-col gap-px px-2 py-1.5 rounded-lg bg-text-primary/5">
+                <b className="text-[13px] font-bold text-text-primary">{totalMsgs}</b>
+                <span className="text-[9px] uppercase tracking-[0.06em] text-text-secondary">msg</span>
               </div>
-              <div className="hc-tip-stat">
-                <b style={{ color: tokens > 0 ? tone : undefined }}>{formatTokens(tokens)}</b>
-                <span>tok</span>
+              <div className="flex flex-col gap-px px-2 py-1.5 rounded-lg bg-text-primary/5">
+                <b
+                  className={`text-[13px] font-bold ${tokens > 0 ? tone.text : 'text-text-primary'}`}
+                >
+                  {formatTokens(tokens)}
+                </b>
+                <span className="text-[9px] uppercase tracking-[0.06em] text-text-secondary">tok</span>
               </div>
             </div>
 
-            <div className="hc-tip-label">Latest message</div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.08em] text-text-secondary opacity-80">
+              Latest message
+            </div>
             {isLoadingMessages ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div className="hc-skel" style={{ width: '92%' }} />
-                <div className="hc-skel" style={{ width: '78%' }} />
-                <div className="hc-skel" style={{ width: '54%' }} />
+              <div className="flex flex-col gap-1.5">
+                <div className="h-[9px] w-[92%] rounded bg-text-primary/10 animate-pulse" />
+                <div className="h-[9px] w-[78%] rounded bg-text-primary/10 animate-pulse" />
+                <div className="h-[9px] w-[54%] rounded bg-text-primary/10 animate-pulse" />
               </div>
             ) : messageFetchError ? (
-              <div className="hc-tip-muted">{messageFetchError}</div>
+              <div className="text-xs text-text-secondary italic">{messageFetchError}</div>
             ) : userContent || item.preview ? (
-              <div className="hc-tip-preview">
+              <div
+                className={`text-xs leading-normal text-text-primary whitespace-pre-wrap break-words px-2.5 py-2 rounded bg-text-primary/5 [-webkit-line-clamp:9] ${CLAMP}`}
+              >
                 {(userContent || item.preview).slice(0, TOOLTIP_PREVIEW_CHARS)}
               </div>
             ) : (
-              <div className="hc-tip-muted">No content</div>
+              <div className="text-xs text-text-secondary italic">No content</div>
             )}
 
-            <div className="hc-tip-hint">Click to open · Right-click for more</div>
+            <div className="text-[10px] text-text-secondary opacity-75">
+              Click to open · Right-click for more
+            </div>
           </div>,
           document.body,
         )}
@@ -575,7 +548,7 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
       {menuVisible &&
         createPortal(
           <div
-            className="hc-menu"
+            className="fixed z-[1000] min-w-[190px] p-1 rounded-[10px] bg-dropdown-background border border-border shadow-xl"
             style={{
               top: Math.min(menuPosition.y, window.innerHeight - 140),
               left: Math.min(menuPosition.x, window.innerWidth - 200),
@@ -585,7 +558,9 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
               <button
                 key={m.label}
                 type="button"
-                className={`hc-menu-item${m.danger ? ' danger' : ''}`}
+                className={`flex items-center gap-2 w-full px-3 py-[7px] border-none rounded-md bg-transparent text-xs text-left cursor-pointer ${
+                  m.danger ? 'text-error hover:bg-error/10' : 'text-text-primary hover:bg-card-hover'
+                }`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenuVisible(false);

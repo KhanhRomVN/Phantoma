@@ -542,6 +542,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<ProjectExtended | null>(null);
   const [createBranchProjectId, setCreateBranchProjectId] = useState<string | null>(null);
+  const [gitRepoByProject, setGitRepoByProject] = useState<Record<string, boolean>>({});
   const [confirmDeleteBranchTarget, setConfirmDeleteBranchTarget] = useState<{
     project: ProjectExtended;
     branchName: string;
@@ -1441,6 +1442,24 @@ export const ProjectPanel = memo(function ProjectPanel() {
     ? projects.findIndex((p) => p.id === activeProject.id)
     : -1;
 
+  const activeProjectId = activeProject?.id;
+  const activeProjectPath = activeProject?.path;
+  useEffect(() => {
+    if (!activeProjectId || !activeProjectPath) return;
+    let cancelled = false;
+    (window as any).api
+      .invoke('git:is-repo', activeProjectPath)
+      .then((ok: boolean) => {
+        if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [activeProjectId]: !!ok }));
+      })
+      .catch(() => {
+        if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [activeProjectId]: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProjectId, activeProjectPath]);
+
   // ── Render helpers ──
   const renderCard = (project: ProjectExtended) => (
     <ProjectCard
@@ -1780,12 +1799,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
                 <DropdownItem
                   icon={<GitBranch className="w-3.5 h-3.5" />}
+                  disabled={gitRepoByProject[activeProject.id] !== true}
                   onClick={() => {
                     setCreateBranchProjectId(activeProject.id);
                     closeDropdown();
                   }}
                 >
                   Create branch...
+                  {gitRepoByProject[activeProject.id] === false && (
+                    <span className="ml-2 text-[10px] text-text-secondary/60">No git repository</span>
+                  )}
                 </DropdownItem>
 
                 <DropdownSeparator />

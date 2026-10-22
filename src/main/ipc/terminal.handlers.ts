@@ -240,6 +240,33 @@ const historyFile = (panelId: string) =>
     `${panelId.replace(/[^a-zA-Z0-9_-]/g, '_')}.txt`,
   );
 
+const watchedSenders = new WeakSet<Electron.WebContents>();
+
+async function killPtyTree(terminalId: string): Promise<void> {
+  const ptyProcess = activePTYs.get(terminalId);
+  if (!ptyProcess) return;
+  activePTYs.delete(terminalId);
+  const table = await readProcessTable();
+  const children = new Map<number, number[]>();
+  for (const { pid, ppid } of table.values()) {
+    const siblings = children.get(ppid) ?? [];
+    siblings.push(pid);
+    children.set(ppid, siblings);
+  }
+  for (const pid of collectDescendants(ptyProcess.pid, children).reverse()) {
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch {
+      logger.warn(`[Terminal] Failed to SIGTERM pid ${pid}`);
+    }
+  }
+  try {
+    ptyProcess.kill();
+  } catch {
+    logger.warn(`[Terminal] PTY ${terminalId} already exited`);
+  }
+}
+
 export function setupTerminalHandlers(): void {
   ipcMain.on('terminal:history-save', (_event, payload: { panelId: string; data: string }) => {
     if (!payload?.panelId || typeof payload.data !== 'string') return;
@@ -281,11 +308,12 @@ export function setupTerminalHandlers(): void {
     const shellArgs = getShellArgs(shell);
 
     // Kill existing PTY for this terminalId if any
-    const existing = activePTYs.get(terminalId);
-    if (existing) {
-      existing.kill();
-      activePTYs.delete(terminalId);
-    }
+    const staleIds = [...activePTYs.keys()].filter(
+      (id) =>
+        id === terminalId ||
+        (!!payload.panelId && terminalMeta.get(id)?.panelId === payload.panelId),
+    );
+    staleIds.forEach((id) => void killPtyTree(id));
 
     // Validate CWD to prevent chdir(2) failed errors if project folder is missing
     let safeCwd = payload.cwd || os.homedir();
@@ -322,15 +350,29 @@ export function setupTerminalHandlers(): void {
       signature: '',
     });
     startProcessPolling();
+
+    if (!watchedSenders.has(event.sender)) {
+      watchedSenders.add(event.sender);
+      const killOwned = () => {
+        for (const [id, meta] of terminalMeta) {
+          if (meta.sender === event.sender) void killPtyTree(id);
+        }
+      };
+      event.sender.on('did-start-loading', killOwned);
+      event.sender.once('destroyed', killOwned);
+    }
+
     // Pipe PTY output → renderer
     ptyProcess.onData((data: string) => {
-      event.sender.send('terminal:data', { terminalId, data });
+      if (!event.sender.isDestroyed()) event.sender.send('terminal:data', { terminalId, data });
     });
 
     // Handle PTY exit
     ptyProcess.onExit(({ exitCode, signal }) => {
       console.log('[DEBUG] terminal pty exit', { terminalId, pid: ptyProcess.pid, exitCode, signal, cwd: safeCwd });
-      event.sender.send('terminal:exit', { terminalId, exitCode, signal });
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('terminal:exit', { terminalId, exitCode, signal });
+      }
       const meta = terminalMeta.get(terminalId);
       if (meta) emitTerminalProcessInfo(terminalId, meta, '', [], false);
       terminalMeta.delete(terminalId);
@@ -391,10 +433,6 @@ export function setupTerminalHandlers(): void {
   // Kill PTY on explicit close
   // Now accepts terminalId parameter
   ipcMain.handle('terminal:kill', (event, terminalId: string) => {
-    const ptyProcess = activePTYs.get(terminalId);
-    if (ptyProcess) {
-      ptyProcess.kill();
-      activePTYs.delete(terminalId);
-    }
+    return killPtyTree(terminalId);
   });
 }

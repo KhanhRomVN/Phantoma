@@ -38,7 +38,7 @@ import type { MCP, MCPInput } from '../types/mcp';
 import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
-export type PanelType = 'terminal' | 'website' | 'note' | 'emulator' | 'file' | 'agent';
+export type PanelType = 'terminal' | 'website' | 'workflow' | 'emulator' | 'file' | 'agent';
 
 export interface StoredWorkspacePanel {
   sessionId?: string;
@@ -59,6 +59,8 @@ export interface StoredWorkspacePanel {
   agentConversationId?: string | null;
   /** Title conversation hiện tại của Agent panel, hiển thị trên tab dạng 'Zen|<title>'. */
   agentTitle?: string | null;
+  /** ID của workflow agent mà Zen tab này đang liên kết (nếu có). */
+  workflowAgentId?: string | null;
 }
 
 export interface Project {
