@@ -82,6 +82,30 @@ export function setupConversationHandlers(): void {
     }
   });
 
+  // Revert conversation to before a message (truncate history, notify renderer)
+  ipcMain.handle(
+    'revertConversation',
+    async (event, { moduleId, conversationId, messageId, folderPath }) => {
+      try {
+        const data = await storage.getConversation(moduleId, conversationId, folderPath);
+        if (!data) throw new Error(`Conversation ${conversationId} not found`);
+
+        const index = data.messages.findIndex((m) => m.id === messageId);
+        if (index === -1) throw new Error(`Message with ID ${messageId} not found in history`);
+
+        data.messages = data.messages.slice(0, index);
+        await storage.saveConversation(moduleId, conversationId, data, folderPath);
+
+        event.sender.send('conversationReverted', { conversationId });
+        return { success: true };
+      } catch (error: any) {
+        logger.error('[IPC][revertConversation] Failed to revert conversation:', error);
+        event.sender.send('conversationRevertedError', { conversationId, error: error.message });
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
   // Delete all conversations
   ipcMain.handle('conversation:deleteAll', async (_, { moduleId, folderPath }) => {
     try {

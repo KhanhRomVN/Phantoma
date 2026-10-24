@@ -14,7 +14,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Controller
-import { CodeController } from '../../../../controller/CodeController';
+import { CodeController } from '@renderer/modules/Code/CodeController';
 
 interface ProjectContextType {
   rootPath: string;

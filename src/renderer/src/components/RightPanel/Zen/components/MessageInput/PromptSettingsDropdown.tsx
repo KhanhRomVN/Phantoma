@@ -15,7 +15,7 @@
 
 import React, { useState } from 'react';
 import { Ban, Stethoscope, Sparkles, Brain, Code2, Check, Zap } from 'lucide-react';
-import type { SystemPromptMode } from '../../feature/Chat/prompts/code';
+import type { SystemPromptMode } from '@renderer/modules/Code/prompts/code';
 import {
   Dropdown,
   DropdownTrigger,
@@ -126,7 +126,7 @@ const TickBox: React.FC<{
 interface PromptSettingsDropdownProps {
   // Style Code
   systemPromptMode: SystemPromptMode;
-  onSelectSystemPromptMode: (mode: SystemPromptMode) => void;
+  onSelectSystemPromptMode?: (mode: SystemPromptMode) => void;
   isAntiInjection?: boolean;
 
   // Skill
@@ -178,6 +178,17 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
     STYLE_CODE_MODE_META.find((m) => m.key === systemPromptMode) ??
     STYLE_CODE_MODE_META.find((m) => m.key === 'balanced')!;
 
+  // Check nếu tất cả features đều undefined → không hiển thị gì
+  const hasAnyFeature =
+    onSelectSystemPromptMode !== undefined ||
+    onSkillToggle !== undefined ||
+    onMemoryToggle !== undefined ||
+    onToolFormatToggle !== undefined;
+
+  if (!hasAnyFeature) {
+    return null;
+  }
+
   if (formatOnly) {
     const isJson = toolFormat === 'json';
     const activeColor = FORMAT_COLORS[toolFormat];
@@ -215,7 +226,59 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
     );
   }
 
-  // ── Trigger pill: 4 icons liên tiếp ──────────────────────────────────
+  // ── Trigger pill: chỉ hiển thị icons của features được hỗ trợ ──────
+  const icons: React.ReactNode[] = [];
+
+  if (onSelectSystemPromptMode) {
+    icons.push(
+      <span
+        key="style-code"
+        className={`inline-flex items-center ${
+          isAntiInjection ? 'text-text-secondary opacity-40' : ''
+        }`}
+        style={!isAntiInjection ? { color: styleCodeMeta.color } : undefined}
+      >
+        <StyleCodeTriggerIcon mode={systemPromptMode} />
+      </span>,
+    );
+  }
+
+  if (onSkillToggle) {
+    icons.push(
+      <span
+        key="skill"
+        className={`inline-flex items-center ${
+          skillEnabled ? '' : 'text-text-secondary opacity-60'
+        }`}
+        style={skillEnabled ? { color: SKILL_COLOR } : undefined}
+      >
+        <SkillIcon size={13} />
+      </span>,
+    );
+  }
+
+  if (onMemoryToggle) {
+    icons.push(
+      <span
+        key="memory"
+        className={`inline-flex items-center ${
+          memoryEnabled ? '' : 'text-text-secondary opacity-60'
+        }`}
+        style={memoryEnabled ? { color: MEMORY_COLOR } : undefined}
+      >
+        <MemoryIcon size={13} />
+      </span>,
+    );
+  }
+
+  if (onToolFormatToggle) {
+    icons.push(
+      <span key="format" className="inline-flex items-center">
+        <FormatText format={toolFormat} />
+      </span>,
+    );
+  }
+
   const pill = (
     <button
       onMouseEnter={() => setHovered(true)}
@@ -224,82 +287,68 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
         hovered ? 'bg-gray-500/16' : 'bg-gray-500/6'
       }`}
     >
-      {/* Icon 1: Style Code */}
-      <span
-        className={`inline-flex items-center ${
-          isAntiInjection ? 'text-text-secondary opacity-40' : ''
-        }`}
-        style={!isAntiInjection ? { color: styleCodeMeta.color } : undefined}
-      >
-        <StyleCodeTriggerIcon mode={systemPromptMode} />
-      </span>
-
-      {/* Micro-divider */}
-      <span className="w-px h-3 bg-border/40 flex-shrink-0" />
-
-      {/* Icon 2: Skill */}
-      <span
-        className={`inline-flex items-center ${
-          skillEnabled ? '' : 'text-text-secondary opacity-60'
-        }`}
-        style={skillEnabled ? { color: SKILL_COLOR } : undefined}
-      >
-        <SkillIcon size={13} />
-      </span>
-
-      {/* Micro-divider */}
-      <span className="w-px h-3 bg-border/40 flex-shrink-0" />
-
-      {/* Icon 3: Memory */}
-      <span
-        className={`inline-flex items-center ${
-          memoryEnabled ? '' : 'text-text-secondary opacity-60'
-        }`}
-        style={memoryEnabled ? { color: MEMORY_COLOR } : undefined}
-      >
-        <MemoryIcon size={13} />
-      </span>
-
-      {/* Micro-divider */}
-      <span className="w-px h-3 bg-border/40 flex-shrink-0" />
-
-      {/* Icon 4: Tool Format */}
-      <span className="inline-flex items-center">
-        <FormatText format={toolFormat} />
-      </span>
+      {icons.map((icon, idx) => (
+        <React.Fragment key={idx}>
+          {idx > 0 && <span className="w-px h-3 bg-border/40 flex-shrink-0" />}
+          {icon}
+        </React.Fragment>
+      ))}
     </button>
   );
 
-  const tooltipContent = (
-    <TooltipCard>
+  const tooltipRows: React.ReactNode[] = [];
+
+  if (onSelectSystemPromptMode) {
+    tooltipRows.push(
       <TooltipHeader
+        key="style-header"
         icon={<StyleCodeTriggerIcon mode={systemPromptMode} />}
         title={styleCodeMeta.label}
         color={isAntiInjection ? 'text-text-secondary' : styleCodeMeta.color}
-      />
-      <div className="h-px bg-border/30" />
+      />,
+    );
+    tooltipRows.push(<div key="style-divider" className="h-px bg-border/30" />);
+  }
+
+  if (onSkillToggle) {
+    tooltipRows.push(
       <TooltipRow
+        key="skill-row"
         icon={<SkillIcon size={13} />}
         label="Skill"
         value={skillEnabled ? 'ON' : 'OFF'}
         color={SKILL_COLOR}
         active={skillEnabled}
-      />
+      />,
+    );
+  }
+
+  if (onMemoryToggle) {
+    tooltipRows.push(
       <TooltipRow
+        key="memory-row"
         icon={<MemoryIcon size={13} />}
         label="Memory"
         value={memoryEnabled ? 'ON' : 'OFF'}
         color={MEMORY_COLOR}
         active={memoryEnabled}
-      />
+      />,
+    );
+  }
+
+  if (onToolFormatToggle) {
+    tooltipRows.push(
       <TooltipRow
+        key="format-row"
         icon={<FormatIcon size={13} />}
         label="Format"
         value={toolFormat === 'json' ? 'JSON' : 'XML'}
         color={FORMAT_COLORS[toolFormat]}
-      />
-    </TooltipCard>
-  );
+      />,
+    );
+  }
+
+  const tooltipContent = <TooltipCard>{tooltipRows}</TooltipCard>;
 
   return (
     <SimpleTooltip content={tooltipContent} disabled={dropdownOpen}>
@@ -314,22 +363,24 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
           <DropdownTrigger asChild>{pill}</DropdownTrigger>
           <DropdownContent size="lg">
             {/* ── Section 1: Style Code ── */}
-            <SectionLabel label="Style Code" />
+            {onSelectSystemPromptMode && (
+              <>
+                <SectionLabel label="Style Code" />
 
-            {isAntiInjection && (
-              <div className="mx-3 mb-2 p-2 rounded-md bg-warn/10 border border-warn/20 flex items-start gap-2 text-[10.5px] text-warn">
-                <Ban size={11} className="mt-0.5 flex-shrink-0" />
-                <span>Provider injects its own system prompt — presets unavailable.</span>
-              </div>
-            )}
+                {isAntiInjection && (
+                  <div className="mx-3 mb-2 p-2 rounded-md bg-warn/10 border border-warn/20 flex items-start gap-2 text-[10.5px] text-warn">
+                    <Ban size={11} className="mt-0.5 flex-shrink-0" />
+                    <span>Provider injects its own system prompt — presets unavailable.</span>
+                  </div>
+                )}
 
-            {STYLE_CODE_MODE_META.map((meta) => {
-              const isSelected = systemPromptMode === meta.key;
-              const isDisabled = isAntiInjection;
-              return (
-                <button
-                  key={meta.key}
-                  onClick={() => !isDisabled && onSelectSystemPromptMode(meta.key)}
+                {STYLE_CODE_MODE_META.map((meta) => {
+                  const isSelected = systemPromptMode === meta.key;
+                  const isDisabled = isAntiInjection;
+                  return (
+                    <button
+                      key={meta.key}
+                      onClick={() => !isDisabled && onSelectSystemPromptMode(meta.key)}
                   disabled={isDisabled}
                   className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors ${
                     isDisabled 
@@ -357,10 +408,12 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
                     </div>
                   </div>
                 </button>
-              );
-            })}
+                  );
+                })}
 
-            <Divider />
+                <Divider />
+              </>
+            )}
 
             {/* ── Section 2: Features ── */}
 
@@ -419,23 +472,23 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
             )}
 
             {/* ── Section 3: Tool Format ── */}
-            <SectionLabel label="Tool Format" />
+            {onToolFormatToggle && (
+              <>
+                <SectionLabel label="Tool Format" />
 
-            {(
-              [
-                {
-                  key: 'xml' as const,
-                  label: 'XML tool calls',
-                  desc: 'AI uses XML tags for tool calls (default)',
-                },
-                {
-                  key: 'json' as const,
-                  label: 'JSON tool calls',
-                  desc: 'AI uses fenced JSON objects for tool calls',
-                },
-              ]
-            ).map((opt) => {
-              const isSelected = toolFormat === opt.key;
+                {[
+                  {
+                    key: 'xml' as const,
+                    label: 'XML tool calls',
+                    desc: 'AI uses XML tags for tool calls (default)',
+                  },
+                  {
+                    key: 'json' as const,
+                    label: 'JSON tool calls',
+                    desc: 'AI uses fenced JSON objects for tool calls',
+                  },
+                ].map((opt) => {
+                  const isSelected = toolFormat === opt.key;
               const color = FORMAT_COLORS[opt.key];
               return (
                 <button
@@ -467,8 +520,10 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
                     </div>
                   </div>
                 </button>
-              );
-            })}
+                  );
+                })}
+              </>
+            )}
           </DropdownContent>
         </Dropdown>
       </span>

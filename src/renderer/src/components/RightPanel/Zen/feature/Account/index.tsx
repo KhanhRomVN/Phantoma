@@ -22,8 +22,6 @@ import {
   Download,
   Filter,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Users,
   Copy,
   RefreshCw,
@@ -47,8 +45,7 @@ import { useAccounts } from './hooks/useAccounts';
 import { useSettings } from '../../context/SettingsContext';
 
 import { extensionService, messageDispatcher } from '../../services/ExtensionService';
-import { Drawer, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
-import { Button } from '@renderer/components/ui/Button';
+import { Drawer, DrawerBody } from '@renderer/components/ui/Drawer';
 import { Input } from '@renderer/components/ui/Input';
 import { $ } from '@renderer/utils/color';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
@@ -115,6 +112,12 @@ const OverlayBarButton: React.FC<{
   );
 };
 
+const CountBadge: React.FC<{ count: number }> = ({ count }) => (
+  <span className="min-w-[20px] h-[18px] px-1.5 rounded-[5px] bg-[rgba(128,128,128,0.18)] text-text-secondary text-[10px] font-semibold inline-flex items-center justify-center box-border">
+    {count}
+  </span>
+);
+
 const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<FlatAccount | null>(null);
@@ -127,6 +130,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
 
   const {
     accounts,
+    providerScopedAccounts,
     allAccounts,
     loading,
     providerConfigs,
@@ -304,15 +308,35 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
     }
   };
 
-  const handlePrevPage = () => {
-    if (pagination.page > 1) {
-      fetchAccounts(pagination.page - 1, pagination.limit);
-    }
-  };
+  const [refreshingAll, setRefreshingAll] = useState(false);
+  const [refreshResults, setRefreshResults] = useState<
+    Record<string, { success: boolean; error?: string }>
+  >({});
 
-  const handleNextPage = () => {
-    if (pagination.page < pagination.total_pages) {
-      fetchAccounts(pagination.page + 1, pagination.limit);
+  const handleRefreshAll = async () => {
+    if (refreshingAll) return;
+    setRefreshingAll(true);
+    try {
+      const refreshable = accounts.filter(
+        (a) => providerConfigs.find((p) => p.provider_id === a.provider_id)?.can_refresh_token,
+      );
+      setRefreshingIds(new Set(refreshable.map((a) => a.id)));
+      const results: Record<string, { success: boolean; error?: string }> = {};
+      await Promise.all(
+        refreshable.map(async (a) => {
+          try {
+            results[a.id] = await refreshAccountToken(a.id, a.provider_id);
+          } catch (err: any) {
+            results[a.id] = { success: false, error: err?.message };
+          }
+        }),
+      );
+      setRefreshResults(results);
+      setTimeout(() => setRefreshResults({}), 3500);
+      await fetchAccounts(pagination.page, pagination.limit, true);
+    } finally {
+      setRefreshingIds(new Set());
+      setRefreshingAll(false);
     }
   };
 
@@ -373,7 +397,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
               <Filter size={16} />
             </button>
           </DropdownTrigger>
-          <DropdownContent>
+          <DropdownContent hideScrollbar>
             <DropdownItem
               icon={
                 <div
@@ -385,7 +409,10 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
               }
               onClick={() => setProviderFilter('')}
             >
-              All Providers [{accounts.length}]
+              <span className="flex items-center gap-2">
+                All Providers
+                <CountBadge count={providerScopedAccounts.length} />
+              </span>
             </DropdownItem>
             {sortedProviderConfigs.map((provider) => (
               <DropdownItem
@@ -403,12 +430,37 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
                 }
                 onClick={() => setProviderFilter(provider.provider_id)}
               >
-                {provider.provider_name} [
-                {accounts.filter((acc) => acc.provider_id === provider.provider_id).length}]
+                <span className="flex items-center gap-2">
+                  {provider.provider_name}
+                  <CountBadge
+                    count={
+                      providerScopedAccounts.filter((acc) => acc.provider_id === provider.provider_id)
+                        .length
+                    }
+                  />
+                </span>
               </DropdownItem>
             ))}
           </DropdownContent>
         </Dropdown>
+
+        <button
+          onClick={handleRefreshAll}
+          disabled={refreshingAll}
+          className="w-[34px] h-[34px] rounded-lg flex items-center justify-center shrink-0 text-text-secondary p-0"
+          style={{
+            backgroundColor: $('--input-background'),
+            border: 'none',
+            cursor: refreshingAll ? 'not-allowed' : 'pointer',
+            opacity: refreshingAll ? 0.6 : 1,
+          }}
+          title="Refresh accounts"
+        >
+          <RefreshCw
+            size={16}
+            style={refreshingAll ? { animation: 'importSpin 1s linear infinite' } : undefined}
+          />
+        </button>
 
         <button
           onClick={() => setDialogOpen(true)}
@@ -646,40 +698,14 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
                 onRefreshToken={() => refreshAccountToken(account.id, account.provider_id)}
                 onEdit={() => setEditAccount(account)}
                 providerConfig={pc}
+                externalRefreshing={refreshingIds.has(account.id)}
+                externalRefreshResult={refreshResults[account.id] ?? null}
               />
             );
           })
         )}
       </DrawerBody>
 
-      {/* Pagination */}
-      {pagination.total_pages > 1 && (
-        <DrawerFooter>
-          <span className="text-[11px] text-text-secondary">
-            {pagination.page} / {pagination.total_pages}
-          </span>
-          <div className="flex gap-2 ml-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page === 1}
-              onClick={handlePrevPage}
-            >
-              <ChevronLeft size={14} />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page === pagination.total_pages}
-              onClick={handleNextPage}
-            >
-              Next
-              <ChevronRight size={14} />
-            </Button>
-          </div>
-        </DrawerFooter>
-      )}
 
       <AddAccountDrawer
         open={dialogOpen}

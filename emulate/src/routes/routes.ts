@@ -176,24 +176,12 @@ export function registerEmulateRoutes(
     const platform = req.params.platform as Platform;
     const methods = getCaptureMethodsForPlatform(platform);
 
-    // Debug Log
-    console.log(`[Emulate API] GET /capture-methods/${platform}`);
-    console.log(
-      `[Emulate API] Returning ${methods.length} methods:`,
-      methods.map((m) => m.id),
-    );
-
     res.json({ platform, methods });
   });
 
   // Runtime Launch Endpoint
   router.post('/runtime/launch', async (req, res) => {
     const { targetId, mode, proxyUrl, customUrl } = req.body;
-
-    console.log(`[Emulate API] POST /runtime/launch`);
-    console.log(`  - Target ID: ${targetId}`);
-    console.log(`  - Mode: ${mode}`);
-    console.log(`  - URL: ${customUrl || proxyUrl}`);
 
     try {
       if (mode === 'cdp') {
@@ -206,7 +194,6 @@ export function registerEmulateRoutes(
         let debugPort: number;
         try {
           debugPort = await findFreePort(9300, 9400);
-          console.log(`[CDP Launcher] Allocated free port: ${debugPort}`);
         } catch (err) {
           throw new Error('Failed to allocate a free debugging port.');
         }
@@ -243,8 +230,6 @@ export function registerEmulateRoutes(
           urlToOpen,
         ];
 
-        console.log(`[CDP Launcher] Spawning: ${chromePath} ${args.join(' ')}`);
-
         const child = spawn(chromePath, args, {
           detached: true, // Detach from parent so it keeps running even if server restarts
           stdio: 'ignore',
@@ -255,9 +240,6 @@ export function registerEmulateRoutes(
         // Register process with central manager
         if (child.pid) {
           processManager.register(targetId, child.pid, debugPort);
-          console.log(
-            `[CDP Launcher] Registered process for target ${targetId}: port=${debugPort}, pid=${child.pid}`,
-          );
         }
 
         // Wait slightly to ensure browser starts up before responding
@@ -294,7 +276,6 @@ export function registerEmulateRoutes(
   // Runtime Terminate Endpoint — delegates to ProcessManager
   router.post('/runtime/terminate', async (req, res) => {
     const { targetId } = req.body ?? {};
-    console.log(`[Emulate API] POST /runtime/terminate - Target: ${targetId || 'all'}`);
 
     try {
       if (targetId) {
@@ -326,12 +307,6 @@ export function registerEmulateRoutes(
   router.post('/runtime/targets/register', async (req, res) => {
     const { targetId, title, favicon, platform, url } = req.body;
 
-    console.log(`[Emulate API] POST /runtime/targets/register`);
-    console.log(`  - Target ID: ${targetId}`);
-    console.log(`  - Title: ${title}`);
-    console.log(`  - Platform: ${platform}`);
-    console.log(`  - URL: ${url}`);
-
     // TODO: Store mapping between targetId and current active sessions/proxies
 
     res.json({
@@ -354,12 +329,6 @@ export function registerEmulateRoutes(
       actualPort = trackedTarget.port;
     }
 
-    console.log(`[Emulate API] POST /runtime/cdp/connect`);
-    console.log(`  - Requested Port: ${requestedPort}`);
-    console.log(`  - Actual Port Used: ${actualPort} (from manager: ${!!trackedTarget})`);
-    console.log(`  - Target ID: ${targetId}`);
-    console.log(`  - Expected URL: ${expectedUrl || 'None'}`);
-
     try {
       const success = await cdpService.connect(actualPort, targetId || 'default', expectedUrl);
 
@@ -377,8 +346,6 @@ export function registerEmulateRoutes(
   // Global SSE Endpoint for All Runtime Events
   // Matches the expectation of runtime-sse-bridge.ts which listens on /events
   router.get('/events', (req, res) => {
-    console.log('[Emulate API] GET /events - Establishing global SSE stream...');
-
     // Set headers for Server-Sent Events
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -412,7 +379,6 @@ export function registerEmulateRoutes(
 
     // Cleanup listeners when client disconnects
     req.on('close', () => {
-      console.log('[Emulate API] Global SSE connection closed.');
       cdpService.removeListener('cdp:request', onCdpRequest);
       cdpService.removeListener('cdp:response', onCdpResponse);
       cdpService.removeListener('cdp:finished', onCdpFinished);
@@ -422,7 +388,6 @@ export function registerEmulateRoutes(
   // Disconnect from CDP Instance
   router.post('/runtime/cdp/disconnect', async (req, res) => {
     const { targetId } = req.body;
-    console.log(`[Emulate API] POST /runtime/cdp/disconnect - Target: ${targetId}`);
 
     try {
       await cdpService.disconnect(targetId || 'default');
@@ -436,7 +401,6 @@ export function registerEmulateRoutes(
   router.post('/runtime/cdp/reload', async (req, res) => {
     const { targetId } = req.body ?? {};
     const key = targetId || 'default';
-    console.log(`[Emulate API] POST /runtime/cdp/reload - Target: ${key}`);
     try {
       const ok = await cdpService.reload(key);
       res.json({ success: ok });
@@ -453,7 +417,7 @@ export function registerEmulateRoutes(
     if (!url) {
       return res.status(400).json({ success: false, error: 'url is required' });
     }
-    console.log(`[Emulate API] POST /runtime/cdp/navigate - Target: ${key}, Url: ${url}`);
+
     try {
       const ok = await cdpService.navigate(key, url);
       res.json({ success: ok });
@@ -467,7 +431,6 @@ export function registerEmulateRoutes(
   router.post('/runtime/cdp/inject-border', async (req, res) => {
     const { targetId, color } = req.body ?? {};
     const key = targetId || 'default';
-    console.log(`[Emulate API] POST /runtime/cdp/inject-border - Target: ${key}`);
     try {
       const ok = await cdpService.injectBorder(key, color);
       res.json({ success: ok });
@@ -511,7 +474,6 @@ export function registerEmulateRoutes(
     }
     try {
       reinitDb(newPath);
-      console.log(`[Emulate API] Database swapped to: ${newPath}`);
       res.json({ path: newPath, status: 'ok' });
     } catch (err: any) {
       console.error('[Emulate API] PUT /database/path failed:', err);
@@ -520,38 +482,36 @@ export function registerEmulateRoutes(
   });
 
   // ─── eBPF TLS Sniffer Endpoints ──────────────────────────────────────
-  
+
   /**
    * Start capturing plaintext HTTPS traffic using eBPF uprobes.
    * Body: { pid?: number } - Optional filter by Process ID.
    */
   router.post('/runtime/ebpf/start', async (req, res) => {
     const { pid } = req.body ?? {};
-    console.log(`[Emulate API] POST /runtime/ebpf/start - PID Filter: ${pid || 'ALL'}`);
-
     try {
       const success = await ebpfSniffer.start({ pid });
-      
+
       if (success) {
         // Forward events from sniffer to WebSocket Hub for real-time streaming
         ebpfSniffer.on('ebpf:data', (event) => {
           // Emit via global bus so frontend receives it alongside CDP events
           wssHub.broadcast({ type: 'ebpf:https-event', data: event });
         });
-        
+
         ebpfSniffer.on('ebpf:error', (errorData) => {
           wssHub.broadcast({ type: 'ebpf:error', data: errorData });
         });
 
-        res.json({ 
-          success: true, 
+        res.json({
+          success: true,
           message: 'eBPF sniffer started. Capturing SSL/TLS plaintext.',
-          filteredByPid: !!pid 
+          filteredByPid: !!pid,
         });
       } else {
-        res.status(500).json({ 
-          success: false, 
-          error: 'Failed to start eBPF sniffer. Check logs for permission/kernel issues.' 
+        res.status(500).json({
+          success: false,
+          error: 'Failed to start eBPF sniffer. Check logs for permission/kernel issues.',
         });
       }
     } catch (err: any) {
@@ -564,7 +524,6 @@ export function registerEmulateRoutes(
    * Stop the active eBPF capture session.
    */
   router.post('/runtime/ebpf/stop', (_req, res) => {
-    console.log(`[Emulate API] POST /runtime/ebpf/stop`);
     try {
       ebpfSniffer.stop();
       res.json({ success: true, message: 'eBPF sniffer stopped.' });
@@ -578,9 +537,9 @@ export function registerEmulateRoutes(
    * Get current status of the eBPF sniffer.
    */
   router.get('/runtime/ebpf/status', (_req, res) => {
-    res.json({ 
+    res.json({
       running: ebpfSniffer.getStatus(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   });
 
@@ -593,8 +552,6 @@ export function registerEmulateRoutes(
    */
   router.post('/runtime/cli/ebpf', async (req, res) => {
     const { targetId, executablePath, sudoPassword } = req.body ?? {};
-    console.log(`[Emulate API] POST /runtime/cli/ebpf - Target: ${targetId}`);
-
     if (!targetId || !executablePath) {
       return res
         .status(400)
@@ -678,8 +635,6 @@ export function registerEmulateRoutes(
    */
   router.post('/runtime/cli/:targetId/stop', async (req, res) => {
     const { targetId } = req.params;
-    console.log(`[Emulate API] POST /runtime/cli/${targetId}/stop`);
-
     try {
       ebpfSniffer.stop();
       ebpfOwnerTargetId = null;

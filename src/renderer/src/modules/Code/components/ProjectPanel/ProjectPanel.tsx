@@ -43,6 +43,7 @@ import {
   Link2,
   GitBranch,
   Square,
+  Settings,
 } from 'lucide-react';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
@@ -68,7 +69,7 @@ import {
 } from '@renderer/components/ui/Dropdown';
 
 // ── Local modals ──
-import { OpenProjectModal } from '../modal/OpenProjectModal/index';
+import { OpenProjectModal } from '../modal/OpenProjectModal';
 import { ConfirmDeleteProjectModal } from '../modal/ConfirmDeleteProjectModal';
 import { CreateBranchModal, type CreatedBranchResult } from '../modal/CreateBranchModal';
 import { ConfirmDeleteBranchModal } from '../modal/ConfirmDeleteBranchModal';
@@ -304,7 +305,6 @@ function GroupHeader({
     onRenameDone(commit ? (inputRef.current?.value ?? null) : null);
   };
 
-
   // Generate stable random color based on group ID/name hash
   const groupColor = useMemo(() => {
     let hash = 0;
@@ -358,7 +358,6 @@ function GroupHeader({
         <ChevronRight className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
       )}
 
-
       {renaming ? (
         <input
           ref={inputRef}
@@ -376,9 +375,7 @@ function GroupHeader({
       )}
       <span className="font-medium text-text-secondary/50">{count}</span>
       <span className="flex-1" />
-      <KebabButton
-        onClick={(e) => onOpenMenu({ top: e.clientY, left: e.clientX })}
-      />
+      <KebabButton onClick={(e) => onOpenMenu({ top: e.clientY, left: e.clientX })} />
     </div>
   );
 }
@@ -539,7 +536,13 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [filterStatus, setFilterStatus] = useState<'all' | SessionStatus>('all');
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [dropdownTarget, setDropdownTarget] = useState<DropdownTarget | null>(null);
+  const isSettingsOpen = useCodeStore((s) => s.contentViewMode === 'settings');
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addToGroupId, setAddToGroupId] = useState<string | null>(null);
+  const [pendingGroupAssign, setPendingGroupAssign] = useState<{
+    projectId: string;
+    groupId: string;
+  } | null>(null);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<ProjectExtended | null>(null);
   const [createBranchProjectId, setCreateBranchProjectId] = useState<string | null>(null);
   const [gitRepoByProject, setGitRepoByProject] = useState<Record<string, boolean>>({});
@@ -870,6 +873,13 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [patchProject],
   );
 
+  useEffect(() => {
+    if (!pendingGroupAssign) return;
+    if (!projects.some((p) => p.id === pendingGroupAssign.projectId)) return;
+    setProjectGroup(pendingGroupAssign.projectId, pendingGroupAssign.groupId);
+    setPendingGroupAssign(null);
+  }, [pendingGroupAssign, projects, setProjectGroup]);
+
   // Removed unused createGroupFromProject as logic shifted to GroupPickerForm + Drag/Drop
 
   const removeProjectFromStore = useCodeStore((s) => s.removeProject);
@@ -1126,7 +1136,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
     (sessionId: string) => {
       const task = bySession[sessionId];
       const path = findSessionProjectPath(sessionId);
-      if (task && path) void taskService.update(path, task.id, { sessionId: null, branchName: null });
+      if (task && path)
+        void taskService.update(path, task.id, { sessionId: null, branchName: null });
     },
     [bySession, findSessionProjectPath],
   );
@@ -1208,7 +1219,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
         if (row) {
           const ghost = row.cloneNode(true) as HTMLElement;
           ghost.querySelectorAll('[data-drag-hide]').forEach((n) => n.remove());
-          ghost.className = 'flex items-center gap-2 px-3 py-2 rounded-none bg-card-background border-y border-divider text-text-primary';
+          ghost.className =
+            'flex items-center gap-2 px-3 py-2 rounded-none bg-card-background border-y border-divider text-text-primary';
           Object.assign(ghost.style, {
             position: 'fixed',
             top: '-1000px',
@@ -1334,12 +1346,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const drag = dragRef.current;
       if (!drag) return;
       e.preventDefault();
-      // Debug log - có thể xóa sau khi fix
-      console.log('[DEBUG] handleDrop', {
-        type: drag.type,
-        groupId: drag.groupId,
-        targetGid: (e.currentTarget as HTMLElement).dataset.gid,
-      });
       clearDragMarks();
       drag.el?.classList.remove('pp-dragging');
       if (drag.el) drag.el.style.opacity = '';
@@ -1435,9 +1441,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       ? (groups.find((g) => g.id === dropdownTarget.groupId) ?? null)
       : null;
   const activeTask =
-    dropdownTarget?.kind === 'task'
-      ? (bySession[dropdownTarget.sessionId] ?? null)
-      : null;
+    dropdownTarget?.kind === 'task' ? (bySession[dropdownTarget.sessionId] ?? null) : null;
   const activeProjectIndex = activeProject
     ? projects.findIndex((p) => p.id === activeProject.id)
     : -1;
@@ -1583,6 +1587,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
             title="Add project"
           >
             <Plus className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Settings */}
+          <button
+            onClick={() => useCodeStore.getState().setContentViewMode('settings')}
+            className={cn(headerBtn, isSettingsOpen ? headerBtnOn : headerBtnIdle)}
+            title="Settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -1807,7 +1820,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 >
                   Create branch...
                   {gitRepoByProject[activeProject.id] === false && (
-                    <span className="ml-2 text-[10px] text-text-secondary/60">No git repository</span>
+                    <span className="ml-2 text-[10px] text-text-secondary/60">
+                      No git repository
+                    </span>
                   )}
                 </DropdownItem>
 
@@ -2050,6 +2065,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
             {dropdownTarget.kind === 'group' && activeGroup && (
               <>
                 <DropdownItem
+                  icon={<FolderPlus className="w-3 h-3" />}
+                  onClick={() => {
+                    setAddToGroupId(activeGroup.id);
+                    setAddModalOpen(true);
+                    closeDropdown();
+                  }}
+                >
+                  Add project
+                </DropdownItem>
+                <DropdownItem
                   icon={<Pencil className="w-3 h-3" />}
                   onClick={() => {
                     setEditingGroupId(activeGroup.id);
@@ -2109,7 +2134,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   proj?.branches.find((b) =>
                     b.sessions.some((s) => s.id === dropdownTarget.sessionId),
                   )?.name ?? null;
-                const candidates = (tasksByPath[path] ?? []).filter((t) => !t.archived && !t.sessionId);
+                const candidates = (tasksByPath[path] ?? []).filter(
+                  (t) => !t.archived && !t.sessionId,
+                );
                 if (candidates.length === 0) {
                   return (
                     <span className="block px-2 py-1 text-xs text-text-secondary/60">
@@ -2159,7 +2186,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
             {/* SESSION CONTEXT MENU */}
             {dropdownTarget.kind === 'session' && (
               <>
-
                 {bySession[dropdownTarget.sessionId] ? (
                   <>
                     <DropdownItem
@@ -2180,7 +2206,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     {TASK_STATUSES.map(([k, l]) => (
                       <DropdownItem
                         key={k}
-                        icon={ck(bySession[dropdownTarget.sessionId]?.status === k, <TaskIcon status={k} />)}
+                        icon={ck(
+                          bySession[dropdownTarget.sessionId]?.status === k,
+                          <TaskIcon status={k} />,
+                        )}
                         onClick={() => {
                           setTaskStatus(dropdownTarget.sessionId, k);
                           closeDropdown();
@@ -2255,7 +2284,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
       </div>
 
       {/* ── Project Modals ── */}
-      <OpenProjectModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
+      <OpenProjectModal
+        isOpen={addModalOpen}
+        onClose={() => {
+          setAddModalOpen(false);
+          setAddToGroupId(null);
+        }}
+        onProjectAdded={(projectId) => {
+          if (addToGroupId) setPendingGroupAssign({ projectId, groupId: addToGroupId });
+        }}
+      />
 
       {/* ── Confirm Delete Project Modal ── */}
       <ConfirmDeleteProjectModal

@@ -34,6 +34,21 @@ export class ListFilesHandler {
       const api = (window as any).api;
       if (!api?.invoke) throw new Error('IPC not available');
 
+      let resolvedPath = pathValue;
+      if (!/^([A-Za-z]:[\\/]|\/|file:\/\/)/.test(pathValue)) {
+        let projectPath: string | undefined = (message as any).basePath;
+        if (!projectPath) {
+          const { useCodeStore } = await import('../../hooks/useCodeStore');
+          const state = useCodeStore.getState();
+          projectPath = state.projects.find((p) => p.id === state.currentProjectId)?.path;
+        }
+        if (projectPath) {
+          const base = projectPath.replace(/\/$/, '');
+          const rel = pathValue.replace(/^\.\/?/, '').replace(/\/$/, '');
+          resolvedPath = rel ? base + '/' + rel : base;
+        }
+      }
+
       const buildTree = async (
         dirPath: string,
         currentDepth: number,
@@ -69,7 +84,7 @@ export class ListFilesHandler {
         return results;
       };
 
-      const tree = await buildTree(pathValue, 1);
+      const tree = await buildTree(resolvedPath, 1);
 
       return {
         command: 'listFilesResult',

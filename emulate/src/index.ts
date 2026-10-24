@@ -214,7 +214,6 @@ async function bootstrap() {
 
     // Graceful shutdown
     const shutdown = () => {
-      logger.info('Shutting down...');
       wssHub.shutdown();
       closeDb();
       process.exit(0);

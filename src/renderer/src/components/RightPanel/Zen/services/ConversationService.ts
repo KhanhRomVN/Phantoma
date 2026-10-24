@@ -99,6 +99,8 @@ export interface ConversationData {
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';
   };
+  /** Workflow agent ID nếu conversation này là một workflow agent */
+  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
   createdAt: number;
   lastModified: number;
 }

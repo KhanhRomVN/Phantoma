@@ -7,10 +7,14 @@ import { DropdownContentProps } from './type';
  * If you need to limit height and enable scrolling, pass appropriate
  * classes via the `className` prop (e.g., 'max-h-[200px] overflow-y-auto').
  */
-export function DropdownContent({ children, className }: DropdownContentProps) {
+export function DropdownContent({ children, className, hideScrollbar }: DropdownContentProps) {
   return (
     <div
-      className={cn('flex flex-col px-1.5 py-1.5', className)}
+      className={cn(
+        'flex flex-col px-1.5 py-1.5',
+        hideScrollbar && '[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden',
+        className,
+      )}
       onClick={(e) => e.stopPropagation()}
     >
       {children}

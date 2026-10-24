@@ -47,6 +47,8 @@ import { WorkspaceViews, EmptyState } from './Workspace';
 import { ContentHeaderBar } from './Headerbar';
 import { GitView } from './Git';
 import { DesignView } from './Design';
+import { AgentWorkflow } from './AgentWorkflow';
+import { SettingsView } from './Setting';
 
 // ── Services ─
 import { fileWatcherService } from '../../services/file-watcher.service';
@@ -449,6 +451,8 @@ const ContentPanelInner = memo(function ContentPanelInner() {
     contentViewMode === 'tasks' ||
     contentViewMode === 'git' ||
     contentViewMode === 'design' ||
+    contentViewMode === 'agents' ||
+    contentViewMode === 'settings' ||
     isWorkspaceMode
   ) {
     return (
@@ -457,6 +461,8 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         {contentViewMode === 'tasks' && <TaskManager />}
         {contentViewMode === 'git' && <GitView />}
         {contentViewMode === 'design' && <DesignView />}
+        {contentViewMode === 'agents' && <AgentWorkflow />}
+        {contentViewMode === 'settings' && <SettingsView />}
       </>
     );
   }

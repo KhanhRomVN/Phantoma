@@ -25,7 +25,6 @@ import { Message } from '../../types/message';
 import FilesPreviews from '../../../../components/MessageInput/FilesPreviews';
 import RevertConfirmModal from './RevertConfirmModal';
 
-
 // ─── Helper ────────────────────────────────────────────────────────────
 const parseQuestionAnswerFromContent = (
   content: string,
@@ -92,12 +91,9 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
   const [checkingRevertIcon, setCheckingRevertIcon] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-
   const userMsgRegex =
     /## User Message\n<(?:user-message|zen-user-content)>\n([\s\S]*?)\n<\/(?:user-message|zen-user-content)>/;
   const match = message.content.match(userMsgRegex);
-  console.log(`[DEBUG] UserMessageBox matched: ${!!match}, hasMarker: ${message.content.includes('## User Message')}, head: ${JSON.stringify(message.content.slice(0, 120))}`);
-
   if (!match && !message.content.includes('## User Message')) {
     return null;
   }
@@ -176,10 +172,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
 
     const handler = (event: MessageEvent) => {
       const data = event.data;
-      if (
-        data?.command === 'revertPreviewResult' &&
-        data?.messageId === message.id
-      ) {
+      if (data?.command === 'revertPreviewResult' && data?.messageId === message.id) {
         window.removeEventListener('message', handler);
         clearTimeout(timeoutId);
         setCheckingRevert(false);
@@ -222,11 +215,20 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
   const handleConfirmSendEdit = () => {
     if (!pendingSendEdit) return;
     if (onSendMessage) {
-      onSendMessage(pendingSendEdit.content, undefined, undefined, undefined, false, undefined, true, {
-        user_action: 'edit',
-        edit_message_id: message.providerFid,
-        parent_message_id: message.providerParentId,
-      });
+      onSendMessage(
+        pendingSendEdit.content,
+        undefined,
+        undefined,
+        undefined,
+        false,
+        undefined,
+        true,
+        {
+          user_action: 'edit',
+          edit_message_id: message.providerFid,
+          parent_message_id: message.providerParentId,
+        },
+      );
     }
     setPendingSendEdit(null);
     setIsEditing(false);
@@ -244,10 +246,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
 
     const handler = (event: MessageEvent) => {
       const data = event.data;
-      if (
-        data?.command === 'revertPreviewResult' &&
-        data?.messageId === message.id
-      ) {
+      if (data?.command === 'revertPreviewResult' && data?.messageId === message.id) {
         window.removeEventListener('message', handler);
         clearTimeout(timeoutId);
         setCheckingRevertIcon(false);
@@ -415,9 +414,34 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
             )}
           >
             {isCopied ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
             )}
           </button>
 
@@ -427,7 +451,20 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
             title="Edit message"
             className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200 text-text-secondary"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
           </button>
 
           {/* Revert button */}
@@ -438,13 +475,39 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
               title="Revert conversation to this point"
               className={cn(
                 'bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded transition-opacity duration-200 text-text-secondary',
-                checkingRevertIcon ? 'opacity-40 cursor-not-allowed' : 'opacity-70 hover:opacity-100',
+                checkingRevertIcon
+                  ? 'opacity-40 cursor-not-allowed'
+                  : 'opacity-70 hover:opacity-100',
               )}
             >
               {checkingRevertIcon ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  className="animate-spin"
+                >
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" /></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 14 4 9l5-5" />
+                  <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
+                </svg>
               )}
             </button>
           )}

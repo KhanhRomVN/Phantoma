@@ -53,6 +53,8 @@ interface AccountCardProps {
   onEdit?: () => void;
   providerConfig?: any;
   statsPeriod?: 'day' | 'week' | 'month' | 'year' | 'all';
+  externalRefreshing?: boolean;
+  externalRefreshResult?: { success: boolean; error?: string } | null;
 }
 
 // Custom icon: lucide-square-dashed-mouse-pointer
@@ -92,6 +94,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
   onEdit,
   providerConfig,
   statsPeriod = 'day',
+  externalRefreshing = false,
+  externalRefreshResult = null,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -183,6 +187,26 @@ const AccountCard: React.FC<AccountCardProps> = ({
     };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
   };
+
+  const prevExternalRefreshing = useRef(false);
+  useEffect(() => {
+    if (externalRefreshing) setIsRefreshing(true);
+    else if (prevExternalRefreshing.current) setIsRefreshing(false);
+    prevExternalRefreshing.current = externalRefreshing;
+  }, [externalRefreshing]);
+
+  useEffect(() => {
+    if (!externalRefreshResult) return;
+    if (refreshStatusTimerRef.current) clearTimeout(refreshStatusTimerRef.current);
+    setRefreshStatus(externalRefreshResult.success ? 'success' : 'error');
+    setRefreshError(
+      externalRefreshResult.success ? null : externalRefreshResult.error || 'Refresh failed',
+    );
+    refreshStatusTimerRef.current = setTimeout(() => {
+      setRefreshStatus('idle');
+      setRefreshError(null);
+    }, 3000);
+  }, [externalRefreshResult]);
 
   const handleRefreshToken = async (e?: React.MouseEvent) => {
     e?.stopPropagation();

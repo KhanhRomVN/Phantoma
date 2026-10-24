@@ -26,7 +26,7 @@
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-export type PanelType = 'terminal' | 'website' | 'workflow' | 'emulator' | 'file' | 'agent';
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent';
 
 export interface WorkspacePanel {
   id: string;
@@ -244,7 +244,7 @@ export function createInitialState(
       focusedPane: layout.focusedPane ?? 'tl',
       sizes: { ...DEFAULT_SIZES, ...layout.sizes },
     });
-    return hasWorkflowPanel(panels) ? flattenToSinglePane(restored) : restored;
+    return restored;
   }
   const active = activeId && ids.includes(activeId) ? activeId : (ids[0] ?? null);
   return {
@@ -275,20 +275,6 @@ function detachPanel(state: WorkspaceState, id: string) {
   return { paneTabs, paneActive };
 }
 
-/** Any AgentWorkflow panel locks the workspace to a single (1x1) pane. */
-export const hasWorkflowPanel = (panels: WorkspacePanel[]) => panels.some((p) => p.type === 'workflow');
-
-/** Merge every pane's tabs into `tl` (1x1 layout). */
-function flattenToSinglePane(state: WorkspaceState): WorkspaceState {
-  const all = PANE_IDS.flatMap((pane) => state.paneTabs[pane]);
-  const active = state.paneActive[state.focusedPane] ?? all[0] ?? null;
-  return {
-    ...state,
-    paneTabs: { ...emptyTabs(), tl: all },
-    paneActive: { ...noActive(), tl: active },
-    focusedPane: 'tl',
-  };
-}
 
 /** Keep the layout tidy: a lone pane always lives in `tl`; focus never points at an empty pane. */
 function normalize(state: WorkspaceState): WorkspaceState {
@@ -315,9 +301,8 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       return createInitialState(action.panels, action.activeId, action.layout);
 
     case 'add': {
-      const locked = action.panel.type === 'workflow' || hasWorkflowPanel(state.panels);
-      const base = locked ? flattenToSinglePane(state) : state;
-      const pane: PaneId = locked ? 'tl' : (action.pane ?? state.focusedPane);
+      const base = state;
+      const pane: PaneId = action.pane ?? state.focusedPane;
       const { id } = action.panel;
       return normalize({
         ...base,
@@ -358,7 +343,6 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     }
 
     case 'move': {
-      if (hasWorkflowPanel(state.panels)) return state;
       const from = findPaneOfPanel(state.paneTabs, action.id);
       if (!from || from === action.to) return state;
 

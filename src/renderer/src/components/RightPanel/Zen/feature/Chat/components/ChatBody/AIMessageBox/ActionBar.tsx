@@ -20,7 +20,7 @@ import { Check, X } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '../../../constants/constants';
+import { TOOL_ACTION_TYPES } from '../../../constants/tag-registry';
 
 // ── Types ──
 import { ToolAction } from '../../../services/ResponseParser';

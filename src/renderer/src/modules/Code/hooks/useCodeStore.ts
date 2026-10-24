@@ -38,7 +38,7 @@ import type { MCP, MCPInput } from '../types/mcp';
 import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
-export type PanelType = 'terminal' | 'website' | 'workflow' | 'emulator' | 'file' | 'agent';
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent';
 
 export interface StoredWorkspacePanel {
   sessionId?: string;
@@ -179,7 +179,14 @@ function createDefaultPerProject() {
 
 // ─── Store Interface ────────────────────────────────────────────────────
 
-export type ContentViewMode = 'files' | 'tasks' | 'workspace' | 'git' | 'design';
+export type ContentViewMode =
+  | 'files'
+  | 'tasks'
+  | 'workspace'
+  | 'git'
+  | 'design'
+  | 'agents'
+  | 'settings';
 
 interface CodeState {
   projects: Project[];
@@ -197,7 +204,7 @@ interface CodeState {
   openFileRequest: { sessionId: string; filePath: string; name: string; nonce: number } | null;
 
   // Actions
-  addProject: (project: ProjectInput) => void;
+  addProject: (project: ProjectInput) => string;
   removeProject: (id: string) => void;
   updateProject: (id: string, data: Partial<Project>) => void;
   setCurrentProject: (id: string) => void;
@@ -511,6 +518,7 @@ export const useCodeStore = create<CodeState>()(
             projects: [...state.projects, newProject],
             currentProjectId: newProject.id,
           }));
+          return newProject.id;
         },
 
         removeProject: (id) => {

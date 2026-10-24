@@ -176,6 +176,7 @@ export class ConversationStorage {
 
     const existing = await this.readRaw(filePath);
     const existingMeta = existing && !Array.isArray(existing) ? existing.metadata || {} : {};
+    const overrides = data.conversationOverrides ?? existingMeta.conversationOverrides;
     const userMessages = data.messages.filter((m) => m.role === 'user');
     const totalTokenUsage = data.messages.reduce((sum, m) => sum + (m.tokenUsage || 0), 0);
 
@@ -195,10 +196,10 @@ export class ConversationStorage {
         totalRequests: userMessages.length,
         totalTokenUsage,
         folderPath: folderPath ?? existingMeta.folderPath,
-        diagnosticEnabled: data.conversationOverrides?.diagnosticEnabled,
-        useSkillEnabled: data.conversationOverrides?.useSkillEnabled,
-        toolFormat: data.conversationOverrides?.toolFormat,
-        conversationOverrides: data.conversationOverrides,
+        diagnosticEnabled: overrides?.diagnosticEnabled,
+        useSkillEnabled: overrides?.useSkillEnabled,
+        toolFormat: overrides?.toolFormat,
+        conversationOverrides: overrides,
       },
     };
     if (data.toolOutputs && Object.keys(data.toolOutputs).length > 0) {
@@ -226,7 +227,6 @@ export class ConversationStorage {
       (await this.readRaw(this.getConversationPath(moduleId, conversationId, folderPath))) ||
       (await this.readRaw(this.getLegacyConversationPath(moduleId, conversationId, folderPath)));
     if (!raw) {
-      logger.debug(`[ConversationStorage] Conversation not found: ${conversationId}`);
       return null;
     }
     return this.fromDisk(conversationId, raw);
@@ -285,7 +285,10 @@ export class ConversationStorage {
         }
       }
     } catch (error) {
-      logger.warn(`[ConversationStorage] Failed to delete all conversations for ${moduleId}:`, error);
+      logger.warn(
+        `[ConversationStorage] Failed to delete all conversations for ${moduleId}:`,
+        error,
+      );
     }
   }
 

@@ -23,7 +23,7 @@ import {
   TOOL_ACTION_TYPES,
   TERMINAL_STATUS,
   type TerminalStatus,
-} from '../../../constants/constants';
+} from '../../../constants/tag-registry';
 
 // ── Types ──
 import { Message } from '../../../types/message';

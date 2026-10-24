@@ -44,10 +44,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ imagesUri }) => {
       return;
     }
     const imgUrl = `${imagesUri}/zen-logo.png`;
-    console.log(`[DEBUG] HomeHeader: Attempting to load image from: ${imgUrl}`);
-    
     const img = new Image();
-    img.onload = () => console.log(`[DEBUG] HomeHeader: Successfully loaded image: ${imgUrl}`);
     img.onerror = (e) => console.error(`[DEBUG] HomeHeader: Failed to load image: ${imgUrl}`, e);
     img.src = imgUrl;
 
@@ -137,7 +134,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ imagesUri }) => {
           {SLOGANS[sloganIndex]}
         </div>
       </div>
-
     </div>
   );
 };

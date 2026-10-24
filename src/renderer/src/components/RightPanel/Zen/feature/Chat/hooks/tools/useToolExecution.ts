@@ -13,7 +13,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
+// ─── Imports ────────────────────────────────────────────────────────────────
 // ── Types ──
 import { Message } from '../../types/message';
 import { parseAIResponse } from '../../services/ResponseParser';
@@ -24,9 +24,10 @@ import type { ExecutorContext } from '../../types/executor-types';
 
 import { useAgentFeature } from '../../../../context/FeatureContext';
 
+// ── Services ──
+import { getModuleIdFromContext } from '../../services/ConversationService';
 // ── Utils ──
-export { getPermissionDecision } from '../../utils/permissionUtils';
-import { getPermissionDecision } from '../../utils/permissionUtils';
+
 import { detectDangerousCommand } from '../../utils/dangerousCommandDetector';
 
 // ── Constants ──
@@ -35,14 +36,14 @@ import {
   TOOL_ACTION_TYPES,
   EXECUTION_STATUS,
   TERMINAL_STATUS,
-} from '../../constants/constants';
+} from '../../constants/tag-registry';
 
 // ── Services ──
 import {
   extensionService,
   messageDispatcher,
 } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
-import { getExecutor } from '../../services/tool-executors';
+import { getExecutor } from '../../services/ModuleRegistry';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface UseToolExecutionProps {
@@ -60,6 +61,10 @@ interface UseToolExecutionProps {
   /** When true, all pending auto-flush sends are suppressed (set by stop button) */
   isStoppedRef?: React.MutableRefObject<boolean>;
   toolFormat?: 'xml' | 'json';
+  /** Session ID for computing moduleId (required for conversation_title) */
+  sessionId?: number;
+  /** Folder path for computing moduleId (required for conversation_title) */
+  folderPath?: string | null;
 }
 
 export const useToolExecution = ({
@@ -68,6 +73,8 @@ export const useToolExecution = ({
   messagesRef,
   isStoppedRef,
   toolFormat = 'xml',
+  sessionId,
+  folderPath,
 }: UseToolExecutionProps) => {
   const { emulateState, activeFeature } = useAgentFeature();
 
@@ -84,7 +91,6 @@ export const useToolExecution = ({
         output: string;
         isError: boolean;
         terminalId?: string;
-
       }
     >
   >({});
@@ -226,26 +232,32 @@ export const useToolExecution = ({
 
   // Build executor context for tool execution
   const buildExecutorContext = useCallback(
-    (responseNumber?: number): ExecutorContext => ({
-      setToolOutputs,
-      conversationIdRef,
-      getToolTimeout,
-      extensionService,
-      messageDispatcher,
-      pendingToolResolvers: pendingToolResolvers.current,
-      commandStartTimes: commandStartTimes.current,
-      earlyCommandResults: earlyCommandResults.current,
-      responseNumber,
-      activeTargetId: emulateState.activeTargetId,
-    }),
-    [setToolOutputs, conversationIdRef, emulateState.activeTargetId],
+    (responseNumber?: number): ExecutorContext => {
+      const moduleId =
+        sessionId !== undefined && folderPath !== undefined
+          ? getModuleIdFromContext(sessionId, folderPath)
+          : undefined;
+
+      return {
+        setToolOutputs,
+        conversationIdRef,
+        getToolTimeout,
+        extensionService,
+        messageDispatcher,
+        pendingToolResolvers: pendingToolResolvers.current,
+        commandStartTimes: commandStartTimes.current,
+        earlyCommandResults: earlyCommandResults.current,
+        responseNumber,
+        activeTargetId: emulateState.activeTargetId,
+        moduleId,
+        folderPath: folderPath ?? null,
+      };
+    },
+    [setToolOutputs, conversationIdRef, emulateState.activeTargetId, sessionId, folderPath],
   );
 
   const executeSingleAction = useCallback(
-    async (
-      action: any,
-      bypassIgnore: boolean = false,
-    ): Promise<string | null> => {
+    async (action: any, bypassIgnore: boolean = false): Promise<string | null> => {
       // Display-only tools
       if (action.type === 'git_status' || action.type === 'commit_message') {
         return '__DISPLAY_ONLY__';
@@ -268,7 +280,7 @@ export const useToolExecution = ({
       actionOrActions: any,
       message: Message,
       isAutoTrigger: boolean = false,
-      conversationToolOverrides: Record<string, 'auto'> = {},
+      _conversationToolOverrides: Record<string, 'auto'> = {},
       actionType?: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
     ) => {
       let wasInterruptedByManual = false;
@@ -348,30 +360,30 @@ export const useToolExecution = ({
           }
         }
 
-        const decision = getPermissionDecision(action.type);
-        const isConversationAuto = conversationToolOverrides[action.type] === 'auto';
+        console.log('[useToolExecution] Executing tool:', {
+          actionType: action.type,
+          actionId,
+          userActionType: actionType,
+        });
 
         let result: string | null = null;
         if (actionType === TOOL_ACTION_TYPES.REJECT) {
           result = `Output: [${action.type}] Tool execution rejected by user.`;
+          console.log('[useToolExecution] User rejected:', action.type);
           setRejectedActions((prev) => {
             const next = new Set(prev).add(actionId);
             return next;
           });
           window.postMessage({ command: 'markActionRejected', actionId }, '*');
-        } else if (decision === TOOL_ACTION_TYPES.REJECT) {
-          result = `Output: [${action.type}] Tool execution blocked by permission policy.`;
         } else {
-          result = await executeSingleAction(
-            { ...action, actionId },
-            decision === 'allow' || isConversationAuto,
-          );
+          result = await executeSingleAction({ ...action, actionId }, true);
         }
 
         if (result !== null) {
           const isDisplayOnly = result === '__DISPLAY_ONLY__';
+          const isMetadataOnly = action.type === 'conversation_title';
 
-          if (!isDisplayOnly) {
+          if (!isDisplayOnly && !isMetadataOnly) {
             validResults.push(result);
           }
 
@@ -389,15 +401,30 @@ export const useToolExecution = ({
               result.includes('Tool execution blocked') ||
               result.includes('Tool execution rejected');
 
-            if (
-              action.type !== 'run_command' &&
-              action.type !== 'list_files' &&
-              action.type !== 'view_replace_history'
-            ) {
+            if (action.type !== 'run_command') {
+              const storedOutput: any = (() => {
+                if (action.type === 'view_replace_history' && !isError) {
+                  const versions = Array.from(
+                    cleanOutput.matchAll(/\*\*Version (\d+)\*\*\n- Errors: (\d+), Warnings: (\d+)/g),
+                  ).map((m) => ({
+                    version: Number(m[1]),
+                    errorCount: Number(m[2]),
+                    warningCount: Number(m[3]),
+                  }));
+                  return versions.length > 0 ? JSON.stringify(versions) : 'No history';
+                }
+                if (action.type !== 'list_files' || isError) return cleanOutput;
+                try {
+                  const parsedTree = JSON.parse(cleanOutput);
+                  return Array.isArray(parsedTree) ? parsedTree : cleanOutput;
+                } catch {
+                  return cleanOutput;
+                }
+              })();
               setToolOutputs((prev) => ({
                 ...prev,
                 [actionId]: {
-                  output: cleanOutput,
+                  output: storedOutput,
                   isError,
                   terminalId: (action as any).params?.terminal_id,
                 },

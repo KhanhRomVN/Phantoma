@@ -129,10 +129,15 @@ export const useConversationRestore = ({
           const stored = await NewConversationService.get(moduleId, convId, currentChat.folderPath);
           applyConversationRef.current?.({
             command: 'getConversation',
-            data: stored ? { ...stored, conversationId: stored.conversationId || convId } : { messages: [] },
+            data: stored
+              ? { ...stored, conversationId: stored.conversationId || convId }
+              : { messages: [] },
           });
         } catch (error: any) {
-          applyConversationRef.current?.({ command: 'getConversation', error: error?.message || String(error) });
+          applyConversationRef.current?.({
+            command: 'getConversation',
+            error: error?.message || String(error),
+          });
         }
       } else {
         // New chat session - reset everything immediately
@@ -170,6 +175,13 @@ export const useConversationRestore = ({
 
           if (data.data.conversationOverrides && onRestoreOverrides) {
             onRestoreOverrides(data.data.conversationOverrides);
+          } else if (onRestoreOverrides) {
+            // ASSUMED: conversation cũ không lưu overrides → suy ra toolFormat từ nội dung assistant
+            const looksJson = restoredMessages.some(
+              (m: Message) =>
+                m.role === 'assistant' && /```json\s*\{\s*"(tool|type)"\s*:/.test(m.content || ''),
+            );
+            if (looksJson) onRestoreOverrides({ toolFormat: 'json' });
           }
 
           if (data.data.toolOutputs && Object.keys(data.data.toolOutputs).length > 0) {
@@ -261,7 +273,10 @@ export const useConversationRestore = ({
       }
     };
     applyConversationRef.current = handleMessageResponse;
-    const unsubMessageResponse = extensionService.onMessage('messageResponse', handleMessageResponse);
+    const unsubMessageResponse = extensionService.onMessage(
+      'messageResponse',
+      handleMessageResponse,
+    );
 
     // Listen for commitError
     const unsubCommitError = extensionService.onMessage('commitError', (data: any) => {
@@ -394,9 +409,13 @@ export const useConversationRestore = ({
         conversationId: currentConversationIdRef.current,
         messageId,
         timestamp,
+        moduleId: currentChat
+          ? getModuleIdFromContext(currentChat.sessionId, currentChat.folderPath)
+          : undefined,
+        folderPath: currentChat?.folderPath,
       });
     },
-    [messagesRef],
+    [messagesRef, currentChat],
   );
 
   return {

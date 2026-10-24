@@ -75,11 +75,14 @@ export class ReadFileHandler {
       // Resolve relative path → absolute path nếu cần
       let resolvedPath = pathValue;
       if (!isAbsolute(pathValue)) {
-        const { useCodeStore } = await import('../../hooks/useCodeStore');
-        const state = useCodeStore.getState();
-        const project = state.projects.find((p) => p.id === state.currentProjectId);
-        if (project?.path) {
-          resolvedPath = joinPath(project.path, pathValue);
+        let baseDir: string | undefined = (message as any).basePath;
+        if (!baseDir) {
+          const { useCodeStore } = await import('../../hooks/useCodeStore');
+          const state = useCodeStore.getState();
+          baseDir = state.projects.find((p) => p.id === state.currentProjectId)?.path;
+        }
+        if (baseDir) {
+          resolvedPath = joinPath(baseDir, pathValue);
         }
       }
 

@@ -220,7 +220,7 @@ function getShellArgs(shell: string): string[] {
     case 'zsh':
       return ['-i']; // Interactive, non-login. Sources .zshrc.
     case 'fish':
-      return [];     // Fish is interactive by default when attached to a TTY.
+      return []; // Fish is interactive by default when attached to a TTY.
     case 'powershell.exe':
     case 'pwsh':
     case 'pwsh.exe':
@@ -270,7 +270,8 @@ async function killPtyTree(terminalId: string): Promise<void> {
 export function setupTerminalHandlers(): void {
   ipcMain.on('terminal:history-save', (_event, payload: { panelId: string; data: string }) => {
     if (!payload?.panelId || typeof payload.data !== 'string') return;
-    if (payload.data.length > HISTORY_MAX_CHARS || deletedHistoryPanels.has(payload.panelId)) return;
+    if (payload.data.length > HISTORY_MAX_CHARS || deletedHistoryPanels.has(payload.panelId))
+      return;
     try {
       const file = historyFile(payload.panelId);
       fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -302,86 +303,93 @@ export function setupTerminalHandlers(): void {
 
   // Spawn a new PTY and pipe I/O
   // Now accepts terminalId parameter for multiple terminals
-  ipcMain.handle('terminal:spawn', (event, payload: { terminalId: string; cwd?: string; panelId?: string; sessionId?: string }) => {
-    const terminalId = payload.terminalId;
-    const shell = getDefaultShell();
-    const shellArgs = getShellArgs(shell);
+  ipcMain.handle(
+    'terminal:spawn',
+    (
+      event,
+      payload: { terminalId: string; cwd?: string; panelId?: string; sessionId?: string },
+    ) => {
+      const terminalId = payload.terminalId;
+      const shell = getDefaultShell();
+      const shellArgs = getShellArgs(shell);
 
-    // Kill existing PTY for this terminalId if any
-    const staleIds = [...activePTYs.keys()].filter(
-      (id) =>
-        id === terminalId ||
-        (!!payload.panelId && terminalMeta.get(id)?.panelId === payload.panelId),
-    );
-    staleIds.forEach((id) => void killPtyTree(id));
+      // Kill existing PTY for this terminalId if any
+      const staleIds = [...activePTYs.keys()].filter(
+        (id) =>
+          id === terminalId ||
+          (!!payload.panelId && terminalMeta.get(id)?.panelId === payload.panelId),
+      );
+      staleIds.forEach((id) => void killPtyTree(id));
 
-    // Validate CWD to prevent chdir(2) failed errors if project folder is missing
-    let safeCwd = payload.cwd || os.homedir();
-    
-    try {
-      if (!fs.existsSync(safeCwd)) {
-        logger.warn(`[Terminal] CWD "${safeCwd}" does not exist. Falling back to home directory.`);
+      // Validate CWD to prevent chdir(2) failed errors if project folder is missing
+      let safeCwd = payload.cwd || os.homedir();
+
+      try {
+        if (!fs.existsSync(safeCwd)) {
+          logger.warn(
+            `[Terminal] CWD "${safeCwd}" does not exist. Falling back to home directory.`,
+          );
+          safeCwd = os.homedir();
+        }
+      } catch (err) {
+        logger.error(`[Terminal] Error checking CWD existence:`, err);
         safeCwd = os.homedir();
       }
-    } catch (err) {
-      logger.error(`[Terminal] Error checking CWD existence:`, err);
-      safeCwd = os.homedir();
-    }
 
-    const spawnOptions = {
-      name: 'xterm-256color',
-      cols: 80,
-      rows: 24,
-      cwd: safeCwd,
-      env: {
-        ...process.env,
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor',
-        SHELL: shell,
-      },
-    };
-
-    const ptyProcess = pty.spawn(shell, shellArgs, spawnOptions);
-    activePTYs.set(terminalId, ptyProcess);
-    terminalMeta.set(terminalId, {
-      sender: event.sender,
-      panelId: payload.panelId,
-      sessionId: payload.sessionId,
-      signature: '',
-    });
-    startProcessPolling();
-
-    if (!watchedSenders.has(event.sender)) {
-      watchedSenders.add(event.sender);
-      const killOwned = () => {
-        for (const [id, meta] of terminalMeta) {
-          if (meta.sender === event.sender) void killPtyTree(id);
-        }
+      const spawnOptions = {
+        name: 'xterm-256color',
+        cols: 80,
+        rows: 24,
+        cwd: safeCwd,
+        env: {
+          ...process.env,
+          TERM: 'xterm-256color',
+          COLORTERM: 'truecolor',
+          SHELL: shell,
+        },
       };
-      event.sender.on('did-start-loading', killOwned);
-      event.sender.once('destroyed', killOwned);
-    }
 
-    // Pipe PTY output → renderer
-    ptyProcess.onData((data: string) => {
-      if (!event.sender.isDestroyed()) event.sender.send('terminal:data', { terminalId, data });
-    });
+      const ptyProcess = pty.spawn(shell, shellArgs, spawnOptions);
+      activePTYs.set(terminalId, ptyProcess);
+      terminalMeta.set(terminalId, {
+        sender: event.sender,
+        panelId: payload.panelId,
+        sessionId: payload.sessionId,
+        signature: '',
+      });
+      startProcessPolling();
 
-    // Handle PTY exit
-    ptyProcess.onExit(({ exitCode, signal }) => {
-      console.log('[DEBUG] terminal pty exit', { terminalId, pid: ptyProcess.pid, exitCode, signal, cwd: safeCwd });
-      if (!event.sender.isDestroyed()) {
-        event.sender.send('terminal:exit', { terminalId, exitCode, signal });
+      if (!watchedSenders.has(event.sender)) {
+        watchedSenders.add(event.sender);
+        const killOwned = () => {
+          for (const [id, meta] of terminalMeta) {
+            if (meta.sender === event.sender) void killPtyTree(id);
+          }
+        };
+        event.sender.on('did-start-loading', killOwned);
+        event.sender.once('destroyed', killOwned);
       }
-      const meta = terminalMeta.get(terminalId);
-      if (meta) emitTerminalProcessInfo(terminalId, meta, '', [], false);
-      terminalMeta.delete(terminalId);
-      stopProcessPollingIfIdle();
-      activePTYs.delete(terminalId);
-    });
 
-    return { pid: ptyProcess.pid, shell };
-  });
+      // Pipe PTY output → renderer
+      ptyProcess.onData((data: string) => {
+        if (!event.sender.isDestroyed()) event.sender.send('terminal:data', { terminalId, data });
+      });
+
+      // Handle PTY exit
+      ptyProcess.onExit(({ exitCode, signal }) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('terminal:exit', { terminalId, exitCode, signal });
+        }
+        const meta = terminalMeta.get(terminalId);
+        if (meta) emitTerminalProcessInfo(terminalId, meta, '', [], false);
+        terminalMeta.delete(terminalId);
+        stopProcessPollingIfIdle();
+        activePTYs.delete(terminalId);
+      });
+
+      return { pid: ptyProcess.pid, shell };
+    },
+  );
 
   // Write data from renderer → PTY
   // Now accepts { terminalId, data } payload

@@ -15,9 +15,10 @@
 
 // ─── Imports ───────────────────────────────────────────────────────────
 // ── Constants ──
-import { getAllToolTypes } from '../constants/constants';
+import { getAllToolTypes } from '../constants/tag-registry';
 // ── Types ──
 import { TagType } from '../types/tag-types';
+import { getModuleParser } from './ModuleRegistry';
 import type { ContentBlock } from '../types/renderer-types';
 import type { Question, QuestionType } from '../types/message';
 
@@ -26,84 +27,11 @@ import { findClosingTagPosition } from '../utils/TagClosingFinder';
 import { parseToolAction } from '../utils/ToolParser';
 
 // ── Parsers ──
-import {
-  parseReadFile,
-  parseWriteToFile,
-  parseReplaceInFile,
-  parseListFiles,
-  parseFindFiles,
-  parseGrep,
-  parseDeleteFile,
-  parseRevertFile,
-  parseViewReplaceHistory,
-  parseRunCommand,
-  parseGitStatus,
-  parseGitDiff,
-} from './parsers/CodeParser';
-import {
-  parseListHttps,
-  parseGetHttpsDetail,
-  parseListHosts,
-  parseListSources,
-  parseListResources,
-  parseGetSourceDetail,
-  parseGetResourceContent,
-  parseApplyFilter,
-  parseSendToRepeater,
-  parseListRepeaters,
-  parseDeleteRepeater,
-  parseGetRepeaterDetail,
-  parseUpdateRepeaterContent,
-  parseRunRepeater,
-  parseListReports,
-  parseCreateReport,
-  parseReadReport,
-  parseUpdateReport,
-  parseListReportFiles,
-  parseCreateReportFile,
-  parseReadReportFile,
-  parseUpdateReportFile,
-  parseDeleteReportFile,
-  parseExecuteCommand,
-} from './parsers/EmulateParser';
-import {
-  parseListTabs,
-  parseCreateTab,
-  parseCloseTab,
-  parseSwitchTab,
-  parseNavigate,
-  parseBack,
-  parseForward,
-  parseReload,
-  parseGetPageContent,
-  parseListElements,
-  parseClickElement,
-  parseFillInput,
-  parsePressKey,
-  parseScroll,
-  parseCaptureScreenshot,
-  parseSelectOption,
-  parseWaitFor,
-  parseScrollToElement,
-  parseListFrames,
-  parseHover,
-  parseClearInput,
-  parseUploadFile,
-  parseEvaluateJs,
-} from './parsers/ReconParser';
-import { parseMarkdown, extractThinkingBlocks } from './parsers/OtherParser';
+import { parseMarkdown } from './parsers/MarkdownParser';
+import { parserThinking } from './parsers/ThinkingParser';
 import { parseConversationTitle } from './parsers/ConversationTitleParser';
-import { parseReadMemory } from './parsers/ReadMemoryParser';
-import { parseReadSkill } from './parsers/ReadSkillParser';
-import { parseUpdateMemory } from './parsers/UpdateMemoryParser';
+
 import { parseQuestion } from './parsers/QuestionParser';
-import {
-  parseDesignReadFile,
-  parseDesignCreateFile,
-  parseDesignUpdateFile,
-  parseDesignListFiles,
-  parseDesignGrep,
-} from './parsers/DesignParser';
 
 export const DESIGN_TOOL_NAMES = new Set([
   'read_file',
@@ -136,49 +64,20 @@ const jsonToolToAction = (
   rawJson: string,
 ): ToolAction | null => {
   const inner = paramsToXmlInner(params);
-  // Reuse the same switch as the XML path
+  const moduleParse = getModuleParser(toolName);
+  if (moduleParse) {
+    return { type: toolName as any, params: moduleParse(inner), rawXml: rawJson };
+  }
   switch (toolName) {
-    case 'read_file':
-      return { type: 'read_file', params: parseReadFile(inner), rawXml: rawJson };
-    case 'write_to_file':
-      return { type: 'write_to_file', params: parseWriteToFile(inner), rawXml: rawJson };
-    case 'replace_in_file':
-      return { type: 'replace_in_file', params: parseReplaceInFile(inner), rawXml: rawJson };
-    case 'list_files':
-      return { type: 'list_files', params: parseListFiles(inner), rawXml: rawJson };
-    case 'find_files':
-      return { type: 'find_files', params: parseFindFiles(inner), rawXml: rawJson };
-    case 'grep':
-      return { type: 'grep', params: parseGrep(inner), rawXml: rawJson };
-    case 'delete_file':
-      return { type: 'delete_file', params: parseDeleteFile(inner), rawXml: rawJson };
-    case 'revert_file':
-      return { type: 'revert_file', params: parseRevertFile(inner), rawXml: rawJson };
-    case 'view_replace_history':
-      return {
-        type: 'view_replace_history',
-        params: parseViewReplaceHistory(inner),
-        rawXml: rawJson,
-      };
-    case 'run_command':
-      return { type: 'run_command', params: parseRunCommand(inner), rawXml: rawJson };
-    case 'git_status':
-      return { type: 'git_status', params: parseGitStatus(inner), rawXml: rawJson };
-    case 'git_diff':
-      return { type: 'git_diff', params: parseGitDiff(inner), rawXml: rawJson };
-    case 'commit_message': return { type: 'commit_message', params: {}, rawXml: rawJson };
+    case 'commit_message':
+      return { type: 'commit_message', params: {}, rawXml: rawJson };
     case 'conversation_title':
       return {
         type: 'conversation_title',
         params: parseConversationTitle(String(params.title ?? '')),
         rawXml: rawJson,
       };
-    case 'read_skill':
-      return { type: 'read_skill', params: parseReadSkill(inner), rawXml: rawJson };
-    case 'read_memory':
-      return { type: 'read_memory', params: parseReadMemory(inner), rawXml: rawJson };
-    case 'update_memory':
-      return { type: 'update_memory', params: parseUpdateMemory(inner), rawXml: rawJson };
+
     default:
       return null;
   }
@@ -219,7 +118,7 @@ const DEBUG_PARSER =
  * Text between blocks is treated as markdown.
  */
 const parseAIResponseJson = (content: string, result: ParsedResponse): ParsedResponse => {
-  const { remainingContent: scanStr, thinkingBlocks } = extractThinkingBlocks(content);
+  const { remainingContent: scanStr, thinkingBlocks } = parserThinking(content);
 
   let lastIndex = 0;
 
@@ -287,7 +186,11 @@ const parseAIResponseJson = (content: string, result: ParsedResponse): ParsedRes
 
       const inner = scanStr.slice(gsOpen + GIT_STATUS_OPEN.length, gsClose);
       const rawXml = scanStr.slice(gsOpen, gsClose + GIT_STATUS_CLOSE.length);
-      const gitAction: ToolAction = { type: 'git_status', params: parseGitStatus(inner), rawXml };
+      const gitAction: ToolAction = {
+        type: 'git_status',
+        params: getModuleParser('git_status')!(inner),
+        rawXml,
+      };
       result.contentBlocks.push({
         type: 'tool',
         action: gitAction,
@@ -411,15 +314,6 @@ export const parseAIResponse = (
   toolFormat: 'xml' | 'json' = 'xml',
   feature?: string | null,
 ): ParsedResponse => {
-  console.log('[DEBUG][parseAIResponse] ENTER', {
-    toolFormat,
-    feature,
-    contentLength: content?.length,
-    contentPreview: content?.slice(0, 300),
-    hasJsonFence: /```json/.test(content || ''),
-    hasXmlTag: /<[a-zA-Z_][\w]*>/.test(content || ''),
-  });
-
   // Track parsing sequence for debugging
   const parsingSequence: { index: number; tag: string; subTags?: string[] }[] = [];
   let sequenceCounter = 0;
@@ -437,13 +331,12 @@ export const parseAIResponse = (
   // ─── JSON format path with auto-detect fallback ──────────────────────────
   if (toolFormat === 'json') {
     const hasJsonFence = /```json[\s\S]*?```/.test(content);
-    const hasXmlTags = /<(conversation_title|markdown|followup_question|attempt_completion|use_tool|think)[^>]*>/i.test(content);
+    const hasXmlTags =
+      /<(conversation_title|markdown|followup_question|attempt_completion|use_tool|think)[^>]*>/i.test(
+        content,
+      );
 
     if (!hasJsonFence && hasXmlTags) {
-      console.log('[DEBUG][parseAIResponse] AUTO-FALLBACK: toolFormat=json but content is XML, switching to xml parser', {
-        contentPreview: content.slice(0, 150),
-      });
-      // Fall through to XML parsing below instead of returning early
     } else {
       return parseAIResponseJson(content, result);
     }
@@ -458,7 +351,7 @@ export const parseAIResponse = (
   // Pre-extract <thinking> blocks BEFORE any tool scanning so that tool tags
   // inside a thinking block are never mistaken for real tool calls.
   const { remainingContent: contentAfterThinking, thinkingBlocks } =
-    extractThinkingBlocks(remainingContent);
+    parserThinking(remainingContent);
 
   remainingContent = contentAfterThinking;
 
@@ -470,7 +363,12 @@ export const parseAIResponse = (
     content.trim().length < 2000 && // Small content, likely incomplete
     !content.includes('</thinking>'); // No closing tag yet
 
-  if (DEBUG_PARSER && remainingContent.trim().length === 0 && content.trim().length > 100 && !isLikelyStreaming) {
+  if (
+    DEBUG_PARSER &&
+    remainingContent.trim().length === 0 &&
+    content.trim().length > 100 &&
+    !isLikelyStreaming
+  ) {
     console.warn('[Zen][Parser] ⚠️ All content consumed by thinking extraction!', {
       originalLength: content.length,
       thinkingBlocks: thinkingBlocks.length,
@@ -691,359 +589,26 @@ export const parseAIResponse = (
               ? `design_${toolName}`
               : toolName;
 
-          switch (effectiveTool) {
-            case 'read_file': {
-              const params = parseReadFile(innerContent || '');
-              // Validation moved to post-stream processing in useChatLLM
-              action = { type: 'read_file' as const, params, rawXml };
-              break;
+          const moduleParse = getModuleParser(effectiveTool);
+          if (moduleParse) {
+            action = {
+              type: effectiveTool as any,
+              params: moduleParse(innerContent || ''),
+              rawXml,
+            };
+          } else
+            switch (effectiveTool) {
+              case 'conversation_title': {
+                const params = parseConversationTitle(innerContent || '');
+                action = { type: 'conversation_title' as const, params, rawXml };
+                break;
+              }
+
+              // ── Recon tools ──────────────────────────────────────
+              default:
+                // Fallback to ToolParser for any unhandled tools
+                action = parseToolAction(toolName, innerContent || '', rawXml);
             }
-            case 'write_to_file': {
-              const params = parseWriteToFile(innerContent || '');
-              // Validation moved to post-stream processing in useChatLLM
-              action = { type: 'write_to_file' as const, params, rawXml };
-              break;
-            }
-            case 'replace_in_file': {
-              const params = parseReplaceInFile(innerContent || '');
-              // Validation moved to post-stream processing in useChatLLM
-              action = { type: 'replace_in_file' as const, params, rawXml };
-              break;
-            }
-            case 'list_files': {
-              const params = parseListFiles(innerContent || '');
-              action = { type: 'list_files' as const, params, rawXml };
-              break;
-            }
-            case 'find_files': {
-              const params = parseFindFiles(innerContent || '');
-              action = { type: 'find_files' as const, params, rawXml };
-              break;
-            }
-            case 'grep': {
-              const params = parseGrep(innerContent || '');
-              action = { type: 'grep' as const, params, rawXml };
-              break;
-            }
-            case 'delete_file': {
-              const params = parseDeleteFile(innerContent || '');
-              action = { type: 'delete_file' as const, params, rawXml };
-              break;
-            }
-            case 'revert_file': {
-              const params = parseRevertFile(innerContent || '');
-              action = { type: 'revert_file' as const, params, rawXml };
-              break;
-            }
-            case 'view_replace_history': {
-              const params = parseViewReplaceHistory(innerContent || '');
-              action = {
-                type: 'view_replace_history' as const,
-                params,
-                rawXml,
-              };
-              break;
-            }
-            case 'run_command': {
-              const params = parseRunCommand(innerContent || '');
-              action = { type: 'run_command' as const, params, rawXml };
-              break;
-            }
-            case 'git_status': {
-              const params = parseGitStatus(innerContent || '');
-              action = { type: 'git_status' as const, params, rawXml };
-              break;
-            }
-            case 'git_diff': {
-              const params = parseGitDiff(innerContent || '');
-              action = { type: 'git_diff' as const, params, rawXml };
-              break;
-            }
-            case 'conversation_title': {
-              const params = parseConversationTitle(innerContent || '');
-              action = { type: 'conversation_title' as const, params, rawXml };
-              break;
-            }
-            case 'read_skill': {
-              const params = parseReadSkill(innerContent || '');
-              action = { type: 'read_skill' as const, params, rawXml };
-              break;
-            }
-            case 'read_memory': {
-              const params = parseReadMemory(innerContent || '');
-              action = { type: 'read_memory' as const, params, rawXml };
-              break;
-            }
-            case 'update_memory': {
-              const params = parseUpdateMemory(innerContent || '');
-              action = { type: 'update_memory' as const, params, rawXml };
-              break;
-            }
-            case 'list_https': {
-              const params = parseListHttps(innerContent || '');
-              action = { type: 'list_https' as const, params, rawXml };
-              break;
-            }
-            case 'get_https_detail': {
-              const params = parseGetHttpsDetail(innerContent || '');
-              action = { type: 'get_https_detail' as const, params, rawXml };
-              break;
-            }
-            case 'list_hosts': {
-              const params = parseListHosts(innerContent || '');
-              action = { type: 'list_hosts' as const, params, rawXml };
-              break;
-            }
-            case 'list_sources': {
-              const params = parseListSources(innerContent || '');
-              action = { type: 'list_sources' as const, params, rawXml };
-              break;
-            }
-            case 'list_resources': {
-              const params = parseListResources(innerContent || '');
-              action = { type: 'list_resources' as const, params, rawXml };
-              break;
-            }
-            case 'get_source_detail': {
-              const params = parseGetSourceDetail(innerContent || '');
-              action = { type: 'get_source_detail' as const, params, rawXml };
-              break;
-            }
-            case 'get_resource_content': {
-              const params = parseGetResourceContent(innerContent || '');
-              action = { type: 'get_resource_content' as const, params, rawXml };
-              break;
-            }
-            case 'apply_filter': {
-              const params = parseApplyFilter(innerContent || '');
-              action = { type: 'apply_filter' as const, params, rawXml };
-              break;
-            }
-            case 'send_to_repeater': {
-              const params = parseSendToRepeater(innerContent || '');
-              action = { type: 'send_to_repeater' as const, params, rawXml };
-              break;
-            }
-            case 'list_repeaters': {
-              const params = parseListRepeaters(innerContent || '');
-              action = { type: 'list_repeaters' as const, params, rawXml };
-              break;
-            }
-            case 'delete_repeater': {
-              const params = parseDeleteRepeater(innerContent || '');
-              action = { type: 'delete_repeater' as const, params, rawXml };
-              break;
-            }
-            case 'get_repeater_detail': {
-              const params = parseGetRepeaterDetail(innerContent || '');
-              action = { type: 'get_repeater_detail' as const, params, rawXml };
-              break;
-            }
-            case 'update_repeater_content': {
-              const params = parseUpdateRepeaterContent(innerContent || '');
-              action = { type: 'update_repeater_content' as const, params, rawXml };
-              break;
-            }
-            case 'run_repeater': {
-              const params = parseRunRepeater(innerContent || '');
-              action = { type: 'run_repeater' as const, params, rawXml };
-              break;
-            }
-            case 'list_reports': {
-              const params = parseListReports(innerContent || '');
-              action = { type: 'list_reports' as const, params, rawXml };
-              break;
-            }
-            case 'create_report': {
-              const params = parseCreateReport(innerContent || '');
-              action = { type: 'create_report' as const, params, rawXml };
-              break;
-            }
-            case 'read_report': {
-              const params = parseReadReport(innerContent || '');
-              action = { type: 'read_report' as const, params, rawXml };
-              break;
-            }
-            case 'update_report': {
-              const params = parseUpdateReport(innerContent || '');
-              action = { type: 'update_report' as const, params, rawXml };
-              break;
-            }
-            case 'list_report_files': {
-              const params = parseListReportFiles(innerContent || '');
-              action = { type: 'list_report_files' as const, params, rawXml };
-              break;
-            }
-            case 'create_report_file': {
-              const params = parseCreateReportFile(innerContent || '');
-              action = { type: 'create_report_file' as const, params, rawXml };
-              break;
-            }
-            case 'read_report_file': {
-              const params = parseReadReportFile(innerContent || '');
-              action = { type: 'read_report_file' as const, params, rawXml };
-              break;
-            }
-            case 'update_report_file': {
-              const params = parseUpdateReportFile(innerContent || '');
-              action = { type: 'update_report_file' as const, params, rawXml };
-              break;
-            }
-            case 'delete_report_file': {
-              const params = parseDeleteReportFile(innerContent || '');
-              action = { type: 'delete_report_file' as const, params, rawXml };
-              break;
-            }
-            case 'execute_command': {
-              const params = parseExecuteCommand(innerContent || '');
-              action = { type: 'execute_command' as const, params, rawXml };
-              break;
-            }
-            // ── Recon tools ──────────────────────────────────────
-            case 'list_tabs': {
-              const params = parseListTabs(innerContent || '');
-              action = { type: 'list_tabs' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'create_tab': {
-              const params = parseCreateTab(innerContent || '');
-              action = { type: 'create_tab' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'close_tab': {
-              const params = parseCloseTab(innerContent || '');
-              action = { type: 'close_tab' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'switch_tab': {
-              const params = parseSwitchTab(innerContent || '');
-              action = { type: 'switch_tab' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'navigate': {
-              const params = parseNavigate(innerContent || '');
-              action = { type: 'navigate' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'back': {
-              const params = parseBack(innerContent || '');
-              action = { type: 'back' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'forward': {
-              const params = parseForward(innerContent || '');
-              action = { type: 'forward' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'reload': {
-              const params = parseReload(innerContent || '');
-              action = { type: 'reload' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'get_page_content': {
-              const params = parseGetPageContent(innerContent || '');
-              action = { type: 'get_page_content' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'list_elements': {
-              const params = parseListElements(innerContent || '');
-              action = { type: 'list_elements' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'click_element': {
-              const params = parseClickElement(innerContent || '');
-              action = { type: 'click_element' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'fill_input': {
-              const params = parseFillInput(innerContent || '');
-              action = { type: 'fill_input' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'press_key': {
-              const params = parsePressKey(innerContent || '');
-              action = { type: 'press_key' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'scroll': {
-              const params = parseScroll(innerContent || '');
-              action = { type: 'scroll' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'capture_screenshot': {
-              const params = parseCaptureScreenshot(innerContent || '');
-              action = { type: 'capture_screenshot' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'select_option': {
-              const params = parseSelectOption(innerContent || '');
-              action = { type: 'select_option' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'list_frames': {
-              const params = parseListFrames(innerContent || '');
-              action = { type: 'list_frames' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'hover': {
-              const params = parseHover(innerContent || '');
-              action = { type: 'hover' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'clear_input': {
-              const params = parseClearInput(innerContent || '');
-              action = { type: 'clear_input' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'upload_file': {
-              const params = parseUploadFile(innerContent || '');
-              action = { type: 'upload_file' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'evaluate_js': {
-              const params = parseEvaluateJs(innerContent || '');
-              action = { type: 'evaluate_js' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'scroll_to_element': {
-              const params = parseScrollToElement(innerContent || '');
-              action = { type: 'scroll_to_element' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'wait_for': {
-              const params = parseWaitFor(innerContent || '');
-              action = { type: 'wait_for' as const, params: params || {}, rawXml };
-              break;
-            }
-            case 'design_read_file': {
-              const params = parseDesignReadFile(innerContent || '');
-              action = { type: 'design_read_file' as const, params, rawXml };
-              break;
-            }
-            case 'design_create_file': {
-              const params = parseDesignCreateFile(innerContent || '');
-              action = { type: 'design_create_file' as const, params, rawXml };
-              break;
-            }
-            case 'design_update_file': {
-              const params = parseDesignUpdateFile(innerContent || '');
-              action = { type: 'design_update_file' as const, params, rawXml };
-              break;
-            }
-            case 'design_list_files': {
-              const params = parseDesignListFiles(innerContent || '');
-              action = { type: 'design_list_files' as const, params, rawXml };
-              break;
-            }
-            case 'design_grep': {
-              const params = parseDesignGrep(innerContent || '');
-              action = { type: 'design_grep' as const, params, rawXml };
-              break;
-            }
-            default:
-              // Fallback to ToolParser for any unhandled tools
-              action = parseToolAction(toolName, innerContent || '', rawXml);
-          }
 
           result.contentBlocks.push({ type: 'tool', action, actionIndex });
           result.actions.push(action); // Populate legacy actions array
@@ -1121,7 +686,12 @@ export const parseAIResponse = (
 
   // 🔍 Log if contentBlocks is empty (potential bug) - only in debug mode
   const isPartialTag = /^<[\/]?[a-zA-Z0-9_]*$/.test(content.trim());
-  if (DEBUG_PARSER && result.contentBlocks.length === 0 && content.trim().length > 0 && !isPartialTag) {
+  if (
+    DEBUG_PARSER &&
+    result.contentBlocks.length === 0 &&
+    content.trim().length > 0 &&
+    !isPartialTag
+  ) {
     console.warn('[Zen][Parser] ⚠️ No contentBlocks generated!', {
       contentLength: content.length,
       contentPreview: content.substring(0, 200),
@@ -1149,16 +719,6 @@ export const parseAIResponse = (
       });
     }
   }
-
-  // 📊 Final parse summary
-  console.log('[DEBUG][parseAIResponse] EXIT', {
-    toolFormat,
-    actionsCount: result.actions.length,
-    actionTypes: result.actions.map((a) => a.type),
-    blocksCount: result.contentBlocks.length,
-    blockTypes: result.contentBlocks.map((b: any) => b.type),
-    displayTextPreview: result.displayText?.slice(0, 200),
-  });
 
   if (DEBUG_PARSER) {
     const errorActions = result.actions.filter((a) => a.isError);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ReconController, ReconTarget } from '../../controller/ReconController';
+import { ReconController, ReconTarget } from './controller/ReconController';
 import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
 
 // ── Components

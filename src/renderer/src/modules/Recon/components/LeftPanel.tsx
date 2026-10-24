@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { ReconTarget } from '../../../controller/ReconController';
+import { ReconTarget } from '../controller/ReconController';
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 import { parseReconFile } from './ui/parser';

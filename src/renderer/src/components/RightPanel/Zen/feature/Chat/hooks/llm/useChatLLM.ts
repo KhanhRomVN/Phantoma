@@ -26,10 +26,10 @@ import { useProject } from '../../../../context/ProjectContext';
 
 // ── Hooks ──
 import { useFileUpload } from '../workspace/useFileUpload';
-import {
-  getLastScreenshotFileId,
-  clearLastScreenshotFileId,
-} from '../../services/tool-executors/ReconExecutor';
+import { getModuleService } from '../../services/ModuleRegistry';
+
+const getLastScreenshotFileId = () => getModuleService('recon', 'getLastScreenshotFileId')?.();
+const clearLastScreenshotFileId = () => getModuleService('recon', 'clearLastScreenshotFileId')?.();
 import { useStreamingState } from './useStreamingState';
 import { useConversationRefs } from './useConversationRefs';
 import { useMessageHandlers } from './useMessageHandlers';
@@ -46,26 +46,16 @@ import { StreamingService } from '../../services/StreamingService';
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '../../constants/constants';
-
-// ── Utils ──
-import {
-  isBlockedNow,
-  isDeepSeekProvider,
-  getBlockedRangeLabel,
-  getBlockedHoursDescription,
-} from '@renderer/utils/timeBlock';
+import { TOOL_ACTION_TYPES } from '../../constants/tag-registry';
 
 // ── Controllers ──
-import { EmulateController } from '@renderer/controller/EmulateController';
+const EmulateController = getModuleService('emulate', 'EmulateController');
 
 // ── Prompts ──
-import {
-  buildTrafficContext,
-  buildEmptyTrafficContext,
-  buildFilterContext,
-  buildEmptyFilterContext,
-} from '../../prompts/emulate';
+const buildTrafficContext = getModuleService('emulate', 'buildTrafficContext');
+const buildEmptyTrafficContext = getModuleService('emulate', 'buildEmptyTrafficContext');
+const buildFilterContext = getModuleService('emulate', 'buildFilterContext');
+const buildEmptyFilterContext = getModuleService('emulate', 'buildEmptyFilterContext');
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ConversationOverrides {
@@ -84,6 +74,8 @@ interface UseChatLLMProps {
   providerBlockedRanges?: Array<{ startTime: number; endTime: number }> | null;
   /** Cờ anti_system_prompt_injection từ provider config — thay cho hardcode providerId === "claude" */
   antiSystemPromptInjection?: boolean;
+  /** Workflow agent ID for specialized prompts (orchestrator/planner/executor/reviewer) */
+  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
     actions: ToolAction[],
@@ -147,6 +139,7 @@ export const useChatLLM = ({
   feature,
   conversationOverrides,
   providerBlockedRanges,
+  workflowAgentId,
   onConversationIdChange,
   onToolRequest,
   onTurnComplete,
@@ -307,48 +300,6 @@ export const useChatLLM = ({
         return;
       }
 
-      // ── Time Block Check (DeepSeek) ────────────────────────────────────
-      const timeBlockProviderId = model?.providerId ?? lastUsedModelRef.current?.providerId;
-      if (
-        !skipFirstRequestLogic &&
-        isDeepSeekProvider(timeBlockProviderId) &&
-        isBlockedNow(providerBlockedRanges)
-      ) {
-        const rangeLabel = getBlockedRangeLabel(providerBlockedRanges);
-        const allRanges = getBlockedHoursDescription(providerBlockedRanges);
-        const errorMsg =
-          `DeepSeek bị chặn trong khung giờ ${allRanges}. ` +
-          `Hiện tại đang trong khung ${rangeLabel}. Vui lòng thử lại sau.`;
-
-        const convIdToDelete = currentConversationIdRef.current;
-        if (convIdToDelete) {
-          deleteConversation(convIdToDelete);
-          extensionService.postMessage({
-            command: 'deleteConversation',
-            conversationId: convIdToDelete,
-            requestId: `time-block-${Date.now()}`,
-          });
-          currentConversationIdRef.current = '';
-          backendConversationIdRef.current = '';
-          messagesRef.current = [];
-          setCurrentConversationId('');
-          setMessages([]);
-        }
-
-        const blockErrorMessage: Message = {
-          id: `msg-${Date.now()}-time-block-error`,
-          role: 'assistant',
-          content: errorMsg,
-          timestamp: Date.now(),
-          isError: true,
-        };
-        setMessages([blockErrorMessage]);
-        messagesRef.current = [blockErrorMessage];
-        onTurnCompleteRef.current?.();
-        return;
-      }
-      // ────────────────────────────────────────────────────────────────────
-
       const sessionId = selectedTab?.sessionId || -1;
       const folderPath = selectedTab?.folderPath || null;
 
@@ -453,19 +404,8 @@ export const useChatLLM = ({
       // Since Phantoma's SettingsContext does not yet expose global toggles for Skill/Memory,
       // we default to false if no explicit override is provided in the current conversation.
       const effectiveUseSkill = conversationOverridesRef.current?.useSkillEnabled ?? false;
-
       const effectiveMemory = conversationOverridesRef.current?.memoryEnabled ?? false;
-
       const effectiveToolFormat = conversationOverridesRef.current?.toolFormat ?? 'xml';
-
-      // [DEBUG] Log effective settings for verification
-      console.log('[Phantoma][ChatLLM] Effective Settings:', {
-        useSkill: effectiveUseSkill,
-        memory: effectiveMemory,
-        toolFormat: effectiveToolFormat,
-        promptLengthMode,
-        rawOverrides: conversationOverridesRef.current,
-      });
 
       // Determine model/account before building prompt to resolve providerId correctly
       const oldModel = lastUsedModelRef.current;
@@ -536,6 +476,7 @@ export const useChatLLM = ({
         toolFormat: effectiveToolFormat,
         providerId: promptProviderId,
         promptLengthMode,
+        workflowAgentId,
       });
 
       const userMessage: Message = {

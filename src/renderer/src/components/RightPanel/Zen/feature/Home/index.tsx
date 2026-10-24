@@ -26,6 +26,7 @@ import ModelDistribution from './components/ModelDistribution';
 import UsageChart from './components/UsageChart';
 import HomeHeader from './components/HomeHeader';
 import AgentNavBadge, { type NavTarget } from '../../components/AgentNavBadge';
+
 import HomeBanner from './components/HomeBanner';
 import { ConversationItem } from '../History/types';
 import { useSettings } from '../../context/SettingsContext';
@@ -37,12 +38,7 @@ import { useModelAccount } from '../../hooks/useModelAccount';
 import { useToolFormatSettings } from '../../hooks/useToolFormatSettings';
 import { useZenUpdate } from './hooks/useZenUpdate';
 import ConversationService from '../../services/ConversationService';
-import {
-  isBlockedNow,
-  isDeepSeekProvider,
-  getBlockedRangeLabel,
-  getBlockedHoursDescription,
-} from '@renderer/utils/timeBlock';
+import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { AccountStat } from './utils/format';
 import {
@@ -82,6 +78,7 @@ interface HomePanelProps {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
       toolFormat?: 'xml' | 'json';
+      workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
     },
   ) => void;
   onLoadConversation: (conversationId: string, tabId: number, folderPath: string | null) => void;
@@ -155,6 +152,10 @@ const HomePanel: React.FC<HomePanelProps> = ({
   onLoadConversation,
   onOpenSubView,
 }) => {
+  // Read workflowAgentId from context
+  const workflowSync = useWorkflowAgentSync();
+  const workflowAgentId = workflowSync?.agentId ?? undefined;
+
   const {
     apiUrl,
     useSkillEnabled: globalUseSkillEnabled,
@@ -434,32 +435,13 @@ const HomePanel: React.FC<HomePanelProps> = ({
   const handleSend = useCallback(
     (model: any, account: any) => {
       if (message.trim() || uploadedFiles.length > 0 || attachedItems.length > 0) {
-        // DeepSeek time-block check
-        if (isDeepSeekProvider(model?.providerId)) {
-          const providerConfig = providers.find(
-            (p: any) => p.provider_id?.toLowerCase() === model?.providerId?.toLowerCase(),
-          );
-          const ranges = providerConfig?.blocked_time_ranges ?? null;
-          if (isBlockedNow(ranges)) {
-            const rangeLabel = getBlockedRangeLabel(ranges);
-            const allRanges = getBlockedHoursDescription(ranges);
-            onSendMessage(
-              `⛔ DeepSeek bị chặn trong khung giờ ${allRanges}. Hiện tại đang trong khung ${rangeLabel}. Vui lòng thử lại sau.`,
-              [],
-              model,
-              account,
-              {},
-            );
-            return;
-          }
-        }
-
-        onSendMessage(message, [...uploadedFiles, ...attachedItems], model, account, {
-
+        const overrides = {
           useSkillEnabled: conversationUseSkillEnabled,
           memoryEnabled: conversationMemoryEnabled,
           toolFormat: conversationToolFormat,
-        });
+          workflowAgentId: workflowAgentId as any,
+        };
+        onSendMessage(message, [...uploadedFiles, ...attachedItems], model, account, overrides);
         setMessage('');
         clearDraft();
         clearFiles();
@@ -491,7 +473,6 @@ const HomePanel: React.FC<HomePanelProps> = ({
 
   return (
     <div className="flex flex-col h-full relative">
-
       {/* Dashboard scroll area */}
       <div className="flex-1 overflow-auto flex flex-col">
         <div
@@ -507,6 +488,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
           <HomeHeader imagesUri={imagesUri} />
 
           <AgentNavBadge className="w-full mb-2" onSelect={onOpenSubView} />
+
 
           <div className="w-full mb-4 flex flex-col gap-3 empty:hidden">
             <HomeBanner

@@ -337,15 +337,6 @@ function parseSimpleYaml(str: string): Record<string, any> {
 // --- UI Specific Parsers ---
 
 function inferAndParseUi(ui: UiType, body: string, _options: Record<string, any>): SectionData {
-  // [DEBUG] xem ui thực tế parser nhận được
-  console.log(
-    '[DEBUG] inferAndParseUi ui=',
-    JSON.stringify(ui),
-    'known=',
-    KNOWN_UI_TYPES.includes(ui),
-    'bodyLen=',
-    body.length,
-  );
   if (!body.trim()) {
     return {
       type: ui,

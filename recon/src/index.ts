@@ -40,7 +40,6 @@ async function main() {
 
   // Graceful shutdown
   const shutdown = async () => {
-    console.log('\n[Recon Server] Shutting down...');
     await browserManager.closeAll();
     process.exit(0);
   };
@@ -53,4 +52,3 @@ main().catch((err) => {
   console.error('[Recon Server] Startup failed:', err);
   process.exit(1);
 });
-

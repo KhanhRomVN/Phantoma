@@ -38,7 +38,7 @@ import { ipcMain, safeStorage, app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// ── Internal 
+// ── Internal
 import { logger } from '../utils/logger';
 
 // ─── Interfaces & Types ─────────────────────────────────────────────────
@@ -163,14 +163,13 @@ export function setupAppHandlers() {
 
       if (!safeStorage.isEncryptionAvailable()) {
         logger.warn('[SecureStorage] Encryption not available. Storing in plaintext (INSECURE).');
-        // Fallback or throw error depending on security policy. 
+        // Fallback or throw error depending on security policy.
         // For now, we refuse to store insecurely to prevent accidental leaks.
         throw new Error('System encryption unavailable. Cannot securely store password.');
       }
 
       const encryptedBuffer = safeStorage.encryptString(password);
       fs.writeFileSync(SECURE_STORAGE_FILE, encryptedBuffer);
-      logger.info('[SecureStorage] Sudo password saved successfully.');
       return true;
     } catch (err: any) {
       logger.error('[SecureStorage] Failed to save password:', err.message);

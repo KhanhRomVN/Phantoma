@@ -15,8 +15,9 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSettings } from '../../context/SettingsContext';
-
+import { useAgentFeature } from '../../context/FeatureContext';
+import { useProject } from '../../context/ProjectContext';
+import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 // Core chat hooks
 import { useChatLLM } from './hooks/llm/useChatLLM';
 import { useToolExecution } from './hooks/tools/useToolExecution';
@@ -27,6 +28,7 @@ import { useFileHandling } from '../../hooks/useFileHandling';
 import { useBrowserSession } from './hooks/llm/useBrowserSession';
 import { useDraftManagement } from './hooks/conversation/useDraftManagement';
 import { useModelAccount } from '../../hooks/useModelAccount';
+import { useSettings } from '../../context/SettingsContext';
 
 // New modular hooks
 import { useApiConfiguration } from './hooks/api/useApiConfiguration';
@@ -79,6 +81,7 @@ interface ChatPanelProps {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
       toolFormat?: 'xml' | 'json';
+      workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
     };
   } | null;
   onClearInitialData?: () => void;
@@ -87,6 +90,8 @@ interface ChatPanelProps {
   onTitleChange?: (title: string) => void;
   /** Có giá trị khi topBar bị ẩn (ngoài CodeAgent) → ChatHeader hiện hàng icon điều hướng. */
   onOpenSubView?: (target: NavTarget) => void;
+  /** Workflow agent ID for specialized prompts (orchestrator/planner/executor/reviewer) */
+  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -99,7 +104,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onConversationChange,
   onTitleChange,
   onOpenSubView,
+  workflowAgentId: workflowAgentIdProp,
 }: ChatPanelProps) => {
+  // Read workflowAgentId from context (priority: prop > context > initialMessageData.conversationOverrides)
+  const workflowSync = useWorkflowAgentSync();
+  const workflowAgentIdFromOverrides = initialMessageData?.conversationOverrides?.workflowAgentId;
+  const workflowAgentId =
+    workflowAgentIdProp ?? workflowSync?.agentId ?? workflowAgentIdFromOverrides ?? undefined;
   // Track render count for performance monitoring
   const renderCountRef = useRef(0);
   const prevPropsRef = useRef<any>({});
@@ -262,30 +273,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     conversationToolOverrides,
     handleSelectOption,
     isProcessingRef,
-  } = useChatLLM({
-    apiUrl,
-    selectedTab: currentChat,
-    feature,
-    conversationOverrides: restoredConversationOverrides,
-    onToolRequest: (actions, assistantMessage, isAutoTrigger, actionType) =>
-      handleToolRequest(
-        actions,
-        assistantMessage,
-        isAutoTrigger,
-        conversationToolOverrides,
-        actionType,
-      ),
-    onMalformedTool: (actionId, _toolName, errorMessage, errorCode) => {
-      setToolOutputs((prev: any) => ({
-        ...prev,
-        [actionId]: {
-          output: `${errorCode}: ${errorMessage}`,
-          isError: true,
-          originalError: `${errorCode}: ${errorMessage}`,
-        },
-      }));
-    },
-  });
+  } = (() => {
+    return useChatLLM({
+      apiUrl,
+      selectedTab: currentChat,
+      feature,
+      conversationOverrides: restoredConversationOverrides,
+      workflowAgentId,
+      onToolRequest: (actions, assistantMessage, isAutoTrigger, actionType) =>
+        handleToolRequest(
+          actions,
+          assistantMessage,
+          isAutoTrigger,
+          conversationToolOverrides,
+          actionType,
+        ),
+      onMalformedTool: (actionId, _toolName, errorMessage, errorCode) => {
+        setToolOutputs((prev: any) => ({
+          ...prev,
+          [actionId]: {
+            output: `${errorCode}: ${errorMessage}`,
+            isError: true,
+            originalError: `${errorCode}: ${errorMessage}`,
+          },
+        }));
+      },
+    });
+  })();
 
   // DEBUG: Track messages and streaming state changes
   const prevChatStateRef = useRef<any>({});
@@ -434,6 +448,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     messagesRef: messagesRef,
     isStoppedRef: isStoppedRef,
     toolFormat: restoredConversationOverrides?.toolFormat ?? 'xml',
+    sessionId: currentChat?.sessionId,
+    folderPath: currentChat?.folderPath ?? null,
     sendMessage: (
       content: string,
       files: any[] | undefined,
@@ -488,13 +504,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setLoadedConversationFileStats,
       onRestoreOverrides: setRestoredConversationOverrides,
     });
-
-  // --- Message Parsing (with caching) ---
-  console.log('[DEBUG][Chat] toolFormat source', {
-    restoredConversationOverrides,
-    effectiveToolFormat: restoredConversationOverrides?.toolFormat ?? 'xml',
-    initialMessageDataOverrides: initialMessageData?.conversationOverrides,
-  });
 
   const parsedMessages = useMessageParsing(
     messages,
@@ -625,7 +634,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setLoadedConversationFileStats(null);
     // Clear isProcessing flag to prevent stale state
     setIsProcessing(false);
-    
+
     // Cleanup function when component unmounts or session changes
     return () => {
       // Stop any ongoing generation using ref
@@ -840,6 +849,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         onOpenGitStatus={() => setShowGitStatusBlock(true)}
         loadedConversationFileStats={loadedConversationFileStats}
         footerPaddingBottom={footerPaddingBottom}
+        workflowAgentId={workflowAgentId}
       />
     </div>
   );

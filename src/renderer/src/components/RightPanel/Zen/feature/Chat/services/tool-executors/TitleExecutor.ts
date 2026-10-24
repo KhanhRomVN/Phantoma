@@ -24,14 +24,15 @@ export async function executeConversationTitle(
     return '[conversation_title] Result: Error - title is required';
   }
 
-  const moduleId = (ctx as any).moduleId || '';
+  const moduleId = ctx.moduleId || '';
   const conversationId = ctx.conversationIdRef?.current || '';
+  const folderPath = ctx.folderPath ?? null;
 
   if (!moduleId || !conversationId) {
     return '[conversation_title] Result: Error - moduleId/conversationId missing in context';
   }
 
-  const result = await TitleController.updateTitle(moduleId, conversationId, title);
+  const result = await TitleController.updateTitle(moduleId, conversationId, title, folderPath);
   if (!result.success) {
     return `[conversation_title] Result: Error - ${result.error}`;
   }

@@ -9,3 +9,4 @@
 
 - Renderer type-check: `npx tsc --noEmit -p tsconfig.web.json` (a pre-existing error in `modules/Emulate/.../AddTargetModal/CLI.tsx` is unrelated).
 - AgentWorkflow agents keep model + account in `modules/Code/hooks/useWorkflowStore.ts`; a Zen tab with `workflowAgentId` syncs to it through `WorkflowAgentContext` (read by `useModelAccount`).
+- Zen `TagRouter` must not import module renderers directly: renderers come from `ModuleRegistry` (`getModuleRenderers()`, declared in each module's module file (e.g. `CodeModule.ts`) via `renderers`). TagRouter passes the same full props set to every renderer; each renderer picks what it needs.

@@ -10,8 +10,13 @@ import {
   WorkflowAgentContext,
   type WorkflowAgentSync,
 } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
+import {
+  MultiAgentContext,
+  type MultiAgentControl,
+} from '@renderer/components/RightPanel/Zen/context/MultiAgentContext';
 
 interface CodeAgentProps {
+  multiAgent?: MultiAgentControl | null;
   initialConversationId?: string | null;
   onConversationChange?: (conversationId: string | null) => void;
   onTitleChange?: (title: string | null) => void;
@@ -24,6 +29,7 @@ export const CodeAgent = memo(function CodeAgent({
   onConversationChange,
   onTitleChange,
   workflowAgentId,
+  multiAgent = null,
 }: CodeAgentProps) {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const [rootEl, setRootEl] = useState<HTMLElement | null>(null);
@@ -62,25 +68,12 @@ export const CodeAgent = memo(function CodeAgent({
   const desiredFeature = hasActiveDesign ? 'design' : 'code';
 
   useEffect(() => {
-    console.log('[DEBUG][CodeAgent] sync to FeatureContext', { currentProjectId });
     setCodeState({ currentProjectId });
   }, [currentProjectId, setCodeState]);
 
   useEffect(() => {
     if (activeFeature !== desiredFeature) setActiveFeature(desiredFeature);
   }, [activeFeature, desiredFeature, setActiveFeature]);
-
-  useEffect(() => {
-    console.log('[DEBUG][CodeAgent] mounted');
-    return () => console.log('[DEBUG][CodeAgent] unmounted');
-  }, []);
-
-  useEffect(() => {
-    console.log('[DEBUG][CodeAgent] feature state', {
-      activeFeature,
-      currentProjectId: codeState.currentProjectId,
-    });
-  }, [activeFeature, codeState.currentProjectId]);
 
   return (
     <div
@@ -90,13 +83,15 @@ export const CodeAgent = memo(function CodeAgent({
     >
       <AgentRootContext.Provider value={rootEl}>
         <SettingsProvider>
-          <WorkflowAgentContext.Provider value={workflowSync}>
-            <AgentPanel
-              initialConversationId={initialConversationId}
-              onConversationChange={onConversationChange}
-              onTitleChange={onTitleChange}
-            />
-          </WorkflowAgentContext.Provider>
+          <MultiAgentContext.Provider value={multiAgent}>
+            <WorkflowAgentContext.Provider value={workflowSync}>
+              <AgentPanel
+                initialConversationId={initialConversationId}
+                onConversationChange={onConversationChange}
+                onTitleChange={onTitleChange}
+              />
+            </WorkflowAgentContext.Provider>
+          </MultiAgentContext.Provider>
         </SettingsProvider>
       </AgentRootContext.Provider>
     </div>

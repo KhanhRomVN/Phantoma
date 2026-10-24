@@ -374,18 +374,12 @@ const TreeNode = memo(function TreeNode({
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
+      const multi = e.ctrlKey || e.metaKey || e.shiftKey;
+      if (!isFolder && !multi) return;
+
       onNodeClick(node.id, e.ctrlKey || e.metaKey, e.shiftKey);
 
-      // Chỉ xử lý folder expand/collapse — file click disabled
-      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        if (!isFolder) {
-          const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
-          if (sessionId && node.path) {
-            useCodeStore.getState().requestOpenFile(sessionId, node.path, node.name);
-          }
-          return;
-        }
-
+      if (!multi) {
         if (expanded) {
           toggleFolderExpand(projectId, node.id);
           setTimeout(() => logRenderCountAndReset(`COLLAPSE "${node.name}"`), 100);
@@ -420,6 +414,15 @@ const TreeNode = memo(function TreeNode({
       onNodeClick,
     ],
   );
+
+  const handleDoubleClick = useCallback(() => {
+    if (isFolder) return;
+    onNodeClick(node.id, false, false);
+    const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
+    if (sessionId && node.path) {
+      useCodeStore.getState().requestOpenFile(sessionId, node.path, node.name);
+    }
+  }, [isFolder, node.id, node.path, node.name, onNodeClick]);
 
   // ── Context menu actions ──────────────────────────────────────────────────
   const handleCopyPath = useCallback(() => {
@@ -525,6 +528,7 @@ const TreeNode = memo(function TreeNode({
         <DropdownTrigger asChild>
           <button
             onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
             draggable={!isFolder && !!node.path}
             onDragStart={(e) => {
               if (isFolder || !node.path) return;

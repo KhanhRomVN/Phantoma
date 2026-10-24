@@ -125,7 +125,6 @@ export default function CustomMap({ locations, regions = [] }: Props) {
   const handleCreateLocation = () => {
     if (!contextMenu) return;
     // TODO: Implement create location logic
-    console.log('Create location at:', contextMenu.lat, contextMenu.lng);
     setContextMenu(null);
   };
 
@@ -162,7 +161,6 @@ export default function CustomMap({ locations, regions = [] }: Props) {
                 e.target.setPaintProperty(layer, prop as 'fill-color', color);
             });
             setMapLoaded(true);
-            console.log('[CustomMap] Map loaded successfully');
           }}
           onError={(e) => {
             console.error('[CustomMap] Map error:', e);

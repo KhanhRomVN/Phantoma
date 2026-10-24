@@ -23,7 +23,8 @@ import { useCallback } from 'react';
 import { Message } from '../../types/message';
 
 // ── Prompts ──
-import { getCommitMessagePrompt } from '../../prompts/code/commit-message';
+import { getModuleService } from '../../services/ModuleRegistry';
+const getCommitMessagePrompt = getModuleService('code', 'getCommitMessagePrompt');
 
 interface UseGitOperationsProps {
   currentModel: any;

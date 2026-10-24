@@ -32,6 +32,7 @@ import { ActivityPanel } from './components/ActivityPanel';
 import { ToastContainer } from './components/common/ToastContainer';
 import { FooterBar } from './components/FooterBar';
 import { ProjectPanel } from './components/ProjectPanel/ProjectPanel';
+import { QuickOpenModal } from './components/modal/QuickOpenModal';
 
 // ─── Directory Scanner ─────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export function Code() {
     hasUnsavedChanges,
   } = useCodeStore();
   // ── State ──
-  const [, setQuickOpenOpen] = useState(false);
+  const [quickOpenOpen, setQuickOpenOpen] = useState(false);
 
   // ── Refs ──
   const hydratedRef = useRef(false);
@@ -155,6 +156,12 @@ export function Code() {
       // Ctrl+S: Save current file
       if (e.ctrlKey && !e.shiftKey && e.key === 's') {
         e.preventDefault();
+        // Debug log - có thể xóa sau khi fix
+        console.log('[DEBUG][Code] Global Ctrl+S', {
+          activeFileId,
+          hasFileNode: !!fileNode,
+          fileNodePath: fileNode?.path,
+        });
         if (!activeFileId || !fileNode) return;
         try {
           const monaco = (window as any).monaco;
@@ -238,6 +245,7 @@ export function Code() {
         {!isGitView && <ActivityPanel />}
       </div>
       <FooterBar />
+      <QuickOpenModal isOpen={quickOpenOpen} onClose={() => setQuickOpenOpen(false)} />
     </div>
   );
 }

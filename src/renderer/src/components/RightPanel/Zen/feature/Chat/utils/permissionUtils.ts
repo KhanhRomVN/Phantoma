@@ -9,17 +9,10 @@
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
-// ── Constants ──
-import { TAG_REGISTRY } from "../constants/constants";
-
 // ─── Functions ──────────────────────────────────────────────────────────
 /**
- * Trả về quyết định cho một loại tool.
- * - "allow"  → tool đã đăng ký, thực thi ngay
- * - "reject" → tag lạ / không phải tool, chặn thực thi
+ * All tools are allowed — no permission blocking.
  */
-export const getPermissionDecision = (toolType: string): "allow" | "reject" => {
-  const tagDef = TAG_REGISTRY[toolType];
-  return tagDef && tagDef.category === "tool" ? "allow" : "reject";
+export const getPermissionDecision = (): 'allow' | 'reject' => {
+  return 'allow';
 };

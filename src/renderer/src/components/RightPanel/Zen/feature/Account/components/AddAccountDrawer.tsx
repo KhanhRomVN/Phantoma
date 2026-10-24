@@ -1,98 +1,40 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import ReactDOM from 'react-dom';
+/**
+ * ------------------------------------------------------------------
+ * AddAccountDrawer
+ * ------------------------------------------------------------------
+ * Bottom-sheet drawer thêm tài khoản mới.
+ * Hiển thị danh sách provider, hỗ trợ đăng nhập HTTPS (MITM) và
+ * browser-based (CDP), kèm bước xác nhận và nhập email khi cần.
+
+ * Main features:
+ * - Chọn provider từ danh sách (kèm favicon, connection type badge)
+ * - Đăng nhập qua MITM hoặc CDP (context menu khi click phải)
+ * - Xác nhận thông tin trước khi lưu (email, credential)
+ * - Nhập email khi browser login thất bại
+ * ------------------------------------------------------------------
+ */
+
+// ── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useDbFetch } from "../../../services/useDbFetch";
+import { useSettings } from "../../../context/SettingsContext";
+
+import { listChromiumProfiles } from "../../../services/chromeProfiles";
+import { DeviceCodeDrawer, ConfirmAccountDrawer } from "./VerifyAccountDrawer";
 import {
-  Loader2,
-  X,
-  AlertCircle,
-  Search,
-  Globe,
-  Key,
-  KeyRound,
-  ExternalLink,
-  ChevronLeft,
-  UserX,
-} from 'lucide-react';
-import { useDbFetch } from '../../../services/useDbFetch';
-import { useSettings } from '../../../context/SettingsContext';
-import { listChromiumProfiles } from '../../../services/chromeProfiles';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
-import { CopyableText } from '../utils';
-import { $ } from '@renderer/utils/color';
-import { Banner, bannerStyles, BannerAccountIcon } from '../../Home/components/HomeBanner';
-
-interface Provider {
-  provider_id: string;
-  provider_name: string;
-  description?: string;
-  color?: string;
-  website: string;
-  website_url?: string;
-  icon?: string;
-  is_enabled?: boolean;
-  auth_methods?: string[];
-  platform?: string;
-  connection_type?: string;
-  auth_method?: string;
-}
-
-let providersCache: Provider[] | null = null;
-
-const AUTH_LABELS: Record<string, string> = {
-  google: 'Google',
-  github: 'GitHub',
-  microsoft: 'Microsoft',
-  apple: 'Apple',
-  x: 'X / xAI',
-  basic: 'Basic',
-};
-const ICON_METHODS = ['google', 'github', 'microsoft', 'apple', 'x'];
-
-const authIconFile = (method: string): string =>
-  method === 'apple' || method === 'microsoft' ? `${method}.png` : `${method}.svg`;
-
-const splitAuthMethod = (method: string): string[] => method.split('_').filter(Boolean);
-
-const isMergedAuth = (method: string): boolean => splitAuthMethod(method).length > 1;
-
-
-const AuthGlyph: React.FC<{ method: string; size?: number }> = ({ method, size = 11 }) => {
-  const [failed, setFailed] = useState(false);
-  const baseUri = (window as any).__zenImagesUri as string | undefined;
-  if (!baseUri || failed || !ICON_METHODS.includes(method)) {
-    return <Key size={size} />;
-  }
-  return (
-    <img
-      src={`${baseUri}/auth_icons/${authIconFile(method)}`}
-      alt={method}
-      style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain' }}
-      onError={() => setFailed(true)}
-    />
-  );
-};
-
-const MergedAuthNotice: React.FC<{ methods: string[] }> = ({ methods }) => {
-  const merged = methods.filter(isMergedAuth);
-  if (merged.length === 0) return null;
-  const labels = (m: string) =>
-    splitAuthMethod(m)
-      .map((part) => AUTH_LABELS[part] ?? part)
-      .join(' / ');
-  return (
-    <>
-      <style>{bannerStyles}</style>
-      <Banner
-        variant="info"
-        icon={BannerAccountIcon}
-        title="Merged login methods"
-        badge={merged.map(labels).join(' | ')}
-      >
-        Sign in with any of these methods ({merged.map(labels).join('; ')}). If they resolve to
-        the same email, they count as a single account.
-      </Banner>
-    </>
-  );
-};
+  ProfilePickerDrawer,
+  MethodPickerDrawer,
+  EmailInputDrawer,
+} from "./LoginMethodDrawer";
+import { ProviderListDrawer } from "./ProviderListDrawer";
+import {
+  isMergedAuth,
+  splitAuthMethod,
+  type DeviceCodeInfo,
+  resolveAccountEmail,
+  type Provider,
+} from "./addAccount.utils";
 
 interface AddAccountDrawerProps {
   open: boolean;
@@ -100,513 +42,58 @@ interface AddAccountDrawerProps {
   onSuccess: () => void;
 }
 
-/** Parse auth methods: handle both string and array formats. */
-const parseAuthMethods = (raw: any): string[] => {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw.filter((m: any) => typeof m === 'string' && m.length > 0);
-  if (typeof raw === 'string') {
-    const trimmed = raw.trim();
-    if (!trimmed) return [];
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed))
-        return parsed.filter((m: any) => typeof m === 'string' && m.length > 0);
-    } catch {
-      return trimmed
-        .split(/[,;|\s]+/)
-        .map((m) => m.trim())
-        .filter((m) => m.length > 0);
-    }
-  }
-  return [];
-};
+let providersCache: Provider[] | null = null;
 
-const MethodCard: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  desc: string;
-  onClick: () => void;
-  disabled?: boolean;
-}> = ({ icon, label, desc, onClick, disabled }) => {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      onClick={() => {
-        if (!disabled) onClick();
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        padding: '12px 14px',
-        borderRadius: '10px',
-        backgroundColor: hovered && !disabled ? `color-mix(in srgb, ${$('--text-secondary')} 7%, transparent)` : $('--input-background'),
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-        transition: 'all 0.13s ease',
-        border: 'none',
-      }}
-    >
-      <div
-        style={{
-          minWidth: '36px',
-          width: 'fit-content',
-          height: '36px',
-          padding: '0 8px',
-          boxSizing: 'border-box',
-          borderRadius: '9px',
-          backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '4px',
-          flexShrink: 0,
-          color: $('--text-primary'),
-        }}
-      >
-        {icon}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: $('--text-primary') }}>{label}</div>
-        <div style={{ fontSize: '11px', color: $('--text-secondary'), marginTop: '2px', opacity: 0.7 }}>
-          {desc}
-        </div>
-      </div>
-      <ChevronLeft
-        size={15}
-        style={{ color: $('--text-secondary'), transform: 'rotate(180deg)', opacity: 0.5, flexShrink: 0 }}
-      />
-    </div>
-  );
-};
-
-const ProviderRow: React.FC<{
-  provider: Provider;
-  onSelect: () => void;
-  onContextMenu: (e: React.MouseEvent, provider: Provider) => void;
-  loading: boolean;
-}> = ({ provider, onSelect, onContextMenu, loading }) => {
-  const [imgError, setImgError] = useState(false);
-  const [hovered, setHovered] = useState(false);
-
-  const iconUrl = getFaviconUrl(provider.website_url || provider.website);
-  const disabled = provider.is_enabled === false || loading;
-  const connectionType = provider.connection_type || 'https';
-  const authMethods = parseAuthMethods(provider.auth_method ?? provider.auth_methods);
-
-  const warnColor = $('--warn');
-  const successColor = $('--success');
-  
-  const connectionBadgeColor =
-    connectionType === 'browser'
-      ? { bg: `color-mix(in srgb, ${warnColor} 12%, transparent)`, color: warnColor }
-      : { bg: `color-mix(in srgb, ${successColor} 10%, transparent)`, color: successColor };
-
-  return (
-    <div
-      onClick={() => !disabled && onSelect()}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!disabled) onContextMenu(e, provider);
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '10px 12px',
-        borderRadius: '10px',
-        backgroundColor: hovered && !disabled ? `color-mix(in srgb, ${$('--text-secondary')} 7%, transparent)` : $('--input-background'),
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-        transition: 'all 0.13s ease',
-      }}
-    >
-      <div
-        style={{
-          width: '38px',
-          height: '38px',
-          borderRadius: '10px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        {iconUrl && !imgError ? (
-          <img
-            src={iconUrl}
-            alt={provider.provider_name}
-            style={{ width: '22px', height: '22px', objectFit: 'contain' }}
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <span style={{ fontSize: '13px', fontWeight: 700, opacity: 0.7 }}>
-            {provider.provider_name.slice(0, 2).toUpperCase()}
-          </span>
-        )}
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-          <span
-            style={{
-              fontSize: '13px',
-              fontWeight: 600,
-              color: $('--text-primary'),
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {provider.provider_name}
-          </span>
-          <span
-            style={{
-              fontSize: '9px',
-              fontWeight: 600,
-              padding: '2px 5px',
-              borderRadius: '4px',
-              backgroundColor: connectionBadgeColor.bg,
-              color: connectionBadgeColor.color,
-              flexShrink: 0,
-              textTransform: 'uppercase',
-              letterSpacing: '0.03em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-            }}
-          >
-            <Globe size={9} />
-            {connectionType}
-          </span>
-        </div>
-
-        {provider.description && (
-          <div
-            style={{
-              fontSize: '11px',
-              color: $('--text-secondary'),
-              marginTop: '4px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {provider.description}
-          </div>
-        )}
-
-        {authMethods.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px', flexWrap: 'wrap' }}>
-            {authMethods.map((method) => (
-              <div
-                key={method}
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: $('--text-secondary') }}
-              >
-                {splitAuthMethod(method).map((part) => {
-                  const baseUri = (window as any).__zenImagesUri as string | undefined;
-                  if (baseUri && ICON_METHODS.includes(part)) {
-                    return (
-                      <img
-                        key={part}
-                        src={`${baseUri}/auth_icons/${authIconFile(part)}`}
-                        alt={part}
-                        style={{ width: '11px', height: '11px', objectFit: 'contain' }}
-                      />
-                    );
-                  }
-                  return <AuthGlyph key={part} method={part} size={11} />;
-                })}
-                <span>
-                  {splitAuthMethod(method)
-                    .map((part) => AUTH_LABELS[part] ?? part)
-                    .join(' · ')}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const ProviderFavicon: React.FC<{ provider: Provider; size?: number }> = ({ provider, size = 20 }) => {
-  const [imgError, setImgError] = useState(false);
-  const iconUrl = getFaviconUrl(provider.website_url || provider.website);
-  if (!iconUrl || imgError) return null;
-  return (
-    <img
-      src={iconUrl}
-      alt={provider.provider_name}
-      style={{ width: `${size}px`, height: `${size}px`, borderRadius: '4px', objectFit: 'contain', flexShrink: 0 }}
-      onError={() => setImgError(true)}
-    />
-  );
-};
-
-const ProfileCard: React.FC<{
-  badge: React.ReactNode;
-  badgeBg: string;
-  badgeColor: string;
-  label: string;
-  desc?: string;
-  onClick: () => void;
-  disabled?: boolean;
-}> = ({ badge, badgeBg, badgeColor, label, desc, onClick, disabled }) => {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      onClick={() => {
-        if (!disabled) onClick();
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        padding: '12px 14px',
-        borderRadius: '10px',
-        backgroundColor: hovered && !disabled ? `color-mix(in srgb, ${$('--text-secondary')} 7%, transparent)` : $('--input-background'),
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-        transition: 'all 0.13s ease',
-        border: 'none',
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '9px',
-          backgroundColor: badgeBg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          color: badgeColor,
-        }}
-      >
-        {badge}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: '13px',
-            fontWeight: 600,
-            color: $('--text-primary'),
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {label}
-        </div>
-        {desc && (
-          <div style={{ fontSize: '11px', color: $('--text-secondary'), marginTop: '2px', opacity: 0.7 }}>
-            {desc}
-          </div>
-        )}
-      </div>
-      <ChevronLeft
-        size={15}
-        style={{ color: $('--text-secondary'), transform: 'rotate(180deg)', opacity: 0.5, flexShrink: 0 }}
-      />
-    </div>
-  );
-};
-
-const ProfilePicker: React.FC<{
-  folders: string[];
-  loading: boolean;
-  error: string;
-  disabled: boolean;
-  baseDir?: string;
-  onSelect: (folder?: string) => void;
-}> = ({ folders, loading, error, disabled, baseDir, onSelect }) => {
-  const [query, setQuery] = useState('');
-
-  const shortPath = (folder: string) => {
-    const parent = (baseDir || '').split(/[\\/]+/).filter(Boolean).pop();
-    return parent ? `…/${parent}/${folder}` : `…/${folder}`;
-  };
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? folders.filter((f) => f.toLowerCase().includes(q)) : folders;
-  }, [folders, query]);
-
-  const getTone = (folder: string) => {
-    const first = folder.trim().charAt(0).toUpperCase();
-    // Generate a deterministic hue-based color using standard HSL syntax
-    // Note: Since $() resolves theme vars, dynamic hues are generated via raw CSS strings here.
-    // This is an exception case for unique avatars where static theme vars don't apply well.
-    const hue = ((first.charCodeAt(0) || 0) * 47) % 360;
-    return { 
-      first: first || '?', 
-      bg: `hsla(${hue}, 70%, 55%, 0.15)`, 
-      color: `hsl(${hue}, 70%, 55%)` 
-    };
-  };
-
-  return (
-    <>
-      <div style={{ padding: '10px 16px', flexShrink: 0 }}>
-        <div style={{ position: 'relative' }}>
-          <Search
-            size={14}
-            style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: $('--text-secondary'), pointerEvents: 'none' }}
-          />
-          <input
-            autoFocus
-            type="text"
-            placeholder="Search profiles..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px 8px 32px',
-              fontSize: '13px',
-              backgroundColor: $('--input-background'),
-              border: 'none',
-              borderRadius: '8px',
-              color: $('--text-primary'),
-              outline: 'none',
-              boxSizing: 'border-box',
-              height: '34px',
-            }}
-          />
-        </div>
-      </div>
-
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <ProfileCard
-          badge={<UserX size={18} />}
-          badgeBg={`color-mix(in srgb, ${$('--primary')} 12%, transparent)`}
-          badgeColor={$('--primary')}
-          label="No profile"
-          desc="Login as default with a fresh browser window"
-          onClick={() => onSelect()}
-          disabled={disabled}
-        />
-
-        {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', color: $('--text-secondary'), fontSize: '12px' }}>
-            <Loader2 size={14} style={{ animation: 'aaSpin 1s linear infinite' }} />
-            Loading profiles…
-          </div>
-        )}
-
-        {!loading && error && (
-          <div style={{ backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <AlertCircle size={12} />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {!loading &&
-          !error &&
-          filtered.map((folder) => {
-            const tone = getTone(folder);
-            return (
-              <ProfileCard
-                key={folder}
-                badge={<span style={{ fontSize: '14px', fontWeight: 700 }}>{tone.first}</span>}
-                badgeBg={tone.bg}
-                badgeColor={tone.color}
-                label={folder}
-                desc={shortPath(folder)}
-                onClick={() => onSelect(folder)}
-                disabled={disabled}
-              />
-            );
-          })}
-
-        {!loading && !error && filtered.length === 0 && (
-          <div style={{ textAlign: 'center', color: $('--text-secondary'), padding: '12px', fontSize: '12px' }}>
-            {query.trim() ? 'No matching profiles' : 'No available profiles'}
-          </div>
-        )}
-      </div>
-    </>
-  );
-};
-
-const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange, onSuccess }) => {
+const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
+  open,
+  onOpenChange,
+  onSuccess,
+}) => {
+  // ── State ──
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProviders, setLoadingProviders] = useState(true);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  // Method selection state
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(
+    null,
+  );
 
-  const [deviceCodeInfo, setDeviceCodeInfo] = useState<{
-    user_code: string;
-    verification_url: string;
-    pollContext: string;
-    poll_interval: number;
-    provider: Provider;
-  } | null>(null);
+  // Device code flow state (Kiro, grok-build-cli, etc.)
+  const [deviceCodeInfo, setDeviceCodeInfo] = useState<DeviceCodeInfo | null>(null);
 
+  // Confirmation state
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingAccount, setPendingAccount] = useState<any>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  // Email drawer state for browser login failure
   const [showEmailDrawer, setShowEmailDrawer] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
-  const [pendingBrowserProvider, setPendingBrowserProvider] = useState<Provider | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [pendingBrowserProvider, setPendingBrowserProvider] =
+    useState<Provider | null>(null);
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [tempSessionId, setTempSessionId] = useState<string | null>(null);
 
-  const [contextMenu, setContextMenu] = useState<{ provider: Provider; x: number; y: number } | null>(null);
-
-  const [profileStepProvider, setProfileStepProvider] = useState<Provider | null>(null);
-  const [profileFolders, setProfileFolders] = useState<string[]>([]);
+  // Profile step state (hiển thị sau khi chọn auth method)
+  const [profileStepProvider, setProfileStepProvider] =
+    useState<Provider | null>(null);
+  const [profileStepMethod, setProfileStepMethod] = useState<string>("google");
+  const [profileEntries, setProfileEntries] = useState<
+    { folder: string; label?: string; avatar?: string }[]
+  >([]);
+  const [isDefaultChrome, setIsDefaultChrome] = useState(false);
   const [existingEmails, setExistingEmails] = useState<Set<string>>(new Set());
   const [profilesLoading, setProfilesLoading] = useState(false);
-  const [profilesError, setProfilesError] = useState('');
+  const [profilesError, setProfilesError] = useState("");
   const profileReqRef = useRef(0);
 
+  // ── Store ─
   const dbFetch = useDbFetch();
   const { chromiumProfileDir } = useSettings();
-
-  const sharedBackdrop = (onClickBackdrop: () => void) => (
-    <div
-      style={{ position: 'fixed', inset: 0, backgroundColor: 'rgb(0,0,0,0.55)', zIndex: 200, animation: 'aaFadeIn 0.15s ease' }}
-      onClick={onClickBackdrop}
-    />
-  );
-
-  const sharedSheet = (children: React.ReactNode, height: string = '50%') => (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: $('--card-background'),
-        borderTop: `1px solid ${$('--border')}`,
-        boxShadow: '0 -8px 32px rgb(0,0,0,0.25)',
-        zIndex: 201,
-        height,
-        display: 'flex',
-        flexDirection: 'column',
-        animation: 'aaSlideUp 0.22s ease',
-      }}
-    >
-      {children}
-    </div>
-  );
-
+  // ── Handlers ──
   const fetchProviders = async () => {
     if (providersCache) {
       setProviders(providersCache);
@@ -626,58 +113,83 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         setProviders(sorted);
       }
     } catch {
-      if (!providersCache) setError('Failed to load providers');
+      if (!providersCache) setError("Failed to load providers");
     } finally {
       setLoadingProviders(false);
     }
   };
 
-  const handlePickMethod = (provider: Provider) => {
+  // Chọn auth method → chưa login ngay, chuyển sang bước chọn Chromium profile
+  const handlePickMethod = (provider: Provider, method: string) => {
     const reqToken = ++profileReqRef.current;
     setSelectedProvider(null);
     setProfileStepProvider(provider);
-    setProfileFolders([]);
-    setProfilesError('');
-
-    if (!chromiumProfileDir) {
-      setProfilesLoading(false);
-      setProfilesError('Chromium Profile Folder chưa được cấu hình trong Settings');
-      return;
-    }
+    setProfileStepMethod(method);
+    setProfileEntries([]);
+    setProfilesError("");
 
     setProfilesLoading(true);
 
-    const profilesPromise = listChromiumProfiles(chromiumProfileDir || '').then((result) => ({
-      entries:
-        result.profiles.length > 0
-          ? result.profiles
-          : result.folders.map((f: string) => ({ folder: f })),
-      isDefaultChrome: result.is_default_chrome,
-    }));
+    const profilesPromise = listChromiumProfiles(chromiumProfileDir || "").then(
+      (result) => ({
+        entries:
+          result.profiles.length > 0
+            ? result.profiles
+            : result.folders.map((f: string) => ({ folder: f })),
+        isDefaultChrome: result.is_default_chrome,
+      }),
+    );
 
+    // Email của các account đã có cùng provider VÀ cùng auth_method → ẩn profile trùng tên
+    // Nếu account dùng auth_method khác (vd: google vs github) thì vẫn hiện để cho phép add thêm
     const emailsPromise = dbFetch(
       `/v1/accounts?page=1&limit=1000&provider_id=${encodeURIComponent(provider.provider_id)}`,
     )
       .then((res) => res.json())
-      .then(
-        (data) =>
-          new Set<string>(
-            (data?.data?.accounts ?? [])
-              .map((a: any) => String(a.email || '').trim().toLowerCase())
-              .filter(Boolean),
-          ),
-      )
-      .catch(() => new Set<string>());
+      .then((data) => {
+        const allAccounts = data?.data?.accounts ?? [];
+        const filtered = allAccounts.filter((a: any) => {
+          const accountMethod = String(a.auth_method || "")
+            .trim()
+            .toLowerCase();
+          const currentMethod = method.trim().toLowerCase();
+          const sameGroup =
+            isMergedAuth(currentMethod) &&
+            splitAuthMethod(accountMethod).some((part) =>
+              splitAuthMethod(currentMethod).includes(part),
+            );
+          const keep =
+            !accountMethod || accountMethod === currentMethod || sameGroup;
+          return keep;
+        });
+
+        const emailSet = new Set<string>(
+          filtered
+            .map((a: any) =>
+              String(a.email || "")
+                .trim()
+                .toLowerCase(),
+            )
+            .filter(Boolean),
+        );
+
+        return emailSet;
+      })
+      .catch((err: any) => {
+        console.error("[AddAccountDrawer] Lỗi fetch existingEmails:", err);
+        return new Set<string>();
+      });
 
     Promise.all([profilesPromise, emailsPromise])
-      .then(([profiles, emails]) => {
+      .then(([{ entries, isDefaultChrome: isDef }, emails]) => {
         if (profileReqRef.current !== reqToken) return;
-        setProfileFolders(profiles.entries.map((e: any) => e.folder));
+        setProfileEntries(entries);
+        setIsDefaultChrome(isDef);
         setExistingEmails(emails);
       })
       .catch((err: any) => {
         if (profileReqRef.current !== reqToken) return;
-        setProfilesError(err?.message || 'Không đọc được danh sách profile');
+        setProfilesError(err?.message || "Không đọc được danh sách profile");
       })
       .finally(() => {
         if (profileReqRef.current === reqToken) setProfilesLoading(false);
@@ -686,24 +198,30 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
 
   const handleLogin = async (
     provider: Provider,
-    loginMethod: 'basic' | 'cdp' = 'basic',
+    loginMethod: string = "google",
     profileFolder?: string,
+    profileLabel?: string,
   ) => {
     if (!provider || provider.is_enabled === false) return;
     setLoading(true);
-    setError('');
-    setContextMenu(null);
+    setError("");
     try {
       const bodyObj: any = { method: loginMethod };
       if (profileFolder) {
         bodyObj.profile_folder = profileFolder;
       }
-      const response = await dbFetch(`/v1/accounts/login/${provider.provider_id}`, {
-        method: 'POST',
-        body: JSON.stringify(bodyObj),
-      });
+      const body = JSON.stringify(bodyObj);
+      const response = await dbFetch(
+        `/v1/accounts/login/${provider.provider_id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        },
+      );
       const data = await response.json();
       if (data.success && data.account) {
+        // ── Device code flow (Kiro, grok-build-cli, etc.) ──
         if (data.account.pending && data.account.user_code) {
           setDeviceCodeInfo({
             user_code: data.account.user_code,
@@ -711,22 +229,35 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             pollContext: data.account.tempSessionId,
             poll_interval: data.account.poll_interval || 5,
             provider,
+            profileUserDataDir: data.account.profile_user_data_dir || undefined,
+            profileDirectory: data.account.profile_directory || undefined,
+            profileLabel,
           });
           setLoading(false);
           return;
         }
 
+        // Check if this is a pending browser session (needs email)
         if (data.account.pending && data.account.tempSessionId) {
           setPendingBrowserProvider(provider);
           setTempSessionId(data.account.tempSessionId);
           setShowEmailDrawer(true);
-        } else if (provider.connection_type === 'browser' && data.account.credential) {
+          // Keep loading = true to maintain countdown timer
+        }
+        // For browser-based providers with immediate credential (should not happen in new flow)
+        else if (
+          provider.connection_type === "browser" &&
+          data.account.credential
+        ) {
+          // Browser provider: account already has credential (session ID)
+          // Just save it directly without showing confirm drawer
           const saveResponse = await dbFetch(`/v1/accounts`, {
-            method: 'POST',
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               id: data.account.id || crypto.randomUUID(),
               provider_id: data.account.provider_id,
-              email: data.account.email || '',
+              email: data.account.email || "",
               credential: data.account.credential,
             }),
           });
@@ -735,29 +266,39 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
             onSuccess();
             onOpenChange(false);
           } else {
-            setError(saveData.message || 'Failed to save account');
+            setError(saveData.message || "Failed to save account");
           }
         } else {
-          setPendingAccount(data.account);
+          // HTTPS provider: show confirm drawer for email/credential editing
+          setPendingAccount({
+            ...data.account,
+            email: resolveAccountEmail(data.account.email, profileLabel),
+            auth_method: loginMethod,
+          });
           setShowConfirm(true);
         }
       } else {
-        setError(data.message || 'Login failed');
+        setError(data.message || "Login failed");
       }
     } catch (err: any) {
-      if (provider.connection_type === 'browser') {
+      // For browser providers, distinguish between user-closed and timeout
+      if (provider.connection_type === "browser") {
+        // Check if this is a timeout error vs user closing browser
         const errorMessage = err.message || String(err);
-        const isTimeout = errorMessage.toLowerCase().includes('timeout');
+        const isTimeout = errorMessage.toLowerCase().includes("timeout");
+
         if (isTimeout) {
-          setError('Login timeout. Please try again.');
+          // Server timeout - show error and stop loading
+          setError("Login timeout. Please try again.");
           setLoading(false);
         } else {
+          // User closed browser - show email input drawer
           setPendingBrowserProvider(provider);
           setShowEmailDrawer(true);
           setLoading(false);
         }
       } else {
-        setError(err.message || 'An error occurred');
+        setError(err.message || "An error occurred");
         setLoading(false);
       }
     } finally {
@@ -770,12 +311,14 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
     setConfirmLoading(true);
     try {
       const response = await dbFetch(`/v1/accounts`, {
-        method: 'POST',
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: pendingAccount.id || crypto.randomUUID(),
           provider_id: pendingAccount.provider_id,
           email: pendingAccount.email,
           credential: pendingAccount.credential,
+          auth_method: pendingAccount.auth_method || null,
         }),
       });
       const data = await response.json();
@@ -783,10 +326,10 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
         onSuccess();
         onOpenChange(false);
       } else {
-        setError(data.message || 'Failed to save account');
+        setError(data.message || "Failed to save account");
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || "An error occurred");
     } finally {
       setConfirmLoading(false);
     }
@@ -798,67 +341,79 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
     try {
       let response;
       if (tempSessionId) {
-        response = await dbFetch(`/v1/browser-sessions/complete/${tempSessionId}`, {
-          method: 'POST',
-          body: JSON.stringify({ email: emailInput.trim() }),
-        });
+        // Complete pending session with email
+        response = await dbFetch(
+          `/v1/browser-sessions/complete/${tempSessionId}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: emailInput.trim() }),
+          },
+        );
       } else {
+        // Fallback: try to get credential from login
         const loginResponse = await dbFetch(
           `/v1/accounts/login/${pendingBrowserProvider.provider_id}`,
-          { method: 'POST', body: JSON.stringify({ method: 'basic' }) },
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ method: "basic" }),
+          },
         );
         const loginData = await loginResponse.json();
+
         response = await dbFetch(`/v1/accounts`, {
-          method: 'POST',
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id: crypto.randomUUID(),
             provider_id: pendingBrowserProvider.provider_id,
             email: emailInput.trim(),
-            credential: loginData.success && loginData.account ? loginData.account.credential : '',
+            credential:
+              loginData.success && loginData.account
+                ? loginData.account.credential
+                : "",
           }),
         });
       }
+
       const data = await response.json();
       if (data.success) {
         onSuccess();
         onOpenChange(false);
       } else {
-        setError(data.message || 'Failed to save account');
+        setError(data.message || "Failed to save account");
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setError(err.message || "An error occurred");
     } finally {
       setEmailSubmitting(false);
       setShowEmailDrawer(false);
       setPendingBrowserProvider(null);
-      setEmailInput('');
+      setEmailInput("");
       setTempSessionId(null);
       setLoading(false);
     }
   };
 
+  // ── Effects ──
   useEffect(() => {
     if (!open) {
-      setError('');
+      setError("");
       setShowConfirm(false);
       setPendingAccount(null);
-      setSearchQuery('');
+      setSearchQuery("");
       setSelectedProvider(null);
       setProfileStepProvider(null);
+      setProfileStepMethod("google");
       setDeviceCodeInfo(null);
       return;
     }
-    setSearchQuery('');
+    setSearchQuery("");
     fetchProviders();
   }, [open]);
 
-  useEffect(() => {
-    if (!contextMenu) return;
-    const closeMenu = () => setContextMenu(null);
-    document.addEventListener('click', closeMenu);
-    return () => document.removeEventListener('click', closeMenu);
-  }, [contextMenu]);
-
+  // Poll for device code completion (Kiro, grok-build-cli, etc.)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (!deviceCodeInfo) {
@@ -874,7 +429,11 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
       try {
         const res = await dbFetch(
           `/v1/accounts/login/${deviceCodeInfo.provider.provider_id}/poll`,
-          { method: 'POST', body: JSON.stringify({ pollContext: deviceCodeInfo.pollContext }) },
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pollContext: deviceCodeInfo.pollContext }),
+          },
         );
         const data = await res.json();
 
@@ -890,11 +449,25 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
           clearInterval(pollTimerRef.current!);
           pollTimerRef.current = null;
           setDeviceCodeInfo(null);
+          // Show confirm drawer so user can review before saving
+          const ctx = (() => {
+            try {
+              return JSON.parse(deviceCodeInfo.pollContext);
+            } catch {
+              return null;
+            }
+          })();
+          const resolvedAuthMethod =
+            data.account.auth_method || ctx?.auth_method || null;
           setPendingAccount({
             id: crypto.randomUUID(),
             provider_id: data.account.provider_id,
-            email: data.account.email || '',
+            email: resolveAccountEmail(
+              data.account.email,
+              deviceCodeInfo.profileLabel,
+            ),
             credential: data.account.credential,
+            auth_method: resolvedAuthMethod,
           });
           setShowConfirm(true);
         }
@@ -911,792 +484,138 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({ open, onOpenChange,
     };
   }, [deviceCodeInfo, dbFetch]);
 
+  // Filter providers theo search query (khớp provider_name hoặc provider_id)
+  // Ẩn provider không có auth_method (không cần đăng nhập)
   const filteredProviders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return providers.filter((p) => {
-      const methods = parseAuthMethods((p as any).auth_method ?? (p as any).auth_methods);
+    return (providers || []).filter((p) => {
+      // Ẩn provider không có auth_method
+      const raw = (p as any).auth_method ?? (p as any).auth_methods;
+      let methods: string[] = [];
+      if (Array.isArray(raw))
+        methods = raw.filter((m: any) => typeof m === "string" && m.length > 0);
+      else if (typeof raw === "string" && raw.trim()) {
+        try {
+          const parsed = JSON.parse(raw.trim());
+          methods = Array.isArray(parsed) ? parsed.filter((m: any) => m) : [];
+        } catch {
+          methods = raw
+            .trim()
+            .split(/[,;|\s]+/)
+            .filter((m: string) => m.length > 0);
+        }
+      }
       if (methods.length === 0) return false;
+
+      // Filter theo search query
       if (!q) return true;
       return (
-        (p.provider_name || '').toLowerCase().includes(q) ||
-        (p.provider_id || '').toLowerCase().includes(q)
+        (p.provider_name || "").toLowerCase().includes(q) ||
+        (p.provider_id || "").toLowerCase().includes(q)
       );
     });
   }, [providers, searchQuery]);
 
   if (!open) return null;
 
-  // ── Device code view ──
   if (deviceCodeInfo) {
     return (
-      <>
-        {sharedBackdrop(() => setDeviceCodeInfo(null))}
-        {sharedSheet(
-          <>
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: `1px solid ${$('--border')}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexShrink: 0,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
-                  Authorize in Browser
-                </div>
-                <div style={{ fontSize: '11px', color: $('--text-secondary'), opacity: 0.7, marginTop: '2px' }}>
-                  {deviceCodeInfo.provider.provider_name}
-                </div>
-              </div>
-              <button
-                onClick={() => setDeviceCodeInfo(null)}
-                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                <div
-                  style={{
-                    fontSize: '20px',
-                    fontWeight: 700,
-                    letterSpacing: '0.15em',
-                    fontFamily: 'monospace',
-                    color: $('--text-primary'),
-                    backgroundColor: $('--input-background'),
-                    padding: '0 16px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    height: '34px',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {deviceCodeInfo.user_code}
-                </div>
-                <a
-                  href={deviceCodeInfo.verification_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Open Browser"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '8px',
-                    backgroundColor: $('--input-background'),
-                    border: 'none',
-                    color: $('--text-secondary'),
-                    flexShrink: 0,
-                    textDecoration: 'none',
-                  }}
-                >
-                  <ExternalLink size={15} />
-                </a>
-              </div>
-
-              <div style={{ width: '100%', position: 'relative' }}>
-                <input
-                  readOnly
-                  value={deviceCodeInfo.verification_url}
-                  style={{
-                    width: '100%',
-                    padding: '8px 36px 8px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: $('--input-background'),
-                    border: 'none',
-                    color: $('--text-secondary'),
-                    fontSize: '12px',
-                    fontFamily: 'monospace',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    height: '34px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                />
-                <button
-                  onClick={() => navigator.clipboard.writeText(deviceCodeInfo.verification_url)}
-                  title="Copy URL"
-                  style={{
-                    position: 'absolute',
-                    right: '6px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    border: 'none',
-                    background: 'transparent',
-                    color: $('--text-secondary'),
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: $('--text-secondary'), fontSize: '12px' }}>
-                <Loader2 size={14} style={{ animation: 'aaSpin 1s linear infinite' }} />
-                Waiting for authorization…
-              </div>
-
-              {error && (
-                <div style={{ width: '100%', backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <AlertCircle size={12} />
-                  <span>{error}</span>
-                </div>
-              )}
-            </div>
-          </>,
-          'auto',
-        )}
-        <style>{`
-          @keyframes aaSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-          @keyframes aaFadeIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes aaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        `}</style>
-      </>
+      <DeviceCodeDrawer
+        info={deviceCodeInfo}
+        error={error}
+        onClose={() => setDeviceCodeInfo(null)}
+      />
     );
   }
 
-  // ── Profile selection step ──
   if (profileStepProvider && !showEmailDrawer && !showConfirm) {
-    const visibleFolders = profileFolders.filter(
-      (name) => !existingEmails.has(name.trim().toLowerCase()),
-    );
-    const backToMethods = () => {
-      setSelectedProvider(profileStepProvider);
-      setProfileStepProvider(null);
-    };
-    const startLogin = (folder?: string) => {
-      const provider = profileStepProvider;
-      setProfileStepProvider(null);
-      handleLogin(provider, 'basic', folder);
-    };
-
     return (
-      <>
-        {sharedBackdrop(() => setProfileStepProvider(null))}
-        {sharedSheet(
-          <>
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: `1px solid ${$('--border')}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                flexShrink: 0,
-              }}
-            >
-              <button
-                onClick={backToMethods}
-                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary'), display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ProviderFavicon provider={profileStepProvider} />
-                  <span>{profileStepProvider.provider_name}</span>
-                </div>
-                <div style={{ fontSize: '11px', color: $('--text-secondary'), opacity: 0.7 }}>
-                  Select a Chromium profile
-                </div>
-              </div>
-            </div>
-
-            <ProfilePicker
-              folders={visibleFolders}
-              loading={profilesLoading}
-              error={profilesError}
-              disabled={loading}
-              baseDir={chromiumProfileDir}
-              onSelect={startLogin}
-            />
-          </>,
-          '50%',
-        )}
-        <style>{`
-          @keyframes aaSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-          @keyframes aaFadeIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes aaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        `}</style>
-      </>
+      <ProfilePickerDrawer
+        provider={profileStepProvider}
+        entries={profileEntries}
+        isDefaultChrome={isDefaultChrome}
+        existingEmails={existingEmails}
+        profilesLoading={profilesLoading}
+        profilesError={profilesError}
+        loading={loading}
+        baseDir={chromiumProfileDir}
+        onClose={() => setProfileStepProvider(null)}
+        onBack={() => {
+          setSelectedProvider(profileStepProvider);
+          setProfileStepProvider(null);
+        }}
+        onStart={(folder) => {
+          const provider = profileStepProvider;
+          const method = profileStepMethod;
+          const label = profileEntries.find((e) => e.folder === folder)?.label;
+          setProfileStepProvider(null);
+          handleLogin(provider, method as any, folder, label);
+        }}
+      />
     );
   }
 
-  // ── Method selection view ──
   if (selectedProvider && !showEmailDrawer && !showConfirm) {
-    const methods = parseAuthMethods(
-      (selectedProvider as any).auth_method ?? (selectedProvider as any).auth_methods,
-    );
-
-    const methodMeta: Record<string, { label: string; desc: string; icon: React.ReactNode }> = {
-      google: { label: 'Google', desc: 'Sign in with your Google account via OAuth', icon: <Key size={18} /> },
-      github: { label: 'GitHub', desc: 'Sign in with your GitHub account via OAuth', icon: <Key size={18} /> },
-      x: { label: 'X / xAI', desc: 'Sign in via device code — browser will open automatically', icon: <Key size={18} /> },
-      basic: { label: 'Basic', desc: 'Enter your email and password directly — no OAuth required', icon: <Key size={18} /> },
-      microsoft: {
-        label: 'Microsoft',
-        desc: 'Sign in with your Microsoft account via OAuth',
-        icon: <AuthGlyph method="microsoft" size={20} />,
-      },
-      apple: {
-        label: 'Apple',
-        desc: 'Sign in with your Apple account via OAuth',
-        icon: <AuthGlyph method="apple" size={20} />,
-      },
-      google_github: {
-        label: 'Google / GitHub',
-        desc: 'Either provider works — same email counts as one account',
-        icon: (
-          <span style={{ display: 'inline-flex', gap: '3px' }}>
-            <AuthGlyph method="google" size={18} />
-            <AuthGlyph method="github" size={18} />
-          </span>
-        ),
-      },
-      google_github_microsoft: {
-        label: 'Google / GitHub / Microsoft',
-        desc: 'Any of the three works — same email counts as one account',
-        icon: (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <AuthGlyph method="google" size={18} />
-            <AuthGlyph method="github" size={18} />
-            <AuthGlyph method="microsoft" size={18} />
-          </span>
-        ),
-      },
-    };
-
-    const iconUrl = getFaviconUrl(selectedProvider.website_url || selectedProvider.website);
-
     return (
-      <>
-        {sharedBackdrop(() => setSelectedProvider(null))}
-        {sharedSheet(
-          <>
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: `1px solid ${$('--border')}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                flexShrink: 0,
-              }}
-            >
-              <button
-                onClick={() => setSelectedProvider(null)}
-                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              {iconUrl && (
-                <img
-                  src={iconUrl}
-                  alt={selectedProvider.provider_name}
-                  style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'contain' }}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              )}
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
-                  {selectedProvider.provider_name}
-                </div>
-                <div style={{ fontSize: '11px', color: $('--text-secondary'), opacity: 0.7 }}>
-                  Select a login method
-                </div>
-              </div>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <MergedAuthNotice methods={methods} />
-              {methods.map((method) => {
-                const meta = methodMeta[method] ?? {
-                  label: method,
-                  desc: `Sign in with ${method}`,
-                  icon: <Key size={18} />,
-                };
-                return (
-                  <MethodCard
-                    key={method}
-                    icon={meta.icon}
-                    label={meta.label}
-                    desc={meta.desc}
-                    onClick={() => handlePickMethod(selectedProvider)}
-                    disabled={loading}
-                  />
-                );
-              })}
-            </div>
-
-            {error && (
-              <div style={{ margin: '0 16px 12px', backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertCircle size={12} />
-                <span>{error}</span>
-              </div>
-            )}
-          </>,
-          '50%',
-        )}
-        <style>{`
-          @keyframes aaSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-          @keyframes aaFadeIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes aaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        `}</style>
-      </>
+      <MethodPickerDrawer
+        provider={selectedProvider}
+        loading={loading}
+        error={error}
+        onClose={() => setSelectedProvider(null)}
+        onPickMethod={(method) => handlePickMethod(selectedProvider, method)}
+      />
     );
   }
 
-  // ── Email input for browser provider ──
   if (showEmailDrawer && pendingBrowserProvider) {
     return (
-      <>
-        {sharedBackdrop(() => {
+      <EmailInputDrawer
+        emailInput={emailInput}
+        error={error}
+        emailSubmitting={emailSubmitting}
+        onEmailChange={setEmailInput}
+        onSubmit={handleEmailSubmit}
+        onClose={() => {
           setShowEmailDrawer(false);
           setPendingBrowserProvider(null);
-          setEmailInput('');
+          setEmailInput("");
           setLoading(false);
-        })}
-        {sharedSheet(
-          <>
-            <div
-              style={{
-                padding: '4px 16px 12px',
-                borderBottom: `1px solid ${$('--border')}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexShrink: 0,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '9px', backgroundColor: `color-mix(in srgb, ${$('--warn')} 12%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AlertCircle size={16} color={$('--warn')} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
-                    Enter Email
-                  </div>
-                  <div style={{ fontSize: '12px', color: $('--text-secondary'), opacity: 0.7 }}>
-                    Browser closed. Please enter your email to continue.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 500, color: $('--text-secondary'), display: 'block', marginBottom: '5px' }}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="your@email.com"
-                  style={{
-                    width: '100%',
-                    padding: '9px 11px',
-                    borderRadius: '9px',
-                    backgroundColor: $('--input-background'),
-                    border: `1px solid ${$('--border')}`,
-                    color: $('--text-primary'),
-                    fontSize: '13px',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                  autoFocus
-                />
-              </div>
-              {error && (
-                <div style={{ marginTop: '12px', backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <AlertCircle size={12} />
-                  <span>{error}</span>
-                </div>
-              )}
-            </div>
-
-            <div style={{ padding: '12px 16px 20px', borderTop: `1px solid ${$('--border')}`, display: 'flex', gap: '8px', flexShrink: 0 }}>
-              <button
-                onClick={() => {
-                  setShowEmailDrawer(false);
-                  setPendingBrowserProvider(null);
-                  setEmailInput('');
-                  setLoading(false);
-                }}
-                style={{ flex: 1, padding: '9px', borderRadius: '9px', backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`, border: 'none', color: $('--text-secondary'), fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleEmailSubmit}
-                disabled={emailSubmitting || !emailInput.trim()}
-                style={{
-                  flex: 2,
-                  padding: '9px',
-                  borderRadius: '9px',
-                  backgroundColor: $('--button-solid-background'),
-                  border: 'none',
-                  color: $('--button-solid-text'),
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: emailSubmitting ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  opacity: !emailInput.trim() ? 0.5 : 1,
-                }}
-              >
-                {emailSubmitting && <Loader2 size={13} style={{ animation: 'aaSpin 1s linear infinite' }} />}
-                {emailSubmitting ? 'Saving…' : 'Save Account'}
-              </button>
-            </div>
-          </>,
-          'auto',
-        )}
-        <style>{`
-          @keyframes aaSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-          @keyframes aaFadeIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes aaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        `}</style>
-      </>
+        }}
+      />
     );
   }
 
-  // ── Confirmation view ──
   if (showConfirm && pendingAccount) {
-    const credValue = pendingAccount.credential || pendingAccount.user_data_dir || '';
-    let credParsed: Record<string, any> | null = null;
-    try {
-      const raw = credValue.trim();
-      if (raw.startsWith('{')) credParsed = JSON.parse(raw);
-    } catch {
-      /* ignore */
-    }
     return (
-      <>
-        {sharedBackdrop(() => {
+      <ConfirmAccountDrawer
+        account={pendingAccount}
+        error={error}
+        confirmLoading={confirmLoading}
+        onChange={setPendingAccount}
+        onConfirm={handleConfirmAccount}
+        onClose={() => {
           setShowConfirm(false);
           setPendingAccount(null);
-        })}
-        {sharedSheet(
-          <>
-            <div
-              style={{
-                padding: '12px 16px 12px',
-                borderBottom: `1px solid ${$('--border')}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexShrink: 0,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: $('--text-primary') }}>
-                  Confirm Account
-                </div>
-                <div style={{ fontSize: '12px', color: $('--text-secondary'), opacity: 0.7 }}>
-                  Review captured details
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setShowConfirm(false);
-                  setPendingAccount(null);
-                }}
-                style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: 500, color: $('--text-secondary'), display: 'block', marginBottom: '5px' }}>
-                    Email / Identifier
-                  </label>
-                  <input
-                    type="email"
-                    value={pendingAccount.email || ''}
-                    onChange={(e) => setPendingAccount({ ...pendingAccount, email: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: $('--input-background'),
-                      border: 'none',
-                      color: $('--text-primary'),
-                      fontSize: '13px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      height: '34px',
-                    }}
-                  />
-                </div>
-
-                {credValue && (
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 500, color: $('--text-secondary'), display: 'block', marginBottom: '5px' }}>
-                      {pendingAccount.user_data_dir ? 'User Data Dir' : 'Credential / Token'}
-                    </label>
-                    <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {credParsed ? (
-                        Object.entries(credParsed).map(([key, val]) => (
-                          <div key={key} style={{ minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: $('--text-secondary'), marginBottom: '2px' }}>
-                              <KeyRound size={10} />
-                              {key}
-                            </div>
-                            <CopyableText value={String(val ?? '')} monospace />
-                          </div>
-                        ))
-                      ) : (
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: $('--text-secondary'), marginBottom: '2px' }}>
-                            <KeyRound size={10} />
-                            {pendingAccount.user_data_dir ? 'Path' : 'Token'}
-                          </div>
-                          <CopyableText value={credValue} monospace />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {error && (
-                  <div style={{ backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <AlertCircle size={12} />
-                    <span>{error}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ padding: '12px 16px 12px', borderTop: `1px solid ${$('--border')}`, display: 'flex', justifyContent: 'flex-end', gap: '8px', flexShrink: 0 }}>
-              <button
-                onClick={() => {
-                  setShowConfirm(false);
-                  setPendingAccount(null);
-                }}
-                style={{ padding: '8px 14px', borderRadius: '9px', backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 8%, transparent)`, border: 'none', color: $('--text-secondary'), fontSize: '12px', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmAccount}
-                disabled={confirmLoading || !pendingAccount.email}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '9px',
-                  backgroundColor: `color-mix(in srgb, ${$('--success')} 12%, transparent)`,
-                  border: 'none',
-                  color: $('--success'),
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: confirmLoading || !pendingAccount.email ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  opacity: !pendingAccount.email ? 0.5 : 1,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {confirmLoading && <Loader2 size={13} style={{ animation: 'aaSpin 1s linear infinite' }} />}
-                {confirmLoading ? 'Adding…' : 'Confirm'}
-              </button>
-            </div>
-          </>,
-          'auto',
-        )}
-        <style>{`
-          @keyframes aaSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-          @keyframes aaFadeIn { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes aaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        `}</style>
-      </>
+        }}
+      />
     );
   }
 
-  // ── Main provider selection view ──
   return (
-    <>
-      {sharedBackdrop(() => onOpenChange(false))}
-      {sharedSheet(
-        <>
-          <div
-            style={{
-              padding: '12px 16px 12px',
-              borderBottom: `1px solid ${$('--border')}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexShrink: 0,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '17px', fontWeight: 700, color: $('--text-primary'), display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Add Account
-              </div>
-              <div style={{ fontSize: '13px', color: $('--text-secondary'), opacity: 0.7, marginTop: '3px' }}>
-                Choose a provider to continue
-              </div>
-            </div>
-            <button
-              onClick={() => onOpenChange(false)}
-              style={{ padding: '6px', borderRadius: '4px', border: 'none', background: 'transparent', color: $('--text-secondary'), cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          <div style={{ position: 'relative', padding: '12px 16px 0 16px', flexShrink: 0 }}>
-            <div style={{ position: 'absolute', left: '26px', top: '12px', height: '34px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-              <Search size={14} style={{ color: $('--text-secondary') }} />
-            </div>
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search providers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px 8px 32px',
-                fontSize: '13px',
-                backgroundColor: $('--input-background'),
-                border: 'none',
-                borderRadius: '8px',
-                color: $('--text-primary'),
-                outline: 'none',
-                boxSizing: 'border-box',
-                height: '34px',
-              }}
-            />
-          </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px' }}>
-            {loadingProviders ? (
-              <div style={{ height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', color: $('--text-secondary') }}>
-                <Loader2 size={24} style={{ animation: 'aaSpin 1s linear infinite' }} />
-                <span style={{ fontSize: '12px' }}>Loading providers…</span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {filteredProviders.map((p) => (
-                  <ProviderRow
-                    key={p.provider_id}
-                    provider={p}
-                    onSelect={() => setSelectedProvider(p)}
-                    onContextMenu={(e, provider) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setContextMenu({ provider, x: e.clientX, y: e.clientY });
-                    }}
-                    loading={loading}
-                  />
-                ))}
-                {filteredProviders.length === 0 && (
-                  <div style={{ textAlign: 'center', color: $('--text-secondary'), padding: '20px', fontSize: '12px' }}>
-                    No providers found
-                  </div>
-                )}
-              </div>
-            )}
-
-            {contextMenu &&
-              ReactDOM.createPortal(
-                <div
-                  style={{
-                    position: 'fixed',
-                    top: contextMenu.y,
-                    left: contextMenu.x,
-                    backgroundColor: $('--dropdown-background'),
-                    border: `1px solid ${$('--border')}`,
-                    borderRadius: '10px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-                    zIndex: 99999,
-                    minWidth: '200px',
-                    overflow: 'hidden',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={() => handleLogin(contextMenu.provider, 'basic')}
-                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', backgroundColor: 'transparent', color: $('--text-primary'), fontSize: '12px', cursor: 'pointer', textAlign: 'left', borderBottom: `1px solid ${$('--border')}` }}
-                  >
-                    <span style={{ fontSize: '14px' }}>🌐</span>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>MITM Login</div>
-                      <div style={{ fontSize: '10px', opacity: 0.6 }}>Dễ bị ban, nhanh hơn</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleLogin(contextMenu.provider, 'cdp')}
-                    style={{ width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', backgroundColor: 'transparent', color: $('--text-primary'), fontSize: '12px', cursor: 'pointer', textAlign: 'left' }}
-                  >
-                    <span style={{ fontSize: '14px' }}>🛡️</span>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>CDP Login</div>
-                      <div style={{ fontSize: '10px', opacity: 0.6 }}>Khó bị ban, chậm hơn</div>
-                    </div>
-                  </button>
-                </div>,
-                document.body,
-              )}
-
-            {error && (
-              <div style={{ marginTop: '10px', backgroundColor: `color-mix(in srgb, ${$('--error')} 8%, transparent)`, borderRadius: '8px', padding: '8px 10px', fontSize: '12px', color: $('--error'), display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertCircle size={12} />
-                <span>{error}</span>
-              </div>
-            )}
-          </div>
-
-          {loading && (
-            <div style={{ padding: '10px 16px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', color: $('--text-secondary'), fontSize: '12px', flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Loader2 size={14} style={{ animation: 'aaSpin 1s linear infinite' }} />
-                Logging in…
-              </div>
-              <button
-                onClick={() => {
-                  onOpenChange(false);
-                  setLoading(false);
-                }}
-                style={{ padding: '5px 10px', borderRadius: '6px', backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`, border: 'none', color: $('--text-secondary'), fontSize: '11px', fontWeight: 500, cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-        </>,
-      )}
-      <style>{`
-        @keyframes aaSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes aaFadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes aaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-    </>
+    <ProviderListDrawer
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      loadingProviders={loadingProviders}
+      filteredProviders={filteredProviders}
+      loading={loading}
+      error={error}
+      onSelectProvider={setSelectedProvider}
+      onClose={() => onOpenChange(false)}
+      onCancelLogin={() => {
+        onOpenChange(false);
+        setLoading(false);
+      }}
+    />
   );
 };
 

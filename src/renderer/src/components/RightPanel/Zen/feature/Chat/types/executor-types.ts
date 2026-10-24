@@ -37,6 +37,8 @@ export interface ExecutorContext {
   activeTargetId?: string | null;
   /** Module ID for the current conversation (code:projectId, emulate:targetId, ...) */
   moduleId?: string;
+  /** Folder path for the current conversation (required for conversation storage operations) */
+  folderPath?: string | null;
 }
 
 // Base executor interface

@@ -56,7 +56,6 @@ import { exec as execCallback, spawn, ChildProcess } from 'child_process';
 // ── External ──
 import chokidar, { FSWatcher } from 'chokidar';
 
-
 // ── Internal ──
 import { logger } from '../utils/logger';
 
@@ -474,7 +473,13 @@ export function setupFSHandlers() {
 
       proc.on('error', (err) => {
         if (!activeSearches.delete(searchId)) return;
-        send('fs:search-done', { searchId, totalMatches, totalFiles, truncated, error: err.message });
+        send('fs:search-done', {
+          searchId,
+          totalMatches,
+          totalFiles,
+          truncated,
+          error: err.message,
+        });
       });
 
       proc.on('close', (code) => {
@@ -547,10 +552,8 @@ export function setupFSHandlers() {
 
   // Shell: open path in OS file manager
   ipcMain.handle('shell:open-path', async (_, targetPath: string) => {
-    console.log('[DEBUG] shell:open-path called', { targetPath, exists: fs.existsSync(targetPath) });
     const { shell } = await import('electron');
     const result = await shell.openPath(targetPath);
-    console.log('[DEBUG] shell:open-path result', JSON.stringify(result));
     return result;
   });
 

@@ -16,14 +16,68 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { ipcMain, BrowserWindow, dialog } from 'electron';
+import { ipcMain, BrowserWindow, dialog, shell } from 'electron';
+import { spawn, execSync } from 'child_process';
+import * as fs from 'fs';
 import * as os from 'os';
+import * as path from 'path';
 import { logger } from '../utils/logger';
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows();
   return windows.length > 0 ? windows[0] : null;
+}
+
+function findChromiumExecutable(): string {
+  if (process.platform === 'win32') {
+    const progFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
+    const progFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+    const localAppData =
+      process.env['LocalAppData'] ||
+      (process.env['USERPROFILE'] ? path.join(process.env['USERPROFILE'], 'AppData', 'Local') : '');
+    const candidates = [
+      path.join(progFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(progFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(progFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      path.join(progFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      path.join(localAppData, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      path.join(progFiles, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+      path.join(progFilesX86, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+      path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+    ];
+    for (const c of candidates) {
+      if (c && fs.existsSync(c)) return c;
+    }
+  } else if (process.platform === 'darwin') {
+    const candidates = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+      '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+  }
+
+  for (const b of [
+    'google-chrome',
+    'google-chrome-stable',
+    'chromium',
+    'chromium-browser',
+    'microsoft-edge',
+    'brave-browser',
+  ]) {
+    try {
+      execSync(`which ${b}`, { stdio: 'ignore' });
+      return b;
+    } catch {
+      continue;
+    }
+  }
+  return '';
 }
 
 // ─── Setup ──────────────────────────────────────────────────────────────
@@ -74,6 +128,50 @@ export function setupDialogHandlers(): void {
     },
   );
 
+
+  // ── Open Chromium with a specific profile (no CDP) ──
+  ipcMain.handle('openBrowserWithProfile', async (_event, message: any) => {
+    const url = message?.url as string | undefined;
+    const userDataDir = message?.userDataDir as string | undefined;
+    const profileDirectory = message?.profileDirectory as string | undefined;
+
+    if (!url || typeof url !== 'string') return;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
+    } catch {
+      return;
+    }
+
+    const executable = findChromiumExecutable();
+    if (!executable) {
+      logger.warn('[openBrowserWithProfile] No Chromium found, falling back to openExternal');
+      await shell.openExternal(url).catch(() => undefined);
+      return;
+    }
+
+    const args: string[] = ['--no-first-run', '--no-default-browser-check'];
+    if (userDataDir) {
+      try {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      } catch {
+        logger.warn('[openBrowserWithProfile] Cannot create userDataDir:', userDataDir);
+      }
+      args.push(`--user-data-dir=${userDataDir}`);
+    }
+    if (profileDirectory && /^[\w .-]+$/.test(profileDirectory)) {
+      args.push(`--profile-directory=${profileDirectory}`);
+    }
+    args.push(url);
+
+    try {
+      const child = spawn(executable, args, { detached: true, stdio: 'ignore' });
+      child.unref();
+    } catch (e: any) {
+      logger.error('[openBrowserWithProfile] Error:', e);
+      await shell.openExternal(url).catch(() => undefined);
+    }
+  });
 
   // ── Get System Info ──
   ipcMain.handle('system:get-info', async () => {

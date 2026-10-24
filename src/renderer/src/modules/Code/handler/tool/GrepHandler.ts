@@ -17,6 +17,18 @@
 import { SecurityValidator } from '../../utils/security';
 
 // ─── Constants ──────────────────────────────────────────────────────────
+const isAbsolutePath = (p: string): boolean =>
+  p.startsWith('/') || p.startsWith('file://') || /^[A-Za-z]:[\\/]/.test(p);
+
+async function resolveAgainstProject(p?: string): Promise<string | undefined> {
+  if (!p || isAbsolutePath(p)) return p;
+  const { useCodeStore } = await import('../../hooks/useCodeStore');
+  const state = useCodeStore.getState();
+  const baseDir = state.projects.find((proj) => proj.id === state.currentProjectId)?.path;
+  if (!baseDir) return p;
+  return baseDir.endsWith('/') ? baseDir + p : baseDir + '/' + p;
+}
+
 const MAX_GREP_FILES = 500;
 const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024; // 1 MB
 const EXCLUDE_PATTERNS = [
@@ -85,8 +97,8 @@ export class GrepHandler {
 
   private async executeGrep(action: GrepAction): Promise<GrepResult> {
     const searchTerm = action.search_term;
-    const filePath = action.file_path;
-    const folderPath = action.folder_path;
+    const filePath = await resolveAgainstProject(action.file_path);
+    const folderPath = await resolveAgainstProject(action.folder_path);
 
     if (!searchTerm || searchTerm.trim().length === 0) {
       throw new Error('Missing search term');
@@ -192,8 +204,9 @@ export class GrepHandler {
           });
         }
       }
-    } catch {
-      // Skip binary files or files that can't be read
+    } catch (e) {
+      // Debug log - có thể xóa sau khi fix
+      console.log('[DEBUG][GrepHandler] read file failed:', { filePath, error: String(e) });
     }
 
     return { matches };

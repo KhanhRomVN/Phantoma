@@ -1,4 +1,4 @@
-import { MarkdownRenderer } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/other/MarkdownRenderer';
+import { MarkdownRenderer } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
 import { $ } from '@renderer/utils/color';
 
 interface SkillDetailAboutProps {

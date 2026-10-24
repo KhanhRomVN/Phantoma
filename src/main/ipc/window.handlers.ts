@@ -20,7 +20,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Electron ──
-import { BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 
 // ─── Functions ──────────────────────────────────────────────────────────
 export function setupWindowHandlers(): void {
@@ -49,11 +49,15 @@ export function setupWindowHandlers(): void {
   });
 
   // Close window
-  ipcMain.handle('window:close', () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win) {
-      win.close();
-    }
+  ipcMain.handle('window:close', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? BrowserWindow.getFocusedWindow();
+    win?.destroy();
+    app.quit();
+    // ASSUMED: nếu app.quit() bị treo (tiến trình con, before-quit chặn) thì ép thoát sau 1.5s
+    setTimeout(() => {
+      app.exit(0);
+      process.kill(process.pid, 'SIGKILL');
+    }, 1500);
   });
 
   // Check if window is maximized

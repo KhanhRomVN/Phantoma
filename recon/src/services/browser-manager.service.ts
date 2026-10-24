@@ -65,9 +65,6 @@ class BrowserManagerService extends EventEmitter {
     };
 
     this.sessions.set(targetId, session);
-
-    console.log(`[BrowserManager] Launched browser for target ${targetId} (PID: ${session.pid})`);
-
     return session;
   }
 
@@ -83,7 +80,6 @@ class BrowserManagerService extends EventEmitter {
     try {
       await session.browser.close();
       this.sessions.delete(targetId);
-      console.log(`[BrowserManager] Closed browser for target ${targetId}`);
       return true;
     } catch (err) {
       console.error(`[BrowserManager] Error closing browser for ${targetId}:`, err);

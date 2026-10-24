@@ -1,4 +1,4 @@
-import type { FileMutationTool } from '../../feature/Chat/constants/constants';
+import type { FileMutationTool } from '../../feature/Chat/constants/tag-registry';
 
 export interface UploadedFile {
   id: string;
@@ -113,6 +113,9 @@ export interface MessageInputProps {
   onConversationMemoryToggle?: () => void;
   /** Callback khi toggle tool format thay đổi */
   onConversationToolFormatToggle?: () => void;
+
+  /** Workflow agent ID nếu conversation này là một workflow agent (orchestrator/planner/executor/reviewer) */
+  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
 }
 
 export interface ToggleButtonProps {

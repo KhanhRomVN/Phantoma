@@ -110,6 +110,15 @@ function AgentView({
     if (isVisibleRef.current) onConversationChangeRef.current?.(conversationId);
   }, []);
 
+  // Reset to Home on window reload/refresh
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      setCurrentChat(null);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   const handleHomeSendMessage = useCallback(
     (
       content: string,
@@ -120,6 +129,7 @@ function AgentView({
         useSkillEnabled?: boolean;
         memoryEnabled?: boolean;
         toolFormat?: 'xml' | 'json';
+        workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
       },
     ) => {
       setInitialMessageData({ content, files, model, account, conversationOverrides });
@@ -288,15 +298,6 @@ export function AgentPanel({
     reconActiveTargetId,
     activeDesignId,
   ]);
-
-  useEffect(() => {
-    console.log('[DEBUG][AgentPanel] state', {
-      activeFeature,
-      currentProjectId,
-      activeKey,
-      openedKeys: Array.from(openedKeysRef.current),
-    });
-  }, [activeFeature, currentProjectId, activeKey]);
 
   // Khi activeKey thay đổi, thêm vào openedKeys
   useEffect(() => {

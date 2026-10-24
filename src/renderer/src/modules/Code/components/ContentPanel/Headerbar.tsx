@@ -8,8 +8,10 @@
  * ------------------------------------------------------------------
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import type { ContentViewMode } from '../../hooks/useCodeStore';
 import {
+  Workflow,
   ArrowDown,
   ArrowUp,
   Download,
@@ -29,6 +31,7 @@ import {
   Palette,
   FileText,
   Link2,
+  Settings,
 } from 'lucide-react';
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { useDesignStore } from '../../hooks/useDesignStore';
@@ -54,6 +57,26 @@ const CONTENT_HEADER_HEIGHT = 44;
 
 export function ContentHeaderBar() {
   const contentViewMode = useCodeStore((s) => s.contentViewMode);
+  const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
+  const lastViewModeRef = useRef<ContentViewMode>('workspace');
+
+  useEffect(() => {
+    if (contentViewMode !== 'agents' && contentViewMode !== 'settings') {
+      lastViewModeRef.current = contentViewMode;
+    }
+  }, [contentViewMode]);
+
+  const hasOrchestrator = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === s.currentProjectId);
+    return !!project?.workspacePanels?.some(
+      (w) => w.workflowAgentId === 'orchestrator' && w.sessionId === s.activeWorkspaceSessionId,
+    );
+  });
+
+  const toggleAgents = () =>
+    setContentViewMode(contentViewMode === 'agents' ? lastViewModeRef.current : 'agents');
+  const toggleSettings = () =>
+    setContentViewMode(contentViewMode === 'settings' ? lastViewModeRef.current : 'settings');
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const projectName = useCodeStore((s) => {
     const p = s.projects.find((p) => p.id === s.currentProjectId);
@@ -145,6 +168,7 @@ export function ContentHeaderBar() {
     }
   });
   const [archiveOpen, setArchiveOpen] = useState(false);
+
 
   const handleLayoutChange = (layout: 'board' | 'table' | 'timeline') => {
     setTaskLayout(layout);
@@ -326,6 +350,26 @@ export function ContentHeaderBar() {
             </>
           )}
 
+          {contentViewMode === 'settings' && (
+            <>
+              <span className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 text-white bg-gradient-to-br from-sky-500 to-primary">
+                <Settings className="w-3.5 h-3.5" />
+              </span>
+              <span className="text-sm font-semibold text-text-primary truncate">Settings</span>
+            </>
+          )}
+
+          {contentViewMode === 'agents' && (
+            <>
+              <span className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
+                <Workflow className="w-3.5 h-3.5" />
+              </span>
+              <span className="text-sm font-semibold text-text-primary truncate">
+                Agent Workflow
+              </span>
+            </>
+          )}
+
           {contentViewMode === 'workspace' && activeSession && (
             <>
               <span
@@ -499,6 +543,30 @@ export function ContentHeaderBar() {
             </button>
           )}
 
+          {(hasOrchestrator || contentViewMode === 'agents') && (
+            <button
+              onClick={toggleAgents}
+              title={contentViewMode === 'agents' ? 'Close Agent Workflow' : 'Open Agent Workflow'}
+              className={`w-[26px] h-[26px] rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+                contentViewMode === 'agents'
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary'
+              }`}
+            >
+              <Workflow className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {contentViewMode === 'settings' && (
+            <button
+              onClick={toggleSettings}
+              title="Close Settings"
+              className="w-[26px] h-[26px] rounded-md flex items-center justify-center transition-colors cursor-pointer bg-primary/15 text-primary hover:bg-primary/25"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {/* Global More Options */}
           <Dropdown trigger="click" align="end">
             <DropdownTrigger asChild>
@@ -520,6 +588,7 @@ export function ContentHeaderBar() {
         onClose={() => setArchiveOpen(false)}
         projectPath={projectPath}
       />
+
     </>
   );
 }

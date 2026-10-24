@@ -514,6 +514,12 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         editorInstance.current.addCommand(
           window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS,
           () => {
+            // Debug log - có thể xóa sau khi fix
+            console.log('[DEBUG][CodeBlock] Monaco Ctrl+S fired', {
+              fileId,
+              filePath,
+              hasEditor: !!editorInstance.current,
+            });
             // Save file to disk
             if (fileId && filePath) {
               const content = editorInstance.current.getValue();
@@ -521,6 +527,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                 .invoke('fs:write-file', filePath, content)
                 .then(() => {
                   markFileAsSaved(fileId);
+                  setOriginalContent(fileId, content);
                 })
                 .catch((err: Error) => {
                   console.error('[CodeBlock] ❌ Failed to save file:', err);
@@ -531,6 +538,11 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
         // Handle content changes
         editorInstance.current.onDidChangeModelContent(() => {
+          console.log('[DEBUG][CodeBlock] Content changed', {
+            fileId,
+            filePath,
+            isExternal: isExternalUpdateRef.current,
+          });
           // Skip if this is an external update (from file watcher)
           if (isExternalUpdateRef.current) {
             isExternalUpdateRef.current = false;
@@ -667,6 +679,41 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
       previousCodeRef.current = code;
     }
   }, [code, fileId, enableLSP, filePath, language, markFileAsSaved, setOriginalContent]);
+
+  // Fallback Ctrl+S: editor is visible but not focused (e.g. right after switching tabs)
+  useEffect(() => {
+    if (!fileId || !filePath) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.shiftKey || e.altKey || e.key.toLowerCase() !== 's') return;
+      const el = editorRef.current;
+      const editor = editorInstance.current;
+      // Debug log - có thể xóa sau khi fix
+      console.log('[DEBUG][CodeBlock] Fallback Ctrl+S check', {
+        fileId,
+        filePath,
+        hasEl: !!el,
+        hasEditor: !!editor,
+        hasTextFocus: editor?.hasTextFocus?.(),
+        visibility: el ? getComputedStyle(el).visibility : null,
+        hasOffsetParent: el ? el.offsetParent !== null : null,
+      });
+      if (!el || !editor || editor.hasTextFocus()) return;
+      if (getComputedStyle(el).visibility === 'hidden' || el.offsetParent === null) return;
+      const content = editor.getValue();
+      window.api
+        .invoke('fs:write-file', filePath, content)
+        .then(() => {
+          console.log('[DEBUG][CodeBlock] Fallback save OK', { fileId, filePath });
+          markFileAsSaved(fileId);
+          setOriginalContent(fileId, content);
+        })
+        .catch((err: Error) => {
+          console.error('[CodeBlock] Failed to save file:', err);
+        });
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [fileId, filePath, markFileAsSaved, setOriginalContent]);
 
   // Update word wrap dynamically
   useEffect(() => {

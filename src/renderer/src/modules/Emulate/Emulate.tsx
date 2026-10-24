@@ -32,7 +32,7 @@ import useHealthCheck from './hooks/useHealthCheck';
 import { emulateApi } from './services/emulate-api.service';
 import { runtimeApi } from './services/runtime-api.service';
 import { installRuntimeWsBridge, wsBus } from './services/runtime-ws-bridge';
-import { EmulateController } from '../../controller/EmulateController';
+import { EmulateController } from './controller/EmulateController';
 
 // ── UI ──
 import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
@@ -427,7 +427,6 @@ export default React.memo(function Emulate({
             await runtimeApi.terminateApp(tid);
           } catch (err) {
             // Ignore errors here, as server might be down or unreachable
-            console.debug(`[Emulate] Could not reach server to terminate ${tid}:`, err);
           } finally {
             // Always update local UI state regardless of API success/failure
             stopTargetRef.current(tid);

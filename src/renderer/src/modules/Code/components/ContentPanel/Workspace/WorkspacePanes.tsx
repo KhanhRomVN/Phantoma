@@ -13,6 +13,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useMemo,
   useState,
   useRef,
   type CSSProperties,
@@ -25,7 +26,7 @@ import {
   Globe,
   FileText,
   MonitorPlay,
-  Workflow,
+
   X,
   Circle,
 } from 'lucide-react';
@@ -35,9 +36,10 @@ import { CodeTerminal } from './Terminal';
 import { CodeBrowser } from './Browser';
 import { CodeFile } from './File';
 import { CodeAgent } from './Zen';
-import { AgentWorkflow } from './AgentWorkflow';
+
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { useGitFileStatus } from '../../../hooks/useGitFileStatus';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
 import type { SessionStatus } from '../../ProjectPanel/SessionCard';
 import {
@@ -84,11 +86,7 @@ export function getPanelMeta(
       };
     case 'website':
       return { icon: <Globe className={cn(iconClass, 'text-sky-400')} />, label: 'Browser' };
-    case 'workflow':
-      return {
-        icon: <Workflow className={cn(iconClass, 'text-violet-400')} />,
-        label: 'AgentWorkflow',
-      };
+
     case 'file':
       return { icon: <FileText className={cn(iconClass, 'text-slate-400')} />, label: 'File' };
     case 'agent':
@@ -114,7 +112,7 @@ export function getPanelMeta(
 }
 
 /** Panel types offered by the "+" dropdown. */
-const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent', 'workflow'];
+const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent'];
 
 // ─── Tab ──────────────────────────────────────────────────────────────
 
@@ -142,6 +140,15 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
   // If the structure doesn't have providerId directly on panel, we might need to check how state flows.
   // However, typically in these apps, the panel object is updated with metadata.
   // Let's stick to the visual requirement: if it's a terminal AND has an agent, show favicon + name.
+
+  const gitRoot = useCodeStore((s) => {
+    if (panel.type !== 'file') return undefined;
+    const project = s.projects.find((p) => p.id === s.currentProjectId);
+    return project?.explorerRoot ?? project?.path;
+  });
+  const gitStatus = useGitFileStatus(gitRoot);
+  const fileGitStatus =
+    panel.type === 'file' && panel.filePath ? gitStatus[panel.filePath] : undefined;
 
   const agentId = (panel as any).providerId; // Accessing potentially dynamic field
   const faviconUrl = agentId ? getAgentFavicon(agentId) : undefined;
@@ -225,7 +232,12 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
       )}
 
       <span
-        className={cn(isAgentTab && 'max-w-[180px] truncate', panel.preview && !isDirty && 'italic')}
+        className={cn(
+          isAgentTab && 'max-w-[180px] truncate',
+          panel.preview && !isDirty && 'italic',
+          fileGitStatus === 'added' && 'text-emerald-500',
+          fileGitStatus === 'modified' && 'text-orange-400',
+        )}
         style={{ pointerEvents: 'none' }}
       >
         {showAgentBadge ? agentId : displayTitle}
@@ -384,8 +396,8 @@ interface PanelBodyProps {
   onAgentConversationChange?: (panelId: string, conversationId: string | null) => void;
   onAgentTitleChange?: (panelId: string, title: string | null) => void;
   onPanelPatch?: (panelId: string, patch: Partial<WorkspacePanel>) => void;
-  onOpenWorkflowAgent?: (agentId: string) => void;
-  workflowLinks?: Record<string, { title: string | null }>;
+  /** True when some Zen tab of this branch is already the Orchestrator. */
+  orchestratorTaken?: boolean;
 }
 
 const PanelBody = memo(function PanelBody({
@@ -399,8 +411,7 @@ const PanelBody = memo(function PanelBody({
   onAgentConversationChange,
   onAgentTitleChange,
   onPanelPatch,
-  onOpenWorkflowAgent,
-  workflowLinks,
+  orchestratorTaken = false,
 }: PanelBodyProps) {
   const handleProvider = useCallback(
     (providerId: string | null, status?: 'running' | 'idle') =>
@@ -445,6 +456,22 @@ const PanelBody = memo(function PanelBody({
     [onPanelPatch, panel.id],
   );
 
+  const isOrchestrator = panel.workflowAgentId === 'orchestrator';
+  const multiAgent = useMemo(
+    () => ({
+      enabled: isOrchestrator,
+      blocked: orchestratorTaken && !isOrchestrator,
+      toggle: () =>
+        onPanelPatch?.(
+          panel.id,
+          isOrchestrator
+            ? { workflowAgentId: null, title: 'Zen' }
+            : { workflowAgentId: 'orchestrator', title: 'Zen - Orchestrator' },
+        ),
+    }),
+    [isOrchestrator, orchestratorTaken, onPanelPatch, panel.id],
+  );
+
   switch (panel.type) {
     case 'terminal': {
       // Use the panel's stored CWD if available, otherwise fallback to the current workspace path.
@@ -473,8 +500,7 @@ const PanelBody = memo(function PanelBody({
       );
     case 'file':
       return <CodeFile filePath={panel.filePath} fileId={panel.id} />;
-    case 'workflow':
-      return <AgentWorkflow onOpenAgent={onOpenWorkflowAgent} links={workflowLinks} />;
+
     case 'agent':
       return (
         <CodeAgent
@@ -482,6 +508,7 @@ const PanelBody = memo(function PanelBody({
           onConversationChange={handleAgentConversation}
           onTitleChange={handleAgentTitle}
           workflowAgentId={panel.workflowAgentId ?? undefined}
+          multiAgent={multiAgent}
         />
       );
     case 'emulator':
@@ -573,8 +600,6 @@ export interface WorkspacePanesProps {
   onAgentConversationChange?: (panelId: string, conversationId: string | null) => void;
   onAgentTitleChange?: (panelId: string, title: string | null) => void;
   onPanelPatch?: (panelId: string, patch: Partial<WorkspacePanel>) => void;
-  onOpenWorkflowAgent?: (agentId: string) => void;
-  workflowLinks?: Record<string, { title: string | null }>;
 }
 
 export const WorkspacePanes = memo(function WorkspacePanes({
@@ -595,13 +620,12 @@ export const WorkspacePanes = memo(function WorkspacePanes({
   onAgentConversationChange,
   onAgentTitleChange,
   onPanelPatch,
-  onOpenWorkflowAgent,
-  workflowLinks,
 }: WorkspacePanesProps) {
   // Divider positions, derived from which panes exist
   const leftRect = rects.tl ?? rects.bl;
   const rightRect = rects.tr ?? rects.br;
   const hasColumnDivider = !!leftRect && !!rightRect;
+  const orchestratorTaken = panels.some((p) => p.workflowAgentId === 'orchestrator');
 
   return (
     <>
@@ -633,8 +657,7 @@ export const WorkspacePanes = memo(function WorkspacePanes({
                   onAgentConversationChange={onAgentConversationChange}
                   onAgentTitleChange={onAgentTitleChange}
                   onPanelPatch={onPanelPatch}
-                  onOpenWorkflowAgent={onOpenWorkflowAgent}
-                  workflowLinks={workflowLinks}
+                  orchestratorTaken={orchestratorTaken}
                 />
               </div>
             </div>

@@ -152,7 +152,6 @@ interface ConversationMenuProps {
   onDelete?: () => void;
   onExportAsJson?: () => void;
   onNavigate?: (target: NavTarget) => void;
-  onGoHome?: () => void;
 }
 
 const ConversationMenu: React.FC<ConversationMenuProps> = ({
@@ -161,7 +160,6 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
   onDelete,
   onExportAsJson,
   onNavigate,
-  onGoHome,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [hov, setHov] = React.useState(false);
@@ -174,11 +172,6 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
     danger?: boolean;
     sep?: boolean;
   }[] = [
-    {
-      label: 'Home',
-      icon: <Home size={13} className="text-primary" />,
-      action: onGoHome,
-    },
     ...NAV_ITEMS.map(({ id, label, icon: Icon, color }) => ({
       label,
       icon: <Icon size={13} className={color} />,
@@ -352,7 +345,7 @@ const StatsBadge: React.FC<StatsBadgeProps> = ({
 
       {tooltipPos && (
         <div
-          className="fixed z-[99999] bg-[var(--sidebar-bg,var(--input-bg))] border border-border rounded-[10px] px-3 py-2.5 min-w-[200px] shadow-[0_4px_24px_rgba(0,0,0,0.28)] pointer-events-none text-[11px] text-text-primary leading-normal"
+          className="fixed z-[99999] bg-tooltip-background border border-border rounded-xl px-3 py-2.5 min-w-[200px] shadow-2xl pointer-events-none text-[11px] text-text-primary leading-normal"
           style={{ left: tooltipPos.x, top: tooltipPos.y, transform: 'translateX(-100%)' }}
         >
           <div className="text-[10px] font-bold uppercase tracking-[0.07em] opacity-50 mb-1.5">
@@ -440,8 +433,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   }, [derivedTitle, onTitleChange]);
 
   return (
-    <div className="flex flex-col border-b border-border bg-background">
-      <div className="px-4 py-2 flex flex-col gap-1">
+    <div className="flex flex-col bg-background">
+      <div
+        className="px-4 py-2 flex flex-col gap-1 w-full border-x border-b border-border rounded-bl-md rounded-br-md"
+        style={{ maxWidth: '680px', margin: '0 auto' }}
+      >
         {/* Row 1: title | [search] [3-dot] */}
         <div className="flex items-center gap-1.5 min-w-0">
           <span
@@ -450,6 +446,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           >
             {derivedTitle}
           </span>
+
+          <SqButton title="Home" onClick={() => onGoHome?.()}>
+            <Home size={15} />
+          </SqButton>
 
           <SqButton
             title="Search in chat"
@@ -473,7 +473,6 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             onDelete={onDeleteConversation}
             onExportAsJson={onExportAsJson}
             onNavigate={onOpenSubView}
-            onGoHome={onGoHome}
           />
         </div>
 

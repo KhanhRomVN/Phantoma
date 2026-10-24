@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------
  * Manages WebSocket connections for streaming runtime events (CDP, Proxy, etc.)
  * to connected Electron Renderers.
- * 
+ *
  * Replaces the previous SSE-based approach for better performance and binary support.
  * ------------------------------------------------------------------
  */
@@ -17,7 +17,7 @@ import { logger } from '../utils/logger';
 
 export interface WssMessage {
   type: string; // Event channel name e.g., 'cdp:request'
-  data: any;    // Payload
+  data: any; // Payload
 }
 
 class WssHubService {
@@ -31,8 +31,6 @@ class WssHubService {
     if (this.wss) return;
 
     this.wss = new WebSocketServer({ server: httpServer, path: '/ws/events' });
-    logger.info('[WssHub] WebSocket server initialized on /ws/events');
-
     this.wss.on('connection', (ws: WebSocket, req) => {
       this.handleConnection(ws, req);
     });
@@ -43,14 +41,12 @@ class WssHubService {
 
   private handleConnection(ws: WebSocket, req: http.IncomingMessage): void {
     const clientId = Math.random().toString(36).substring(7);
-    logger.info(`[WssHub] New client connected: ${clientId}`);
-    
     this.clients.add(ws);
 
     // Send initial handshake/welcome message
     this.sendToClient(ws, {
       type: 'connected',
-      data: { clientId, timestamp: Date.now(), status: 'ready' }
+      data: { clientId, timestamp: Date.now(), status: 'ready' },
     });
 
     ws.on('message', (message) => {
@@ -64,17 +60,17 @@ class WssHubService {
 
     const handleDisconnect = () => {
       if (!this.clients.has(ws)) return; // Prevent double execution
-      
-      logger.info(`[WssHub] Client disconnected: ${clientId}. Remaining clients: ${this.clients.size - 1}`);
       this.clients.delete(ws);
 
       // CRITICAL CLEANUP LOGIC:
-      // If no WebSocket clients are left connected, it implies the Renderer 
-      // has crashed, refreshed, or closed. We must terminate all orphaned 
+      // If no WebSocket clients are left connected, it implies the Renderer
+      // has crashed, refreshed, or closed. We must terminate all orphaned
       // browser processes to prevent resource leaks and zombie windows.
       if (this.clients.size === 0 && processManager.hasActiveProcesses()) {
-        logger.warn('[WssHub] All clients disconnected. Auto-terminating active browser processes...');
-        processManager.terminateAll().catch(err => {
+        logger.warn(
+          '[WssHub] All clients disconnected. Auto-terminating active browser processes...',
+        );
+        processManager.terminateAll().catch((err) => {
           logger.error('[WssHub] Failed during auto-cleanup:', err);
         });
       }
@@ -95,13 +91,11 @@ class WssHubService {
       case 'PING':
         this.broadcast({ type: 'pong', data: { timestamp: Date.now() } }, clientId);
         break;
-      
+
       case 'SUBSCRIBE_TARGET':
-        logger.info(`[WssHub] Client ${clientId} subscribed to target: ${command.targetId}`);
         break;
 
       default:
-        logger.debug(`[WssHub] Unknown action from ${clientId}: ${command.action}`);
     }
   }
 
@@ -135,7 +129,7 @@ class WssHubService {
     }
 
     const payload = JSON.stringify(message);
-    
+
     let sentCount = 0;
     for (const client of this.clients) {
       if (client.readyState === WebSocket.OPEN) {
@@ -146,12 +140,6 @@ class WssHubService {
           logger.error(`[WssHub] Failed to send to client:`, err);
         }
       }
-    }
-    
-    // Debug log only for high-value events to avoid spamming console too much
-    if (sentCount > 0 && (message.type === 'cdp:request' || message.type === 'cdp:response')) {
-       // Uncomment below if you want to see every single packet in backend logs
-       // logger.info(`[WssHub] Broadcasted ${message.type} to ${sentCount} client(s)`);
     }
   }
 
@@ -169,7 +157,6 @@ class WssHubService {
       this.wss.close();
       this.wss = null;
       this.clients.clear();
-      logger.info('[WssHub] WebSocket server shut down.');
     }
   }
 }
