@@ -18,6 +18,7 @@ export interface ConversationItem {
   uniqueTaskCount?: number;
   providerId?: string;
   modelId?: string;
+  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
 
   /** Per-conversation override: bật/tắt SKILL trong system prompt */
   useSkillEnabled?: boolean;

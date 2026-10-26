@@ -41,7 +41,7 @@ export interface WorkspacePanel {
   sessionId?: string;
   /** Detected AI Provider ID (for terminals) */
   providerId?: string | null;
-  
+
   // ── NEW: ZenCLI session binding for auto-resume ──
   /** Conversation ID của ZenCLI đang bind với terminal này. null nếu chưa bind. */
   zencliConversationId?: string | null;
@@ -199,8 +199,13 @@ export function getPaneAtPoint(
 // ─── Reducer ──────────────────────────────────────────────────────────
 
 export type WorkspaceAction =
-  | { type: 'reset'; panels: WorkspacePanel[]; activeId: string | null; layout?: WorkspaceLayoutSnapshot }
-  | { type: 'add'; panel: WorkspacePanel; pane?: PaneId }
+  | {
+      type: 'reset';
+      panels: WorkspacePanel[];
+      activeId: string | null;
+      layout?: WorkspaceLayoutSnapshot;
+    }
+  | { type: 'add'; panel: WorkspacePanel; pane?: PaneId; background?: boolean }
   | { type: 'close'; id: string }
   | { type: 'select'; pane: PaneId; id: string }
   | { type: 'focus'; id: string }
@@ -227,10 +232,13 @@ export function createInitialState(
     const paneTabs = emptyTabs();
     const paneActive = noActive();
     for (const pane of PANE_IDS) {
-      paneTabs[pane] = (layout.paneTabs?.[pane] ?? []).filter((id) => valid.has(id) && !placed.has(id));
+      paneTabs[pane] = (layout.paneTabs?.[pane] ?? []).filter(
+        (id) => valid.has(id) && !placed.has(id),
+      );
       paneTabs[pane].forEach((id) => placed.add(id));
       const saved = layout.paneActive?.[pane];
-      paneActive[pane] = saved && paneTabs[pane].includes(saved) ? saved : (paneTabs[pane][0] ?? null);
+      paneActive[pane] =
+        saved && paneTabs[pane].includes(saved) ? saved : (paneTabs[pane][0] ?? null);
     }
     const orphans = ids.filter((id) => !placed.has(id));
     if (orphans.length > 0) {
@@ -275,7 +283,6 @@ function detachPanel(state: WorkspaceState, id: string) {
   return { paneTabs, paneActive };
 }
 
-
 /** Keep the layout tidy: a lone pane always lives in `tl`; focus never points at an empty pane. */
 function normalize(state: WorkspaceState): WorkspaceState {
   const occupied = getOccupiedPanes(state.paneTabs);
@@ -304,12 +311,20 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       const base = state;
       const pane: PaneId = action.pane ?? state.focusedPane;
       const { id } = action.panel;
+      const keepFocus =
+        !!action.background &&
+        !!base.paneActive[pane] &&
+        base.paneTabs[base.focusedPane]?.length > 0;
+
       return normalize({
         ...base,
         panels: [...base.panels, action.panel],
         paneTabs: { ...base.paneTabs, [pane]: [...base.paneTabs[pane], id] },
-        paneActive: { ...base.paneActive, [pane]: id },
-        focusedPane: pane,
+        paneActive: keepFocus ? base.paneActive : { ...base.paneActive, [pane]: id },
+        focusedPane:
+          action.background && base.paneTabs[base.focusedPane]?.length > 0
+            ? base.focusedPane
+            : pane,
       });
     }
 

@@ -5,7 +5,10 @@ import { buildReviewerToolsReference } from "./tools-reference";
 import { buildReviewerExample } from "./example";
 import { buildReviewerIdentity } from "./identity";
 import { buildReviewerWorkflow } from "./workflow";
-import { buildReviewerConstraints } from "./constraints";
+import {
+  buildReviewerConstraints,
+  buildReviewerCoreConstraints,
+} from "./constraints";
 import { buildReviewerSystemContext } from "./system-context";
 
 export { buildReviewerIdentity } from "./identity";
@@ -15,6 +18,8 @@ export { buildReviewerSystemContext } from "./system-context";
 export { buildReviewerToolValidation } from "./tool-validation";
 export {
   REVIEWER_TOOLS,
+  HANDOFF_TOOL,
+  HANDOFF_AGENT,
   buildReviewerToolsReference,
 } from "./tools-reference";
 export { buildReviewerExample } from "./example";
@@ -35,16 +40,22 @@ export const buildReviewerPrompt = (
   }
 
   const tools = buildReviewerToolsReference(toolFormat);
-  const identity = buildReviewerIdentity(language, toolFormat);
+  const identity = buildReviewerIdentity(language);
   const workflow = buildReviewerWorkflow(mode);
   const context = buildReviewerSystemContext(systemInfo);
 
   if (promptLengthMode === "short") {
-    return joinSections([tools, identity, workflow, context]);
+    return joinSections([
+      tools,
+      identity,
+      workflow,
+      buildReviewerCoreConstraints(),
+      context,
+    ]);
   }
 
   const validation = buildReviewerToolValidation(toolFormat);
-  const constraints = buildReviewerConstraints(mode, language, toolFormat);
+  const constraints = buildReviewerConstraints(toolFormat);
 
   if (promptLengthMode === "medium") {
     return joinSections([

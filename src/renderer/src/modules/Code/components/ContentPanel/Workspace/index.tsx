@@ -20,6 +20,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../hooks/useCodeStore';
+import { useWorkflowStore } from '../../../hooks/useWorkflowStore';
 import {
   attachAgentToProject,
   removeAgentFromProject,
@@ -30,6 +31,8 @@ import { getPanelMeta, TabBar } from './WorkspacePanes';
 import { WorkspacePanes } from './WorkspacePanes';
 import { WorkspaceEmptyState, type EmptyWorkspaceAction } from './WorkspaceEmptyStates';
 import { ConfirmSmartPlaceModal } from './ConfirmSmartPlaceModal';
+import { ConfirmSaveFileModal } from '../../modal/ConfirmSaveFileModal';
+import { ConfirmDeleteOrchestratorModal } from '../../modal/ConfirmDeleteOrchestratorModal';
 
 import { useWorkspaceInteractions } from '../../../hooks/useWorkspaceInteractions';
 import { resolvePaneForType, useWorkspaceSettings } from '../../../hooks/useWorkspaceSettings';
@@ -312,6 +315,42 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     clearOpenFileRequest();
   }, [openFileRequest, sessionId, panels, currentProjectPath, clearOpenFileRequest]);
 
+  useEffect(() => {
+    const onOpenAgent = (e: Event) => {
+      const d = (
+        e as CustomEvent<{
+          sessionId: string;
+          agentId: string;
+          title: string;
+          focus?: boolean;
+          done: (ok: boolean) => void;
+        }>
+      ).detail;
+      if (d.sessionId !== sessionId) return;
+      const existing = panels.find((p) => p.type === 'agent' && p.workflowAgentId === d.agentId);
+      if (existing) {
+        if (d.focus) dispatch({ type: 'focus', id: existing.id });
+      } else {
+        dispatch({
+          type: 'add',
+          background: !d.focus,
+          pane: resolvePaneForType('agent'),
+          panel: {
+            id: createPanelId('agent'),
+            type: 'agent',
+            title: d.title,
+            providerId: null,
+            cwd: currentProjectPath,
+            workflowAgentId: d.agentId,
+          },
+        });
+      }
+      d.done(true);
+    };
+    window.addEventListener('phantoma:open-agent-panel', onOpenAgent);
+    return () => window.removeEventListener('phantoma:open-agent-panel', onOpenAgent);
+  }, [sessionId, panels, currentProjectPath]);
+
   const unsavedFileIds = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.unsavedFiles,
   );
@@ -414,7 +453,6 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     [currentProjectPath],
   );
 
-
   const [pendingAdd, setPendingAdd] = useState<{
     type: PanelType;
     pane: PaneId;
@@ -510,10 +548,137 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     [occupied, sizes, panels, currentProjectPath],
   );
 
-  const closePanel = useCallback((id: string) => {
-    window.api?.send('terminal:history-delete', id);
-    dispatch({ type: 'close', id });
+  const closePanel = useCallback(
+    (id: string, options?: { notifyOrchestrator?: boolean; keepAgent?: boolean }) => {
+      window.api?.send('terminal:history-delete', id);
+      useCodeStore.getState().discardFileState(id);
+      const closing = panelsRef.current.find((p) => p.id === id);
+      if (closing?.type === 'agent' && closing.workflowAgentId) {
+        const store = useWorkflowStore.getState();
+        const agentId = closing.workflowAgentId;
+        if (agentId === 'orchestrator') {
+          useWorkflowStore.setState((s) => ({ inbox: { ...s.inbox, orchestrator: [] } }));
+        } else {
+          const agent = store.getAgent(agentId);
+          const orchestratorOpen = panelsRef.current.some(
+            (p) => p.type === 'agent' && p.workflowAgentId === 'orchestrator',
+          );
+          if (agent && orchestratorOpen && options?.notifyOrchestrator !== false) {
+            store.deliver(
+              agentId,
+              'orchestrator',
+              `[SYSTEM NOTICE] The user closed the Zen tab of ${agent.type} agent '${agent.name}' (id: ${agentId}). The agent has been removed: any work it was doing is cancelled and any reply from it will not arrive. Create it again with create_agent if you still need it.`,
+            );
+          }
+          if (!options?.keepAgent) store.removeAgent(agentId);
+        }
+      }
+      dispatch({ type: 'close', id });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const onCloseAgent = (e: Event) => {
+      const d = (e as CustomEvent<{ sessionId: string; agentId: string }>).detail;
+      if (d.sessionId !== sessionId) return;
+      const target = panelsRef.current.find(
+        (p) => p.type === 'agent' && p.workflowAgentId === d.agentId,
+      );
+      if (target) closePanel(target.id, { notifyOrchestrator: false });
+    };
+    window.addEventListener('phantoma:close-agent-panel', onCloseAgent);
+    return () => window.removeEventListener('phantoma:close-agent-panel', onCloseAgent);
+  }, [sessionId, closePanel]);
+
+  const [pendingCloseId, setPendingCloseId] = useState<string | null>(null);
+  const pendingClosePanel = pendingCloseId
+    ? panels.find((p) => p.id === pendingCloseId)
+    : undefined;
+
+  const [pendingOrchestratorCloseId, setPendingOrchestratorCloseId] = useState<string | null>(null);
+  const linkedAgentPanels = useMemo(
+    () =>
+      panels.filter(
+        (p) => p.type === 'agent' && p.workflowAgentId && p.workflowAgentId !== 'orchestrator',
+      ),
+    [panels],
+  );
+
+  const [pendingHome, setPendingHome] = useState<{ proceed: () => void } | null>(null);
+
+  useEffect(() => {
+    const onGoHome = (e: Event) => {
+      const d = (e as CustomEvent<{ handled?: boolean; proceed: () => void }>).detail;
+      const hasOrchestrator = panelsRef.current.some(
+        (p) => p.type === 'agent' && p.workflowAgentId === 'orchestrator',
+      );
+      if (!hasOrchestrator) return;
+      d.handled = true;
+      const hasLinked = panelsRef.current.some(
+        (p) => p.type === 'agent' && p.workflowAgentId && p.workflowAgentId !== 'orchestrator',
+      );
+      if (hasLinked) setPendingHome({ proceed: d.proceed });
+      else d.proceed();
+    };
+    window.addEventListener('phantoma:orchestrator-go-home', onGoHome);
+    return () => window.removeEventListener('phantoma:orchestrator-go-home', onGoHome);
   }, []);
+
+  const confirmGoHome = useCallback(() => {
+    if (!pendingHome) return;
+    panelsRef.current
+      .filter(
+        (p) => p.type === 'agent' && p.workflowAgentId && p.workflowAgentId !== 'orchestrator',
+      )
+      .forEach((p) => closePanel(p.id, { notifyOrchestrator: false, keepAgent: true }));
+    pendingHome.proceed();
+    setPendingHome(null);
+  }, [pendingHome, closePanel]);
+
+  const closeOrchestratorWorkflow = useCallback(() => {
+    if (!pendingOrchestratorCloseId) return;
+    panelsRef.current
+      .filter(
+        (p) => p.type === 'agent' && p.workflowAgentId && p.workflowAgentId !== 'orchestrator',
+      )
+      .forEach((p) => closePanel(p.id, { notifyOrchestrator: false }));
+    closePanel(pendingOrchestratorCloseId);
+    useWorkflowStore.getState().clearMessages();
+    setPendingOrchestratorCloseId(null);
+  }, [pendingOrchestratorCloseId, closePanel]);
+
+  const requestClosePanel = useCallback(
+    (id: string) => {
+      const state = useCodeStore.getState();
+      const isDirty = state.projects
+        .find((p) => p.id === state.currentProjectId)
+        ?.unsavedFiles.has(id);
+      const panel = panels.find((p) => p.id === id);
+      if (
+        panel?.type === 'agent' &&
+        panel.workflowAgentId === 'orchestrator' &&
+        linkedAgentPanels.length > 0
+      ) {
+        setPendingOrchestratorCloseId(id);
+        return;
+      }
+      if (panel?.type === 'file' && isDirty) {
+        setPendingCloseId(id);
+        return;
+      }
+      closePanel(id);
+    },
+    [panels, closePanel, linkedAgentPanels],
+  );
+
+  const saveAndClosePanel = useCallback(async () => {
+    if (!pendingCloseId) return;
+    const detail = { fileId: pendingCloseId, pending: [] as Promise<void>[] };
+    window.dispatchEvent(new CustomEvent('code:save-file', { detail }));
+    await Promise.all(detail.pending);
+    closePanel(pendingCloseId);
+  }, [pendingCloseId, closePanel]);
   const selectTab = useCallback(
     (pane: PaneId, id: string) => dispatch({ type: 'select', pane, id }),
     [],
@@ -529,9 +694,36 @@ export const WorkspaceViews = memo(function WorkspaceViews({
   );
 
   const updatePanelAgentConversation = useCallback(
-    (id: string, conversationId: string | null) =>
-      dispatch({ type: 'updatePanel', id, patch: { agentConversationId: conversationId } }),
-    [],
+    (id: string, conversationId: string | null) => {
+      const panel = panelsRef.current.find((p) => p.id === id);
+      if (conversationId && panel?.workflowAgentId === 'orchestrator') {
+        const workflow = useWorkflowStore.getState();
+        workflow.adoptOrphanMessages(conversationId);
+        const subAgentIds = new Set<string>();
+        useWorkflowStore.getState().messages.forEach((m) => {
+          if (m.conversationId !== conversationId) return;
+          [m.from, m.to].forEach((pid) => {
+            if (pid !== 'orchestrator' && workflow.getAgent(pid)) subAgentIds.add(pid);
+          });
+        });
+        subAgentIds.forEach((agentId) => {
+          const agent = workflow.getAgent(agentId);
+          if (!agent) return;
+          window.dispatchEvent(
+            new CustomEvent('phantoma:open-agent-panel', {
+              detail: {
+                sessionId,
+                agentId,
+                title: `${agent.type.charAt(0).toUpperCase()}${agent.type.slice(1)} - ${agent.name}`,
+                done: () => {},
+              },
+            }),
+          );
+        });
+      }
+      dispatch({ type: 'updatePanel', id, patch: { agentConversationId: conversationId } });
+    },
+    [sessionId],
   );
 
   const updatePanelAgentTitle = useCallback(
@@ -544,7 +736,6 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     (id: string, patch: Partial<WorkspacePanel>) => dispatch({ type: 'updatePanel', id, patch }),
     [],
   );
-
 
   // Update provider info for a panel AND sync it to the store (SessionCard display)
   // Now supports optional status parameter to distinguish Idle vs Running
@@ -689,6 +880,35 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         />
       )}
 
+      {pendingOrchestratorCloseId && (
+        <ConfirmDeleteOrchestratorModal
+          isOpen
+          linkedAgentCount={linkedAgentPanels.length}
+          onClose={() => setPendingOrchestratorCloseId(null)}
+          onConfirm={closeOrchestratorWorkflow}
+        />
+      )}
+
+      {pendingHome && (
+        <ConfirmDeleteOrchestratorModal
+          isOpen
+          action="home"
+          linkedAgentCount={linkedAgentPanels.length}
+          onClose={() => setPendingHome(null)}
+          onConfirm={confirmGoHome}
+        />
+      )}
+
+      {pendingClosePanel && (
+        <ConfirmSaveFileModal
+          isOpen
+          fileName={pendingClosePanel.title}
+          onClose={() => setPendingCloseId(null)}
+          onSave={saveAndClosePanel}
+          onDiscard={() => closePanel(pendingClosePanel.id)}
+        />
+      )}
+
       {/* Main workspace area */}
       <div className="flex-1 min-h-0 relative">
         {/* Tab bars - rendered at top level so they sit above the panel bodies */}
@@ -715,7 +935,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
                   panels={panePanels}
                   activeId={paneActive[pane]}
                   onSelectTab={(id) => selectTab(pane, id)}
-                  onCloseTab={closePanel}
+                  onCloseTab={requestClosePanel}
                   onDragStart={dnd.startTabDrag}
                   onAddPanel={(type) => requestAddPanel(type, pane)}
                 />
@@ -764,8 +984,6 @@ export const WorkspaceViews = memo(function WorkspaceViews({
           )}
         </div>
       </div>
-
-
     </div>
   );
 });

@@ -20,6 +20,7 @@
 import type { ComponentType } from 'react';
 import type { ExecutorContext, ExecutorOptions, ToolExecutor } from '../types/executor-types';
 import { executeConversationTitle } from './tool-executors/TitleExecutor';
+import { executeRunCommand } from './tool-executors/RunCommandExecutor';
 import { codeModule } from '@renderer/modules/Code/CodeModule';
 import { emulateModule } from '@renderer/modules/Emulate/zenModule';
 import { reconModule } from '@renderer/modules/Recon/zenModule';
@@ -94,6 +95,12 @@ export const getExecutor = (actionType: string): ToolExecutor | null => {
       return {
         execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) =>
           executeConversationTitle(action.params || {}, ctx),
+      };
+
+    case 'run_command':
+      return {
+        execute: async (action: any, ctx: ExecutorContext, _options?: ExecutorOptions) =>
+          executeRunCommand(action, ctx),
       };
 
     case 'git_status':

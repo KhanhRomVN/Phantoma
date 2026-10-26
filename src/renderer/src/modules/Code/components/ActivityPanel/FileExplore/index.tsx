@@ -292,8 +292,6 @@ const TreeNode = memo(function TreeNode({
   onNodeClick,
   onDeleteRequest,
 }: TreeNodeProps) {
-  const openFile = useCodeStore((s) => s.openFile);
-  const setActiveFileTab = useCodeStore((s) => s.setActiveFileTab);
   const toggleFolderExpand = useCodeStore((s) => s.toggleFolderExpand);
 
   // Selector tinh: chỉ chọn expanded boolean cho chính node này + dirVersion
@@ -374,30 +372,41 @@ const TreeNode = memo(function TreeNode({
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      const multi = e.ctrlKey || e.metaKey || e.shiftKey;
-      if (!isFolder && !multi) return;
-
       onNodeClick(node.id, e.ctrlKey || e.metaKey, e.shiftKey);
+    },
+    [node.id, onNodeClick],
+  );
 
-      if (!multi) {
-        if (expanded) {
-          toggleFolderExpand(projectId, node.id);
-          setTimeout(() => logRenderCountAndReset(`COLLAPSE "${node.name}"`), 100);
-          return;
-        }
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+      onNodeClick(node.id, false, false);
 
-        if (!hasChildren && node.path && lazyChildren === null) {
-          setLoading(true);
-          toggleFolderExpand(projectId, node.id);
-          setTimeout(() => logRenderCountAndReset(`EXPAND+FETCH "${node.name}"`), 100);
-          fetchDirChildren(node.path).then((kids) => {
-            setLazyChildren(kids);
-            setLoading(false);
-          });
-        } else {
-          toggleFolderExpand(projectId, node.id);
-          setTimeout(() => logRenderCountAndReset(`EXPAND_CACHED "${node.name}"`), 100);
+      if (!isFolder) {
+        const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
+        if (sessionId && node.path) {
+          useCodeStore.getState().requestOpenFile(sessionId, node.path, node.name);
         }
+        return;
+      }
+
+      if (expanded) {
+        toggleFolderExpand(projectId, node.id);
+        setTimeout(() => logRenderCountAndReset(`COLLAPSE "${node.name}"`), 100);
+        return;
+      }
+
+      if (!hasChildren && node.path && lazyChildren === null) {
+        setLoading(true);
+        toggleFolderExpand(projectId, node.id);
+        setTimeout(() => logRenderCountAndReset(`EXPAND+FETCH "${node.name}"`), 100);
+        fetchDirChildren(node.path).then((kids) => {
+          setLazyChildren(kids);
+          setLoading(false);
+        });
+      } else {
+        toggleFolderExpand(projectId, node.id);
+        setTimeout(() => logRenderCountAndReset(`EXPAND_CACHED "${node.name}"`), 100);
       }
     },
     [
@@ -406,23 +415,13 @@ const TreeNode = memo(function TreeNode({
       hasChildren,
       node.path,
       node.id,
+      node.name,
       projectId,
-      openFile,
-      setActiveFileTab,
       toggleFolderExpand,
       lazyChildren,
       onNodeClick,
     ],
   );
-
-  const handleDoubleClick = useCallback(() => {
-    if (isFolder) return;
-    onNodeClick(node.id, false, false);
-    const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
-    if (sessionId && node.path) {
-      useCodeStore.getState().requestOpenFile(sessionId, node.path, node.name);
-    }
-  }, [isFolder, node.id, node.path, node.name, onNodeClick]);
 
   // ── Context menu actions ──────────────────────────────────────────────────
   const handleCopyPath = useCallback(() => {
@@ -539,7 +538,7 @@ const TreeNode = memo(function TreeNode({
               );
             }}
             className={cn(
-              'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group',
+              'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group outline-none focus:outline-none focus-visible:outline-none',
               isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
               gitStatus[node.path ?? ''] === 'added'
                 ? 'text-emerald-500'

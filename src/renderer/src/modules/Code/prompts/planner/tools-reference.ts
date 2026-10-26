@@ -153,7 +153,7 @@ export const buildPlannerToolsReference = (
       : "";
   return [
     toolFormat === "json" ? "# TOOLS (JSON FORMAT)" : "# TOOLS",
-    "The planner only plans. It has read-only exploration tools, run_command for inspection only, and send_to_agent to reach the orchestrator. It has no write, edit, delete, git-commit, skill, memory or conversation-title tools.",
+    "The planner only plans. It has read-only exploration tools, run_command for inspection only, and send_message to reach the orchestrator. It has no write, edit, delete, git-commit, skill, memory or conversation-title tools.",
     how,
     jsonNote,
     LINE_BUDGET_NOTE,

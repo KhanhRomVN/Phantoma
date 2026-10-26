@@ -5,7 +5,10 @@ import { buildOrchestratorToolsReference } from "./tools-reference";
 import { buildOrchestratorExample } from "./example";
 import { buildOrchestratorIdentity } from "./identity";
 import { buildOrchestratorWorkflow } from "./workflow";
-import { buildOrchestratorConstraints } from "./constraints";
+import {
+  buildOrchestratorConstraints,
+  buildOrchestratorCoreConstraints,
+} from "./constraints";
 import { buildOrchestratorSystemContext } from "./system-context";
 
 export { buildOrchestratorIdentity } from "./identity";
@@ -14,7 +17,10 @@ export {
   MAX_REWORK_ROUNDS,
   MESSAGE_FORMAT,
 } from "./workflow";
-export { buildOrchestratorConstraints } from "./constraints";
+export {
+  buildOrchestratorConstraints,
+  buildOrchestratorCoreConstraints,
+} from "./constraints";
 export { buildOrchestratorSystemContext } from "./system-context";
 export { buildOrchestratorToolValidation } from "./tool-validation";
 export {
@@ -40,13 +46,19 @@ export const buildOrchestratorPrompt = (
     return "";
   }
 
-  const tools = buildOrchestratorToolsReference(toolFormat);
   const identity = buildOrchestratorIdentity(language, toolFormat);
   const workflow = buildOrchestratorWorkflow(mode);
+  const tools = buildOrchestratorToolsReference(toolFormat);
   const context = buildOrchestratorSystemContext(systemInfo);
 
   if (promptLengthMode === "short") {
-    return joinSections([tools, identity, workflow, context]);
+    return joinSections([
+      identity,
+      workflow,
+      tools,
+      buildOrchestratorCoreConstraints(language, toolFormat),
+      context,
+    ]);
   }
 
   const validation = buildOrchestratorToolValidation(toolFormat);
@@ -54,21 +66,21 @@ export const buildOrchestratorPrompt = (
 
   if (promptLengthMode === "medium") {
     return joinSections([
-      validation,
-      tools,
       identity,
       workflow,
+      validation,
+      tools,
       constraints,
       context,
     ]);
   }
 
   return joinSections([
-    validation,
-    tools,
-    buildOrchestratorExample(toolFormat),
     identity,
     workflow,
+    validation,
+    tools,
+    buildOrchestratorExample(toolFormat, mode),
     constraints,
     context,
   ]);

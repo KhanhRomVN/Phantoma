@@ -43,6 +43,8 @@ import {
 } from '../../services/ConversationService';
 import { PromptBuilder } from '../../services/PromptBuilder';
 import { StreamingService } from '../../services/StreamingService';
+import { processDeepseekContent } from '../../services/DeepseekDSMLParser';
+import { cleanClaudeToolContent } from '../../services/ClaudeToolCleanner';
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
 // ── Constants ──
@@ -62,6 +64,7 @@ interface ConversationOverrides {
   useSkillEnabled?: boolean;
   memoryEnabled?: boolean;
   toolFormat?: 'xml' | 'json';
+  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
 }
 
 interface UseChatLLMProps {
@@ -648,6 +651,8 @@ export const useChatLLM = ({
 
         setMessages((prev) => [...prev, placeholderAssistant]);
 
+        const parsedContentRef = { value: '' };
+
         // Stream the response using StreamingService
         const { message: assistantMessage, backendConversationId } =
           await StreamingService.streamChat(
@@ -705,7 +710,18 @@ export const useChatLLM = ({
                 // Thay vao do chi tich luy vao ref, ProcessingIndicator tu hien thi timer
                 // Tranh 130+ lan re-render toan bo UI moi khi stream
               },
-              onContent: (content) => {
+              onContent: (rawContent) => {
+                let content = rawContent;
+                if ((finalModel?.providerId ?? '').toLowerCase() === 'deepseek') {
+                  const processed = processDeepseekContent(
+                    rawContent,
+                    conversationOverridesRef.current?.toolFormat ?? 'xml',
+                  );
+                  if (processed.convertedToolCount > 0) content = processed.content;
+                }
+                const claudeCleaned = cleanClaudeToolContent(content);
+                if (claudeCleaned.removedCount > 0) content = claudeCleaned.content;
+                parsedContentRef.value = content;
                 // Update UI with parsed content (called ONCE at the end with full content)
                 setMessages((prev) => {
                   const targetIndex = prev.findIndex((m) => m.id === assistantMessageId);
@@ -728,6 +744,13 @@ export const useChatLLM = ({
           );
 
         assistantMessage.id = assistantMessageId;
+
+        if (parsedContentRef.value) {
+          assistantMessage.content = parsedContentRef.value;
+          assistantMessage.rawResponse = assistantMessage.thinking
+            ? `${assistantMessage.thinking}\n\n${parsedContentRef.value}`
+            : parsedContentRef.value;
+        }
 
         if (backendConversationId) {
           backendConversationIdRef.current = backendConversationId;
@@ -923,8 +946,15 @@ export const useChatLLM = ({
           });
         }
 
-        if (!hasParsingError && parsed && onToolRequest && parsed.actions?.length > 0) {
-          onToolRequest(parsed.actions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
+        const USER_CONFIRM_TOOLS = ['create_agent'];
+        const autoActions =
+          !hasParsingError && parsed?.actions
+            ? parsed.actions
+                .map((a: any, i: number) => ({ ...a, _index: i }))
+                .filter((a: any) => !USER_CONFIRM_TOOLS.includes(a.type))
+            : [];
+        if (!hasParsingError && parsed && onToolRequest && autoActions.length > 0) {
+          onToolRequest(autoActions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
         } else {
           // Notify turn complete if no tools were executed or parsing failed
           onTurnCompleteRef.current?.();

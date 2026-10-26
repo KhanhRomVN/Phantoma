@@ -26,6 +26,12 @@
 // register(requestId, handler, timeout, onTimeout) pattern.
 // Internally bridges to window.api.on for IPC responses.
 
+import {
+  finalizeAllRunCommands,
+  finalizeRunCommand,
+  sendRunCommandInput,
+} from '../feature/Chat/services/tool-executors/RunCommandExecutor';
+
 type MessageHandler = (data: any) => void;
 
 class MessageDispatcher {
@@ -40,7 +46,7 @@ class MessageDispatcher {
     const api = getApi();
     if (api) {
       // Listen for response messages from main process
-      api.on('messageResponse', (msg: any) => {
+      api.on('messageResponse', (_event: any, msg: any) => {
         if (!msg?.requestId) return;
         const handler = this.handlers.get(msg.requestId);
         if (handler) {
@@ -247,6 +253,21 @@ class ExtensionService {
       } else {
         storageList(prefix).then((r) => reply({ keys: r.keys }));
       }
+      return;
+    }
+
+    // run_command terminal controls are handled locally by RunCommandExecutor (no IPC handler in main).
+    if (cmd === 'closeTerminal') {
+      finalizeRunCommand({ actionId: message.actionId, terminalId: message.terminalId });
+      return;
+    }
+    if (cmd === 'terminalInput') {
+      if (message.terminalId) sendRunCommandInput(message.terminalId, message.data ?? message.input ?? '');
+      return;
+    }
+    if (cmd === 'removeTerminal') return;
+    if (cmd === 'stopCommand') {
+      finalizeAllRunCommands();
       return;
     }
 

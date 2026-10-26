@@ -47,16 +47,6 @@ export const parseGrep = (innerContent: string): GrepParams => {
   // Validate regex pattern
   const validationError = validateRegexPattern(searchTermValue);
 
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG][GrepParser] innerContent:', innerContent.substring(0, 300));
-  console.log('[DEBUG][GrepParser] parsed:', {
-    searchTerm: searchTermValue,
-    filePath,
-    folderPath,
-    filePattern,
-    validationError,
-  });
-
   if (validationError) {
     console.warn('[Zen][GrepParser] Invalid regex pattern:', {
       pattern: searchTermValue,

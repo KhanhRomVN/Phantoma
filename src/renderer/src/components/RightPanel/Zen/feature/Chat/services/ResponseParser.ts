@@ -309,6 +309,65 @@ const parseAIResponseJson = (content: string, result: ParsedResponse): ParsedRes
   return result;
 };
 
+const BARE_JSON_START = /^\{\s*"(?:tool|type)"\s*:/;
+
+const findBalancedObjectEnd = (text: string, start: number): number => {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+};
+
+// Bọc các JSON object top-level (có key "tool"/"type") mà AI quên bọc ```json ``` — upgrade path: ép provider trả structured output
+const wrapBareJsonObjects = (content: string): string => {
+  if (!/\{\s*"(?:tool|type)"\s*:/.test(content)) return content;
+  return content
+    .split(/(```[\s\S]*?```)/g)
+    .map((part, idx) => {
+      if (idx % 2 === 1) return part;
+      const unclosedAt = part.indexOf('```');
+      const head = unclosedAt === -1 ? part : part.slice(0, unclosedAt);
+      const tail = unclosedAt === -1 ? '' : part.slice(unclosedAt);
+      let out = '';
+      let i = 0;
+      while (i < head.length) {
+        if (head[i] === '{' && head[i - 1] !== '`' && BARE_JSON_START.test(head.slice(i, i + 64))) {
+          const end = findBalancedObjectEnd(head, i);
+          if (end !== -1) {
+            const candidate = head.slice(i, end + 1);
+            try {
+              JSON.parse(candidate);
+              out += '\n```json\n' + candidate + '\n```\n';
+              i = end + 1;
+              continue;
+            } catch {
+              void 0;
+            }
+          }
+        }
+        out += head[i];
+        i++;
+      }
+      return out + tail;
+    })
+    .join('');
+};
+
 export const parseAIResponse = (
   content: string,
   toolFormat: 'xml' | 'json' = 'xml',
@@ -330,7 +389,8 @@ export const parseAIResponse = (
 
   // ─── JSON format path with auto-detect fallback ──────────────────────────
   if (toolFormat === 'json') {
-    const hasJsonFence = /```json[\s\S]*?```/.test(content);
+    const normalizedContent = wrapBareJsonObjects(content);
+    const hasJsonFence = /```json[\s\S]*?```/.test(normalizedContent);
     const hasXmlTags =
       /<(conversation_title|markdown|followup_question|attempt_completion|use_tool|think)[^>]*>/i.test(
         content,
@@ -338,7 +398,7 @@ export const parseAIResponse = (
 
     if (!hasJsonFence && hasXmlTags) {
     } else {
-      return parseAIResponseJson(content, result);
+      return parseAIResponseJson(normalizedContent, result);
     }
   }
   // ────────────────────────────────────────────────────────────────────────

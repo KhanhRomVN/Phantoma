@@ -24,6 +24,7 @@ import {
 } from '@renderer/components/ui/Dropdown';
 import type { Message } from '../types/message';
 import { NAV_ITEMS, type NavTarget } from '../../../components/AgentNavBadge';
+import { useWorkflowAgentSync } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ChatHeaderProps {
@@ -408,6 +409,17 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const providerId = displayedModel?.providerId || '';
   const faviconUrl = getFaviconUrl(providerId, displayedModel?.favicon);
 
+  const workflowSync = useWorkflowAgentSync();
+  const handleGoHome = () => {
+    if (workflowSync?.agentId !== 'orchestrator') {
+      onGoHome?.();
+      return;
+    }
+    const detail = { handled: false, proceed: () => onGoHome?.() };
+    window.dispatchEvent(new CustomEvent('phantoma:orchestrator-go-home', { detail }));
+    if (!detail.handled) onGoHome?.();
+  };
+
   const usageNum = currentAccount?.usage != null ? Number(currentAccount.usage) : null;
   const usageColor =
     usageNum == null
@@ -447,7 +459,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             {derivedTitle}
           </span>
 
-          <SqButton title="Home" onClick={() => onGoHome?.()}>
+          <SqButton title="Home" onClick={handleGoHome}>
             <Home size={15} />
           </SqButton>
 

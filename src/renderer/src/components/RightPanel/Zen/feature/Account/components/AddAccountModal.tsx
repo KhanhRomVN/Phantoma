@@ -1,6 +1,6 @@
 /**
  * ------------------------------------------------------------------
- * AddAccountDrawer
+ * AddAccountModal
  * ------------------------------------------------------------------
  * Bottom-sheet drawer thêm tài khoản mới.
  * Hiển thị danh sách provider, hỗ trợ đăng nhập HTTPS (MITM) và
@@ -21,13 +21,13 @@ import { useDbFetch } from "../../../services/useDbFetch";
 import { useSettings } from "../../../context/SettingsContext";
 
 import { listChromiumProfiles } from "../../../services/chromeProfiles";
-import { DeviceCodeDrawer, ConfirmAccountDrawer } from "./VerifyAccountDrawer";
+import { DeviceCodeModal, ConfirmAccountModal } from "./VerifyAccountModal";
 import {
-  ProfilePickerDrawer,
-  MethodPickerDrawer,
-  EmailInputDrawer,
-} from "./LoginMethodDrawer";
-import { ProviderListDrawer } from "./ProviderListDrawer";
+  ProfilePickerModal,
+  MethodPickerModal,
+  EmailInputModal,
+} from "./LoginMethodModal";
+import { ProviderListModal } from "./ProviderListModal";
 import {
   isMergedAuth,
   splitAuthMethod,
@@ -36,7 +36,7 @@ import {
   type Provider,
 } from "./addAccount.utils";
 
-interface AddAccountDrawerProps {
+interface AddAccountModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
@@ -44,7 +44,7 @@ interface AddAccountDrawerProps {
 
 let providersCache: Provider[] | null = null;
 
-const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
+const AddAccountModal: React.FC<AddAccountModalProps> = ({
   open,
   onOpenChange,
   onSuccess,
@@ -176,7 +176,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
         return emailSet;
       })
       .catch((err: any) => {
-        console.error("[AddAccountDrawer] Lỗi fetch existingEmails:", err);
+        console.error("[AddAccountModal] Lỗi fetch existingEmails:", err);
         return new Set<string>();
       });
 
@@ -520,7 +520,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
 
   if (deviceCodeInfo) {
     return (
-      <DeviceCodeDrawer
+      <DeviceCodeModal
         info={deviceCodeInfo}
         error={error}
         onClose={() => setDeviceCodeInfo(null)}
@@ -530,7 +530,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
 
   if (profileStepProvider && !showEmailDrawer && !showConfirm) {
     return (
-      <ProfilePickerDrawer
+      <ProfilePickerModal
         provider={profileStepProvider}
         entries={profileEntries}
         isDefaultChrome={isDefaultChrome}
@@ -557,7 +557,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
 
   if (selectedProvider && !showEmailDrawer && !showConfirm) {
     return (
-      <MethodPickerDrawer
+      <MethodPickerModal
         provider={selectedProvider}
         loading={loading}
         error={error}
@@ -569,7 +569,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
 
   if (showEmailDrawer && pendingBrowserProvider) {
     return (
-      <EmailInputDrawer
+      <EmailInputModal
         emailInput={emailInput}
         error={error}
         emailSubmitting={emailSubmitting}
@@ -587,7 +587,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
 
   if (showConfirm && pendingAccount) {
     return (
-      <ConfirmAccountDrawer
+      <ConfirmAccountModal
         account={pendingAccount}
         error={error}
         confirmLoading={confirmLoading}
@@ -602,7 +602,7 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
   }
 
   return (
-    <ProviderListDrawer
+    <ProviderListModal
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
       loadingProviders={loadingProviders}
@@ -619,4 +619,4 @@ const AddAccountDrawer: React.FC<AddAccountDrawerProps> = ({
   );
 };
 
-export default AddAccountDrawer;
+export default AddAccountModal;

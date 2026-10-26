@@ -9,9 +9,6 @@ export async function executeGrep(params: GrepParams): Promise<string | null> {
   const folderPath = params.folder_path;
   const targetDesc = filePath || folderPath || 'unknown';
 
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG][GrepExecutor] input params:', params);
-
   if ((params as any)._validationError) {
     return (
       "[grep for '" +
@@ -31,9 +28,6 @@ export async function executeGrep(params: GrepParams): Promise<string | null> {
     },
   });
 
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG][GrepExecutor] raw result:', result);
-
   if (!result.success) {
     return (
       "[grep for '" +
@@ -50,9 +44,6 @@ export async function executeGrep(params: GrepParams): Promise<string | null> {
   const results = grepData.results || {};
   const totalMatches = grepData.totalMatches || 0;
   const totalFiles = grepData.totalFilesSearched || 0;
-
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG][GrepExecutor] grepData:', { totalMatches, totalFiles, keys: Object.keys(results) });
 
   let body = '';
   let fileCount = 0;

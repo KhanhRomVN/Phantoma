@@ -510,6 +510,7 @@ const BranchBlock = memo(function BranchBlock({
           onOpenTaskMenu={onOpenTaskMenu}
           onProcessInteract={onProcessInteract}
           onContextMenu={onSessionContextMenu}
+          projectId={project.id}
           projectName={project.name}
           branchName={branch.name}
           onDropTask={(taskId, sessionId) => {

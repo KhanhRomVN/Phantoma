@@ -154,7 +154,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
 }) => {
   // Read workflowAgentId from context
   const workflowSync = useWorkflowAgentSync();
-  const workflowAgentId = workflowSync?.agentId ?? undefined;
+  const workflowAgentId = workflowSync?.agentType ?? workflowSync?.agentId ?? undefined;
 
   const {
     apiUrl,
@@ -370,6 +370,8 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 totalTokenUsage,
                 providerId,
                 modelId,
+                workflowAgentId:
+                  data.conversationOverrides?.workflowAgentId ?? data.workflowAgentId ?? null,
                 folderPath: null,
               } as ConversationItem;
             } catch (error) {
@@ -379,7 +381,9 @@ const HomePanel: React.FC<HomePanelProps> = ({
           }),
         );
 
-        const validHistory = conversationsData.filter((c): c is ConversationItem => c !== null);
+        const validHistory = conversationsData.filter(
+          (c): c is ConversationItem => c !== null && c.messageCount > 0,
+        );
         setConversations(validHistory);
       } catch (error) {
         console.error('[Home] Failed to load history:', error);
@@ -565,6 +569,16 @@ const HomePanel: React.FC<HomePanelProps> = ({
           }}
           onAttachedItemClick={() => {}}
         />
+        <div
+          className={
+            workflowSync && workflowSync.agentId !== 'orchestrator'
+              ? 'opacity-50 pointer-events-none select-none'
+              : undefined
+          }
+          {...(workflowSync && workflowSync.agentId !== 'orchestrator'
+            ? ({ inert: '' } as object)
+            : {})}
+        >
         <MessageInput
           message={message}
           setMessage={setMessage}
@@ -610,6 +624,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
             toggleConversationToolFormat();
           }}
         />
+        </div>
       </div>
 
       <style>{`

@@ -4,8 +4,10 @@ import { useDbFetch } from '../../../services/useDbFetch';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { $ } from '@renderer/utils/color';
 import { FlatAccount } from '../types';
+import ReactDOM from 'react-dom';
+import { AccountModalKeyframes, overlayStyle, useAccountModalLayout } from './accountModalLayout';
 
-interface EditAccountDrawerProps {
+interface EditAccountModalProps {
   open: boolean;
   account: FlatAccount | null;
   onOpenChange: (open: boolean) => void;
@@ -104,13 +106,14 @@ const AutoField: React.FC<{
   );
 };
 
-const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
+const EditAccountModal: React.FC<EditAccountModalProps> = ({
   open,
   account,
   onOpenChange,
   onSuccess,
   providerConfig,
 }) => {
+  const { container, panelStyle } = useAccountModalLayout(open);
   const [email, setEmail] = useState('');
   // Map key → value của các field credential
   const [credFields, setCredFields] = useState<Array<{ key: string; value: string }>>([]);
@@ -194,34 +197,10 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
 
   if (!open || !account) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <>
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgb(0,0,0,0.55)', // Overlay usually stays black/dark regardless of theme for contrast
-          zIndex: 200,
-          animation: 'eaFadeIn 0.15s ease',
-        }}
-        onClick={() => onOpenChange(false)}
-      />
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: $('--card-background'),
-          borderTop: `1px solid ${$('--border')}`,
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.25)',
-          zIndex: 201,
-          maxHeight: '80%',
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'eaSlideUp 0.22s ease',
-        }}
-      >
+      <div style={overlayStyle} onClick={() => onOpenChange(false)} />
+      <div style={panelStyle}>
         {/* Header */}
         <div
           style={{
@@ -390,19 +369,16 @@ const EditAccountDrawer: React.FC<EditAccountDrawerProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            {saving && <Loader2 size={13} style={{ animation: 'eaSpin 1s linear infinite' }} />}
+            {saving && <Loader2 size={13} style={{ animation: 'pmdSpin 1s linear infinite' }} />}
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>
 
-      <style>{`
-        @keyframes eaSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes eaFadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes eaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-    </>
+      <AccountModalKeyframes />
+    </>,
+    container,
   );
 };
 
-export default EditAccountDrawer;
+export default EditAccountModal;

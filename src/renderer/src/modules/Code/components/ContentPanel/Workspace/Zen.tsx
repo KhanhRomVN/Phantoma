@@ -6,7 +6,11 @@ import { useAgentFeature } from '@renderer/components/RightPanel/Zen/context/Fea
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { useDesignStore } from '../../../hooks/useDesignStore';
 import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../hooks/useWorkflowStore';
+import { USER_ID } from '../../../types/agents';
+import AgentMessageBox from '../../../renderers/AgentMessageBox';
+import { parseAgentMessage } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
 import {
+  AccountAgentsContext,
   WorkflowAgentContext,
   type WorkflowAgentSync,
 } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
@@ -14,6 +18,9 @@ import {
   MultiAgentContext,
   type MultiAgentControl,
 } from '@renderer/components/RightPanel/Zen/context/MultiAgentContext';
+
+const renderIncomingMessage: WorkflowAgentSync['renderIncomingMessage'] = (message) =>
+  parseAgentMessage(message.content) ? <AgentMessageBox message={message} /> : null;
 
 interface CodeAgentProps {
   multiAgent?: MultiAgentControl | null;
@@ -36,6 +43,39 @@ export const CodeAgent = memo(function CodeAgent({
   const agentConfig = useWorkflowStore(
     (s) => (workflowAgentId ? s.configs[workflowAgentId] : undefined) ?? EMPTY_AGENT_CONFIG,
   );
+  const agentType = useWorkflowStore((s) =>
+    workflowAgentId ? s.agents.find((a) => a.id === workflowAgentId)?.type : undefined,
+  );
+  const allConfigs = useWorkflowStore((s) => s.configs);
+  const allAgents = useWorkflowStore((s) => s.agents);
+  const accountAgents = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const agent of allAgents) {
+      const acc = allConfigs[agent.id]?.account;
+      const accId = acc?.id ?? acc?.accountId ?? acc?.account_id;
+      if (!accId) continue;
+      (map[accId] ??= []).push(agent.type);
+    }
+    return map;
+  }, [allConfigs, allAgents, workflowAgentId]);
+  const inbox = useWorkflowStore((s) => (workflowAgentId ? s.inbox[workflowAgentId] : undefined));
+  const shiftInbox = useCallback(() => {
+    if (workflowAgentId) useWorkflowStore.getState().shiftInbox(workflowAgentId);
+  }, [workflowAgentId]);
+  const notifyUserMessage = useCallback(
+    (content: string) => {
+      if (!workflowAgentId) return;
+      const store = useWorkflowStore.getState();
+      if (workflowAgentId === 'orchestrator') {
+        const now = new Date();
+        const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        store.addMessage({ from: USER_ID, to: 'orchestrator', content, time });
+      } else {
+        store.deliver(workflowAgentId, 'orchestrator', content);
+      }
+    },
+    [workflowAgentId],
+  );
   const setAgentModel = useWorkflowStore((s) => s.setModel);
   const setAgentAccount = useWorkflowStore((s) => s.setAccount);
   const setSyncModel = useCallback(
@@ -50,18 +90,47 @@ export const CodeAgent = memo(function CodeAgent({
     },
     [workflowAgentId, setAgentAccount],
   );
+  const normalizedModel = useMemo(() => {
+    const m = agentConfig.model;
+    if (!m || m.id) return m;
+    const id = m.modelId ?? m.model_id;
+    return id ? { ...m, id, name: m.name ?? id } : m;
+  }, [agentConfig.model]);
+  const normalizedAccount = useMemo(() => {
+    const a = agentConfig.account;
+    if (!a || a.id) return a;
+    const id = a.accountId ?? a.account_id;
+    return id ? { ...a, id } : a;
+  }, [agentConfig.account]);
   const workflowSync = useMemo<WorkflowAgentSync | null>(
     () =>
       workflowAgentId
         ? {
             agentId: workflowAgentId,
-            model: agentConfig.model,
-            account: agentConfig.account,
+            agentType,
+            model: normalizedModel,
+            account: normalizedAccount,
+            accountAgents,
             setModel: setSyncModel,
             setAccount: setSyncAccount,
+            inbox,
+            shiftInbox,
+            notifyUserMessage,
+            renderIncomingMessage,
           }
         : null,
-    [workflowAgentId, agentConfig.model, agentConfig.account, setSyncModel, setSyncAccount],
+    [
+      workflowAgentId,
+      agentType,
+      normalizedModel,
+      normalizedAccount,
+      accountAgents,
+      setSyncModel,
+      setSyncAccount,
+      inbox,
+      shiftInbox,
+      notifyUserMessage,
+    ],
   );
   const hasActiveDesign = useDesignStore((s) => s.activeDesignId !== null);
   const { activeFeature, codeState, setActiveFeature, setCodeState } = useAgentFeature();
@@ -84,13 +153,15 @@ export const CodeAgent = memo(function CodeAgent({
       <AgentRootContext.Provider value={rootEl}>
         <SettingsProvider>
           <MultiAgentContext.Provider value={multiAgent}>
-            <WorkflowAgentContext.Provider value={workflowSync}>
-              <AgentPanel
-                initialConversationId={initialConversationId}
-                onConversationChange={onConversationChange}
-                onTitleChange={onTitleChange}
-              />
-            </WorkflowAgentContext.Provider>
+            <AccountAgentsContext.Provider value={accountAgents}>
+              <WorkflowAgentContext.Provider value={workflowSync}>
+                <AgentPanel
+                  initialConversationId={initialConversationId}
+                  onConversationChange={onConversationChange}
+                  onTitleChange={onTitleChange}
+                />
+              </WorkflowAgentContext.Provider>
+            </AccountAgentsContext.Provider>
           </MultiAgentContext.Provider>
         </SettingsProvider>
       </AgentRootContext.Provider>

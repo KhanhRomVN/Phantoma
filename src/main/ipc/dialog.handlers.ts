@@ -81,6 +81,76 @@ function findChromiumExecutable(): string {
 }
 
 // ─── Setup ──────────────────────────────────────────────────────────────
+type KeyPath = (string | number)[];
+
+const PROFILE_LABEL_KEY_PATHS: KeyPath[] = [
+  ['account_info', 0, 'email'],
+  ['signin', 'allowed_username'],
+  ['google', 'services', 'last_signed_in'],
+  ['google', 'services', 'last_gaia_account', 'email'],
+  ['profile', 'last_used'],
+];
+
+const PROFILE_AVATAR_KEY_PATHS: KeyPath[] = [
+  ['account_info', 0, 'picture_url'],
+  ['account_info', 0, 'last_downloaded_image_url_with_size'],
+];
+
+const PROFILE_PREFERENCES_FILES = ['Preferences', path.join('Default', 'Preferences')];
+const IGNORED_CHROME_FOLDERS = new Set(['Guest Profile', 'System Profile']);
+
+function pickPrefValue(prefs: any, keyPaths: KeyPath[]): string | undefined {
+  for (const keyPath of keyPaths) {
+    let value = prefs;
+    for (const key of keyPath) value = value?.[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+async function readChromiumProfile(basePath: string, folder: string) {
+  for (const file of PROFILE_PREFERENCES_FILES) {
+    try {
+      const raw = await fs.promises.readFile(path.join(basePath, folder, file), 'utf8');
+      const parsed = JSON.parse(raw);
+      return {
+        folder,
+        label: pickPrefValue(parsed, PROFILE_LABEL_KEY_PATHS),
+        avatar: pickPrefValue(parsed, PROFILE_AVATAR_KEY_PATHS),
+        hasPreferences: true,
+      };
+    } catch {
+      continue;
+    }
+  }
+  return { folder, label: undefined, avatar: undefined, hasPreferences: false };
+}
+
+function getChromeUserDataDirs(): { label: string; path: string }[] {
+  const home = os.homedir();
+  let candidates: { label: string; path: string }[];
+  if (process.platform === 'win32') {
+    const local = process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
+    candidates = [
+      { label: 'Google Chrome', path: path.join(local, 'Google', 'Chrome', 'User Data') },
+      { label: 'Chromium', path: path.join(local, 'Chromium', 'User Data') },
+    ];
+  } else if (process.platform === 'darwin') {
+    const support = path.join(home, 'Library', 'Application Support');
+    candidates = [
+      { label: 'Google Chrome', path: path.join(support, 'Google', 'Chrome') },
+      { label: 'Chromium', path: path.join(support, 'Chromium') },
+    ];
+  } else {
+    const config = process.env.XDG_CONFIG_HOME || path.join(home, '.config');
+    candidates = [
+      { label: 'Google Chrome', path: path.join(config, 'google-chrome') },
+      { label: 'Chromium', path: path.join(config, 'chromium') },
+    ];
+  }
+  return candidates.filter((c) => fs.existsSync(c.path));
+}
+
 export function setupDialogHandlers(): void {
   // ── Show Save Dialog ──
   ipcMain.handle('dialog:show-save', async (_event, options: any) => {
@@ -170,6 +240,79 @@ export function setupDialogHandlers(): void {
     } catch (e: any) {
       logger.error('[openBrowserWithProfile] Error:', e);
       await shell.openExternal(url).catch(() => undefined);
+    }
+  });
+
+  // ── List Chromium profiles ──
+  ipcMain.handle('listChromiumProfiles', async (event, message: any) => {
+    const requestId = message?.requestId as string | undefined;
+    const reply = (payload: Record<string, unknown>) => {
+      if (requestId) event.sender.send('messageResponse', { requestId, ...payload });
+    };
+    const isDefaultChrome = !(typeof message?.path === 'string' && message.path.trim());
+    const basePath: string | undefined = isDefaultChrome
+      ? getChromeUserDataDirs()[0]?.path
+      : message.path;
+
+    if (!basePath) {
+      reply({
+        folders: [],
+        profiles: [],
+        is_default_chrome: isDefaultChrome,
+        error: 'Không tìm thấy thư mục profile Chrome mặc định',
+      });
+      return;
+    }
+
+    try {
+      const entries = await fs.promises.readdir(basePath, { withFileTypes: true });
+      const names = entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+      if (!fs.existsSync(path.join(basePath, 'Local State'))) {
+        reply({
+          folders: names,
+          profiles: names.map((folder) => ({ folder })),
+          is_default_chrome: isDefaultChrome,
+        });
+        return;
+      }
+
+      let profiles = (
+        await Promise.all(
+          names
+            .filter((name) => !IGNORED_CHROME_FOLDERS.has(name))
+            .map((name) => readChromiumProfile(basePath, name)),
+        )
+      ).filter((p) => p.hasPreferences);
+
+      if (isDefaultChrome) {
+        profiles = profiles.filter((p) => !!p.label);
+      }
+
+      reply({
+        folders: profiles.map((p) => p.folder),
+        profiles: profiles.map(({ folder, label, avatar }) => ({ folder, label, avatar })),
+        is_default_chrome: isDefaultChrome,
+      });
+    } catch (e: any) {
+      logger.error('[listChromiumProfiles] Error:', e);
+      reply({
+        folders: [],
+        profiles: [],
+        is_default_chrome: isDefaultChrome,
+        error: e?.message || 'Không đọc được Chromium Profile Folder',
+      });
+    }
+  });
+
+  // ── Get default Chrome/Chromium user-data dirs ──
+  ipcMain.handle('getChromeProfileDirs', async (event, message: any) => {
+    const requestId = message?.requestId as string | undefined;
+    if (requestId) {
+      event.sender.send('messageResponse', { requestId, dirs: getChromeUserDataDirs() });
     }
   });
 

@@ -119,6 +119,8 @@ export const useConversationHistory = (isOpen: boolean) => {
               totalTokenUsage,
               providerId,
               modelId,
+              workflowAgentId:
+                data.conversationOverrides?.workflowAgentId ?? data.workflowAgentId ?? null,
             } as ConversationItem;
           } catch (error) {
             console.warn(`[useConversationHistory] Failed to load conversation ${id}:`, error);
@@ -128,7 +130,9 @@ export const useConversationHistory = (isOpen: boolean) => {
       );
 
       // Filter out nulls
-      const validConversations = conversationsData.filter((c): c is ConversationItem => c !== null);
+      const validConversations = conversationsData.filter(
+        (c): c is ConversationItem => c !== null && c.messageCount > 0,
+      );
       setConversations(validConversations);
     } catch (error) {
       console.error('[useConversationHistory] Failed to load history:', error);

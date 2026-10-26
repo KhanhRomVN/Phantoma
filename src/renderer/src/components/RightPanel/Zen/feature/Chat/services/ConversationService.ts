@@ -122,6 +122,7 @@ export const saveConversation = async (
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';
+    workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
   },
 ): Promise<string> => {
   try {

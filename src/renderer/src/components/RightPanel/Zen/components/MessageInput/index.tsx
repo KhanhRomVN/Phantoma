@@ -49,7 +49,7 @@ const getBlockedHoursDescription = (_ranges: any) => '';
 import { useWorkspaceZipSize } from './hooks/useWorkspaceZipSize';
 import { useAccountStats } from '../../feature/Chat/hooks/api/useAccountStats';
 import { ClaudeZipBadge } from './ClaudeZipBadge';
-import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
+import { useAccountAgents, useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 import { useMultiAgentControl } from '../../context/MultiAgentContext';
 import { Workflow as WorkflowIcon } from 'lucide-react';
 import { ZenCliHintBar } from './ZenCliHintBar';
@@ -562,10 +562,12 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     } = useSettings();
     const { activeFeature } = useAgentFeature();
     const workflowSync = useWorkflowAgentSync();
+    const accountAgentsMap = useAccountAgents();
     // Get capabilities based on moduleId + promptId
     // workflowAgentId (orchestrator/planner/executor/reviewer) is used as promptId for Code module
     // Priority: explicit prop > context > undefined
-    const resolvedWorkflowAgentId = workflowAgentId ?? workflowSync?.agentId ?? undefined;
+    const resolvedWorkflowAgentId =
+      workflowAgentId ?? workflowSync?.agentType ?? workflowSync?.agentId ?? undefined;
     const promptId = resolvedWorkflowAgentId ?? undefined; // undefined defaults to main prompt (code/emulate/recon)
     const capabilities = React.useMemo(() => {
       const caps = getPromptCapabilities(activeFeature ?? 'code', promptId);
@@ -1404,6 +1406,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 currentModelId={currentModel?.id}
                 currentAccountId={currentAccount?.id}
                 currentEffort={effortInfo?.effort}
+                accountAgents={accountAgentsMap}
                 onSelect={(selected) => {
                   const prov = providers.find((p: any) => p.provider_id === selected.providerId);
                   const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
@@ -1970,7 +1973,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         background: multiAgent.enabled ? 'rgba(167,139,250,0.15)' : 'transparent',
                         color: multiAgent.enabled ? '#A78BFA' : $('--text-secondary'),
                         opacity: multiAgent.blocked && !multiAgent.enabled ? 0.4 : 1,
-                        cursor: multiAgent.blocked && !multiAgent.enabled ? 'not-allowed' : 'pointer',
+                        cursor:
+                          multiAgent.blocked && !multiAgent.enabled ? 'not-allowed' : 'pointer',
                         flexShrink: 0,
                       }}
                     >

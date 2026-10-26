@@ -16,7 +16,7 @@ import {
   type DeviceCodeInfo,
 } from "./addAccount.utils";
 
-export const DeviceCodeDrawer: React.FC<{
+export const DeviceCodeModal: React.FC<{
   info: DeviceCodeInfo;
   error: string;
   onClose: () => void;
@@ -403,7 +403,7 @@ export const DeviceCodeDrawer: React.FC<{
     </>
   );
 };
-export const ConfirmAccountDrawer: React.FC<{
+export const ConfirmAccountModal: React.FC<{
   account: any;
   error: string;
   confirmLoading: boolean;

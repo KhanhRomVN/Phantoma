@@ -41,6 +41,13 @@ interface TokenTone {
 
 // ─── Constants ─────────────────────────────────────────────────────────
 const TOOLTIP_PREVIEW_CHARS = 600;
+const AGENT_BADGE_CLASS: Record<string, string> = {
+  orchestrator: 'bg-[#a78bfa]/15 text-[#a78bfa]',
+  planner: 'bg-[#38bdf8]/15 text-[#38bdf8]',
+  executor: 'bg-emerald-500/15 text-emerald-400',
+  reviewer: 'bg-amber-500/15 text-amber-400',
+};
+
 const TOOLTIP_OFFSET = 14;
 
 const FAVICON_DOMAINS: Array<[string[], string]> = [
@@ -456,6 +463,16 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
               {totalMsgs} msg
             </span>
             <span className="flex-1" />
+            {item.workflowAgentId && (
+              <span
+                className={`inline-flex items-center px-[7px] py-px rounded text-[10px] font-bold uppercase shrink-0 ${
+                  AGENT_BADGE_CLASS[item.workflowAgentId] ?? AGENT_BADGE_CLASS.executor
+                }`}
+                title={`Agent: ${item.workflowAgentId}`}
+              >
+                {item.workflowAgentId}
+              </span>
+            )}
             {tokens > 0 && (
               <span
                 className={`inline-flex items-center gap-[3px] px-[7px] py-px rounded text-[10px] font-bold shrink-0 ${tone.chip}`}

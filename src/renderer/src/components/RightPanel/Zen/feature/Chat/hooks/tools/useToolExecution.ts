@@ -62,6 +62,7 @@ interface UseToolExecutionProps {
   isStoppedRef?: React.MutableRefObject<boolean>;
   toolFormat?: 'xml' | 'json';
   /** Session ID for computing moduleId (required for conversation_title) */
+  workflowAgentId?: string | null;
   sessionId?: number;
   /** Folder path for computing moduleId (required for conversation_title) */
   folderPath?: string | null;
@@ -73,6 +74,7 @@ export const useToolExecution = ({
   messagesRef,
   isStoppedRef,
   toolFormat = 'xml',
+  workflowAgentId,
   sessionId,
   folderPath,
 }: UseToolExecutionProps) => {
@@ -120,6 +122,7 @@ export const useToolExecution = ({
 
   const terminalToActionMap = useRef<Map<string, string>>(new Map());
   const flushedMessageIdsRef = useRef<Set<string>>(new Set());
+  const partialFlushedKeysRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     handleSendMessageRef.current = sendMessage;
@@ -251,9 +254,17 @@ export const useToolExecution = ({
         activeTargetId: emulateState.activeTargetId,
         moduleId,
         folderPath: folderPath ?? null,
+        workflowAgentId: workflowAgentId ?? null,
       };
     },
-    [setToolOutputs, conversationIdRef, emulateState.activeTargetId, sessionId, folderPath],
+    [
+      setToolOutputs,
+      conversationIdRef,
+      emulateState.activeTargetId,
+      sessionId,
+      folderPath,
+      workflowAgentId,
+    ],
   );
 
   const executeSingleAction = useCallback(
@@ -360,16 +371,9 @@ export const useToolExecution = ({
           }
         }
 
-        console.log('[useToolExecution] Executing tool:', {
-          actionType: action.type,
-          actionId,
-          userActionType: actionType,
-        });
-
         let result: string | null = null;
         if (actionType === TOOL_ACTION_TYPES.REJECT) {
           result = `Output: [${action.type}] Tool execution rejected by user.`;
-          console.log('[useToolExecution] User rejected:', action.type);
           setRejectedActions((prev) => {
             const next = new Set(prev).add(actionId);
             return next;
@@ -381,7 +385,9 @@ export const useToolExecution = ({
 
         if (result !== null) {
           const isDisplayOnly = result === '__DISPLAY_ONLY__';
-          const isMetadataOnly = action.type === 'conversation_title';
+          const isMetadataOnly =
+            action.type === 'conversation_title' ||
+            (action.type === 'send_message' && !result.includes('Result: Error'));
 
           if (!isDisplayOnly && !isMetadataOnly) {
             validResults.push(result);
@@ -405,7 +411,9 @@ export const useToolExecution = ({
               const storedOutput: any = (() => {
                 if (action.type === 'view_replace_history' && !isError) {
                   const versions = Array.from(
-                    cleanOutput.matchAll(/\*\*Version (\d+)\*\*\n- Errors: (\d+), Warnings: (\d+)/g),
+                    cleanOutput.matchAll(
+                      /\*\*Version (\d+)\*\*\n- Errors: (\d+), Warnings: (\d+)/g,
+                    ),
                   ).map((m) => ({
                     version: Number(m[1]),
                     errorCount: Number(m[2]),
@@ -447,11 +455,8 @@ export const useToolExecution = ({
               },
               '*',
             );
-            setClickedActions((prev) => {
-              const next = new Set(prev).add(actionId);
-              clickedActionsRef.current = next;
-              return next;
-            });
+            clickedActionsRef.current = new Set(clickedActionsRef.current).add(actionId);
+            setClickedActions(clickedActionsRef.current);
           }
         } else {
           setExecutionState((prev) => ({ ...prev, status: EXECUTION_STATUS.ERROR }));
@@ -483,6 +488,15 @@ export const useToolExecution = ({
 
           if (newBuffer.length > 0 && handleSendMessageRef.current && !isStoppedRef?.current) {
             const finalContent = newBuffer.join('\n\n');
+            const partialKey = `${message.id}::${textActionIds.join('|')}::${finalContent}`;
+            if (partialFlushedKeysRef.current.has(partialKey)) {
+              console.warn('[DEBUG][handleToolRequest] duplicate partial flush blocked', {
+                messageId: message.id,
+                textActionIds,
+              });
+              return { ...prev, [message.id]: [] };
+            }
+            partialFlushedKeysRef.current.add(partialKey);
             handleSendMessageRef.current(
               finalContent,
               undefined,

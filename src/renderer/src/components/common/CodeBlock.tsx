@@ -115,7 +115,7 @@ const buildWidgetColors = (tw: any): Record<string, string> => {
     'input.border': rgbToHex(tw.border),
     'inputOption.activeBackground': rgbToHex(tw.primary, '33'),
     'inputOption.activeBorder': rgbToHex(tw.primary),
-    'focusBorder': rgbToHex(tw.primary),
+    focusBorder: rgbToHex(tw.primary),
     'editor.findMatchBackground': rgbToHex(tw.primary, '66'),
     'editor.findMatchHighlightBackground': rgbToHex(tw.primary, '33'),
     'editorSuggestWidget.background': rgbToHex(tw.dropdownBackground),
@@ -124,9 +124,7 @@ const buildWidgetColors = (tw: any): Record<string, string> => {
     'editorHoverWidget.background': rgbToHex(tw.tooltipBackground),
     'editorHoverWidget.border': rgbToHex(tw.border),
   };
-  return Object.fromEntries(
-    Object.entries(entries).filter((e): e is [string, string] => !!e[1]),
-  );
+  return Object.fromEntries(Object.entries(entries).filter((e): e is [string, string] => !!e[1]));
 };
 
 // Chuyển đổi theme sang định dạng Monaco
@@ -514,12 +512,15 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         editorInstance.current.addCommand(
           window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS,
           () => {
-            // Debug log - có thể xóa sau khi fix
-            console.log('[DEBUG][CodeBlock] Monaco Ctrl+S fired', {
-              fileId,
-              filePath,
-              hasEditor: !!editorInstance.current,
-            });
+            const hostEl = editorRef.current;
+            if (
+              !hostEl ||
+              hostEl.offsetParent === null ||
+              getComputedStyle(hostEl).visibility === 'hidden'
+            ) {
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
+              return;
+            }
             // Save file to disk
             if (fileId && filePath) {
               const content = editorInstance.current.getValue();
@@ -538,11 +539,6 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
         // Handle content changes
         editorInstance.current.onDidChangeModelContent(() => {
-          console.log('[DEBUG][CodeBlock] Content changed', {
-            fileId,
-            filePath,
-            isExternal: isExternalUpdateRef.current,
-          });
           // Skip if this is an external update (from file watcher)
           if (isExternalUpdateRef.current) {
             isExternalUpdateRef.current = false;
@@ -687,23 +683,19 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
       if (!e.ctrlKey || e.shiftKey || e.altKey || e.key.toLowerCase() !== 's') return;
       const el = editorRef.current;
       const editor = editorInstance.current;
-      // Debug log - có thể xóa sau khi fix
-      console.log('[DEBUG][CodeBlock] Fallback Ctrl+S check', {
-        fileId,
-        filePath,
-        hasEl: !!el,
-        hasEditor: !!editor,
-        hasTextFocus: editor?.hasTextFocus?.(),
-        visibility: el ? getComputedStyle(el).visibility : null,
-        hasOffsetParent: el ? el.offsetParent !== null : null,
-      });
-      if (!el || !editor || editor.hasTextFocus()) return;
+      if (!el || !editor) return;
       if (getComputedStyle(el).visibility === 'hidden' || el.offsetParent === null) return;
+      const storeState = useCodeStore.getState();
+      const isDirty = storeState.projects
+        .find((p) => p.id === storeState.currentProjectId)
+        ?.unsavedFiles.has(fileId);
+      if (!isDirty) return;
+      e.preventDefault();
+      e.stopPropagation();
       const content = editor.getValue();
       window.api
         .invoke('fs:write-file', filePath, content)
         .then(() => {
-          console.log('[DEBUG][CodeBlock] Fallback save OK', { fileId, filePath });
           markFileAsSaved(fileId);
           setOriginalContent(fileId, content);
         })
@@ -711,8 +703,26 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           console.error('[CodeBlock] Failed to save file:', err);
         });
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [fileId, filePath, markFileAsSaved, setOriginalContent]);
+
+  useEffect(() => {
+    if (!fileId || !filePath) return;
+    const onSaveRequest = (e: Event) => {
+      const detail = (e as CustomEvent<{ fileId: string; pending: Promise<void>[] }>).detail;
+      const editor = editorInstance.current;
+      if (!detail || detail.fileId !== fileId || !editor) return;
+      const content = editor.getValue();
+      detail.pending.push(
+        window.api.invoke('fs:write-file', filePath, content).then(() => {
+          markFileAsSaved(fileId);
+          setOriginalContent(fileId, content);
+        }),
+      );
+    };
+    window.addEventListener('code:save-file', onSaveRequest);
+    return () => window.removeEventListener('code:save-file', onSaveRequest);
   }, [fileId, filePath, markFileAsSaved, setOriginalContent]);
 
   // Update word wrap dynamically

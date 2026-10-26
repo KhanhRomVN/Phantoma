@@ -21,6 +21,7 @@ import { ReadSkillRenderer } from './renderers/ReadSkillRenderer';
 import ListAgentsRenderer from './renderers/ListAgentsRenderer';
 import CreateAgentRenderer from './renderers/CreateAgentRenderer';
 import SendMessageRenderer from './renderers/SendMessageRenderer';
+import DeleteAgentRenderer from './renderers/DeleteAgentRenderer';
 import { ReplaceInFileRenderer } from './renderers/ReplaceInFileRenderer';
 import { RevertFileRenderer } from './renderers/RevertFileRenderer';
 import { RunCommandRenderer } from './renderers/RunCommandRenderer';
@@ -34,7 +35,8 @@ import { executeRevertFile } from './executors/RevertFileExecutor';
 import { executeViewReplaceHistory } from './executors/ViewReplaceHistoryExecutor';
 import { executeListFiles } from './executors/ListFilesExecutor';
 import { executeFindFiles } from './executors/FindFilesExecutor';
-import { executeRunCommand } from './executors/RunCommandExecutor';
+import { setRunCommandValidator } from '@renderer/components/RightPanel/Zen/feature/Chat/services/tool-executors/RunCommandExecutor';
+import { SecurityValidator } from './utils/security';
 import { executeDeleteFile } from './executors/DeleteFileExecutor';
 import { executeGrep } from './executors/GrepExecutor';
 import { executeGitDiff } from './executors/GitDiffExecutor';
@@ -45,6 +47,7 @@ import { executeReadSkill } from './executors/ReadSkillExecutor';
 import { executeListAgents } from './executors/ListAgentsExecutor';
 import { executeCreateAgent } from './executors/CreateAgentExecutor';
 import { executeSendMessage } from './executors/SendMessageExecutor';
+import { executeDeleteAgent } from './executors/DeleteAgentExecutor';
 import { parseReadFile } from './parsers/ReadFileParser';
 import { parseWriteToFile } from './parsers/WriteToFileParser';
 import { parseReplaceInFile } from './parsers/ReplaceInFileParser';
@@ -63,6 +66,7 @@ import { parseReadSkill } from './parsers/ReadSkillParser';
 import { parseListAgents } from './parsers/ListAgentsParser';
 import { parseCreateAgent } from './parsers/CreateAgentParser';
 import { parseSendMessage } from './parsers/SendMessageParser';
+import { parseDeleteAgent } from './parsers/DeleteAgentParser';
 import { buildPromptForMode as buildCodePrompt } from './prompts/code';
 // import { buildPromptForMode as buildDesignPrompt } from './prompts/design';
 import { buildOrchestratorPrompt } from './prompts/orchestrator';
@@ -71,6 +75,8 @@ import { buildExecutorPrompt } from './prompts/executor';
 import { buildReviewerPrompt } from './prompts/reviewer';
 
 const bypass = (o?: ExecutorOptions) => o?.bypassIgnore ?? false;
+
+setRunCommandValidator((command) => SecurityValidator.validateCommand(command));
 
 export const codeModule: ZenModule = {
   tagRegistry: CODE_TAG_REGISTRY,
@@ -90,8 +96,6 @@ export const codeModule: ZenModule = {
     view_replace_history: async (a) => executeViewReplaceHistory(a.params),
     list_files: async (a, c, o) => executeListFiles(a.params, bypass(o), c.folderPath),
     find_files: async (a) => (await executeFindFiles(a.params))?.output || null,
-    run_command: async (a) =>
-      executeRunCommand(a.params, (a as any).actionId || 'cmd-' + Date.now()),
     delete_file: async (a) => executeDeleteFile(a.params),
     grep: async (a) => executeGrep(a.params),
     git_diff: async (a) => {
@@ -105,7 +109,8 @@ export const codeModule: ZenModule = {
     read_skill: async (a) => executeReadSkill(a.params || {}),
     list_agents: async () => executeListAgents(),
     create_agent: async (a) => executeCreateAgent(a.params),
-    send_message: async (a) => executeSendMessage(a.params),
+    send_message: async (a, ctx) => executeSendMessage(a.params, ctx),
+    delete_agent: async (a) => executeDeleteAgent(a.params),
   },
   parsers: {
     read_file: parseReadFile,
@@ -126,6 +131,7 @@ export const codeModule: ZenModule = {
     list_agents: parseListAgents,
     create_agent: parseCreateAgent,
     send_message: parseSendMessage,
+    delete_agent: parseDeleteAgent,
   },
   renderers: {
     read_file: ReadFileRenderer,
@@ -147,6 +153,7 @@ export const codeModule: ZenModule = {
     list_agents: ListAgentsRenderer,
     create_agent: CreateAgentRenderer,
     send_message: SendMessageRenderer,
+    delete_agent: DeleteAgentRenderer,
   },
   prompts: {
     systemPrompts: new Map([

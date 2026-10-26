@@ -74,14 +74,14 @@ const ProviderRow: React.FC<{
     if (!method) return null;
 
     if (ICON_METHODS.includes(method)) {
-      const baseUri = (window as any).__zenImagesUri as string | undefined;
+      const baseUri = ((window as any).__zenImagesUri as string | undefined) || "/images";
       const src = baseUri
         ? `${baseUri}/auth_icons/${authIconFile(method)}`
         : undefined;
 
       if (!src) {
         console.warn(
-          "[AddAccountDrawer] window.__zenImagesUri is not available — cannot load auth icon for",
+          "[AddAccountModal] window.__zenImagesUri is not available — cannot load auth icon for",
           method,
         );
         return <Key size={11} />;
@@ -95,7 +95,7 @@ const ProviderRow: React.FC<{
           onLoad={() => {}}
           onError={(e) => {
             console.error(
-              `[AddAccountDrawer] ❌ auth icon FAILED to load: ${src}`,
+              `[AddAccountModal] ❌ auth icon FAILED to load: ${src}`,
               "img element:",
               e.currentTarget,
             );
@@ -155,7 +155,7 @@ const ProviderRow: React.FC<{
             style={{ width: "22px", height: "22px", objectFit: "contain" }}
             onError={() => {
               console.error(
-                "[AddAccountDrawer] favicon failed",
+                "[AddAccountModal] favicon failed",
                 provider.provider_id,
                 iconUrl,
               );
@@ -319,7 +319,7 @@ const ProviderRow: React.FC<{
   );
 };
 
-export const ProviderListDrawer: React.FC<{
+export const ProviderListModal: React.FC<{
   searchQuery: string;
   onSearchChange: (value: string) => void;
   loadingProviders: boolean;

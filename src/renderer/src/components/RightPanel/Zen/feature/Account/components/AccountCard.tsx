@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { FlatAccount } from '../types';
 import { CopyableText } from '../utils';
+import { ICON_METHODS, authIconFile, splitAuthMethod } from './addAccount.utils';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import {
   Dropdown,
@@ -391,9 +392,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   {account.auth_method &&
                     (() => {
                       const method = account.auth_method;
-                      const baseUri = (window as any).__zenImagesUri as string | undefined;
-                      const knownIcons = ['google', 'github', 'x'];
-                      const hasIcon = knownIcons.includes(method) && baseUri;
+                      const baseUri =
+                        ((window as any).__zenImagesUri as string | undefined) || '/images';
+                      const iconParts = splitAuthMethod(method).filter((p) =>
+                        ICON_METHODS.includes(p),
+                      );
                       return (
                         <span
                           style={{
@@ -412,12 +415,15 @@ const AccountCard: React.FC<AccountCardProps> = ({
                             flexShrink: 0,
                           }}
                         >
-                          {hasIcon ? (
-                            <img
-                              src={`${baseUri}/auth_icons/${method}.svg`}
-                              alt={method}
-                              style={{ width: '12px', height: '12px', objectFit: 'contain' }}
-                            />
+                          {iconParts.length > 0 ? (
+                            iconParts.map((p) => (
+                              <img
+                                key={p}
+                                src={`${baseUri}/auth_icons/${authIconFile(p)}`}
+                                alt={p}
+                                style={{ width: '12px', height: '12px', objectFit: 'contain' }}
+                              />
+                            ))
                           ) : (
                             <Key size={11} />
                           )}

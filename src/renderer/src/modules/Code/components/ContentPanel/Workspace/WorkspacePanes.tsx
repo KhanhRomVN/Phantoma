@@ -116,6 +116,17 @@ const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent'];
 
 // ─── Tab ──────────────────────────────────────────────────────────────
 
+function getPanelTitle(panel: WorkspacePanel): string {
+  const label = getPanelMeta(panel.type).label;
+  if (panel.type === 'agent') {
+    if (panel.workflowAgentId) return panel.title;
+    return panel.agentTitle ? `Zen|${panel.agentTitle}` : 'Zen';
+  }
+  if (panel.type === 'website') return panel.browserTitle || panel.title || label;
+  if (panel.type === 'terminal') return panel.terminalProcess || panel.title || label;
+  return panel.title || label;
+}
+
 interface WorkspaceTabProps {
   panel: WorkspacePanel;
   isActive: boolean;
@@ -155,17 +166,7 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
 
   const isAgentTab = panel.type === 'agent';
   const zenLogoUrl = `${(window as any).__zenImagesUri || '/images'}/zen-logo.png`;
-  const displayTitle = isAgentTab
-    ? panel.workflowAgentId
-      ? panel.title
-      : panel.agentTitle
-        ? `Zen|${panel.agentTitle}`
-        : 'Zen'
-    : panel.type === 'website'
-      ? panel.browserTitle || panel.title || meta.label
-      : panel.type === 'terminal'
-        ? panel.terminalProcess || panel.title || meta.label
-        : panel.title || meta.label;
+  const displayTitle = getPanelTitle(panel);
   const showAgentBadge = !!agentId && panel.type === 'terminal';
 
   return (
@@ -296,6 +297,36 @@ function broadcastOverlayClose() {
   window.dispatchEvent(new CustomEvent(OVERLAY_CLOSE_EVENT));
 }
 
+function useOverlayOpen() {
+  const [open, setOpen] = useState(false);
+  const openRef = useRef(false);
+
+  const handleChange = useCallback((next: boolean) => {
+    if (openRef.current === next) return;
+    openRef.current = next;
+    setOpen(next);
+    if (next) broadcastOverlayOpen();
+    else broadcastOverlayClose();
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') handleChange(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, handleChange]);
+
+  useEffect(() => {
+    return () => {
+      if (openRef.current) broadcastOverlayClose();
+    };
+  }, []);
+
+  return [open, handleChange] as const;
+}
+
 export function TabBar({
   panels,
   activeId,
@@ -304,51 +335,121 @@ export function TabBar({
   onDragStart,
   onAddPanel,
 }: TabBarProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, handleMenuOpenChange] = useOverlayOpen();
+  const [overflowOpen, handleOverflowOpenChange] = useOverlayOpen();
   const tabBarRef = useRef<HTMLDivElement>(null);
-  const menuOpenRef = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [overflowIds, setOverflowIds] = useState<string[]>([]);
 
-  // Dropdown gọi onOpenChange cho mọi đường đóng/mở (click trigger, click ngoài, chọn item)
-  const handleMenuOpenChange = useCallback((open: boolean) => {
-    if (menuOpenRef.current === open) return;
-    menuOpenRef.current = open;
-    setMenuOpen(open);
-    if (open) broadcastOverlayOpen();
-    else broadcastOverlayClose();
+  const measureOverflow = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const viewLeft = el.scrollLeft;
+    const viewRight = viewLeft + el.clientWidth;
+    const ids: string[] = [];
+    el.querySelectorAll<HTMLElement>('[data-tab-id]').forEach((node) => {
+      const left = node.offsetLeft;
+      const right = left + node.offsetWidth;
+      if (left < viewLeft - 1 || right > viewRight + 1) ids.push(node.dataset.tabId as string);
+    });
+    setOverflowIds((prev) =>
+      prev.length === ids.length && prev.every((v, i) => v === ids[i]) ? prev : ids,
+    );
   }, []);
 
-  // Đóng menu khi nhấn Esc
   useEffect(() => {
-    if (!menuOpen) return;
-    const onKeyDown = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape') handleMenuOpenChange(false);
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [menuOpen, handleMenuOpenChange]);
-
-  // Unmount → đảm bảo không để browser ẩn vĩnh viễn
-  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    measureOverflow();
+    const observer = new ResizeObserver(measureOverflow);
+    observer.observe(el);
+    Array.from(el.children).forEach((child) => observer.observe(child));
+    el.addEventListener('scroll', measureOverflow);
     return () => {
-      if (menuOpenRef.current) broadcastOverlayClose();
+      observer.disconnect();
+      el.removeEventListener('scroll', measureOverflow);
     };
-  }, []);
+  }, [panels, measureOverflow]);
+
+  useEffect(() => {
+    if (!activeId) return;
+    scrollRef.current
+      ?.querySelector<HTMLElement>(`[data-tab-id="${activeId}"]`)
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [activeId]);
+
+  const overflowPanels = panels.filter((p) => overflowIds.includes(p.id));
 
   return (
     <div
       ref={tabBarRef}
-      className="h-9 w-full shrink-0 flex items-end bg-sidebar-background overflow-x-auto custom-scrollbar border-b border-divider"
+      className="h-9 w-full shrink-0 flex items-end bg-sidebar-background border-b border-divider"
     >
-      {panels.map((panel) => (
-        <WorkspaceTab
-          key={panel.id}
-          panel={panel}
-          isActive={activeId === panel.id}
-          onClick={() => onSelectTab(panel.id)}
-          onClose={() => onCloseTab(panel.id)}
-          onDragStart={onDragStart}
-        />
-      ))}
+      <div
+        ref={scrollRef}
+        onWheel={(e) => {
+          if (scrollRef.current) scrollRef.current.scrollLeft += e.deltaY || e.deltaX;
+        }}
+        className="relative flex items-end min-w-0 overflow-x-hidden"
+      >
+        {panels.map((panel) => (
+          <WorkspaceTab
+            key={panel.id}
+            panel={panel}
+            isActive={activeId === panel.id}
+            onClick={() => onSelectTab(panel.id)}
+            onClose={() => onCloseTab(panel.id)}
+            onDragStart={onDragStart}
+          />
+        ))}
+      </div>
+
+      {overflowPanels.length > 0 && (
+        <Dropdown
+          open={overflowOpen}
+          onOpenChange={handleOverflowOpenChange}
+          align="end"
+          side="bottom"
+          sideOffset={4}
+          width={240}
+          className="shrink-0"
+        >
+          <DropdownTrigger asChild>
+            <button
+              className="h-9 min-w-9 px-2 flex items-center justify-center border border-dashed border-primary/50 text-primary text-[11px] font-semibold hover:bg-white/[0.05] transition-colors"
+              aria-label={`${overflowPanels.length} hidden tabs`}
+            >
+              {overflowPanels.length}
+            </button>
+          </DropdownTrigger>
+          <DropdownContent>
+            {overflowPanels.map((panel) => {
+              const title = getPanelTitle(panel);
+              return (
+                <DropdownItem
+                  key={panel.id}
+                  icon={
+                    panel.type === 'file' ? (
+                      <img
+                        src={getFileIconPath(title)}
+                        alt=""
+                        className="w-4 h-4 object-contain"
+                        draggable={false}
+                      />
+                    ) : (
+                      getPanelMeta(panel.type, 'w-4 h-4').icon
+                    )
+                  }
+                  className={cn(panel.id === activeId && 'bg-white/[0.06]')}
+                  onClick={() => onSelectTab(panel.id)}
+                >
+                  <span className="truncate">{title}</span>
+                </DropdownItem>
+              );
+            })}
+          </DropdownContent>
+        </Dropdown>
+      )}
 
       <Dropdown
         open={menuOpen}

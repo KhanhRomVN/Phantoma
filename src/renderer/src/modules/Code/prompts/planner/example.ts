@@ -36,6 +36,16 @@ export const buildPlannerExample = (toolFormat: ToolFormat = "xml"): string => {
     toolFormat,
   );
 
+  const plan3 = fenceCall(
+    "send_message",
+    {
+      agent_id: "orchestrator",
+      message:
+        "TYPE: PLAN\nSTATUS: OK\nBODY:\n1. GOAL: rename formatDate to formatIsoDate everywhere.\n2. ASSUMPTIONS: None.\n3. FILES: src/utils/format.ts (function formatDate, lines 3-5) [verified]; callers found by grep: src/features/cart/CartSummary.tsx, src/features/orders/OrderRow.tsx, src/features/profile/ProfileCard.tsx [verified].\n4. STEPS:\n   BATCH 1 (independent, 4 writes):\n   1) format.ts, ANCHOR 'export function formatDate(': rename the function to formatIsoDate.\n   2) CartSummary.tsx, ANCHOR 'formatDate(': update the import and the call.\n   3) OrderRow.tsx, ANCHOR 'formatDate(': update the import and the call.\n   4) ProfileCard.tsx, ANCHOR 'formatDate(': update the import and the call.\n5. REFERENCES: none needed.\n6. IMPACT: no other grep match; no test references formatDate.\n7. RISKS: a dynamic import by string name would be missed; grep found none.\n8. ACCEPTANCE: no occurrence of formatDate remains under src; the four files compile.\n9. VERIFY: npx tsc --noEmit -p tsconfig.web.json",
+    },
+    toolFormat,
+  );
+
   return `# EXAMPLES
 These examples show shape only. Real tool results arrive between turns and are never predicted.
 
@@ -53,5 +63,8 @@ Turn 3 — all facts known, send the PLAN to the orchestrator:
 ${plan}
 
 ## Example 2: information impossible to infer → BLOCKED
-${blocked}`;
+${blocked}
+
+## Example 3: shared function with several callers, grouped into a BATCH with anchors
+${plan3}`;
 };

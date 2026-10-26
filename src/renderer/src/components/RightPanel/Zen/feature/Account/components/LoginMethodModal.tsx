@@ -448,7 +448,7 @@ const ProfilePicker: React.FC<{
   );
 };
 
-export const MethodPickerDrawer: React.FC<{
+export const MethodPickerModal: React.FC<{
   provider: Provider;
   loading: boolean;
   error: string;
@@ -484,7 +484,7 @@ export const MethodPickerDrawer: React.FC<{
       label: "Google",
       desc: "Sign in with your Google account via OAuth",
       icon: (() => {
-        const baseUri = (window as any).__zenImagesUri as string | undefined;
+        const baseUri = ((window as any).__zenImagesUri as string | undefined) || "/images";
         return baseUri ? (
           <img
             src={`${baseUri}/auth_icons/google.svg`}
@@ -500,7 +500,7 @@ export const MethodPickerDrawer: React.FC<{
       label: "GitHub",
       desc: "Sign in with your GitHub account via OAuth",
       icon: (() => {
-        const baseUri = (window as any).__zenImagesUri as string | undefined;
+        const baseUri = ((window as any).__zenImagesUri as string | undefined) || "/images";
         return baseUri ? (
           <img
             src={`${baseUri}/auth_icons/github.svg`}
@@ -516,7 +516,7 @@ export const MethodPickerDrawer: React.FC<{
       label: "X / xAI",
       desc: "Sign in via device code — browser will open automatically",
       icon: (() => {
-        const baseUri = (window as any).__zenImagesUri as string | undefined;
+        const baseUri = ((window as any).__zenImagesUri as string | undefined) || "/images";
         return baseUri ? (
           <img
             src={`${baseUri}/auth_icons/x.svg`}
@@ -713,7 +713,7 @@ export const MethodPickerDrawer: React.FC<{
   );
 };
 
-export const ProfilePickerDrawer: React.FC<{
+export const ProfilePickerModal: React.FC<{
   provider: Provider;
   entries: ProfileEntry[];
   isDefaultChrome: boolean;
@@ -755,7 +755,7 @@ export const ProfilePickerDrawer: React.FC<{
 
   if (hiddenEntries.length > 0) {
     console.warn(
-      "[AddAccountDrawer] Profiles bị ẩn (trùng với existingEmails):",
+      "[AddAccountModal] Profiles bị ẩn (trùng với existingEmails):",
       hiddenEntries.map((p) => ({ folder: p.folder, label: p.label })),
     );
   }
@@ -842,7 +842,7 @@ export const ProfilePickerDrawer: React.FC<{
   );
 };
 
-export const EmailInputDrawer: React.FC<{
+export const EmailInputModal: React.FC<{
   emailInput: string;
   error: string;
   emailSubmitting: boolean;

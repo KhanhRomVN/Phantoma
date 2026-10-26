@@ -36,6 +36,8 @@ import { ChatSession } from './feature/Chat/types/chat';
 // ── Utils ── (icons)
 import { MousePointer } from 'lucide-react';
 import { AgentRootContext } from './context/AgentRootContext';
+import { useWorkflowAgentSync } from './context/WorkflowAgentContext';
+import { useToolFormatSettings } from './hooks/useToolFormatSettings';
 
 // ─── Page switcher ─────────────────────────────────────────────────────────
 
@@ -145,6 +147,44 @@ function AgentView({
     [],
   );
 
+  const workflowSync = useWorkflowAgentSync();
+  const handleHomeUserSend = useCallback(
+    (...args: Parameters<typeof handleHomeSendMessage>) => {
+      if (workflowSync?.agentId === 'orchestrator' && args[0].trim()) {
+        workflowSync.notifyUserMessage?.(args[0]);
+      }
+      handleHomeSendMessage(...args);
+    },
+    [workflowSync, handleHomeSendMessage],
+  );
+  const pendingInbox = workflowSync?.inbox?.[0];
+  const { toolFormat: inboxToolFormat } = useToolFormatSettings(
+    workflowSync?.model?.providerId,
+    workflowSync?.model?.id,
+  );
+
+  // Deliver send_message to a Zen tab that is still on Home: start its first conversation
+  useEffect(() => {
+    if (!workflowSync || !pendingInbox) return;
+    if (currentChat) {
+      return;
+    }
+    if (!workflowSync.model || !workflowSync.account) {
+      return;
+    }
+    handleHomeSendMessage(
+      `<agent-message from="${pendingInbox.from}">\n${pendingInbox.content}\n</agent-message>`,
+      [],
+      workflowSync.model,
+      workflowSync.account,
+      {
+        toolFormat: inboxToolFormat,
+        workflowAgentId: (workflowSync.agentType ?? workflowSync.agentId) as any,
+      },
+    );
+    workflowSync.shiftInbox?.();
+  }, [workflowSync, pendingInbox, currentChat, handleHomeSendMessage, inboxToolFormat]);
+
   const handleBack = useCallback((contentToReturn?: string) => {
     setCurrentChat(null);
     setHomeInitialValue(
@@ -204,7 +244,7 @@ function AgentView({
           />
         ) : (
           <HomePanel
-            onSendMessage={handleHomeSendMessage}
+            onSendMessage={handleHomeUserSend}
             onLoadConversation={handleLoadConversation}
             initialValue={homeInitialValue}
             onOpenSubView={setSubView}

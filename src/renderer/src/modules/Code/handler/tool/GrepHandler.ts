@@ -204,10 +204,7 @@ export class GrepHandler {
           });
         }
       }
-    } catch (e) {
-      // Debug log - có thể xóa sau khi fix
-      console.log('[DEBUG][GrepHandler] read file failed:', { filePath, error: String(e) });
-    }
+    } catch (e) {}
 
     return { matches };
   }

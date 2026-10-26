@@ -485,8 +485,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
             bottomPanelTab: fresh.bottomPanelTab ?? 'output',
             isBottomPanelOpen: fresh.isBottomPanelOpen ?? true,
             activityPanelTab: fresh.activityPanelTab ?? 'explore',
-            unsavedFiles: new Set(fresh.unsavedFiles || []),
-            originalContents: fresh.originalContents ?? {},
+            unsavedFiles: new Set<string>(),
+            originalContents: {},
             dirVersions: fresh.dirVersions ?? {},
             designs: fresh.designs ?? [],
           } as ProjectExtended;

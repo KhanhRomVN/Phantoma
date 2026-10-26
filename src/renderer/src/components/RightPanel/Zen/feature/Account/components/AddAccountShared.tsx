@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { $ } from '@renderer/utils/color';
+import ReactDOM from "react-dom";
+import {
+  AccountModalKeyframes,
+  overlayStyle,
+  useAccountModalLayout,
+} from "./accountModalLayout";
+
 import { Key } from "lucide-react";
 import { getFaviconUrl } from "@renderer/shared/utils/faviconUtils";
 import {
@@ -16,50 +22,47 @@ import {
   type Provider,
 } from "./addAccount.utils";
 
+const ModalBackdrop: React.FC<{ onClick: () => void }> = ({ onClick }) => {
+  const { container } = useAccountModalLayout(true);
+  return ReactDOM.createPortal(
+    <div style={overlayStyle} onClick={onClick} />,
+    container,
+  );
+};
+
+const ModalSheet: React.FC<{ height: string; children: React.ReactNode }> = ({
+  height,
+  children,
+}) => {
+  const { container, isWide, panelStyle } = useAccountModalLayout(true, true);
+  const style: React.CSSProperties = isWide
+    ? panelStyle
+    : { ...panelStyle, height, maxHeight: height };
+  return ReactDOM.createPortal(
+    <div style={style}>
+      {children}
+      <AccountModalKeyframes />
+    </div>,
+    container,
+  );
+};
+
 export const sharedBackdrop = (onClickBackdrop: () => void) => (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      backgroundColor: "rgba(0,0,0,0.55)",
-      zIndex: 200,
-      animation: "aaFadeIn 0.15s ease",
-    }}
-    onClick={onClickBackdrop}
-  />
+  <ModalBackdrop onClick={onClickBackdrop} />
 );
 
 export const sharedSheet = (
   children: React.ReactNode,
   height: string = "70%",
-) => (
-  <div
-    style={{
-      position: "fixed",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: $('--card-background'),
-      borderTop: `1px solid ${$('--border')}`,
-      boxShadow: "0 -8px 32px rgba(0,0,0,0.25)",
-      zIndex: 201,
-      height,
-      display: "flex",
-      flexDirection: "column",
-      animation: "aaSlideUp 0.22s ease",
-    }}
-  >
-    {children}
-  </div>
-);
+) => <ModalSheet height={height}>{children}</ModalSheet>;
 
 export const AuthGlyph: React.FC<{ method: string; size?: number }> = ({
   method,
   size = 11,
 }) => {
   const [failed, setFailed] = useState(false);
-  const baseUri = (window as any).__zenImagesUri as string | undefined;
-  if (!baseUri || failed || !ICON_METHODS.includes(method)) {
+  const baseUri = ((window as any).__zenImagesUri as string | undefined) || "/images";
+  if (failed || !ICON_METHODS.includes(method)) {
     return <Key size={size} />;
   }
   return (

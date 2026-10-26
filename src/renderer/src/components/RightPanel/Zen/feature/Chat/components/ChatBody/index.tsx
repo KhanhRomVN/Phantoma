@@ -24,7 +24,7 @@ import { parseAIResponse, ParsedResponse, ToolAction } from '../../services/Resp
 import { Message } from '../../types/message';
 
 // ── Constants ──
-import { EXECUTION_STATUS, TOOL_ACTION_TYPES, TERMINAL_STATUS } from '../../constants/constants';
+import { EXECUTION_STATUS, TOOL_ACTION_TYPES, TERMINAL_STATUS } from '../../constants/tag-registry';
 
 // ── Hooks ──
 import { useCollapseSections } from '../../hooks/ui/useCollapseSections';
@@ -33,7 +33,6 @@ import { useScrollBehavior } from '../../hooks/ui/useScrollBehavior';
 import { useMessagePagination } from '../../hooks/ui/useMessagePagination';
 
 // ── Context ──
-
 
 // ── Components ──
 import ChatBodySkeleton from './ChatBodySkeleton';
@@ -44,6 +43,7 @@ import ContinuingIndicator from './ContinuingIndicatorBox';
 import ProcessingIndicator from './ProcessingIndicator';
 import UserMessageBox from './UserMessageBox';
 import AIMessageBox from './AIMessageBox';
+import { useWorkflowAgentSync } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ChatBodyProps {
@@ -252,8 +252,11 @@ interface MessageBoxProps {
 
 const MessageBoxComponent: React.FC<MessageBoxProps> = (props) => {
   const { message, onRevertConversation, onSendMessage, conversationId } = props;
+  const workflowSync = useWorkflowAgentSync();
 
   if (message.role === 'user') {
+    const incoming = workflowSync?.renderIncomingMessage?.(message);
+    if (incoming) return <>{incoming}</>;
     return (
       <UserMessageBox
         message={message}

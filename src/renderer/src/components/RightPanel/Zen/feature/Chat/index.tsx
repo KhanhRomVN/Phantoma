@@ -110,7 +110,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const workflowSync = useWorkflowAgentSync();
   const workflowAgentIdFromOverrides = initialMessageData?.conversationOverrides?.workflowAgentId;
   const workflowAgentId =
-    workflowAgentIdProp ?? workflowSync?.agentId ?? workflowAgentIdFromOverrides ?? undefined;
+    workflowAgentIdProp ??
+    workflowSync?.agentType ??
+    (workflowSync?.agentId as ChatPanelProps['workflowAgentId']) ??
+    workflowAgentIdFromOverrides ??
+    undefined;
   // Track render count for performance monitoring
   const renderCountRef = useRef(0);
   const prevPropsRef = useRef<any>({});
@@ -243,6 +247,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         useSkillEnabled?: boolean;
         memoryEnabled?: boolean;
         toolFormat?: 'xml' | 'json';
+        workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
       }
     | undefined
   >(initialMessageData?.conversationOverrides);
@@ -253,6 +258,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       setRestoredConversationOverrides(initialMessageData.conversationOverrides);
     }
   }, [initialMessageData?.conversationOverrides]);
+
+  const chatConversationOverrides = useMemo(
+    () =>
+      workflowAgentId
+        ? { ...restoredConversationOverrides, workflowAgentId }
+        : restoredConversationOverrides,
+    [restoredConversationOverrides, workflowAgentId],
+  );
 
   // --- Chat LLM Hook ---
   const {
@@ -278,7 +291,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       apiUrl,
       selectedTab: currentChat,
       feature,
-      conversationOverrides: restoredConversationOverrides,
+      conversationOverrides: chatConversationOverrides,
       workflowAgentId,
       onToolRequest: (actions, assistantMessage, isAutoTrigger, actionType) =>
         handleToolRequest(
@@ -448,6 +461,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     messagesRef: messagesRef,
     isStoppedRef: isStoppedRef,
     toolFormat: restoredConversationOverrides?.toolFormat ?? 'xml',
+    workflowAgentId: workflowSync?.agentId ?? null,
     sessionId: currentChat?.sessionId,
     folderPath: currentChat?.folderPath ?? null,
     sendMessage: (
@@ -529,6 +543,40 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return null;
   }, [parsedMessages]);
 
+  // User-typed sends are mirrored into the workflow conversation (orchestrator: as the user's
+  // message; other agents: forwarded to the orchestrator). Tool/inbox sends bypass this wrapper.
+  const userSendMessage = useCallback<typeof wrappedSendMessage>(
+    (content, files, model, account, skipFirstRequestLogic, actionIds, uiHidden) => {
+      if (workflowSync && workflowSync.agentId !== 'orchestrator') {
+        if (content.trim()) {
+          workflowSync.notifyUserMessage?.(content);
+          const relayMsg = {
+            id: `relay-${Date.now()}`,
+            role: 'user',
+            content: `## User Message\n<user-message>\n${content}\n</user-message>`,
+            timestamp: Date.now(),
+          } as any;
+          messagesRef.current = [...messagesRef.current, relayMsg];
+          setMessages(messagesRef.current);
+        }
+        return Promise.resolve();
+      }
+      if (workflowSync?.notifyUserMessage && content.trim()) {
+        workflowSync.notifyUserMessage(content);
+      }
+      return wrappedSendMessage(
+        content,
+        files,
+        model,
+        account,
+        skipFirstRequestLogic,
+        actionIds,
+        uiHidden,
+      );
+    },
+    [workflowSync, wrappedSendMessage],
+  );
+
   // --- Message Handlers ---
   const { handleSend, handleStopGeneration } = useMessageHandlers({
     message,
@@ -545,7 +593,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     clearInvalidExternalFiles,
     undoStackRef,
     undoIndexRef,
-    wrappedSendMessage,
+    wrappedSendMessage: userSendMessage,
     currentConversationId,
     currentChat,
     stopGeneration,
@@ -672,6 +720,54 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       onClearInitialData?.();
     }
   }, [initialMessageData, sendMessage, onClearInitialData, isApiUrlReady]);
+
+  // Deliver send_message items queued for this workflow agent, one at a time when idle
+  const inboxHead = workflowSync?.inbox?.[0];
+  const inboxBusyRef = useRef(false);
+  const inboxStampRef = useRef(0);
+  const [inboxTick, setInboxTick] = useState(0);
+  useEffect(() => {
+    if (isProcessing) inboxBusyRef.current = false;
+  }, [isProcessing]);
+  useEffect(() => {
+    if (!workflowSync || !inboxHead) return;
+    if (!isApiUrlReady || isProcessing || initialMessageData || inboxBusyRef.current) {
+      return;
+    }
+    const model = workflowSync.model ?? currentModel;
+    const account = workflowSync.account ?? currentAccount;
+    if (messagesRef.current.some((m) => String(m.id).startsWith('relay-'))) {
+      messagesRef.current = messagesRef.current.filter((m) => !String(m.id).startsWith('relay-'));
+      setMessages(messagesRef.current);
+    }
+    inboxBusyRef.current = true;
+    const stamp = ++inboxStampRef.current;
+    workflowSync.shiftInbox?.();
+    window.setTimeout(() => {
+      if (!inboxBusyRef.current || stamp !== inboxStampRef.current) return;
+      inboxBusyRef.current = false;
+      setInboxTick((t) => t + 1);
+    }, 5000);
+    wrappedSendMessage(
+      `<agent-message from="${inboxHead.from}">\n${inboxHead.content}\n</agent-message>`,
+      [],
+      model,
+      account,
+      false,
+      undefined,
+      undefined,
+    );
+  }, [
+    workflowSync,
+    inboxHead,
+    isApiUrlReady,
+    isProcessing,
+    initialMessageData,
+    currentModel,
+    currentAccount,
+    wrappedSendMessage,
+    inboxTick,
+  ]);
 
   // Auto-resize textarea
   useEffect(() => {

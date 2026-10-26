@@ -59,6 +59,8 @@ interface UserMessageBoxProps {
   messages?: Message[];
   conversationId?: string;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
+  /** Hide editing affordances (used when the box is shown outside a live conversation). */
+  readOnly?: boolean;
   onSendMessage?: (
     content: string,
     files?: any[],
@@ -80,6 +82,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
   conversationId,
   onRevertConversation,
   onSendMessage,
+  readOnly,
 }) => {
   const [showRevertModal, setShowRevertModal] = React.useState(false);
   const [isCopied, setIsCopied] = React.useState(false);
@@ -402,7 +405,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
       )}
 
       {/* Bottom toolbar */}
-      {!isEditing && (
+      {!isEditing && !readOnly && (
         <div className="w-full flex justify-start items-center gap-2 bg-transparent py-1 px-2">
           {/* Copy button */}
           <button
@@ -449,6 +452,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
           <button
             onClick={handleOpenEdit}
             title="Edit message"
+            style={readOnly ? { display: 'none' } : undefined}
             className="bg-transparent border-none cursor-pointer p-1 flex items-center justify-center rounded opacity-70 hover:opacity-100 transition-opacity duration-200 text-text-secondary"
           >
             <svg

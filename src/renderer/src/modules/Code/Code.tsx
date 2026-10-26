@@ -33,6 +33,7 @@ import { ToastContainer } from './components/common/ToastContainer';
 import { FooterBar } from './components/FooterBar';
 import { ProjectPanel } from './components/ProjectPanel/ProjectPanel';
 import { QuickOpenModal } from './components/modal/QuickOpenModal';
+import './services/unsaved.service';
 
 // ─── Directory Scanner ─────────────────────────────────────────────────
 
@@ -77,32 +78,14 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
 // ─── Component ──────────────────────────────────────────────────────────
 export function Code() {
   // ── Store ──
-  const {
-    setProjectManagerOpen,
-    setNewProjectOpen,
-    projects,
-    hydrateProjectFiles,
-    hasUnsavedChanges,
-  } = useCodeStore();
+  const { setProjectManagerOpen, setNewProjectOpen, projects, hydrateProjectFiles } =
+    useCodeStore();
   // ── State ──
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
-
   // ── Refs ──
   const hydratedRef = useRef(false);
 
   // ── Effects ──
-  // Prevent closing app with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges()) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
 
   // Restore project files from localStorage on startup
   useEffect(() => {
@@ -156,12 +139,6 @@ export function Code() {
       // Ctrl+S: Save current file
       if (e.ctrlKey && !e.shiftKey && e.key === 's') {
         e.preventDefault();
-        // Debug log - có thể xóa sau khi fix
-        console.log('[DEBUG][Code] Global Ctrl+S', {
-          activeFileId,
-          hasFileNode: !!fileNode,
-          fileNodePath: fileNode?.path,
-        });
         if (!activeFileId || !fileNode) return;
         try {
           const monaco = (window as any).monaco;

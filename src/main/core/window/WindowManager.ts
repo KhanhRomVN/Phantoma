@@ -14,7 +14,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Electron ──
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, dialog, shell } from 'electron';
 
 // ── Node.js ──
 import { join } from 'path';
@@ -93,6 +93,18 @@ export class WindowManager {
           this.applyZoom(zoomIn ? 1 : zoomOut ? -1 : 0);
         }
       }
+    });
+
+    this.mainWindow.webContents.on('will-prevent-unload', (event) => {
+      const choice = dialog.showMessageBoxSync(this.mainWindow!, {
+        type: 'warning',
+        buttons: ['Leave', 'Stay'],
+        defaultId: 1,
+        cancelId: 1,
+        title: 'Unsaved changes',
+        message: 'You have unsaved changes. Leave anyway?',
+      });
+      if (choice === 0) event.preventDefault();
     });
 
     this.mainWindow.webContents.on('did-start-loading', () => {

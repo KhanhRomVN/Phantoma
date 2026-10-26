@@ -64,6 +64,7 @@ export interface ConversationData {
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';
+    workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
   };
   createdAt: number;
   lastModified: number;
@@ -169,7 +170,7 @@ export class ConversationStorage {
     const filePath = this.getConversationPath(moduleId, conversationId, folderPath);
     this.ensureDir(path.dirname(filePath));
 
-    data.lastModified = Date.now();
+    data.lastModified = data.lastModified || Date.now();
     if (!data.createdAt) {
       data.createdAt = Date.now();
     }

@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Loader2, CheckSquare, Square, Check, X, Search } from 'lucide-react';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { $ } from '@renderer/utils/color';
+import ReactDOM from 'react-dom';
+import { AccountModalKeyframes, overlayStyle, useAccountModalLayout } from './accountModalLayout';
 
 // ─── Types ───────────────────────────────────────────────────────────────
 export interface DuplicateEntry {
@@ -31,7 +33,7 @@ interface ProviderConfig {
   website?: string;
 }
 
-interface ImportDuplicatesDrawerProps {
+interface ImportDuplicatesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   duplicates: DuplicateEntry[];
@@ -299,7 +301,7 @@ const EntryCard: React.FC<{
 };
 
 // ─── Component ───────────────────────────────────────────────────────────
-const ImportDuplicatesDrawer: React.FC<ImportDuplicatesDrawerProps> = ({
+const ImportDuplicatesModal: React.FC<ImportDuplicatesModalProps> = ({
   open,
   onOpenChange,
   duplicates,
@@ -307,6 +309,7 @@ const ImportDuplicatesDrawer: React.FC<ImportDuplicatesDrawerProps> = ({
   onOverride,
   onDone,
 }) => {
+  const { container, panelStyle } = useAccountModalLayout(open, true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -394,24 +397,11 @@ const ImportDuplicatesDrawer: React.FC<ImportDuplicatesDrawerProps> = ({
           selectedChanged > 0 ? `${selectedChanged} override` : '',
         ].filter(Boolean).join(', ');
 
-  return (
+  return ReactDOM.createPortal(
     <>
-      <div style={{
-        position: 'fixed', inset: 0,
-        backgroundColor: 'rgb(0,0,0,0.5)', // Overlay usually stays black/dark regardless of theme for contrast
-        zIndex: 200, animation: 'idFadeIn 0.15s ease',
-      }} onClick={() => !loading && onOpenChange(false)} />
+      <div style={overlayStyle} onClick={() => !loading && onOpenChange(false)} />
 
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: '75vh',
-        backgroundColor: $('--card-background'),
-        borderTop: `1px solid ${$('--border')}`,
-        borderRadius: 0,
-        boxShadow: '0 -8px 32px rgb(0,0,0,0.25)',
-        zIndex: 201, animation: 'idSlideUp 0.22s ease',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
+      <div style={panelStyle}>
 
         {/* Header */}
         <div style={{
@@ -569,7 +559,7 @@ const ImportDuplicatesDrawer: React.FC<ImportDuplicatesDrawerProps> = ({
             }}
           >
             {loading
-              ? <Loader2 size={13} style={{ animation: 'idSpin 1s linear infinite' }} />
+              ? <Loader2 size={13} style={{ animation: 'pmdSpin 1s linear infinite' }} />
               : <Check size={13} />
             }
             {confirmLabel}
@@ -577,13 +567,10 @@ const ImportDuplicatesDrawer: React.FC<ImportDuplicatesDrawerProps> = ({
         </div>
       </div>
 
-      <style>{`
-        @keyframes idSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes idFadeIn  { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes idSpin    { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-    </>
+      <AccountModalKeyframes />
+    </>,
+    container,
   );
 };
 
-export default ImportDuplicatesDrawer;
+export default ImportDuplicatesModal;

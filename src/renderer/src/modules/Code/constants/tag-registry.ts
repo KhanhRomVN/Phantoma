@@ -169,4 +169,11 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     category: 'tool',
     timeout: 30000,
   },
+
+  delete_agent: {
+    id: 'delete_agent',
+    title: 'DELETE AGENT',
+    category: 'tool',
+    timeout: 10000,
+  },
 };

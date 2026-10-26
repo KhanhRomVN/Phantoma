@@ -1,20 +1,26 @@
-import type { SystemPromptMode } from "@renderer/modules/Code/prompts/code/mode-config";
-import { MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from "@renderer/modules/Code/prompts/code/mode-config";
+import type { SystemPromptMode } from "../code/mode-config";
+import { MODE_BEHAVIORS } from "../code/mode-config";
+import { HANDOFF_TOOL, tick } from "./tools-reference";
 
-export const REVIEW_FORMAT = `## REVIEW format (BODY of the REVIEW handoff)
+export const REVIEW_FORMAT = `## REVIEW format (the message sent to the orchestrator)
+Header lines: FROM: reviewer, TO: orchestrator, TYPE: REVIEW, STATUS: OK or NEEDS_REWORK, then BODY:
 1. VERDICT: APPROVED or NEEDS_REWORK (mirror it in STATUS: OK / NEEDS_REWORK).
 2. DEFECTS (only when NEEDS_REWORK): numbered, ordered by severity. Each one: file path, line range, what is wrong, the expected fix. Only blocking problems belong here.
-3. NOTES: non-blocking suggestions and manual tests the user should run, clearly separated from defects.
-4. CHECKS RUN: commands executed and their real outcome, quoted from tool output only.`;
+3. NOTES: non-blocking items tagged [should-fix] or [nit], manual tests the user should run, and any ACCEPTANCE criterion you could not verify, clearly separated from defects.
+4. CHECKS RUN: commands executed and their real outcome, quoted from tool output only. Mark environment errors unrelated to the change as inconclusive.
+When you cannot review (PLAN or ACCEPTANCE missing, scope unreadable, MAX-2-SEARCH or CONTRADICTION-CLARIFY triggered), send TYPE: QUESTION, STATUS: BLOCKED, BODY: the exact open question, instead of a REVIEW.`;
 
 export const buildReviewerWorkflow = (
   mode: SystemPromptMode = "balanced",
 ): string => {
   const behavior = MODE_BEHAVIORS[mode];
 
+  const checkHint =
+    "Pick the type/syntax/lint check from the language and project config (TypeScript: npx tsc --noEmit; Python: mypy or pylint; Go: go vet; Rust: cargo check; lint without any fix flag), scoped to the changed files when possible. If the tool is not installed, report it as inconclusive; do not install it.";
+
   const verifyStep = behavior.runVerifyAfterChange
-    ? "4. **VERIFY** — Run the type/syntax/lint check (LSP-CHECK-FALLBACK) AND the project's existing test and build commands with run_command. Any failure caused by the change is a blocking defect. Do not write new tests."
-    : "4. **VERIFY** — Run the type/syntax/lint check (LSP-CHECK-FALLBACK) over the changed files with run_command. Run existing tests or the build only when the PLAN's ACCEPTANCE names them. A failure caused by the change is a blocking defect.";
+    ? `4. **VERIFY** — Run the type/syntax/lint check AND the project's existing test and build commands with run_command. ${checkHint} Any failure caused by the change is a blocking defect. Do not write new tests.`
+    : `4. **VERIFY** — Run the type/syntax/lint check over the changed files with run_command. ${checkHint} Run existing tests or the build only when the PLAN's ACCEPTANCE names them. A failure caused by the change is a blocking defect.`;
 
   const depth = (() => {
     switch (behavior.explanationLevel) {
@@ -30,11 +36,15 @@ export const buildReviewerWorkflow = (
   return `# WORKFLOW
 ## Review Process
 1. **RECEIVE** — Read the executor's RESULT and the PLAN. List the files that should have changed and the ACCEPTANCE criteria.
-2. **INSPECT** — Batch git_status and git_diff, then read_file for each changed file (sum line counts, keep each batch at or under ${MAX_READ_LINES_PER_TURN} lines, read slices of oversized files). STOP and wait for the content. Compare the real diff with FILES CHANGED: an unreported or unplanned change is a defect.
-3. **ANALYZE** — Check logic and edge cases, types and imports, error handling, PLAN fidelity, scope (no unrelated edits, no leftover debug logs, no secrets) and project conventions. Grep for the same faulty pattern elsewhere (PATTERN-REUSE).
+2. **INSPECT** — Batch git_status and git_diff, then read_file for the changed files within READ-LINE-BUDGET (see TOOLS). Read logic/source files first, then config and types, then docs. For a large file read only the hunks shown by git_diff plus about 20 lines around them (start_line/end_line). STOP and wait for the content. Compare the real diff with FILES CHANGED: an unreported or unplanned change is a defect.
+3. **ANALYZE** — Check each group:
+   - Logic: edge cases, null/undefined, off-by-one, async ordering and race conditions, swallowed or missing error handling, leaked listeners/timers/handles.
+   - Contracts: types and imports resolve; for every changed signature, export or shared type, grep all callers/importers and confirm they still match.
+   - Scope: PLAN fidelity, no unrelated edits, no leftover debug logs, no secrets, project conventions.
+   - Same pattern elsewhere: grep for the same faulty pattern in the codebase and report every instance.
 ${verifyStep}
 5. **JUDGE** — Tick every ACCEPTANCE criterion as met or unmet. APPROVED only if all are met and no blocking defect remains. ${depth}
-6. **HANDOFF** — Send the REVIEW to the orchestrator (TYPE: REVIEW) after all tool calls are finished.
+6. **HANDOFF** — Send the REVIEW to the orchestrator with ${tick(HANDOFF_TOOL)} (TYPE: REVIEW) as the last call, after all other tool calls are finished.
 
 ${REVIEW_FORMAT}`;
 };

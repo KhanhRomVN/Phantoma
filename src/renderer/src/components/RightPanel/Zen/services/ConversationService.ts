@@ -98,6 +98,7 @@ export interface ConversationData {
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';
+    workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
   };
   /** Workflow agent ID nếu conversation này là một workflow agent */
   workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;

@@ -14,6 +14,15 @@ export interface WorkflowAgent {
   color: string;
 }
 
+/** Who a participant was when a message was recorded; keeps history readable after the agent or its Zen tab is gone. */
+export interface ParticipantSnapshot {
+  name: string;
+  type?: AgentType;
+  color?: string;
+  providerId?: string;
+  modelId?: string;
+}
+
 export interface WorkflowMessage {
   id: string;
   from: ParticipantId;
@@ -21,6 +30,10 @@ export interface WorkflowMessage {
   content: string;
   time: string;
   timestamp: number;
+  /** Conversation of the Orchestrator Zen tab this message belongs to. */
+  conversationId?: string | null;
+  fromInfo?: ParticipantSnapshot;
+  toInfo?: ParticipantSnapshot;
 }
 
 /** Zen tabs currently linked to a workflow agent, keyed by agent id. `title` is the Zen conversation title. */

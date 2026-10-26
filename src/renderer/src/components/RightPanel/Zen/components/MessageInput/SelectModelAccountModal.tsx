@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useAgentRoot } from '../../context/AgentRootContext';
+import { useAccountAgents } from '../../context/WorkflowAgentContext';
 import {
   Search,
   ChevronRight,
@@ -25,9 +26,14 @@ import {
 import { $ } from '@renderer/utils/color';
 import { formatRelativeTime } from '@renderer/utils/relativeTime';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
-import { DEFAULT_EFFORT, EFFORT_LEVELS, splitModelAndEffort } from './EffortDropdown';
+import { DEFAULT_EFFORT, EFFORT_LABEL, EFFORT_LEVELS, splitModelAndEffort } from './EffortDropdown';
 import type { EffortLevel } from './EffortDropdown';
 import { accountsKey, cacheGet, cacheSet } from './providerModelCache';
+import {
+  ICON_METHODS,
+  authIconFile,
+  splitAuthMethod,
+} from '../../feature/Account/components/addAccount.utils';
 
 interface Provider {
   provider_id: string;
@@ -68,6 +74,10 @@ interface SelectModelAccountModalProps {
   currentModelId?: string;
   currentAccountId?: string;
   currentEffort?: EffortLevel;
+  /** Hiển thị bộ chọn effort ở bước chọn model (chỉ dùng cho CreateAgentRenderer) */
+  showEffort?: boolean;
+  /** accountId -> các loại agent (planner, executor, ...) đang dùng account đó */
+  accountAgents?: Record<string, string[]>;
   onSelect: (model: {
     providerId: string;
     modelId: string;
@@ -96,6 +106,23 @@ const formatTokens = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return `${n}`;
+};
+
+const getAgentTypeColor = (type: string): string => {
+  switch (type.toLowerCase()) {
+    case 'orchestrator':
+      return $('--purple');
+    case 'planner':
+      return $('--blue');
+    case 'executor':
+      return $('--green');
+    case 'reviewer':
+      return $('--yellow');
+    case 'design':
+      return $('--pink');
+    default:
+      return $('--teal');
+  }
 };
 
 const ModelTooltip: React.FC<{ model: any; x: number; y: number }> = ({ model, x, y }) => {
@@ -281,6 +308,64 @@ function AccountListSkeleton() {
   );
 }
 
+const EffortTabs: React.FC<{
+  effort: EffortLevel;
+  options: EffortLevel[];
+  onChange: (effort: EffortLevel) => void;
+}> = ({ effort, options, onChange }) => {
+  const colors: Record<EffortLevel, string> = {
+    low: $('--text-secondary'),
+    medium: $('--blue'),
+    high: $('--green'),
+    xhigh: $('--yellow'),
+    max: $('--red'),
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <span style={{ fontSize: '12px', color: $('--text-secondary') }}>Effort</span>
+      <div
+        role="tablist"
+        style={{
+          display: 'flex',
+          gap: '4px',
+          padding: '3px',
+          borderRadius: '8px',
+          backgroundColor: `color-mix(in srgb, ${$('--text-primary')} 6%, transparent)`,
+        }}
+      >
+        {options.map((lvl) => {
+          const isActive = lvl === effort;
+          return (
+            <button
+              key={lvl}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => onChange(lvl)}
+              style={{
+                flex: 1,
+                padding: '5px 0',
+                fontSize: '12px',
+                fontWeight: 600,
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                color: isActive ? colors[lvl] : $('--text-secondary'),
+                backgroundColor: isActive
+                  ? `color-mix(in srgb, ${colors[lvl]} 15%, transparent)`
+                  : 'transparent',
+              }}
+            >
+              {EFFORT_LABEL[lvl]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
   isOpen,
   onClose,
@@ -293,9 +378,17 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
   currentModelId,
   currentAccountId,
   currentEffort,
+  showEffort = false,
+  accountAgents,
   onSelect,
 }) => {
   const agentRoot = useAgentRoot();
+  const contextAccountAgents = useAccountAgents();
+  const agentsByAccount = accountAgents ?? contextAccountAgents;
+
+  const [pickedEffortLevel, setPickedEffortLevel] = useState<EffortLevel>(
+    currentEffort ?? DEFAULT_EFFORT,
+  );
   const [step, setStep] = useState<'model' | 'account'>('model');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModel, setSelectedModel] = useState<any | null>(null);
@@ -358,9 +451,9 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
     if (step !== 'account' || !selectedModel || !apiUrl) return;
     let isMounted = true;
 
-      const cacheKey = accountsKey(cacheScope ?? 'default', selectedModel.provider_id);
-      const cachedAccounts = cacheGet<Account[]>(cacheKey);
-      if (cachedAccounts) setProviderAccounts(cachedAccounts);
+    const cacheKey = accountsKey(cacheScope ?? 'default', selectedModel.provider_id);
+    const cachedAccounts = cacheGet<Account[]>(cacheKey);
+    if (cachedAccounts) setProviderAccounts(cachedAccounts);
 
     const load = (showLoading: boolean) => {
       if (showLoading && !cachedAccounts) setIsLoadingAccounts(true);
@@ -501,8 +594,8 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
         left: 0,
         right: 0,
         width: '100%',
-        height: '50%',
-        maxHeight: '50%',
+        height: '70%',
+        maxHeight: '70%',
         borderTop: `1px solid ${$('--border')}`,
         boxShadow: '0 -8px 24px rgba(0,0,0,0.2)',
         animation: 'pmdSlideUpDrawer 0.25s ease-out',
@@ -537,7 +630,7 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
       <div
         style={{
           ...panelLayoutStyle,
-          backgroundColor: $('--card-background'),
+          backgroundColor: $('--background'),
           zIndex: 10001,
           display: 'flex',
           flexDirection: 'column',
@@ -651,7 +744,7 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
                     width: '100%',
                     padding: '8px 12px 8px 32px',
                     fontSize: '13px',
-                    backgroundColor: `color-mix(in srgb, ${$('--text-primary')} 8%, ${$('--card-background')})`,
+                    backgroundColor: `color-mix(in srgb, ${$('--text-primary')} 8%, ${$('--background')})`,
                     border: 'none',
                     borderRadius: '8px',
                     color: $('--text-primary'),
@@ -673,7 +766,7 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: $('--input-background'),
+                    background: $('--background'),
                     border: 'none',
                     borderRadius: '8px',
                     cursor: isLoadingProviders ? 'not-allowed' : 'pointer',
@@ -792,8 +885,7 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
                             seen.add(base);
                             return true;
                           });
-                          const isCurrentProvider =
-                            provider.provider_id === currentProviderId;
+                          const isCurrentProvider = provider.provider_id === currentProviderId;
                           const currentBase = currentModelId
                             ? splitModelAndEffort(currentModelId).base
                             : null;
@@ -804,208 +896,216 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
                           return [...deduped]
                             .sort(
                               (a: any, b: any) =>
-                                Number(isCurrentModelRow(b)) -
-                                Number(isCurrentModelRow(a)),
+                                Number(isCurrentModelRow(b)) - Number(isCurrentModelRow(a)),
                             )
                             .map((model: any) => {
-                            const isCurrentModel = isCurrentModelRow(model);
-                            const successColor =
-                              model.success_rate >= 80
-                                ? $('--success')
-                                : model.success_rate >= 50
-                                  ? $('--yellow')
-                                  : $('--red');
-                            return (
-                              <div
-                                key={model.id}
-                                onClick={() => {
-                                  const { base: baseId } = splitModelAndEffort(model.id);
-                                  const availableEfforts = (provider.models as any[])
-                                    .map((m: any) => splitModelAndEffort(m.id))
-                                    .filter((p) => p.base === baseId && p.effort !== null)
-                                    .map((p) => p.effort as EffortLevel);
-                                  const pickedEffort =
-                                    currentEffort && availableEfforts.includes(currentEffort)
-                                      ? currentEffort
-                                      : availableEfforts.includes(DEFAULT_EFFORT)
-                                        ? DEFAULT_EFFORT
-                                        : EFFORT_LEVELS.find((lvl) =>
-                                            availableEfforts.includes(lvl),
-                                          );
-                                  const finalModelId = pickedEffort
-                                    ? `${baseId}-${pickedEffort}`
-                                    : model.id;
-
-                                  if (needsAuth) {
-                                    setSelectedModel({
-                                      ...model,
-                                      id: finalModelId,
-                                      provider_id: provider.provider_id,
-                                    });
-                                    setStep('account');
-                                  } else {
-                                    onSelect({
-                                      providerId: provider.provider_id,
-                                      modelId: finalModelId,
-                                    });
-                                    onClose();
-                                  }
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 15%, transparent)`;
-                                  handleModelMouseEnter(model, e);
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = 'transparent';
-                                }}
-                                style={{
-                                  padding: '8px 12px',
-                                  cursor: 'pointer',
-                                  borderRadius: '6px',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '4px',
-                                }}
-                              >
+                              const isCurrentModel = isCurrentModelRow(model);
+                              const successColor =
+                                model.success_rate >= 80
+                                  ? $('--success')
+                                  : model.success_rate >= 50
+                                    ? $('--yellow')
+                                    : $('--red');
+                              return (
                                 <div
+                                  key={model.id}
+                                  onClick={() => {
+                                    const { base: baseId } = splitModelAndEffort(model.id);
+                                    const availableEfforts = (provider.models as any[])
+                                      .map((m: any) => splitModelAndEffort(m.id))
+                                      .filter((p) => p.base === baseId && p.effort !== null)
+                                      .map((p) => p.effort as EffortLevel);
+                                    const pickedEffort =
+                                      currentEffort && availableEfforts.includes(currentEffort)
+                                        ? currentEffort
+                                        : availableEfforts.includes(DEFAULT_EFFORT)
+                                          ? DEFAULT_EFFORT
+                                          : EFFORT_LEVELS.find((lvl) =>
+                                              availableEfforts.includes(lvl),
+                                            );
+                                    const finalModelId = pickedEffort
+                                      ? `${baseId}-${pickedEffort}`
+                                      : model.id;
+
+                                    if (needsAuth) {
+                                      setPickedEffortLevel(pickedEffort ?? DEFAULT_EFFORT);
+                                      setSelectedModel({
+                                        ...model,
+                                        id: finalModelId,
+                                        provider_id: provider.provider_id,
+                                        effortBase: baseId,
+                                        effortOptions: EFFORT_LEVELS.filter((lvl) =>
+                                          availableEfforts.includes(lvl),
+                                        ),
+                                      });
+                                      setStep('account');
+                                    } else {
+                                      onSelect({
+                                        providerId: provider.provider_id,
+                                        modelId: finalModelId,
+                                      });
+                                      onClose();
+                                    }
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 15%, transparent)`;
+                                    handleModelMouseEnter(model, e);
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                  }}
                                   style={{
+                                    padding: '8px 12px',
+                                    cursor: 'pointer',
+                                    borderRadius: '6px',
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    flexWrap: 'wrap',
+                                    flexDirection: 'column',
+                                    gap: '4px',
                                   }}
                                 >
-                                  <span
-                                    style={{
-                                      fontSize: '13px',
-                                      fontWeight: 600,
-                                      color: $('--text-primary'),
-                                    }}
-                                  >
-                                    {splitModelAndEffort(model.id).base === model.id
-                                      ? model.name
-                                      : (() => {
-                                          const suffixes = [
-                                            'Low',
-                                            'Medium',
-                                            'High',
-                                            'Extra',
-                                            'Max',
-                                          ];
-                                          let baseName = model.name;
-                                          for (const s of suffixes) {
-                                            if (baseName.endsWith(` ${s}`)) {
-                                              baseName = baseName.slice(0, -(s.length + 1));
-                                              break;
-                                            }
-                                          }
-                                          return baseName;
-                                        })()}
-                                  </span>
-                                  {isCurrentModel && (
-                                    <span
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        fontSize: '9px',
-                                        fontWeight: 600,
-                                        padding: '1px 6px',
-                                        borderRadius: '4px',
-                                        backgroundColor: `color-mix(in srgb, ${$('--success')} 16%, transparent)`,
-                                        color: $('--success'),
-                                        textTransform: 'uppercase',
-                                      }}
-                                    >
-                                      In use
-                                    </span>
-                                  )}
-                                  {model.is_thinking && (
-                                    <span
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '10px',
-                                        fontWeight: 500,
-                                        padding: '1px 6px',
-                                        borderRadius: '4px',
-                                        backgroundColor: `color-mix(in srgb, ${$('--purple')} 12%, transparent)`,
-                                        color: $('--purple'),
-                                      }}
-                                    >
-                                      <Brain size={11} />
-                                      Thinking
-                                    </span>
-                                  )}
-                                  {model.is_search && (
-                                    <Search size={12} style={{ color: $('--text-secondary') }} />
-                                  )}
-                                  {model.max_context_length != null && (
-                                    <span
-                                      style={{
-                                        fontSize: '10.5px',
-                                        color: $('--text-secondary'),
-                                        opacity: 0.7,
-                                      }}
-                                    >
-                                      {formatContextLength(model.max_context_length)}
-                                    </span>
-                                  )}
-                                  {model.is_video_upload && (
-                                    <Video size={12} style={{ color: $('--violet') }} />
-                                  )}
-                                  {model.is_audio_upload && (
-                                    <Volume2 size={12} style={{ color: $('--yellow') }} />
-                                  )}
-                                  {model.is_image_upload && (
-                                    <Image size={12} style={{ color: $('--green') }} />
-                                  )}
-                                  {model.is_image_generator && (
-                                    <ImagePlus size={12} style={{ color: $('--pink') }} />
-                                  )}
-                                  {model.is_video_generator && (
-                                    <Film size={12} style={{ color: $('--purple') }} />
-                                  )}
-                                  {model.is_deep_research && (
-                                    <SearchCheck size={12} style={{ color: $('--teal') }} />
-                                  )}
-                                  {model.success_rate != null && (
-                                    <span
-                                      style={{
-                                        marginLeft: 'auto',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '11px',
-                                        color: successColor,
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      <Circle size={10} fill={successColor} color={successColor} />
-                                      {model.success_rate.toFixed(1)}%
-                                    </span>
-                                  )}
-                                </div>
-                                {model.description && (
                                   <div
                                     style={{
-                                      fontSize: '11px',
-                                      color: $('--text-secondary'),
-                                      opacity: 0.7,
-                                      lineHeight: 1.4,
-                                      display: '-webkit-box',
-                                      WebkitLineClamp: 1,
-                                      WebkitBoxOrient: 'vertical',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      flexWrap: 'wrap',
                                     }}
                                   >
-                                    {model.description}
+                                    <span
+                                      style={{
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        color: $('--text-primary'),
+                                      }}
+                                    >
+                                      {splitModelAndEffort(model.id).base === model.id
+                                        ? model.name
+                                        : (() => {
+                                            const suffixes = [
+                                              'Low',
+                                              'Medium',
+                                              'High',
+                                              'Extra',
+                                              'Max',
+                                            ];
+                                            let baseName = model.name;
+                                            for (const s of suffixes) {
+                                              if (baseName.endsWith(` ${s}`)) {
+                                                baseName = baseName.slice(0, -(s.length + 1));
+                                                break;
+                                              }
+                                            }
+                                            return baseName;
+                                          })()}
+                                    </span>
+                                    {isCurrentModel && (
+                                      <span
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          fontSize: '9px',
+                                          fontWeight: 600,
+                                          padding: '1px 6px',
+                                          borderRadius: '4px',
+                                          backgroundColor: `color-mix(in srgb, ${$('--success')} 16%, transparent)`,
+                                          color: $('--success'),
+                                          textTransform: 'uppercase',
+                                        }}
+                                      >
+                                        In use
+                                      </span>
+                                    )}
+                                    {model.is_thinking && (
+                                      <span
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                          fontSize: '10px',
+                                          fontWeight: 500,
+                                          padding: '1px 6px',
+                                          borderRadius: '4px',
+                                          backgroundColor: `color-mix(in srgb, ${$('--purple')} 12%, transparent)`,
+                                          color: $('--purple'),
+                                        }}
+                                      >
+                                        <Brain size={11} />
+                                        Thinking
+                                      </span>
+                                    )}
+                                    {model.is_search && (
+                                      <Search size={12} style={{ color: $('--text-secondary') }} />
+                                    )}
+                                    {model.max_context_length != null && (
+                                      <span
+                                        style={{
+                                          fontSize: '10.5px',
+                                          color: $('--text-secondary'),
+                                          opacity: 0.7,
+                                        }}
+                                      >
+                                        {formatContextLength(model.max_context_length)}
+                                      </span>
+                                    )}
+                                    {model.is_video_upload && (
+                                      <Video size={12} style={{ color: $('--violet') }} />
+                                    )}
+                                    {model.is_audio_upload && (
+                                      <Volume2 size={12} style={{ color: $('--yellow') }} />
+                                    )}
+                                    {model.is_image_upload && (
+                                      <Image size={12} style={{ color: $('--green') }} />
+                                    )}
+                                    {model.is_image_generator && (
+                                      <ImagePlus size={12} style={{ color: $('--pink') }} />
+                                    )}
+                                    {model.is_video_generator && (
+                                      <Film size={12} style={{ color: $('--purple') }} />
+                                    )}
+                                    {model.is_deep_research && (
+                                      <SearchCheck size={12} style={{ color: $('--teal') }} />
+                                    )}
+                                    {model.success_rate != null && (
+                                      <span
+                                        style={{
+                                          marginLeft: 'auto',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                          fontSize: '11px',
+                                          color: successColor,
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        <Circle
+                                          size={10}
+                                          fill={successColor}
+                                          color={successColor}
+                                        />
+                                        {model.success_rate.toFixed(1)}%
+                                      </span>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            );
-                          });
+                                  {model.description && (
+                                    <div
+                                      style={{
+                                        fontSize: '11px',
+                                        color: $('--text-secondary'),
+                                        opacity: 0.7,
+                                        lineHeight: 1.4,
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 1,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                      }}
+                                    >
+                                      {model.description}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            });
                         })()}
                     </div>
                   );
@@ -1064,7 +1164,7 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
                   width: '100%',
                   padding: '8px 12px 8px 32px',
                   fontSize: '13px',
-                  backgroundColor: $('--input-background'),
+                  backgroundColor: $('--background'),
                   border: 'none',
                   borderRadius: '8px',
                   color: $('--text-primary'),
@@ -1074,6 +1174,23 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
                 }}
               />
             </div>
+            {showEffort && (selectedModel?.effortOptions?.length ?? 0) > 1 && (
+              <div
+                style={{
+                  flexShrink: 0,
+                  margin: '12px 12px 0 12px',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: `color-mix(in srgb, ${$('--text-primary')} 6%, ${$('--background')})`,
+                }}
+              >
+                <EffortTabs
+                  effort={pickedEffortLevel}
+                  options={selectedModel.effortOptions as EffortLevel[]}
+                  onChange={setPickedEffortLevel}
+                />
+              </div>
+            )}
             <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
               {isLoadingAccounts ? (
                 <AccountListSkeleton />
@@ -1099,265 +1216,314 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
                   return [...filtered]
                     .sort(
                       (a, b) =>
-                        Number(b.id === currentAccountId) -
-                        Number(a.id === currentAccountId),
+                        Number(b.id === currentAccountId) - Number(a.id === currentAccountId),
                     )
                     .map((acc) => {
-                    return (
-                      <div
-                        key={acc.id}
-                        onClick={() => {
-                          onSelect({
-                            providerId: selectedModel.provider_id,
-                            modelId: selectedModel.id,
-                            accountId: acc.id,
-                            email: acc.email,
-                            accountProviderId: acc.provider_id,
-                            usage: acc.usage ?? null,
-                            period_requests: acc.period_requests ?? null,
-                            period_tokens: acc.period_tokens ?? null,
-                          });
-                          onClose();
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          borderRadius: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 15%, transparent)`;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
+                      return (
                         <div
+                          key={acc.id}
+                          onClick={() => {
+                            onSelect({
+                              providerId: selectedModel.provider_id,
+                              modelId:
+                                showEffort && (selectedModel.effortOptions?.length ?? 0) > 1
+                                  ? `${selectedModel.effortBase}-${pickedEffortLevel}`
+                                  : selectedModel.id,
+                              accountId: acc.id,
+                              email: acc.email,
+                              accountProviderId: acc.provider_id,
+                              usage: acc.usage ?? null,
+                              period_requests: acc.period_requests ?? null,
+                              period_tokens: acc.period_tokens ?? null,
+                            });
+                            onClose();
+                          }}
                           style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '7px',
-                            backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
-                            color: $('--text-secondary'),
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            borderRadius: '8px',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            flexShrink: 0,
+                            gap: '10px',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 15%, transparent)`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
-                          {(acc.email?.[0] || acc.name?.[0] || '?').toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <span
+                          <div
                             style={{
-                              fontSize: '13px',
-                              fontWeight: 500,
-                              color: $('--text-primary'),
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '7px',
+                              backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
+                              color: $('--text-secondary'),
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              minWidth: 0,
+                              justifyContent: 'center',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              flexShrink: 0,
                             }}
                           >
+                            {(acc.email?.[0] || acc.name?.[0] || '?').toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <span
                               style={{
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
+                                fontSize: '13px',
+                                fontWeight: 500,
+                                color: $('--text-primary'),
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                minWidth: 0,
                               }}
                             >
-                              {acc.email || acc.name || acc.id}
-                            </span>
-                            {acc.auth_method && (
                               <span
                                 style={{
-                                  display: 'inline-flex',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {acc.email || acc.name || acc.id}
+                              </span>
+                              {acc.auth_method && (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    padding: '2px 7px',
+                                    borderRadius: '4px',
+                                    backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
+                                    color: $('--text-secondary'),
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {(() => {
+                                    const baseUri =
+                                      ((window as any).__zenImagesUri as string | undefined) ||
+                                      '/images';
+                                    const parts = splitAuthMethod(acc.auth_method as string).filter(
+                                      (p) => ICON_METHODS.includes(p),
+                                    );
+                                    if (!baseUri || parts.length === 0) return <Key size={11} />;
+                                    return parts.map((p) => (
+                                      <img
+                                        key={p}
+                                        src={`${baseUri}/auth_icons/${authIconFile(p)}`}
+                                        alt={p}
+                                        style={{
+                                          width: '12px',
+                                          height: '12px',
+                                          objectFit: 'contain',
+                                        }}
+                                      />
+                                    ));
+                                  })()}
+                                  {acc.auth_method}
+                                </span>
+                              )}
+                              {acc.id === currentAccountId && (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    fontSize: '9px',
+                                    fontWeight: 600,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: `color-mix(in srgb, ${$('--success')} 16%, transparent)`,
+                                    color: $('--success'),
+                                    flexShrink: 0,
+                                    textTransform: 'uppercase',
+                                  }}
+                                >
+                                  In use
+                                </span>
+                              )}
+                              {((acc.used_by_projects?.length ?? 0) > 0 ? (agentsByAccount?.[acc.id] ?? []) : []).map((type) => (
+                                <span
+                                  key={type}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    padding: '2px 7px',
+                                    borderRadius: '4px',
+                                    backgroundColor: `color-mix(in srgb, ${getAgentTypeColor(type)} 14%, transparent)`,
+                                    color: getAgentTypeColor(type),
+                                    flexShrink: 0,
+                                    textTransform: 'capitalize',
+                                  }}
+                                >
+                                  {type}
+                                </span>
+                              ))}
+                              {(acc.used_by_projects?.length ?? 0) > 0 && (
+                                <span
+                                  title={`Also in use by ${acc.used_by_projects!.length} other VSCode window(s): ${acc.used_by_projects!.join(', ')}`}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '2px 7px',
+                                    borderRadius: '4px',
+                                    backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
+                                    fontSize: '10px',
+                                    fontWeight: 500,
+                                    color: $('--warn'),
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    minWidth: 0,
+                                    flexShrink: 1,
+                                  }}
+                                >
+                                  {acc.used_by_projects!.join(', ')}
+                                </span>
+                              )}
+                            </span>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginTop: '2px',
+                                overflow: 'hidden',
+                                minWidth: 0,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  display: 'flex',
                                   alignItems: 'center',
                                   gap: '4px',
-                                  fontSize: '11px',
-                                  fontWeight: 600,
-                                  padding: '2px 7px',
-                                  borderRadius: '4px',
-                                  backgroundColor: `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`,
+                                  fontSize: '10px',
                                   color: $('--text-secondary'),
                                   flexShrink: 0,
                                 }}
                               >
-                                <Key size={11} />
-                                {acc.auth_method}
+                                <Activity size={11} style={{ color: $('--success') }} />
+                                {(acc.period_requests ?? 0).toLocaleString()} msg
                               </span>
-                            )}
-                            {acc.id === currentAccountId && (
                               <span
                                 style={{
-                                  display: 'inline-flex',
+                                  display: 'flex',
                                   alignItems: 'center',
-                                  fontSize: '9px',
-                                  fontWeight: 600,
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  backgroundColor: `color-mix(in srgb, ${$('--success')} 16%, transparent)`,
-                                  color: $('--success'),
-                                  flexShrink: 0,
-                                  textTransform: 'uppercase',
-                                }}
-                              >
-                                In use
-                              </span>
-                            )}
-                            {(acc.used_by_projects?.length ?? 0) > 0 && (
-                              <span
-                                title={`Also in use by ${acc.used_by_projects!.length} other VSCode window(s): ${acc.used_by_projects!.join(', ')}`}
-                                style={{
+                                  gap: '4px',
                                   fontSize: '10px',
-                                  fontWeight: 500,
-                                  color: $('--warn'),
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  minWidth: 0,
-                                  flexShrink: 1,
+                                  color: $('--text-secondary'),
+                                  flexShrink: 0,
                                 }}
                               >
-                                {acc.used_by_projects!.join(', ')}
+                                <Coins size={11} style={{ color: $('--warn') }} />
+                                {formatTokens(acc.period_tokens ?? 0)} tokens
                               </span>
-                            )}
-                          </span>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              marginTop: '2px',
-                              overflow: 'hidden',
-                              minWidth: 0,
-                            }}
-                          >
-                            <span
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontSize: '10px',
-                                color: $('--text-secondary'),
-                                flexShrink: 0,
-                              }}
-                            >
-                              <Activity size={11} style={{ color: $('--success') }} />
-                              {(acc.period_requests ?? 0).toLocaleString()} msg
-                            </span>
-                            <span
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontSize: '10px',
-                                color: $('--text-secondary'),
-                                flexShrink: 0,
-                              }}
-                            >
-                              <Coins size={11} style={{ color: $('--warn') }} />
-                              {formatTokens(acc.period_tokens ?? 0)} tokens
-                            </span>
-                            {acc.usage != null &&
-                              (() => {
-                                const n = Number(acc.usage);
-                                const c =
-                                  n >= 90
-                                    ? $('--error')
-                                    : n >= 70
-                                      ? $('--warn')
-                                      : $('--text-secondary');
+                              {acc.usage != null &&
+                                (() => {
+                                  const n = Number(acc.usage);
+                                  const c =
+                                    n >= 90
+                                      ? $('--error')
+                                      : n >= 70
+                                        ? $('--warn')
+                                        : $('--text-secondary');
+                                  return (
+                                    <span
+                                      title={
+                                        acc.reset_usage_at
+                                          ? `Resets at: ${new Date(acc.reset_usage_at).toLocaleString()}`
+                                          : undefined
+                                      }
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        fontSize: '10px',
+                                        color: c,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <BarChart3 size={10} style={{ color: c }} />
+                                      {n.toFixed(1)}%
+                                    </span>
+                                  );
+                                })()}
+                              {acc.usage != null &&
+                                acc.reset_usage_at != null &&
+                                (() => {
+                                  const reset = new Date(acc.reset_usage_at);
+                                  if (isNaN(reset.getTime())) return null;
+                                  const diffMs = reset.getTime() - Date.now();
+                                  if (diffMs <= 0) return null;
+                                  const h = Math.ceil(diffMs / 3_600_000);
+                                  const label =
+                                    h < 1
+                                      ? 'Resets <1h'
+                                      : h < 24
+                                        ? `Resets ${h}h`
+                                        : `Resets ${Math.ceil(h / 24)}d`;
+                                  return (
+                                    <span
+                                      title={`Usage resets at: ${reset.toLocaleString()}`}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        fontSize: '10px',
+                                        color: $('--warn'),
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <Clock size={10} />
+                                      {label}
+                                    </span>
+                                  );
+                                })()}
+                              {(() => {
+                                const rel = formatRelativeTime(acc.last_used_at ?? null);
+                                if (!rel) return null;
                                 return (
                                   <span
-                                    title={
-                                      acc.reset_usage_at
-                                        ? `Resets at: ${new Date(acc.reset_usage_at).toLocaleString()}`
-                                        : undefined
-                                    }
                                     style={{
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: '3px',
+                                      gap: '4px',
                                       fontSize: '10px',
-                                      color: c,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    <BarChart3 size={10} style={{ color: c }} />
-                                    {n.toFixed(1)}%
-                                  </span>
-                                );
-                              })()}
-                            {acc.usage != null &&
-                              acc.reset_usage_at != null &&
-                              (() => {
-                                const reset = new Date(acc.reset_usage_at);
-                                if (isNaN(reset.getTime())) return null;
-                                const diffMs = reset.getTime() - Date.now();
-                                if (diffMs <= 0) return null;
-                                const h = Math.ceil(diffMs / 3_600_000);
-                                const label =
-                                  h < 1
-                                    ? 'Resets <1h'
-                                    : h < 24
-                                      ? `Resets ${h}h`
-                                      : `Resets ${Math.ceil(h / 24)}d`;
-                                return (
-                                  <span
-                                    title={`Usage resets at: ${reset.toLocaleString()}`}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '3px',
-                                      fontSize: '10px',
-                                      color: $('--warn'),
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    <Clock size={10} />
-                                    {label}
-                                  </span>
-                                );
-                              })()}
-                            {(() => {
-                              const rel = formatRelativeTime(acc.last_used_at ?? null);
-                              if (!rel) return null;
-                              return (
-                                <span
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    fontSize: '10px',
-                                    color: $('--text-secondary'),
-                                    flexShrink: 1,
-                                    overflow: 'hidden',
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  <Clock size={11} style={{ flexShrink: 0, color: $('--blue') }} />
-                                  <span
-                                    style={{
+                                      color: $('--text-secondary'),
+                                      flexShrink: 1,
                                       overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
+                                      minWidth: 0,
                                     }}
                                   >
-                                    {rel}
+                                    <Clock
+                                      size={11}
+                                      style={{ flexShrink: 0, color: $('--blue') }}
+                                    />
+                                    <span
+                                      style={{
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      {rel}
+                                    </span>
                                   </span>
-                                </span>
-                              );
-                            })()}
+                                );
+                              })()}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  });
+                      );
+                    });
                 })()
               ) : (
                 <div

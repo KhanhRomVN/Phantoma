@@ -1,4 +1,4 @@
-import { MAX_READ_LINES_PER_TURN } from "@renderer/modules/Code/prompts/code/mode-config";
+import { MAX_READ_LINES_PER_TURN } from "../code/mode-config";
 import type { ToolFormat } from "../code/mode-config";
 
 export type ReviewerToolName =
@@ -27,6 +27,9 @@ export const REVIEWER_TOOLS: ReviewerToolName[] = [
   "read_skill",
   "send_message",
 ];
+
+export const HANDOFF_TOOL: ReviewerToolName = "send_message";
+export const HANDOFF_AGENT = "orchestrator";
 
 export const tick = (text: string): string => "`" + text + "`";
 
@@ -121,7 +124,7 @@ const TOOL_DEFS: Record<ReviewerToolName, ToolDef> = {
   },
   run_command: {
     description:
-      "Execute a shell command for INSPECTION ONLY: type check, lint, run existing tests, build. Never run commands that change files, install packages, commit or touch git state. stdin is a pipe, not a TTY. A non-zero exit code means failure: analyze stderr before continuing.",
+      "Execute a shell command for INSPECTION ONLY: type check, lint, run existing tests, build. Never run commands that change files, install packages, commit or touch git state (npm/yarn/pnpm install, git add/commit/checkout/stash/reset, sed -i, rm, mv, > or >> redirects, prettier --write, eslint --fix). If unsure a command is non-mutating, do not run it and list it under NOTES. stdin is a pipe, not a TTY. A non-zero exit code means failure: analyze stderr before continuing.",
     examples: [
       { params: { command: "npx tsc --noEmit" }, note: "type check" },
       {
@@ -148,7 +151,8 @@ const TOOL_DEFS: Record<ReviewerToolName, ToolDef> = {
       {
         params: {
           agent_id: "orchestrator",
-          message: "STATUS: PASS\nFINDINGS: ...\nRECOMMENDATIONS: ...",
+          message:
+            "FROM: reviewer\nTO: orchestrator\nTYPE: REVIEW\nSTATUS: OK\nBODY:\n1. VERDICT: APPROVED.\n2. DEFECTS: none.\n3. NOTES: ...\n4. CHECKS RUN: ...",
         },
         note: "report review to orchestrator",
       },
@@ -188,7 +192,7 @@ export const buildReviewerToolsReference = (
       : "";
   return [
     toolFormat === "json" ? "# TOOLS (JSON FORMAT)" : "# TOOLS",
-    "The reviewer has read-only inspection tools plus run_command (for non-mutating checks only: type check, lint, existing tests, build). It has no write, delete, revert or memory tools. The reviewer can only communicate with the orchestrator via send_to_agent.",
+    "The reviewer has read-only inspection tools plus run_command (for non-mutating checks only: type check, lint, existing tests, build). It has no write, delete, revert or memory tools. The reviewer can only communicate with the orchestrator via send_message.",
     how,
     jsonNote,
     LINE_BUDGET_NOTE,

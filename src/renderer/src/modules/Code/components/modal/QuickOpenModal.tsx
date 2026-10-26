@@ -3,10 +3,24 @@ import { createPortal } from 'react-dom';
 import { Search } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { useCodeStore } from '../../hooks/useCodeStore';
+import { useCodeStore, type StoredWorkspacePanel } from '../../hooks/useCodeStore';
 import { useGitFileStatus } from '../../hooks/useGitFileStatus';
+import { getPanelMeta } from '../ContentPanel/Workspace/WorkspacePanes';
 
 const MAX_RESULTS = 100;
+const NO_PANELS: StoredWorkspacePanel[] = [];
+
+type Row =
+  | { kind: 'tab'; panel: StoredWorkspacePanel; title: string }
+  | { kind: 'file'; rel: string };
+
+function getTabTitle(panel: StoredWorkspacePanel): string {
+  if (panel.type === 'agent') {
+    if (panel.workflowAgentId) return panel.title;
+    return panel.agentTitle ? `Zen|${panel.agentTitle}` : 'Zen';
+  }
+  return panel.title || getPanelMeta(panel.type).label;
+}
 
 interface QuickOpenModalProps {
   isOpen: boolean;
@@ -65,16 +79,38 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     };
   }, [isOpen, projectPath]);
 
-  const results = useMemo(() => {
+  const sessionId = useCodeStore((s) => s.activeWorkspaceSessionId);
+  const storedPanels = useCodeStore(
+    (s) => s.projects.find((p) => p.id === s.currentProjectId)?.workspacePanels ?? NO_PANELS,
+  );
+
+  const results = useMemo<Row[]>(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return files.slice(0, MAX_RESULTS);
-    return files
-      .map((f) => ({ f, s: scoreMatch(f, q) }))
+    const tabs: Row[] = storedPanels
+      .filter((p) => p.sessionId === sessionId)
+      .map((panel) => {
+        const title = getTabTitle(panel);
+        const s = q
+          ? Math.max(scoreMatch(title, q), panel.filePath ? scoreMatch(panel.filePath, q) : -1)
+          : 0;
+        return { row: { kind: 'tab', panel, title } as Row, s };
+      })
       .filter((x) => x.s >= 0)
       .sort((a, b) => b.s - a.s)
+      .map((x) => x.row);
+    const fileRows: Row[] = (
+      q
+        ? files
+            .map((f) => ({ f, s: scoreMatch(f, q) }))
+            .filter((x) => x.s >= 0)
+            .sort((a, b) => b.s - a.s)
+            .map((x) => x.f)
+        : files
+    )
       .slice(0, MAX_RESULTS)
-      .map((x) => x.f);
-  }, [files, query]);
+      .map((rel) => ({ kind: 'file', rel }));
+    return [...tabs, ...fileRows];
+  }, [files, query, storedPanels, sessionId]);
 
   useEffect(() => {
     setActive(0);
@@ -86,12 +122,17 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     });
   }, [active]);
 
-  const openResult = (rel: string) => {
+  const openResult = (row: Row) => {
     const state = useCodeStore.getState();
-    const sessionId = state.activeWorkspaceSessionId;
-    const name = rel.split('/').pop() || rel;
-    if (sessionId) {
-      state.requestOpenFile(sessionId, `${projectPath.replace(/\/+$/, '')}/${rel}`, name);
+    const activeSessionId = state.activeWorkspaceSessionId;
+    if (activeSessionId) {
+      if (row.kind === 'tab') {
+        state.setContentViewMode('workspace');
+        state.requestFocusPanel(activeSessionId, row.panel.id);
+      } else {
+        const name = row.rel.split('/').pop() || row.rel;
+        state.requestOpenFile(activeSessionId, `${projectPath.replace(/\/+$/, '')}/${row.rel}`, name);
+      }
     }
     onClose();
   };
@@ -131,25 +172,79 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
             spellCheck={false}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={projectPath ? 'Search files by name...' : 'Select a project first'}
+            placeholder={projectPath ? 'Search tabs and files...' : 'Select a project first'}
             className="flex-1 min-w-0 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-secondary/50"
           />
         </div>
         <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar py-1">
           {results.length === 0 ? (
             <div className="h-full flex items-center justify-center px-4 text-xs text-text-secondary/60">
-              {loading ? 'Loading files...' : 'No matching files'}
+              {loading ? 'Loading files...' : 'No matching results'}
             </div>
           ) : (
-            results.map((rel, idx) => {
+            results.map((row, idx) => {
+              const hasBoth = results[0].kind === 'tab' && results[results.length - 1].kind === 'file';
+              const prev = results[idx - 1];
+              const sectionLabel =
+                hasBoth && (!prev || prev.kind !== row.kind)
+                  ? row.kind === 'tab'
+                    ? 'Open tabs'
+                    : 'Project files'
+                  : null;
+              const label = sectionLabel && (
+                <div className="px-3.5 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-text-secondary/60">
+                  {sectionLabel}
+                </div>
+              );
+              if (row.kind === 'tab') {
+                const { panel, title } = row;
+                return (
+                  <div key={`tab-${panel.id}`}>
+                    {label}
+                    <div
+                      data-idx={idx}
+                      onClick={() => openResult(row)}
+                      onMouseMove={() => setActive(idx)}
+                      className={cn(
+                        'flex items-center gap-2.5 px-3.5 py-1.5 cursor-pointer',
+                        idx === active ? 'bg-text-secondary/[0.12]' : '',
+                      )}
+                    >
+                      {panel.type === 'file' ? (
+                        <img
+                          src={getFileIconPath(title)}
+                          alt=""
+                          className="w-4 h-4 shrink-0 object-contain"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="shrink-0">{getPanelMeta(panel.type, 'w-4 h-4').icon}</span>
+                      )}
+                      <span className="text-[13px] truncate text-text-primary shrink-0 max-w-[60%]">
+                        {title}
+                      </span>
+                      {panel.filePath && (
+                        <span
+                          className="text-[11px] font-mono text-text-secondary/60 truncate min-w-0"
+                          title={panel.filePath}
+                        >
+                          {panel.filePath}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              const rel = row.rel;
               const name = rel.split('/').pop() || rel;
               const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
               const status = gitStatus[`${projectPath.replace(/\/+$/, '')}/${rel}`];
               return (
+                <div key={`file-${rel}`}>
+                {label}
                 <div
-                  key={rel}
                   data-idx={idx}
-                  onClick={() => openResult(rel)}
+                  onClick={() => openResult(row)}
                   onMouseMove={() => setActive(idx)}
                   className={cn(
                     'flex items-center gap-2.5 px-3.5 py-1.5 cursor-pointer',
@@ -177,6 +272,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
                   <span className="text-[11px] font-mono text-text-secondary/60 truncate min-w-0" title={rel}>
                     {dir}
                   </span>
+                </div>
                 </div>
               );
             })

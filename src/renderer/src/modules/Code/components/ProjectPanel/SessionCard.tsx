@@ -23,6 +23,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
 // ── Task link ──
+import { useCodeStore } from '../../hooks/useCodeStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import type { StoredTask } from '../../services/task.service';
 import { TASK_DRAG_TYPE } from '../ContentPanel/TaskManager/kanban/TaskDropZones';
@@ -352,6 +353,18 @@ export function AgentChip({
   );
 }
 
+export function ZenBadge({ count }: { count: number }) {
+  const imagesUri = (window as any).__zenImagesUri || '/images';
+  const logo = `${imagesUri}/zen-logo.png`;
+  return (
+    <span className="inline-flex items-center gap-1.5 bg-card-hover border border-border rounded-[4px] overflow-hidden pl-0 pr-2.5 text-[11px] text-text-secondary">
+      <img src={logo} alt="Zen" className="w-[20px] h-[20px] object-contain shrink-0" />
+      Zen
+      <span className="font-mono opacity-70">x{count}</span>
+    </span>
+  );
+}
+
 /** Compact "terminal N ●" pill summarising background processes */
 export function ProcessPill({ procs }: { procs: ProcessInfo[] }) {
   const worst = getWorstProcessStatus(procs);
@@ -487,8 +500,10 @@ export const SessionCard = memo(function SessionCard({
   draggable = true, // Default to true, but can be overridden by parent if needed
   projectName = '',
   branchName = '',
+  projectId = '',
   onDropTask,
 }: {
+  projectId?: string;
   projectName?: string;
   branchName?: string;
   onDropTask?: (taskId: string, sessionId: string) => void;
@@ -505,6 +520,12 @@ export const SessionCard = memo(function SessionCard({
   const task = useSessionTasks((s) => s.bySession[session.id]);
   const displayName = task?.title ?? getTempSessionName(session.id, projectName, branchName);
   const [dropOver, setDropOver] = useState(false);
+  const zenChatCount = useCodeStore(
+    (s) =>
+      (s.projects.find((p) => p.id === projectId)?.workspacePanels ?? []).filter(
+        (wp) => wp.type === 'agent' && wp.sessionId === session.id,
+      ).length,
+  );
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -551,11 +572,12 @@ export const SessionCard = memo(function SessionCard({
       {task && <TaskRow sessionId={session.id} task={task} onOpenTaskMenu={onOpenTaskMenu} />}
 
       {/* Agents - Only if exists */}
-      {session.agents.length > 0 && (
+      {(session.agents.length > 0 || zenChatCount > 0) && (
         <div className="flex gap-[4px] flex-wrap items-center leading-none">
           {session.agents.map((a, i) => (
             <AgentChip key={i} agent={a} sessionStatus={st} />
           ))}
+          {zenChatCount > 0 && <ZenBadge count={zenChatCount} />}
         </div>
       )}
 
