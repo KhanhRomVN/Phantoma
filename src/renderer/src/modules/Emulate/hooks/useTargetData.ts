@@ -236,6 +236,15 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
     }
   }, [autoLoad, loadTargets]);
 
+  // ASSUMED: server chưa chạy lúc mount → thử load lại mỗi 3s cho đến khi thành công
+  useEffect(() => {
+    if (!autoLoad || !error || loading) return;
+    const timer = setTimeout(() => {
+      loadTargets();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [autoLoad, error, loading, loadTargets]);
+
   return {
     targets,
     loading,

@@ -67,6 +67,7 @@ class EbpfSnifferService extends EventEmitter {
     try {
       // Use sudo -S to read password from stdin, avoiding interactive terminal prompts.
       const sudoArgs = ['-S', 'ecapture', ...args];
+      logger.info(`[DEBUG|EbpfSniffer] spawn: sudo ${sudoArgs.join(' ')} | pid=${options.pid} | hasPassword=${!!options.sudoPassword}`);
 
       this.process = spawn('sudo', sudoArgs, {
         stdio: ['pipe', 'pipe', 'pipe'], // Pipe stdin for password, stdout/stderr for data/logs
@@ -140,6 +141,7 @@ class EbpfSnifferService extends EventEmitter {
 
     rl.on('line', (line: string) => {
       if (!line.trim()) return;
+      logger.info(`[DEBUG|EbpfSniffer] stdout line: ${line.slice(0, 300)}`);
 
       // Attempt to parse as JSON first (some builds/versions may support it via env or specific flags not shown in help)
       try {
@@ -175,6 +177,7 @@ class EbpfSnifferService extends EventEmitter {
 
     this.process.stderr?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim();
+      logger.info(`[DEBUG|EbpfSniffer] stderr raw: ${msg.slice(0, 500)}`);
 
       // Ignore sudo authentication prompts/noise to prevent false error emissions
       if (msg.includes('[sudo]') || msg.toLowerCase().includes('password')) {
@@ -187,7 +190,8 @@ class EbpfSnifferService extends EventEmitter {
       }
     });
 
-    this.process.on('exit', (code) => {
+    this.process.on('exit', (code, signal) => {
+      logger.info(`[DEBUG|EbpfSniffer] process exit: code=${code} signal=${signal}`);
       this.isRunning = false;
       this.process = null;
       this.emit('ebpf:stopped', { code });

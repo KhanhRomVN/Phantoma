@@ -16,7 +16,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ─
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 
 // ── Hooks ─
 import { useActiveModule } from '@renderer/hooks/useActiveModule';
@@ -62,9 +62,7 @@ export function HeaderBar({
 
   // Emulate Service States
   const [emulateUrl, setEmulateUrl] = useState('localhost:3002');
-  const [isEmulateInputOpen, setIsEmulateInputOpen] = useState(false);
   const [emulateStatus, setEmulateStatus] = useState<'checking' | 'online' | 'offline'>('checking');
-  const emulateInputRef = useRef<HTMLInputElement>(null);
 
   // Mock system metrics
   const [cpuUsage] = useState(45);
@@ -84,17 +82,16 @@ export function HeaderBar({
 
     // Initial health check
     checkEmulateHealth(saved || 'localhost:3002');
+
+    // ASSUMED: poll 5s/lần để dot phản ánh việc emulate-server tắt/bật sau khi mount
+    const timer = setInterval(() => {
+      checkEmulateHealth(localStorage.getItem('emulate_service_url') || 'localhost:3002', true);
+    }, 5000);
+    return () => clearInterval(timer);
   }, []);
 
-  // Auto-focus input when expanded
-  useEffect(() => {
-    if (isEmulateInputOpen && emulateInputRef.current) {
-      emulateInputRef.current.focus();
-    }
-  }, [isEmulateInputOpen]);
-
-  const checkEmulateHealth = async (url: string) => {
-    setEmulateStatus('checking');
+  const checkEmulateHealth = async (url: string, silent = false) => {
+    if (!silent) setEmulateStatus('checking');
     try {
       const baseUrl = url.startsWith('http') ? url : `http://${url}`;
       const res = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(2000) });
@@ -106,20 +103,6 @@ export function HeaderBar({
     } catch {
       setEmulateStatus('offline');
     }
-  };
-
-  const handleEmulateUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newUrl = e.target.value;
-    setEmulateUrl(newUrl);
-    localStorage.setItem('emulate_service_url', newUrl);
-    window.dispatchEvent(new CustomEvent('emulateUrlChanged', { detail: newUrl }));
-
-    // Debounce health check slightly or immediate? Immediate for feedback.
-    checkEmulateHealth(newUrl);
-  };
-
-  const toggleEmulateInput = () => {
-    setIsEmulateInputOpen(!isEmulateInputOpen);
   };
   // ── Effects ──
   useEffect(() => {
@@ -194,66 +177,21 @@ export function HeaderBar({
 
           {/* Emulate Service Status & Config - Only visible in Emulate module */}
           {isEmulateMode && (
-            <div className="ml-2 relative group">
-              {/* Collapsed View: Status Dot + Label */}
-              {!isEmulateInputOpen && (
-                <button
-                  onClick={toggleEmulateInput}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-sidebar-item-hover transition-colors cursor-pointer"
-                  title={`Emulate Service: ${emulateStatus.toUpperCase()} (${emulateUrl})`}
-                >
-                  <span
-                    className={cn(
-                      'w-2 h-2 rounded-full shrink-0',
-                      emulateStatus === 'online' &&
-                        'bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.6)]',
-                      emulateStatus === 'offline' && 'bg-red-500',
-                      emulateStatus === 'checking' && 'bg-amber-500 animate-pulse',
-                    )}
-                  />
-                  <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wide">
-                    EMU
-                  </span>
-                </button>
-              )}
-
-              {/* Expanded View: Input Bar */}
-              {isEmulateInputOpen && (
-                <div className="flex items-center gap-2 bg-input-background border border-input-border-default rounded-md px-2 py-1 shadow-sm">
-                  <span
-                    className={cn(
-                      'w-2 h-2 rounded-full shrink-0',
-                      emulateStatus === 'online' && 'bg-emerald-500',
-                      emulateStatus === 'offline' && 'bg-red-500',
-                      emulateStatus === 'checking' && 'bg-amber-500 animate-pulse',
-                    )}
-                  />
-                  <input
-                    ref={emulateInputRef}
-                    type="text"
-                    value={emulateUrl}
-                    onChange={handleEmulateUrlChange}
-                    onBlur={() => setIsEmulateInputOpen(false)} // Close on blur for cleaner UX, or keep open? Let's close on Escape or Click Outside ideally, but simple onBlur works for now if we don't want persistent editing. Actually, let's NOT close on blur immediately to allow copy paste. We'll add a small X button or rely on clicking elsewhere.
-                    // Better approach: Keep it open until explicit toggle or click outside handled by parent?
-                    // For simplicity in HeaderBar, let's just toggle via the dot/button when closed. When open, maybe add a tiny 'x' or just let user click away?
-                    // Let's stick to: Click dot -> Open. Click outside input -> Close.
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') setIsEmulateInputOpen(false);
-                    }}
-                    placeholder="localhost:3002"
-                    className="h-5 w-40 bg-transparent text-[10px] font-mono text-text-primary outline-none placeholder:text-text-secondary/50"
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsEmulateInputOpen(false);
-                    }}
-                    className="text-text-secondary hover:text-text-primary p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
+            <div
+              className="ml-2 flex items-center gap-2"
+              title={`Emulate Backend: ${emulateStatus.toUpperCase()} (${emulateUrl})`}
+            >
+              <span
+                className={cn(
+                  'w-2 h-2 rounded-full shrink-0',
+                  emulateStatus === 'online' && 'bg-success',
+                  emulateStatus === 'offline' && 'bg-error',
+                  emulateStatus === 'checking' && 'bg-amber-500',
+                )}
+              />
+              <span className="text-[11px] font-mono font-semibold text-text-primary whitespace-nowrap">
+                {emulateUrl}
+              </span>
             </div>
           )}
         </div>

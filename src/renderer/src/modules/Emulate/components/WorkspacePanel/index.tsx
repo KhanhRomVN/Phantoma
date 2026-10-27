@@ -45,7 +45,7 @@ import { NetworkRequest } from '../../types/inspector';
 import { cn } from '@renderer/shared/utils/cn';
 
 // ── Icons ──
-import { Trash2 } from 'lucide-react';
+import { Trash2, Crosshair } from 'lucide-react';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface WorkspacePanelProps {
@@ -114,7 +114,11 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
   workerTotalCount,
 }) => {
   const emptySet = useMemo(() => new Set<string>(), []);
-  const requests = useNetworkStore((s) => s.requests);
+  const assetsVersion = useNetworkStore((s) => s.assetsVersion);
+  const requests = useMemo(
+    () => Array.from(useNetworkStore.getState().assetMap.values()),
+    [assetsVersion],
+  );
   const [dbCounts, setDbCounts] = useState({ repeater: 0, report: 0 });
   const [viewMode, setViewMode] = useState<'https' | 'websocket'>('https');
 
@@ -124,7 +128,7 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
       return;
     }
     let cancelled = false;
-    (async () => {
+    const loadCounts = async () => {
       const [reqRes, repRes] = await Promise.all([
         emulateApi.listRequests(activeTargetId),
         emulateApi.listReports(activeTargetId),
@@ -135,9 +139,12 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
           report: repRes.success && repRes.data ? repRes.data.length : 0,
         });
       }
-    })();
+    };
+    loadCounts();
+    window.addEventListener('repeater-updated', loadCounts);
     return () => {
       cancelled = true;
+      window.removeEventListener('repeater-updated', loadCounts);
     };
   }, [activeTargetId]);
 
@@ -229,10 +236,25 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
           <DevicePanel />
         </div>
       ) : !activeTargetId || activeTargetId === 'default' ? (
-        <div className="flex-1 flex items-center justify-center text-text-secondary">
-          <div className="text-center">
-            <div className="text-sm font-medium mb-1">No target selected</div>
-            <div className="text-xs text-text-secondary">Select a target from the left panel</div>
+        <div className="w-full h-full flex items-center justify-center bg-background relative overflow-hidden p-6">
+          <div className="absolute inset-0 pointer-events-none opacity-[0.05]">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-primary blur-[130px]" />
+          </div>
+          <div className="relative z-10 text-center max-w-[740px] w-full flex flex-col items-center justify-center">
+            <div className="relative w-[92px] h-[92px] mb-5">
+              <i className="absolute inset-0 rounded-[22px] border border-divider bg-card-background transform rotate-[-8deg]" />
+              <i className="absolute inset-0 rounded-[22px] border border-transparent bg-card-hover transform rotate-[5deg]" />
+              <i className="absolute inset-0 rounded-[22px] border border-primary/50 bg-card-background shadow-[0_8px_30px_rgba(255,106,31,0.2)] grid place-items-center text-primary">
+                <Crosshair className="w-9 h-9 stroke-[1.4]" />
+              </i>
+            </div>
+            <h1 className="text-[17px] font-semibold text-text-primary mb-1.5">
+              No target selected
+            </h1>
+            <p className="text-[12.5px] max-w-[420px] text-text-secondary leading-relaxed">
+              Select a target from the left panel, then start a CDP or MITM session to inspect
+              requests, replay them and generate reports.
+            </p>
           </div>
         </div>
       ) : (

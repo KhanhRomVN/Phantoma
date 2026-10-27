@@ -22,7 +22,7 @@ import type { ExecutorContext, ExecutorOptions, ToolExecutor } from '../types/ex
 import { executeConversationTitle } from './tool-executors/TitleExecutor';
 import { executeRunCommand } from './tool-executors/RunCommandExecutor';
 import { codeModule } from '@renderer/modules/Code/CodeModule';
-import { emulateModule } from '@renderer/modules/Emulate/zenModule';
+import { emulateModule } from '@renderer/modules/Emulate/EmulateModule';
 import { reconModule } from '@renderer/modules/Recon/zenModule';
 
 // ─── Types ──────────────────────────────────────────────────────────────

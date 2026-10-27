@@ -70,6 +70,7 @@ class RuntimeApiService {
     useEnvInject?: boolean,
     targetId?: string,
     useSandbox?: boolean,
+    userDataDir?: string,
   ) {
     return this.invoke<{ success: boolean }>(() =>
       getEmulateClient().post(`${BASE}/launch`, {
@@ -80,6 +81,7 @@ class RuntimeApiService {
         useEnvInject,
         targetId,
         useSandbox,
+        userDataDir,
       }),
     );
   }

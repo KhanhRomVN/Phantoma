@@ -206,6 +206,7 @@ export function useNetworkWorker(options: UseNetworkWorkerOptions = {}) {
       batchTimerRef.current = null;
     }
     flushBatch();
+    useNetworkStore.getState().clearAssets();
     postToWorker('CLEAR');
   }, [targetId, postToWorker, flushBatch]);
 
@@ -265,9 +266,10 @@ export function useNetworkWorker(options: UseNetworkWorkerOptions = {}) {
 
   const updateRequest = useCallback(
     (id: string, updates: Partial<NetworkRequest>) => {
+      flushBatch();
       postToWorker('UPDATE_REQUEST', { id, updates });
     },
-    [postToWorker],
+    [postToWorker, flushBatch],
   );
 
   const clearRequests = useCallback(() => {

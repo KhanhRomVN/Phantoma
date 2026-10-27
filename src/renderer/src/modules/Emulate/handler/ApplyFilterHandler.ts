@@ -13,7 +13,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import { InspectorFilter } from '../types/filter.types';
-import type { ApplyFilterParams } from '@renderer/modules/Emulate/parsers/EmulateParser';
+import type { ApplyFilterParams } from '@renderer/modules/Emulate/parsers/ApplyFilterParser';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 export class ApplyFilterHandler {

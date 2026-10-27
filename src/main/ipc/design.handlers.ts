@@ -1,5 +1,7 @@
 import { ipcMain, app, protocol } from 'electron';
 import path from 'path';
+import { pathToFileURL } from 'url';
+import { net } from 'electron';
 import { build } from 'esbuild';
 import postcss from 'postcss';
 import tailwindcss from 'tailwindcss';
@@ -12,10 +14,26 @@ import {
 import { logger } from '../utils/logger';
 
 const DESIGN_SCHEME = 'phantoma-design';
+const MEDIA_SCHEME = 'media';
 
 protocol.registerSchemesAsPrivileged([
   { scheme: DESIGN_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
+  { scheme: MEDIA_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
+
+function registerMediaProtocol(): void {
+  protocol.handle(MEDIA_SCHEME, async (request) => {
+    try {
+      const raw = request.url.slice(`${MEDIA_SCHEME}://`.length).split(/[?#]/)[0];
+      const filePath = decodeURIComponent(raw.startsWith('/') ? raw : `/${raw}`);
+      if (!path.isAbsolute(filePath)) return new Response('Not found', { status: 404 });
+      return await net.fetch(pathToFileURL(filePath).toString());
+    } catch (e: any) {
+      logger.error('[media protocol] Error:', e);
+      return new Response('Not found', { status: 404 });
+    }
+  });
+}
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
@@ -90,6 +108,7 @@ function registerDesignProtocol(): void {
 
 export function setupDesignHandlers(): void {
   registerDesignProtocol();
+  registerMediaProtocol();
 
   ipcMain.handle('design:list', async (_event, projectPath: string) => {
     try {

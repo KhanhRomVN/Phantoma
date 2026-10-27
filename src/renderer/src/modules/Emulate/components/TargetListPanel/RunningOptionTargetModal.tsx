@@ -2,22 +2,16 @@
  * ------------------------------------------------------------------
  * RunningOptionTargetModal
  * ------------------------------------------------------------------
- * Modal chọn launch mode khi start target — CDP, MITM, MITM+ENV,
- * Frida hoặc Stop. Hỗ trợ chọn device cho Android target.
- *
- * Các chức năng chính:
- * - Hiển thị thông tin target và trạng thái
- * - Chọn launch mode phù hợp theo platform
- * - Chọn device cho Android targets
- * - Start/stop target với mode đã chọn
+ * Modal chọn phương thức bắt HTTPS khi start target. Hiển thị danh sách
+ * các capture method (CDP, MITM, Frida, eBPF, PCAP...) theo platform,
+ * chọn device cho Android, nhập sudo password cho eBPF/PCAP.
+ * Mọi button dùng soft-style.
  * ------------------------------------------------------------------
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-// ── React ─
 import React, { useState, useEffect } from 'react';
 
-// ── UI ──
 import {
   Square,
   Shield,
@@ -30,25 +24,22 @@ import {
   Activity,
   Eye,
   EyeOff,
+  ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
 
-// ── Constants ──
 import { AppPlatform, PLATFORMS } from '../../constants/platforms';
-
-// ── Types ─
 import { TargetTab } from '../../types/target.types';
-
-// ── Services ──
 import { emulateApi } from '../../services/emulate-api.service';
 import { secureStorage } from '../../services/secure-storage.service';
-
-// ── Utils ─
 import { cn } from '@renderer/shared/utils/cn';
 import { getTargetFavicon } from '.';
+import { PLATFORM_STYLES } from './TargetCard';
+import { ProfileSelect } from './TargetModal';
 
-// Map icon name string to Lucide component
+
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   Monitor,
   Shield,
@@ -57,6 +48,23 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
   Network,
   Activity,
 };
+
+const CANCEL_CLASS =
+  'bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background';
+
+const METHOD_RGB: Record<string, string> = {
+  cdp: '14, 165, 233',
+  'mitm-normal': '16, 185, 129',
+  'mitm-env': '139, 92, 246',
+  frida: '236, 72, 153',
+  ebpf: '245, 158, 11',
+  pcap: '99, 102, 241',
+  'app-debug': '20, 184, 166',
+  stop: '239, 68, 68',
+};
+
+const FALLBACK_RGB = ['14, 165, 233', '16, 185, 129', '139, 92, 246', '236, 72, 153', '245, 158, 11'];
+
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface RunningOptionTargetModalProps {
   isOpen: boolean;
@@ -65,7 +73,7 @@ interface RunningOptionTargetModalProps {
   platform: AppPlatform | null;
   isRunning: boolean;
   deviceList: { name: string; serial: string; type: string }[];
-  onStartCDP: (targetId: string, targetUrl?: string) => void;
+  onStartCDP: (targetId: string, targetUrl?: string, userDataDir?: string) => Promise<void> | void;
   onStartMITM: (
     targetId: string,
     targetUrl?: string,
@@ -95,6 +103,61 @@ interface CaptureMethodMeta {
   recommended?: boolean;
 }
 
+// ─── Sub components ─────────────────────────────────────────────────────
+const MethodRow: React.FC<{
+  icon: React.ComponentType<any>;
+  label: string;
+  description: string;
+  selected: boolean;
+  recommended?: boolean;
+  rgb: string;
+  onClick: () => void;
+}> = ({ icon: Icon, label, description, selected, recommended, rgb, onClick }) => (
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation();
+      onClick();
+    }}
+    style={{
+      borderLeft: `3px solid ${selected ? `rgb(${rgb})` : 'transparent'}`,
+      backgroundColor: selected ? `rgba(${rgb}, 0.1)` : undefined,
+    }}
+    className={cn(
+      'flex w-full items-center gap-3 px-3 py-3 text-left outline-none transition-colors',
+      selected ? 'rounded-l-none rounded-r-lg' : 'rounded-lg',
+      !selected && 'bg-input-background hover:bg-dropdown-item-hover/60',
+    )}
+  >
+    <span
+      style={
+        selected ? { backgroundColor: `rgba(${rgb}, 0.15)`, color: `rgb(${rgb})` } : undefined
+      }
+      className={cn(
+        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+        !selected && 'bg-border/40 text-text-secondary',
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="flex items-center gap-2">
+        <span className="text-sm font-medium text-text-primary">{label}</span>
+        {recommended && (
+          <span
+            style={{ backgroundColor: `rgba(${rgb}, 0.15)`, color: `rgb(${rgb})` }}
+            className="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+          >
+            Recommended
+          </span>
+        )}
+      </span>
+      <span className="mt-0.5 block truncate text-xs text-text-secondary">{description}</span>
+    </span>
+  </button>
+);
+
+// ─── Main Modal ─────────────────────────────────────────────────────────
 export function RunningOptionTargetModal({
   isOpen,
   onClose,
@@ -117,14 +180,13 @@ export function RunningOptionTargetModal({
   const [isDeviceDropdownOpen, setIsDeviceDropdownOpen] = useState(false);
   const [availableMethods, setAvailableMethods] = useState<CaptureMethodMeta[]>([]);
   const [loadingMethods, setLoadingMethods] = useState(false);
-  
-  // Sudo Password State
   const [sudoPassword, setSudoPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  
+  const [profilePath, setProfilePath] = useState<string>('');
+  const [isLaunching, setIsLaunching] = useState<boolean>(false);
+
   const hasOpenedRef = React.useRef(false);
 
-  // Fetch capture methods from backend
   useEffect(() => {
     if (!platform || !isOpen) return;
 
@@ -135,10 +197,7 @@ export function RunningOptionTargetModal({
       .getCaptureMethods(platform as any)
       .then((response) => {
         if (cancelled) return;
-
-        // Response is expected to be { platform: string, methods: CaptureMethodMeta[] }
         const methods = response?.methods;
-
         if (Array.isArray(methods)) {
           setAvailableMethods(methods);
         } else {
@@ -148,14 +207,10 @@ export function RunningOptionTargetModal({
       })
       .catch((err) => {
         console.error('[Modal] Failed to load capture methods:', err);
-        if (!cancelled) {
-          setAvailableMethods([]);
-        }
+        if (!cancelled) setAvailableMethods([]);
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoadingMethods(false);
-        }
+        if (!cancelled) setLoadingMethods(false);
       });
 
     return () => {
@@ -163,7 +218,6 @@ export function RunningOptionTargetModal({
     };
   }, [platform, isOpen]);
 
-  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       if (!hasOpenedRef.current) {
@@ -174,12 +228,8 @@ export function RunningOptionTargetModal({
         if (onRefreshDevices && platform === 'android') {
           onRefreshDevices();
         }
-        
-        // Load saved sudo password from secure storage asynchronously
         secureStorage.getSudoPassword().then((savedPw) => {
-          if (savedPw) {
-            setSudoPassword(savedPw);
-          }
+          if (savedPw) setSudoPassword(savedPw);
         });
       }
     } else {
@@ -199,11 +249,6 @@ export function RunningOptionTargetModal({
 
   const platformCfg = PLATFORMS[platform];
   const PlatformIcon = platformCfg.icon;
-  const platformColor = platformCfg.color;
-
-  const handleActionSelect = (action: string) => {
-    setSelectedAction(action);
-  };
 
   const handleStart = async () => {
     if (!selectedAction) return;
@@ -213,11 +258,9 @@ export function RunningOptionTargetModal({
       return;
     }
 
-    // Map action ID to appropriate callback based on platform and method type
     const method = availableMethods.find((m) => m.id === selectedAction);
     if (!method) return;
 
-    // Auto-save password to secure storage if provided for modes requiring sudo
     if ((selectedAction === 'ebpf' || selectedAction === 'pcap') && sudoPassword) {
       await secureStorage.setSudoPassword(sudoPassword);
     }
@@ -227,7 +270,13 @@ export function RunningOptionTargetModal({
         if (platform === 'cli') {
           onStartCdp(target.id, target.executablePath || target.url);
         } else {
-          onStartCDP(target.id, target.url);
+          console.log(`[DEBUG][Modal] Start CDP web: targetId=${target.id} url=${target.url} profilePath=${JSON.stringify(profilePath)}`);
+          setIsLaunching(true);
+          try {
+            await onStartCDP(target.id, target.url, profilePath || undefined);
+          } finally {
+            setIsLaunching(false);
+          }
         }
         break;
       case 'mitm-normal':
@@ -269,194 +318,175 @@ export function RunningOptionTargetModal({
     return platformCfg.label;
   };
 
-  const renderActionButtons = () => {
-    const buttons: React.ReactNode[] = [];
-
-    if (isRunning) {
-      buttons.push(
-        <button
-          key="stop"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect('stop');
+  const renderTargetIcon = () => {
+    const fallback = (
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-border/40 text-text-secondary">
+        <PlatformIcon className="h-4 w-4" />
+      </span>
+    );
+    if (platform === 'web' || platform === 'cli') {
+      const faviconSrc = getTargetFavicon(target);
+      return faviconSrc ? (
+        <img
+          src={faviconSrc}
+          alt={target.title}
+          className="h-9 w-9 shrink-0 rounded-lg object-contain p-1"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
           }}
-          className={cn(
-            'w-full text-left px-4 py-3 rounded-lg border transition-all',
-            selectedAction === 'stop'
-              ? 'border-red-500 bg-red-500/10'
-              : 'border-border hover:bg-dropdown-item-hover',
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <Square className="w-4 h-4 text-red-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium">Stop target</div>
-              <div className="text-xs text-text-secondary mt-0.5">
-                Stop the running target session
-              </div>
-            </div>
-          </div>
-        </button>,
+        />
+      ) : (
+        fallback
       );
-      return buttons;
+    }
+    if (platform === 'pc' && target.icon) {
+      return (
+        <img
+          src={`media://${target.icon}`}
+          alt={target.title}
+          className="h-9 w-9 shrink-0 rounded-lg object-contain p-1"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
+        />
+      );
+    }
+    return fallback;
+  };
+
+  const renderMethodList = () => {
+    if (isRunning) {
+      return (
+        <MethodRow
+          icon={Square}
+          label="Stop target"
+          description="Stop the running target session"
+          selected={selectedAction === 'stop'}
+          rgb={METHOD_RGB.stop}
+          onClick={() => setSelectedAction('stop')}
+        />
+      );
     }
 
     if (loadingMethods) {
-      return <div className="text-center py-4 text-xs text-text-secondary">Loading methods...</div>;
-    }
-
-    // Render dynamic buttons based on availableMethods from backend
-    for (const method of availableMethods) {
-      const IconComp = method.icon ? ICON_MAP[method.icon] : Shield; // Fallback to Shield
-
-      buttons.push(
-        <button
-          key={method.id}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleActionSelect(method.id);
-          }}
-          className={cn(
-            'relative w-full text-left px-4 py-3 rounded-lg border transition-all duration-200 ease-out overflow-hidden',
-            selectedAction === method.id
-              ? 'border-border/60 bg-input-background'
-              : 'border-transparent hover:bg-dropdown-item-hover',
-          )}
-        >
-          {/* Selected Accent Bar (Gradient Line Left) */}
-          {selectedAction === method.id && (
-            <div
-              className={cn(
-                'absolute left-0 top-1/2 -translate-y-1/2 h-[80%] w-1 rounded-r-md',
-                `bg-gradient-to-r from-${method.color || 'sky-400'} to-transparent`,
-              )}
-            />
-          )}
-
-          <div className="flex items-center gap-3 relative z-10">
-            <IconComp
-              className={`w-4 h-4 ${selectedAction === method.id ? `text-${method.color || 'sky-400'}` : 'text-text-secondary'} shrink-0`}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium">{method.label}</span>
-                {method.recommended && (
-                  <span className="ml-1 px-1.5 py-0.5 text-[9px] bg-sky-500/20 text-sky-400 rounded">
-                    RECOMMENDED
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-text-secondary mt-0.5">{method.description}</div>
-            </div>
-          </div>
-        </button>,
+      return (
+        <div className="flex items-center justify-center gap-2 py-6 text-xs text-text-secondary">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Loading methods...
+        </div>
       );
     }
 
-    return buttons;
+    if (availableMethods.length === 0) {
+      return (
+        <div className="py-6 text-center text-xs text-text-secondary">
+          No capture methods available for this platform
+        </div>
+      );
+    }
+
+    return availableMethods.map((method, index) => (
+      <MethodRow
+        key={method.id}
+        rgb={METHOD_RGB[method.id] ?? FALLBACK_RGB[index % FALLBACK_RGB.length]}
+        icon={(method.icon && ICON_MAP[method.icon]) || Shield}
+        label={method.label}
+        description={method.description}
+        recommended={method.recommended}
+        selected={selectedAction === method.id}
+        onClick={() => setSelectedAction(method.id)}
+      />
+    ));
   };
 
+  const handleClose = () => {
+    if (!isLaunching) onClose();
+  };
+
+  const selectedDevice = deviceList.find((d) => d.serial === selectedDeviceSerial);
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-md">
+    <Modal isOpen={isOpen} onClose={handleClose} className="!max-w-none !w-[44%] min-w-[720px]">
       <ModalHeader
         title="Running Options"
         description={`Configure launch options for ${target.title}`}
-        onClose={onClose}
+        onClose={handleClose}
       />
       <ModalBody>
-        <div className="space-y-4">
-          {/* Target Info */}
-          <div className="bg-input-background rounded-lg p-4 border border-border">
-            <div className="flex items-center gap-3">
-              {platform === 'web' || platform === 'cli' ? (
-                (() => {
-                  const faviconSrc = getTargetFavicon(target);
-                  return faviconSrc ? (
-                    <img
-                      src={faviconSrc}
-                      alt={target.title}
-                      className="w-8 h-8 shrink-0 rounded p-0.5"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className={cn('shrink-0 p-1.5', `text-${platformColor}-400`)}>
-                      <PlatformIcon className="w-3 h-3" />
-                    </div>
-                  );
-                })()
-              ) : platform === 'pc' && target.icon ? (
-                <img
-                  src={`media://${target.icon}`}
-                  alt={target.title}
-                  className="w-8 h-8 shrink-0 rounded p-0.5 object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className={cn('shrink-0 p-1.5', `text-${platformColor}-400`)}>
-                  <PlatformIcon className="w-3 h-3" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-text-primary truncate">
-                  {target.title}
-                </div>
-                <div className="text-xs text-text-secondary truncate font-mono">
-                  {getTargetSubtitle()}
-                </div>
-              </div>
-              <div className="shrink-0">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-dropdown-item-hover text-text-secondary">
+        {isLaunching ? (
+          <div className="flex h-[560px] flex-col items-center justify-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="text-center">
+              <p className="text-sm font-medium text-text-primary">Opening browser...</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                Waiting for {target.title} to launch
+              </p>
+            </div>
+          </div>
+        ) : (
+        <div className="h-[560px] space-y-5 overflow-y-auto">
+          <div className="flex items-center gap-3 rounded-lg bg-input-background px-3 py-2.5">
+            {renderTargetIcon()}
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-sm font-semibold text-text-primary">{target.title}</span>
+                <span
+                  className={cn(
+                    'shrink-0 px-1 rounded text-[9px] font-semibold uppercase tracking-wide',
+                    PLATFORM_STYLES[platform].chip,
+                  )}
+                >
                   {platformCfg.label}
                 </span>
               </div>
+              <div className="truncate font-mono text-xs text-text-secondary">
+                {getTargetSubtitle()}
+              </div>
             </div>
-
-
           </div>
 
-          {/* Device selector for Android */}
           {platform === 'android' && !isRunning && (
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-text-secondary">Select device</label>
+            <div className="space-y-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
+                Device
+              </h4>
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setIsDeviceDropdownOpen(!isDeviceDropdownOpen)}
-                  className="w-full bg-input-background border border-border rounded-lg px-3 py-2 text-sm text-text-primary text-left flex items-center justify-between hover:bg-dropdown-item-hover transition-colors"
+                  className="flex w-full items-center justify-between rounded-lg bg-input-background px-3 py-2.5 text-left text-sm text-text-primary outline-none transition-colors hover:bg-dropdown-item-hover/60"
                 >
-                  <span>
-                    {selectedDeviceSerial
-                      ? deviceList.find((d) => d.serial === selectedDeviceSerial)?.name ||
-                        'Select device'
-                      : 'Select device'}
-                  </span>
-                  <span className="text-text-secondary">▼</span>
+                  <span className="truncate">{selectedDevice?.name || 'Select device'}</span>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 shrink-0 text-text-secondary transition-transform',
+                      isDeviceDropdownOpen && 'rotate-180',
+                    )}
+                  />
                 </button>
                 {isDeviceDropdownOpen && deviceList.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-input-background border border-border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                  <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-input-background shadow-lg">
                     {deviceList.map((device) => (
                       <button
                         key={device.serial}
+                        type="button"
                         onClick={() => {
                           setSelectedDeviceSerial(device.serial);
                           setIsDeviceDropdownOpen(false);
                         }}
                         className={cn(
-                          'w-full text-left px-3 py-2 text-sm text-text-primary hover:bg-dropdown-item-hover transition-colors flex items-center gap-2',
+                          'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-dropdown-item-hover',
                           selectedDeviceSerial === device.serial && 'bg-primary/10',
                         )}
                       >
                         {device.type === 'physical' ? (
-                          <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                          <Smartphone className="h-3.5 w-3.5 text-text-secondary" />
                         ) : (
-                          <Monitor className="w-3.5 h-3.5 text-blue-400" />
+                          <Monitor className="h-3.5 w-3.5 text-text-secondary" />
                         )}
-                        <span>{device.name}</span>
-                        <span className="text-[9px] text-text-secondary ml-auto">
-                          ({device.type === 'physical' ? 'USB' : 'VM'})
+                        <span className="truncate">{device.name}</span>
+                        <span className="ml-auto text-[10px] text-text-secondary">
+                          {device.type === 'physical' ? 'USB' : 'VM'}
                         </span>
                       </button>
                     ))}
@@ -464,65 +494,71 @@ export function RunningOptionTargetModal({
                 )}
               </div>
               {deviceList.length === 0 && (
-                <p className="text-xs text-text-secondary">
-                  No devices found. Please connect a device.
-                </p>
+                <p className="text-xs text-text-secondary">No devices found. Please connect a device.</p>
               )}
             </div>
           )}
 
-          {/* Sudo Password Input for eBPF/PCAP */}
+          <div className="space-y-2">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
+              {isRunning ? 'Actions' : 'HTTPS capture method'}
+            </h4>
+            <div className="space-y-1.5">{renderMethodList()}</div>
+          </div>
+
+          {platform === 'web' && !isRunning && (
+            <div className="space-y-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
+                Browser profile
+              </h4>
+              <ProfileSelect value={profilePath} onChange={setProfilePath} />
+            </div>
+          )}
+
           {(selectedAction === 'ebpf' || selectedAction === 'pcap') && !isRunning && (
-            <div className="space-y-1.5 pt-2 border-t border-border">
-              <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
-                <Lock className="w-3 h-3" />
-                Sudo Password
-              </label>
-              <div className="relative">
+            <div className="space-y-2">
+              <h4 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
+                <Lock className="h-3 w-3" />
+                Sudo password
+              </h4>
+              <div className="flex items-center gap-2">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={sudoPassword}
                   onChange={(e) => setSudoPassword(e.target.value)}
                   placeholder="Enter your sudo password..."
-                  className="w-full bg-input-background border border-border rounded-lg px-3 py-2 pr-10 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                  className="h-[42px] w-full flex-1 rounded-lg border border-border bg-input-background px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="soft"
+                  title={showPassword ? 'Hide' : 'Show'}
+                  className="h-[42px] w-[42px] shrink-0 px-0 py-0"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-text-primary transition-colors"
-                  tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-text-secondary" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-text-secondary" />
+                  )}
+                </Button>
               </div>
-              <p className="text-[10px] text-text-secondary italic">
-                Required for kernel-level traffic capture. Stored temporarily in session memory only.
+              <p className="text-[11px] text-text-secondary/70">
+                Required for kernel-level traffic capture.
               </p>
             </div>
           )}
-
-          {/* Action buttons */}
-          {!isRunning && (
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-text-secondary">
-                Select launch mode
-              </label>
-              <div className="space-y-1.5">{renderActionButtons()}</div>
-            </div>
-          )}
-          {isRunning && (
-            <div className="space-y-2">
-              <label className="block text-xs font-medium text-text-secondary">Actions</label>
-              <div className="space-y-1.5">{renderActionButtons()}</div>
-            </div>
-          )}
         </div>
+        )}
       </ModalBody>
       <ModalFooter>
-        <Button variant="ghost" onClick={onClose}>
+        <Button className={CANCEL_CLASS} onClick={handleClose} disabled={isLaunching}>
           Cancel
         </Button>
-        <Button variant="solid" onClick={handleStart} disabled={!selectedAction}>
+        <Button
+          variant={selectedAction === 'stop' ? 'soft-error' : 'soft'}
+          onClick={handleStart}
+          disabled={!selectedAction || isLaunching}
+        >
           {isRunning ? 'Apply' : 'Start'}
         </Button>
       </ModalFooter>

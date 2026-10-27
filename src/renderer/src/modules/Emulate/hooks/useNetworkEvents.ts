@@ -572,6 +572,12 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
   const handleEbpfHttpsEvent = useCallback(
     (_event: any, data: any) => {
       try {
+        console.log('[DEBUG|NetworkEvents] ebpf:https-event received', {
+          hasId: !!data?.id,
+          type: data?.type,
+          keys: data ? Object.keys(data) : null,
+          bufPreview: typeof data?.buf === 'string' ? data.buf.slice(0, 120) : null,
+        });
         if (!data?.id) return;
 
         // Convert eBPF event to NetworkRequest format

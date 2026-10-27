@@ -9,12 +9,15 @@
  * - requests: window hiển thị (tối đa maxMemory items, append-only khi live)
  * - totalWorkerCount: tổng số requests thực trong Worker (dùng cho FooterBar)
  * - filteredWorkerCount: tổng sau filter trong Worker
+ * - assetMap: kho lưu giữ request dạng resource/source (JS, CSS, HTML, image,
+ *   font...) — KHÔNG bị xóa khi user clear bảng Requests, chỉ xóa khi đổi target
  *
  * Các actions chính:
  * - addRequests()        : Thêm hàng loạt request (bỏ qua nếu trùng id)
  * - prependRequest()     : Thêm 1 request vào đầu danh sách (từ Worker live)
  * - updateRequests()     : Cập nhật hàng loạt request theo id (O(1) lookup)
- * - clearRequests()      : Xóa toàn bộ requests và scripts
+ * - clearRequests()      : Xóa requests và scripts (giữ nguyên assets)
+ * - clearAssets()        : Xóa kho assets (dùng khi đổi target)
  * - setUnpackedScript()  : Lưu unpacked script cho một request
  * - getRequests()        : Lấy danh sách requests hiện tại
  * - setWindow()          : Thay toàn bộ window (dùng khi filter/clear)
@@ -26,6 +29,9 @@
 // ─── Imports ───────────────────────────────────────────────────────────
 // ── Store ──
 import { create } from 'zustand';
+
+// ── Constants ──
+import { detectResourceType } from '../constants/resource';
 
 // ── Types ─
 import type { NetworkRequest, CdpScriptUnpackedData } from '@renderer/shared/types/network';
@@ -48,6 +54,10 @@ interface NetworkStore {
   totalWorkerCount: number;
   /** Tổng sau filter trong Worker (null = không filter) */
   filteredWorkerCount: number | null;
+  /** Kho request dạng resource/source, tồn tại độc lập với bảng Requests */
+  assetMap: Map<string, NetworkRequest>;
+  /** Tăng mỗi khi assetMap thay đổi để component biết cần tính lại */
+  assetsVersion: number;
 
   // Actions
   addRequests: (newRequests: NetworkRequest[]) => void;
@@ -55,6 +65,8 @@ interface NetworkStore {
   prependRequest: (request: NetworkRequest) => void;
   updateRequests: (updates: Array<{ id: string; updates: Partial<NetworkRequest> }>) => void;
   clearRequests: () => void;
+  /** Xóa kho assets (chỉ dùng khi đổi target) */
+  clearAssets: () => void;
   setUnpackedScript: (requestId: string, data: CdpScriptUnpackedData) => void;
   getRequests: () => NetworkRequest[];
   /** Thay thế toàn bộ window hiện tại (dùng khi filter hoặc clear) */
@@ -65,6 +77,15 @@ interface NetworkStore {
   setWorkerCounts: (totalCount: number, filteredCount: number | null) => void;
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────
+/** Request có phải resource/source cần giữ lại cho tab Resource/Source không. */
+const isAssetCandidate = (req: NetworkRequest): boolean => {
+  const t = req.type?.toUpperCase();
+  if (t === 'JS' || t === 'CSS' || t === 'HTML') return true;
+  const ct = req.responseHeaders?.['content-type'] || req.responseHeaders?.['Content-Type'] || '';
+  return detectResourceType(ct, req.path || '') !== 'other';
+};
+
 // ─── Store ──────────────────────────────────────────────────────────────
 export const useNetworkStore = create<NetworkStore>((set, get) => ({
   requests: [],
@@ -73,6 +94,8 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
   maxMemory: 1000,
   totalWorkerCount: 0,
   filteredWorkerCount: null,
+  assetMap: new Map(),
+  assetsVersion: 0,
 
   addRequests: (newRequests) =>
     set((state) => {
@@ -86,6 +109,14 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
       }
       if (added.length === 0) return state;
 
+      let assetsChanged = false;
+      for (const req of added) {
+        if (isAssetCandidate(req)) {
+          state.assetMap.set(req.id, req);
+          assetsChanged = true;
+        }
+      }
+
       const requests = [...added, ...state.requests];
       const sliced =
         requests.length > state.maxMemory ? requests.slice(0, state.maxMemory) : requests;
@@ -93,7 +124,11 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
       const requestIndex = new Map<string, number>();
       sliced.forEach((r, i) => requestIndex.set(r.id, i));
 
-      return { requests: sliced, requestIndex };
+      return {
+        requests: sliced,
+        requestIndex,
+        assetsVersion: assetsChanged ? state.assetsVersion + 1 : state.assetsVersion,
+      };
     }),
 
   prependRequest: (request) =>
@@ -105,6 +140,12 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
         return state;
       }
 
+      let assetsVersion = state.assetsVersion;
+      if (isAssetCandidate(request)) {
+        state.assetMap.set(request.id, request);
+        assetsVersion++;
+      }
+
       const requests = [request, ...state.requests];
       // Giữ tối đa maxMemory items trong store (window hiển thị)
       const sliced =
@@ -112,7 +153,7 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
       const requestIndex = new Map<string, number>();
       sliced.forEach((r, i) => requestIndex.set(r.id, i));
 
-      return { requests: sliced, requestIndex };
+      return { requests: sliced, requestIndex, assetsVersion };
     }),
 
   updateRequests: (updates) =>
@@ -121,16 +162,25 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
 
       const requests = [...state.requests];
       let changed = false;
+      let assetsChanged = false;
 
       for (const { id, updates: partial } of updates) {
         const idx = state.requestIndex.get(id);
         if (idx !== undefined && idx < requests.length) {
           requests[idx] = { ...requests[idx], ...partial };
           changed = true;
+          if (isAssetCandidate(requests[idx])) {
+            state.assetMap.set(id, requests[idx]);
+            assetsChanged = true;
+          }
         }
       }
 
-      return changed ? { requests } : state;
+      if (!changed) return state;
+      return {
+        requests,
+        assetsVersion: assetsChanged ? state.assetsVersion + 1 : state.assetsVersion,
+      };
     }),
 
   clearRequests: () =>
@@ -141,6 +191,12 @@ export const useNetworkStore = create<NetworkStore>((set, get) => ({
       totalWorkerCount: 0,
       filteredWorkerCount: null,
     }),
+
+  clearAssets: () =>
+    set((state) => ({
+      assetMap: new Map(),
+      assetsVersion: state.assetsVersion + 1,
+    })),
 
   setUnpackedScript: (requestId, data) =>
     set((state) => {

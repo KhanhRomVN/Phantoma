@@ -223,6 +223,7 @@ class CdpService extends EventEmitter {
           resourceType: params.type,
           timestamp: params.timestamp * 1000, // Convert seconds to ms
           postData: params.request.postData,
+          requestBody: params.request.postData,
         };
 
         // Emit globally for the /events bridge to pick up
@@ -235,6 +236,7 @@ class CdpService extends EventEmitter {
           targetId,
           id: params.requestId,
           status: resp.status,
+          statusCode: resp.status,
           statusText: resp.statusText,
           headers: resp.headers,
           mimeType: resp.mimeType,
@@ -247,8 +249,22 @@ class CdpService extends EventEmitter {
         this.emit('cdp:response', cdpResponseData);
       });
 
-      client.Network.on('loadingFinished', (params: any) => {
+      client.Network.on('loadingFinished', async (params: any) => {
         this.emit('cdp:finished', { targetId, requestId: params.requestId });
+
+        try {
+          const result = await client.Network.getResponseBody({ requestId: params.requestId });
+          const body: string = result.body || '';
+          this.emit('cdp:response-body', {
+            targetId,
+            id: params.requestId,
+            body,
+            size: params.encodedDataLength ?? body.length,
+            timestamp: Date.now(),
+          });
+        } catch (err) {
+          // Một số response (redirect, 204, cache) không có body — bỏ qua
+        }
       });
 
       // Handle errors within the session

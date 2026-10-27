@@ -113,6 +113,11 @@ class WssHubService {
       this.broadcast({ type: 'cdp:response', data });
     });
 
+    // Forward Response Body
+    cdpService.on('cdp:response-body', (data) => {
+      this.broadcast({ type: 'cdp:response-body', data });
+    });
+
     // Forward Loading Finished
     cdpService.on('cdp:finished', (data) => {
       this.broadcast({ type: 'cdp:finished', data });

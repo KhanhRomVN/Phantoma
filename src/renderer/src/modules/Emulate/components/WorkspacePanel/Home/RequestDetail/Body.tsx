@@ -53,8 +53,9 @@ function HexViewer({ data, className }: HexViewerProps) {
     const hex: string[] = [];
     const ascii: string[] = [];
     const chunkSize = 16;
+    const limit = Math.min(buffer.length, HEX_MAX_BYTES);
 
-    for (let i = 0; i < buffer.length; i += chunkSize) {
+    for (let i = 0; i < limit; i += chunkSize) {
       const chunk = buffer.slice(i, i + chunkSize);
 
       const hexLine = Array.from(chunk)
@@ -109,6 +110,11 @@ function HexViewer({ data, className }: HexViewerProps) {
   );
 }
 
+// Giới hạn hiển thị để tránh đơ UI với body lớn
+const BODY_MAX_CHARS = 512 * 1024;
+const HEX_MAX_BYTES = 64 * 1024;
+const LANG_DETECT_SAMPLE = 2000;
+
 function getLanguage(contentType?: string, content?: string): string {
   // Check content type first
   if (contentType) {
@@ -122,7 +128,7 @@ function getLanguage(contentType?: string, content?: string): string {
   // If no content type or unknown, try to detect from content
   if (content) {
     try {
-      const result = hljs.highlightAuto(content);
+      const result = hljs.highlightAuto(content.slice(0, LANG_DETECT_SAMPLE));
       // Only use detected language if confidence is reasonable
       // hljs returns a relevance score, we can check if it's high enough
       if (result.language && result.relevance > 5) {
@@ -223,7 +229,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
 
     // Fallback: Use raw request data when analysis is not available
     const body = analysis?.body as any;
-    const requestBodyContent = body?.request?.formatted
+    const requestBodyFull = body?.request?.formatted
       ? JSON.stringify(body.request.formatted, null, 2)
       : body?.request?.raw
         ? formatJsonIfValid(body.request.raw)
@@ -235,7 +241,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                 : 'No Content',
           );
 
-    const responseBodyContent = body?.response?.formatted
+    const responseBodyFull = body?.response?.formatted
       ? JSON.stringify(body.response.formatted, null, 2)
       : body?.response?.raw
         ? formatJsonIfValid(body.response.raw)
@@ -246,6 +252,16 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                 ? JSON.stringify(request.responseBody)
                 : 'No Content',
           );
+
+    const truncateBody = (full: string, isBinary: boolean): string => {
+      if (full.length <= BODY_MAX_CHARS) return full;
+      const head = full.slice(0, BODY_MAX_CHARS);
+      return isBinary
+        ? head
+        : `${head}\n\n... [Đã cắt bớt: hiển thị ${BODY_MAX_CHARS} / ${full.length} ký tự]`;
+    };
+    const requestBodyContent = truncateBody(requestBodyFull, false);
+    const responseBodyContent = truncateBody(responseBodyFull, !!body?.response?.isBinary);
 
     const requestLanguage = getLanguage(body?.request?.contentType, requestBodyContent);
     const responseLanguage = getLanguage(body?.response?.contentType, responseBodyContent);

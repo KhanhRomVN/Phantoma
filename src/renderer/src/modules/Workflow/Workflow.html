@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang='vi'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>Workflow</title>
+<style>
+:root{--background:20 24 33;--text-primary:230 233 240;--text-secondary:150 158 175;--divider:44 50 64;--card-background:28 33 45;--sidebar-background:24 28 38;--input-background:30 35 48;--button-soft-background:48 58 92;--primary:99 140 255;--success:74 200 120;--warn:240 180 70;--error:240 90 90}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;font-size:13px;background:rgb(var(--background));color:rgb(var(--text-primary));height:100vh;overflow:hidden}
+button{font:inherit;color:inherit;border:none;cursor:pointer;background:none}
+a{cursor:pointer}
+select option{background:#1c212d}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:rgb(var(--divider));border-radius:3px}
+.app{display:flex;height:100vh}
+.rail{width:56px;flex-shrink:0;background:rgb(var(--sidebar-background));border-right:1px solid rgb(var(--divider));display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:6px}
+.ri{position:relative;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:17px;color:rgb(var(--text-secondary));cursor:pointer}
+.ri:hover{background:rgb(255 255 255/.05)}
+.ri.on{background:rgb(var(--button-soft-background));color:rgb(var(--primary))}
+.ri i{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:rgb(var(--warn))}
+#view{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh}
+.ph{height:48px;flex-shrink:0;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgb(var(--divider))}
+.ph h1{font-size:15px;font-weight:600}
+.page{flex:1;overflow:auto;padding:18px 20px}
+.btn{background:rgb(var(--button-soft-background));color:rgb(var(--primary));padding:6px 12px;border-radius:7px;font-weight:500;font-size:12px}
+.btn:hover{background:rgb(var(--button-soft-background)/.8)}
+.btn.sec{color:rgb(var(--text-secondary))}
+.btn.red{color:rgb(var(--error))}
+.sec-t{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:rgb(var(--text-secondary));margin:22px 0 10px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:rgb(var(--card-background));border-radius:12px;padding:14px}
+.stat small{color:rgb(var(--text-secondary));font-size:11px}
+.stat b{display:block;font-size:22px;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.wc{background:rgb(var(--card-background));border-radius:12px;padding:12px;cursor:pointer;transition:background .15s}
+.wc:hover{background:rgb(255 255 255/.07)}
+.wc h4{font-size:13px;display:flex;align-items:center;gap:7px}
+.wc small{color:rgb(var(--text-secondary));font-size:11px;display:block;margin-top:3px}
+.wc .st{background:rgb(255 255 255/.03);border-radius:8px;margin-top:8px}
+.panel{background:rgb(var(--card-background));border-radius:12px;overflow:hidden}
+.feed{padding:4px 14px}
+.fi{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgb(var(--divider)/.5);align-items:flex-start}
+.fi:last-child{border:none}
+.fi small{color:rgb(var(--text-secondary));font-size:11px}
+.fi p{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:700px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;font-weight:600;color:rgb(var(--text-secondary));padding:9px 12px;border-bottom:1px solid rgb(var(--divider))}
+td{padding:10px 12px;border-bottom:1px solid rgb(var(--divider)/.5)}
+tr.clk:hover{background:rgb(255 255 255/.04);cursor:pointer}
+tr:last-child td{border:none}
+.mono{font-family:ui-monospace,monospace;font-size:11.5px}
+.sub{color:rgb(var(--text-secondary));font-size:11px}
+.tools{display:flex;gap:8px;margin-bottom:12px}
+.in,.f input,.f select{background:rgb(var(--input-background));border:1px solid rgb(var(--divider));border-radius:7px;padding:7px 10px;color:inherit;font:inherit;outline:none}
+.in{width:240px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:rgb(var(--text-secondary))}
+.dot.running{background:rgb(var(--warn))}.dot.done{background:rgb(var(--success))}.dot.paused{background:rgb(var(--primary))}.dot.error{background:rgb(var(--error))}
+.badge{font-size:11px;padding:2px 9px;border-radius:99px;background:rgb(255 255 255/.06);color:rgb(var(--text-secondary));white-space:nowrap}
+.badge.running{background:rgb(var(--warn)/.15);color:rgb(var(--warn))}
+.badge.done{background:rgb(var(--success)/.15);color:rgb(var(--success))}
+.badge.paused{background:rgb(var(--primary)/.15);color:rgb(var(--primary))}
+.badge.error{background:rgb(var(--error)/.15);color:rgb(var(--error))}
+.wfview{flex:1;display:flex;min-height:0}
+.wfl{width:210px;flex-shrink:0;background:rgb(var(--sidebar-background));border-right:1px solid rgb(var(--divider));display:flex;flex-direction:column}
+.hd{height:40px;flex-shrink:0;padding:0 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgb(var(--divider));font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:rgb(var(--text-secondary))}
+.hd .btn{text-transform:none;letter-spacing:0;padding:3px 9px;font-size:11px}
+.wfl .in{margin:8px;width:calc(100% - 16px)}
+#wfList{flex:1;overflow:auto;padding:0 8px 8px}
+.wf{padding:9px 10px;border-radius:10px;cursor:pointer;margin-bottom:3px}
+.wf:hover{background:rgb(255 255 255/.04)}
+.wf.on{background:rgb(255 255 255/.08)}
+.wf b{display:flex;align-items:center;gap:7px;font-weight:500}
+.wf small{display:block;margin-top:3px;color:rgb(var(--text-secondary));font-size:11px}
+.detail{flex:1;min-width:0;display:flex;flex-direction:column}
+.dh{height:56px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid rgb(var(--divider))}
+.dh h2{font-size:14px;font-weight:600;white-space:nowrap}
+.dh small{display:block;color:rgb(var(--text-secondary));font-size:11px;margin-top:1px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prog{width:110px;height:5px;border-radius:3px;background:rgb(255 255 255/.08);overflow:hidden}
+.prog div{height:100%;background:rgb(var(--success));transition:width .4s}
+.pc{font-size:11px;color:rgb(var(--text-secondary));white-space:nowrap}
+.sp{flex:1}
+.dbody{flex:1;display:flex;min-height:0}
+.chat{flex:1;min-width:0;display:flex;flex-direction:column}
+.ctools{height:40px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid rgb(var(--divider))}
+.ctools .in{width:200px;padding:4px 9px;font-size:12px}
+.chip{font-size:11px;padding:2px 9px;border-radius:99px;background:rgb(var(--button-soft-background));color:rgb(var(--primary))}
+.chip a{margin-left:4px;opacity:.8}
+#msgs{flex:1;overflow:auto;padding:14px}
+.inner{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:11px}
+.m{display:flex;gap:9px;align-items:flex-start}
+.m.me{flex-direction:row-reverse}
+.av{width:26px;height:26px;border-radius:8px;background:rgb(255 255 255/.06);display:grid;place-items:center;font-weight:700;font-size:11px;flex-shrink:0}
+.mb{display:flex;flex-direction:column;min-width:0;max-width:82%}
+.m.me .mb{align-items:flex-end}
+.meta{font-size:10.5px;color:rgb(var(--text-secondary));margin-bottom:2px;display:flex;gap:5px;flex-wrap:wrap}
+.meta b{font-weight:500}
+.bub{padding:7px 11px;border-radius:9px;background:rgb(var(--card-background));line-height:1.5;white-space:pre-wrap;font-size:12.5px}
+.m.me .bub{background:rgb(var(--button-soft-background))}
+.typing{font-size:11px;color:rgb(var(--warn))}
+.empty{height:100%;display:grid;place-items:center;text-align:center;color:rgb(var(--text-secondary))}
+.composer{flex-shrink:0;padding:10px 14px 14px}
+.cbox{max-width:680px;margin:0 auto;background:rgb(var(--input-background));border:1px solid rgb(var(--divider));border-radius:12px;padding:8px 10px;display:flex;gap:8px;align-items:flex-end}
+.cbox textarea{flex:1;background:none;border:none;outline:none;color:inherit;font:inherit;resize:none;height:36px;padding-top:6px}
+.cbox select{background:rgb(var(--card-background));border:none;color:rgb(var(--text-secondary));border-radius:6px;padding:5px 6px;font-size:11px;outline:none}
+.insp{width:310px;flex-shrink:0;border-left:1px solid rgb(var(--divider));background:rgb(var(--sidebar-background));display:flex;flex-direction:column}
+.star{margin:10px;border-radius:12px;background:rgb(255 255 255/.03);padding:2px}
+.cap{display:flex;justify-content:space-between;font-size:10px;color:rgb(var(--text-secondary));padding:0 8px 5px}
+.tabs{display:flex;border-bottom:1px solid rgb(var(--divider))}
+.tb{flex:1;padding:9px;font-size:12px;color:rgb(var(--text-secondary));border-bottom:2px solid transparent}
+.tb.on{color:rgb(var(--text-primary));border-bottom-color:rgb(var(--primary))}
+#itab{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:7px}
+.ac{padding:9px;border-radius:10px;background:rgb(255 255 255/.03);cursor:pointer;display:flex;gap:9px;align-items:center}
+.ac:hover{background:rgb(255 255 255/.06)}
+.ac.on{background:rgb(255 255 255/.09)}
+.ac p{font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:6px}
+.ac .mono{color:rgb(var(--text-secondary));display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.tag{font-size:9px;padding:1px 6px;border-radius:99px;background:rgb(var(--primary)/.18);color:rgb(var(--primary));font-weight:600}
+.tk{display:flex;gap:9px;align-items:center;padding:9px 10px;border-radius:9px;background:rgb(255 255 255/.03);cursor:pointer}
+.tk:hover{background:rgb(255 255 255/.06)}
+.tk.done span{color:rgb(var(--text-secondary));text-decoration:line-through}
+.f{margin-bottom:12px}
+.f label{display:block;font-size:11px;color:rgb(var(--text-secondary));margin-bottom:4px}
+.f input,.f select{width:100%}
+.fr{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.fr small{display:block;color:rgb(var(--text-secondary));font-size:11px;margin-top:2px}
+.tg input{display:none}
+.tg i{width:32px;height:18px;border-radius:99px;background:rgb(var(--divider));display:block;position:relative;cursor:pointer;flex-shrink:0}
+.tg i::after{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:rgb(var(--text-secondary));transition:.15s}
+.tg input:checked+i{background:rgb(var(--primary)/.4)}
+.tg input:checked+i::after{left:16px;background:rgb(var(--primary))}
+.form{max-width:520px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;place-items:center;z-index:9}
+.modal.on{display:grid}
+.mbox{width:380px;background:rgb(var(--card-background));border:1px solid rgb(var(--divider));border-radius:14px;padding:18px}
+.mbox h3{font-size:14px;margin-bottom:14px}
+.mbox .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class='app'><nav class='rail' id='rail'></nav><main id='view'></main></div>
+<div class='modal' id='modal'></div>
+<script>
+const U='user';
+const $=s=>document.querySelector(s);
+const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const now=()=>new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+const A=(id,name,title,mod,color,model,orch)=>({id,name,title,mod,color,model,orch});
+const OR=t=>A('o','Orchestrator',t,'code','#638cff','anthropic/claude-sonnet-4',true);
+const MODS={code:'Code',chat:'Chat',emulate:'Emulate',recon:'Recon',reverse:'Reverse'};
+const MODELS=['anthropic/claude-sonnet-4','openai/gpt-5','openai/gpt-5-mini','google/gemini-2.5-pro','google/gemini-2.5-flash'];
+const ST={idle:'Chưa chạy',running:'Đang chạy',paused:'Tạm dừng',done:'Hoàn tất',error:'Lỗi'};
+const TPL=[
+ {id:'dev',name:'Phát triển tính năng',desc:'Planner lập kế hoạch, Executor viết code, Reviewer kiểm tra.',tasks:['Lập kế hoạch','Viết code','Review','Tổng hợp kết quả'],agents:[OR('Điều phối và giao việc'),A('p','Planner','Lập kế hoạch kỹ thuật','code','#3cc8be','openai/gpt-5'),A('e','Executor','Viết và sửa code','code','#a878ff','anthropic/claude-sonnet-4'),A('r','Reviewer','Review kết quả','code','#f0b446','google/gemini-2.5-pro')]},
+ {id:'apk',name:'Phân tích APK mục tiêu',desc:'Recon thu thập, Reverse decompile, Emulate chạy thử, Chat viết báo cáo.',tasks:['Thu thập thông tin','Decompile','Chạy thử và bắt traffic','Viết báo cáo'],agents:[OR('Điều phối phân tích'),A('a','Recon Scout','Thu thập endpoint','recon','#f0b446','openai/gpt-5-mini'),A('b','APK Decompiler','Decompile, tìm secret','reverse','#f06eaa','anthropic/claude-sonnet-4'),A('c','Emulator Runner','Chạy thử, bắt traffic','emulate','#a878ff','google/gemini-2.5-flash'),A('d','Report Writer','Tổng hợp báo cáo','chat','#3cc8be','openai/gpt-5')]},
+ {id:'res',name:'Nghiên cứu và tóm tắt',desc:'Researcher tìm tài liệu, Summarizer rút gọn thành ý chính.',tasks:['Tìm tài liệu','Tóm tắt'],agents:[OR('Điều phối nghiên cứu'),A('a','Researcher','Tìm và đọc tài liệu','chat','#3cc8be','openai/gpt-5'),A('b','Summarizer','Tóm tắt ý chính','chat','#f0b446','google/gemini-2.5-flash')]}
+];
+let seq=0;
+const mk=(tp,name)=>({id:++seq,name,desc:tp.desc,status:'idle',agents:clone(tp.agents),tasks:tp.tasks.map(t=>({t,s:'todo'})),msgs:[],cfg:{rounds:10,auto:false,peer:false},active:null,steps:[],i:0,timer:null,t0:0});
+const workflows=[mk(TPL[0],'Phát triển tính năng'),mk(TPL[1],'Phân tích APK mục tiêu'),mk(TPL[2],'Nghiên cứu và tóm tắt')];
+workflows[0].msgs=[
+ {f:U,t:'o',time:'10:02',x:'Thêm chức năng đăng nhập bằng Google cho trang Setting.'},
+ {f:'o',t:'p',time:'10:02',x:'@Planner lập kế hoạch cho tính năng đăng nhập Google: file cần sửa, thứ tự các bước.'},
+ {f:'p',t:'o',time:'10:03',x:'Kế hoạch:\n1. Thêm GoogleAuthService\n2. Thêm nút trong SettingPanel\n3. Lưu token vào store'},
+ {f:'o',t:'e',time:'10:03',x:'@Executor thực hiện theo kế hoạch của Planner.'}];
+workflows[0].tasks[0].s='done';workflows[0].tasks[1].s='doing';
+const runs=[
+ {wid:1,wf:'Phát triển tính năng',start:'Hôm qua 16:20',dur:'4m 12s',status:'done',msgs:14,tokens:18240},
+ {wid:2,wf:'Phân tích APK mục tiêu',start:'Hôm qua 09:05',dur:'7m 40s',status:'done',msgs:22,tokens:31200},
+ {wid:3,wf:'Nghiên cứu và tóm tắt',start:'25/10 21:11',dur:'1m 58s',status:'error',msgs:6,tokens:5400}];
+const S={model:MODELS[0],rounds:10,timeout:120,auto:false,peer:false,keep:30,notify:true};
+const st={view:'workflows',tab:'agents',focus:null,wq:'',ms:'',aq:'',am:''};
+let cur=workflows[0];
+const nm=(w,id)=>id===U?'You':(w.agents.find(a=>a.id===id)||{name:id}).name;
+const cl=(w,id)=>id===U?'#e6e9f0':(w.agents.find(a=>a.id===id)||{color:'#9ca3af'}).color;
+const av=(w,id)=>`<span class='av' style='color:${cl(w,id)}'>${id===U?'U':nm(w,id)[0]}</span>`;
+
+function star(w,h){
+ const subs=w.agents.filter(a=>!a.orch),o=w.agents[0],cx=120,cy=75,n=Math.max(subs.length,1),ac=w.active;
+ const hot=id=>ac&&(ac.f===id||ac.t===id);
+ const pos=subs.map((a,i)=>{const g=-Math.PI/2+2*Math.PI*i/n;return{a,x:cx+78*Math.cos(g),y:cy+52*Math.sin(g)}});
+ let s=`<svg viewBox='0 0 240 150' style='width:100%;height:${h}px;display:block'>`;
+ pos.forEach(p=>{s+=`<line x1='${cx}' y1='${cy}' x2='${p.x}' y2='${p.y}' stroke='${hot(p.a.id)?'#f0b446':'#464e64'}' stroke-width='${hot(p.a.id)?2.2:1.2}'/>`});
+ pos.forEach(p=>{s+=`<circle cx='${p.x}' cy='${p.y}' r='10' fill='${p.a.color}' fill-opacity='${hot(p.a.id)?1:.6}'/><text x='${p.x}' y='${p.y+3.5}' font-size='9' font-weight='700' text-anchor='middle' fill='#141821'>${p.a.name[0]}</text>`});
+ s+=`<circle cx='${cx}' cy='${cy}' r='15' fill='${o.color}' stroke='${hot(o.id)?'#f0b446':'none'}' stroke-width='2.5'/><text x='${cx}' y='${cy+4}' font-size='11' font-weight='700' text-anchor='middle' fill='#141821'>O</text></svg>`;
+ return s;
+}
+const prog=w=>w.tasks.length?Math.round(w.tasks.filter(t=>t.s==='done').length/w.tasks.length*100):0;
+
+function renderRail(){
+ const items=[['overview','◧','Tổng quan'],['workflows','⌬','Workflows'],['agents','☰','Agents'],['templates','❏','Templates'],['runs','⏱','Lịch sử chạy'],['settings','⚙','Cài đặt']];
+ const run=workflows.some(w=>w.status==='running');
+ $('#rail').innerHTML=items.map(([id,ic,t],i)=>(i===4?`<div style='flex:1'></div>`:'')+`<div class='ri ${st.view===id?'on':''}' data-act='nav' data-id='${id}' title='${t}'>${ic}${id==='workflows'&&run?'<i></i>':''}</div>`).join('');
+}
+function render(){
+ renderRail();
+ const v=$('#view');
+ ({overview:vOverview,workflows:vWorkflows,agents:vAgents,templates:vTemplates,runs:vRuns,settings:vSettings})[st.view](v);
+}
+
+function vOverview(v){
+ const msgs=workflows.reduce((n,w)=>n+w.msgs.length,0),ag=workflows.reduce((n,w)=>n+w.agents.length,0);
+ const feed=workflows.flatMap(w=>w.msgs.map(m=>({w,m}))).slice(-8).reverse();
+ v.innerHTML=`<div class='ph'><h1>Tổng quan</h1><button class='btn' data-act='new'>+ Workflow mới</button></div><div class='page'>
+ <div class='stats'><div class='stat'><small>Workflows</small><b>${workflows.length}</b></div><div class='stat'><small>Đang chạy</small><b>${workflows.filter(w=>w.status==='running').length}</b></div><div class='stat'><small>Agents</small><b>${ag}</b></div><div class='stat'><small>Tin nhắn</small><b>${msgs}</b></div></div>
+ <div class='sec-t'>Workflows</div>
+ <div class='grid'>${workflows.map(w=>`<div class='wc' data-act='open' data-id='${w.id}'><h4><span class='dot ${w.status}'></span>${esc(w.name)}</h4><small>${w.agents.length-1} sub-agent · ${w.msgs.length} tin nhắn · ${prog(w)}%</small><div class='st'>${star(w,100)}</div></div>`).join('')}</div>
+ <div class='sec-t'>Hoạt động gần đây</div>
+ <div class='panel feed'>${feed.length?feed.map(({w,m})=>`<div class='fi'>${av(w,m.f)}<div style='min-width:0'><small>${esc(w.name)} · @${nm(w,m.f)} → @${nm(w,m.t)} · ${m.time}</small><p>${esc(m.x)}</p></div></div>`).join(''):`<div class='fi sub'>Chưa có hoạt động.</div>`}</div></div>`;
+}
+
+function vWorkflows(v){
+ v.innerHTML=`<div class='wfview'>
+ <aside class='wfl'><div class='hd'>Workflows<button class='btn' data-act='new'>+ Mới</button></div><input class='in' data-q='wq' placeholder='Tìm workflow...' value='${esc(st.wq)}'><div id='wfList'></div></aside>
+ <section class='detail'><div class='dh' id='dh'></div><div class='dbody'>
+  <div class='chat'><div class='ctools'><input class='in' data-q='ms' placeholder='Tìm trong hội thoại...' value='${esc(st.ms)}'><span id='cf'></span><div class='sp'></div><span class='sub' id='cc'></span></div><div id='msgs'></div>
+   <div class='composer'><div class='cbox'><select id='ct'></select><textarea id='ci' placeholder='Nhắn cho agent... (Enter để gửi)'></textarea><button class='btn' data-act='send'>Gửi</button></div></div></div>
+  <aside class='insp'><div class='star'><div id='istar'></div><div class='cap'><span>Star network</span><span id='icap'></span></div></div>
+   <div class='tabs'><button class='tb' data-act='tab' data-id='agents'>Agents</button><button class='tb' data-act='tab' data-id='tasks'>Tasks</button><button class='tb' data-act='tab' data-id='cfg'>Cấu hình</button></div><div id='itab'></div></aside>
+ </div></section></div>`;
+ updWfList();updHead();updMsgs(true);updStar();updTab();
+}
+function updWfList(){
+ const el=$('#wfList');if(!el)return;
+ const q=st.wq.toLowerCase();
+ el.innerHTML=workflows.filter(w=>w.name.toLowerCase().includes(q)).map(w=>`<div class='wf ${w.id===cur.id?'on':''}' data-act='wf' data-id='${w.id}'><b><span class='dot ${w.status}'></span>${esc(w.name)}</b><small>${w.agents.length-1} sub-agent · ${w.msgs.length} tin nhắn</small></div>`).join('')||`<div class='sub' style='padding:10px'>Không có workflow</div>`;
+}
+function updHead(){
+ const w=cur,el=$('#dh');if(!el)return;
+ const done=w.tasks.filter(t=>t.s==='done').length;
+ const ctl=w.status==='running'?`<button class='btn' data-act='pause'>⏸ Tạm dừng</button><button class='btn red' data-act='stop'>■ Dừng</button>`:w.status==='paused'?`<button class='btn' data-act='pause'>▶ Tiếp tục</button><button class='btn red' data-act='stop'>■ Dừng</button>`:`<button class='btn' data-act='run'>▶ Chạy workflow</button>`;
+ el.innerHTML=`<div><h2>${esc(w.name)}</h2><small>${esc(w.desc)}</small></div><span class='badge ${w.status}'>${ST[w.status]}</span><div class='prog'><div style='width:${prog(w)}%'></div></div><span class='pc'>${done}/${w.tasks.length} task</span><div class='sp'></div>${ctl}`;
+}
+function updMsgs(force){
+ const w=cur,el=$('#msgs');if(!el)return;
+ const q=st.ms.toLowerCase();
+ const list=w.msgs.filter(m=>(!st.focus||m.f===st.focus||m.t===st.focus)&&(!q||m.x.toLowerCase().includes(q)));
+ const near=force||el.scrollHeight-el.scrollTop-el.clientHeight<80;
+ const typing=w.status==='running'&&w.active?`<div class='typing'>@${nm(w,w.active.f)} đang gửi tin cho @${nm(w,w.active.t)}...</div>`:'';
+ el.innerHTML=list.length?`<div class='inner'>${list.map(m=>`<div class='m ${m.f===U?'me':''}'>${av(w,m.f)}<div class='mb'><div class='meta'><b style='color:${cl(w,m.f)}'>@${nm(w,m.f)}</b><span>→</span><b style='color:${cl(w,m.t)}'>@${nm(w,m.t)}</b><span>· ${m.time}</span></div><div class='bub'>${esc(m.x)}</div></div></div>`).join('')}${typing}</div>`:`<div class='empty'><div><h3 style='font-size:14px;color:rgb(var(--text-primary))'>Chưa có hội thoại</h3><p style='margin-top:6px'>Tin nhắn giữa Orchestrator và sub-agent sẽ hiển thị ở đây.</p></div></div>`;
+ if(near)el.scrollTop=el.scrollHeight;
+ $('#cf').innerHTML=st.focus?`<span class='chip'>Lọc: ${nm(w,st.focus)}<a data-act='clearf'>✕</a></span>`:'';
+ $('#cc').textContent=list.length+'/'+w.msgs.length+' tin';
+ const ct=$('#ct');
+ if(ct&&ct.dataset.w!=w.id){ct.dataset.w=w.id;ct.innerHTML=w.agents.map(a=>`<option value='${a.id}'>Gửi tới ${a.name}</option>`).join('')}
+}
+function updStar(){
+ const el=$('#istar');if(!el)return;
+ el.innerHTML=star(cur,150);
+ $('#icap').textContent=(cur.agents.length-1)+' sub-agent';
+}
+function updTab(){
+ const w=cur,el=$('#itab');if(!el)return;
+ document.querySelectorAll('.tb').forEach(b=>b.classList.toggle('on',b.dataset.id===st.tab));
+ if(st.tab==='agents'){
+  el.innerHTML=w.agents.map(a=>{const n=w.msgs.filter(m=>m.f===a.id||m.t===a.id).length;const hot=w.active&&(w.active.f===a.id||w.active.t===a.id);
+   return `<div class='ac ${st.focus===a.id?'on':''}' data-act='focus' data-id='${a.id}'>${av(w,a.id)}<div style='min-width:0;flex:1'><p>${a.name}${a.orch?"<span class='tag'>HUB</span>":''}${hot?"<span class='dot running'></span>":''}</p><span class='mono'>${a.model}</span></div><span class='sub'>${n}</span></div>`}).join('');
+ }else if(st.tab==='tasks'){
+  const ic={todo:'○',doing:'◐',done:'●'};
+  el.innerHTML=w.tasks.map((t,i)=>`<div class='tk ${t.s}' data-act='task' data-id='${i}'><b style='color:rgb(var(--${t.s==='done'?'success':t.s==='doing'?'warn':'text-secondary'}))'>${ic[t.s]}</b><span>${esc(t.t)}</span></div>`).join('')+`<div class='sub' style='padding:4px 2px'>Bấm vào task để đổi trạng thái.</div>`;
+ }else{
+  if(document.activeElement&&document.activeElement.dataset.cfg)return;
+  const tg=(k,t,d)=>`<div class='fr'><div>${t}<small>${d}</small></div><label class='tg'><input type='checkbox' data-cfg='${k}' ${w.cfg[k]?'checked':''}><i></i></label></div>`;
+  el.innerHTML=`<div class='f'><label>Tên workflow</label><input data-cfg='name' value='${esc(w.name)}'></div><div class='f'><label>Model của Orchestrator</label><select data-cfg='model'>${MODELS.map(m=>`<option ${m===w.agents[0].model?'selected':''}>${m}</option>`).join('')}</select></div><div class='f'><label>Số vòng tối đa</label><input type='number' data-cfg='rounds' value='${w.cfg.rounds}'></div>${tg('auto','Tự động duyệt','Không hỏi lại khi sub-agent hoàn thành')}${tg('peer','Cho sub-agent nhắn nhau','Tắt: chỉ đi qua Orchestrator (star)')}<button class='btn red' data-act='del'>Xoá workflow</button>`;
+ }
+}
+function refresh(w){
+ if(st.view==='workflows'&&cur===w){updWfList();updHead();updMsgs();updStar();if(st.tab!=='cfg')updTab();renderRail()}
+ else render();
+}
+
+function vAgents(v){
+ v.innerHTML=`<div class='ph'><h1>Agents</h1></div><div class='page'><div class='tools'><input class='in' data-q='aq' placeholder='Tìm agent...' value='${esc(st.aq)}'><select class='in' data-q='am' style='width:150px'><option value=''>Mọi module</option>${Object.entries(MODS).map(([k,l])=>`<option value='${k}' ${st.am===k?'selected':''}>${l}</option>`).join('')}</select></div><div class='panel'><table><thead><tr><th>Agent</th><th>Vai trò</th><th>Module</th><th>Model</th><th>Workflow</th><th>Msg</th></tr></thead><tbody id='atb'></tbody></table></div></div>`;
+ updAgents();
+}
+function updAgents(){
+ const el=$('#atb');if(!el)return;
+ const q=st.aq.toLowerCase();
+ const rows=workflows.flatMap(w=>w.agents.map(a=>({w,a}))).filter(({a})=>(!q||(a.name+a.title).toLowerCase().includes(q))&&(!st.am||a.mod===st.am));
+ el.innerHTML=rows.map(({w,a})=>`<tr class='clk' data-act='open' data-id='${w.id}'><td><div style='display:flex;gap:8px;align-items:center'>${av(w,a.id)}<b>${a.name}</b>${a.orch?"<span class='tag'>HUB</span>":''}</div></td><td class='sub'>${a.title}</td><td>${MODS[a.mod]}</td><td class='mono'>${a.model}</td><td>${esc(w.name)}</td><td>${w.msgs.filter(m=>m.f===a.id||m.t===a.id).length}</td></tr>`).join('')||`<tr><td colspan='6' class='sub'>Không có agent phù hợp.</td></tr>`;
+}
+function vTemplates(v){
+ v.innerHTML=`<div class='ph'><h1>Templates</h1></div><div class='page'><div class='grid'>${TPL.map(t=>`<div class='wc' style='cursor:default'><h4>${t.name}</h4><small>${t.desc}</small><div class='st'>${star({agents:t.agents,active:null},100)}</div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:10px'><span class='sub'>${t.agents.length-1} sub-agent · ${t.tasks.length} task</span><button class='btn' data-act='tpl' data-id='${t.id}'>Dùng template</button></div></div>`).join('')}</div></div>`;
+}
+function vRuns(v){
+ v.innerHTML=`<div class='ph'><h1>Lịch sử chạy</h1><button class='btn sec' data-act='clearruns'>Xoá lịch sử</button></div><div class='page'><div class='panel'><table><thead><tr><th>Workflow</th><th>Bắt đầu</th><th>Thời gian</th><th>Trạng thái</th><th>Tin nhắn</th><th>Token</th></tr></thead><tbody>${runs.map(r=>`<tr class='clk' data-act='open' data-id='${r.wid}'><td>${esc(r.wf)}</td><td class='sub'>${r.start}</td><td>${r.dur}</td><td><span class='badge ${r.status}'>${ST[r.status]}</span></td><td>${r.msgs}</td><td class='mono'>${r.tokens.toLocaleString('vi-VN')}</td></tr>`).join('')||`<tr><td colspan='6' class='sub'>Chưa có lần chạy nào.</td></tr>`}</tbody></table></div></div>`;
+}
+function vSettings(v){
+ const tg=(k,t,d)=>`<div class='fr'><div>${t}<small>${d}</small></div><label class='tg'><input type='checkbox' data-set='${k}' ${S[k]?'checked':''}><i></i></label></div>`;
+ v.innerHTML=`<div class='ph'><h1>Cài đặt</h1></div><div class='page'><div class='form'><div class='f'><label>Model mặc định cho Orchestrator</label><select data-set='model'>${MODELS.map(m=>`<option ${m===S.model?'selected':''}>${m}</option>`).join('')}</select></div><div class='f'><label>Số vòng tối đa mỗi workflow</label><input type='number' data-set='rounds' value='${S.rounds}'></div><div class='f'><label>Timeout mỗi agent (giây)</label><input type='number' data-set='timeout' value='${S.timeout}'></div><div class='f'><label>Lưu lịch sử (ngày)</label><input type='number' data-set='keep' value='${S.keep}'></div>${tg('auto','Tự động duyệt mặc định','Workflow mới không hỏi lại khi sub-agent hoàn thành')}${tg('peer','Cho sub-agent nhắn nhau','Mặc định tắt để giữ đúng mô hình star')}${tg('notify','Thông báo khi hoàn tất','Hiện thông báo khi workflow chạy xong')}</div></div>`;
+}
+
+function startRun(w){
+ clearInterval(w.timer);
+ w.status='running';w.t0=Date.now();w.tasks.forEach(t=>t.s='todo');
+ const subs=w.agents.filter(a=>!a.orch);
+ w.steps=subs.flatMap(a=>[{f:'o',t:a.id,x:'Giao việc cho @'+a.name+': '+a.title+'.'},{f:a.id,t:'o',x:'Đã hoàn thành phần việc được giao.'}]);
+ w.steps.push({f:'o',t:U,x:'Workflow hoàn tất. Tất cả sub-agent đã báo cáo xong.'});
+ w.i=0;w.timer=setInterval(()=>tick(w),1300);tick(w);
+}
+function tick(w){
+ if(w.i>=w.steps.length){finish(w);return}
+ const s=w.steps[w.i++];w.active=s;w.msgs.push({f:s.f,t:s.t,x:s.x,time:now()});
+ const k=Math.floor(w.i/w.steps.length*w.tasks.length);
+ w.tasks.forEach((t,j)=>t.s=j<k?'done':j===k?'doing':'todo');
+ refresh(w);
+}
+function finish(w){
+ clearInterval(w.timer);w.status='done';w.active=null;w.tasks.forEach(t=>t.s='done');
+ const sec=Math.round((Date.now()-w.t0)/1000);
+ runs.unshift({wid:w.id,wf:w.name,start:'Vừa xong',dur:Math.floor(sec/60)+'m '+(sec%60)+'s',status:'done',msgs:w.steps.length,tokens:w.steps.length*820});
+ refresh(w);
+}
+function setCfg(k,v){
+ if(k==='name'){cur.name=v;updWfList();const h=$('#dh h2');if(h)h.textContent=v}
+ else if(k==='model')cur.agents[0].model=v;
+ else if(k==='rounds')cur.cfg.rounds=+v;
+ else cur.cfg[k]=v;
+}
+function openModal(){
+ $('#modal').innerHTML=`<div class='mbox'><h3>Workflow mới</h3><div class='f'><label>Tên workflow</label><input id='mn' placeholder='Tên workflow'></div><div class='f'><label>Template</label><select id='mt'>${TPL.map(t=>`<option value='${t.id}'>${t.name}</option>`).join('')}</select></div><div class='acts'><button class='btn sec' data-act='mclose'>Huỷ</button><button class='btn' data-act='mok'>Tạo</button></div></div>`;
+ $('#modal').classList.add('on');$('#mn').focus();
+}
+function create(tp,name){
+ const w=mk(tp,name);workflows.push(w);cur=w;st.view='workflows';st.focus=null;$('#modal').classList.remove('on');render();
+}
+function send(){
+ const ci=$('#ci'),txt=ci.value.trim();if(!txt)return;
+ const w=cur,to=$('#ct').value;
+ w.msgs.push({f:U,t:to,x:txt,time:now()});w.active={f:U,t:to};ci.value='';
+ updWfList();updMsgs(true);updStar();updTab();
+ setTimeout(()=>{w.msgs.push({f:to,t:U,x:to==='o'?'Đã nhận yêu cầu. Mình sẽ điều phối các sub-agent xử lý.':'Đã nhận. Mình sẽ báo cáo lại cho Orchestrator.',time:now()});w.active=null;refresh(w)},900);
+}
+document.addEventListener('click',e=>{
+ const el=e.target.closest('[data-act]');if(!el)return;
+ const a=el.dataset.act,id=el.dataset.id;
+ if(a==='nav'){st.view=id;render()}
+ else if(a==='wf'){cur=workflows.find(w=>w.id==id);st.focus=null;st.ms='';updWfList();updHead();updMsgs(true);updStar();updTab();const ms=document.querySelector('[data-q=ms]');if(ms)ms.value=''}
+ else if(a==='open'){cur=workflows.find(w=>w.id==id)||cur;st.view='workflows';st.focus=null;render()}
+ else if(a==='new')openModal();
+ else if(a==='mclose')$('#modal').classList.remove('on');
+ else if(a==='mok'){const tp=TPL.find(t=>t.id===$('#mt').value);create(tp,$('#mn').value.trim()||tp.name)}
+ else if(a==='tpl'){const tp=TPL.find(t=>t.id===id);create(tp,tp.name+' (mới)')}
+ else if(a==='run')startRun(cur);
+ else if(a==='pause'){if(cur.status==='running'){clearInterval(cur.timer);cur.status='paused'}else{cur.status='running';cur.timer=setInterval(()=>tick(cur),1300)}refresh(cur)}
+ else if(a==='stop'){clearInterval(cur.timer);cur.status='idle';cur.active=null;refresh(cur)}
+ else if(a==='del'){clearInterval(cur.timer);workflows.splice(workflows.indexOf(cur),1);if(!workflows.length)workflows.push(mk(TPL[0],'Workflow mới'));cur=workflows[0];render()}
+ else if(a==='tab'){st.tab=id;updTab()}
+ else if(a==='focus'){st.focus=st.focus===id?null:id;updMsgs(true);updTab()}
+ else if(a==='clearf'){st.focus=null;updMsgs(true);updTab()}
+ else if(a==='task'){const t=cur.tasks[+id];t.s=t.s==='todo'?'doing':t.s==='doing'?'done':'todo';updTab();updHead()}
+ else if(a==='send')send();
+ else if(a==='clearruns'){runs.length=0;render()}
+});
+document.addEventListener('input',e=>{
+ const t=e.target,d=t.dataset,val=t.type==='checkbox'?t.checked:t.value;
+ if(d.q){st[d.q]=t.value;({wq:updWfList,ms:updMsgs,aq:updAgents,am:updAgents})[d.q]()}
+ else if(d.cfg)setCfg(d.cfg,val);
+ else if(d.set)S[d.set]=t.type==='number'?+val:val;
+});
+document.addEventListener('keydown',e=>{if(e.target.id==='ci'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+render();
+</script>
+</body>
+</html>

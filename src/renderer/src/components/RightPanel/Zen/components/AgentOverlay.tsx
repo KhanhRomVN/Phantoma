@@ -47,7 +47,32 @@ const AgentOverlay: React.FC<AgentOverlayProps> = ({ featureName, title, descrip
       >
         {/* Icon Container */}
         <div className="relative">
-          <div className="flex items-center justify-center w-20 h-20 rounded-md bg-primary/10 border-2 border-dashed border-primary/30 shadow-lg shadow-primary/5">
+          <div className="relative flex items-center justify-center w-20 h-20 rounded-md bg-primary/10 shadow-lg shadow-primary/5">
+            <svg
+              className="absolute inset-0 w-full h-full text-primary/40 pointer-events-none"
+              viewBox="0 0 80 80"
+              fill="none"
+            >
+              <rect
+                x="1"
+                y="1"
+                width="78"
+                height="78"
+                rx="5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeDasharray="6 6"
+                className="agent-overlay-dash"
+              />
+            </svg>
+            <style>{`
+              @keyframes agent-overlay-dash-march {
+                to { stroke-dashoffset: -12; }
+              }
+              .agent-overlay-dash {
+                animation: agent-overlay-dash-march 1s linear infinite;
+              }
+            `}</style>
             {icon || <ShieldAlert className="w-10 h-10 text-primary/90" />}
           </div>
         </div>

@@ -30,6 +30,7 @@ import { ebpfSniffer } from '../services/ebpf-sniffer.service';
 import { wssHub } from '../services/wss-hub.service';
 import { getCaptureMethodsForPlatform, Platform } from '../config/capture-methods';
 import { getCurrentPath, reinit as reinitDb } from '../database/connection';
+import { getAppDataDir } from '../config/server.config';
 
 /**
  * Tìm một cổng TCP trống ngẫu nhiên trong khoảng [minPort, maxPort].
@@ -181,7 +182,7 @@ export function registerEmulateRoutes(
 
   // Runtime Launch Endpoint
   router.post('/runtime/launch', async (req, res) => {
-    const { targetId, mode, proxyUrl, customUrl } = req.body;
+    const { targetId, mode, proxyUrl, customUrl, userDataDir: requestedUserDataDir } = req.body;
 
     try {
       if (mode === 'cdp') {
@@ -220,19 +221,90 @@ export function registerEmulateRoutes(
 
         // 4. Spawn Process
         // Note: --user-data-dir ensures a fresh profile instance so it doesn't attach to existing running Chrome
-        const userDataDir = `/tmp/phantoma-cdp-${targetId}`;
+        // ASSUMED: path dạng "<base>/Default" hoặc "<base>/Profile N" là profile con của Chrome user-data-dir
+        let userDataDir = `${getAppDataDir()}/cdp-profiles/${targetId}/default`;
+        fs.mkdirSync(userDataDir, { recursive: true });
+        let profileDirectory: string | undefined;
+        if (typeof requestedUserDataDir === 'string' && requestedUserDataDir.trim()) {
+          const cleaned = requestedUserDataDir.trim().replace(/[\\/]+$/, '');
+          const sepIdx = Math.max(cleaned.lastIndexOf('/'), cleaned.lastIndexOf('\\'));
+          const baseName = cleaned.slice(sepIdx + 1);
+          if (sepIdx > 0 && /^(Default|Profile \d+)$/.test(baseName)) {
+            userDataDir = cleaned.slice(0, sepIdx);
+            profileDirectory = baseName;
+          } else {
+            userDataDir = cleaned;
+          }
+          if (!fs.existsSync(userDataDir)) {
+            fs.mkdirSync(userDataDir, { recursive: true });
+          }
+        }
+
+        if (profileDirectory) {
+          // ASSUMED: Chrome bỏ qua --remote-debugging-port với user-data-dir mặc định và Chrome đang chạy giữ lock profile → clone profile sang thư mục riêng (bỏ qua cache)
+          const sourceRoot = userDataDir;
+          const cloneRoot = `${getAppDataDir()}/cdp-profiles/${targetId}/clone`;
+          const alreadyCloned = fs.existsSync(`${cloneRoot}/${profileDirectory}`);
+          const skipNames = new Set([
+            'Cache',
+            'Code Cache',
+            'GPUCache',
+            'GrShaderCache',
+            'ShaderCache',
+            'DawnCache',
+            'Crashpad',
+            'Service Worker',
+            'lockfile',
+            'SingletonLock',
+            'SingletonSocket',
+            'SingletonCookie',
+          ]);
+          const copyFilter = (src: string) => !skipNames.has(src.slice(src.lastIndexOf('/') + 1));
+
+          if (!alreadyCloned) {
+            await fs.promises.mkdir(cloneRoot, { recursive: true });
+            if (fs.existsSync(`${sourceRoot}/Local State`)) {
+              await fs.promises.copyFile(`${sourceRoot}/Local State`, `${cloneRoot}/Local State`);
+            }
+            console.log(`[DEBUG][CDP Launcher] cloning profile ${sourceRoot}/${profileDirectory} -> ${cloneRoot}/${profileDirectory}`);
+            await fs.promises.cp(`${sourceRoot}/${profileDirectory}`, `${cloneRoot}/${profileDirectory}`, {
+              recursive: true,
+              force: true,
+              filter: copyFilter,
+            });
+            console.log('[DEBUG][CDP Launcher] clone done');
+          } else {
+            console.log(`[DEBUG][CDP Launcher] reuse persistent clone ${cloneRoot}`);
+          }
+          userDataDir = cloneRoot;
+        }
 
         const args = [
           `--remote-debugging-port=${debugPort}`,
           `--user-data-dir=${userDataDir}`,
+          ...(profileDirectory ? [`--profile-directory=${profileDirectory}`] : []),
           '--no-first-run',
           '--no-default-browser-check',
+          // ASSUMED: profile riêng của target dùng mock keyring để key mã hóa Cookies ổn định giữa các lần mở (giống temp/Zentri launch.ts); profile clone từ Chrome thật giữ keyring gốc để giải mã được cookie cũ
+          ...(profileDirectory ? [] : ['--password-store=basic', '--use-mock-keychain']),
           urlToOpen,
         ];
+
+        console.log(`[DEBUG][CDP Launcher] requested userDataDir=${JSON.stringify(requestedUserDataDir)}`);
+        console.log(`[DEBUG][CDP Launcher] resolved userDataDir=${userDataDir} exists=${fs.existsSync(userDataDir)} profileDirectory=${profileDirectory ?? '(none)'}`);
+        console.log(`[DEBUG][CDP Launcher] spawn: ${chromePath} ${JSON.stringify(args)}`);
 
         const child = spawn(chromePath, args, {
           detached: true, // Detach from parent so it keeps running even if server restarts
           stdio: 'ignore',
+        });
+
+        console.log(`[DEBUG][CDP Launcher] spawned pid=${child.pid} port=${debugPort}`);
+        child.on('error', (e) => console.error('[DEBUG][CDP Launcher] child error:', e));
+        let childExited = false;
+        child.on('exit', (code, signal) => {
+          childExited = true;
+          console.log(`[DEBUG][CDP Launcher] child exit: code=${code} signal=${signal}`);
         });
 
         child.unref(); // Allow Node.js to exit independently
@@ -242,8 +314,23 @@ export function registerEmulateRoutes(
           processManager.register(targetId, child.pid, debugPort);
         }
 
-        // Wait slightly to ensure browser starts up before responding
-        await new Promise((r) => setTimeout(r, 1000));
+        // Chờ debug port sẵn sàng (Chrome đã mở cửa sổ) rồi mới respond
+        const readyDeadline = Date.now() + 15000;
+        while (!childExited && Date.now() < readyDeadline) {
+          try {
+            const probe = await fetch(`http://127.0.0.1:${debugPort}/json/version`);
+            if (probe.ok) break;
+          } catch {
+            // port chưa mở, thử lại
+          }
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+
+        if (childExited) {
+          throw new Error(
+            'Chrome thoát ngay sau khi khởi động (profile đang bị Chrome khác dùng hoặc bị chặn remote debugging).',
+          );
+        }
 
         return res.json({
           success: true,

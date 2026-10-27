@@ -32,7 +32,7 @@ import useHealthCheck from './hooks/useHealthCheck';
 import { emulateApi } from './services/emulate-api.service';
 import { runtimeApi } from './services/runtime-api.service';
 import { installRuntimeWsBridge, wsBus } from './services/runtime-ws-bridge';
-import { EmulateController } from './controller/EmulateController';
+import { EmulateController } from './EmulateController';
 
 // ── UI ──
 import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
@@ -94,7 +94,9 @@ export default React.memo(function Emulate({
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addModalPlatform, setAddModalPlatform] = useState<'web' | 'pc' | 'android' | 'cli'>('web');
+  const [addModalPlatform, setAddModalPlatform] = useState<'web' | 'pc' | 'android' | 'cli' | null>(
+    null,
+  );
   const [editingApp, setEditingApp] = useState<{
     id: string;
     name: string;
@@ -576,12 +578,14 @@ export default React.memo(function Emulate({
       useEnvInject?: boolean,
       _deviceSerial?: string,
       useSandbox?: boolean,
+      userDataDir?: string,
     ) => {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       try {
         const target = targetTabs.find((t) => t.id === appId);
         const launchTarget = target?.executablePath || appId;
+        console.log(`[DEBUG][Emulate] launchApp request: appId=${appId} mode=${mode} customUrl=${customUrl} userDataDir=${JSON.stringify(userDataDir)}`);
 
         const result = await runtimeApi.launchApp(
           launchTarget,
@@ -591,7 +595,9 @@ export default React.memo(function Emulate({
           useEnvInject,
           appId, // Pass targetId (appId) to track process per target
           useSandbox,
+          userDataDir,
         );
+        console.log('[DEBUG][Emulate] launchApp result:', JSON.stringify(result));
         if (result.success && result.data) {
           const newTab: TargetTab = {
             id: appId,
@@ -767,7 +773,7 @@ export default React.memo(function Emulate({
     [targetTabs, saveTarget],
   );
 
-  const handleOpenAddModal = useCallback((platform: 'web' | 'pc' | 'android' | 'cli') => {
+  const handleOpenAddModal = useCallback((platform: 'web' | 'pc' | 'android' | 'cli' | null) => {
     setAddModalPlatform(platform);
     setIsAddModalOpen(true);
   }, []);
@@ -854,7 +860,7 @@ export default React.memo(function Emulate({
       />
 
       {/* Modals */}
-      {addModalPlatform && (
+      {isAddModalOpen && (
         <TargetModal
           isOpen={isAddModalOpen}
           platform={addModalPlatform}

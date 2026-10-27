@@ -6,7 +6,7 @@
  * Bao gồm cấu hình permission và timeout cho từng tool.
  *
  * Main exports:
- * - EMULATE_TAG_REGISTRY : Registry chứa định nghĩa 24 emulate tools
+ * - EMULATE_TAG_REGISTRY : Registry chứa định nghĩa 18 emulate tools
  * ------------------------------------------------------------------
  */
 
@@ -141,45 +141,4 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     timeout: 5000,
   },
 
-  list_report_files: {
-    id: 'list_report_files',
-    title: 'LIST REPORT FILES',
-    category: 'tool',
-    timeout: 5000,
-  },
-
-  create_report_file: {
-    id: 'create_report_file',
-    title: 'CREATE REPORT FILE',
-    category: 'tool',
-    timeout: 5000,
-  },
-
-  read_report_file: {
-    id: 'read_report_file',
-    title: 'READ REPORT FILE',
-    category: 'tool',
-    timeout: 5000,
-  },
-
-  update_report_file: {
-    id: 'update_report_file',
-    title: 'UPDATE REPORT FILE',
-    category: 'tool',
-    timeout: 5000,
-  },
-
-  delete_report_file: {
-    id: 'delete_report_file',
-    title: 'DELETE REPORT FILE',
-    category: 'tool',
-    timeout: 5000,
-  },
-
-  execute_command: {
-    id: 'execute_command',
-    title: 'EXECUTE COMMAND',
-    category: 'tool',
-    timeout: 30000,
-  },
 };

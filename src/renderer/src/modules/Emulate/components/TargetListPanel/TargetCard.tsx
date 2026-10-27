@@ -3,10 +3,10 @@
  * TargetCard
  * ------------------------------------------------------------------
  * Card hiển thị một target trong sidebar — favicon/icon, title, URL,
- * trạng thái running, timer, https count và menu context (start/edit/delete).
+ * trạng thái running, timer và menu context (start/edit/delete).
  *
  * Các chức năng chính:
- * - Hiển thị target theo platform (web/pc/android/cli)
+ * - Phân biệt platform (web/pc/android/cli) bằng thanh màu, ô icon và chip nhãn
  * - Hiển thị trạng thái running với timer real-time
  * - Menu context với actions: start, stop, edit, delete
  * - Hỗ trợ chế độ collapsed (chỉ icon)
@@ -36,6 +36,14 @@ import { useTimerStore } from '../../stores/timerStore';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
+
+// ─── Constants ──────────────────────────────────────────────────────────
+export const PLATFORM_STYLES: Record<AppPlatform, { text: string; chip: string }> = {
+  web: { text: 'text-sky-400', chip: 'bg-sky-500/15 text-sky-400' },
+  pc: { text: 'text-violet-400', chip: 'bg-violet-500/15 text-violet-400' },
+  android: { text: 'text-emerald-400', chip: 'bg-emerald-500/15 text-emerald-400' },
+  cli: { text: 'text-amber-400', chip: 'bg-amber-500/15 text-amber-400' },
+};
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface TargetCardProps {
@@ -88,10 +96,14 @@ const TargetCard = memo(function TargetCard({
 
   const platformCfg = PLATFORMS[platform];
   const PlatformIcon = platformCfg.icon;
-  const platformColor = platformCfg.color;
+  const style = PLATFORM_STYLES[platform];
 
-  const httpsCount = tab.httpsCount ?? 0;
-  const dataUsed = tab.dataUsed ?? '0 B';
+  const subtitle =
+    platform === 'web'
+      ? tab.url
+      : platform === 'pc' || platform === 'cli'
+        ? tab.executablePath
+        : tab.emulatorSerial;
 
   if (collapsed) {
     return (
@@ -119,7 +131,7 @@ const TargetCard = memo(function TargetCard({
             }}
           />
         ) : (
-          <PlatformIcon className="w-5 h-5 text-text-secondary group-hover:text-text-primary" />
+          <PlatformIcon className={cn('w-5 h-5', style.text)} />
         )}
         {isRunning && (
           <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-success border border-background" />
@@ -129,6 +141,7 @@ const TargetCard = memo(function TargetCard({
   }
 
   const isOpen = openMenuId === tab.id;
+  const isSelected = activeTargetId === tab.id;
 
   return (
     <Dropdown
@@ -153,22 +166,21 @@ const TargetCard = memo(function TargetCard({
             onOpenMenuChange(tab.id);
           }}
           className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm group relative',
+            'relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group',
             isCardDisabled
               ? 'opacity-50 cursor-not-allowed'
-              : 'cursor-pointer hover:bg-dropdown-item-hover',
-            activeTargetId === tab.id
-              ? 'bg-dropdown-item-hover text-text-primary'
-              : 'text-text-secondary hover:text-text-primary',
+              : isSelected
+                ? 'bg-card-background cursor-pointer'
+                : 'hover:bg-card-background cursor-pointer',
           )}
         >
-          {/* Badge icon */}
-          <div className="relative shrink-0">
+          {/* Icon tile */}
+          <div className="relative shrink-0 w-9 h-9 flex items-center justify-center">
             {(platform === 'web' || platform === 'cli') && faviconSrc ? (
               <img
                 src={faviconSrc}
                 alt={tab.title}
-                className="w-12 h-12 rounded-lg p-1"
+                className="w-7 h-7 rounded object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
@@ -177,25 +189,20 @@ const TargetCard = memo(function TargetCard({
               <img
                 src={`media://${tab.icon}`}
                 alt={tab.title}
-                className="w-12 h-12 rounded-lg p-1 object-contain"
+                className="w-7 h-7 rounded object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
             ) : (
-              <span className={cn('p-1', `text-${platformColor}-400`)}>
-                <PlatformIcon className="w-8 h-8" />
-              </span>
+              <PlatformIcon className={cn('w-4 h-4', style.text)} />
             )}
-            <span className="absolute bottom-0 right-0 w-5 h-5 p-1 rounded-md bg-background border border-border flex items-center justify-center text-text-secondary pointer-events-none">
-              <PlatformIcon className="w-2.5 h-2.5" />
-            </span>
           </div>
 
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium truncate">{tab.title}</span>
+              <span className="text-sm font-medium text-text-primary truncate">{tab.title}</span>
               {isRunning && (
                 <span className="ml-auto flex items-center gap-1 text-[11px] font-mono text-primary shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -203,20 +210,18 @@ const TargetCard = memo(function TargetCard({
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-text-secondary truncate mt-0">
-              {platform === 'web' && tab.url
-                ? tab.url
-                : (platform === 'pc' || platform === 'cli') && tab.executablePath
-                  ? tab.executablePath
-                  : platformCfg.label}
-            </div>
-            <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-text-secondary">
-              <span className="px-1.5 py-0 rounded-md bg-text-secondary/10 text-text-secondary">
-                {httpsCount} https
+            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+              <span
+                className={cn(
+                  'shrink-0 px-1 rounded text-[9px] font-semibold uppercase tracking-wide',
+                  style.chip,
+                )}
+              >
+                {platformCfg.label}
               </span>
-              <span className="px-1.5 py-0 rounded-md bg-text-secondary/10 text-text-secondary">
-                {dataUsed}
-              </span>
+              {subtitle && (
+                <span className="text-[11px] text-text-secondary truncate">{subtitle}</span>
+              )}
             </div>
           </div>
         </div>
