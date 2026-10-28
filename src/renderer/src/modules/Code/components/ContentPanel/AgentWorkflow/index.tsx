@@ -34,6 +34,11 @@ const AGENT_TYPE_ICONS: Record<AgentType, LucideIcon> = {
   executor: Hammer,
   planner: ClipboardList,
   reviewer: ScanSearch,
+  recon_planner: ClipboardList,
+  recon_web: ScanSearch,
+  recon_local: Hammer,
+  recon_verifier: AlertTriangle,
+  recon_synthesizer: Cpu,
 };
 
 function AgentAvatar({

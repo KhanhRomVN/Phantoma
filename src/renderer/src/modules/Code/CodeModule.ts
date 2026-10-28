@@ -1,6 +1,5 @@
 import type { ZenModule } from '@renderer/components/RightPanel/Zen/feature/Chat/services/ModuleRegistry';
 import { CODE_TAG_REGISTRY } from './constants/tag-registry';
-import { getCommitMessagePrompt } from './prompts/code/commit-message';
 import { CAPABILITIES as CODE_CAPABILITIES } from './prompts/code/config';
 // import { CAPABILITIES as DESIGN_CAPABILITIES } from './prompts/design/config';
 import { CAPABILITIES as ORCHESTRATOR_CAPABILITIES } from './prompts/orchestrator/config';
@@ -81,9 +80,7 @@ setRunCommandValidator((command) => SecurityValidator.validateCommand(command));
 export const codeModule: ZenModule = {
   tagRegistry: CODE_TAG_REGISTRY,
   id: 'code',
-  services: {
-    getCommitMessagePrompt,
-  },
+  services: {},
   executors: {
     read_file: async (a, c, o) =>
       (await executeReadFile(a.params, bypass(o), c.folderPath))?.output || null,

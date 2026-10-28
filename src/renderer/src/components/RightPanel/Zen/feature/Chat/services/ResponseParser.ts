@@ -218,6 +218,23 @@ const parseAIResponseJson = (content: string, result: ParsedResponse): ParsedRes
     }
 
     if (typeof parsed?.type === 'string' && typeof parsed?.tool === 'undefined') {
+      const uiType = parsed.type as string;
+
+      // FIX: Check if 'type' is actually a valid tool name (e.g. replace_in_file sent by some providers)
+      // If so, treat it as a tool call instead of falling through to unknown UI type handling
+      if (getAllToolTypes().includes(uiType)) {
+        const action = jsonToolToAction(uiType, parsed.params || {}, rawJson);
+        if (action) {
+          result.contentBlocks.push({
+            type: 'tool',
+            action,
+            actionIndex: result.actions.length,
+          });
+          result.actions.push(action);
+          continue;
+        }
+      }
+
       if (parsed.type === 'markdown' && typeof parsed.content === 'string') {
         pushMarkdown(parsed.content);
       } else if (parsed.type === 'code' && typeof parsed.content === 'string') {
@@ -447,6 +464,7 @@ export const parseAIResponse = (
     'markdown', // Special display tag
     'code', // Special display tag
     'question', // Special display tag
+    'conversation_title', // Special display tag
   ];
 
   // Fix missing opening bracket for the first tool call due to prefix/prefill stripping.
@@ -607,10 +625,44 @@ export const parseAIResponse = (
         });
 
         if (toolName === 'markdown') {
-          // Explicit <markdown> tag - use MarkdownParser
-          const content = parseMarkdown(innerContent || '');
-          if (content) {
-            pushTextOrCodeBlocks('markdown', content);
+          const raw = innerContent || '';
+          const questionMatch =
+            /<question(?:\s+[^>]*)?>([\s\S]*?)<\/question>/i.exec(raw);
+          if (questionMatch) {
+            const preText = raw.substring(0, questionMatch.index);
+            const questionRaw = questionMatch[0];
+            const postText = raw.substring(questionMatch.index + questionRaw.length);
+
+            if (preText.trim().length > 0) {
+              pushTextOrCodeBlocks('markdown', parseMarkdown(preText));
+            }
+
+            const parsedQ = parseQuestion(questionMatch[1]);
+            if (
+              parsedQ.options.length > 0 ||
+              (parsedQ.questions && parsedQ.questions.length > 0)
+            ) {
+              const qBlock: ContentBlock = {
+                type: 'question',
+                options: parsedQ.options,
+                title: parsedQ.title,
+                optional: parsedQ.optional,
+                ...(parsedQ.questions && parsedQ.questions.length > 0
+                  ? { questions: parsedQ.questions }
+                  : {}),
+              };
+              result.contentBlocks.push(qBlock);
+              result.question = qBlock;
+            }
+
+            if (postText.trim().length > 0) {
+              pushTextOrCodeBlocks('markdown', parseMarkdown(postText));
+            }
+          } else {
+            const content = parseMarkdown(raw);
+            if (content && content.trim().length > 0) {
+              pushTextOrCodeBlocks('markdown', content);
+            }
           }
         } else if (toolName === 'question') {
           // Explicit <question> tag - delegate sang QuestionParser.

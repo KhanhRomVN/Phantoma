@@ -1,4 +1,13 @@
-const VALID_AGENT_TYPES = ['executor', 'planner', 'reviewer'];
+const VALID_AGENT_TYPES = [
+  'executor',
+  'planner',
+  'reviewer',
+  'recon_planner',
+  'recon_web',
+  'recon_local',
+  'recon_verifier',
+  'recon_synthesizer',
+];
 const VALID_AGENT_ID = /^[a-z][a-z0-9_]*$/;
 
 const readTag = (raw: string, tag: string): string | undefined => {
@@ -49,7 +58,9 @@ export function parseCreateAgent(raw: string): Record<string, any> {
   }
 
   if (!VALID_AGENT_TYPES.includes(agent_type)) {
-    return { _validationError: 'agent_type must be executor, planner, or reviewer' };
+    return {
+      _validationError: `agent_type must be one of: ${VALID_AGENT_TYPES.join(', ')}`,
+    };
   }
 
   return { agent_id, agent_type, agent_name };

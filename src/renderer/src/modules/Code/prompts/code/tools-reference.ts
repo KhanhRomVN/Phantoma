@@ -24,9 +24,6 @@ Use XML tags for all tool calls:
 <delete_file><file_path>path/to/file</file_path></delete_file>
 <run_command><command>your command here</command></run_command>
 <run_command><command>your command here</command><folder_path>path/to/folder</folder_path></run_command>
-<git_status></git_status>
-<git_diff></git_diff>
-<commit_message></commit_message>
 <read_skill>skill_id</read_skill>
 <read_memory />
 <update_memory><old_content>exact original</old_content><new_content>replacement</new_content></update_memory>
@@ -256,31 +253,17 @@ Use JSON objects inside fenced code blocks for ALL output — both tool calls AN
 \`\`\`json
 {"tool":"run_command","params":{"command":"your command here"}}
 \`\`\`
-\`\`\`json
-{"tool":"run_command","params":{"command":"npm test","folder_path":"src"}}
-\`\`\`
-\`\`\`json
-{"tool":"git_status","params":{}}
-\`\`\`
-\`\`\`json
-{"tool":"git_diff","params":{}}
-\`\`\`
-\`\`\`json
-{"tool":"commit_message","params":{}}
-\`\`\`
-\`\`\`json
-{"tool":"read_skill","params":{"skill_id":"skill_id"}}
-\`\`\`
-\`\`\`json
-{"tool":"read_memory","params":{}}
-\`\`\`
-\`\`\`json
-{"tool":"update_memory","params":{"old_content":"exact original","new_content":"replacement"}}
-\`\`\`
-\`\`\`json
-{"tool":"conversation_title","params":{"title":"Short title here"}}
-\`\`\`
 
+{"tool":"run_command","params":{"command":"npm test","folder_path":"src"}}
+
+
+{"tool":"read_skill","params":{"skill_id":"skill_id"}}
+
+
+{"tool":"update_memory","params":{"old_content":"exact original","new_content":"replacement"}}
+
+
+{"tool":"conversation_title","params":{"title":"Short title here"}}
 **Shape 2 — UI/render object (has a \`"type"\` key, NO \`"tool"\` key):**
 These replace the XML UI tags \`<markdown>\`, \`<code>\`, and \`<question>\` from XML mode. They are NOT executable tools — the renderer consumes them.
 

@@ -17,6 +17,7 @@
  */
 
 import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
+import type { WorkflowAgentId } from '../feature/Chat/types/workflow-agents';
 
 // Lazy accessor — defer evaluation tới lúc call thật sự.
 // Trong dev/browser mode (Vite), window.api chưa được inject bởi preload →
@@ -99,10 +100,10 @@ export interface ConversationData {
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';
-    workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+    workflowAgentId?: WorkflowAgentId | null;
   };
   /** Workflow agent ID nếu conversation này là một workflow agent */
-  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+  workflowAgentId?: WorkflowAgentId | null;
   createdAt: number;
   lastModified: number;
 }

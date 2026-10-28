@@ -153,4 +153,76 @@ export const RECON_TAG_REGISTRY: Record<string, TagDefinition> = {
     category: 'tool',
     timeout: 10000,
   },
+
+  // ── Multi-agent ──
+  conversation_title: {
+    id: 'conversation_title',
+    title: 'CONVERSATION TITLE',
+    category: 'tool',
+    timeout: 5000,
+  },
+  list_agents: {
+    id: 'list_agents',
+    title: 'LIST AGENTS',
+    category: 'tool',
+    timeout: 10000,
+  },
+  create_agent: {
+    id: 'create_agent',
+    title: 'CREATE AGENT',
+    category: 'tool',
+    timeout: 30000,
+  },
+  delete_agent: {
+    id: 'delete_agent',
+    title: 'DELETE AGENT',
+    category: 'tool',
+    timeout: 15000,
+  },
+  send_message: {
+    id: 'send_message',
+    title: 'SEND MESSAGE',
+    category: 'tool',
+    timeout: 15000,
+  },
+
+  // ── Recon workspace file tools ──
+  read_file: {
+    id: 'read_file',
+    title: 'READ FILE',
+    category: 'tool',
+    timeout: 15000,
+  },
+  create_file: {
+    id: 'create_file',
+    title: 'CREATE FILE',
+    category: 'tool',
+    timeout: 15000,
+  },
+  update_file: {
+    id: 'update_file',
+    title: 'UPDATE FILE',
+    category: 'tool',
+    timeout: 15000,
+  },
+  list_files: {
+    id: 'list_files',
+    title: 'LIST FILES',
+    category: 'tool',
+    timeout: 15000,
+  },
+  delete_file: {
+    id: 'delete_file',
+    title: 'DELETE FILE',
+    category: 'tool',
+    timeout: 15000,
+  },
+
+  // ── Terminal (shared run_command executor) ──
+  run_command: {
+    id: 'run_command',
+    title: 'RUN COMMAND',
+    category: 'tool',
+    timeout: 300000,
+  },
 };

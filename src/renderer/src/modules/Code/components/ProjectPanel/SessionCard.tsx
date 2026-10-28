@@ -447,18 +447,16 @@ function ProcessList({
   );
 }
 
-/** Task row inside a session card (with status picker button) */
-function TaskRow({
+/** Task icon button shown in the session title row — opens the status picker */
+function TaskIconButton({
   sessionId,
-  task: t,
+  task,
   onOpenTaskMenu,
 }: {
   sessionId: string;
   task: StoredTask;
   onOpenTaskMenu?: (sessionId: string, pos: MenuPosition) => void;
 }) {
-  const label = TASK_STATUSES.find(([k]) => k === t.status)?.[1] ?? t.status;
-
   const openMenu = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     const r = e.currentTarget.getBoundingClientRect();
@@ -466,25 +464,13 @@ function TaskRow({
   };
 
   return (
-    <div className="flex items-center gap-2 min-w-0 px-[7px] py-[5px] rounded-md bg-background text-[11.5px]">
-      <TaskIcon status={t.status} />
-      <span
-        className={cn(
-          'flex-1 min-w-0 truncate',
-          t.status === 'done' && 'text-text-secondary/50 line-through',
-        )}
-        title={t.title}
-      >
-        {t.title}
-      </span>
-      <button
-        onClick={openMenu}
-        className="flex items-center gap-[3px] shrink-0 font-mono text-[10px] text-text-secondary px-[5px] py-px rounded-[5px] hover:bg-dropdown-item-hover hover:text-text-primary cursor-pointer"
-      >
-        {label}
-        <ChevronDown className="w-[11px] h-[11px]" />
-      </button>
-    </div>
+    <button
+      onClick={openMenu}
+      title={task.title}
+      className="flex items-center shrink-0 cursor-pointer rounded hover:bg-dropdown-item-hover"
+    >
+      <TaskIcon status={task.status} />
+    </button>
   );
 }
 
@@ -562,14 +548,17 @@ export const SessionCard = memo(function SessionCard({
     >
       {/* Title row */}
       <div className="flex items-center gap-[6px] text-[12.5px] font-semibold leading-none h-[16px]">
-        <StatusDot status={st} size="small" />
+        {task && (
+          <TaskIconButton
+            sessionId={session.id}
+            task={task}
+            onOpenTaskMenu={onOpenTaskMenu}
+          />
+        )}
         <span className="flex-1 min-w-0 truncate text-text-primary" title={displayName}>
           {displayName}
         </span>
       </div>
-
-      {/* Task - Only if exists */}
-      {task && <TaskRow sessionId={session.id} task={task} onOpenTaskMenu={onOpenTaskMenu} />}
 
       {/* Agents - Only if exists */}
       {(session.agents.length > 0 || zenChatCount > 0) && (

@@ -20,6 +20,7 @@ import MessageInput from '../../../components/MessageInput';
 
 // ── Types ──
 import { type FileMutationTool } from '../constants/tag-registry';
+import type { WorkflowAgentId } from '../types/workflow-agents';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ChatFooterProps {
@@ -86,7 +87,7 @@ interface ChatFooterProps {
     },
   ) => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
-  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+  workflowAgentId?: WorkflowAgentId | null;
 }
 
 const ChatFooter: React.FC<ChatFooterProps> = ({

@@ -29,6 +29,7 @@ import { getModuleIdFromContext } from '../../services/ConversationService';
 // ── Utils ──
 
 import { detectDangerousCommand } from '../../utils/dangerousCommandDetector';
+import { buildUnparsedSegmentsWarning } from '../../utils/responseValidation';
 
 // ── Constants ──
 import {
@@ -538,6 +539,12 @@ export const useToolExecution = ({
                 parsed.question?.type === 'question' ? (parsed.question as any).title : 'Question';
               finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${selectedOption}\n\n${finalContent}`;
             }
+
+            const unparsedWarning = buildUnparsedSegmentsWarning(parsed);
+            if (unparsedWarning) {
+              finalContent = `${finalContent}\n\n${unparsedWarning}`;
+            }
+
             handleSendMessageRef.current(
               finalContent,
               undefined,
@@ -633,6 +640,11 @@ export const useToolExecution = ({
                     ? (parsed.question as any).title
                     : 'Question';
                 finalContent = `[question: "${questionTitle || 'Question'}"] Answer: ${selectedOption}\n\n${finalContent}`;
+              }
+
+              const unparsedWarning = buildUnparsedSegmentsWarning(parsed);
+              if (unparsedWarning) {
+                finalContent = `${finalContent}\n\n${unparsedWarning}`;
               }
 
               handleSendMessageRef.current(

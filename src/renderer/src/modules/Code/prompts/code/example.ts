@@ -109,24 +109,6 @@ This section shows how each tool is used correctly, and how several tools are co
 <run_command><command>printf "Enter migration name: " >&2; read name; echo "Creating $name"</command></run_command>
 \`\`\`
 
-### Example: git_status
-**Description**: Checking working-tree state before starting a task, to know which files are already modified/staged.
-\`\`\`xml
-<git_status></git_status>
-\`\`\`
-
-### Example: git_diff
-**Description**: Reviewing the actual diff of pending changes before writing a commit message or reporting completion.
-\`\`\`xml
-<git_diff></git_diff>
-\`\`\`
-
-### Example: commit_message
-**Description**: Generating a commit message once a logical unit of work is complete and git_diff has been reviewed.
-\`\`\`xml
-<commit_message></commit_message>
-\`\`\`
-
 ### Example: read_skill
 **Description**: Reading a skill's full instructions by its id before following its guidance.
 \`\`\`xml
@@ -430,17 +412,6 @@ const EXAMPLE_CORE_TAIL = `
 \`\`\`
 
 
-### Batch 11: Git review-and-commit workflow
-**Description**: After a logical unit of work is complete, status and diff are checked before generating a commit message — never generating a message from assumption alone.
-\`\`\`xml
-<!-- Turn 1: check what changed -->
-<git_status></git_status>
-<git_diff></git_diff>
-
-<!-- Turn 2 (after results returned): generate the commit message from the real diff -->
-<commit_message></commit_message>
-\`\`\`
-
 ### Batch 12: History-check before reverting
 **Description**: Instead of guessing which past version was "good", view_replace_history is checked first so the revert target is chosen deliberately.
 \`\`\`xml
@@ -625,24 +596,6 @@ This section shows how each tool is used correctly in JSON format, and how tools
 **Description**: stdin is a pipe, not a TTY, so "read -p" alone would silently swallow the prompt text. Print the prompt to stderr first.
 \`\`\`json
 {"tool":"run_command","params":{"command":"printf \\"Enter migration name: \\" >&2; read name; echo \\"Creating $name\\""}}
-\`\`\`
-
-### Example: git_status
-**Description**: Checking working-tree state before starting a task, to know which files are already modified/staged.
-\`\`\`json
-{"tool":"git_status","params":{}}
-\`\`\`
-
-### Example: git_diff
-**Description**: Reviewing the actual diff of pending changes before writing a commit message or reporting completion.
-\`\`\`json
-{"tool":"git_diff","params":{}}
-\`\`\`
-
-### Example: commit_message
-**Description**: Generating a commit message once a logical unit of work is complete and git_diff has been reviewed.
-\`\`\`json
-{"tool":"commit_message","params":{}}
 \`\`\`
 
 ### Example: read_skill
@@ -905,21 +858,6 @@ Turn 3 — stop guessing, re-read the file to get its true current content:
 \`\`\`
 STOP. Only after seeing the fresh content does the next replace_in_file get written.
 
-
-### Batch 11: Git review-and-commit workflow
-**Description**: After a logical unit of work is complete, status and diff are checked before generating a commit message — never generating a message from assumption alone.
-Turn 1 — check what changed:
-\`\`\`json
-{"tool":"git_status","params":{}}
-\`\`\`
-\`\`\`json
-{"tool":"git_diff","params":{}}
-\`\`\`
-
-Turn 2 — after results returned, generate the commit message from the real diff:
-\`\`\`json
-{"tool":"commit_message","params":{}}
-\`\`\`
 
 ### Batch 12: History-check before reverting
 **Description**: Instead of guessing which past version was "good", view_replace_history is checked first so the revert target is chosen deliberately.

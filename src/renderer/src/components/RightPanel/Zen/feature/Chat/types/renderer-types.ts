@@ -17,7 +17,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '../constants/constants';
+import { TOOL_ACTION_TYPES } from '../constants/tag-registry';
 
 // ── Services ──
 import { ToolAction } from '../services/ResponseParser';

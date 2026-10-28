@@ -3,7 +3,16 @@ export type AgentId = string; // Dynamic agent IDs (snake_case from agent_name)
 export const USER_ID = 'user';
 export type ParticipantId = AgentId | typeof USER_ID;
 
-export type AgentType = 'orchestrator' | 'executor' | 'planner' | 'reviewer';
+export type AgentType =
+  | 'orchestrator'
+  | 'executor'
+  | 'planner'
+  | 'reviewer'
+  | 'recon_planner'
+  | 'recon_web'
+  | 'recon_local'
+  | 'recon_verifier'
+  | 'recon_synthesizer';
 
 export interface WorkflowAgent {
   id: AgentId;
@@ -54,4 +63,9 @@ export const AGENT_TYPE_COLORS: Record<AgentType, string> = {
   executor: '#60A5FA',     // blue
   planner: '#34D399',      // green
   reviewer: '#F59E0B',     // amber
+  recon_planner: '#22D3EE',     // cyan
+  recon_web: '#38BDF8',         // sky
+  recon_local: '#A3E635',       // lime
+  recon_verifier: '#FB923C',    // orange
+  recon_synthesizer: '#F472B6', // pink
 };

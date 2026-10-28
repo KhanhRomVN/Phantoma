@@ -1,5 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 
+import type { WorkflowAgentId } from '../feature/Chat/types/workflow-agents';
+
 const AGENT_MESSAGE_REGEX = /<agent-message from="([^"]+)">\n([\s\S]*?)\n<\/agent-message>/;
 
 export const wrapAgentMessage = (from: string, content: string): string =>
@@ -12,7 +14,7 @@ export const parseAgentMessage = (content: string): { from: string; body: string
 
 export interface WorkflowAgentSync {
   agentId: string;
-  agentType?: 'orchestrator' | 'planner' | 'executor' | 'reviewer';
+  agentType?: WorkflowAgentId;
   model: any;
   account: any;
   /** accountId -> các loại agent (orchestrator/planner/...) đang dùng account đó. */

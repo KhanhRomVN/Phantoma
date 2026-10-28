@@ -18,6 +18,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAgentFeature } from '../../context/FeatureContext';
 import { useProject } from '../../context/ProjectContext';
 import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
+import type { WorkflowAgentId } from './types/workflow-agents';
 // Core chat hooks
 import { useChatLLM } from './hooks/llm/useChatLLM';
 import { useToolExecution } from './hooks/tools/useToolExecution';
@@ -81,7 +82,7 @@ interface ChatPanelProps {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
       toolFormat?: 'xml' | 'json';
-      workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+      workflowAgentId?: WorkflowAgentId | null;
     };
   } | null;
   onClearInitialData?: () => void;
@@ -247,7 +248,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         useSkillEnabled?: boolean;
         memoryEnabled?: boolean;
         toolFormat?: 'xml' | 'json';
-        workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+        workflowAgentId?: WorkflowAgentId | null;
       }
     | undefined
   >(initialMessageData?.conversationOverrides);

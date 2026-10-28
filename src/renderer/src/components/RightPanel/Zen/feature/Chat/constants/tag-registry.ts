@@ -111,13 +111,8 @@ export const SHARED_TAG_REGISTRY: Record<string, TagDefinition> = {
 export const CORE_TOOL_REGISTRY: Record<string, TagDefinition> = {
   conversation_title: {
     id: 'conversation_title',
-    category: 'tool',
+    category: 'ui',
     title: 'Set Conversation Title',
-    features: {
-      showFileStats: false,
-      validateFuzzyMatch: false,
-      isFileMutation: false,
-    },
   },
 };
 
@@ -255,8 +250,11 @@ export const getToolLabel = (toolType: string): string => {
  * Danh sách các tool có khả năng thay đổi nội dung file trên disk.
  * Dùng cho logic revert, undo, và hiển thị diff summary.
  */
-export const FILE_MUTATION_TOOLS: readonly string[] = Object.entries(TAG_REGISTRY)
-  .filter(([_, def]) => def.features?.isFileMutation === true)
-  .map(([key]) => key);
+// Lazy getter — TAG_REGISTRY is a Proxy whose module registries are injected
+// after module load, so a top-level const would freeze an empty list.
+export const getFileMutationTools = (): readonly string[] =>
+  Object.entries(TAG_REGISTRY)
+    .filter(([_, def]) => def.features?.isFileMutation === true)
+    .map(([key]) => key);
 
-export type FileMutationTool = (typeof FILE_MUTATION_TOOLS)[number];
+export type FileMutationTool = string;

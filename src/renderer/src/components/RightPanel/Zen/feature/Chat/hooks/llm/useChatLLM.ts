@@ -19,6 +19,7 @@ import { Message, QuestionAnswer } from '../../types/message';
 import { ToolAction, parseAIResponse } from '../../services/ResponseParser';
 import { ChatSession } from '../../types/chat';
 import { AgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
+import type { WorkflowAgentId } from '../../types/workflow-agents';
 
 // ── Context ──
 import { useSettings } from '../../../../context/SettingsContext';
@@ -43,8 +44,13 @@ import {
 } from '../../services/ConversationService';
 import { PromptBuilder } from '../../services/PromptBuilder';
 import { StreamingService } from '../../services/StreamingService';
-import { processDeepseekContent } from '../../services/DeepseekDSMLParser';
-import { cleanClaudeToolContent } from '../../services/ClaudeToolCleanner';
+import {
+  hasDeepseekDSML,
+  processDeepseekContent,
+} from '../../services/DeepseekDSMLParser';
+import { cleanClaudeSandboxTools } from '../../services/ClaudeSandboxToolCleanner';
+import { buildToolFormatReminder } from '../../prompts/tool-format-reminder';
+import { DEEPSEEK_DSML_REMINDER } from '../../prompts/deepseek-dsml-reminder';
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
 // ── Constants ──
@@ -64,7 +70,7 @@ interface ConversationOverrides {
   useSkillEnabled?: boolean;
   memoryEnabled?: boolean;
   toolFormat?: 'xml' | 'json';
-  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+  workflowAgentId?: WorkflowAgentId | null;
 }
 
 interface UseChatLLMProps {
@@ -78,7 +84,7 @@ interface UseChatLLMProps {
   /** Cờ anti_system_prompt_injection từ provider config — thay cho hardcode providerId === "claude" */
   antiSystemPromptInjection?: boolean;
   /** Workflow agent ID for specialized prompts (orchestrator/planner/executor/reviewer) */
-  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+  workflowAgentId?: WorkflowAgentId | null;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
     actions: ToolAction[],
@@ -106,25 +112,34 @@ export const parseQuestionAnswerTag = (content: string): Record<string, Question
   const innerContent = match[1].trim();
   const answers: Record<string, QuestionAnswer> = {};
 
+  // Parse each line: "N. answer" (without questionId)
   const lines = innerContent.split('\n');
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed === 'No answer') continue;
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
 
-    const lineMatch = /^\d+\.\s+([^:]+):\s+(.+)$/i.exec(trimmed);
+    // Match pattern: "N. answer" or "N. " (empty answer)
+    const lineMatch = /^(\d+)\.\s*(.*)$/i.exec(trimmed);
     if (!lineMatch) continue;
 
-    const questionId = lineMatch[1].trim();
-    const answerValue = lineMatch[2].trim();
+    const lineNumber = parseInt(lineMatch[1], 10);
+    const answerText = lineMatch[2].trim();
 
-    let parsedValue: string | string[] | boolean = answerValue;
+    // Use line number as questionId (matching question.id format: "1", "2", "3", etc.)
+    const questionId = String(lineNumber);
 
-    if (answerValue.toLowerCase() === 'true') {
+    // Skip if empty answer (no value provided)
+    if (!answerText) {
+      continue;
+    }
+
+    // Keep answer as string - QuestionBlock will handle type conversion based on question type
+    let parsedValue: string | string[] | boolean = answerText;
+
+    // Only convert explicit "true"/"false" literals to boolean
+    if (answerText.toLowerCase() === 'true') {
       parsedValue = true;
-    } else if (answerValue.toLowerCase() === 'false') {
+    } else if (answerText.toLowerCase() === 'false') {
       parsedValue = false;
-    } else if (answerValue.includes(',')) {
-      parsedValue = answerValue.split(',').map((v) => v.trim());
     }
 
     answers[questionId] = {
@@ -168,6 +183,12 @@ export const useChatLLM = ({
   useEffect(() => {
     onTurnCompleteRef.current = onTurnComplete;
   }, [onTurnComplete]);
+
+  const MAX_NO_TAG_RETRY = 5;
+  const noTagRetryCountRef = useRef(0);
+  const MAX_MOCK_REQUESTS = 2;
+  const mockRequestCountRef = useRef(0);
+  const dsmlReminderPendingRef = useRef(false);
 
   const {
     streamingState,
@@ -459,10 +480,24 @@ export const useChatLLM = ({
         }
       }
 
+      // Block excessive mock requests to avoid an infinite loop when mock-response.txt has content
+      if (StreamingService.isMockActive()) {
+        if (isNewSession) mockRequestCountRef.current = 0;
+        mockRequestCountRef.current += 1;
+        if (mockRequestCountRef.current > MAX_MOCK_REQUESTS) {
+          console.warn(
+            `[DEBUG][Mock] Blocked request #${mockRequestCountRef.current} (limit ${MAX_MOCK_REQUESTS}) to avoid loop while mock-response.txt has value`,
+          );
+          mockRequestCountRef.current = 0;
+          onTurnCompleteRef.current?.();
+          return;
+        }
+      }
+
       // Build prompt using PromptBuilder with per-conversation overrides applied
       const promptProviderId = finalModel?.providerId ?? lastUsedModelRef.current?.providerId;
 
-      const promptPayload = await PromptBuilder.buildPrompt({
+      const builtPayload = await PromptBuilder.buildPrompt({
         content,
         isReq1,
         skipFirstRequestLogic: skipFirstRequestLogic || false,
@@ -481,6 +516,16 @@ export const useChatLLM = ({
         promptLengthMode,
         workflowAgentId,
       });
+
+      const reminderPrefix = dsmlReminderPendingRef.current
+        ? `${DEEPSEEK_DSML_REMINDER}\n\n${buildToolFormatReminder(
+            conversationOverridesRef.current?.toolFormat ?? 'xml',
+          )}\n\n`
+        : '';
+      if (dsmlReminderPendingRef.current) {
+        dsmlReminderPendingRef.current = false;
+      }
+      const promptPayload = `${reminderPrefix}${builtPayload}`;
 
       const userMessage: Message = {
         id: `msg-${Date.now()}-${skipFirstRequestLogic ? 'tool' : 'user'}`,
@@ -713,14 +758,18 @@ export const useChatLLM = ({
               onContent: (rawContent) => {
                 let content = rawContent;
                 if ((finalModel?.providerId ?? '').toLowerCase() === 'deepseek') {
+                  if (hasDeepseekDSML(rawContent)) {
+                    dsmlReminderPendingRef.current = true;
+                  }
                   const processed = processDeepseekContent(
                     rawContent,
                     conversationOverridesRef.current?.toolFormat ?? 'xml',
                   );
                   if (processed.convertedToolCount > 0) content = processed.content;
                 }
-                const claudeCleaned = cleanClaudeToolContent(content);
-                if (claudeCleaned.removedCount > 0) content = claudeCleaned.content;
+                if ((finalModel?.providerId ?? '').toLowerCase() === 'claude') {
+                  content = cleanClaudeSandboxTools(content);
+                }
                 parsedContentRef.value = content;
                 // Update UI with parsed content (called ONCE at the end with full content)
                 setMessages((prev) => {
@@ -933,6 +982,44 @@ export const useChatLLM = ({
           return;
         }
 
+        // ─── NO-TAG RETRY ────────────────────────────────────────────────────
+        // If the response contains no known TAG_REGISTRY tag at all, the model
+        // likely failed to use any tool format. Retry up to MAX_NO_TAG_RETRY.
+        if (!hasParsingError && parsed) {
+          const { hasRegisteredTag } = await import('../../utils/responseValidation');
+          const rawForCheck = assistantMessage.rawResponse || assistantMessage.content;
+          const tagMatched = hasRegisteredTag(rawForCheck);
+          if (tagMatched) {
+            noTagRetryCountRef.current = 0;
+          } else if (noTagRetryCountRef.current < MAX_NO_TAG_RETRY) {
+            noTagRetryCountRef.current += 1;
+            console.warn(
+              `[DEBUG][NoTagRetry] No TAG_REGISTRY match → retry ${noTagRetryCountRef.current}/${MAX_NO_TAG_RETRY}`,
+            );
+            if (!skipFirstRequestLogic) userRequestCountRef.current -= 1;
+            const messagesBeforeRetry = updatedMessages.slice(0, -1);
+            messagesRef.current = messagesBeforeRetry;
+            setMessages(messagesBeforeRetry);
+            return sendMessage(
+              content,
+              files,
+              finalModel,
+              finalAccount,
+              skipFirstRequestLogic,
+              actionIds,
+              uiHidden,
+              parentMessageId,
+              extraOptions,
+            );
+          } else {
+            console.warn(
+              `[DEBUG][NoTagRetry] Retry limit reached (${MAX_NO_TAG_RETRY}) → giving up, keeping response as-is`,
+            );
+            noTagRetryCountRef.current = 0;
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         if (!hasParsingError && parsed && onMalformedTool) {
           parsed.actions.forEach((action: any, index: number) => {
             if (action.isError) {
@@ -962,6 +1049,7 @@ export const useChatLLM = ({
       } catch (error) {
         dispatchStreaming({ type: 'RESET_STREAMING' });
         abortControllerRef.current = null;
+        noTagRetryCountRef.current = 0;
 
         if (error instanceof Error && error.name === 'AbortError') {
           setIsProcessingSync(false);
@@ -1100,14 +1188,21 @@ export const useChatLLM = ({
                 const answer = answers[qId];
                 const number = index + 1;
 
-                if (!answer || !answer.value) {
-                  return `${number}. No answer`;
+                // Check if answer is missing or empty (but allow boolean false)
+                if (!answer || (answer.value !== false && !answer.value)) {
+                  return `${number}. `;
                 }
 
+                // Handle boolean values for confirm type
+                if (typeof answer.value === 'boolean') {
+                  return `${number}. ${answer.value ? 'Yes' : 'No'}`;
+                }
+
+                // Handle array values for multi-choice
                 const value = Array.isArray(answer.value)
                   ? answer.value.join(', ')
                   : String(answer.value);
-                return `${number}. ${qId}: ${value}`;
+                return `${number}. ${value}`;
               })
               .join('\n');
 

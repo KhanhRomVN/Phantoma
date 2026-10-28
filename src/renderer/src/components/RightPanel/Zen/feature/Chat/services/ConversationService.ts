@@ -24,6 +24,7 @@ import { extensionService } from '../../../services/ExtensionService';
 
 // ── Types ──
 import { Message } from '../types/message';
+import type { WorkflowAgentId } from '../types/workflow-agents';
 
 // ── Local ──
 import { ConversationCache } from './ConversationCache';
@@ -122,7 +123,7 @@ export const saveConversation = async (
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';
-    workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+    workflowAgentId?: WorkflowAgentId | null;
   },
 ): Promise<string> => {
   try {

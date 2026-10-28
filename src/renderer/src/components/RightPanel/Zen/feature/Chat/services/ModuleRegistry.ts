@@ -23,7 +23,7 @@ import { executeConversationTitle } from './tool-executors/TitleExecutor';
 import { executeRunCommand } from './tool-executors/RunCommandExecutor';
 import { codeModule } from '@renderer/modules/Code/CodeModule';
 import { emulateModule } from '@renderer/modules/Emulate/EmulateModule';
-import { reconModule } from '@renderer/modules/Recon/zenModule';
+import { reconModule } from '@renderer/modules/Recon/ReconModule';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface SystemPromptDescriptor {

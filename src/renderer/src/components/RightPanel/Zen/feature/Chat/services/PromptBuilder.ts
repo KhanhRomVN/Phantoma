@@ -14,6 +14,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Prompts ──
 import { buildSystemPrompt } from './ModuleRegistry';
+import type { WorkflowAgentId } from '../types/workflow-agents';
 
 // ── Services ──
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
@@ -57,8 +58,8 @@ export interface PromptBuilderOptions {
   promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
   /** System prompt mode (balanced/concise/thorough/fast) — controls AI behavior */
   systemPromptMode?: 'fast' | 'balanced' | 'thorough' | 'short' | 'none';
-  /** Workflow agent ID (orchestrator/planner/executor/reviewer) — used as promptId for Code module */
-  workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+  /** Workflow agent ID — used as promptId for the owning module (Code or Recon) */
+  workflowAgentId?: WorkflowAgentId | null;
 }
 
 export const getShallowTree = (tree: string): string => {
@@ -141,8 +142,11 @@ export class PromptBuilder {
         workspace,
       );
 
+      const isNoPrompt =
+        promptLengthMode === 'none' && !antiSystemPromptInjection;
+
       // Inject Memory & Agents.md only if NOT anti-injection
-      if (!antiSystemPromptInjection) {
+      if (!antiSystemPromptInjection && !isNoPrompt) {
         if (memoryEnabled) {
           const memorySection = await this.buildMemorySection();
           systemPrompt += memorySection;
@@ -224,7 +228,7 @@ export class PromptBuilder {
       antiSystemPromptInjection?: boolean;
       promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
       systemPromptMode?: 'fast' | 'balanced' | 'thorough' | 'short' | 'none';
-      workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+      workflowAgentId?: WorkflowAgentId | null;
     },
     _workspace?: string,
   ): Promise<string> {
