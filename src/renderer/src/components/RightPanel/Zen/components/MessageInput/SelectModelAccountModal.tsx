@@ -29,6 +29,7 @@ import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { DEFAULT_EFFORT, EFFORT_LABEL, EFFORT_LEVELS, splitModelAndEffort } from './EffortDropdown';
 import type { EffortLevel } from './EffortDropdown';
 import { accountsKey, cacheGet, cacheSet } from './providerModelCache';
+import { compareAccountsByUsage } from '../../utils/accountSort';
 import {
   ICON_METHODS,
   authIconFile,
@@ -1216,7 +1217,8 @@ const SelectModelAccountModal: React.FC<SelectModelAccountModalProps> = ({
                   return [...filtered]
                     .sort(
                       (a, b) =>
-                        Number(b.id === currentAccountId) - Number(a.id === currentAccountId),
+                        Number(b.id === currentAccountId) - Number(a.id === currentAccountId) ||
+                        compareAccountsByUsage(a, b),
                     )
                     .map((acc) => {
                       return (

@@ -23,6 +23,7 @@ import AccountPanel from './feature/Account';
 import HistoryPanel from './feature/History';
 import MarketplacePanel from './feature/Marketplace';
 import SettingsPanel from './feature/Setting';
+import ChatRoomPanel from './feature/ChatRoom';
 
 // CONTEXT
 import { ProjectProvider } from './context/ProjectContext';
@@ -84,6 +85,7 @@ function AgentView({
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
   const [subView, setSubView] = useState<SubView>(null);
+  const [showChatRoom, setShowChatRoom] = useState(false);
 
   const onConversationChangeRef = useRef(onConversationChange);
   onConversationChangeRef.current = onConversationChange;
@@ -223,6 +225,15 @@ function AgentView({
     };
   }, [isVisible, handleBack]);
 
+  // Mở chatroom khi OnlineBadge phát sự kiện 'zen:open-chatroom'
+  useEffect(() => {
+    const handleOpenChatRoom = () => {
+      if (isVisible) setShowChatRoom(true);
+    };
+    window.addEventListener('zen:open-chatroom', handleOpenChatRoom);
+    return () => window.removeEventListener('zen:open-chatroom', handleOpenChatRoom);
+  }, [isVisible]);
+
   return (
     <div
       className="flex-1 overflow-hidden bg-background flex flex-col"
@@ -271,6 +282,11 @@ function AgentView({
         {subView === 'setting' && (
           <SettingsPanel isOpen={true} onClose={() => setSubView(null)} onNavigate={setSubView} />
         )}
+        {showChatRoom && (
+          <div className="absolute inset-0 z-[1000] flex flex-col bg-background">
+            <ChatRoomPanel onClose={() => setShowChatRoom(false)} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -295,6 +311,9 @@ export function AgentPanel({
   const { activeFeature, emulateState, codeState, reconState } = useAgentFeature();
   const { activeTargetId, targetStates } = emulateState;
   const { currentProjectId } = codeState;
+  const currentExplorerRoot = useCodeStore(
+    (s) => s.projects.find((p) => p.id === currentProjectId)?.explorerRoot ?? null,
+  );
   const { activeTargetId: reconActiveTargetId, targets: reconTargets } = reconState;
   const activeDesignId = useDesignStore((s) => s.activeDesignId);
   const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
@@ -318,7 +337,8 @@ export function AgentPanel({
       (window as any).__currentProjectId = currentProjectId;
       // Workspace folder path — key hash dùng CHUNG với Zen (PathService).
       const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
-      if (project?.path) (window as any).__zenWorkspaceFolderPath = project.path;
+      const root = project?.explorerRoot ?? project?.path;
+      if (root) (window as any).__zenWorkspaceFolderPath = root;
     } else if (activeFeature === 'recon' && reconActiveTargetId) {
       key = `recon:${reconActiveTargetId}`;
       // Set global context for conversation service
@@ -335,6 +355,7 @@ export function AgentPanel({
     activeTargetId,
     isTargetActive,
     currentProjectId,
+    currentExplorerRoot,
     reconActiveTargetId,
     activeDesignId,
   ]);

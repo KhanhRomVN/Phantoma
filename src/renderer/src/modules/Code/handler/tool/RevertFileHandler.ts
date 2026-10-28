@@ -9,6 +9,7 @@
 import { SecurityValidator } from '../../utils/security';
 import { ReplaceInFileHistoryManager } from '../../managers/ReplaceInFileHistoryManager';
 import { BaseParams, BaseResult } from './FileHandlerTypes';
+import { resolveWorkspacePath } from '../../utils/pathResolver';
 
 interface RevertFileParams extends BaseParams {
   file_path?: string;
@@ -19,12 +20,15 @@ interface RevertFileParams extends BaseParams {
 
 export class RevertFileHandler {
   public async handle(message: RevertFileParams): Promise<BaseResult> {
-    const pathValue = message.file_path || message.path;
+    const inputPath = message.file_path || message.path;
     const version = message.version;
 
-    if (!pathValue) {
+    if (!inputPath) {
       return { command: 'revertFileResult', requestId: message.requestId, error: "'file_path' is required" };
     }
+
+    // Resolve relative path against workspace root (same as ReadFileHandler).
+    const pathValue = await resolveWorkspacePath(inputPath, (message as any).basePath);
 
     try {
       const api = (window as any).api;

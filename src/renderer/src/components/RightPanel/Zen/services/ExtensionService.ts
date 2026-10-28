@@ -31,6 +31,43 @@ import {
   finalizeRunCommand,
   sendRunCommandInput,
 } from '../feature/Chat/services/tool-executors/RunCommandExecutor';
+import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
+
+// ─── Renderer-only UI commands ────────────────────────────────────────
+// These have no IPC handler in main; they only drive Code-module UI state.
+const UI_COMMANDS = new Set<string>([
+  'openFile',
+  'openWriteToFile',
+  'openFileDiff',
+  'openViewReplaceHistoryVersion',
+  'openTempImage',
+]);
+
+function handleUiCommand(message: any): void {
+  const { command, requestId } = message;
+  try {
+    const store = useCodeStore.getState();
+    const sessionId = store.activeWorkspaceSessionId;
+
+    if (command === 'openFile' && message.path && sessionId) {
+      const name = String(message.path).split(/[\\/]/).pop() || message.path;
+      store.requestOpenFile(
+        sessionId,
+        message.path,
+        name,
+        message.line ? { line: message.line, column: message.column } : undefined,
+      );
+    }
+    // Other UI commands (openWriteToFile, openFileDiff, ...) are accepted
+    // without throwing; they currently only need to exist locally.
+  } catch (e) {
+    console.warn(`[ExtensionService] handleUiCommand failed for "${command}":`, e);
+  }
+
+  if (requestId) {
+    messageDispatcher.resolve(requestId, { command, requestId, success: true });
+  }
+}
 
 type MessageHandler = (data: any) => void;
 
@@ -268,6 +305,13 @@ class ExtensionService {
     if (cmd === 'removeTerminal') return;
     if (cmd === 'stopCommand') {
       finalizeAllRunCommands();
+      return;
+    }
+
+    // UI-navigation commands are renderer-only: no IPC handler exists in main.
+    // Route them to useCodeStore so the Code module opens files/previews locally.
+    if (UI_COMMANDS.has(cmd)) {
+      handleUiCommand(message);
       return;
     }
 

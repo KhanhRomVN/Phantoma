@@ -10,6 +10,7 @@
  */
 
 import { BaseParams, BaseResult } from './FileHandlerTypes';
+import { resolveWorkspacePath } from '../../utils/pathResolver';
 
 interface FileMiscParams extends BaseParams {
   path?: string;
@@ -19,8 +20,8 @@ interface FileMiscParams extends BaseParams {
 export class FileMiscHandler {
   /** Lấy thông tin file (kích thước, ngày sửa...) */
   public async handleGetFileStats(message: FileMiscParams): Promise<BaseResult> {
-    const pathValue = message.path || message.filePath;
-    if (!pathValue) {
+    const inputPath = message.path || message.filePath;
+    if (!inputPath) {
       return {
         command: 'getFileStatsResult',
         requestId: message.requestId,
@@ -31,6 +32,7 @@ export class FileMiscHandler {
     try {
       const api = (window as any).api;
       if (!api?.invoke) throw new Error('IPC not available');
+      const pathValue = await resolveWorkspacePath(inputPath, (message as any).basePath);
       const stats = await api.invoke('fs:stat', pathValue);
 
       return {
@@ -71,14 +73,15 @@ export class FileMiscHandler {
 
   /** Lấy nội dung file (alias cho readFile) */
   public async handleGetFileContent(message: FileMiscParams): Promise<BaseResult> {
-    const pathValue = message.path || message.filePath;
-    if (!pathValue) {
+    const inputPath = message.path || message.filePath;
+    if (!inputPath) {
       return { command: 'fileContent', requestId: message.requestId, error: 'Path is required' };
     }
 
     try {
       const api = (window as any).api;
       if (!api?.invoke) throw new Error('IPC not available');
+      const pathValue = await resolveWorkspacePath(inputPath, (message as any).basePath);
       const content = await api.invoke('fs:read-file', pathValue);
 
       return {

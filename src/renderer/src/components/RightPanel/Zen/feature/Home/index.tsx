@@ -28,6 +28,7 @@ import HomeHeader from './components/HomeHeader';
 import AgentNavBadge, { type NavTarget } from '../../components/AgentNavBadge';
 
 import HomeBanner from './components/HomeBanner';
+import WorkspacePathBadge from './components/WorkspacePathBadge';
 import { ConversationItem } from '../History/types';
 import { useSettings } from '../../context/SettingsContext';
 import MessageInput from '../../components/MessageInput';
@@ -477,6 +478,10 @@ const HomePanel: React.FC<HomePanelProps> = ({
 
   return (
     <div className="flex flex-col h-full relative">
+      {/* Workspace path badge — góc phải trên, cho biết Zen đang đứng ở folder nào */}
+      <div className="absolute top-2 right-3 z-10">
+        <WorkspacePathBadge />
+      </div>
       {/* Dashboard scroll area */}
       <div className="flex-1 overflow-auto flex flex-col">
         <div

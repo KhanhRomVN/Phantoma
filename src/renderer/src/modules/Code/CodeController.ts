@@ -202,7 +202,7 @@ export class CodeController {
   private getCurrentProjectPath(): string {
     const state = useCodeStore.getState();
     const project = state.projects.find((p) => p.id === state.currentProjectId);
-    return project?.path || '';
+    return project?.explorerRoot || project?.path || '';
   }
 
   // ═══════════════════════════════════════════════════════════════════

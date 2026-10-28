@@ -8,15 +8,18 @@
 
 import { ReplaceInFileHistoryManager } from '../../managers/ReplaceInFileHistoryManager';
 import { BaseResult } from './FileHandlerTypes';
+import { resolveWorkspacePath } from '../../utils/pathResolver';
 
 export class ViewReplaceHistoryHandler {
   public async handleHistory(message: any): Promise<BaseResult> {
-    const pathValue = message.filePath || message.file_path;
-    if (!pathValue) {
+    const inputPath = message.filePath || message.file_path;
+    if (!inputPath) {
       return { command: 'viewReplaceHistoryResult', requestId: message.requestId, error: 'filePath is required' };
     }
 
     try {
+      // Same resolved path as ReplaceInFileHandler uses when saving history.
+      const pathValue = await resolveWorkspacePath(inputPath, message.basePath);
       const historyManager = ReplaceInFileHistoryManager.getInstance();
       const history = await historyManager.getHistoryList(pathValue);
 
@@ -32,14 +35,15 @@ export class ViewReplaceHistoryHandler {
   }
 
   public async handleHistoryVersion(message: any): Promise<BaseResult> {
-    const pathValue = message.filePath || message.file_path;
+    const inputPath = message.filePath || message.file_path;
     const version = message.version;
 
-    if (!pathValue || version === undefined) {
+    if (!inputPath || version === undefined) {
       return { command: 'getHistoryVersionResult', requestId: message.requestId, error: 'filePath and version are required' };
     }
 
     try {
+      const pathValue = await resolveWorkspacePath(inputPath, message.basePath);
       const historyManager = ReplaceInFileHistoryManager.getInstance();
       const history = await historyManager.getHistoryVersion(pathValue, version);
 

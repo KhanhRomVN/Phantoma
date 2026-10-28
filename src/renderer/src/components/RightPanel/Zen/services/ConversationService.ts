@@ -51,9 +51,10 @@ export function getWorkspaceFolderPath(): string | null {
   try {
     const state = useCodeStore.getState();
     const project = state.projects?.find((x) => x.id === state.currentProjectId);
-    if (project?.path) {
-      (window as any).__zenWorkspaceFolderPath = project.path;
-      return project.path;
+    const root = project?.explorerRoot ?? project?.path;
+    if (root) {
+      (window as any).__zenWorkspaceFolderPath = root;
+      return root;
     }
   } catch {
     // ignore

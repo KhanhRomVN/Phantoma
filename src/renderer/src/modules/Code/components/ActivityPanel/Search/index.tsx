@@ -111,9 +111,10 @@ function ToolbarToggle({ active, label, title, dot, onClick, children }: Toolbar
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function Search() {
-  const projectPath = useCodeStore(
-    (s) => s.projects.find((p) => p.id === s.currentProjectId)?.path,
-  );
+  const projectPath = useCodeStore((s) => {
+    const p = s.projects.find((x) => x.id === s.currentProjectId);
+    return p?.explorerRoot ?? p?.path;
+  });
 
   const inputRef = useRef<HTMLInputElement>(null);
 

@@ -407,6 +407,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const rawProjects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
+  const setExplorerRoot = useCodeStore((s) => s.setExplorerRoot);
   const updateProject = useCodeStore((s) => s.updateProject);
 
   // Content View Actions
@@ -754,6 +755,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       // Set current project in store ONLY when a session is selected
       setCurrentProject(parentProject.id);
+      const parentBranch = parentProject.branches.find((b) =>
+        b.sessions.some((s) => s.id === sessionId),
+      );
+      setExplorerRoot(parentProject.id, parentBranch?.path ?? null);
 
       // If Task Manager was open, close it when selecting a session (implicit switch back to workspace)
       if (activeTaskManagerProjectId) {
@@ -770,6 +775,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [
       projects,
       setCurrentProject,
+      setExplorerRoot,
       setActiveWorkspaceSessionId,
       setContentViewMode,
       activeTaskManagerProjectId,

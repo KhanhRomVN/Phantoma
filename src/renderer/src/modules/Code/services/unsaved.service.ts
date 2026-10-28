@@ -14,8 +14,9 @@ registerUnsavedProvider({
       Array.from(project.unsavedFiles).map((fileId) => {
         const panel = project.workspacePanels.find((p) => p.id === fileId);
         const filePath = panel?.filePath ?? project.fileNodeMap[fileId]?.path ?? '';
-        const relative = filePath.startsWith(project.path)
-          ? filePath.slice(project.path.length).replace(/^\/+/, '')
+        const root = project.explorerRoot ?? project.path;
+        const relative = filePath.startsWith(root)
+          ? filePath.slice(root.length).replace(/^\/+/, '')
           : filePath;
         return {
           id: fileId,

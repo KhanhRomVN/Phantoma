@@ -42,9 +42,10 @@ function scoreMatch(path: string, query: string): number {
 }
 
 export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
-  const projectPath = useCodeStore(
-    (s) => s.projects.find((p) => p.id === s.currentProjectId)?.path ?? '',
-  );
+  const projectPath = useCodeStore((s) => {
+    const p = s.projects.find((x) => x.id === s.currentProjectId);
+    return p?.explorerRoot ?? p?.path ?? '';
+  });
   const [query, setQuery] = useState('');
   const [files, setFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);

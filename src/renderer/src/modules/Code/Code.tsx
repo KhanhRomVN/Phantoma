@@ -45,7 +45,7 @@ interface DirEntry {
   mtime: number;
 }
 
-let scanIdCounter = 0;
+
 
 /** Recursively scans a directory via IPC and builds a FileNode tree. */
 async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
@@ -62,7 +62,7 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
     const node: FileNode = {
-      id: `scan_${++scanIdCounter}`,
+      id: `fs_${entry.path}`,
       name: entry.name,
       type: entry.isDirectory ? 'folder' : 'file',
       path: entry.path,
@@ -93,9 +93,10 @@ export function Code() {
     hydratedRef.current = true;
 
     projects.forEach((project) => {
-      const shouldScan = !!project.path && project.files.length === 0;
+      const scanRoot = project.explorerRoot ?? project.path;
+      const shouldScan = !!scanRoot && project.files.length === 0;
       if (shouldScan) {
-        scanDirectory(project.path)
+        scanDirectory(scanRoot)
           .then((files: FileNode[]) => {
             hydrateProjectFiles(project.id, files);
           })

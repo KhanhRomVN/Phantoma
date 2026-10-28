@@ -20,6 +20,17 @@ import { SecurityValidator } from '../../utils/security';
 // ── Managers ──
 import { FileLockManager } from '../../managers/FileLockManager';
 
+// ─── Helpers ────────────────────────────────────────────────────────────
+
+function isAbsolute(p: string): boolean {
+  return p.startsWith('/') || p.startsWith('file://') || /^[A-Za-z]:[\\/]/.test(p);
+}
+
+function joinPath(base: string, relative: string): string {
+  if (base.endsWith('/')) return base + relative;
+  return base + '/' + relative;
+}
+
 // ─── Interfaces ─────────────────────────────────────────────────────────
 export interface WriteToFileParams {
   path?: string;
@@ -28,6 +39,7 @@ export interface WriteToFileParams {
   content?: string;
   skipDiagnostics?: boolean;
   requestId?: string;
+  basePath?: string;
 }
 
 export interface WriteToFileResult {
@@ -81,8 +93,30 @@ export class WriteToFileHandler {
     }
 
     try {
+      // Resolve relative path → absolute path (giống ReadFileHandler).
+      // Nếu không resolve, fs:write-file sẽ ghi theo CWD của Electron main,
+      // khác hoàn toàn nơi read_file đọc được file.
+      let resolvedPath = pathValue;
+      if (!isAbsolute(pathValue)) {
+        let baseDir: string | undefined = (message as any).basePath;
+        if (!baseDir) {
+          const { useCodeStore } = await import('../../hooks/useCodeStore');
+          const state = useCodeStore.getState();
+          baseDir = state.projects.find((p) => p.id === state.currentProjectId)?.path;
+        }
+        console.log('[WriteToFileHandler][DEBUG] resolve:', {
+          input: pathValue,
+          basePathFromMsg: (message as any).basePath,
+          baseDir,
+        });
+        if (baseDir) {
+          resolvedPath = joinPath(baseDir, pathValue);
+        }
+      }
+      console.log('[WriteToFileHandler][DEBUG] writing to:', resolvedPath);
+
       // Security check (isWrite = true)
-      const sec = SecurityValidator.validatePath(pathValue, true);
+      const sec = SecurityValidator.validatePath(resolvedPath, true);
       if (!sec.safe) {
         return {
           command: 'writeFileResult',
@@ -93,12 +127,12 @@ export class WriteToFileHandler {
         };
       }
 
-      const release = await this.fileLockManager.acquire(pathValue);
+      const release = await this.fileLockManager.acquire(resolvedPath);
       try {
         const api = (window as any).api;
         if (!api?.invoke) throw new Error('IPC not available');
 
-        await api.invoke('fs:write-file', pathValue, message.content || '');
+        await api.invoke('fs:write-file', resolvedPath, message.content || '');
 
         // TODO: Lấy diagnostics từ LSP client
         const diagnostics: any[] = [];
@@ -106,7 +140,7 @@ export class WriteToFileHandler {
         return {
           command: 'writeFileResult',
           requestId: message.requestId,
-          path: pathValue,
+          path: resolvedPath,
           success: true,
           diagnostics,
         };
@@ -114,6 +148,10 @@ export class WriteToFileHandler {
         release();
       }
     } catch (e: any) {
+      console.error('[WriteToFileHandler][DEBUG] write failed:', {
+        input: pathValue,
+        error: e?.message || String(e),
+      });
       return {
         command: 'writeFileResult',
         requestId: message.requestId,

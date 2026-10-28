@@ -1,1 +1,13 @@
-ở src/renderer/src/modules/Emulate/components/WorkspacePanel sẽ có thêm 1 folder là Setting. trong này tạm thời sẽ chứa phần chỉnh emulate backend url, phần chọn profile chrome (khi ko có value thì fallback vào chrome default OS, xem trong file src/renderer/src/components/RightPanel/Zen/feature/Account/components có 1 modal lấy danh ách profile, tìm ra IPC lấy default profile chrome để áp dụng tương tự
+# TRASH
+
+Đây là file rác để test.
+
+- dòng rác 1
+- dòng rác 2
+- dòng rác 3
+
+```
+code rác
+```
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Rác rác rác.

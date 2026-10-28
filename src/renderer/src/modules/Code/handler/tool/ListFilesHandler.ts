@@ -40,7 +40,8 @@ export class ListFilesHandler {
         if (!projectPath) {
           const { useCodeStore } = await import('../../hooks/useCodeStore');
           const state = useCodeStore.getState();
-          projectPath = state.projects.find((p) => p.id === state.currentProjectId)?.path;
+          const proj = state.projects.find((p) => p.id === state.currentProjectId);
+          projectPath = proj?.explorerRoot ?? proj?.path;
         }
         if (projectPath) {
           const base = projectPath.replace(/\/$/, '');
