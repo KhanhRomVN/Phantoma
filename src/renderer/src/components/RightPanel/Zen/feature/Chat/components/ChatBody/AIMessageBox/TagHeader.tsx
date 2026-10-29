@@ -365,7 +365,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {onToggleCollapse && (
                     <span
-                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-xs mr-1`}
+                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-[13px] mr-1`}
                     />
                   )}
                   {icon && <span className="flex items-center">{icon}</span>}
@@ -388,7 +388,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                     {pathIcon}
                     <span
                       ref={pathSpanRef}
-                      className="text-[10px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis rounded-sm transition-[text-decoration] duration-150 cursor-default no-underline flex items-center gap-1 shrink min-w-0"
+                      className="text-[11px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis rounded-sm transition-[text-decoration] duration-150 cursor-default no-underline flex items-center gap-1 shrink min-w-0"
                       style={{ color: pathColor }}
                       title={path}
                       onClick={(e) => {

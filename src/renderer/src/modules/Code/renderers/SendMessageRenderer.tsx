@@ -36,6 +36,7 @@ const SendMessageRenderer: React.FC<BaseRendererProps> = ({
   isLastItemInList,
   toolOutputs,
   allMessages,
+  moduleId,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
 
@@ -77,7 +78,7 @@ const SendMessageRenderer: React.FC<BaseRendererProps> = ({
             )}
             onClick={hasMessage && !isError ? () => setIsCollapsed((v) => !v) : undefined}
           >
-            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('send_message')}</span>
+            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('send_message', moduleId)}</span>
             <span className="opacity-40 shrink-0">·</span>
             <span className="font-semibold shrink-0" style={{ color: sender?.color }}>
               {senderName}

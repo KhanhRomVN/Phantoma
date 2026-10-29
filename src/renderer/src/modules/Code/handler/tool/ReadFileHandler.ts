@@ -79,7 +79,8 @@ export class ReadFileHandler {
         if (!baseDir) {
           const { useCodeStore } = await import('../../hooks/useCodeStore');
           const state = useCodeStore.getState();
-          baseDir = state.projects.find((p) => p.id === state.currentProjectId)?.path;
+          const project = state.projects.find((p) => p.id === state.currentProjectId);
+          baseDir = project?.explorerRoot ?? project?.path;
         }
         if (baseDir) {
           resolvedPath = joinPath(baseDir, pathValue);

@@ -731,6 +731,17 @@ export const ProjectPanel = memo(function ProjectPanel() {
     setExpandedIds((prev) => (prev.has(projectId) ? prev : new Set(prev).add(projectId)));
   }, []);
 
+  /** Select project without touching expanded state (used by clicking card header). */
+  const handleSelectProject = useCallback(
+    (projectId: string) => {
+      setSelectedSessionId(null);
+      setActiveGitProjectId(null);
+      setActiveTaskManagerProjectId(null);
+      setCurrentProject(projectId);
+    },
+    [setCurrentProject],
+  );
+
   const handleSelectSession = useCallback(
     (sessionId: string) => {
       if (!sessionId) {
@@ -786,6 +797,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
   /** Toggle Git view for a specific project. Clicking again closes it. */
   const handleToggleGit = useCallback(
     (projectId: string) => {
+      // Skip if project has no git repo — Code module still works, git view unavailable.
+      if (gitRepoByProject[projectId] === false) return;
+
       setSelectedSessionId(null);
       setActiveTaskManagerProjectId(null);
 
@@ -798,7 +812,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
         setContentViewMode('git');
       }
     },
-    [activeGitProjectId, setContentViewMode, setCurrentProject],
+    [activeGitProjectId, setContentViewMode, setCurrentProject, gitRepoByProject],
   );
 
   /** Toggle Task Manager for a specific project. Clicking again closes it. */
@@ -1452,23 +1466,26 @@ export const ProjectPanel = memo(function ProjectPanel() {
     ? projects.findIndex((p) => p.id === activeProject.id)
     : -1;
 
-  const activeProjectId = activeProject?.id;
-  const activeProjectPath = activeProject?.path;
+  // Load git repo status for ALL projects so each card can show a "No git" badge
+  // (previously only the active project was checked, leaving other cards unknown).
   useEffect(() => {
-    if (!activeProjectId || !activeProjectPath) return;
     let cancelled = false;
-    (window as any).api
-      .invoke('git:is-repo', activeProjectPath)
-      .then((ok: boolean) => {
-        if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [activeProjectId]: !!ok }));
-      })
-      .catch(() => {
-        if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [activeProjectId]: false }));
-      });
+    for (const p of projects) {
+      if (!p.path || gitRepoByProject[p.id] !== undefined) continue;
+      (window as any).api
+        .invoke('git:is-repo', p.path)
+        .then((ok: boolean) => {
+          if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [p.id]: !!ok }));
+        })
+        .catch(() => {
+          if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [p.id]: false }));
+        });
+    }
     return () => {
       cancelled = true;
     };
-  }, [activeProjectId, activeProjectPath]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects.map((p) => p.id + ':' + p.path).join('|')]);
 
   // ── Render helpers ──
   const renderCard = (project: ProjectExtended) => (
@@ -1476,9 +1493,12 @@ export const ProjectPanel = memo(function ProjectPanel() {
       key={project.id}
       project={project}
       isSelected={expandedIds.has(project.id)}
+      isProjectSelected={currentProjectId === project.id}
+      onSelectProject={handleSelectProject}
       selectedSessionId={selectedSessionId}
       isTaskManagerActive={activeTaskManagerProjectId === project.id}
       isGitActive={activeGitProjectId === project.id}
+      hasGit={gitRepoByProject[project.id]}
       onToggleGit={handleToggleGit}
       draggable={sortMode === 'manual'}
       isGlobalDragging={isGlobalDragging}

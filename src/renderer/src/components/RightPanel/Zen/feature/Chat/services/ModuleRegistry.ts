@@ -128,10 +128,37 @@ export const getModuleRenderers = (): Record<string, ComponentType<any>> => {
   return out;
 };
 
+/**
+ * Resolve renderer theo module trước, fallback về registry tổng.
+ * `moduleIdOrFeature` có thể là 'code' / 'recon' / 'emulate' (feature)
+ * hoặc 'code:<id>' (full moduleId) — hàm sẽ strip phần sau ':'.
+ */
+export const getModuleRenderer = (
+  moduleIdOrFeature: string | null | undefined,
+  toolType: string,
+): ComponentType<any> | undefined => {
+  if (moduleIdOrFeature) {
+    const feature = moduleIdOrFeature.split(':')[0];
+    const mod = modules.get(feature) ?? modules.get(moduleIdOrFeature);
+    if (mod?.renderers && has(mod.renderers, toolType)) {
+      return mod.renderers[toolType];
+    }
+  }
+  return getModuleRenderers()[toolType];
+};
+
 export const getModuleTagRegistries = (): Record<string, any> => {
   const out: Record<string, any> = {};
   for (const mod of modules.values()) {
     if (mod.tagRegistry) Object.assign(out, mod.tagRegistry);
+  }
+  return out;
+};
+
+export const getModuleTagRegistriesByModule = (): Record<string, Record<string, any>> => {
+  const out: Record<string, Record<string, any>> = {};
+  for (const [id, mod] of modules.entries()) {
+    if (mod.tagRegistry) out[id] = mod.tagRegistry;
   }
   return out;
 };
@@ -199,4 +226,4 @@ export const buildSystemPrompt = (
 
 // Inject module tag registries into tag-registry to avoid circular dependency
 import { injectModuleRegistries } from '../constants/tag-registry';
-injectModuleRegistries(getModuleTagRegistries());
+injectModuleRegistries(getModuleTagRegistries(), getModuleTagRegistriesByModule());

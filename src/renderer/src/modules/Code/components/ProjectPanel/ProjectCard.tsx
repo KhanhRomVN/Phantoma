@@ -82,12 +82,19 @@ export interface ProjectExtended {
 
 interface ProjectCardProps {
   project: ProjectExtended;
+  /** Whether the project card is expanded (shows branch blocks) */
   isSelected: boolean;
+  /** Whether this project is the CURRENTLY ACTIVE project in the store */
+  isProjectSelected?: boolean;
+  /** Select this project as active (without toggling expansion) */
+  onSelectProject?: (projectId: string) => void;
   selectedSessionId: string | null;
   /** Whether the Task Manager view is currently active for THIS project */
   isTaskManagerActive: boolean;
   /** Whether the Git view is currently active for THIS project */
   isGitActive?: boolean;
+  /** Whether the project folder has a .git repo (undefined = still checking) */
+  hasGit?: boolean;
   /** Toggle Git view for this project */
   onToggleGit?: (projectId: string) => void;
   /** Project drag is only enabled with Manual sort */
@@ -541,9 +548,12 @@ const BranchBlock = memo(function BranchBlock({
 export const ProjectCard = memo(function ProjectCard({
   project,
   isSelected,
+  isProjectSelected = false,
+  onSelectProject,
   selectedSessionId,
   isTaskManagerActive,
   isGitActive = false,
+  hasGit,
   onToggleGit,
   draggable,
   isGlobalDragging = false,
@@ -591,9 +601,12 @@ export const ProjectCard = memo(function ProjectCard({
   return (
     <div
       className={cn(
-        'relative shrink-0 border-y border-divider overflow-hidden', // Changed to border-y (top + bottom)
+        'relative shrink-0 border-y border-divider overflow-hidden transition-colors',
         project.hidden && 'opacity-50',
+        // Selected project indicator — subtle accent strip + tinted background
+        isProjectSelected && 'bg-[rgba(255,106,31,0.04)]',
       )}
+      data-project-selected={isProjectSelected ? 'true' : undefined}
       draggable={draggable}
       data-pid={project.id}
       onDragStart={(e) => onDragStart(e, 'project', project.id)}
@@ -605,10 +618,16 @@ export const ProjectCard = memo(function ProjectCard({
       {/* ── Top: name row + task chips ── */}
       <div
         className={cn(
-          "group/top flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none transition-colors",
-          !isGlobalDragging && "hover:bg-white/[0.02]"
+          "group/top relative flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none transition-colors",
+          !isGlobalDragging && "hover:bg-white/[0.02]",
+          isProjectSelected && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-[#ff6a1f]",
         )}
-        onClick={() => !isGlobalDragging && onToggleProject(project.id)}
+        onClick={() => {
+          if (isGlobalDragging) return;
+          // Clicking the card header selects the project AND expands it.
+          onSelectProject?.(project.id);
+          if (!isSelected) onToggleProject(project.id);
+        }}
       >
         <div className="flex items-center gap-2" data-drag-row>
           <ProjectIcon color={identity.color} Icon={identity.Icon} />
@@ -616,7 +635,11 @@ export const ProjectCard = memo(function ProjectCard({
             className={cn(
               'font-display font-semibold text-[12.5px] truncate flex-1 min-w-0 transition-colors',
               !isGlobalDragging && 'group-hover/top:text-text-primary',
-              isSelected ? 'text-text-primary' : 'text-text-secondary',
+              isProjectSelected
+                ? 'text-text-primary'
+                : isSelected
+                  ? 'text-text-primary'
+                  : 'text-text-secondary',
             )}
           >
             {project.name}
@@ -627,6 +650,14 @@ export const ProjectCard = memo(function ProjectCard({
              {project.hidden && (
               <span className="text-[9.5px] text-text-secondary/50 border border-border rounded px-[5px]">
                 hidden
+              </span>
+            )}
+            {hasGit === false && (
+              <span
+                className="text-[9.5px] text-text-secondary/50 border border-border rounded px-[5px] whitespace-nowrap"
+                title="This folder is not a git repository — Code module still works, but git features are disabled"
+              >
+                no git
               </span>
             )}
             <KebabButton onClick={openMenuAt} />
@@ -648,23 +679,43 @@ export const ProjectCard = memo(function ProjectCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (hasGit === false) return;
                 onToggleGit?.(project.id);
               }}
+              disabled={hasGit === false}
               className={cn(
-                'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors cursor-pointer',
-                isGitActive
-                  ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
-                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+                'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors',
+                hasGit === false
+                  ? 'text-text-secondary/30 cursor-not-allowed'
+                  : 'cursor-pointer ' +
+                      (isGitActive
+                        ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
+                        : 'text-text-secondary hover:bg-card-hover hover:text-text-primary'),
               )}
-              title={isGitActive ? 'Close Git' : 'Open Git'}
+              title={
+                hasGit === false
+                  ? 'Not a git repository — Git features unavailable'
+                  : isGitActive
+                    ? 'Close Git'
+                    : 'Open Git'
+              }
             >
               <GitGraph className="w-3.5 h-3.5" />
             </button>
-            {isSelected ? (
-              <ChevronDown className="w-[14px] h-[14px] shrink-0 text-text-secondary" />
-            ) : (
-              <ChevronRight className="w-[14px] h-[14px] shrink-0 text-text-secondary" />
-            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleProject(project.id);
+              }}
+              className="w-[14px] h-[14px] shrink-0 flex items-center justify-center cursor-pointer text-text-secondary hover:text-text-primary transition-colors"
+              title={isSelected ? 'Collapse' : 'Expand'}
+            >
+              {isSelected ? (
+                <ChevronDown className="w-[14px] h-[14px]" />
+              ) : (
+                <ChevronRight className="w-[14px] h-[14px]" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -690,7 +741,17 @@ export const ProjectCard = memo(function ProjectCard({
 
       {/* ── CONTENT AREA: Hidden via CSS during drag to preserve DOM structure ── */}
       <div className={cn(isGlobalDragging && "hidden")}>
-        {!isSelected && (
+        {/* No git repo: don't show branch/session tree (branches are git-based). */}
+        {hasGit === false && (
+          <div className={cn(
+            "pl-3 pr-2 text-[11px] text-text-secondary/50",
+            isSelected ? "pb-3 pt-0.5" : "pb-2.5",
+          )}>
+            No git repository — Code module still works in file mode.
+          </div>
+        )}
+
+        {hasGit !== false && !isSelected && (
           <div className="flex flex-col gap-px pl-3 pr-2 pb-2.5 transition-opacity duration-150">
             <CollapsedTree
               project={project}
@@ -710,7 +771,7 @@ export const ProjectCard = memo(function ProjectCard({
           </div>
         )}
 
-        {isSelected && (
+        {hasGit !== false && isSelected && (
           <div className="px-3 pt-0.5 pb-3 flex flex-col gap-3.5 relative animate-in fade-in slide-in-from-top-1 duration-150">
             {visBranches.length > 0 ? (
               visBranches.map((branch) => (

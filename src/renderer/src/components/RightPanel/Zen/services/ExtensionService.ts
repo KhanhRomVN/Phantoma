@@ -39,7 +39,7 @@ const UI_COMMANDS = new Set<string>([
   'openFile',
   'openWriteToFile',
   'openFileDiff',
-  'openViewReplaceHistoryVersion',
+
   'openTempImage',
 ]);
 
@@ -50,10 +50,22 @@ function handleUiCommand(message: any): void {
     const sessionId = store.activeWorkspaceSessionId;
 
     if (command === 'openFile' && message.path && sessionId) {
-      const name = String(message.path).split(/[\\/]/).pop() || message.path;
+      const rawFilePath = String(message.path);
+      let resolvedPath = rawFilePath;
+      if (!rawFilePath.startsWith('/') && !/^[a-zA-Z]:[\\/]/.test(rawFilePath)) {
+        const project = store.projects.find((p) => p.id === store.currentProjectId);
+        const branch = (project as any)?.branches?.find((b: any) =>
+          b.sessions?.some((sess: any) => sess.id === sessionId),
+        );
+        const basePath: string | undefined = branch?.path ?? project?.path;
+        if (basePath) {
+          resolvedPath = `${basePath.replace(/[\\/]+$/, '')}/${rawFilePath.replace(/^\.[\\/]/, '')}`;
+        }
+      }
+      const name = resolvedPath.split(/[\\/]/).pop() || resolvedPath;
       store.requestOpenFile(
         sessionId,
-        message.path,
+        resolvedPath,
         name,
         message.line ? { line: message.line, column: message.column } : undefined,
       );

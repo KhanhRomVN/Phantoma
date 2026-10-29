@@ -500,6 +500,7 @@ interface RunCommandRendererProps {
   };
   onProceedDangerousCommand?: (actionId: string) => void;
   onCancelDangerousCommand?: (actionId: string) => void;
+  moduleId?: string | null;
 }
 
 export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
@@ -517,6 +518,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
   dangerousCommand,
   onProceedDangerousCommand,
   onCancelDangerousCommand,
+  moduleId,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isRejectedLocal, setIsRejectedLocal] = React.useState(false);
@@ -617,7 +619,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary flex-1">
-            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('run_command')}</span>
+            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('run_command', moduleId)}</span>
             {folderName && (
               <>
                 <img

@@ -110,6 +110,8 @@ export interface BaseRendererProps {
     type: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
   ) => void;
   conversationId?: string;
+  /** Module sở hữu renderer (code/recon/emulate/...) — dùng để tra label đúng module khi trùng tên tool. */
+  moduleId?: string | null;
 }
 
 /**

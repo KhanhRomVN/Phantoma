@@ -49,7 +49,11 @@ import {
   processDeepseekContent,
 } from '../../services/DeepseekDSMLParser';
 import { cleanClaudeSandboxTools } from '../../services/ClaudeSandboxToolCleanner';
-import { buildToolFormatReminder } from '../../prompts/tool-format-reminder';
+import { buildToolFormatReminder } from '@renderer/modules/Code/prompts/code/tool-format-reminder';
+import {
+  buildSubAgentFormatReminder,
+  isReminderSubAgent,
+} from '@renderer/modules/Code/prompts/sub-agent-format-reminder';
 import { DEEPSEEK_DSML_REMINDER } from '../../prompts/deepseek-dsml-reminder';
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
@@ -186,6 +190,8 @@ export const useChatLLM = ({
 
   const MAX_NO_TAG_RETRY = 5;
   const noTagRetryCountRef = useRef(0);
+  const MAX_SUB_AGENT_FORMAT_REMINDER = 5;
+  const subAgentReminderCountRef = useRef(0);
   const MAX_MOCK_REQUESTS = 2;
   const mockRequestCountRef = useRef(0);
   const dsmlReminderPendingRef = useRef(false);
@@ -972,6 +978,37 @@ export const useChatLLM = ({
           undefined,
           conversationOverridesRef.current,
         );
+
+        // ─── SUB-AGENT FORMAT REMINDER ───────────────────────────────────────
+        // Sub-agents have no markdown/question/code UI: a response without any
+        // tool call (incl. send_message) would stall the chat. Auto-send the reminder.
+        if (isReminderSubAgent(workflowAgentId)) {
+          const noActionTaken =
+            hasParsingError || !!parsed?.onlyThinkingDetected || !parsed?.actions?.length;
+          if (!noActionTaken) {
+            subAgentReminderCountRef.current = 0;
+          } else if (subAgentReminderCountRef.current < MAX_SUB_AGENT_FORMAT_REMINDER) {
+            subAgentReminderCountRef.current += 1;
+            console.warn(
+              `[DEBUG][SubAgentReminder] ${workflowAgentId}: no tool call → reminder ${subAgentReminderCountRef.current}/${MAX_SUB_AGENT_FORMAT_REMINDER}`,
+            );
+            return sendMessage(
+              buildSubAgentFormatReminder(
+                workflowAgentId as string,
+                conversationOverridesRef.current?.toolFormat ?? 'xml',
+              ),
+              undefined,
+              undefined,
+              undefined,
+              true,
+              undefined,
+              true,
+            );
+          } else {
+            subAgentReminderCountRef.current = 0;
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         // 🚨 DETECT ONLY-THINKING RESPONSE
         if (!hasParsingError && parsed && parsed.onlyThinkingDetected) {

@@ -6,11 +6,7 @@ export type ReviewerToolName =
   | "list_files"
   | "find_files"
   | "grep"
-  | "git_status"
-  | "git_diff"
   | "run_command"
-  | "view_replace_history"
-  | "read_skill"
   | "send_message";
 
 export type ToolParams = Record<string, string | number>;
@@ -20,11 +16,7 @@ export const REVIEWER_TOOLS: ReviewerToolName[] = [
   "list_files",
   "find_files",
   "grep",
-  "git_status",
-  "git_diff",
   "run_command",
-  "view_replace_history",
-  "read_skill",
   "send_message",
 ];
 
@@ -114,14 +106,7 @@ const TOOL_DEFS: Record<ReviewerToolName, ToolDef> = {
       },
     ],
   },
-  git_status: {
-    description: "Show the working-tree state (modified/staged files).",
-    examples: [{ params: {}, note: "no parameters" }],
-  },
-  git_diff: {
-    description: "Show the actual diff of pending changes.",
-    examples: [{ params: {}, note: "no parameters" }],
-  },
+
   run_command: {
     description:
       "Execute a shell command for INSPECTION ONLY: type check, lint, run existing tests, build. Never run commands that change files, install packages, commit or touch git state (npm/yarn/pnpm install, git add/commit/checkout/stash/reset, sed -i, rm, mv, > or >> redirects, prettier --write, eslint --fix). If unsure a command is non-mutating, do not run it and list it under NOTES. stdin is a pipe, not a TTY. A non-zero exit code means failure: analyze stderr before continuing.",
@@ -133,17 +118,8 @@ const TOOL_DEFS: Record<ReviewerToolName, ToolDef> = {
       },
     ],
   },
-  view_replace_history: {
-    description:
-      "List every replace_in_file version of a file with error/warning counts.",
-    examples: [
-      { params: { file_path: "path/to/file" }, note: "show history" },
-    ],
-  },
-  read_skill: {
-    description: "Read the full instructions of an installed skill by its id.",
-    examples: [{ params: { skill_id: "skill_id" }, note: "read a skill" }],
-  },
+
+
   send_message: {
     description:
       "Send your final review to the orchestrator. agent_id MUST be orchestrator: you can talk to no other agent and never to the user. Use it exactly once per turn, as the LAST call, after all other tool calls are finished. The message must be self-contained: the orchestrator cannot see your tool results.",

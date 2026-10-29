@@ -127,13 +127,22 @@ export const CORE_TOOL_REGISTRY: Record<string, TagDefinition> = {
  * after modules are registered in ModuleRegistry.
  */
 let _moduleRegistries: Record<string, TagDefinition> = {};
+let _perModuleRegistries: Record<string, Record<string, TagDefinition>> = {};
 
 /**
  * Inject module tag registries from ModuleRegistry.
  * Called by ModuleRegistry after all modules are registered.
+ *
+ * @param registries  Registry hợp nhất (fallback toàn cục, module sau đè module trước)
+ * @param perModule   Registry RIÊNG theo từng module — dùng để tránh trường hợp các module
+ *                    trùng tên tool (read_file, list_files, ...) đè label của nhau.
  */
-export const injectModuleRegistries = (registries: Record<string, TagDefinition>): void => {
+export const injectModuleRegistries = (
+  registries: Record<string, TagDefinition>,
+  perModule?: Record<string, Record<string, TagDefinition>>,
+): void => {
   _moduleRegistries = registries;
+  if (perModule) _perModuleRegistries = perModule;
 };
 
 export const TAG_REGISTRY = new Proxy(
@@ -238,9 +247,16 @@ export const isToolClickable = (type: string): boolean => {
 };
 
 /**
- * Get the display label for a tool type from TAG_REGISTRY
+ * Get the display label for a tool type.
+ *
+ * Nếu truyền `moduleId`, ưu tiên label khai báo trong registry của ĐÚNG module đó —
+ * tránh việc module khác (vd: Recon) ghi đè label của tool trùng tên (vd: read_file).
  */
-export const getToolLabel = (toolType: string): string => {
+export const getToolLabel = (toolType: string, moduleId?: string | null): string => {
+  if (moduleId) {
+    const own = _perModuleRegistries[moduleId]?.[toolType]?.title;
+    if (own) return own;
+  }
   return TAG_REGISTRY[toolType]?.title ?? toolType.toUpperCase().replace(/_/g, ' ');
 };
 

@@ -40,7 +40,7 @@ import { GroupType } from '../../../types/renderer-types';
 import { formatActionForDisplay } from '../../../services/ResponseParser';
 
 // ── Components ──
-import { getModuleRenderers } from '../../../services/ModuleRegistry';
+import { getModuleRenderers, getModuleRenderer } from '../../../services/ModuleRegistry';
 import { ErrorRenderer } from './renderers/ErrorRenderer';
 import { MarkdownRenderer } from './renderers/MarkdownRenderer';
 import { QuestionRenderer } from './renderers/QuestionRenderer';
@@ -109,6 +109,8 @@ interface TagRouterProps {
   >;
   onProceedDangerousCommand?: (actionId: string) => void;
   onCancelDangerousCommand?: (actionId: string) => void;
+  /** Feature/module hiện tại (code/recon/emulate/...) để chọn renderer đúng module khi trùng tool name. */
+  feature?: string | null;
 }
 
 const TagRouterInternal: React.FC<TagRouterProps> = ({
@@ -144,6 +146,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   dangerousCommands,
   onProceedDangerousCommand,
   onCancelDangerousCommand,
+  feature,
 }) => {
   // conversation_title is a silent tool — it updates the title in the background
   // but doesn't render any UI. Skip early.
@@ -161,7 +164,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 
   if (group.type === 'code') {
     return (
-      <div className="pt-1 text-xs text-text-primary">
+      <div className="pt-1 text-[13px] text-text-primary">
         <CodeBlock code={group.content} language={group.language} wordWrap="off" />
       </div>
     );
@@ -169,6 +172,12 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 
   if (group.type === 'question') {
     const hasQuestions = group.questions && group.questions.length > 0;
+    // Debug log - có thể xóa sau khi fix
+    console.log('[DEBUG] TagRouter question disabled inputs', {
+      hasNextUserMessage: !!nextUserMessage,
+      isGenerating,
+      isViewOnly,
+    });
     return (
       <QuestionRenderer
         questions={hasQuestions ? group.questions : undefined}
@@ -379,7 +388,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                   {/* Content */}
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <div className="flex items-center gap-2 text-xs text-text-primary">
+                      <div className="flex items-center gap-2 text-[13px] text-text-primary">
                         <span className="font-semibold opacity-80">{toolLabel}</span>
                         {fileName && (
                           <>
@@ -390,7 +399,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                                 style={{ width: '16px', height: '16px' }}
                               />
                             </span>
-                            <span className="font-medium opacity-90 font-mono text-[11px]">
+                            <span className="font-medium opacity-90 font-mono text-[12px]">
                               {fileName}
                             </span>
                           </>
@@ -408,7 +417,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                           }}
                         />
                         <span
-                          className="text-[10px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 pl-5 rounded-sm"
+                          className="text-[11px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 pl-5 rounded-sm"
                           style={{ color: $('--text-secondary') }}
                           title={filePath}
                         >
@@ -448,7 +457,8 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   // Renderer của các module (Code/Emulate/Recon/...) lấy từ registry
   const allToolRenderers: Record<string, React.ComponentType<any>> = getModuleRenderers();
 
-  const ToolRenderer = allToolRenderers[toolType];
+  // Ưu tiên renderer của module hiện tại để tránh module khác ghi đè khi trùng tool name.
+  const ToolRenderer = getModuleRenderer(feature, toolType) ?? allToolRenderers[toolType];
   if (ToolRenderer) {
     return (
       <>
@@ -474,6 +484,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
             singleLineReviewActions={singleLineReviewActions}
             onConfirmSingleLineAction={onConfirmSingleLineAction}
             onRejectSingleLineAction={onRejectSingleLineAction}
+            moduleId={feature ?? null}
             terminalStatus={terminalStatus}
             nextUserMessage={nextUserMessage}
             dangerousCommand={dangerousCommands?.[`${messageId}-action-${index}`]}
@@ -506,7 +517,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
               if (isToolClickable(action.type)) onToolClick(action, messageId, index, 'accept');
             }}
           >
-            <span className="text-xs text-text-primary font-semibold flex-1">
+            <span className="text-[13px] text-text-primary font-semibold flex-1">
               {formatActionForDisplay(action)}
             </span>
             {isToolClickable(action.type) && (

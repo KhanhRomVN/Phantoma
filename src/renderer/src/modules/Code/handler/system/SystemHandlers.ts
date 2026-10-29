@@ -113,13 +113,5 @@ export class PreviewHandler {
     };
   }
 
-  /** Mở nội dung của version cụ thể trong lịch sử replace */
-  public handleOpenViewReplaceHistoryVersion(message: BaseParams): BaseResult {
-    return {
-      command: 'openViewReplaceHistoryVersion',
-      requestId: message.requestId,
-      filePath: message.filePath,
-      version: message.version,
-    };
-  }
+
 }

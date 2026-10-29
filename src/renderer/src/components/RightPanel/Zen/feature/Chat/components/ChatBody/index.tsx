@@ -162,7 +162,7 @@ class MessageBoxErrorBoundary extends React.Component<
             </div>
 
             <div className="shrink-0 ml-2">
-              <span className="text-[11px] font-semibold text-error uppercase tracking-[0.5px]">
+              <span className="text-[12px] font-semibold text-error uppercase tracking-[0.5px]">
                 ERROR
               </span>
             </div>
@@ -170,7 +170,7 @@ class MessageBoxErrorBoundary extends React.Component<
 
           {this.state.error && (
             <div className="py-3 px-4 rounded-md border border-error/30 bg-error/5">
-              <pre className="text-[11px] text-text-secondary m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto font-mono">
+              <pre className="text-[12px] text-text-secondary m-0 whitespace-pre-wrap break-words max-h-[120px] overflow-y-auto font-mono">
                 {this.state.error.message}
               </pre>
             </div>
@@ -192,6 +192,8 @@ interface MessageBoxProps {
   parsedContent: ParsedResponse;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  /** Feature/module hiện tại (code/recon/emulate) để chọn renderer đúng module. */
+  feature?: string | null;
   clickedActions: Set<string>;
   failedActions?: Set<string>;
   rejectedActions?: Set<string>;
@@ -514,7 +516,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     <div
       ref={bodyRef}
       className={cn(
-        'chat-body-scroll bg-background flex-1 overflow-y-auto overflow-x-hidden py-4 flex flex-col gap-2 text-sm relative',
+        'chat-body-scroll bg-background flex-1 overflow-y-auto overflow-x-hidden py-4 flex flex-col gap-2 text-[15px] relative',
         visibleMessages.length > 0 ? 'pb-[200px]' : 'pb-4',
       )}
       style={{ paddingInline: 'max(16px, calc((100% - 680px) / 2 + 16px))' }}
@@ -615,6 +617,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                   isRestored={isRestored}
                   onApproveDangerousAction={onApproveDangerousAction}
                   onRejectDangerousAction={onRejectDangerousAction}
+                  feature={feature}
                   onRetryRequest={(messageId: string) => {
                     const msgIndex = messages.findIndex((m) => m.id === messageId);
                     if (msgIndex <= 0) return;
@@ -683,7 +686,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
               <button
                 onClick={onContinue}
                 className={cn(
-                  'inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-md cursor-pointer text-[11px] font-semibold uppercase tracking-[0.5px] h-7 box-border transition-all duration-200',
+                  'inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-md cursor-pointer text-[12px] font-semibold uppercase tracking-[0.5px] h-7 box-border transition-all duration-200',
                   'bg-primary/15 text-primary border border-primary/30',
                 )}
                 onMouseEnter={(e) => {
@@ -699,7 +702,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                     'color-mix(in srgb, rgb(10, 132, 255) 30%, transparent)';
                 }}
               >
-                <span className="codicon codicon-play text-xs inline-flex items-center justify-center" />
+                <span className="codicon codicon-play text-[13px] inline-flex items-center justify-center" />
                 <span>Continue Task</span>
               </button>
             </div>

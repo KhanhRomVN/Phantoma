@@ -204,20 +204,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
               navigate(e.shiftKey ? -1 : 1);
             }
           }}
-          className="bg-input-background border-none outline-none text-text-primary text-xs py-1 px-1.5 w-[180px] font-sans"
+          className="bg-input-background border-none outline-none text-text-primary text-[13px] py-1 px-1.5 w-[180px] font-sans"
         />
         <div className="flex items-center gap-px py-0.5 px-1 border-l border-border bg-input-background">
           {iconBtn(
             flags.has('matchCase'),
             'Match Case (Alt+C)',
             () => toggleFlag('matchCase'),
-            <span className="text-[11px] font-bold font-mono leading-none">Aa</span>,
+            <span className="text-[12px] font-bold font-mono leading-none">Aa</span>,
           )}
           {iconBtn(
             flags.has('wholeWord'),
             'Match Whole Word (Alt+W)',
             () => toggleFlag('wholeWord'),
-            <span className="text-[10px] font-bold font-mono tracking-[-0.5px] leading-none">
+            <span className="text-[11px] font-bold font-mono tracking-[-0.5px] leading-none">
               ab
             </span>,
           )}
@@ -225,12 +225,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
             flags.has('regex'),
             'Use Regular Expression (Alt+R)',
             () => toggleFlag('regex'),
-            <span className="text-[10px] font-bold font-mono leading-none">.*</span>,
+            <span className="text-[11px] font-bold font-mono leading-none">.*</span>,
           )}
         </div>
       </div>
 
-      <span className="text-[11px] text-text-secondary whitespace-nowrap min-w-[72px] text-center select-none">
+      <span className="text-[12px] text-text-secondary whitespace-nowrap min-w-[72px] text-center select-none">
         {localQuery
           ? matchCount === 0
             ? 'No results'

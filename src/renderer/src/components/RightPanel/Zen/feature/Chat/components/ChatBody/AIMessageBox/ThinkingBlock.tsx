@@ -66,22 +66,22 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ content, isStreami
           <Cpu size={14} />
         </span>
 
-        <span className="flex-1 text-[12px] font-semibold text-text-secondary tracking-[0.3px]">
+        <span className="flex-1 text-[13px] font-semibold text-text-secondary tracking-[0.3px]">
           {thinkingLabel}
           {isStreaming && (
-            <span className="ml-2 text-[10px] font-normal italic">(streaming...)</span>
+            <span className="ml-2 text-[11px] font-normal italic">(streaming...)</span>
           )}
         </span>
       </div>
 
       {isExpanded && cleanContent && (
-        <div className="mt-2 pl-[22px] text-[12px] leading-relaxed text-text-secondary font-mono whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto">
+        <div className="mt-2 pl-[22px] text-[13px] leading-relaxed text-text-secondary font-mono whitespace-pre-wrap break-words max-h-[400px] overflow-y-auto">
           {cleanContent}
         </div>
       )}
 
       {isExpanded && !cleanContent && (
-        <div className="mt-2 pl-[22px] text-[11px] text-text-secondary italic">Thinking...</div>
+        <div className="mt-2 pl-[22px] text-[12px] text-text-secondary italic">Thinking...</div>
       )}
     </div>
   );

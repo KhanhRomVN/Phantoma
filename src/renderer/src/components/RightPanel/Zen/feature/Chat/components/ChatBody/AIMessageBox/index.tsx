@@ -95,6 +95,8 @@ interface AIMessageBoxProps {
   onApproveDangerousAction?: (actionId: string) => void;
   /** User huỷ dangerous command — reset approval, không execute. */
   onRejectDangerousAction?: (actionId: string) => void;
+  /** Feature/module hiện tại (code/recon/emulate) để chọn renderer đúng module. */
+  feature?: string | null;
 }
 
 const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
@@ -131,6 +133,7 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   onRevertConversation,
   onApproveDangerousAction,
   onRejectDangerousAction,
+  feature,
 }) => {
   // Detect dangerous run_command actions trong message này (regex trên command text)
   const dangerousCommands = React.useMemo<Record<string, DangerousCommandInfo>>(() => {
@@ -480,6 +483,7 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
               dangerousCommands={dangerousCommands}
               onProceedDangerousCommand={onProceedDangerousCommand}
               onCancelDangerousCommand={onCancelDangerousCommand}
+              feature={feature}
             />
           );
 

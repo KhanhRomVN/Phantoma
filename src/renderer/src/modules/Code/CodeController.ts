@@ -19,8 +19,7 @@ import { ReplaceInFileHandler } from './handler/tool/ReplaceInFileHandler';
 import { DeleteFileHandler } from './handler/tool/DeleteFileHandler';
 import { ListFilesHandler } from './handler/tool/ListFilesHandler';
 import { FindFilesHandler } from './handler/tool/FindFilesHandler';
-import { RevertFileHandler } from './handler/tool/RevertFileHandler';
-import { ViewReplaceHistoryHandler } from './handler/tool/ViewReplaceHistoryHandler';
+
 import { FileMiscHandler } from './handler/tool/FileMiscHandler';
 import { GrepHandler } from './handler/tool/GrepHandler';
 import {
@@ -76,8 +75,7 @@ export class CodeController {
   private deleteFileHandler: DeleteFileHandler;
   private listFilesHandler: ListFilesHandler;
   private findFilesHandler: FindFilesHandler;
-  private revertFileHandler: RevertFileHandler;
-  private viewReplaceHistoryHandler: ViewReplaceHistoryHandler;
+
   private fileMiscHandler: FileMiscHandler;
   private grepHandler: GrepHandler;
   private gitStatusHandler: GitStatusHandler;
@@ -99,8 +97,7 @@ export class CodeController {
     this.deleteFileHandler = new DeleteFileHandler();
     this.listFilesHandler = new ListFilesHandler();
     this.findFilesHandler = new FindFilesHandler();
-    this.revertFileHandler = new RevertFileHandler();
-    this.viewReplaceHistoryHandler = new ViewReplaceHistoryHandler();
+
     this.fileMiscHandler = new FileMiscHandler();
     this.grepHandler = new GrepHandler(this.getCurrentProjectPath());
     this.gitStatusHandler = new GitStatusHandler();
@@ -129,8 +126,7 @@ export class CodeController {
     write_to_file: 'writeFile',
     replace_in_file: 'replaceInFile',
     delete_file: 'deleteFile',
-    revert_file: 'revertFile',
-    view_replace_history: 'viewReplaceHistory',
+
     list_files: 'listFiles',
     find_files: 'findFiles',
     run_command: 'runCommand',
@@ -233,18 +229,7 @@ export class CodeController {
           this.emitResult(await this.deleteFileHandler.handle(msg));
           break;
         }
-        case 'revertFile': {
-          this.emitResult(await this.revertFileHandler.handle(msg));
-          break;
-        }
-        case 'viewReplaceHistory': {
-          this.emitResult(await this.viewReplaceHistoryHandler.handleHistory(msg));
-          break;
-        }
-        case 'getHistoryVersion': {
-          this.emitResult(await this.viewReplaceHistoryHandler.handleHistoryVersion(msg));
-          break;
-        }
+
         case 'listFiles': {
           this.emitResult(await this.listFilesHandler.handle(msg));
           break;
@@ -286,10 +271,7 @@ export class CodeController {
           this.emitResult(this.previewHandler.handleOpenWriteToFile(msg));
           break;
         }
-        case 'openViewReplaceHistoryVersion': {
-          this.emitResult(this.previewHandler.handleOpenViewReplaceHistoryVersion(msg));
-          break;
-        }
+
         case 'runCommand': {
           this.emitResult(this.runCommandHandler.handle(msg));
           break;

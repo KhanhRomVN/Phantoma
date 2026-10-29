@@ -34,6 +34,7 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
   toolOutputs,
   allMessages,
   onToolClick,
+  moduleId,
 }) => {
   const toolType = action.type;
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -62,7 +63,7 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span className="font-semibold opacity-80">{getToolLabel('delete_file')}</span>
+            <span className="font-semibold opacity-80">{getToolLabel('delete_file', moduleId)}</span>
             <img src={getFileIconPath(rawPath)} alt="" style={{ width: '14px', height: '14px' }} />
             <span className="font-medium opacity-80 font-mono text-[11px]">
               {getDisplayPath(rawPath, allPaths) || '...'}

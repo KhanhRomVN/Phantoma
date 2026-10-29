@@ -4,7 +4,7 @@ export const TOOL_VALIDATION = `# TOOL VALIDATION & ERROR PREVENTION
 
 ## Valid Tool Tags (CRITICAL — MUST MATCH EXACTLY)
 Only these tags are valid. Full parameters and usage syntax for each are documented in the TOOLS section above — this list exists purely to catch invented tool names, not to re-document usage:
-\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`revert_file\`, \`view_replace_history\`, \`read_skill\`, \`read_memory\`, \`update_memory\`.
+\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`read_skill\`, \`read_memory\`, \`update_memory\`.
 Response-only tags (not tools): \`conversation_title\`, \`markdown\`, \`code\`, \`question\`.
 
 ## Common Invented-Tool Mistakes to AVOID
@@ -17,8 +17,7 @@ These tag names do NOT exist. If you are about to write one of these, STOP and u
 <update_file>    ❌ → use <replace_in_file>
 <modify_file>    ❌ → use <replace_in_file>
 <get_file>       ❌ → use <read_file>
-<undo_file>      ❌ → use <revert_file>
-<history_file>   ❌ → use <view_replace_history>
+
 \`\`\`
 For exact syntax and parameters of every real tool, see the TOOLS section above — re-check there rather than re-deriving syntax from memory if unsure.
 
@@ -52,7 +51,7 @@ Every emitted block is a single JSON object inside its own fenced \`\`\`json blo
 {"tool":"<tool_name>","params":{ ... }}
 \`\`\`
 Valid \`tool\` values (full parameters in TOOLS section above):
-\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`revert_file\`, \`view_replace_history\`, \`read_skill\`, \`read_memory\`, \`update_memory\`, \`conversation_title\`.
+\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`read_skill\`, \`read_memory\`, \`update_memory\`, \`conversation_title\`.
 
 **Shape 2 — UI/render object (has a \`"type"\` key, NO \`"tool"\` key):**
 \`\`\`json
@@ -74,8 +73,7 @@ These \`tool\` values do NOT exist. If you are about to emit one, STOP and use t
 {"tool":"update_file"}      ❌ → use "replace_in_file"
 {"tool":"modify_file"}      ❌ → use "replace_in_file"
 {"tool":"get_file"}         ❌ → use "read_file"
-{"tool":"undo_file"}        ❌ → use "revert_file"
-{"tool":"history_file"}     ❌ → use "view_replace_history"
+
 {"tool":"markdown"}         ❌ → use {"type":"markdown","content":"..."}
 {"tool":"code"}             ❌ → use {"type":"code","language":"...","content":"..."}
 {"tool":"question"}         ❌ → use {"type":"question","questions":[...]}

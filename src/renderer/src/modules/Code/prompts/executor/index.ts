@@ -1,23 +1,34 @@
 import type { WorkflowAgentPromptConfig } from "../code/mode-config";
 import { joinSections } from "../code/mode-config";
-import { buildExecutorToolValidation } from "./tool-validation";
-import { buildExecutorToolsReference } from "./tools-reference";
-import { buildExecutorExample } from "./example";
 import { buildExecutorIdentity } from "./identity";
 import { buildExecutorWorkflow } from "./workflow";
 import { buildExecutorConstraints } from "./constraints";
 import { buildExecutorSystemContext } from "./system-context";
+import {
+  EXECUTOR_TOOL_VALIDATION,
+  EXECUTOR_TOOL_VALIDATION_JSON,
+} from "./tool-validation";
+import {
+  EXECUTOR_TOOLS_REFERENCE,
+  EXECUTOR_TOOLS_REFERENCE_JSON,
+} from "./tools-reference";
+import { buildExecutorExample } from "./example";
 
 export { buildExecutorIdentity } from "./identity";
 export { buildExecutorWorkflow, RESULT_FORMAT } from "./workflow";
 export { buildExecutorConstraints } from "./constraints";
 export { buildExecutorSystemContext } from "./system-context";
-export { buildExecutorToolValidation } from "./tool-validation";
+export type { SystemInfo } from "./system-context";
 export {
-  EXECUTOR_TOOLS,
-  buildExecutorToolsReference,
+  EXECUTOR_TOOL_VALIDATION,
+  EXECUTOR_TOOL_VALIDATION_JSON,
+} from "./tool-validation";
+export {
+  EXECUTOR_TOOLS_REFERENCE,
+  EXECUTOR_TOOLS_REFERENCE_JSON,
 } from "./tools-reference";
 export { buildExecutorExample } from "./example";
+export { buildAgentsMdSection } from "./agents-md";
 
 export const buildExecutorPrompt = (
   config: WorkflowAgentPromptConfig,
@@ -25,45 +36,18 @@ export const buildExecutorPrompt = (
   const {
     language,
     systemInfo,
-    promptLengthMode = "long",
     toolFormat = "xml",
     mode = "balanced",
   } = config;
-
-  if (promptLengthMode === "none") {
-    return "";
-  }
-
-  const tools = buildExecutorToolsReference(toolFormat);
-  const identity = buildExecutorIdentity(language, toolFormat);
-  const workflow = buildExecutorWorkflow(mode);
-  const context = buildExecutorSystemContext(systemInfo, mode);
-
-  if (promptLengthMode === "short") {
-    return joinSections([tools, identity, workflow, context]);
-  }
-
-  const validation = buildExecutorToolValidation(toolFormat);
-  const constraints = buildExecutorConstraints(mode, language, toolFormat);
-
-  if (promptLengthMode === "medium") {
-    return joinSections([
-      validation,
-      tools,
-      identity,
-      workflow,
-      constraints,
-      context,
-    ]);
-  }
+  const isJson = toolFormat === "json";
 
   return joinSections([
-    validation,
-    tools,
+    isJson ? EXECUTOR_TOOL_VALIDATION_JSON : EXECUTOR_TOOL_VALIDATION,
+    isJson ? EXECUTOR_TOOLS_REFERENCE_JSON : EXECUTOR_TOOLS_REFERENCE,
     buildExecutorExample(toolFormat),
-    identity,
-    workflow,
-    constraints,
-    context,
+    buildExecutorIdentity(language, mode, toolFormat),
+    buildExecutorWorkflow(mode),
+    buildExecutorConstraints(mode, language, toolFormat),
+    buildExecutorSystemContext(systemInfo, mode),
   ]);
 };

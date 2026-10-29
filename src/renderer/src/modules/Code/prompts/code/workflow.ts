@@ -89,7 +89,7 @@ ${pass2Section}
 4. **EXECUTE** — Batch all independent writes/replaces in one message, subject to WRITE-BATCH-LIMIT.
    - Before running destructive commands → stop and get explicit user confirmation.
    - Before running a new dev server/watch command → check if an equivalent process is already active.
-   - After EXECUTE: report results clearly. Do not self-declare "fixed" for runtime bugs.
+   - After EXECUTE: report results clearly, state what now works and how to try it, restate progress ("Step N of M done") and end with ONE concrete next action. Do not self-declare "fixed" for runtime bugs.
 ${verifySection}
 
 ${memorySection}

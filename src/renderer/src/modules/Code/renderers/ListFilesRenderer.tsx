@@ -29,6 +29,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   isLastItemInList,
   toolOutputs,
   allMessages,
+  moduleId,
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
 
@@ -122,7 +123,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
                 }
               }}
             >
-              {getToolLabel('list_files')}
+              {getToolLabel('list_files', moduleId)}
             </span>
             <span
               onClick={(e) => {

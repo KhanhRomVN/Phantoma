@@ -1,50 +1,109 @@
-import type { ToolFormat } from "../code/mode-config";
-import type { ExecutorToolName } from "./tools-reference";
-import { EXECUTOR_TOOLS, tick } from "./tools-reference";
+// src/webview-ui/src/features/chat/prompts/tool-validation.ts
 
-const ALL_TOOLS: ExecutorToolName[] = [
-  "read_file",
-  "write_to_file",
-  "replace_in_file",
-  "list_files",
-  "find_files",
-  "grep",
-  "delete_file",
-  "run_command",
-  "git_status",
-  "git_diff",
-  "commit_message",
-  "revert_file",
-  "view_replace_history",
-  "read_skill",
-  "send_message",
-];
+export const EXECUTOR_TOOL_VALIDATION = `# TOOL VALIDATION & ERROR PREVENTION
 
-const nameList = (names: ExecutorToolName[]): string => names.map(tick).join(", ");
+## Valid Tool Tags (CRITICAL — MUST MATCH EXACTLY)
+Only these tags are valid. Full parameters and usage syntax for each are documented in the TOOLS section above — this list exists purely to catch invented tool names, not to re-document usage:
+\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`send_message\`.
+Response-only tags (not tools): \`conversation_title\`.
 
-export const buildExecutorToolValidation = (
-  toolFormat: ToolFormat = "xml",
-): string => {
-  const forbidden = ALL_TOOLS.filter((tool) => !EXECUTOR_TOOLS.includes(tool));
-  const forbiddenLine =
-    forbidden.length > 0
-      ? `Tools that exist in this application but are NOT available to the executor: ${nameList(forbidden)}. Never emit them; if you need something only they can do, ask for it via send_to_agent to orchestrator.`
-      : "";
-  const shapeRules =
-    toolFormat === "json"
-      ? 'Two legal shapes only: a tool call (top-level "tool" key with "params") and a UI object (top-level "type" key: markdown | code). One object per fenced json block. Zero XML anywhere.'
-      : "Tool calls are XML tags only; UI tags are markdown and code. Never wrap an XML tool call in a json fence.";
-  return [
-    toolFormat === "json"
-      ? "# TOOL VALIDATION & ERROR PREVENTION (JSON FORMAT)"
-      : "# TOOL VALIDATION & ERROR PREVENTION",
-    `Valid tools for the executor (case-sensitive, lowercase with underscores): ${nameList(EXECUTOR_TOOLS)}.`,
-    forbiddenLine,
-    shapeRules,
-    "Invented names such as search_files, edit_file, create_file or get_file do not exist: use the real tool from the valid list.",
-    "## Self-Check Before Sending Response\n- [ ] Every tool name is in the valid list for this role\n- [ ] Every tool has its required parameters\n- [ ] The block syntax matches the tool format exactly\n- [ ] No tool outside this role's list is used",
-    "If you notice an invalid call: stop, pick the correct tool from the valid list, rewrite it, and re-check every other call in the response.",
-  ]
-    .filter((part) => part.length > 0)
-    .join("\n\n");
-};
+## Common Invented-Tool Mistakes to AVOID
+These tag names do NOT exist. If you are about to write one of these, STOP and use the real tool on the right instead:
+\`\`\`
+<search_files>   ❌ → use <grep> or <find_files>
+<replace_file>   ❌ → use <replace_in_file>
+<edit_file>      ❌ → use <replace_in_file> or <write_to_file>
+<create_file>    ❌ → use <write_to_file>
+<update_file>    ❌ → use <replace_in_file>
+<modify_file>    ❌ → use <replace_in_file>
+<get_file>       ❌ → use <read_file>
+
+<send_to_agent>  ❌ → use <send_message>
+<assign_task>    ❌ → use <send_message>
+\`\`\`
+For exact syntax and parameters of every real tool, see the TOOLS section above — re-check there rather than re-deriving syntax from memory if unsure.
+
+## Tool Tag Validation Rules
+1. NEVER invent new tool tags — only use the exact tags listed above.
+2. Case-sensitive, lowercase with underscores (e.g. \`read_file\`, not \`readFile\` or \`Read_File\`).
+3. No abbreviations — use full tag names (e.g. \`replace_in_file\`, not \`replace\`).
+4. find_files vs grep: \`<find_files>\` locates files by name/pattern; \`<grep>\` searches text inside files.
+
+## Self-Check Before Sending Response
+Before outputting any tool calls, verify:
+- [ ] Every tool tag matches the valid list exactly — none invented
+- [ ] Tag names are lowercase with underscores
+- [ ] Each tool has its required parameters (file_path, folder_path, file_name, etc.)
+
+## Error Recovery
+If you realize you've used an invalid tool tag:
+1. STOP immediately
+2. Identify the correct valid tool from the list above
+3. Rewrite using the correct tool tag
+4. Double-check all other tool calls in the response
+`;
+
+export const EXECUTOR_TOOL_VALIDATION_JSON = `# TOOL VALIDATION & ERROR PREVENTION (JSON FORMAT)
+
+## Valid JSON Object Shapes (CRITICAL — MUST MATCH EXACTLY)
+Every emitted block is a single JSON object inside its own fenced \`\`\`json block. There is exactly ONE legal shape — a tool call:
+
+**Shape 1 — Tool call (has a \`"tool"\` key):**
+\`\`\`json
+{"tool":"<tool_name>","params":{ ... }}
+\`\`\`
+Valid \`tool\` values (full parameters in TOOLS section above):
+\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`send_message\`, \`conversation_title\`.
+
+**Zero XML in JSON mode.** Do NOT emit \`<read_file>\`, or any other \`<...>\` tag anywhere in a JSON-mode response — those will not be parsed.
+
+## Common Invented-Tool Mistakes to AVOID
+These \`tool\` values do NOT exist. If you are about to emit one, STOP and use the real tool on the right instead:
+\`\`\`
+{"tool":"search_files"}     ❌ → use "grep" or "find_files"
+{"tool":"replace_file"}     ❌ → use "replace_in_file"
+{"tool":"edit_file"}        ❌ → use "replace_in_file" or "write_to_file"
+{"tool":"create_file"}      ❌ → use "write_to_file"
+{"tool":"update_file"}      ❌ → use "replace_in_file"
+{"tool":"modify_file"}      ❌ → use "replace_in_file"
+{"tool":"get_file"}         ❌ → use "read_file"
+
+{"tool":"send_to_agent"}    ❌ → use "send_message"
+{"tool":"assign_task"}      ❌ → use "send_message"
+\`\`\`
+For exact syntax and parameters of every real tool, see the TOOLS section above — re-check there rather than re-deriving syntax from memory if unsure.
+
+## JSON-Specific Mistakes to AVOID
+These are the most common JSON-mode failures. Each fenced block MUST be valid, parseable JSON:
+- **Unescaped newlines**: A real line break inside a string value makes the JSON invalid. Write the two characters \\n (backslash + n) instead of an actual line break. This applies to \`content\`, \`old_content\`, \`new_content\`, \`label\`, and any multi-line string.
+- **Unescaped quotes**: A \`"\` inside a string value must be written as \\" . This applies especially to file contents that themselves contain string literals.
+- **Unescaped backslashes**: A literal backslash in a string value must be written as \\\\ . This applies especially to regex search terms passed to \`grep\`.
+- **HTML entities**: Never write \`&lt;\`, \`&gt;\`, \`&amp;\`, \`&quot;\` inside a JSON string value. Write the raw characters directly (\`<\`, \`>\`, \`&\`, \`"\`).
+- **Multiple objects in one block**: Each fenced \`\`\`json block must contain EXACTLY ONE object. Do NOT put an array of calls, or two adjacent objects, in the same block. Emit a separate fenced block per object.
+- **Wrong params key**: For tool calls, the parameter object is always under the key \`params\`. Do NOT use \`arguments\`, \`args\`, \`parameters\`, \`input\`, \`payload\`, or any other key name.
+- **XML tags anywhere**: Never emit any XML tag — not even tool tags (\`<read_file>\`, \`<replace_in_file>\`, …). All of them will be dropped. JSON mode is 100% JSON.
+- **Missing/extra commas**: Trailing commas before \`}\` or \`]\` are invalid in strict JSON. Missing commas between fields are also invalid.
+- **String value wrapping**: Numbers, booleans, and arrays belong as their JSON-native types — do not wrap them in strings unless the schema explicitly says so.
+
+## Tool Call Validation Rules
+1. NEVER invent new tool names — only use the exact names listed above.
+2. Names are case-sensitive, lowercase with underscores (e.g. \`"read_file"\`, not \`"readFile"\`).
+3. No abbreviations — use the full name (e.g. \`"replace_in_file"\`, not \`"replace"\`).
+4. \`find_files\` vs \`grep\`: \`find_files\` locates files by name/pattern; \`grep\` searches text inside files.
+5. Every fenced \`\`\`json block must parse successfully with \`JSON.parse()\` — verify before emitting.
+
+## Self-Check Before Sending Response
+Before outputting any JSON object, verify:
+- [ ] Every fenced \`\`\`json block parses as valid JSON (no trailing commas; all newlines, quotes, and backslashes escaped)
+- [ ] Each block contains EXACTLY ONE object with a top-level \`tool\` key and a \`params\` object
+- [ ] Every \`tool\` value is one of the valid names listed above — none invented
+- [ ] No XML tag of any kind leaked into the response
+- [ ] Each tool has its required params (\`file_path\`, \`folder_path\`, \`file_name\`, etc.)
+
+## Error Recovery
+If you realize you've emitted an invalid JSON object:
+1. STOP immediately
+2. Identify the correct valid shape from the list above
+3. Rewrite the block as a single, valid, parseable JSON object
+4. Re-verify every other fenced block in the response for the same class of error
+`;

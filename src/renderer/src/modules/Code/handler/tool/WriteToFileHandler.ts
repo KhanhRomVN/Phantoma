@@ -102,7 +102,8 @@ export class WriteToFileHandler {
         if (!baseDir) {
           const { useCodeStore } = await import('../../hooks/useCodeStore');
           const state = useCodeStore.getState();
-          baseDir = state.projects.find((p) => p.id === state.currentProjectId)?.path;
+          const project = state.projects.find((p) => p.id === state.currentProjectId);
+          baseDir = project?.explorerRoot ?? project?.path;
         }
         console.log('[WriteToFileHandler][DEBUG] resolve:', {
           input: pathValue,

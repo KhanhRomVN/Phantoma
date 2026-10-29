@@ -78,20 +78,20 @@ const ActionBar: React.FC<ActionBarProps> = ({
           onClick={(e) => handleClick(e, TOOL_ACTION_TYPES.REJECT)}
           disabled={isLoading}
           className={cn(
-            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[12px] font-semibold h-6 transition-all duration-200',
             'bg-error/4 text-error/85 border border-error/20',
             isLoading ? 'cursor-wait' : 'cursor-pointer',
           )}
           onMouseEnter={(e) => {
             e.currentTarget.className = cn(
-              'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+              'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[12px] font-semibold h-6 transition-all duration-200',
               'bg-error/10 text-error border border-error/35',
               isLoading ? 'cursor-wait' : 'cursor-pointer',
             );
           }}
           onMouseLeave={(e) => {
             e.currentTarget.className = cn(
-              'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+              'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[12px] font-semibold h-6 transition-all duration-200',
               'bg-error/4 text-error/85 border border-error/20',
               isLoading ? 'cursor-wait' : 'cursor-pointer',
             );
@@ -110,7 +110,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
       <button
         disabled={true}
         className={cn(
-          'flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold h-6 transition-all duration-200 cursor-wait',
+          'flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-[13px] font-semibold h-6 transition-all duration-200 cursor-wait',
           toolColor ? '' : 'bg-primary/12 text-primary border border-primary/25',
         )}
         style={
@@ -124,7 +124,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         }
         title="Loading..."
       >
-        <div className="codicon codicon-loading codicon-modifier-spin text-sm" />
+        <div className="codicon codicon-loading codicon-modifier-spin text-[15px]" />
       </button>
     );
   }
@@ -137,7 +137,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
         onClick={(e) => handleClick(e, TOOL_ACTION_TYPES.ACCEPT)}
         disabled={isLoading}
         className={cn(
-          'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+          'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[12px] font-semibold h-6 transition-all duration-200',
           isLoading ? 'cursor-wait' : 'cursor-pointer',
           toolColor ? '' : 'bg-primary/4 text-primary border border-primary/20',
         )}
@@ -173,20 +173,20 @@ const ActionBar: React.FC<ActionBarProps> = ({
         onClick={(e) => handleClick(e, TOOL_ACTION_TYPES.REJECT)}
         disabled={isLoading}
         className={cn(
-          'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+          'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[12px] font-semibold h-6 transition-all duration-200',
           'bg-error/4 text-error border border-error/20',
           isLoading ? 'cursor-wait' : 'cursor-pointer',
         )}
         onMouseEnter={(e) => {
           e.currentTarget.className = cn(
-            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[12px] font-semibold h-6 transition-all duration-200',
             'bg-error/10 text-error border border-error/35',
             isLoading ? 'cursor-wait' : 'cursor-pointer',
           );
         }}
         onMouseLeave={(e) => {
           e.currentTarget.className = cn(
-            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[11px] font-semibold h-6 transition-all duration-200',
+            'flex items-center justify-center gap-1.5 px-2 py-[5px] rounded text-[12px] font-semibold h-6 transition-all duration-200',
             'bg-error/4 text-error border border-error/20',
             isLoading ? 'cursor-wait' : 'cursor-pointer',
           );

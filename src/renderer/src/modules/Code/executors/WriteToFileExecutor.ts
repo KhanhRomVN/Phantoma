@@ -13,7 +13,8 @@ export async function executeWriteToFile(
   // create the file relative to the Electron main process CWD.
   const { useCodeStore } = await import('../hooks/useCodeStore');
   const state = useCodeStore.getState();
-  const basePath = state.projects.find((p) => p.id === state.currentProjectId)?.path;
+  const project = state.projects.find((p) => p.id === state.currentProjectId);
+  const basePath = project?.explorerRoot ?? project?.path;
 
   console.log('[executeWriteToFile][DEBUG] request:', { filePath, basePath });
 

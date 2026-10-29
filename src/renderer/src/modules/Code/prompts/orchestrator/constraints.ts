@@ -66,7 +66,7 @@ ${formatRule(toolFormat)}
 - **RUNTIME-VERIFY**: After runtime/IPC/UI fixes, ask the user to test. Never self-declare fixed.
 - **SCOPE-LOCK**: Keep the delegated work inside what the user asked. Reject plan steps that refactor unrelated code.
 - **CREATE-BEFORE-SEND**: Never send_message to an agent missing from list_agents. Create it first; do not reuse a deleted agent id.
-- **ONE-OF-A-KIND**: Reuse an idle agent of the right type instead of creating another, unless the work is parallel.
+- **ONE-OF-A-KIND**: Reuse an idle agent of the right type instead of creating another, unless the work is independent and parallel: then several planners, executors or reviewers of the same type are allowed, each with a unique agent_id.
 - **DELETE-ONLY-WHEN-DONE**: Call delete_agent only for an agent that is no longer needed or was created by mistake, never while it still owes you a reply.
 ${explanationSection}`;
 };

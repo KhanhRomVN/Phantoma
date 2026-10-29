@@ -6,6 +6,7 @@ import { CAPABILITIES as ORCHESTRATOR_CAPABILITIES } from './prompts/orchestrato
 import { CAPABILITIES as PLANNER_CAPABILITIES } from './prompts/planner/config';
 import { CAPABILITIES as EXECUTOR_CAPABILITIES } from './prompts/executor/config';
 import { CAPABILITIES as REVIEWER_CAPABILITIES } from './prompts/reviewer/config';
+import { CAPABILITIES as TESTER_CAPABILITIES } from './prompts/tester/config';
 import type { ExecutorOptions } from '@renderer/components/RightPanel/Zen/feature/Chat/types/executor-types';
 import { CommitMessageRenderer } from './renderers/CommitMessageRenderer';
 import { DeleteFileRenderer } from './renderers/DeleteFileRenderer';
@@ -22,16 +23,13 @@ import CreateAgentRenderer from './renderers/CreateAgentRenderer';
 import SendMessageRenderer from './renderers/SendMessageRenderer';
 import DeleteAgentRenderer from './renderers/DeleteAgentRenderer';
 import { ReplaceInFileRenderer } from './renderers/ReplaceInFileRenderer';
-import { RevertFileRenderer } from './renderers/RevertFileRenderer';
 import { RunCommandRenderer } from './renderers/RunCommandRenderer';
 import { UpdateMemoryRenderer } from './renderers/UpdateMemoryRenderer';
-import { ViewReplaceHistoryRenderer } from './renderers/ViewReplaceHistoryRenderer';
 import { WriteToFileRenderer } from './renderers/WriteToFileRenderer';
 import { executeReadFile } from './executors/ReadFileExecutor';
 import { executeWriteToFile } from './executors/WriteToFileExecutor';
 import { executeReplaceInFile } from './executors/ReplaceInFileExecutor';
-import { executeRevertFile } from './executors/RevertFileExecutor';
-import { executeViewReplaceHistory } from './executors/ViewReplaceHistoryExecutor';
+
 import { executeListFiles } from './executors/ListFilesExecutor';
 import { executeFindFiles } from './executors/FindFilesExecutor';
 import { setRunCommandValidator } from '@renderer/components/RightPanel/Zen/feature/Chat/services/tool-executors/RunCommandExecutor';
@@ -54,8 +52,7 @@ import { parseListFiles } from './parsers/ListFilesParser';
 import { parseFindFiles } from './parsers/FindFilesParser';
 import { parseGrep } from './parsers/GrepParser';
 import { parseDeleteFile } from './parsers/DeleteFileParser';
-import { parseRevertFile } from './parsers/RevertFileParser';
-import { parseViewReplaceHistory } from './parsers/ViewReplaceHistoryParser';
+
 import { parseRunCommand } from './parsers/RunCommandParser';
 import { parseGitStatus } from './parsers/GitStatusParser';
 import { parseGitDiff } from './parsers/GitDiffParser';
@@ -72,6 +69,7 @@ import { buildOrchestratorPrompt } from './prompts/orchestrator';
 import { buildPlannerPrompt } from './prompts/planner';
 import { buildExecutorPrompt } from './prompts/executor';
 import { buildReviewerPrompt } from './prompts/reviewer';
+import { buildTesterPrompt } from './prompts/tester';
 
 const bypass = (o?: ExecutorOptions) => o?.bypassIgnore ?? false;
 
@@ -88,9 +86,7 @@ export const codeModule: ZenModule = {
       executeWriteToFile(a.params, bypass(o), c.conversationIdRef?.current, (a as any).actionId),
     replace_in_file: async (a, c, o) =>
       executeReplaceInFile(a.params, bypass(o), c.conversationIdRef?.current, (a as any).actionId),
-    revert_file: async (a, c) =>
-      executeRevertFile(a.params, false, c.conversationIdRef?.current, (a as any).actionId),
-    view_replace_history: async (a) => executeViewReplaceHistory(a.params),
+
     list_files: async (a, c, o) => executeListFiles(a.params, bypass(o), c.folderPath),
     find_files: async (a) => (await executeFindFiles(a.params))?.output || null,
     delete_file: async (a) => executeDeleteFile(a.params),
@@ -117,8 +113,7 @@ export const codeModule: ZenModule = {
     find_files: parseFindFiles,
     grep: parseGrep,
     delete_file: parseDeleteFile,
-    revert_file: parseRevertFile,
-    view_replace_history: parseViewReplaceHistory,
+
     run_command: parseRunCommand,
     git_status: parseGitStatus,
     git_diff: parseGitDiff,
@@ -136,7 +131,7 @@ export const codeModule: ZenModule = {
     find_files: FindFilesRenderer,
     grep: GrepRenderer,
     delete_file: DeleteFileRenderer,
-    revert_file: RevertFileRenderer,
+
     read_memory: ReadMemoryRenderer,
     update_memory: UpdateMemoryRenderer,
     read_skill: ReadSkillRenderer,
@@ -146,7 +141,7 @@ export const codeModule: ZenModule = {
     write_to_file: WriteToFileRenderer,
     replace_in_file: ReplaceInFileRenderer,
     run_command: RunCommandRenderer,
-    view_replace_history: ViewReplaceHistoryRenderer,
+
     list_agents: ListAgentsRenderer,
     create_agent: CreateAgentRenderer,
     send_message: SendMessageRenderer,
@@ -191,6 +186,13 @@ export const codeModule: ZenModule = {
         {
           getCapabilities: () => REVIEWER_CAPABILITIES,
           buildPrompt: buildReviewerPrompt,
+        },
+      ],
+      [
+        'tester',
+        {
+          getCapabilities: () => TESTER_CAPABILITIES,
+          buildPrompt: buildTesterPrompt,
         },
       ],
     ]),

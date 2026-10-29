@@ -7,8 +7,7 @@ const handoff = (message: string, format: ToolFormat): string =>
 export const buildReviewerExample = (
   toolFormat: ToolFormat = "xml",
 ): string => {
-  const status = fenceCall("git_status", {}, toolFormat);
-  const diff = fenceCall("git_diff", {}, toolFormat);
+
   const read = fenceCall(
     "read_file",
     { file_path: "src/utils/slugify.ts" },
@@ -17,7 +16,7 @@ export const buildReviewerExample = (
   const check = fenceCall("run_command", { command: "npx tsc --noEmit" }, toolFormat);
 
   const approved = handoff(
-    "FROM: reviewer\nTO: orchestrator\nTYPE: REVIEW\nSTATUS: OK\nBODY:\n1. VERDICT: APPROVED.\n2. DEFECTS: none.\n3. NOTES: [nit] slugify does not strip accents; acceptable per PLAN. Manual test: type a title in the post-title field of the UI.\n4. CHECKS RUN: npx tsc --noEmit → exit code 0, no output. git_diff shows only src/utils/slugify.ts and src/components/PostForm.tsx, both listed in the PLAN.",
+    "FROM: reviewer\nTO: orchestrator\nTYPE: REVIEW\nSTATUS: OK\nBODY:\n1. VERDICT: APPROVED.\n2. DEFECTS: none.\n3. NOTES: [nit] slugify does not strip accents; acceptable per PLAN. Manual test: type a title in the post-title field of the UI.\n4. CHECKS RUN: npx tsc --noEmit → exit code 0, no output. Only src/utils/slugify.ts and src/components/PostForm.tsx were read, both listed in the PLAN.",
     toolFormat,
   );
   const rework = handoff(
@@ -33,20 +32,15 @@ export const buildReviewerExample = (
 These examples show shape only. Real tool results arrive between turns and are never predicted.
 
 ## Example 1: inspect → verify → judge
-Turn 1 — see what really changed (never trust the RESULT alone):
-${status}
-${diff}
-STOP. Wait for the results.
-
-Turn 2 — read each changed file reported by git_status (within READ-LINE-BUDGET):
+Turn 1 — read each file listed in FILES CHANGED (within READ-LINE-BUDGET; never trust the RESULT alone):
 ${read}
 STOP. Wait for the content.
 
-Turn 3 — verify with a non-mutating command:
+Turn 2 — verify with a non-mutating command:
 ${check}
 STOP. Wait for the real output.
 
-Turn 4 — with real evidence, hand off one verdict with the handoff tool as the last call.
+Turn 3 — with real evidence, hand off one verdict with the handoff tool as the last call.
 
 ## Example 2: everything verified → APPROVED
 ${approved}

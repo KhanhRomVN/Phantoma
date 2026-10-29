@@ -28,6 +28,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
   isLastItemInList,
   toolOutputs,
   allMessages,
+  moduleId,
 }) => {
   const [, setIsCollapsed] = React.useState(true);
 
@@ -80,7 +81,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
                 }
               }}
             >
-              {getToolLabel('read_file')}
+              {getToolLabel('read_file', moduleId)}
             </span>
             <span
               onClick={(e) => {
@@ -114,11 +115,6 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
             >
               {displayName}
             </span>
-            {lineRangeText && (
-              <span className="opacity-50 text-[10px] ml-1.5 font-mono text-text-secondary">
-                {lineRangeText}
-              </span>
-            )}
           </div>
         }
         statusColor={

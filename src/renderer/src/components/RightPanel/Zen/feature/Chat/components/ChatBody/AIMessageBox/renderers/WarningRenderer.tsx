@@ -65,7 +65,7 @@ const WarningBlock: React.FC<WarningBlockProps> = ({
       {/* Warning Message Block */}
       {message && (
         <div className="border border-warn/30 bg-warn/5 rounded-md px-4 py-3">
-          <span className="text-warn text-[11px] leading-relaxed block">
+          <span className="text-warn text-[12px] leading-relaxed block">
             {message}
           </span>
         </div>

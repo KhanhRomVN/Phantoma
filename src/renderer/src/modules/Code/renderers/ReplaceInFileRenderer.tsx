@@ -36,6 +36,7 @@ import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/comp
 import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 import CodeBlock from '@renderer/components/common/CodeBlock';
+import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ─── Helper ─────────────────────────────────────────────────────────────
@@ -89,9 +90,19 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   firstUnclickedActionIndex,
 }) => {
   const [, setIsCollapsed] = React.useState(true);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawPath = action.params.file_path || action.params.path || '';
+
+  const handleOpenPreview = React.useCallback(() => {
+    if (!rawPath) return;
+    setIsModalOpen(true);
+  }, [rawPath]);
+
+  const handleClosePreview = React.useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
   const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
 
   const nextUserMessage = getNextUserMessage(allMessages || [], messageId);
@@ -151,7 +162,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   const isRejected = rejectedActions?.has(actionId);
 
   // Debug logs
-  const permissionDecision = getPermissionDecision('replace_in_file');
+  const permissionDecision = getPermissionDecision();
 
   // Fetch full file content (dùng cho preview đầy đủ khi cần)
   const [fullFileContent] = React.useState<string | null>(null);
@@ -254,16 +265,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
               className="font-semibold opacity-80 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
-                if (rawPath) {
-                  const oldContent = action.params.old_content || action.params.old_str || '';
-                  const newContent = action.params.new_content || action.params.new_str || '';
-                  extensionService.postMessage({
-                    command: 'openFileDiff',
-                    filePath: rawPath,
-                    oldContent,
-                    newContent,
-                  });
-                }
+                handleOpenPreview();
               }}
             >
               {getToolLabel('replace_in_file')}
@@ -271,16 +273,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
             <span
               onClick={(e) => {
                 e.stopPropagation();
-                if (rawPath) {
-                  const oldContent = action.params.old_content || action.params.old_str || '';
-                  const newContent = action.params.new_content || action.params.new_str || '';
-                  extensionService.postMessage({
-                    command: 'openFileDiff',
-                    filePath: rawPath,
-                    oldContent,
-                    newContent,
-                  });
-                }
+                handleOpenPreview();
               }}
               className="flex items-center"
             >
@@ -294,16 +287,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
               className="font-medium opacity-90 font-mono text-[11px] cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
-                if (rawPath) {
-                  const oldContent = action.params.old_content || action.params.old_str || '';
-                  const newContent = action.params.new_content || action.params.new_str || '';
-                  extensionService.postMessage({
-                    command: 'openFileDiff',
-                    filePath: rawPath,
-                    oldContent,
-                    newContent,
-                  });
-                }
+                handleOpenPreview();
               }}
             >
               {displayName || (isPartial && !rawPath ? '...' : '')}
@@ -394,6 +378,17 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
           }}
         />
       )}
+
+      <FilePreviewModal
+        isOpen={isModalOpen}
+        onClose={handleClosePreview}
+        filePath={rawPath}
+        mode="diff"
+        oldContent={action.params.old_content || action.params.old_str || ''}
+        newContent={action.params.new_content || action.params.new_str || ''}
+        oldContentLabel="Nội dung cũ (old_content)"
+        newContentLabel="Nội dung mới (new_content)"
+      />
     </div>
   );
 };

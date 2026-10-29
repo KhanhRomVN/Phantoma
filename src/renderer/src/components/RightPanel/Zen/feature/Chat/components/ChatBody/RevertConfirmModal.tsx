@@ -27,12 +27,12 @@ const RevertConfirmModal: React.FC<RevertConfirmModalProps> = ({
         className="bg-[var(--vscode-editor-background)] border border-[var(--vscode-panel-border)] rounded-lg p-5 min-w-[300px] max-w-[400px]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="font-semibold text-sm mb-2">{title}</div>
-        <div className="text-xs text-[var(--vscode-descriptionForeground)] mb-4">{description}</div>
+        <div className="font-semibold text-[15px] mb-2">{title}</div>
+        <div className="text-[13px] text-[var(--vscode-descriptionForeground)] mb-4">{description}</div>
         <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}
-            className="px-3.5 py-1.5 rounded text-xs cursor-pointer bg-transparent border border-[var(--vscode-panel-border)] text-[var(--vscode-foreground)]"
+            className="px-3.5 py-1.5 rounded text-[13px] cursor-pointer bg-transparent border border-[var(--vscode-panel-border)] text-[var(--vscode-foreground)]"
           >
             Cancel
           </button>
@@ -41,7 +41,7 @@ const RevertConfirmModal: React.FC<RevertConfirmModalProps> = ({
               onClose();
               onConfirm();
             }}
-            className="px-3.5 py-1.5 rounded text-xs cursor-pointer bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] font-semibold border-none"
+            className="px-3.5 py-1.5 rounded text-[13px] cursor-pointer bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] font-semibold border-none"
           >
             Revert
           </button>

@@ -38,7 +38,7 @@ export const buildOrchestratorWorkflow = (
   return `# WORKFLOW
 ## Orchestration Loop
 1. **INTAKE** — Restate the user's request as one precise goal. ${askPolicy} Questions to the user go through the question UI. Simple read/inspection requests (read a file, list files, grep) never need confirmation: staff an executor if needed and send the task at once.
-2. **STAFF** — Call list_agents. Reuse an idle agent of the right type; never create a duplicate. If the agent you need is working, waiting or blocked, send it no new work until its status update arrives. If no agent of the needed type exists, call create_agent (agent_type and agent_name only) and end the turn: the agent exists from a later turn, which you confirm with list_agents before send_message.
+2. **STAFF** — Call list_agents. Reuse an idle agent of the right type; create another agent of the same type only for independent parallel work (see Parallel work). If the agent you need is working, waiting or blocked, send it no new work until its status update arrives. If no agent of the needed type exists, call create_agent (agent_type and agent_name only) and end the turn: the agent exists from a later turn, which you confirm with list_agents before send_message.
 3. **ROUTE** — ${routeRule}
 4. **PLAN** — Send the planner a TASK. Check the returned PLAN: it must list files, ordered steps, references and acceptance criteria. If incomplete, send it back once with the missing items named.
 5. **EXECUTE** — Send the executor the approved PLAN (TYPE: PLAN) with the user's constraints.
@@ -53,7 +53,7 @@ export const buildOrchestratorWorkflow = (
 - TYPE: QUESTION or STATUS: BLOCKED from the reviewer (missing PLAN/ACCEPTANCE, unclear scope): answer from your context with send_message TYPE: QUESTION, adding the missing PLAN or ACCEPTANCE criteria. If only the user can decide, ask through the question UI first.
 
 ## Parallel work
-Independent PLAN steps (disjoint files, no shared types) may go to several executors in one turn: create the extra executors first, then send one message per agent. Review only after every RESULT is in, passing the reviewer all RESULTs.
+Independent work may go to several agents of the same type in one turn: planners for independent sub-goals, executors for PLAN steps with disjoint files and no shared types, reviewers for disjoint groups of changed files. Create the extra agents first (each with a unique agent_id), then send one message per agent. Start review only after every RESULT is in: either pass one reviewer all RESULTs, or split the RESULTs across several reviewers by file group, giving each the PLAN it must be checked against. Merge all verdicts before reporting or starting a rework round.
 
 A turn that calls create_agent ends right after the call; never send_message in the same turn. A turn that calls send_message ends right after the calls: wait for the replies and never predict them. Several send_message calls to different agents may share a turn.
 ${MESSAGE_FORMAT}`;

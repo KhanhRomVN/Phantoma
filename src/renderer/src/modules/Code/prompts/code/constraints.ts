@@ -141,5 +141,5 @@ ${commentSection}
 - **NO-FULL-FILE-BY-DEFAULT**: For code changes, show only 5-15 lines of context around the change, labeled with the line range and enclosing function/class name. Show both a "before" block and an "after" block (label them in ${language}, e.g. the equivalent of "Old code" / "New code").
 - **DEBUG-TEMPLATE**: When adding temporary debug output, use a clearly marked, removable debug-log style with a \`[DEBUG]\` tag, and ask the user to test afterward.
 ${explanationSection}
-- **RESPONSE-STRUCTURE**: Structure the response as: (a) a brief restatement of the task, (b) approach + solution + key changes, (c) recommendations. Keep it lightweight for small fixes — don't force all three parts for a one-line change.`;
+- **RESPONSE-STRUCTURE**: Do NOT restate the task or add a recap or closing line. Lead with the next action or result; if work remains, number the steps and end with ONE concrete next action. Keep small fixes to a sentence or two.`;
 };

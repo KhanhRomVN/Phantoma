@@ -77,6 +77,7 @@ const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
   toolOutputs,
   allMessages,
   onToolClick,
+  moduleId,
 }) => {
   const {
     agent_type: agentType = '',
@@ -239,7 +240,7 @@ const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
             <span className="font-semibold opacity-80 shrink-0">
-              {getToolLabel('create_agent')}
+              {getToolLabel('create_agent', moduleId)}
             </span>
             {isCreating && (
               <span className="text-[10px] opacity-55 flex items-center gap-1 shrink-0 ml-auto">

@@ -325,14 +325,14 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
           {/* Question Answers Summary */}
           {hasQuestionAnswers && (
             <div className="mb-2 p-2 rounded bg-primary/10 border border-primary/20">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2 text-text-secondary">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.5px] mb-2 text-text-secondary">
                 Question Answers
               </div>
               <div className="flex flex-col gap-1.5">
                 {Object.entries(questionAnswers).map(([qId, answer]) => {
                   const questionNumber = qId.replace('q', '');
                   return (
-                    <div key={qId} className="text-xs leading-relaxed text-text-primary">
+                    <div key={qId} className="text-[13px] leading-relaxed text-text-primary">
                       <span className="font-semibold mr-1.5 text-primary">{questionNumber}.</span>
                       <span
                         className={cn(
@@ -348,7 +348,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
             </div>
           )}
 
-          <div className="text-xs text-text-primary leading-relaxed whitespace-pre-wrap break-all max-w-full max-h-[400px] overflow-auto">
+          <div className="text-[13px] text-text-primary leading-relaxed whitespace-pre-wrap break-all max-w-full max-h-[400px] overflow-auto">
             {displayContent}
           </div>
         </div>
@@ -361,12 +361,12 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={1}
-            className="w-full min-h-[24px] max-h-[240px] resize-none bg-transparent border-none outline-none text-text-primary font-inherit text-xs leading-relaxed p-0 box-border overflow-hidden whitespace-pre-wrap break-word"
+            className="w-full min-h-[24px] max-h-[240px] resize-none bg-transparent border-none outline-none text-text-primary font-inherit text-[13px] leading-relaxed p-0 box-border overflow-hidden whitespace-pre-wrap break-word"
           />
           <div className="flex items-center justify-end gap-2">
             <button
               onClick={handleCancelEdit}
-              className="px-3 py-1 rounded text-xs cursor-pointer bg-muted/20 hover:bg-muted/30 text-text-secondary transition-colors"
+              className="px-3 py-1 rounded text-[13px] cursor-pointer bg-muted/20 hover:bg-muted/30 text-text-secondary transition-colors"
             >
               Cancel
             </button>
@@ -374,7 +374,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
               onClick={handleSendEdit}
               disabled={!editValue.trim() || checkingRevert}
               className={cn(
-                'px-3 py-1 rounded text-xs font-semibold transition-all flex items-center gap-1.5',
+                'px-3 py-1 rounded text-[13px] font-semibold transition-all flex items-center gap-1.5',
                 editValue.trim() && !checkingRevert
                   ? 'bg-primary/20 text-primary hover:bg-primary/30 cursor-pointer'
                   : 'bg-primary/10 text-primary/40 cursor-not-allowed opacity-60',

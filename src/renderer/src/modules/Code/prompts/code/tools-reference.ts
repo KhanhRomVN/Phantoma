@@ -11,9 +11,7 @@ Use XML tags for all tool calls:
 </replace_in_file>
 ⚠ TAG-CLOSE-VERIFY: closing tag must be </new_content> — never </old_content>. Re-read the opening tag before closing.
 ⚠ NO-HTML-ENTITIES: Never escape code characters as &lt;, &gt;, &amp;, &quot;. Always write raw code directly inside content, new_content, and old_content.
-<view_replace_history><file_path>path/to/file</file_path></view_replace_history>
-<revert_file><file_path>path/to/file</file_path></revert_file>
-<revert_file><file_path>path/to/file</file_path><version>3</version></revert_file>
+
 <list_files><folder_path>path/to/folder</folder_path></list_files>
 <list_files><folder_path>path/to/folder</folder_path><depth>2</depth></list_files>
 <list_files><folder_path>path/to/folder</folder_path><depth>max</depth></list_files>
@@ -36,17 +34,7 @@ Use XML tags for all tool calls:
 - Examples:
   - \`<conversation_title>Fix login bug</conversation_title>\` — first response to a bug-fix request
   - \`<conversation_title>Add slugify utility</conversation_title>\` — when starting a concrete task
-**revert_file**: Undo the last change made to a file using VSCode's undo functionality. Each call undoes one change in the file's edit history.
-- \`file_path\`: Path to the file to revert
-- \`version\`: (optional) Version number to revert to. If provided, reverts to that specific replace_in_file version and deletes all versions after it. If omitted, reverts to the last checkpoint (single undo).
-- Example: \`<revert_file><file_path>src/utils.ts</file_path></revert_file>\` — undoes the last change to src/utils.ts
-- Example with version: \`<revert_file><file_path>src/utils.ts</file_path><version>3</version></revert_file>\` — reverts to version 3 and deletes versions 4, 5, 6, etc.
-- Note: This uses VSCode's native undo stack for simple reverts, or replace history for version-based reverts
-**view_replace_history**: View the complete history of all replace_in_file operations for a specific file. Returns a list with version numbers, error counts, and warning counts for each replace operation.
-- \`file_path\`: Path to the file to view history for
-- Returns: List of versions with format: [Version N] Errors: X, Warnings: Y
-- Example: \`<view_replace_history><file_path>src/utils.ts</file_path></view_replace_history>\` — shows all replace_in_file history for src/utils.ts
-- Use this before revert_file to see which version to revert to
+
 **list_files**: List files and folders under a path (respects .gitignore). Each file entry includes its exact line count (see File Line-Count Metadata & READ-LINE-BUDGET above) so a read batch can be sized before any read_file call is made.
 - \`folder_path\`: The folder to list (required)
 - \`depth\`: (optional) How many levels deep to list. Omit for a shallow (1-level) listing, or pass a number, or \`max\` for the full subtree.
@@ -217,15 +205,7 @@ Use JSON objects inside fenced code blocks for ALL output — both tool calls AN
 \`\`\`
 ⚠ BYTE-PERFECT: old_content must match exactly — indentation, spacing, no reformatting.
 ⚠ JSON-STRINGS: Escape all special characters in string values (\\n for newlines, \\\\ for backslashes, \\" for quotes). Never use HTML entities.
-\`\`\`json
-{"tool":"view_replace_history","params":{"file_path":"path/to/file"}}
-\`\`\`
-\`\`\`json
-{"tool":"revert_file","params":{"file_path":"path/to/file"}}
-\`\`\`
-\`\`\`json
-{"tool":"revert_file","params":{"file_path":"path/to/file","version":3}}
-\`\`\`
+
 \`\`\`json
 {"tool":"list_files","params":{"folder_path":"path/to/folder"}}
 \`\`\`
@@ -253,17 +233,22 @@ Use JSON objects inside fenced code blocks for ALL output — both tool calls AN
 \`\`\`json
 {"tool":"run_command","params":{"command":"your command here"}}
 \`\`\`
-
+\`\`\`json
 {"tool":"run_command","params":{"command":"npm test","folder_path":"src"}}
-
-
+\`\`\`
+\`\`\`json
 {"tool":"read_skill","params":{"skill_id":"skill_id"}}
-
-
+\`\`\`
+\`\`\`json
+{"tool":"read_memory","params":{}}
+\`\`\`
+\`\`\`json
 {"tool":"update_memory","params":{"old_content":"exact original","new_content":"replacement"}}
-
-
+\`\`\`
+\`\`\`json
 {"tool":"conversation_title","params":{"title":"Short title here"}}
+\`\`\`
+
 **Shape 2 — UI/render object (has a \`"type"\` key, NO \`"tool"\` key):**
 These replace the XML UI tags \`<markdown>\`, \`<code>\`, and \`<question>\` from XML mode. They are NOT executable tools — the renderer consumes them.
 
@@ -346,17 +331,7 @@ Same rule as XML mode: \`list_files\`, \`find_files\`, and \`grep\` results incl
 - Examples:
   - \`{"tool":"conversation_title","params":{"title":"Fix login bug"}}\` — first response to a bug-fix request
   - \`{"tool":"conversation_title","params":{"title":"Add slugify utility"}}\` — when starting a concrete task
-**revert_file**: Undo the last change made to a file using VSCode's undo functionality. Each call undoes one change in the file's edit history.
-- \`file_path\`: Path to the file to revert
-- \`version\`: (optional) Version number to revert to. If provided, reverts to that specific replace_in_file version and deletes all versions after it. If omitted, reverts to the last checkpoint (single undo).
-- Example: \`{"tool":"revert_file","params":{"file_path":"src/utils.ts"}}\` — undoes the last change to src/utils.ts
-- Example with version: \`{"tool":"revert_file","params":{"file_path":"src/utils.ts","version":3}}\` — reverts to version 3 and deletes versions 4, 5, 6, etc.
-- Note: This uses VSCode's native undo stack for simple reverts, or replace history for version-based reverts
-**view_replace_history**: View the complete history of all replace_in_file operations for a specific file. Returns a list with version numbers, error counts, and warning counts for each replace operation.
-- \`file_path\`: Path to the file to view history for
-- Returns: List of versions with format: [Version N] Errors: X, Warnings: Y
-- Example: \`{"tool":"view_replace_history","params":{"file_path":"src/utils.ts"}}\` — shows all replace_in_file history for src/utils.ts
-- Use this before revert_file to see which version to revert to
+
 **list_files**: List files and folders under a path (respects .gitignore). Each file entry includes its exact line count (see File Line-Count Metadata & READ-LINE-BUDGET above) so a read batch can be sized before any read_file call is made.
 - \`folder_path\`: The folder to list (required)
 - \`depth\`: (optional) How many levels deep to list. Omit for a shallow (1-level) listing, or pass a number, or the string \`"max"\` for the full subtree.

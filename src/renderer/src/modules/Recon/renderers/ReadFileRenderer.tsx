@@ -18,10 +18,7 @@ interface ReadFileBlockProps {
 
 function ReadFileBlock({ filePath, startLine, endLine, output, isError }: ReadFileBlockProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const rangeLabel =
-    startLine || endLine
-      ? ` lines ${startLine ?? '?'}–${endLine ?? '?'}`
-      : '';
+  const rangeLabel = startLine || endLine ? ` lines ${startLine ?? '?'}–${endLine ?? '?'}` : '';
 
   return (
     <div className="text-xs space-y-2">
@@ -100,7 +97,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-primary opacity-80">READ FILE</span>
+                  <span className="font-semibold text-text-primary opacity-80">READ</span>
                   {filePath && (
                     <span className="font-mono text-[10px] text-text-secondary opacity-70 truncate">
                       {filePath}

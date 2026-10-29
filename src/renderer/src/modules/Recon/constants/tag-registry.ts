@@ -189,31 +189,31 @@ export const RECON_TAG_REGISTRY: Record<string, TagDefinition> = {
   // ── Recon workspace file tools ──
   read_file: {
     id: 'read_file',
-    title: 'READ FILE',
+    title: 'READ CC',
     category: 'tool',
     timeout: 15000,
   },
   create_file: {
     id: 'create_file',
-    title: 'CREATE FILE',
+    title: 'CREATE',
     category: 'tool',
     timeout: 15000,
   },
   update_file: {
     id: 'update_file',
-    title: 'UPDATE FILE',
+    title: 'UPDATE',
     category: 'tool',
     timeout: 15000,
   },
   list_files: {
     id: 'list_files',
-    title: 'LIST FILES',
+    title: 'LIST',
     category: 'tool',
     timeout: 15000,
   },
   delete_file: {
     id: 'delete_file',
-    title: 'DELETE FILE',
+    title: 'DELETE',
     category: 'tool',
     timeout: 15000,
   },

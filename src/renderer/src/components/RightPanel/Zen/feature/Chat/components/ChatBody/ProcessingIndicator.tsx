@@ -51,7 +51,7 @@ const ProcessingIndicator: React.FC<ProcessingIndicatorProps> = ({
 
   return (
     <div
-      className="flex items-center gap-1 px-2 -mt-2 mb-4 text-text-secondary text-sm"
+      className="flex items-center gap-1 px-2 -mt-2 mb-4 text-text-secondary text-[15px]"
     >
       <span ref={timerDisplayRef} className="processing-text">
         Processing (0s)

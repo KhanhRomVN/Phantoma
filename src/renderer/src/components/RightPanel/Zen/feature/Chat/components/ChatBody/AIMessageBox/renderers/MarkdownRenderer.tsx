@@ -71,7 +71,7 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
     <span
       onClick={handleClick}
       title={isFolder ? `Open folder: ${resolvedPath}` : `Open file: ${resolvedPath}`}
-      className="inline-flex items-center gap-[3px] px-1 py-px rounded-[3px] text-text-primary text-sm hover:opacity-75 transition-opacity"
+      className="inline-flex items-center gap-[3px] px-1 py-px rounded-[3px] text-text-primary text-[15px] hover:opacity-75 transition-opacity"
       onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = '0.75')}
       onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = '1')}
     >
@@ -333,7 +333,7 @@ const MarkdownBlock: React.FC<MarkdownBlockProps> = React.memo(
         <style>{`
           .markdown-content-inline {
             line-height: 1.6;
-            font-size: ${$('--font-size-sm') || '13px'};
+            font-size: ${$('--font-size-sm') || '14px'};
             color: ${$('--text-primary')};
           }
           .markdown-content-inline h1,
@@ -458,7 +458,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   className,
 }) => {
   return (
-    <div className="pt-1 text-xs text-text-primary">
+    <div className="pt-1 text-[13px] text-text-primary">
       <MarkdownBlock content={content} knownFilePaths={knownFilePaths} className={className} />
     </div>
   );

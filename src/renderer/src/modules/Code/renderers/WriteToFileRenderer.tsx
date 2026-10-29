@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
+import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
 
 // ── Hooks ──
 import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
@@ -39,6 +40,8 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   const [, setIsCollapsed] = React.useState(true);
   useSettings();
 
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+
   const actionId = `${messageId}-action-${actionIndex}`;
   const rawPath = action.params.file_path || action.params.path || '';
   const displayName = rawPath ? rawPath.split('/').pop() || rawPath : '';
@@ -66,6 +69,15 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
     [action, messageId, actionIndex, onToolClick, actionId, rawPath],
   );
 
+  const handleOpenPreview = React.useCallback(() => {
+    if (!rawPath) return;
+    setIsModalOpen(true);
+  }, [rawPath]);
+
+  const handleClosePreview = React.useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
+
   if (
     firstUnclickedActionIndex !== undefined &&
     actionIndex > firstUnclickedActionIndex &&
@@ -79,33 +91,16 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span
-              className="font-semibold opacity-80 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (rawPath) {
-                  const content = action.params.content || '';
-                  extensionService.postMessage({
-                    command: 'openWriteToFile',
-                    filePath: rawPath,
-                    content,
-                  });
-                }
-              }}
-            >
+            <span className="font-semibold opacity-80 cursor-pointer" onClick={(e) => {
+              e.stopPropagation();
+              handleOpenPreview();
+            }}>
               {getToolLabel('write_to_file')}
             </span>
             <span
               onClick={(e) => {
                 e.stopPropagation();
-                if (rawPath) {
-                  const content = action.params.content || '';
-                  extensionService.postMessage({
-                    command: 'openWriteToFile',
-                    filePath: rawPath,
-                    content,
-                  });
-                }
+                handleOpenPreview();
               }}
               className="flex items-center"
             >
@@ -119,14 +114,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
               className="font-medium opacity-90 font-mono text-[11px] cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
-                if (rawPath) {
-                  const content = action.params.content || '';
-                  extensionService.postMessage({
-                    command: 'openWriteToFile',
-                    filePath: rawPath,
-                    content,
-                  });
-                }
+                handleOpenPreview();
               }}
             >
               {displayName || (isPartial && !rawPath ? '...' : '')}
@@ -240,6 +228,15 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
           maxHeight="300px"
         />
       )}
+
+      <FilePreviewModal
+        isOpen={isModalOpen}
+        onClose={handleClosePreview}
+        filePath={rawPath}
+        newContent={action.params.content || ''}
+        mode="content"
+        newContentLabel="Nội dung write_to_file"
+      />
     </div>
   );
 };

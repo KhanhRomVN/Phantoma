@@ -34,7 +34,7 @@ export const ContinuingIndicatorBox: React.FC = () => {
             {/* Label */}
             <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
               <span
-                className={cn('text-[11px] font-semibold tracking-[0.5px] uppercase text-warn')}
+                className={cn('text-[12px] font-semibold tracking-[0.5px] uppercase text-warn')}
               >
                 CONTINUING RESPONSE
               </span>
@@ -45,7 +45,7 @@ export const ContinuingIndicatorBox: React.FC = () => {
 
       {/* Message block */}
       <div className={cn('py-3 px-4 rounded-md ml-6', 'border border-warn/30 bg-warn/5')}>
-        <span className={cn('text-[11px] leading-relaxed block text-warn')}>
+        <span className={cn('text-[12px] leading-relaxed block text-warn')}>
           AI response was interrupted. Fetching the remaining content…
         </span>
       </div>

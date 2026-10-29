@@ -36,7 +36,7 @@ export const buildReviewerWorkflow = (
   return `# WORKFLOW
 ## Review Process
 1. **RECEIVE** — Read the executor's RESULT and the PLAN. List the files that should have changed and the ACCEPTANCE criteria.
-2. **INSPECT** — Batch git_status and git_diff, then read_file for the changed files within READ-LINE-BUDGET (see TOOLS). Read logic/source files first, then config and types, then docs. For a large file read only the hunks shown by git_diff plus about 20 lines around them (start_line/end_line). STOP and wait for the content. Compare the real diff with FILES CHANGED: an unreported or unplanned change is a defect.
+2. **INSPECT** — Batch read_file for the files listed in FILES CHANGED within READ-LINE-BUDGET (see TOOLS). Read logic/source files first, then config and types, then docs. For a large file read only the relevant sections plus about 20 lines around them (start_line/end_line). STOP and wait for the content. Use grep or find_files to detect files that look changed but are not in FILES CHANGED: an unreported or unplanned change is a defect.
 3. **ANALYZE** — Check each group:
    - Logic: edge cases, null/undefined, off-by-one, async ordering and race conditions, swallowed or missing error handling, leaked listeners/timers/handles.
    - Contracts: types and imports resolve; for every changed signature, export or shared type, grep all callers/importers and confirm they still match.

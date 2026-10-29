@@ -26,6 +26,7 @@ const DeleteAgentRenderer: React.FC<BaseRendererProps> = ({
   isLastItemInList,
   toolOutputs,
   allMessages,
+  moduleId,
 }) => {
   const { agent_id: agentId = '', _validationError: validationError } = action.params || {};
 
@@ -45,7 +46,7 @@ const DeleteAgentRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-1.5 text-xs text-text-primary cursor-default">
-            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('delete_agent')}</span>
+            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('delete_agent', moduleId)}</span>
             <span className="opacity-40 shrink-0">·</span>
             <span className="font-semibold shrink-0" style={{ color: target?.color }}>
               {targetName}

@@ -23,7 +23,7 @@ export const buildReviewerToolValidation = (
       : "# TOOL VALIDATION & ERROR PREVENTION",
     `Valid tools for the reviewer (case-sensitive, lowercase with underscores): ${nameList(REVIEWER_TOOLS)}.`,
     shapeRules,
-    "Write tools (write_to_file, replace_in_file, delete_file, revert_file) and invented names such as search_files, edit_file, create_file or get_file are not available: use a real tool from the valid list.",
+    "Write tools (write_to_file, replace_in_file, delete_file) and invented names such as search_files, edit_file, create_file or get_file are not available: use a real tool from the valid list.",
     "## Self-Check Before Sending Response\n- [ ] Every tool name is in the valid list for this role\n- [ ] Every tool has its required parameters\n- [ ] The block syntax matches the tool format exactly\n- [ ] The review is sent with the handoff tool as the last call",
     "If you notice an invalid call: stop, pick the correct tool from the valid list, rewrite it, and re-check every other call in the response.",
   ].join("\n\n");

@@ -98,8 +98,8 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({ content, compact = false, maxHe
         )}
         style={{ maxHeight: maxHeight || undefined }}
       >
-        <span className="codicon codicon-error text-[11px] text-error opacity-70 mt-px shrink-0" />
-        <span className="text-[11px] text-error opacity-85 font-mono break-words">
+        <span className="codicon codicon-error text-[12px] text-error opacity-70 mt-px shrink-0" />
+        <span className="text-[12px] text-error opacity-85 font-mono break-words">
           {displayMessage}
         </span>
       </div>
@@ -115,8 +115,8 @@ const ErrorBlock: React.FC<ErrorBlockProps> = ({ content, compact = false, maxHe
           style={{ maxHeight: maxHeight || undefined }}
         >
           <div className="flex items-start gap-1.5 px-2 py-[5px] bg-error/4 border border-error/20 rounded-[4px]">
-            <span className="codicon codicon-error text-[11px] text-error opacity-70 mt-px shrink-0" />
-            <span className="text-[11px] text-error opacity-85 font-mono break-words">
+            <span className="codicon codicon-error text-[12px] text-error opacity-70 mt-px shrink-0" />
+            <span className="text-[12px] text-error opacity-85 font-mono break-words">
               {displayMessage}
             </span>
           </div>
