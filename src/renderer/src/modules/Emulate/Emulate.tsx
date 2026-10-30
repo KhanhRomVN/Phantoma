@@ -27,6 +27,7 @@ import useTargetData from './hooks/useTargetData';
 import { useRequestFilter } from './hooks/useRequestFilter';
 import useNetworkEvents from './hooks/useNetworkEvents';
 import useHealthCheck from './hooks/useHealthCheck';
+import { useActiveModule } from '@renderer/hooks/useActiveModule';
 
 // ── Services ──
 import { emulateApi } from './services/emulate-api.service';
@@ -568,7 +569,13 @@ export default React.memo(function Emulate({
     [stopTarget, handleClearRequests],
   );
 
-  useHealthCheck({ intervalMs: 5000, onTargetDead: handleTargetDead });
+  const { activeModule } = useActiveModule();
+  const hasActiveTarget = Object.values(targetStates).some((s) => s?.isActive);
+  useHealthCheck({
+    intervalMs: 5000,
+    onTargetDead: handleTargetDead,
+    enabled: activeModule === 'emulate' && hasActiveTarget,
+  });
 
   const handleStartTarget = useCallback(
     (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
@@ -598,7 +605,6 @@ export default React.memo(function Emulate({
       try {
         const target = targetTabs.find((t) => t.id === appId);
         const launchTarget = target?.executablePath || appId;
-        console.log(`[DEBUG][Emulate] launchApp request: appId=${appId} mode=${mode} customUrl=${customUrl} userDataDir=${JSON.stringify(userDataDir)}`);
 
         const result = await runtimeApi.launchApp(
           launchTarget,
@@ -610,7 +616,6 @@ export default React.memo(function Emulate({
           useSandbox,
           userDataDir,
         );
-        console.log('[DEBUG][Emulate] launchApp result:', JSON.stringify(result));
         if (result.success && result.data) {
           const newTab: TargetTab = {
             id: appId,

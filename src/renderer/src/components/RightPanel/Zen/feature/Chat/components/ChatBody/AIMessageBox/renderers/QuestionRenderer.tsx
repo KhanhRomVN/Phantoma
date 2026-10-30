@@ -115,14 +115,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   const isLastQuestion = currentIndex === totalQuestions - 1;
   const hasAnsweredAll = isPaginated && Object.keys(answers).length === totalQuestions;
   const isAllAnswered = isPaginated ? isSummaryModeState : legacyAnswered;
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG] QuestionAnswerBlock render', {
-    disabledProp: disabled,
-    isAllAnswered,
-    isSummaryModeState,
-    answersCount: Object.keys(answers).length,
-    initialAnswersCount: Object.keys(initialAnswers).length,
-  });
 
   const isCurrentAnswered = useCallback(() => {
     if (!isPaginated || !currentQuestion) return false;
@@ -155,15 +147,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
   }, [isPaginated, currentQuestion, answers, selectedOptions, textInputs, confirmValues]);
 
   const handleSingleSelect = (option: string) => {
-    // Debug log - có thể xóa sau khi fix
-    console.log('[DEBUG] handleSingleSelect', {
-      option,
-      disabled,
-      isAllAnswered,
-      isSummaryModeState,
-      isPaginated,
-      currentQuestionId: currentQuestion?.id,
-    });
     if (disabled || isAllAnswered || !isPaginated || !currentQuestion) {
       return;
     }
@@ -401,7 +384,6 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
         <button
           key={`${q.id}-${option}`}
           onClick={() => {
-            console.log('[DEBUG] option button clicked', { option, isDisabled, disabled });
             handleSingleSelect(option);
           }}
           disabled={isDisabled}
@@ -421,9 +403,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
 
     if (!hasAiOther) {
       const isSelected = !!(selected && selected.toString().startsWith('Other:'));
-      renderedItems.push(
-        renderOtherInput(isSelected, 'Other (your input)', `auto-other-${q.id}`),
-      );
+      renderedItems.push(renderOtherInput(isSelected, 'Other (your input)', `auto-other-${q.id}`));
     }
 
     return <div className="flex flex-col gap-2">{renderedItems}</div>;
@@ -472,7 +452,8 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
                 className={cn(
                   'flex items-center gap-2.5 px-1.5 py-2 transition-all duration-[0.15s] border-l-0',
                   isSelected ? 'bg-primary/20' : 'bg-text-secondary/5',
-                  !isDisabled && (isSelected ? 'hover:bg-primary/30' : 'hover:bg-text-secondary/15'),
+                  !isDisabled &&
+                    (isSelected ? 'hover:bg-primary/30' : 'hover:bg-text-secondary/15'),
                   isAnswered && !isSelected && 'opacity-50',
                   isDisabled || isAnswered ? 'cursor-default' : 'cursor-pointer',
                 )}

@@ -172,12 +172,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 
   if (group.type === 'question') {
     const hasQuestions = group.questions && group.questions.length > 0;
-    // Debug log - có thể xóa sau khi fix
-    console.log('[DEBUG] TagRouter question disabled inputs', {
-      hasNextUserMessage: !!nextUserMessage,
-      isGenerating,
-      isViewOnly,
-    });
     return (
       <QuestionRenderer
         questions={hasQuestions ? group.questions : undefined}

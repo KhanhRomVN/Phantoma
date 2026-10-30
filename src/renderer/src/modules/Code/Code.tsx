@@ -61,6 +61,7 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   const nodes: FileNode[] = [];
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+    if (depth === 0 && entry.isDirectory && entry.name === 'worktrees') continue;
     const node: FileNode = {
       id: `fs_${entry.path}`,
       name: entry.name,

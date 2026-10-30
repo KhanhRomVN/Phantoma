@@ -105,16 +105,10 @@ export class WriteToFileHandler {
           const project = state.projects.find((p) => p.id === state.currentProjectId);
           baseDir = project?.explorerRoot ?? project?.path;
         }
-        console.log('[WriteToFileHandler][DEBUG] resolve:', {
-          input: pathValue,
-          basePathFromMsg: (message as any).basePath,
-          baseDir,
-        });
         if (baseDir) {
           resolvedPath = joinPath(baseDir, pathValue);
         }
       }
-      console.log('[WriteToFileHandler][DEBUG] writing to:', resolvedPath);
 
       // Security check (isWrite = true)
       const sec = SecurityValidator.validatePath(resolvedPath, true);

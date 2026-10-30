@@ -166,12 +166,6 @@ export const ConversationService = {
       conversationId,
       folderPath: resolveFolderPath(folderPath),
     });
-    if (!data) {
-      console.warn('[ConversationService] ⚠️ Conversation not found:', {
-        moduleId,
-        conversationId,
-      });
-    }
     return data;
   },
 

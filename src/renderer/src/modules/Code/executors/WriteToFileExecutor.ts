@@ -16,8 +16,6 @@ export async function executeWriteToFile(
   const project = state.projects.find((p) => p.id === state.currentProjectId);
   const basePath = project?.explorerRoot ?? project?.path;
 
-  console.log('[executeWriteToFile][DEBUG] request:', { filePath, basePath });
-
   const result = await CodeController.executeTool(
     'write_to_file',
     {

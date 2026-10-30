@@ -39,7 +39,6 @@ import { getTargetFavicon } from '.';
 import { PLATFORM_STYLES } from './TargetCard';
 import { ProfileSelect } from './TargetModal';
 
-
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   Monitor,
   Shield,
@@ -63,7 +62,13 @@ const METHOD_RGB: Record<string, string> = {
   stop: '239, 68, 68',
 };
 
-const FALLBACK_RGB = ['14, 165, 233', '16, 185, 129', '139, 92, 246', '236, 72, 153', '245, 158, 11'];
+const FALLBACK_RGB = [
+  '14, 165, 233',
+  '16, 185, 129',
+  '139, 92, 246',
+  '236, 72, 153',
+  '245, 158, 11',
+];
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface RunningOptionTargetModalProps {
@@ -82,9 +87,19 @@ interface RunningOptionTargetModalProps {
     useSandbox?: boolean,
   ) => void;
   onStartFrida: (targetId: string, targetUrl?: string, useSandbox?: boolean) => void;
-  onStartEbpf: (targetId: string, targetUrl?: string, useSandbox?: boolean, sudoPassword?: string) => void;
+  onStartEbpf: (
+    targetId: string,
+    targetUrl?: string,
+    useSandbox?: boolean,
+    sudoPassword?: string,
+  ) => void;
   onStartCdp: (targetId: string, targetUrl?: string, useSandbox?: boolean) => void;
-  onStartPcap: (targetId: string, targetUrl?: string, useSandbox?: boolean, sudoPassword?: string) => void;
+  onStartPcap: (
+    targetId: string,
+    targetUrl?: string,
+    useSandbox?: boolean,
+    sudoPassword?: string,
+  ) => void;
   onStartAppDebug: (targetId: string, targetUrl?: string, useSandbox?: boolean) => void;
   onStopTarget: () => void;
   onRefreshDevices?: () => Promise<void>;
@@ -130,9 +145,7 @@ const MethodRow: React.FC<{
     )}
   >
     <span
-      style={
-        selected ? { backgroundColor: `rgba(${rgb}, 0.15)`, color: `rgb(${rgb})` } : undefined
-      }
+      style={selected ? { backgroundColor: `rgba(${rgb}, 0.15)`, color: `rgb(${rgb})` } : undefined}
       className={cn(
         'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
         !selected && 'bg-border/40 text-text-secondary',
@@ -270,7 +283,6 @@ export function RunningOptionTargetModal({
         if (platform === 'cli') {
           onStartCdp(target.id, target.executablePath || target.url);
         } else {
-          console.log(`[DEBUG][Modal] Start CDP web: targetId=${target.id} url=${target.url} profilePath=${JSON.stringify(profilePath)}`);
           setIsLaunching(true);
           try {
             await onStartCDP(target.id, target.url, profilePath || undefined);
@@ -424,130 +436,134 @@ export function RunningOptionTargetModal({
             </div>
           </div>
         ) : (
-        <div className="h-[560px] space-y-5 overflow-y-auto">
-          <div className="flex items-center gap-3 rounded-lg bg-input-background px-3 py-2.5">
-            {renderTargetIcon()}
-            <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-semibold text-text-primary">{target.title}</span>
-                <span
-                  className={cn(
-                    'shrink-0 px-1 rounded text-[9px] font-semibold uppercase tracking-wide',
-                    PLATFORM_STYLES[platform].chip,
-                  )}
-                >
-                  {platformCfg.label}
-                </span>
-              </div>
-              <div className="truncate font-mono text-xs text-text-secondary">
-                {getTargetSubtitle()}
+          <div className="h-[560px] space-y-5 overflow-y-auto">
+            <div className="flex items-center gap-3 rounded-lg bg-input-background px-3 py-2.5">
+              {renderTargetIcon()}
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-sm font-semibold text-text-primary">
+                    {target.title}
+                  </span>
+                  <span
+                    className={cn(
+                      'shrink-0 px-1 rounded text-[9px] font-semibold uppercase tracking-wide',
+                      PLATFORM_STYLES[platform].chip,
+                    )}
+                  >
+                    {platformCfg.label}
+                  </span>
+                </div>
+                <div className="truncate font-mono text-xs text-text-secondary">
+                  {getTargetSubtitle()}
+                </div>
               </div>
             </div>
-          </div>
 
-          {platform === 'android' && !isRunning && (
-            <div className="space-y-2">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
-                Device
-              </h4>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsDeviceDropdownOpen(!isDeviceDropdownOpen)}
-                  className="flex w-full items-center justify-between rounded-lg bg-input-background px-3 py-2.5 text-left text-sm text-text-primary outline-none transition-colors hover:bg-dropdown-item-hover/60"
-                >
-                  <span className="truncate">{selectedDevice?.name || 'Select device'}</span>
-                  <ChevronDown
-                    className={cn(
-                      'h-4 w-4 shrink-0 text-text-secondary transition-transform',
-                      isDeviceDropdownOpen && 'rotate-180',
-                    )}
-                  />
-                </button>
-                {isDeviceDropdownOpen && deviceList.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-input-background shadow-lg">
-                    {deviceList.map((device) => (
-                      <button
-                        key={device.serial}
-                        type="button"
-                        onClick={() => {
-                          setSelectedDeviceSerial(device.serial);
-                          setIsDeviceDropdownOpen(false);
-                        }}
-                        className={cn(
-                          'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-dropdown-item-hover',
-                          selectedDeviceSerial === device.serial && 'bg-primary/10',
-                        )}
-                      >
-                        {device.type === 'physical' ? (
-                          <Smartphone className="h-3.5 w-3.5 text-text-secondary" />
-                        ) : (
-                          <Monitor className="h-3.5 w-3.5 text-text-secondary" />
-                        )}
-                        <span className="truncate">{device.name}</span>
-                        <span className="ml-auto text-[10px] text-text-secondary">
-                          {device.type === 'physical' ? 'USB' : 'VM'}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+            {platform === 'android' && !isRunning && (
+              <div className="space-y-2">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
+                  Device
+                </h4>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDeviceDropdownOpen(!isDeviceDropdownOpen)}
+                    className="flex w-full items-center justify-between rounded-lg bg-input-background px-3 py-2.5 text-left text-sm text-text-primary outline-none transition-colors hover:bg-dropdown-item-hover/60"
+                  >
+                    <span className="truncate">{selectedDevice?.name || 'Select device'}</span>
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 shrink-0 text-text-secondary transition-transform',
+                        isDeviceDropdownOpen && 'rotate-180',
+                      )}
+                    />
+                  </button>
+                  {isDeviceDropdownOpen && deviceList.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-input-background shadow-lg">
+                      {deviceList.map((device) => (
+                        <button
+                          key={device.serial}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDeviceSerial(device.serial);
+                            setIsDeviceDropdownOpen(false);
+                          }}
+                          className={cn(
+                            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-dropdown-item-hover',
+                            selectedDeviceSerial === device.serial && 'bg-primary/10',
+                          )}
+                        >
+                          {device.type === 'physical' ? (
+                            <Smartphone className="h-3.5 w-3.5 text-text-secondary" />
+                          ) : (
+                            <Monitor className="h-3.5 w-3.5 text-text-secondary" />
+                          )}
+                          <span className="truncate">{device.name}</span>
+                          <span className="ml-auto text-[10px] text-text-secondary">
+                            {device.type === 'physical' ? 'USB' : 'VM'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {deviceList.length === 0 && (
+                  <p className="text-xs text-text-secondary">
+                    No devices found. Please connect a device.
+                  </p>
                 )}
               </div>
-              {deviceList.length === 0 && (
-                <p className="text-xs text-text-secondary">No devices found. Please connect a device.</p>
-              )}
-            </div>
-          )}
+            )}
 
-          <div className="space-y-2">
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
-              {isRunning ? 'Actions' : 'HTTPS capture method'}
-            </h4>
-            <div className="space-y-1.5">{renderMethodList()}</div>
-          </div>
-
-          {platform === 'web' && !isRunning && (
             <div className="space-y-2">
               <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
-                Browser profile
+                {isRunning ? 'Actions' : 'HTTPS capture method'}
               </h4>
-              <ProfileSelect value={profilePath} onChange={setProfilePath} />
+              <div className="space-y-1.5">{renderMethodList()}</div>
             </div>
-          )}
 
-          {(selectedAction === 'ebpf' || selectedAction === 'pcap') && !isRunning && (
-            <div className="space-y-2">
-              <h4 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
-                <Lock className="h-3 w-3" />
-                Sudo password
-              </h4>
-              <div className="flex items-center gap-2">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={sudoPassword}
-                  onChange={(e) => setSudoPassword(e.target.value)}
-                  placeholder="Enter your sudo password..."
-                  className="h-[42px] w-full flex-1 rounded-lg border border-border bg-input-background px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
-                />
-                <Button
-                  variant="soft"
-                  title={showPassword ? 'Hide' : 'Show'}
-                  className="h-[42px] w-[42px] shrink-0 px-0 py-0"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-text-secondary" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-text-secondary" />
-                  )}
-                </Button>
+            {platform === 'web' && !isRunning && (
+              <div className="space-y-2">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
+                  Browser profile
+                </h4>
+                <ProfileSelect value={profilePath} onChange={setProfilePath} />
               </div>
-              <p className="text-[11px] text-text-secondary/70">
-                Required for kernel-level traffic capture.
-              </p>
-            </div>
-          )}
-        </div>
+            )}
+
+            {(selectedAction === 'ebpf' || selectedAction === 'pcap') && !isRunning && (
+              <div className="space-y-2">
+                <h4 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-text-secondary/70">
+                  <Lock className="h-3 w-3" />
+                  Sudo password
+                </h4>
+                <div className="flex items-center gap-2">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={sudoPassword}
+                    onChange={(e) => setSudoPassword(e.target.value)}
+                    placeholder="Enter your sudo password..."
+                    className="h-[42px] w-full flex-1 rounded-lg border border-border bg-input-background px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+                  />
+                  <Button
+                    variant="soft"
+                    title={showPassword ? 'Hide' : 'Show'}
+                    className="h-[42px] w-[42px] shrink-0 px-0 py-0"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-text-secondary" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-text-secondary" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-text-secondary/70">
+                  Required for kernel-level traffic capture.
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </ModalBody>
       <ModalFooter>

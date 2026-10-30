@@ -90,9 +90,19 @@ interface TargetListPanelProps {
     useSandbox?: boolean,
     userDataDir?: string,
   ) => Promise<void>;
-  onStartEbpf: (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => Promise<void>;
+  onStartEbpf: (
+    targetId: string,
+    executablePath?: string,
+    useSandbox?: boolean,
+    sudoPassword?: string,
+  ) => Promise<void>;
   onStartCdp: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
-  onStartPcap: (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => Promise<void>;
+  onStartPcap: (
+    targetId: string,
+    executablePath?: string,
+    useSandbox?: boolean,
+    sudoPassword?: string,
+  ) => Promise<void>;
   onStartAppDebug: (
     targetId: string,
     executablePath?: string,
@@ -127,7 +137,6 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   const [filterPlatform, setFilterPlatform] = useState<'all' | AppPlatform>('all');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-
 
   const [deviceList, setDeviceList] = useState<{ name: string; serial: string; type: string }[]>(
     [],
@@ -169,7 +178,6 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   // ── Running modal handlers ──
   const handleStartCDP = useCallback(
     (targetId: string, targetUrl?: string, userDataDir?: string) => {
-      console.log(`[DEBUG][TargetListPanel] handleStartCDP: targetId=${targetId} url=${targetUrl} userDataDir=${JSON.stringify(userDataDir)}`);
       onSelectTarget(targetId);
       onStartTarget(targetId, 'cdp');
       if (onLaunchTarget) {
@@ -449,7 +457,6 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
           )}
         </div>
       </div>
-
 
       <RunningOptionTargetModal
         isOpen={showRunningModal}

@@ -69,6 +69,7 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   const nodes: FileNode[] = [];
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+
     const node: FileNode = {
       id: `fs_${entry.path}`,
       name: entry.name,
@@ -91,7 +92,6 @@ import { cn } from '@renderer/shared/utils/cn';
 import { ConfirmDeleteFileModal } from './ConfirmDeleteFileModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
 
 interface DirEntry {
   name: string;
@@ -570,7 +570,6 @@ const TreeNode = memo(function TreeNode({
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
                 // Debug log - có thể xóa sau khi fix
-                console.log(`[DEBUG] Icon load FAILED: node=${node.name} isFolder=${isFolder} iconSrc=${iconSrc} img.src=${img.src} fallbackIcon=${fallbackIcon}`);
                 if (img.src === fallbackIcon) {
                   img.style.display = 'none';
                 } else {

@@ -75,6 +75,8 @@ export function HeaderBar({
 
   // Load emulate URL from localStorage and check health
   useEffect(() => {
+    if (!isEmulateMode) return;
+
     const saved = localStorage.getItem('emulate_service_url');
     if (saved) {
       setEmulateUrl(saved);
@@ -83,12 +85,12 @@ export function HeaderBar({
     // Initial health check
     checkEmulateHealth(saved || 'localhost:3002');
 
-    // ASSUMED: poll 5s/lần để dot phản ánh việc emulate-server tắt/bật sau khi mount
+    // ASSUMED: poll 5s/lần để dot phản ánh việc emulate-server tắt/bật, chỉ khi đang ở module Emulate
     const timer = setInterval(() => {
       checkEmulateHealth(localStorage.getItem('emulate_service_url') || 'localhost:3002', true);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isEmulateMode]);
 
   const checkEmulateHealth = async (url: string, silent = false) => {
     if (!silent) setEmulateStatus('checking');

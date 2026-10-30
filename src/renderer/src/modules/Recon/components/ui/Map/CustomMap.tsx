@@ -55,7 +55,6 @@ export default function CustomMap({ locations, regions = [] }: Props) {
   // Worker offline từ public/maplibre (relative document.baseURI: đúng cả dev http:// lẫn build file://)
   useEffect(() => {
     const workerUrl = new URL('maplibre/maplibre-gl-worker.js', document.baseURI).href;
-    console.log(`[DEBUG] maplibre workerUrl: ${workerUrl}`);
     setWorkerUrl(workerUrl);
   }, []);
 

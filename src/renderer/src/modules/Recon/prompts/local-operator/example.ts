@@ -1,6 +1,5 @@
 import type { ToolFormat } from '../types';
 
-
 const fenceCall = (
   format: ToolFormat,
   name: string,
@@ -21,7 +20,6 @@ export const buildLocalOperatorExample = (toolFormat: ToolFormat = 'xml'): strin
   const dig = fenceCall(toolFormat, 'run_command', { command: 'dig +short NS example.com' });
   const script = fenceCall(toolFormat, 'create_file', {
     file_path: 'files/scripts/recon-parse-ns.js',
-    content: 'const fs=require("fs");const t=fs.readFileSync(0,"utf8").trim().split(/\\n+/);console.log(JSON.stringify(t));',
   });
   const runScript = fenceCall(toolFormat, 'run_command', {
     command: 'dig +short NS example.com | node files/scripts/recon-parse-ns.js',

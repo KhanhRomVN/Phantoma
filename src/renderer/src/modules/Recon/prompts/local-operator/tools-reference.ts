@@ -1,12 +1,7 @@
 import type { ToolFormat } from '../types';
 
 export type LocalOperatorToolName =
-  | 'run_command'
-  | 'read_file'
-  | 'list_files'
-  | 'create_file'
-  | 'update_file'
-  | 'send_message';
+  'run_command' | 'read_file' | 'list_files' | 'create_file' | 'update_file' | 'send_message';
 
 export const LOCAL_OPERATOR_TOOLS: LocalOperatorToolName[] = [
   'run_command',
@@ -26,7 +21,9 @@ const callText = (
 ): string => {
   if (format === 'json') return JSON.stringify({ tool: name, params });
   if (Object.keys(params).length === 0) return `<${name} />`;
-  const inner = Object.entries(params).map(([k, v]) => `<${k}>${v}</${k}>`).join('');
+  const inner = Object.entries(params)
+    .map(([k, v]) => `<${k}>${v}</${k}>`)
+    .join('');
   return `<${name}>${inner}</${name}>`;
 };
 
@@ -50,16 +47,12 @@ const TOOL_DEFS: Record<LocalOperatorToolName, ToolDef> = {
   },
   read_file: {
     description: 'Read a file from the recon workspace (e.g. a script you just created).',
-    examples: [
-      { params: { file_path: 'files/scripts/recon-parse.js' }, note: 'read the script' },
-    ],
+    examples: [{ params: { file_path: 'files/scripts/recon-parse.js' }, note: 'read the script' }],
   },
   list_files: {
     description:
       'List files and folders under a path (relative to the recon workspace root). Each file entry includes its line count.',
-    examples: [
-      { params: { folder_path: 'files/scripts' }, note: 'list throwaway scripts' },
-    ],
+    examples: [{ params: { folder_path: 'files/scripts' }, note: 'list throwaway scripts' }],
   },
   create_file: {
     description:
@@ -68,7 +61,8 @@ const TOOL_DEFS: Record<LocalOperatorToolName, ToolDef> = {
       {
         params: {
           file_path: 'files/scripts/recon-parse-whois.js',
-          content: 'const fs=require("fs");const t=fs.readFileSync(0,"utf8");console.log(t.match(/Registrar: (.+)/)?.[1]||"");',
+          content:
+            'const fs=require("fs");const t=fs.readFileSync(0,"utf8");console.log(t.match(/Registrar: (.+)/)?.[1]||"");',
         },
         note: 'create a one-off parser',
       },
@@ -82,7 +76,8 @@ const TOOL_DEFS: Record<LocalOperatorToolName, ToolDef> = {
         params: {
           file_path: 'files/scripts/recon-parse-whois.js',
           old_content: 'console.log(t.match(/Registrar: (.+)/)?.[1]||"");',
-          new_content: 'console.log(JSON.stringify({registrar:t.match(/Registrar: (.+)/)?.[1]||""}));',
+          new_content:
+            'console.log(JSON.stringify({registrar:t.match(/Registrar: (.+)/)?.[1]||""}));',
         },
         note: 'patch the script',
       },
@@ -95,7 +90,8 @@ const TOOL_DEFS: Record<LocalOperatorToolName, ToolDef> = {
       {
         params: {
           agent_id: 'orchestrator',
-          message: 'TYPE: RESULT\nSTATUS: OK\nBODY:\nCOMMANDS RUN:\n- whois example.com\nOUTPUT:\n```\nRegistrar: NameCheap Inc.\n```',
+          message:
+            'TYPE: RESULT\nSTATUS: OK\nBODY:\nCOMMANDS RUN:\n- whois example.com\nOUTPUT:\n```\nRegistrar: NameCheap Inc.\n```',
         },
         note: 'send the RESULT back',
       },
@@ -109,7 +105,9 @@ export const buildLocalOperatorToolsReference = (toolFormat: ToolFormat = 'xml')
       ? 'Every tool call is one JSON object in its own fenced json block: ' +
         tick('{"tool":"<name>","params":{...}}') +
         '.'
-      : 'Every tool call is one XML tag, for example ' + tick('<run_command>...</run_command>') + '.';
+      : 'Every tool call is one XML tag, for example ' +
+        tick('<run_command>...</run_command>') +
+        '.';
   const docs = LOCAL_OPERATOR_TOOLS.map((tool) => {
     const def = TOOL_DEFS[tool];
     const examples = def.examples

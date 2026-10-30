@@ -21,16 +21,7 @@ import React, {
 } from 'react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
-import {
-  Search,
-  Smartphone,
-  Monitor,
-  Loader2,
-  RefreshCw,
-  Check,
-  Bug,
-  Folder,
-} from 'lucide-react';
+import { Search, Smartphone, Monitor, Loader2, RefreshCw, Check, Bug, Folder } from 'lucide-react';
 import type { AppPlatform, AppMode, DiscoveredApp } from '../../types/apps';
 import { PLATFORMS } from '../../constants/platforms';
 import { cn } from '@renderer/shared/utils/cn';
@@ -41,7 +32,6 @@ import {
   listChromiumProfiles,
   getChromeProfileDirs,
 } from '@renderer/components/RightPanel/Zen/services/chromeProfiles';
-
 
 // ─── Shared Types ───────────────────────────────────────────────────────
 export interface BaseModalProps {
@@ -92,7 +82,6 @@ type FormProps = Pick<
   'isOpen' | 'onAdd' | 'existingApps' | 'editApp' | 'onEdit' | 'onCanSubmitChange'
 >;
 
-
 interface Device {
   name: string;
   serial: string;
@@ -112,7 +101,6 @@ const PLATFORM_RGB: Record<AppPlatform, string> = {
   android: '16, 185, 129',
   cli: '245, 158, 11',
 };
-
 
 // ─── Shared Helpers ─────────────────────────────────────────────────────
 /** Thêm https:// nếu URL người dùng nhập chưa có protocol. */
@@ -198,15 +186,15 @@ const Field: React.FC<{
   children: React.ReactNode;
 }> = ({ label, optional, hint, error, children }) => (
   <div>
-    <label className='block text-xs font-semibold text-text-secondary mb-1.5'>
+    <label className="block text-xs font-semibold text-text-secondary mb-1.5">
       {label}
-      {optional && <span className='font-normal text-text-secondary/60'> (optional)</span>}
+      {optional && <span className="font-normal text-text-secondary/60"> (optional)</span>}
     </label>
     {children}
     {error ? (
-      <p className='text-xs text-error mt-1.5'>{error}</p>
+      <p className="text-xs text-error mt-1.5">{error}</p>
     ) : hint ? (
-      <p className='text-[11px] text-text-secondary/70 mt-1.5'>{hint}</p>
+      <p className="text-[11px] text-text-secondary/70 mt-1.5">{hint}</p>
     ) : null}
   </div>
 );
@@ -218,16 +206,16 @@ const Toggle: React.FC<{
   description?: string;
 }> = ({ checked, onChange, label, description }) => (
   <button
-    type='button'
-    role='switch'
+    type="button"
+    role="switch"
     aria-checked={checked}
     onClick={() => onChange(!checked)}
-    className='flex w-full items-center justify-between gap-4 rounded-lg bg-input-background px-3 py-2.5 text-left outline-none transition-colors hover:bg-dropdown-item-hover/60'
+    className="flex w-full items-center justify-between gap-4 rounded-lg bg-input-background px-3 py-2.5 text-left outline-none transition-colors hover:bg-dropdown-item-hover/60"
   >
-    <span className='min-w-0'>
-      <span className='block text-sm font-medium text-text-primary'>{label}</span>
+    <span className="min-w-0">
+      <span className="block text-sm font-medium text-text-primary">{label}</span>
       {description && (
-        <span className='mt-0.5 block text-xs text-text-secondary'>{description}</span>
+        <span className="mt-0.5 block text-xs text-text-secondary">{description}</span>
       )}
     </span>
     <span
@@ -246,7 +234,6 @@ const Toggle: React.FC<{
   </button>
 );
 
-
 const FaviconBox: React.FC<{
   status: FaviconStatus;
   src: string | null;
@@ -262,13 +249,13 @@ const FaviconBox: React.FC<{
     )}
   >
     {status === 'loading' && (
-      <div className='w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin' />
+      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     )}
     {status === 'success' && src && (
-      <img src={src} alt='Favicon' className='w-6 h-6 object-contain' onError={onError} />
+      <img src={src} alt="Favicon" className="w-6 h-6 object-contain" onError={onError} />
     )}
-    {status === 'error' && <Bug className='w-5 h-5 text-error' />}
-    {status === 'idle' && <div className='w-6 h-6 rounded bg-border/30' />}
+    {status === 'error' && <Bug className="w-5 h-5 text-error" />}
+    {status === 'idle' && <div className="w-6 h-6 rounded bg-border/30" />}
   </div>
 );
 
@@ -277,33 +264,32 @@ const FolderInput: React.FC<{
   onChange: (value: string) => void;
   placeholder: string;
 }> = ({ value, onChange, placeholder }) => (
-  <div className='flex items-center gap-2'>
+  <div className="flex items-center gap-2">
     <input
-      type='text'
+      type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={cn(INPUT, 'flex-1 font-mono')}
     />
     <Button
-      variant='soft'
-      title='Choose folder'
-      className='h-[42px] w-[42px] shrink-0 px-0 py-0'
+      variant="soft"
+      title="Choose folder"
+      className="h-[42px] w-[42px] shrink-0 px-0 py-0"
       onClick={async () => {
         const folder = await pickFolder();
         if (folder) onChange(folder);
       }}
     >
-      <Folder className='w-4 h-4 text-text-secondary' />
+      <Folder className="w-4 h-4 text-text-secondary" />
     </Button>
   </div>
 );
 
-
 // ─── Platform Picker ────────────────────────────────────────────────────
 const PlatformPicker: React.FC<{ onSelect: (platform: AppPlatform) => void }> = ({ onSelect }) => (
-  <div className='flex-1 min-h-0 overflow-y-auto p-6'>
-    <div className='flex flex-col gap-3'>
+  <div className="flex-1 min-h-0 overflow-y-auto p-6">
+    <div className="flex flex-col gap-3">
       {(Object.keys(PLATFORMS) as AppPlatform[]).map((pid) => {
         const meta = PLATFORMS[pid];
         const Icon = meta.icon;
@@ -311,25 +297,25 @@ const PlatformPicker: React.FC<{ onSelect: (platform: AppPlatform) => void }> = 
         return (
           <button
             key={pid}
-            type='button'
+            type="button"
             onClick={() => onSelect(pid)}
-            className='group relative flex flex-row items-center gap-4 overflow-hidden rounded-lg bg-input-background px-4 py-3 text-left outline-none transition-all duration-200 hover:-translate-y-0.5'
+            className="group relative flex flex-row items-center gap-4 overflow-hidden rounded-lg bg-input-background px-4 py-3 text-left outline-none transition-all duration-200 hover:-translate-y-0.5"
           >
             <span
-              className='pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100'
+              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
               style={{
                 background: `radial-gradient(120% 120% at 0% 0%, rgba(${rgb}, 0.18), transparent 60%)`,
               }}
             />
             <span
-              className='relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-border/40 text-text-secondary transition-colors duration-200 group-hover:bg-[rgba(var(--platform-rgb),0.14)] group-hover:text-[rgb(var(--platform-rgb))]'
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-border/40 text-text-secondary transition-colors duration-200 group-hover:bg-[rgba(var(--platform-rgb),0.14)] group-hover:text-[rgb(var(--platform-rgb))]"
               style={{ '--platform-rgb': rgb } as React.CSSProperties}
             >
-              <Icon className='h-4 w-4' />
+              <Icon className="h-4 w-4" />
             </span>
-            <span className='relative block min-w-0 flex-1'>
-              <span className='block text-base font-semibold text-text-primary'>{meta.label}</span>
-              <span className='mt-0.5 block text-xs text-text-secondary'>{meta.description}</span>
+            <span className="relative block min-w-0 flex-1">
+              <span className="block text-base font-semibold text-text-primary">{meta.label}</span>
+              <span className="mt-0.5 block text-xs text-text-secondary">{meta.description}</span>
             </span>
           </button>
         );
@@ -349,11 +335,16 @@ interface BrowserProfile {
 const ProfileAvatar: React.FC<{ src?: string }> = ({ src }) => {
   const [failed, setFailed] = useState(false);
   return (
-    <div className='flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-border/40 text-text-secondary'>
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-border/40 text-text-secondary">
       {src && !failed ? (
-        <img src={src} alt='' className='h-full w-full object-cover' onError={() => setFailed(true)} />
+        <img
+          src={src}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
       ) : (
-        <User className='h-4 w-4' />
+        <User className="h-4 w-4" />
       )}
     </div>
   );
@@ -362,17 +353,16 @@ const ProfileAvatar: React.FC<{ src?: string }> = ({ src }) => {
 const ProfileCardContent: React.FC<{ profile: BrowserProfile }> = ({ profile }) => (
   <>
     <ProfileAvatar src={profile.avatar} />
-    <div className='min-w-0 flex-1 text-left'>
-      <div className='truncate text-[13px] font-semibold text-text-primary'>{profile.email}</div>
-      <div className='truncate font-mono text-[11px] text-text-secondary'>{profile.path}</div>
+    <div className="min-w-0 flex-1 text-left">
+      <div className="truncate text-[13px] font-semibold text-text-primary">{profile.email}</div>
+      <div className="truncate font-mono text-[11px] text-text-secondary">{profile.path}</div>
     </div>
   </>
 );
 
 const PROFILE_CARD =
   'flex min-w-0 items-center gap-3 rounded-xl border p-3 text-left outline-none transition-all';
-const PROFILE_CARD_SELECTED =
-  'rounded-l-none border-transparent border-l-2 bg-input-background';
+const PROFILE_CARD_SELECTED = 'rounded-l-none border-transparent border-l-2 bg-input-background';
 
 const PROFILE_COLORS = [
   '#0ea5e9',
@@ -385,8 +375,7 @@ const PROFILE_COLORS = [
   '#fb923c',
 ];
 const getProfileColor = (index: number) => PROFILE_COLORS[index % PROFILE_COLORS.length];
-const PROFILE_CARD_IDLE =
-  'border-border/40 bg-input-background hover:bg-dropdown-item-hover/60';
+const PROFILE_CARD_IDLE = 'border-border/40 bg-input-background hover:bg-dropdown-item-hover/60';
 
 const EMAIL_REGEX = /[^\s<>()]+@[^\s<>()]+\.[^\s<>()]+/;
 
@@ -395,7 +384,6 @@ export const ProfileSelect: React.FC<{ value: string; onChange: (path: string) =
   value,
   onChange,
 }) => {
-
   const [profiles, setProfiles] = useState<BrowserProfile[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -409,7 +397,6 @@ export const ProfileSelect: React.FC<{ value: string; onChange: (path: string) =
     Promise.all([listChromiumProfiles(''), resolveBase])
       .then(([result, baseDir]) => {
         if (!mounted) return;
-        console.log(`[DEBUG][ProfileSelect] resolvedBase=${JSON.stringify(baseDir)} profiles=${result.profiles.length}`);
         const entries: { folder: string; label?: string; avatar?: string }[] =
           result.profiles.length > 0 ? result.profiles : result.folders.map((f) => ({ folder: f }));
         setProfiles(
@@ -430,24 +417,24 @@ export const ProfileSelect: React.FC<{ value: string; onChange: (path: string) =
   }, []);
 
   return (
-    <div className='space-y-2'>
-      <div className='grid grid-cols-2 gap-2'>
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
         <button
-          type='button'
+          type="button"
           onClick={() => onChange('')}
           className={cn(PROFILE_CARD, !value ? PROFILE_CARD_SELECTED : PROFILE_CARD_IDLE)}
           style={!value ? { borderLeftColor: getProfileColor(0) } : undefined}
         >
           <ProfileAvatar />
-          <div className='min-w-0 flex-1 text-left'>
-            <div className='truncate text-[13px] font-semibold text-text-primary'>No Profile</div>
-            <div className='truncate text-[11px] text-text-secondary'>Clean temporary session</div>
+          <div className="min-w-0 flex-1 text-left">
+            <div className="truncate text-[13px] font-semibold text-text-primary">No Profile</div>
+            <div className="truncate text-[11px] text-text-secondary">Clean temporary session</div>
           </div>
         </button>
         {profiles.map((profile, index) => (
           <button
             key={profile.path}
-            type='button'
+            type="button"
             onClick={() => onChange(profile.path)}
             style={
               profile.path === value ? { borderLeftColor: getProfileColor(index + 1) } : undefined
@@ -462,8 +449,8 @@ export const ProfileSelect: React.FC<{ value: string; onChange: (path: string) =
         ))}
       </div>
       {loading && (
-        <div className='flex items-center gap-2 text-xs text-text-secondary'>
-          <Loader2 className='h-3.5 w-3.5 animate-spin' />
+        <div className="flex items-center gap-2 text-xs text-text-secondary">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Loading profiles...
         </div>
       )}
@@ -542,24 +529,24 @@ const WebsiteForm = forwardRef<BodyRef, FormProps>(function WebsiteForm(
 
   return (
     <div className={FORM_SCROLL}>
-      <div className='space-y-3'>
-        <Field label='Name' error={duplicateError.name}>
+      <div className="space-y-3">
+        <Field label="Name" error={duplicateError.name}>
           <input
-            type='text'
+            type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder='e.g. Google'
+            placeholder="e.g. Google"
             className={cn(INPUT, duplicateError.name && 'border-error')}
           />
         </Field>
-        <Field label='URL' error={duplicateError.value}>
-          <div className='flex items-center gap-2'>
+        <Field label="URL" error={duplicateError.value}>
+          <div className="flex items-center gap-2">
             <FaviconBox status={favicon.status} src={favicon.src} onError={favicon.markError} />
             <input
-              type='text'
+              type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder='https://example.com'
+              placeholder="https://example.com"
               className={cn(INPUT, 'flex-1 font-mono', duplicateError.value && 'border-error')}
             />
           </div>
@@ -567,7 +554,7 @@ const WebsiteForm = forwardRef<BodyRef, FormProps>(function WebsiteForm(
       </div>
 
       {!isEdit && (
-        <Field label='Browser session'>
+        <Field label="Browser session">
           <ProfileSelect value={profilePath} onChange={setProfilePath} />
         </Field>
       )}
@@ -649,9 +636,10 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
   const isExistingSerial = (serial: string) =>
     existingApps.some((app) => app.emulatorSerial?.toLowerCase() === serial.toLowerCase());
 
-  const duplicateError = selectedDevice && isExistingSerial(selectedDevice.serial)
-    ? `Device '${selectedDevice.name}' (${selectedDevice.serial}) already exists`
-    : null;
+  const duplicateError =
+    selectedDevice && isExistingSerial(selectedDevice.serial)
+      ? `Device '${selectedDevice.name}' (${selectedDevice.serial}) already exists`
+      : null;
 
   const handleSubmit = async () => {
     if (!selectedDevice || duplicateError) return;
@@ -678,45 +666,45 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
   }, [canSubmit, onCanSubmitChange]);
 
   return (
-    <div className='flex min-h-0 flex-1 flex-col'>
-      <div className='flex shrink-0 gap-2 px-6 pb-3 pt-5'>
-        <div className='relative flex-1'>
-          <Search className='absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary' />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 gap-2 px-6 pb-3 pt-5">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
           <input
-            type='text'
-            placeholder='Search device by name or serial...'
+            type="text"
+            placeholder="Search device by name or serial..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={cn(INPUT, 'pl-9')}
           />
         </div>
         <Button
-          variant='soft'
+          variant="soft"
           disabled={loading}
           onClick={loadDevices}
-          title='Rescan devices'
-          className='h-[42px] w-[42px] shrink-0 px-0 py-0'
+          title="Rescan devices"
+          className="h-[42px] w-[42px] shrink-0 px-0 py-0"
         >
           <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
         </Button>
       </div>
 
-      <div className='min-h-0 flex-1 overflow-y-auto px-6'>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6">
         {loading && devices.length === 0 ? (
-          <div className='flex h-full flex-col items-center justify-center gap-2'>
-            <Loader2 className='h-6 w-6 animate-spin text-primary' />
-            <p className='text-sm text-text-secondary'>Scanning devices...</p>
+          <div className="flex h-full flex-col items-center justify-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-sm text-text-secondary">Scanning devices...</p>
           </div>
         ) : filteredDevices.length === 0 ? (
-          <div className='flex h-full flex-col items-center justify-center text-text-secondary'>
-            <Smartphone className='h-12 w-12 text-text-secondary/30' />
-            <p className='mt-2 text-sm'>No device found</p>
-            <p className='text-xs text-text-secondary/60'>
+          <div className="flex h-full flex-col items-center justify-center text-text-secondary">
+            <Smartphone className="h-12 w-12 text-text-secondary/30" />
+            <p className="mt-2 text-sm">No device found</p>
+            <p className="text-xs text-text-secondary/60">
               Start a Genymotion VM or connect an Android device
             </p>
           </div>
         ) : (
-          <div className='grid grid-cols-2 gap-2 pb-3'>
+          <div className="grid grid-cols-2 gap-2 pb-3">
             {filteredDevices.map((device) => {
               const isSelected = selectedDevice?.serial === device.serial;
               const isExisting = isExistingSerial(device.serial);
@@ -724,7 +712,7 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
               return (
                 <button
                   key={device.serial}
-                  type='button'
+                  type="button"
                   disabled={isExisting}
                   onClick={() => setSelectedDevice(device)}
                   className={cn(
@@ -749,15 +737,21 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
                       )}
                     />
                   </div>
-                  <div className='min-w-0 flex-1'>
-                    <div className='truncate text-xs font-semibold text-text-primary'>{device.name}</div>
-                    <div className='truncate font-mono text-[10px] text-text-secondary'>{device.serial}</div>
-                    <div className='mt-0.5 text-[10px] text-text-secondary/60'>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-semibold text-text-primary">
+                      {device.name}
+                    </div>
+                    <div className="truncate font-mono text-[10px] text-text-secondary">
+                      {device.serial}
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-text-secondary/60">
                       {DEVICE_LABEL[device.type]}
                     </div>
                   </div>
-                  {isSelected && <Check className='h-4 w-4 shrink-0 text-primary' />}
-                  {isExisting && <span className='shrink-0 text-[10px] text-text-secondary'>Added</span>}
+                  {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                  {isExisting && (
+                    <span className="shrink-0 text-[10px] text-text-secondary">Added</span>
+                  )}
                 </button>
               );
             })}
@@ -766,35 +760,35 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
       </div>
 
       {duplicateError && (
-        <div className='shrink-0 px-6 pb-3'>
-          <div className='rounded-lg border border-error/20 bg-error/10 p-2 text-sm text-error'>
+        <div className="shrink-0 px-6 pb-3">
+          <div className="rounded-lg border border-error/20 bg-error/10 p-2 text-sm text-error">
             {duplicateError}
           </div>
         </div>
       )}
 
-      <div className='shrink-0 space-y-3 border-t border-divider px-6 py-4'>
-        <Field label='Package name' optional hint='Launch this app once the session starts'>
+      <div className="shrink-0 space-y-3 border-t border-divider px-6 py-4">
+        <Field label="Package name" optional hint="Launch this app once the session starts">
           <input
-            type='text'
+            type="text"
             value={packageName}
             onChange={(e) => setPackageName(e.target.value)}
-            placeholder='com.example.app'
+            placeholder="com.example.app"
             className={cn(INPUT, 'font-mono')}
           />
         </Field>
-        <div className='grid grid-cols-2 gap-2'>
+        <div className="grid grid-cols-2 gap-2">
           <Toggle
             checked={installCa}
             onChange={setInstallCa}
-            label='Install CA certificate'
-            description='Needed to decrypt HTTPS'
+            label="Install CA certificate"
+            description="Needed to decrypt HTTPS"
           />
           <Toggle
             checked={clearData}
             onChange={setClearData}
-            label='Clear app data'
-            description='Fresh state on each start'
+            label="Clear app data"
+            description="Fresh state on each start"
           />
         </div>
       </div>
@@ -894,45 +888,47 @@ const PCForm = forwardRef<BodyRef, FormProps>(function PCForm(
   }, [canSubmit, onCanSubmitChange]);
 
   return (
-    <div className='flex min-h-0 flex-1 flex-col'>
-      <div className='flex shrink-0 flex-col'>
-        <div className='flex shrink-0 gap-2 px-6 pb-3 pt-5'>
-          <div className='relative flex-1'>
-            <Search className='absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary' />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 flex-col">
+        <div className="flex shrink-0 gap-2 px-6 pb-3 pt-5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
             <input
-              type='text'
-              placeholder='Search apps...'
+              type="text"
+              placeholder="Search apps..."
               value={pcSearch}
               onChange={(e) => setPcSearch(e.target.value)}
               className={cn(INPUT, 'pl-9')}
             />
           </div>
           <Button
-            variant='soft'
-            title='Rescan apps'
+            variant="soft"
+            title="Rescan apps"
             onClick={loadPcApps}
-            className='h-[42px] w-[42px] shrink-0 px-0 py-0'
+            className="h-[42px] w-[42px] shrink-0 px-0 py-0"
           >
             <RefreshCw className={cn('h-4 w-4 text-text-secondary', pcLoading && 'animate-spin')} />
           </Button>
         </div>
       </div>
-      <div className='min-h-0 flex-1 overflow-y-auto px-6 pb-3'>
-          {pcLoading && !discoveredApps.length ? (
-            <div className='flex h-full flex-col items-center justify-center gap-2'>
-              <Loader2 className='h-6 w-6 animate-spin text-primary' />
-              <p className='text-sm text-text-secondary'>Scanning installed apps...</p>
-            </div>
-          ) : (
-            <div className='grid grid-cols-2 gap-2'>{filteredPcApps.map((app) => {
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-3">
+        {pcLoading && !discoveredApps.length ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-sm text-text-secondary">Scanning installed apps...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {filteredPcApps.map((app) => {
               const exec = getExec(app);
               const isExisting = isExistingApp(app);
-              const isSelected = selectedPcApp?.name === app.name && getExec(selectedPcApp) === exec;
+              const isSelected =
+                selectedPcApp?.name === app.name && getExec(selectedPcApp) === exec;
               const accent = getAppAccent(app.name);
               return (
                 <button
                   key={`${app.name}-${exec}`}
-                  type='button'
+                  type="button"
                   disabled={isExisting}
                   onClick={() => setSelectedPcApp(app)}
                   style={
@@ -949,37 +945,39 @@ const PCForm = forwardRef<BodyRef, FormProps>(function PCForm(
                         : 'border-border/40 bg-input-background hover:bg-dropdown-item-hover/60',
                   )}
                 >
-                  <div className='flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-dropdown-item-hover'>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-dropdown-item-hover">
                     {app.icon ? (
                       <img
                         src={`media://${app.icon}`}
                         alt={app.name}
-                        className='h-8 w-8 object-contain'
+                        className="h-8 w-8 object-contain"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}
                       />
                     ) : (
-                      <Monitor className='h-4 w-4 text-text-secondary' />
+                      <Monitor className="h-4 w-4 text-text-secondary" />
                     )}
                   </div>
-                  <div className='min-w-0 flex-1'>
-                    <div className='truncate text-xs font-semibold text-text-primary'>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-semibold text-text-primary">
                       {app.name}
                       {isExisting && (
-                        <span className='ml-2 text-[10px] font-normal text-text-secondary'>(added)</span>
+                        <span className="ml-2 text-[10px] font-normal text-text-secondary">
+                          (added)
+                        </span>
                       )}
                     </div>
-                    <div className='truncate text-[10px] text-text-secondary'>
+                    <div className="truncate text-[10px] text-text-secondary">
                       {app.description || 'System Application'}
                     </div>
                   </div>
                 </button>
               );
-            })}</div>
-          )}
+            })}
+          </div>
+        )}
       </div>
-
     </div>
   );
 });
@@ -1064,49 +1062,53 @@ const CLIForm = forwardRef<BodyRef, FormProps>(function CLIForm(
 
   return (
     <div className={FORM_SCROLL}>
-      <div className='space-y-4'>
-        <Field label='Name' error={duplicateError.name}>
+      <div className="space-y-4">
+        <Field label="Name" error={duplicateError.name}>
           <input
-            type='text'
+            type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder='e.g. My Node API'
+            placeholder="e.g. My Node API"
             className={cn(INPUT, duplicateError.name && 'border-error')}
           />
         </Field>
         <Field
-          label='URL'
+          label="URL"
           optional
           error={isUrlInvalid ? 'Invalid URL' : undefined}
-          hint='Used to display the favicon for this CLI target'
+          hint="Used to display the favicon for this CLI target"
         >
-          <div className='flex items-center gap-2'>
+          <div className="flex items-center gap-2">
             <FaviconBox status={favicon.status} src={favicon.src} onError={favicon.markError} />
             <input
-              type='text'
+              type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder='https://example.com'
+              placeholder="https://example.com"
               className={cn(INPUT, 'flex-1 font-mono', isUrlInvalid && 'border-error')}
             />
           </div>
         </Field>
         <Field
-          label='Command'
+          label="Command"
           error={duplicateError.value}
-          hint='The command will be proxied through the MITM proxy for traffic inspection'
+          hint="The command will be proxied through the MITM proxy for traffic inspection"
         >
           <textarea
             value={command}
             onChange={(e) => setCommand(e.target.value)}
-            placeholder='e.g. node server.js --port 3000'
+            placeholder="e.g. node server.js --port 3000"
             rows={3}
             className={cn(INPUT, 'resize-none font-mono', duplicateError.value && 'border-error')}
           />
         </Field>
         {!isEdit && (
-          <Field label='Working directory' optional>
-            <FolderInput value={workingDir} onChange={setWorkingDir} placeholder='/path/to/project' />
+          <Field label="Working directory" optional>
+            <FolderInput
+              value={workingDir}
+              onChange={setWorkingDir}
+              placeholder="/path/to/project"
+            />
           </Field>
         )}
       </div>
@@ -1201,7 +1203,14 @@ export const TargetModal: React.FC<TargetModalProps> = ({
   }, [step, isEdit, onClose]);
 
   const renderBody = () => {
-    const common = { isOpen, onAdd, existingApps, editApp, onEdit, onCanSubmitChange: setCanSubmit };
+    const common = {
+      isOpen,
+      onAdd,
+      existingApps,
+      editApp,
+      onEdit,
+      onCanSubmitChange: setCanSubmit,
+    };
     switch (step) {
       case 'web':
         return <WebsiteForm ref={bodyRef} {...common} />;
@@ -1223,13 +1232,13 @@ export const TargetModal: React.FC<TargetModalProps> = ({
       className={cn('!max-w-none !max-h-none overflow-hidden', MODAL_SIZE[step ?? 'select'])}
     >
       <ModalHeader title={title} description={description} onClose={onClose} />
-      <ModalBody className='flex min-h-0 flex-col !overflow-hidden !p-0'>{renderBody()}</ModalBody>
+      <ModalBody className="flex min-h-0 flex-col !overflow-hidden !p-0">{renderBody()}</ModalBody>
       {step && (
         <ModalFooter>
           <Button onClick={handleCancel} className={CANCEL_CLASS}>
             Cancel
           </Button>
-          <Button variant='soft' onClick={handleSubmit} disabled={!canSubmit}>
+          <Button variant="soft" onClick={handleSubmit} disabled={!canSubmit}>
             {isEdit ? 'Save Changes' : 'Add Target'}
           </Button>
         </ModalFooter>

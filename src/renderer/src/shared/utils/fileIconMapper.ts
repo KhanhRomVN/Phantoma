@@ -171,10 +171,6 @@ export function getFileIcon(filename: string): string {
  * @returns Full path to icon SVG
  */
 export function getIconBaseUri(): string {
-  // Debug log - có thể xóa sau khi fix
-  console.log(`[DEBUG] __zenImagesUri: ${window.__zenImagesUri}`);
-  console.log(`[DEBUG] document.baseURI: ${document.baseURI}`);
-  console.log(`[DEBUG] location.href: ${window.location.href}`);
   return `${window.__zenImagesUri || new URL('images', document.baseURI).href}/icon`;
 }
 
@@ -183,8 +179,6 @@ export function getFileIconPath(filename: string): string {
   const baseUri = getIconBaseUri();
   const path = `${baseUri}/${iconName}`;
   const finalPath = path.replace(/([^:/]\/)\/+/g, '$1');
-  // Debug log - có thể xóa sau khi fix
-  console.log(`[DEBUG] getFileIconPath: filename=${filename} iconName=${iconName} baseUri=${baseUri} finalPath=${finalPath}`);
   return finalPath;
 }
 
@@ -1121,7 +1115,11 @@ const FOLDER_ICON_MAP: Record<string, string> = {
  * Get folder icon name based on folder name
  */
 export function getFolderIconName(folderName: string, isOpen: boolean = false): string {
-  const key = folderName.toLowerCase().replace(/^__/, '').replace(/__$/, '').replace(/^[._-]/, '');
+  const key = folderName
+    .toLowerCase()
+    .replace(/^__/, '')
+    .replace(/__$/, '')
+    .replace(/^[._-]/, '');
   const base = FOLDER_ICON_MAP[key];
   if (base) {
     return isOpen ? `${base}-open.svg` : `${base}.svg`;
@@ -1145,6 +1143,5 @@ export function getFolderIconPath(folderName?: string, isOpen: boolean = false):
   const path = `${baseUri}/${iconName}`;
   const finalPath = path.replace(/([^:/]\/)\/+/g, '$1');
   // Debug log - có thể xóa sau khi fix
-  console.log(`[DEBUG] getFolderIconPath: folderName=${folderName} isOpen=${isOpen} iconName=${iconName} baseUri=${baseUri} finalPath=${finalPath}`);
   return finalPath;
 }

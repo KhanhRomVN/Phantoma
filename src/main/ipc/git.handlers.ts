@@ -37,7 +37,7 @@ import { ipcMain } from 'electron';
 import { execFile } from 'child_process';
 import { promises as fs } from 'fs';
 import { tmpdir } from 'os';
-import { dirname, join, resolve } from 'path';
+import { basename, dirname, join, resolve } from 'path';
 
 // ── Internal ──
 import { logger } from '../utils/logger';
@@ -239,7 +239,20 @@ export function setupGitHandlers(): void {
         .map((line) => line.trim())
         .filter((line) => line.length > 0 && !line.startsWith('remotes/origin/HEAD'));
 
-      return { branches };
+      const worktreePaths: Record<string, string> = {};
+      const wtList = await runGit(['worktree', 'list', '--porcelain'], cwd);
+      if (!wtList.error) {
+        const mainRoot = resolve(cwd);
+        for (const block of wtList.stdout.split(/\n\s*\n/)) {
+          const lines = block.split('\n');
+          const wtPath = lines.find((l) => l.startsWith('worktree '))?.slice(9).trim();
+          const ref = lines.find((l) => l.startsWith('branch '))?.slice(7).trim();
+          if (!wtPath || !ref || resolve(wtPath) === mainRoot) continue;
+          worktreePaths[ref.replace(/^refs\/heads\//, '')] = wtPath;
+        }
+      }
+
+      return { branches, worktreePaths };
     } catch (e: any) {
       logger.error('[git:list-branches] Error:', e);
       return { error: e.message || String(e) };
@@ -622,15 +635,6 @@ export function setupGitHandlers(): void {
     }
   });
 
-  const WORKTREES_IGNORE_RE = /^\/?worktrees\/?\s*$/m;
-
-  async function ensureWorktreesIgnored(cwd: string): Promise<void> {
-    const file = join(cwd, '.gitignore');
-    const content = await fs.readFile(file, 'utf8').catch(() => null);
-    if (content === null || WORKTREES_IGNORE_RE.test(content)) return;
-    const sep = content.length === 0 || content.endsWith('\n') ? '' : '\n';
-    await fs.appendFile(file, `${sep}worktrees/\n`);
-  }
 
   // ── Is Repo (kiểm tra project có git hay không) ──
   ipcMain.handle('git:is-repo', async (_event, projectPath: string) => {
@@ -645,20 +649,17 @@ export function setupGitHandlers(): void {
     const status = await runGit(['status', '--porcelain'], cwd);
     const changedFiles = status.error
       ? 0
-      : status.stdout
-          .split('\n')
-          .filter((l) => l.trim() && !l.slice(3).startsWith('worktrees/')).length;
+      : status.stdout.split('\n').filter((l) => l.trim()).length;
     const ignored = await runGit(
       ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
       cwd,
     );
     const ignoredPaths = ignored.error
       ? []
-      : ignored.stdout.split('\0').filter((p) => p.length > 0 && !p.startsWith('worktrees/'));
+      : ignored.stdout.split('\0').filter((p) => p.length > 0);
     return {
       ignoredPaths,
       hasGitignore: content !== null,
-      alreadyIgnored: content !== null && WORKTREES_IGNORE_RE.test(content),
       changedFiles,
     };
   });
@@ -673,6 +674,7 @@ export function setupGitHandlers(): void {
       sourceBranch: string,
       mode: 'latest-commit' | 'local',
       copyPaths: string[] = [],
+      targetDir?: string,
     ) => {
       const cwd = projectPath || process.cwd();
       const name = (newBranch || '').trim();
@@ -708,7 +710,13 @@ export function setupGitHandlers(): void {
           }
         }
 
-        const targetPath = join(resolve(cwd), 'worktrees', name.replace(/\//g, '-'));
+        // ASSUMED: mặc định lưu cùng cấp với project (thư mục cha); '/' trong tên branch đổi thành '-' để không tạo thư mục lồng
+        const projectRoot = resolve(cwd);
+        const baseDir = targetDir?.trim() ? resolve(targetDir.trim()) : dirname(projectRoot);
+        const targetPath = join(baseDir, `${basename(projectRoot)}-${name.replace(/\//g, '-')}`);
+        if (await fs.lstat(targetPath).catch(() => null)) {
+          return { error: `Thư mục "${targetPath}" đã tồn tại` };
+        }
         const add = await runGit(['worktree', 'add', '-b', name, targetPath, sourceBranch], cwd);
         if (add.error) return { error: add.stderr || add.error.message };
 
@@ -738,9 +746,7 @@ export function setupGitHandlers(): void {
           }
 
           const untracked = await runGit(['ls-files', '--others', '--exclude-standard', '-z'], cwd);
-          const files = untracked.stdout
-            .split('\0')
-            .filter((f) => f.length > 0 && !f.startsWith('worktrees/'));
+          const files = untracked.stdout.split('\0').filter((f) => f.length > 0);
           for (const file of files) {
             const dest = join(targetPath, file);
             await fs.mkdir(dirname(dest), { recursive: true });
@@ -768,8 +774,6 @@ export function setupGitHandlers(): void {
             }
           } else await fs.copyFile(src, dest);
         }
-
-        await ensureWorktreesIgnored(cwd);
 
         return { branch: name, path: targetPath };
       } catch (e: any) {

@@ -18,7 +18,7 @@ import { Message } from '../types/message';
 
 // ── Local ──
 import { calculateTokens } from './ConversationService';
-import mockResponse from '../__mock__/mock-response.txt';
+import mockResponse from '../__mock__/mock-response.txt?raw';
 
 const MOCK_CHUNK_SIZE = 40;
 

@@ -266,15 +266,15 @@ export function registerEmulateRoutes(
             if (fs.existsSync(`${sourceRoot}/Local State`)) {
               await fs.promises.copyFile(`${sourceRoot}/Local State`, `${cloneRoot}/Local State`);
             }
-            console.log(`[DEBUG][CDP Launcher] cloning profile ${sourceRoot}/${profileDirectory} -> ${cloneRoot}/${profileDirectory}`);
-            await fs.promises.cp(`${sourceRoot}/${profileDirectory}`, `${cloneRoot}/${profileDirectory}`, {
-              recursive: true,
-              force: true,
-              filter: copyFilter,
-            });
-            console.log('[DEBUG][CDP Launcher] clone done');
-          } else {
-            console.log(`[DEBUG][CDP Launcher] reuse persistent clone ${cloneRoot}`);
+            await fs.promises.cp(
+              `${sourceRoot}/${profileDirectory}`,
+              `${cloneRoot}/${profileDirectory}`,
+              {
+                recursive: true,
+                force: true,
+                filter: copyFilter,
+              },
+            );
           }
           userDataDir = cloneRoot;
         }
@@ -290,21 +290,15 @@ export function registerEmulateRoutes(
           urlToOpen,
         ];
 
-        console.log(`[DEBUG][CDP Launcher] requested userDataDir=${JSON.stringify(requestedUserDataDir)}`);
-        console.log(`[DEBUG][CDP Launcher] resolved userDataDir=${userDataDir} exists=${fs.existsSync(userDataDir)} profileDirectory=${profileDirectory ?? '(none)'}`);
-        console.log(`[DEBUG][CDP Launcher] spawn: ${chromePath} ${JSON.stringify(args)}`);
-
         const child = spawn(chromePath, args, {
           detached: true, // Detach from parent so it keeps running even if server restarts
           stdio: 'ignore',
         });
 
-        console.log(`[DEBUG][CDP Launcher] spawned pid=${child.pid} port=${debugPort}`);
         child.on('error', (e) => console.error('[DEBUG][CDP Launcher] child error:', e));
         let childExited = false;
         child.on('exit', (code, signal) => {
           childExited = true;
-          console.log(`[DEBUG][CDP Launcher] child exit: code=${code} signal=${signal}`);
         });
 
         child.unref(); // Allow Node.js to exit independently

@@ -178,6 +178,7 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
     }
 
     const rawBranches: string[] = res.branches || [];
+    const worktreePaths: Record<string, string> = res.worktreePaths || {};
 
     // Common remote names that might appear as standalone entries due to parsing quirks
     const COMMON_REMOTES = ['origin', 'upstream'];
@@ -219,6 +220,7 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
       name,
       visible: true,
       sessions: [],
+      path: worktreePaths[name],
     }));
   } catch (e) {
     console.error('[ProjectPanel] Exception fetching branches', e);
@@ -632,7 +634,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     ...gitBranch,
                     sessions: existing.sessions,
                     visible: existing.visible,
-                    path: existing.path,
+                    path: gitBranch.path ?? existing.path,
                   };
                 }
                 // New branch from Git, start with empty sessions

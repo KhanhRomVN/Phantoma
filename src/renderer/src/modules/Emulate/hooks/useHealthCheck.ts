@@ -17,9 +17,15 @@ interface HealthCheckOptions {
   intervalMs?: number;
   /** Called when a previously-alive target's process has died. */
   onTargetDead: (targetId: string) => void;
+  /** Chỉ poll khi true (mặc định true). */
+  enabled?: boolean;
 }
 
-export function useHealthCheck({ intervalMs = 5000, onTargetDead }: HealthCheckOptions): void {
+export function useHealthCheck({
+  intervalMs = 5000,
+  onTargetDead,
+  enabled = true,
+}: HealthCheckOptions): void {
   // Track which targets were alive in the previous poll so we only fire
   // onTargetDead on transitions from alive → dead (not on first discovery).
   const prevAliveRef = useRef<Set<string>>(new Set());
@@ -51,11 +57,11 @@ export function useHealthCheck({ intervalMs = 5000, onTargetDead }: HealthCheckO
   }, []);
 
   useEffect(() => {
-    // Fire immediately on mount, then repeat on interval.
+    if (!enabled) return;
     tick();
     const id = setInterval(tick, intervalMs);
     return () => clearInterval(id);
-  }, [tick, intervalMs]);
+  }, [tick, intervalMs, enabled]);
 }
 
 export default useHealthCheck;
