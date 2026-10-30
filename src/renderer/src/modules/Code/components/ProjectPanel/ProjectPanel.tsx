@@ -66,6 +66,9 @@ import {
   DropdownContent,
   DropdownItem,
   DropdownSeparator,
+  DropdownSub,
+  DropdownSubTrigger,
+  DropdownSubContent,
 } from '@renderer/components/ui/Dropdown';
 
 // ── Local modals ──
@@ -73,6 +76,7 @@ import { OpenProjectModal } from '../modal/OpenProjectModal';
 import { ConfirmDeleteProjectModal } from '../modal/ConfirmDeleteProjectModal';
 import { CreateBranchModal, type CreatedBranchResult } from '../modal/CreateBranchModal';
 import { ConfirmDeleteBranchModal } from '../modal/ConfirmDeleteBranchModal';
+import { ConfirmMergeProjectModal, type MergeCandidate } from '../modal/ConfirmMergeProjectModal';
 
 // ── Group Picker Form ──
 import { GroupPickerForm, GROUP_ICONS } from './GroupPickerForm';
@@ -216,12 +220,23 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
     // Deduplicate just in case
     const uniqueBranches = Array.from(new Set(localBranches));
 
-    return uniqueBranches.map((name) => ({
-      name,
-      visible: true,
-      sessions: [],
-      path: worktreePaths[name],
-    }));
+    const remoteOnly = Array.from(
+      new Set(
+        rawBranches
+          .filter((n) => typeof n === 'string' && n.startsWith('origin/') && !n.endsWith('/HEAD'))
+          .map((n) => n.slice('origin/'.length)),
+      ),
+    ).filter((n) => n && !uniqueBranches.includes(n));
+
+    return [
+      ...uniqueBranches.map((name) => ({
+        name,
+        visible: true,
+        sessions: [],
+        path: worktreePaths[name],
+      })),
+      ...remoteOnly.map((name) => ({ name, visible: false, sessions: [], remote: true })),
+    ];
   } catch (e) {
     console.error('[ProjectPanel] Exception fetching branches', e);
     return [];
@@ -548,6 +563,17 @@ export const ProjectPanel = memo(function ProjectPanel() {
   } | null>(null);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<ProjectExtended | null>(null);
   const [createBranchProjectId, setCreateBranchProjectId] = useState<string | null>(null);
+  const [mergeTarget, setMergeTarget] = useState<{
+    newProjectId: string;
+    newProjectName: string;
+    newPath: string;
+    branch: string;
+    candidates: MergeCandidate[];
+  } | null>(null);
+  const [existingBranchTarget, setExistingBranchTarget] = useState<{
+    projectId: string;
+    branchName: string;
+  } | null>(null);
   const [gitRepoByProject, setGitRepoByProject] = useState<Record<string, boolean>>({});
   const [confirmDeleteBranchTarget, setConfirmDeleteBranchTarget] = useState<{
     project: ProjectExtended;
@@ -915,6 +941,62 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [projects],
   );
 
+  const detectSameRepo = useCallback(async (newId: string) => {
+    const api = (window as any).api;
+    const all = useCodeStore.getState().projects;
+    const added = all.find((p) => p.id === newId);
+    // ASSUMED: project đã có branches trong store là project cũ được chọn lại, không phải project mới thêm
+    if (!added?.path || (added.branches?.length ?? 0) > 0) return;
+    const mine = await api.invoke('git:repo-identity', added.path).catch(() => null);
+    if (!mine) return;
+    const candidates: MergeCandidate[] = [];
+    for (const p of all) {
+      if (p.id === newId || !p.path) continue;
+      const other = await api.invoke('git:repo-identity', p.path).catch(() => null);
+      if (
+        other &&
+        (other.commonDir === mine.commonDir ||
+          (mine.remoteUrl !== '' && other.remoteUrl === mine.remoteUrl))
+      ) {
+        candidates.push({
+          id: p.id,
+          name: p.name,
+          hasBranch: (p.branches ?? []).some((b) => b.name === mine.branch),
+        });
+      }
+    }
+    if (candidates.length > 0) {
+      setMergeTarget({
+        newProjectId: newId,
+        newProjectName: added.name,
+        newPath: added.path,
+        branch: mine.branch,
+        candidates,
+      });
+    }
+  }, []);
+
+  const confirmMergeProject = useCallback(
+    (targetId: string) => {
+      if (!mergeTarget) return;
+      const target = projects.find((p) => p.id === targetId);
+      if (!target) return;
+      const { branch, newPath, newProjectId } = mergeTarget;
+      const exists = target.branches.some((b) => b.name === branch);
+      const newBranches: BranchInfo[] = exists
+        ? target.branches.map((b) =>
+            b.name === branch ? { ...b, path: newPath, visible: true } : b,
+          )
+        : [...target.branches, { name: branch, visible: true, sessions: [], path: newPath }];
+      patchProject(targetId, (p) => ({ ...p, branches: newBranches }));
+      updateProject(targetId, { branches: newBranches } as any);
+      removeProjectFromStore(newProjectId);
+      showToast(`Merged into "${target.name}"`);
+      setMergeTarget(null);
+    },
+    [mergeTarget, projects, patchProject, updateProject, removeProjectFromStore, showToast],
+  );
+
   const confirmRemoveProject = useCallback(() => {
     if (!confirmDeleteTarget) return;
     removeProjectFromStore(confirmDeleteTarget.id);
@@ -927,11 +1009,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [projects, createBranchProjectId],
   );
 
+  const existingBranchProject = useMemo(
+    () => projects.find((p) => p.id === existingBranchTarget?.projectId) ?? null,
+    [projects, existingBranchTarget],
+  );
+
   const handleBranchCreated = useCallback(
     (project: ProjectExtended, result: CreatedBranchResult) => {
       const exists = project.branches.some((b) => b.name === result.branch);
       const newBranches: BranchInfo[] = exists
-        ? project.branches.map((b) => (b.name === result.branch ? { ...b, path: result.path } : b))
+        ? project.branches.map((b) => (b.name === result.branch ? { ...b, path: result.path, visible: true } : b))
         : [
             ...project.branches,
             { name: result.branch, visible: true, sessions: [], path: result.path },
@@ -1823,18 +1910,47 @@ export const ProjectPanel = memo(function ProjectPanel() {
             {dropdownTarget.kind === 'project' && activeProject && (
               <>
                 <MenuLabel>Visible branches</MenuLabel>
-                {activeProject.branches.map((b) => (
-                  <DropdownItem
-                    key={b.name}
-                    icon={ck(b.visible)}
-                    closeOnSelect={false}
-                    onClick={() => toggleBranchVisibility(activeProject.id, b.name)}
-                  >
-                    <span className={cn('truncate', !b.visible && 'text-text-secondary/60')}>
-                      {b.name}
-                    </span>
-                  </DropdownItem>
-                ))}
+                {(() => {
+                  const MAX_INLINE_BRANCHES = 5;
+                  const all = activeProject.branches;
+                  const renderBranchItem = (b: BranchInfo) => (
+                    <DropdownItem
+                      key={b.name}
+                      icon={ck(b.visible)}
+                      closeOnSelect={false}
+                      onClick={() => {
+                        if (b.visible || b.path || b.name === activeProject.defaultBranch) {
+                          toggleBranchVisibility(activeProject.id, b.name);
+                          return;
+                        }
+                        setExistingBranchTarget({
+                          projectId: activeProject.id,
+                          branchName: b.name,
+                        });
+                        closeDropdown();
+                      }}
+                    >
+                      <span className={cn('truncate', !b.visible && 'text-text-secondary/60')}>
+                        {b.name}
+                      </span>
+                    </DropdownItem>
+                  );
+                  return (
+                    <>
+                      {all.slice(0, MAX_INLINE_BRANCHES).map(renderBranchItem)}
+                      {all.length > MAX_INLINE_BRANCHES && (
+                        <DropdownSub side="right" sideOffset={4}>
+                          <DropdownSubTrigger icon={<GitBranch className="w-3.5 h-3.5" />}>
+                            Xem thêm ({all.length - MAX_INLINE_BRANCHES})
+                          </DropdownSubTrigger>
+                          <DropdownSubContent className="min-w-[200px] max-h-[240px] overflow-y-auto">
+                            {all.map(renderBranchItem)}
+                          </DropdownSubContent>
+                        </DropdownSub>
+                      )}
+                    </>
+                  );
+                })()}
 
                 <DropdownSeparator />
 
@@ -1846,7 +1962,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     closeDropdown();
                   }}
                 >
-                  Create branch...
+                  Create local branch...
                   {gitRepoByProject[activeProject.id] === false && (
                     <span className="ml-2 text-[10px] text-text-secondary/60">
                       No git repository
@@ -2320,7 +2436,17 @@ export const ProjectPanel = memo(function ProjectPanel() {
         }}
         onProjectAdded={(projectId) => {
           if (addToGroupId) setPendingGroupAssign({ projectId, groupId: addToGroupId });
+          void detectSameRepo(projectId);
         }}
+      />
+
+      <ConfirmMergeProjectModal
+        isOpen={!!mergeTarget}
+        onClose={() => setMergeTarget(null)}
+        onConfirm={confirmMergeProject}
+        newProjectName={mergeTarget?.newProjectName ?? ''}
+        branchName={mergeTarget?.branch ?? ''}
+        candidates={mergeTarget?.candidates ?? []}
       />
 
       {/* ── Confirm Delete Project Modal ── */}
@@ -2338,9 +2464,31 @@ export const ProjectPanel = memo(function ProjectPanel() {
         projectPath={createBranchProject?.path ?? ''}
         projectName={createBranchProject?.name ?? ''}
         branches={(createBranchProject?.branches ?? []).map((b) => b.name)}
+        remoteBranches={(createBranchProject?.branches ?? [])
+          .filter((b) => b.remote)
+          .map((b) => b.name)}
         defaultSource={createBranchProject?.defaultBranch}
+        projectLogoPath={createBranchProject?.logoPath}
         onCreated={(result) =>
           createBranchProject && handleBranchCreated(createBranchProject, result)
+        }
+      />
+
+      <CreateBranchModal
+        isOpen={!!existingBranchProject}
+        onClose={() => setExistingBranchTarget(null)}
+        projectPath={existingBranchProject?.path ?? ''}
+        projectName={existingBranchProject?.name ?? ''}
+        branches={(existingBranchProject?.branches ?? []).map((b) => b.name)}
+        defaultSource={existingBranchProject?.defaultBranch}
+        existingBranch={existingBranchTarget?.branchName}
+        existingBranchRemote={
+          !!existingBranchProject?.branches.find((b) => b.name === existingBranchTarget?.branchName)
+            ?.remote
+        }
+        projectLogoPath={existingBranchProject?.logoPath}
+        onCreated={(result) =>
+          existingBranchProject && handleBranchCreated(existingBranchProject, result)
         }
       />
 

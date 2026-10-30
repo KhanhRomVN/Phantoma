@@ -3,8 +3,6 @@ import {
   FolderOpen,
   FileText,
   GitBranch,
-  Copy,
-  Check,
   Link2,
   HardDrive,
   User,
@@ -22,10 +20,15 @@ import {
 import { cn } from '@renderer/shared/utils/cn';
 import { Favicon, getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { detectProjectStack, type StackInfo } from '@renderer/utils/detectStack';
+import {
+  detectProjectStack,
+  detectRemoteLogos,
+  detectRemoteStack,
+  type StackInfo,
+} from '@renderer/utils/detectStack';
 import { ProjectLogoImage } from '../ProjectLogo';
 
-type LogoCandidate = { path: string; name: string; width: number; height: number };
+type LogoCandidate = { path: string; name: string; width: number; height: number; src?: string };
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
@@ -41,6 +44,11 @@ import {
 interface ProjectDetailPanelProps {
   target: { name: string; path: string } | null;
   stackInfo?: StackInfo;
+  logoCandidates?: LogoCandidate[];
+  logoCurrent?: string | null;
+  onLogoPick?: (filePath: string | null) => void;
+  selectedBranch?: string;
+  onBranchSelect?: (name: string) => void;
 }
 
 const TECH_DOMAIN_MAP: Record<string, string> = {
@@ -152,21 +160,16 @@ function DetailSkeleton() {
   );
 }
 
-export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProps) {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setCopied(false);
-  }, [target?.path]);
-
-  useEffect(
-    () => () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    },
-    [],
-  );
-
+export function ProjectDetailPanel({
+  target,
+  stackInfo,
+  logoCandidates = [],
+  logoCurrent = null,
+  onLogoPick,
+  selectedBranch,
+  onBranchSelect,
+}: ProjectDetailPanelProps) {
+  const currentLabel = onBranchSelect ? 'Default' : 'Current';
   if (!target) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
@@ -184,23 +187,8 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
   }
 
   const { name, path } = target;
+  const currentLogoSrc = logoCandidates.find((c) => c.path === logoCurrent)?.src;
 
-  const headerIconUrl = stackInfo?.primaryLanguage
-    ? getTechIconUrl(stackInfo.primaryLanguage)
-    : stackInfo?.frameworks?.[0]
-      ? getTechIconUrl(stackInfo.frameworks[0])
-      : '';
-
-  const handleCopyPath = () => {
-    navigator.clipboard
-      .writeText(path)
-      .then(() => {
-        setCopied(true);
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setCopied(false), 2000);
-      })
-      .catch((err) => console.error('Failed to copy path:', err));
-  };
 
   const overviewRows: {
     icon: ReactNode;
@@ -246,32 +234,56 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
 
   return (
     <div className="flex flex-col p-5 select-text">
-      <div className="flex items-start gap-3 pb-5 border-b border-border/60">
-        <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/[0.05] border border-border overflow-hidden">
-          {headerIconUrl ? (
-            <Favicon url={headerIconUrl} size={24} alt="" className="object-contain" />
-          ) : (
-            <FolderOpen className="w-5 h-5 text-text-secondary" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0 text-left">
-          <h3 className="text-base font-semibold text-text-primary truncate">{name}</h3>
-          <div className="flex items-center gap-1.5 mt-0.5">
+      <div className="pb-5 border-b border-border/60">
+        <div className="flex items-start gap-3">
+          <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/[0.05] border border-border overflow-hidden">
+            {logoCurrent && currentLogoSrc ? (
+              <img src={currentLogoSrc} alt="" className="w-full h-full object-contain" draggable={false} />
+            ) : logoCurrent ? (
+              <ProjectLogoImage path={logoCurrent} side={64} className="w-full h-full object-contain" />
+            ) : (
+              <LanguageBadgeIcon stack={stackInfo} className="w-6 h-6" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <h3 className="text-base font-semibold text-text-primary truncate">{name}</h3>
             <p
-              className="text-[11px] font-mono text-text-secondary/60 truncate flex-1"
+              className="mt-0.5 w-full text-[11px] font-mono text-text-secondary/60 truncate"
               title={path}
             >
-              {shortenPath(path)}
+              {path}
             </p>
-            <button
-              onClick={handleCopyPath}
-              className="p-1 rounded-md text-text-secondary/60 hover:text-text-primary hover:bg-white/[0.06] transition-colors shrink-0"
-              title="Copy full path"
-            >
-              {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-            </button>
           </div>
         </div>
+        {logoCandidates.length > 0 && (
+          <div className="mt-4 text-left">
+            <div className="text-[10px] uppercase tracking-[0.08em] text-text-secondary/50 mb-1.5">
+              Logo
+            </div>
+            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+              {logoCandidates.map((c) => (
+                <button
+                  key={c.path}
+                  type="button"
+                  title={`${c.name} (${c.width}×${c.height})`}
+                  onClick={() => onLogoPick?.(logoCurrent === c.path ? null : c.path)}
+                  className={cn(
+                    'w-10 h-10 shrink-0 rounded-lg border overflow-hidden grid place-items-center bg-white/[0.05] transition-colors',
+                    logoCurrent === c.path
+                      ? 'border-dashed border-primary'
+                      : 'border-border hover:border-text-secondary/60',
+                  )}
+                >
+                  {c.src ? (
+                    <img src={c.src} alt="" className="w-full h-full object-contain" draggable={false} />
+                  ) : (
+                    <ProjectLogoImage path={c.path} side={64} className="w-full h-full object-contain" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {!stackInfo ? (
@@ -283,19 +295,22 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
       ) : (
         <div className="space-y-6 pt-5">
           {overviewRows.length > 0 && (
-            <div className="rounded-lg border border-border/60 bg-white/[0.02] divide-y divide-border/40">
-              {overviewRows.map((row) => (
-                <div key={row.label} className="flex items-center gap-3 px-3 py-2.5 text-xs">
-                  <span className="text-text-secondary/60 shrink-0">{row.icon}</span>
-                  <span className="text-text-secondary/70 shrink-0">{row.label}</span>
-                  <span
-                    className={`flex-1 min-w-0 truncate text-right text-text-primary ${row.mono ? 'font-mono' : ''}`}
-                    title={row.title}
-                  >
-                    {row.value}
-                  </span>
-                </div>
-              ))}
+            <div>
+              <SectionTitle>Overview</SectionTitle>
+              <div className="rounded-lg border border-border/60 bg-white/[0.02] divide-y divide-border/40">
+                {overviewRows.map((row) => (
+                  <div key={row.label} className="flex items-center gap-3 px-3 py-2.5 text-xs">
+                    <span className="text-text-secondary/60 shrink-0">{row.icon}</span>
+                    <span className="text-text-secondary/70 shrink-0">{row.label}</span>
+                    <span
+                      className={`flex-1 min-w-0 truncate text-right text-text-primary ${row.mono ? 'font-mono' : ''}`}
+                      title={row.title}
+                    >
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -359,18 +374,18 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
                 {contributors.slice(0, 5).map((c) => (
                   <div
                     key={c.username}
-                    className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-white/[0.03] border border-border/60"
+                    className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-md bg-white/[0.03] border border-border/60"
                   >
                     <img
-                      src={`https://avatars.githubusercontent.com/${c.username}?s=20`}
+                      src={`https://avatars.githubusercontent.com/${c.username}?s=28`}
                       alt={c.username}
-                      className="w-4 h-4 rounded-full object-cover"
+                      className="w-5 h-5 rounded object-cover"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = getTechIconUrl('github');
                       }}
                     />
-                    <span className="text-[11px] text-text-primary font-medium">{c.username}</span>
+                    <span className="text-xs text-text-primary font-medium">{c.username}</span>
                   </div>
                 ))}
                 {contributors.length > 5 && (
@@ -389,13 +404,26 @@ export function ProjectDetailPanel({ target, stackInfo }: ProjectDetailPanelProp
                 {branches.slice(0, 6).map((br) => (
                   <div
                     key={br.name}
-                    className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-white/[0.02] border border-border/40 hover:border-border transition-colors"
+                    role={onBranchSelect ? 'button' : undefined}
+                    onClick={onBranchSelect ? () => onBranchSelect(br.name) : undefined}
+                    className={cn(
+                      'flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-white/[0.02] border transition-colors',
+                      onBranchSelect && 'cursor-pointer',
+                      onBranchSelect && selectedBranch === br.name
+                        ? 'border-dashed border-primary'
+                        : 'border-border/40 hover:border-border',
+                    )}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <GitBranch className="w-3.5 h-3.5 text-text-secondary shrink-0" />
                       <span className="text-xs text-text-primary font-mono truncate">
                         {br.name}
                       </span>
+                      {br.isCurrent && (
+                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md bg-success/10 text-[9px] leading-none font-semibold uppercase tracking-[0.06em] text-success">
+                          {currentLabel}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0 text-[10px] text-text-secondary/60 font-mono">
                       {br.lastCommitDate ? <span>{timeAgo(br.lastCommitDate)}</span> : null}
@@ -423,7 +451,7 @@ export const deriveFolderName = (url: string): string =>
   url.trim().match(/[/:]([^/:]+?)(?:\.git)?\/?$/)?.[1] ?? '';
 
 const inputClass =
-  'w-full h-10 rounded-lg bg-sidebar-item-hover border border-border px-3 text-sm font-mono text-text-primary outline-none placeholder:text-text-secondary/40 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 transition-all';
+  'w-full h-10 rounded-lg bg-sidebar-item-hover border border-transparent px-3 text-sm font-mono text-text-primary outline-none focus:outline-none focus:ring-0 placeholder:text-text-secondary/40 transition-all';
 
 interface NewRepositoryFormProps {
   url: string;
@@ -433,21 +461,28 @@ interface NewRepositoryFormProps {
   onFolderNameChange: (value: string) => void;
   onDestChange: (value: string) => void;
   onBrowseDest: () => void;
+  folderConflict?: 'exists' | 'added' | null;
+  suggestedName?: string;
 }
 
 function Field({
   label,
   hint,
+  required,
   children,
 }: {
   label: string;
   hint?: React.ReactNode;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <label className="text-[11px] font-medium text-text-secondary">{label}</label>
+        <label className="text-[11px] font-medium text-text-secondary">
+          {label}
+          {required && <span className="ml-0.5 text-error">*</span>}
+        </label>
         {hint}
       </div>
       {children}
@@ -463,12 +498,13 @@ export function NewRepositoryForm({
   onFolderNameChange,
   onDestChange,
   onBrowseDest,
+  folderConflict,
+  suggestedName,
 }: NewRepositoryFormProps) {
   const trimmedUrl = url.trim();
   const isValidUrl = GIT_URL_REGEX.test(trimmedUrl);
   const showUrlError = trimmedUrl.length > 0 && !isValidUrl;
   const folderInvalid = /[\\/]/.test(folderName);
-  const finalPath = `${dest.trim().replace(/\/+$/, '')}/${folderName.trim()}`;
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -502,7 +538,24 @@ export function NewRepositoryForm({
       <div className="grid grid-cols-2 gap-4">
         <Field
           label="Folder name"
-          hint={folderInvalid ? <span className="text-[10px] text-error">No slashes allowed</span> : null}
+          hint={
+            folderInvalid ? (
+              <span className="text-[10px] text-error">No slashes allowed</span>
+            ) : folderConflict ? (
+              <span className="flex items-center gap-1.5 text-[10px] text-error">
+                {folderConflict === 'exists' ? 'Already exists in destination' : 'Already added as a project'}
+                {suggestedName && (
+                  <button
+                    type="button"
+                    onClick={() => onFolderNameChange(suggestedName)}
+                    className="underline text-text-secondary hover:text-text-primary"
+                  >
+                    Use {suggestedName}
+                  </button>
+                )}
+              </span>
+            ) : null
+          }
         >
           <input
             type="text"
@@ -510,16 +563,17 @@ export function NewRepositoryForm({
             value={folderName}
             onChange={(e) => onFolderNameChange(e.target.value)}
             placeholder="repo"
-            className={inputClass}
+            className={`${inputClass} ${folderConflict ? 'border-error/50' : ''}`}
           />
         </Field>
 
-        <Field label="Clone into">
+        <Field label="Clone into" required>
           <div className="flex gap-2">
             <input
               type="text"
               spellCheck={false}
               value={dest}
+              placeholder="Choose a destination folder"
               onChange={(e) => onDestChange(e.target.value)}
               className={`${inputClass} text-text-secondary`}
             />
@@ -535,21 +589,6 @@ export function NewRepositoryForm({
         </Field>
       </div>
 
-      <div
-        className={`rounded-lg border px-3.5 py-3 transition-all ${
-          isValidUrl && folderName.trim() && !folderInvalid
-            ? 'border-primary/25 bg-primary/[0.05]'
-            : 'border-dashed border-border bg-white/[0.01]'
-        }`}
-      >
-        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-1.5">
-          Destination preview
-        </div>
-        <div className="flex items-center gap-2 text-xs font-mono text-text-primary/90 break-all">
-          <GitBranch className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
-          {isValidUrl && folderName.trim() ? finalPath : 'Paste a repository URL to continue'}
-        </div>
-      </div>
 
       <div className="flex items-center gap-4 text-[11px] text-text-secondary/60">
         <span className="flex items-center gap-1.5">
@@ -606,6 +645,22 @@ export function RecentClones({ onReuse }: RecentClonesProps) {
     setHistory((prev) => prev.filter((item) => item.id !== id));
   };
 
+  if (groups.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
+        <div className="w-12 h-12 rounded-xl border border-dashed border-border grid place-items-center text-text-secondary/40">
+          <GitBranch className="w-5 h-5" strokeWidth={1.5} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-text-primary/80">No recent clones</p>
+          <p className="text-xs text-text-secondary/60 mt-1 leading-relaxed max-w-[220px]">
+            Repositories you clone will show up here for quick reuse.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col p-5">
       <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-4">
@@ -614,16 +669,7 @@ export function RecentClones({ onReuse }: RecentClonesProps) {
         {history.length > 0 && <span className="font-mono text-text-secondary/40">{history.length}</span>}
       </div>
 
-      {groups.length === 0 ? (
-        <div className="py-16 flex flex-col items-center gap-3 text-center">
-          <div className="w-12 h-12 rounded-xl border border-dashed border-border grid place-items-center text-text-secondary/40">
-            <GitBranch className="w-5 h-5" strokeWidth={1.5} />
-          </div>
-          <p className="text-xs text-text-secondary/60 leading-relaxed max-w-[200px]">
-            Repositories you clone will show up here for quick reuse.
-          </p>
-        </div>
-      ) : (
+      {(
         <div className="space-y-5">
           {groups.map((group) => (
             <div key={group.label}>
@@ -672,7 +718,7 @@ export function RecentClones({ onReuse }: RecentClonesProps) {
     </div>
   );
 }
-const DEFAULT_CLONE_DEST = '/home/khanhromvn/projects';
+const DEFAULT_CLONE_DEST = '';
 
 const LANG_EXT: Record<string, string> = {
   typescript: 'ts',
@@ -702,17 +748,17 @@ const LANG_EXT: Record<string, string> = {
   markdown: 'md',
 };
 
-function LanguageBadgeIcon({ stack }: { stack?: StackInfo }) {
+function LanguageBadgeIcon({ stack, className = 'w-4 h-4' }: { stack?: StackInfo; className?: string }) {
   const top = stack?.languages?.length
     ? stack.languages.reduce((a, b) => (b.percentage > a.percentage ? b : a))
     : undefined;
   const key = (top?.id ?? stack?.primaryLanguage ?? '').toLowerCase();
-  if (!key) return <FolderOpen className="w-4 h-4" />;
+  if (!key) return <FolderOpen className={className} />;
   return (
     <img
       src={getFileIconPath(`file.${LANG_EXT[key] ?? key}`)}
       alt=""
-      className="w-4 h-4 object-contain"
+      className={`${className} object-contain`}
       draggable={false}
     />
   );
@@ -752,6 +798,79 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   const updateProject = useCodeStore((s) => s.updateProject);
   const [logoScan, setLogoScan] = useState<Record<string, LogoCandidate[]>>({});
   const [logoChoice, setLogoChoice] = useState<Record<string, string | null>>({});
+  const [remoteStack, setRemoteStack] = useState<Record<string, StackInfo>>({});
+  const [cloneBranch, setCloneBranch] = useState('');
+  const remoteBranches = remoteStack[cloneUrl.trim()]?.branches ?? [];
+  const effectiveBranch =
+    cloneBranch || (remoteBranches.find((b) => b.isCurrent)?.name ?? remoteBranches[0]?.name ?? '');
+
+  const [remoteLogos, setRemoteLogos] = useState<Record<string, LogoCandidate[]>>({});
+  const [cloneLogo, setCloneLogo] = useState<string | null>(null);
+  const [destEntries, setDestEntries] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    const url = cloneUrl.trim();
+    if (mode !== 'clone' || !GIT_URL_REGEX.test(url) || remoteLogos[url]) return;
+    const timer = setTimeout(() => {
+      detectRemoteLogos(url)
+        .then((list) => setRemoteLogos((prev) => ({ ...prev, [url]: list })))
+        .catch(() => setRemoteLogos((prev) => ({ ...prev, [url]: [] })));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [mode, cloneUrl, remoteLogos]);
+
+  useEffect(() => {
+    const dir = cloneDest.trim();
+    if (mode !== 'clone' || !dir) {
+      setDestEntries(null);
+      return;
+    }
+    let cancelled = false;
+    window.api
+      .invoke('fs:list-dir', dir)
+      .then((res) => {
+        if (!cancelled) setDestEntries(Array.isArray(res) ? res.map((f: any) => f.name || f) : null);
+      })
+      .catch(() => {
+        if (!cancelled) setDestEntries(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, cloneDest]);
+
+  const cloneLogoCandidates = remoteLogos[cloneUrl.trim()] ?? [];
+  const effectiveCloneLogo = cloneLogoCandidates.some((c) => c.path === cloneLogo) ? cloneLogo : null;
+  const finalCloneDest = `${cloneDest.trim().replace(/\/+$/, '')}/${cloneFolderName.trim()}`;
+  const folderConflict: 'exists' | 'added' | null =
+    cloneFolderName.trim() && destEntries?.includes(cloneFolderName.trim())
+      ? 'exists'
+      : cloneFolderName.trim() && cloneDest.trim() && projects.some((p) => p.path === finalCloneDest)
+        ? 'added'
+        : null;
+  const suggestedFolderName = (() => {
+    if (!folderConflict) return '';
+    const base = cloneFolderName.trim();
+    let i = 2;
+    while (destEntries?.includes(`${base}-${i}`)) i++;
+    return `${base}-${i}`;
+  })();
+
+  useEffect(() => {
+    const url = cloneUrl.trim();
+    if (mode !== 'clone' || !GIT_URL_REGEX.test(url) || remoteStack[url]) return;
+    const timer = setTimeout(() => {
+      detectRemoteStack(url)
+        .then((info) => setRemoteStack((prev) => ({ ...prev, [url]: info })))
+        .catch(() =>
+          setRemoteStack((prev) => ({
+            ...prev,
+            [url]: { frameworks: [], languages: [], contributors: [], branches: [] },
+          })),
+        );
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [mode, cloneUrl, remoteStack]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -836,13 +955,14 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   const cloneFolderValid = cloneFolderName.trim().length > 0 && !/[\\/]/.test(cloneFolderName);
   const canSubmit =
     mode === 'clone'
-      ? cloneUrlValid && cloneFolderValid && cloneDest.trim().length > 0
+      ? cloneUrlValid && cloneFolderValid && cloneDest.trim().length > 0 && !folderConflict
       : selection !== null && target !== null;
 
   const handleSearchChange = (value: string) => {
     if (GIT_URL_REGEX.test(value.trim())) {
       setMode('clone');
       setCloneUrl(value.trim());
+      setCloneBranch('');
       setCloneFolderName(deriveFolderName(value));
       setFolderNameEdited(false);
       setSearchQuery('');
@@ -853,6 +973,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
 
   const handleCloneUrlChange = (value: string) => {
     setCloneUrl(value);
+    setCloneBranch('');
     if (!folderNameEdited) setCloneFolderName(deriveFolderName(value));
   };
 
@@ -887,6 +1008,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
 
   const handleReuseClone = (entry: { url: string; name: string }) => {
     setCloneUrl(entry.url);
+    setCloneBranch('');
     setCloneFolderName(entry.name);
     setFolderNameEdited(true);
   };
@@ -900,13 +1022,14 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         const url = cloneUrl.trim();
         const folderName = cloneFolderName.trim();
         const dest = `${cloneDest.trim().replace(/\/+$/, '')}/${folderName}`;
-        await window.api.invoke('git:clone', { url, dest });
+        await window.api.invoke('git:clone', { url, dest, branch: effectiveBranch || undefined });
         addCloneEntry(url, folderName, dest);
         const newId = addProject({
           name: folderName,
           path: dest,
           color: '#4fa8e0',
           template: 'blank',
+          logoPath: effectiveCloneLogo ? `${dest}/${effectiveCloneLogo}` : null,
         });
         onProjectAdded?.(newId);
       } else if (selection?.type === 'folder' && browsePath) {
@@ -939,6 +1062,9 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     cloneDest,
     selection,
     browsePath,
+    effectiveBranch,
+    effectiveCloneLogo,
+    logoChoice,
     addProject,
     setCurrentProject,
     onClose,
@@ -967,12 +1093,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     }
   };
 
-  const actionLabel =
-    mode === 'clone'
-      ? 'Clone & Open'
-      : selection?.type === 'folder'
-        ? 'Open Folder'
-        : 'Open Project';
+  const actionLabel = mode === 'clone' ? 'Clone Project' : 'Open Select Project';
 
   const headerTitle = mode === 'clone' ? 'Clone Repository' : 'Open Project';
   const headerDesc =
@@ -981,7 +1102,14 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       : 'Pick a recent project or browse your filesystem';
 
   const renderTabs = () => (
-    <div className="flex items-center p-0.5 rounded-lg bg-sidebar-item-hover border border-border shrink-0">
+    <div className="relative grid grid-cols-2 items-center h-10 p-1 rounded-lg bg-sidebar-item-hover shrink-0">
+      <span
+        aria-hidden
+        className={cn(
+          'absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-md bg-white/[0.09] shadow-sm transition-transform duration-200 ease-out',
+          mode === 'clone' && 'translate-x-full',
+        )}
+      />
       {(
         [
           { id: 'local', label: 'Local', icon: FolderOpen },
@@ -992,10 +1120,10 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           key={id}
           onClick={() => switchMode(id)}
           className={cn(
-            'h-8 px-3 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all',
+            'relative z-10 h-8 px-4 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 outline-none focus:outline-none transition-colors',
             mode === id
-              ? 'bg-background text-text-primary shadow-sm border border-border'
-              : 'text-text-secondary hover:text-text-primary border border-transparent',
+              ? 'text-text-primary'
+              : 'text-text-secondary hover:text-text-primary',
           )}
         >
           <Icon className="w-3.5 h-3.5" />
@@ -1010,7 +1138,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       {renderTabs()}
       {mode === 'local' && (
         <>
-          <div className="flex-1 min-w-0 flex items-center gap-2.5 h-10 bg-sidebar-item-hover rounded-lg px-3 border border-border focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15 transition-all">
+          <div className="flex-1 min-w-0 flex items-center gap-2.5 h-10 bg-sidebar-item-hover rounded-lg px-3 border border-transparent transition-all">
             <Search className="w-4 h-4 text-text-secondary shrink-0" strokeWidth={1.5} />
             <input
               type="text"
@@ -1032,7 +1160,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           </div>
           <button
             onClick={handleBrowseFolder}
-            className="h-10 w-10 rounded-lg text-text-secondary hover:bg-white/[0.05] hover:text-text-primary flex items-center justify-center transition-all border border-border shrink-0"
+            className="h-10 w-10 rounded-lg bg-sidebar-item-hover text-text-secondary hover:bg-sidebar-item-active hover:text-text-primary flex items-center justify-center transition-all border border-dashed border-border outline-none focus:outline-none shrink-0"
             title="Browse"
             aria-label="Browse folder"
           >
@@ -1043,43 +1171,21 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     </div>
   );
 
-  const renderLogoStrip = (projectPath: string, visible: boolean) => {
-    const candidates = logoScan[projectPath];
-    if (!visible || !candidates || candidates.length === 0) return null;
-    const proj = projects.find((p) => p.path === projectPath);
-    const current = proj ? (proj.logoPath ?? null) : (logoChoice[projectPath] ?? null);
-    const pick = (filePath: string | null) => {
-      if (proj) updateProject(proj.id, { logoPath: filePath });
-      else setLogoChoice((prev) => ({ ...prev, [projectPath]: filePath }));
-    };
-    return (
-      <div className="pl-[58px] pr-2 pt-1 pb-2 text-left">
-        <div className="text-[10px] uppercase tracking-[0.08em] text-text-secondary/50 mb-1.5">
-          Logo
-        </div>
-        <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
-          {candidates.map((c) => (
-            <button
-              key={c.path}
-              type="button"
-              title={`${c.name} (${c.width}×${c.height})`}
-              onClick={(e) => {
-                e.stopPropagation();
-                pick(current === c.path ? null : c.path);
-              }}
-              className={cn(
-                'w-10 h-10 shrink-0 rounded-lg border overflow-hidden grid place-items-center bg-white/[0.05] transition-colors',
-                current === c.path
-                  ? 'border-primary ring-1 ring-primary'
-                  : 'border-border hover:border-text-secondary/60',
-              )}
-            >
-              <ProjectLogoImage path={c.path} side={64} className="w-full h-full object-contain" />
-            </button>
-          ))}
-        </div>
-      </div>
-    );
+  const logoCandidates = target ? (logoScan[target.path] ?? []) : [];
+  const targetProject = target ? projects.find((p) => p.path === target.path) : undefined;
+  const logoCurrent = target
+    ? targetProject
+      ? (targetProject.logoPath ?? null)
+      : (logoChoice[target.path] ?? null)
+    : null;
+  const handleLogoPick = (filePath: string | null) => {
+    if (!target) return;
+    if (targetProject) updateProject(targetProject.id, { logoPath: filePath });
+    else setLogoChoice((prev) => ({ ...prev, [target.path]: filePath }));
+  };
+  const getLogoPath = (path: string): string | null => {
+    const proj = projects.find((p) => p.path === path);
+    return proj ? (proj.logoPath ?? null) : (logoChoice[path] ?? null);
   };
 
   const renderRow = (opts: {
@@ -1088,6 +1194,8 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     path: string;
     selected: boolean;
     stack?: StackInfo;
+    logoPath?: string | null;
+    logoSrc?: string;
     onSelect: () => void;
     onOpen?: () => void;
     onRemove?: (e: React.MouseEvent) => void;
@@ -1120,7 +1228,13 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
             : 'bg-white/[0.05] text-text-secondary',
         )}
       >
-        <LanguageBadgeIcon stack={opts.stack} />
+        {opts.logoSrc ? (
+          <img src={opts.logoSrc} alt="" className="w-full h-full object-contain" draggable={false} />
+        ) : opts.logoPath ? (
+          <ProjectLogoImage path={opts.logoPath} side={64} className="w-full h-full object-contain" />
+        ) : (
+          <LanguageBadgeIcon stack={opts.stack} />
+        )}
       </div>
       <div className="flex-1 min-w-0 text-left">
         <div className="font-medium text-sm text-text-primary truncate">{opts.name}</div>
@@ -1138,7 +1252,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         </button>
       )}
     </div>
-    {renderLogoStrip(opts.path, opts.selected)}
+
     </div>
   );
 
@@ -1176,6 +1290,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
               path: browsePath,
               selected: selection?.type === 'folder',
               stack: stackCache.get(browsePath),
+              logoPath: getLogoPath(browsePath),
               onSelect: () => setSelection({ type: 'folder' }),
             })}
           </div>
@@ -1194,6 +1309,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
                   path: proj.path,
                   selected: selection?.type === 'project' && selection.id === proj.id,
                   stack: stackCache.get(proj.path),
+                  logoPath: getLogoPath(proj.path),
                   onSelect: () => setSelection({ type: 'project', id: proj.id }),
                   onOpen: () => handleOpenProjectDirect(proj.id),
                   onRemove: (e) => handleRemoveProject(e, proj.id),
@@ -1210,7 +1326,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-[1080px] h-[680px] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl flex flex-col bg-background"
+      className="max-w-[1080px] h-[820px] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl flex flex-col bg-background"
     >
       <ModalHeader
         title={headerTitle}
@@ -1229,25 +1345,61 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
               {mode === 'local' ? (
                 renderLocalList()
               ) : (
-                <NewRepositoryForm
-                  url={cloneUrl}
-                  folderName={cloneFolderName}
-                  dest={cloneDest}
-                  onUrlChange={handleCloneUrlChange}
-                  onFolderNameChange={handleCloneFolderChange}
-                  onDestChange={setCloneDest}
-                  onBrowseDest={handleBrowseDest}
-                />
+                <>
+                  <NewRepositoryForm
+                    url={cloneUrl}
+                    folderName={cloneFolderName}
+                    dest={cloneDest}
+                    onUrlChange={handleCloneUrlChange}
+                    onFolderNameChange={handleCloneFolderChange}
+                    onDestChange={setCloneDest}
+                    onBrowseDest={handleBrowseDest}
+                    folderConflict={folderConflict}
+                    suggestedName={suggestedFolderName}
+                  />
+                  {cloneUrlValid && cloneFolderName.trim() && (
+                    <div className="mt-6">
+                      <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2 pl-1 text-left">
+                        Repository
+                      </h4>
+                      {renderRow({
+                        key: 'clone-preview',
+                        name: cloneFolderName.trim(),
+                        path: `${cloneDest.trim().replace(/\/+$/, '')}/${cloneFolderName.trim()}`,
+                        selected: true,
+                        stack: remoteStack[cloneUrl.trim()],
+                        logoPath: null,
+                        logoSrc: cloneLogoCandidates.find((c) => c.path === effectiveCloneLogo)?.src,
+                        onSelect: () => {},
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
           <div className="h-full border-l border-border bg-card-background/30 overflow-y-auto custom-scrollbar hidden lg:block">
             {mode === 'clone' ? (
-              <RecentClones onReuse={handleReuseClone} />
+              cloneUrlValid && cloneFolderName.trim() ? (
+                <ProjectDetailPanel
+                  target={{ name: cloneFolderName.trim(), path: cloneUrl.trim() }}
+                  stackInfo={remoteStack[cloneUrl.trim()]}
+                  selectedBranch={effectiveBranch}
+                  onBranchSelect={setCloneBranch}
+                  logoCandidates={cloneLogoCandidates}
+                  logoCurrent={effectiveCloneLogo}
+                  onLogoPick={setCloneLogo}
+                />
+              ) : (
+                <RecentClones onReuse={handleReuseClone} />
+              )
             ) : (
               <ProjectDetailPanel
                 target={target}
                 stackInfo={target ? stackCache.get(target.path) : undefined}
+                logoCandidates={logoCandidates}
+                logoCurrent={logoCurrent}
+                onLogoPick={handleLogoPick}
               />
             )}
           </div>
@@ -1269,7 +1421,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         <div className="flex gap-2.5">
           <button
             onClick={onClose}
-            className="h-8 px-4 text-xs font-medium rounded-lg bg-transparent border border-border text-text-secondary hover:bg-white/[0.05] hover:text-text-primary transition-colors"
+            className="h-8 px-4 text-xs font-medium rounded-lg border-none outline-none focus:outline-none transition-colors bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background"
           >
             Cancel
           </button>
@@ -1277,10 +1429,10 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
             onClick={handleSubmit}
             disabled={!canSubmit || loading}
             className={cn(
-              'h-8 px-4 text-xs font-semibold rounded-lg flex items-center gap-2 transition-all border-none',
+              'h-8 px-4 text-xs font-semibold rounded-lg flex items-center gap-2 transition-colors border-none outline-none focus:outline-none bg-button-soft-background',
               canSubmit && !loading
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'bg-text-secondary/10 text-text-secondary/50 cursor-not-allowed',
+                ? 'text-text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70'
+                : 'text-text-secondary/50 cursor-not-allowed hover:bg-button-soft-background',
             )}
           >
             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}

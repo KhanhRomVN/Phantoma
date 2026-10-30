@@ -77,6 +77,18 @@ export function setupGitHandlers(): void {
     }
   });
 
+  // ── Clone ──
+  ipcMain.handle(
+    'git:clone',
+    async (_event, payload: { url: string; dest: string; branch?: string }) => {
+      const { url, dest, branch } = payload;
+      const args = ['clone', ...(branch ? ['--branch', branch] : []), '--', url, dest];
+      const result = await runGit(args, process.cwd());
+      if (result.error) throw new Error(result.stderr || result.error.message);
+      return { ok: true };
+    },
+  );
+
   // ── Checkout ──
   ipcMain.handle('git:checkout', async (_event, projectPath: string, branch: string) => {
     try {
@@ -557,7 +569,7 @@ export function setupGitHandlers(): void {
 
     try {
       // Run commands in parallel for performance
-      const [remoteRes, logRes, shortlogRes, branchListRes] = await Promise.all([
+      const [remoteRes, logRes, shortlogRes, branchListRes, currentRes] = await Promise.all([
         runGit(['config', '--get', 'remote.origin.url'], cwd),
         runGit(['log', '-1', '--pretty=format:%an|%ae|%at'], cwd), // Last commit author/email/time
         runGit(['shortlog', '-sn', '--all'], cwd), // Top contributors
@@ -566,10 +578,12 @@ export function setupGitHandlers(): void {
             'for-each-ref',
             '--sort=-committerdate',
             'refs/heads/',
-            '--format=%(refname:short)|%(committerdate:unix)',
+            'refs/remotes/',
+            '--format=%(refname)|%(committerdate:unix)',
           ],
           cwd,
-        ), // Local branches sorted by date
+        ),
+        runGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd),
       ]);
 
       // 1. Parse Repo URL
@@ -598,25 +612,38 @@ export function setupGitHandlers(): void {
       }
 
       // 4. Parse Branches
-      const branches: { name: string; lastCommitDate: number; commitCount: number }[] = [];
+      const branches: {
+        name: string;
+        lastCommitDate: number;
+        commitCount: number;
+        isCurrent: boolean;
+      }[] = [];
       if (!branchListRes.error && branchListRes.stdout) {
         const lines = branchListRes.stdout.split('\n').filter((l) => l.trim());
 
-        // Fetch commit counts sequentially to avoid overwhelming git process with too many parallel spawns
-        // Optimization: Limit to top 10 most recent branches for display speed
-        const topBranches = lines.slice(0, 10);
+        const seen = new Set<string>();
+        const refs: { ref: string; name: string; ts: string }[] = [];
+        for (const line of lines) {
+          const [ref, tsStr] = line.split('|');
+          const name = ref.startsWith('refs/heads/')
+            ? ref.slice('refs/heads/'.length)
+            : ref.replace(/^refs\/remotes\/[^/]+\//, '');
+          if (!name || name === 'HEAD' || seen.has(name)) continue;
+          seen.add(name);
+          refs.push({ ref, name, ts: tsStr });
+        }
+        const currentBranch = currentRes.stdout?.trim() || '';
+        refs.sort((a, b) => Number(b.name === currentBranch) - Number(a.name === currentBranch));
 
-        for (const line of topBranches) {
-          const [name, tsStr] = line.split('|');
-          if (!name) continue;
-
-          const countRes = await runGit(['rev-list', '--count', name], cwd);
+        for (const { ref, name, ts } of refs.slice(0, 20)) {
+          const countRes = await runGit(['rev-list', '--count', ref], cwd);
           const count = parseInt(countRes.stdout?.trim() || '0', 10);
 
           branches.push({
-            name: name.trim(),
-            lastCommitDate: (parseInt(tsStr, 10) || 0) * 1000, // Unix seconds to ms
+            name,
+            lastCommitDate: (parseInt(ts, 10) || 0) * 1000,
             commitCount: isNaN(count) ? 0 : count,
+            isCurrent: name === currentBranch,
           });
         }
       }
@@ -635,6 +662,22 @@ export function setupGitHandlers(): void {
     }
   });
 
+
+  // ── Repo identity (so sánh 2 project có cùng repo không) ──
+  ipcMain.handle('git:repo-identity', async (_event, projectPath: string) => {
+    const cwd = projectPath || process.cwd();
+    const common = await runGit(['rev-parse', '--path-format=absolute', '--git-common-dir'], cwd);
+    if (common.error) return null;
+    const [remote, branch] = await Promise.all([
+      runGit(['config', '--get', 'remote.origin.url'], cwd),
+      runGit(['branch', '--show-current'], cwd),
+    ]);
+    return {
+      commonDir: resolve(common.stdout.trim()),
+      remoteUrl: remote.stdout?.trim() || '',
+      branch: branch.stdout?.trim() || '',
+    };
+  });
 
   // ── Is Repo (kiểm tra project có git hay không) ──
   ipcMain.handle('git:is-repo', async (_event, projectPath: string) => {
@@ -657,10 +700,34 @@ export function setupGitHandlers(): void {
     const ignoredPaths = ignored.error
       ? []
       : ignored.stdout.split('\0').filter((p) => p.length > 0);
+    // sequential walk per path, no entry cap — upgrade path: cache results or cap entry count for huge trees
+    const sizeOf = async (root: string): Promise<number> => {
+      let total = 0;
+      const stack = [root];
+      while (stack.length) {
+        const cur = stack.pop() as string;
+        const st = await fs.lstat(cur).catch(() => null);
+        if (!st) continue;
+        if (st.isDirectory()) {
+          const entries = await fs.readdir(cur).catch(() => [] as string[]);
+          for (const e of entries) stack.push(join(cur, e));
+        } else {
+          total += st.size;
+        }
+      }
+      return total;
+    };
+    const sizes: Record<string, number> = {};
+    await Promise.all(
+      ignoredPaths.map(async (p) => {
+        sizes[p] = await sizeOf(join(cwd, p));
+      }),
+    );
     return {
       ignoredPaths,
       hasGitignore: content !== null,
       changedFiles,
+      sizes,
     };
   });
 
@@ -675,6 +742,7 @@ export function setupGitHandlers(): void {
       mode: 'latest-commit' | 'local',
       copyPaths: string[] = [],
       targetDir?: string,
+      useExisting = false,
     ) => {
       const cwd = projectPath || process.cwd();
       const name = (newBranch || '').trim();
@@ -695,13 +763,29 @@ export function setupGitHandlers(): void {
         if (formatCheck.error) return { error: `Tên branch không hợp lệ: ${name}` };
 
         const existing = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`], cwd);
-        if (!existing.error) return { error: `Branch "${name}" đã tồn tại` };
-
-        const source = await runGit(
-          ['show-ref', '--verify', '--quiet', `refs/heads/${sourceBranch}`],
-          cwd,
-        );
-        if (source.error) return { error: `Branch nguồn "${sourceBranch}" không tồn tại` };
+        let remoteRef: string | null = null;
+        if (useExisting) {
+          if (existing.error) {
+            const remote = await runGit(
+              ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`],
+              cwd,
+            );
+            if (remote.error) return { error: `Branch "${name}" không tồn tại` };
+            remoteRef = `origin/${name}`;
+          }
+        } else {
+          if (!existing.error) return { error: `Branch "${name}" đã tồn tại` };
+          const source = await runGit(
+            [
+              'show-ref',
+              '--verify',
+              '--quiet',
+              `refs/${sourceBranch.startsWith('origin/') ? 'remotes' : 'heads'}/${sourceBranch}`,
+            ],
+            cwd,
+          );
+          if (source.error) return { error: `Branch nguồn "${sourceBranch}" không tồn tại` };
+        }
 
         if (mode === 'local') {
           const current = await runGit(['branch', '--show-current'], cwd);
@@ -717,7 +801,14 @@ export function setupGitHandlers(): void {
         if (await fs.lstat(targetPath).catch(() => null)) {
           return { error: `Thư mục "${targetPath}" đã tồn tại` };
         }
-        const add = await runGit(['worktree', 'add', '-b', name, targetPath, sourceBranch], cwd);
+        const add = await runGit(
+          useExisting
+            ? remoteRef
+              ? ['worktree', 'add', '--track', '-b', name, targetPath, remoteRef]
+              : ['worktree', 'add', targetPath, name]
+            : ['worktree', 'add', '-b', name, targetPath, sourceBranch],
+          cwd,
+        );
         if (add.error) return { error: add.stderr || add.error.message };
 
         rollback = async () => {
@@ -729,7 +820,7 @@ export function setupGitHandlers(): void {
             process.noAsar = prevNoAsar;
           }
           await runGit(['worktree', 'prune'], cwd);
-          await runGit(['branch', '-D', name], cwd);
+          if (!useExisting || remoteRef) await runGit(['branch', '-D', name], cwd);
         };
 
         if (mode === 'local') {

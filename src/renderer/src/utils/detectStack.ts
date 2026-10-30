@@ -12,6 +12,7 @@ export interface BranchInfo {
   name: string;
   lastCommitDate?: number; // Timestamp
   commitCount?: number;
+  isCurrent?: boolean;
 }
 
 export interface LanguageStat {
@@ -123,6 +124,94 @@ async function getProjectFiles(path: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+export interface RemoteLogoCandidate {
+  path: string;
+  name: string;
+  width: number;
+  height: number;
+  src: string;
+}
+
+export async function detectRemoteLogos(url: string): Promise<RemoteLogoCandidate[]> {
+  const m = url.trim().match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
+  if (!m) return [];
+  const [, owner, repo] = m;
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  const tree: { path: string; type: string }[] = Array.isArray(data?.tree) ? data.tree : [];
+  return tree
+    .filter(
+      (n) =>
+        n.type === 'blob' &&
+        /\.(png|jpe?g|svg|webp|ico)$/i.test(n.path) &&
+        /(logo|icon|favicon|brand|avatar)/i.test(n.path) &&
+        !/(^|\/)(node_modules|dist|build)\//.test(n.path),
+    )
+    .sort((a, b) => a.path.split('/').length - b.path.split('/').length)
+    .slice(0, 8)
+    .map((n) => ({
+      path: n.path,
+      name: n.path.split('/').pop() ?? n.path,
+      width: 0,
+      height: 0,
+      src: `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${n.path}`,
+    }));
+}
+
+export async function detectRemoteStack(url: string): Promise<StackInfo> {
+  const empty: StackInfo = { frameworks: [], languages: [], contributors: [], branches: [] };
+  const m = url.trim().match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
+  if (!m) return empty;
+  const [, owner, repo] = m;
+  const base = `https://api.github.com/repos/${owner}/${repo}`;
+  const get = async (suffix: string) => {
+    const res = await fetch(`${base}${suffix}`);
+    if (!res.ok) throw new Error(String(res.status));
+    return res.json();
+  };
+  const [info, langs, contribs, branches] = await Promise.allSettled([
+    get(''),
+    get('/languages'),
+    get('/contributors?per_page=6'),
+    get('/branches?per_page=6'),
+  ]);
+
+  const langBytes: Record<string, number> =
+    langs.status === 'fulfilled' && langs.value ? langs.value : {};
+  const total = Object.values(langBytes).reduce((a, b) => a + b, 0);
+  const languages: LanguageStat[] = total
+    ? Object.entries(langBytes)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, bytes]) => ({
+          id: name.toLowerCase(),
+          name,
+          percentage: Math.round((bytes / total) * 1000) / 10,
+        }))
+    : [];
+
+  const infoValue = info.status === 'fulfilled' ? info.value : undefined;
+
+  return {
+    primaryLanguage: languages[0]?.id,
+    frameworks: [],
+    repoUrl: infoValue?.html_url ?? url.trim(),
+    author: infoValue?.owner?.login ?? owner,
+    sizeBytes: infoValue?.size ? infoValue.size * 1024 : undefined,
+    languages,
+    contributors:
+      contribs.status === 'fulfilled' && Array.isArray(contribs.value)
+        ? contribs.value.map((c: any) => ({ username: c.login, avatarUrl: c.avatar_url }))
+        : [],
+    branches:
+      branches.status === 'fulfilled' && Array.isArray(branches.value)
+        ? branches.value
+            .map((b: any) => ({ name: b.name, isCurrent: b.name === infoValue?.default_branch }))
+            .sort((a: BranchInfo, b: BranchInfo) => Number(!!b.isCurrent) - Number(!!a.isCurrent))
+        : [],
+  };
 }
 
 export async function detectProjectStack(path: string): Promise<StackInfo> {

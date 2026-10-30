@@ -153,6 +153,7 @@ export interface BranchInfo {
   visible: boolean;
   sessions: SessionInfo[];
   path?: string;
+  remote?: boolean;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────
