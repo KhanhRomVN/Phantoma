@@ -36,8 +36,12 @@ interface TagHeaderProps {
   isPartial?: boolean;
   /** File or folder path to display in the header */
   path?: string;
+  /** Icon hiển thị trước path ở dòng 2 */
+  pathIcon?: React.ReactNode;
   /** Callback when path is clicked (separate from header click) */
   onPathClick?: (path: string) => void;
+  /** Giảm một nửa khoảng cách giữa dòng tiêu đề và dòng path */
+  compactPath?: boolean;
   /** Optional custom tooltip text for the status dot */
   statusTooltip?: string;
   /** Whether this action is waiting for approval */
@@ -115,7 +119,9 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
   headerActions,
   isPartial,
   path,
+  pathIcon,
   onPathClick,
+  compactPath,
   statusTooltip,
   isWaitingApproval,
   isError,
@@ -359,7 +365,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {onToggleCollapse && (
                     <span
-                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-xs mr-1`}
+                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-[13px] mr-1`}
                     />
                   )}
                   {icon && <span className="flex items-center">{icon}</span>}
@@ -373,13 +379,16 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
                 {displayPath && path && (
                   <div
                     ref={pathContainerRef}
-                    className="flex justify-start items-center pl-5 pr-1 pt-1 mt-0.5 relative w-full max-w-full overflow-hidden"
+                    className={`flex justify-start items-center pl-5 pr-1 relative w-full max-w-full overflow-hidden ${compactPath ? 'pt-0.5 mt-0' : 'pt-1 mt-0.5'}`}
                   >
                     {/* Corner line: vertical + horizontal L-shape */}
-                    <div className="absolute left-0 top-0 w-4 h-3 border-l border-b border-text-secondary/20" />
+                    <div
+                      className={`absolute left-0 top-0 w-4 border-l border-b border-text-secondary/20 ${compactPath ? 'h-2.5' : 'h-3'}`}
+                    />
+                    {pathIcon}
                     <span
                       ref={pathSpanRef}
-                      className="text-[10px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis rounded-sm transition-[text-decoration] duration-150 cursor-default no-underline flex items-center gap-1 shrink min-w-0"
+                      className="text-[11px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis rounded-sm transition-[text-decoration] duration-150 cursor-default no-underline flex items-center gap-1 shrink min-w-0"
                       style={{ color: pathColor }}
                       title={path}
                       onClick={(e) => {

@@ -19,7 +19,8 @@ import FilesPreviews from '../../../components/MessageInput/FilesPreviews';
 import MessageInput from '../../../components/MessageInput';
 
 // ── Types ──
-import { type FileMutationTool } from '../constants/constants';
+import { type FileMutationTool } from '../constants/tag-registry';
+import type { WorkflowAgentId } from '../types/workflow-agents';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ChatFooterProps {
@@ -86,6 +87,7 @@ interface ChatFooterProps {
     },
   ) => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
+  workflowAgentId?: WorkflowAgentId | null;
 }
 
 const ChatFooter: React.FC<ChatFooterProps> = ({
@@ -136,6 +138,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   loadedConversationFileStats,
   onModelSwitch,
   onRevertConversation,
+  workflowAgentId,
 }) => {
   // Calculate response range - count all assistant responses in the conversation
   const responseRange = React.useMemo(() => {
@@ -372,6 +375,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
           responseRanges={responseRanges}
           onRevertConversation={onRevertConversation}
           onModelSwitch={onModelSwitch}
+          workflowAgentId={workflowAgentId}
         />
       </div>
     </div>

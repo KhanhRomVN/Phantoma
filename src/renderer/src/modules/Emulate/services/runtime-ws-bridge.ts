@@ -21,7 +21,7 @@ class WsEventBus {
       this.listeners.set(channel, new Set());
     }
     this.listeners.get(channel)!.add(fn);
-    
+
     // Return unsubscribe function
     return () => {
       this.listeners.get(channel)?.delete(fn);
@@ -35,11 +35,9 @@ class WsEventBus {
   public emit(channel: string, data: unknown): void {
     const set = this.listeners.get(channel);
     if (!set || set.size === 0) {
-      // Optional: Debug log for dropped events
-      // console.debug(`[WsBus] No listeners for ${channel}`);
       return;
     }
-    
+
     for (const fn of set) {
       try {
         // Mimic Electron IPC signature: (event, data)
@@ -86,7 +84,7 @@ function scheduleReconnect(): void {
 
   reconnectAttempts++;
   const delay = Math.min(RECONNECT_DELAY_MS * Math.pow(1.5, reconnectAttempts - 1), 10000);
-  
+
   setTimeout(() => connect(), delay);
 }
 
@@ -96,8 +94,7 @@ function connect(): void {
   }
 
   const url = resolveWsUrl();
-  console.log(`[RuntimeWsBridge] Connecting to: ${url}`);
-  
+
   try {
     ws = new WebSocket(url);
   } catch (err) {
@@ -107,7 +104,6 @@ function connect(): void {
   }
 
   ws.onopen = () => {
-    console.log('[RuntimeWsBridge] Connected successfully.');
     reconnectAttempts = 0;
     ws?.send(JSON.stringify({ action: 'PING' }));
   };
@@ -127,7 +123,7 @@ function connect(): void {
   ws.onclose = (event) => {
     console.warn(`[RuntimeWsBridge] Closed (${event.code}). Notifying subscribers.`);
     ws = null;
-    
+
     // Emit immediate disconnection notification so UI can cleanup
     // regardless of whether reconnection will eventually succeed or fail.
     wsBus.emit('ws:immediate-disconnect', { code: event.code, reason: event.reason });

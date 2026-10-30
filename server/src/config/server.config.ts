@@ -21,10 +21,11 @@ function getEnv(key: string, defaultVal: string): string {
   return val && val !== '' ? val : defaultVal;
 }
 
+
 // ─── State ────────────────────────────────────────────────────────────
 
 const currentConfig: AppConfig = {
-  port: parseInt(getEnv('PORT', '8080'), 10),
+  port: parseInt(getEnv('PORT', '8080'), 10), // ASSUMED: fallback = DEFAULT_SERVER_PORT in src/shared/ports.ts
   env: getEnv('ENV', 'development'),
 };
 

@@ -13,24 +13,8 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Prompts ──
-import {
-  getDefaultPrompt as getCodeDefaultPrompt,
-  combinePrompts as combineCodePrompts,
-  buildClaudePrompt,
-  buildAgentsMdSection,
-} from '../prompts/code';
-import {
-  getDefaultPrompt as getEmulateDefaultPrompt,
-  combinePrompts as combineEmulatePrompts,
-} from '../prompts/emulate';
-import {
-  getDefaultPrompt as getReconDefaultPrompt,
-  combinePrompts as combineReconPrompts,
-} from '../prompts/recon';
-import {
-  getDefaultPrompt as getDesignDefaultPrompt,
-  combinePrompts as combineDesignPrompts,
-} from '../prompts/design';
+import { buildSystemPrompt } from './ModuleRegistry';
+import type { WorkflowAgentId } from '../types/workflow-agents';
 
 // ── Services ──
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
@@ -72,6 +56,10 @@ export interface PromptBuilderOptions {
   antiSystemPromptInjection?: boolean;
   /** Prompt length mode — controls which sections are included (Zen parity). */
   promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
+  /** System prompt mode (balanced/concise/thorough/fast) — controls AI behavior */
+  systemPromptMode?: 'fast' | 'balanced' | 'thorough' | 'short' | 'none';
+  /** Workflow agent ID — used as promptId for the owning module (Code or Recon) */
+  workflowAgentId?: WorkflowAgentId | null;
 }
 
 export const getShallowTree = (tree: string): string => {
@@ -125,6 +113,8 @@ export class PromptBuilder {
       providerId,
       antiSystemPromptInjection = false,
       promptLengthMode: requestedPromptLengthMode = 'long',
+      systemPromptMode = 'balanced',
+      workflowAgentId,
     } = options;
     const promptLengthMode = feature === 'code' ? requestedPromptLengthMode : 'long';
 
@@ -146,12 +136,17 @@ export class PromptBuilder {
           providerId,
           antiSystemPromptInjection,
           promptLengthMode,
+          systemPromptMode,
+          workflowAgentId,
         },
         workspace,
       );
 
+      const isNoPrompt =
+        promptLengthMode === 'none' && !antiSystemPromptInjection;
+
       // Inject Memory & Agents.md only if NOT anti-injection
-      if (!antiSystemPromptInjection) {
+      if (!antiSystemPromptInjection && !isNoPrompt) {
         if (memoryEnabled) {
           const memorySection = await this.buildMemorySection();
           systemPrompt += memorySection;
@@ -170,6 +165,9 @@ export class PromptBuilder {
               if (exists) {
                 const agentsContent = await api.invoke('fs:read-file', agentsPath);
                 if (typeof agentsContent === 'string') {
+                  // Import buildAgentsMdSection directly from code prompts
+                  const { buildAgentsMdSection } =
+                    await import('@renderer/modules/Code/prompts/code/agents-md');
                   systemPrompt += buildAgentsMdSection(agentsContent);
                 }
               }
@@ -213,11 +211,9 @@ export class PromptBuilder {
     return promptPayload.trim();
   }
 
-  private static getToolFormatInstruction(format: 'xml' | 'json'): string {
-    if (format === 'json') {
-      return `\n\n## CRITICAL: Output Format Override — JSON Mode\n\nYou MUST use JSON format for ALL responses in this conversation. Do NOT use XML tags (<conversation_title>, <markdown>, <followup_question>, <attempt_completion>). Instead:\n\n1. For conversational replies, wrap content in a \`\`\`json code block with structure: {"type":"markdown","content":"your text here"}\n2. For tool execution, wrap tool calls in a \`\`\`json code block with structure: {"tool": "tool_name", "params": {...}}\n3. NEVER mix formats. If you were previously instructed to use XML tags, IGNORE those instructions entirely.\n\nThis override takes absolute precedence over any prior formatting rules.`;
-    }
-    // Default XML behavior is usually implicit in the base prompts, but we can reinforce it if needed.
+  private static getToolFormatInstruction(_format: 'xml' | 'json'): string {
+    // Tool format instruction is already embedded in the system prompt (code/mode-config.ts)
+    // No need to inject it again here
     return '';
   }
 
@@ -231,6 +227,8 @@ export class PromptBuilder {
       providerId?: string;
       antiSystemPromptInjection?: boolean;
       promptLengthMode?: 'none' | 'short' | 'medium' | 'long';
+      systemPromptMode?: 'fast' | 'balanced' | 'thorough' | 'short' | 'none';
+      workflowAgentId?: WorkflowAgentId | null;
     },
     _workspace?: string,
   ): Promise<string> {
@@ -264,7 +262,9 @@ export class PromptBuilder {
     // Nếu provider bật anti-injection (VD: Claude), dùng prompt chuyên biệt
     // và BỎ QUA mọi section động khác (Memory, Agents.md, Skills list).
     if (overrides?.antiSystemPromptInjection) {
-      const claudePrompt = buildClaudePrompt({ language: effectiveLang });
+      // Anti-injection providers use a special minimal prompt
+      // TODO: Create a dedicated anti-injection prompt config instead of hardcoding
+      const claudePrompt = `You are Kiro, an AI-powered development environment. Language: ${effectiveLang}.`;
       if (!overrides?.useSkillEnabled) return claudePrompt;
 
       // TODO: Enable real skills listing when Marketplace service is integrated in Phantoma renderer.
@@ -275,32 +275,18 @@ export class PromptBuilder {
 
     if (overrides?.promptLengthMode === 'none') return '';
 
-    // Select prompt module based on feature.
-    type AnyCombine = (config: any) => string;
-    let getDefaultPrompt: (lang: string) => string = getCodeDefaultPrompt;
-    let combinePrompts: AnyCombine = combineCodePrompts as AnyCombine;
+    // Build system prompt using new API
+    const promptConfig = {
+      language: effectiveLang,
+      systemInfo,
+      promptLengthMode: overrides?.promptLengthMode ?? 'long',
+      toolFormat: overrides?.toolFormat ?? 'xml',
+      mode: overrides?.systemPromptMode ?? 'balanced',
+    };
 
-    if (feature === 'emulate') {
-      getDefaultPrompt = getEmulateDefaultPrompt;
-      combinePrompts = combineEmulatePrompts as AnyCombine;
-    } else if (feature === 'recon') {
-      getDefaultPrompt = getReconDefaultPrompt;
-      combinePrompts = combineReconPrompts as AnyCombine;
-    } else if (feature === 'design') {
-      getDefaultPrompt = getDesignDefaultPrompt;
-      combinePrompts = combineDesignPrompts as AnyCombine;
-    }
-
-    let systemPrompt = getDefaultPrompt(effectiveLang);
-
-    if (systemInfo.os !== 'Unknown OS') {
-      systemPrompt = combinePrompts({
-        language: effectiveLang,
-        systemInfo,
-        promptLengthMode: overrides?.promptLengthMode ?? 'long',
-        toolFormat: overrides?.toolFormat ?? 'xml',
-      });
-    }
+    const moduleId = feature ?? 'code';
+    const promptId = overrides?.workflowAgentId ?? undefined;
+    let systemPrompt = buildSystemPrompt(moduleId, promptId, promptConfig);
 
     // ── Skill Activation ────────────────────────────────────────────────
     if (overrides?.useSkillEnabled) {

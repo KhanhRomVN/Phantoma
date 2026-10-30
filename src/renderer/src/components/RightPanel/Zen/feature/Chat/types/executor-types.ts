@@ -37,6 +37,10 @@ export interface ExecutorContext {
   activeTargetId?: string | null;
   /** Module ID for the current conversation (code:projectId, emulate:targetId, ...) */
   moduleId?: string;
+  /** Folder path for the current conversation (required for conversation storage operations) */
+  folderPath?: string | null;
+  /** Workflow agent id of the Zen tab running this tool (e.g. 'orchestrator', 'code_writer'). */
+  workflowAgentId?: string | null;
 }
 
 // Base executor interface

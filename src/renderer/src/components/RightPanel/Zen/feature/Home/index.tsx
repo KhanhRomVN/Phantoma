@@ -26,7 +26,9 @@ import ModelDistribution from './components/ModelDistribution';
 import UsageChart from './components/UsageChart';
 import HomeHeader from './components/HomeHeader';
 import AgentNavBadge, { type NavTarget } from '../../components/AgentNavBadge';
+
 import HomeBanner from './components/HomeBanner';
+import WorkspacePathBadge from './components/WorkspacePathBadge';
 import { ConversationItem } from '../History/types';
 import { useSettings } from '../../context/SettingsContext';
 import MessageInput from '../../components/MessageInput';
@@ -37,12 +39,8 @@ import { useModelAccount } from '../../hooks/useModelAccount';
 import { useToolFormatSettings } from '../../hooks/useToolFormatSettings';
 import { useZenUpdate } from './hooks/useZenUpdate';
 import ConversationService from '../../services/ConversationService';
-import {
-  isBlockedNow,
-  isDeepSeekProvider,
-  getBlockedRangeLabel,
-  getBlockedHoursDescription,
-} from '@renderer/utils/timeBlock';
+import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { AccountStat } from './utils/format';
 import {
   useStatsPeriod,
@@ -81,6 +79,7 @@ interface HomePanelProps {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
       toolFormat?: 'xml' | 'json';
+      workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
     },
   ) => void;
   onLoadConversation: (conversationId: string, tabId: number, folderPath: string | null) => void;
@@ -154,6 +153,10 @@ const HomePanel: React.FC<HomePanelProps> = ({
   onLoadConversation,
   onOpenSubView,
 }) => {
+  // Read workflowAgentId from context
+  const workflowSync = useWorkflowAgentSync();
+  const workflowAgentId = workflowSync?.agentType ?? workflowSync?.agentId ?? undefined;
+
   const {
     apiUrl,
     useSkillEnabled: globalUseSkillEnabled,
@@ -301,7 +304,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
             prov.data.forEach((p: any) => {
               if (p.provider_id && p.website) {
                 try {
-                  favicons[p.provider_id] = `${new URL(p.website).origin}/favicon.ico`;
+                  favicons[p.provider_id] = getFaviconUrl(p.website);
                 } catch {
                   console.warn('[Home] Invalid website URL for favicon:', p.website);
                 }
@@ -330,7 +333,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
       try {
         const conversationIds = await ConversationService.list(moduleId);
         const conversationsData = await Promise.all(
-          conversationIds.slice(0, 10).map(async (id) => {
+          conversationIds.map(async (id) => {
             try {
               const data = await ConversationService.get(moduleId, id);
               if (!data) return null;
@@ -342,6 +345,19 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 .map((m) => m.content.substring(0, 50))
                 .join(' ');
 
+              let providerId: string | undefined;
+              let modelId: string | undefined;
+              let totalTokenUsage = 0;
+              let totalRequests = 0;
+              for (const m of data.messages) {
+                if (m.role === 'user') totalRequests++;
+                if (m.role === 'assistant') {
+                  if (!providerId && m.providerId) providerId = m.providerId;
+                  if (!modelId && m.modelId) modelId = m.modelId;
+                  if (!m.isError && m.tokenUsage) totalTokenUsage += m.tokenUsage;
+                }
+              }
+
               return {
                 id: data.conversationId,
                 title,
@@ -351,8 +367,12 @@ const HomePanel: React.FC<HomePanelProps> = ({
                 createdAt: data.createdAt,
                 messageCount: data.messages.length,
                 tabId: -1,
-                totalRequests: 0,
-                totalTokenUsage: 0,
+                totalRequests,
+                totalTokenUsage,
+                providerId,
+                modelId,
+                workflowAgentId:
+                  data.conversationOverrides?.workflowAgentId ?? data.workflowAgentId ?? null,
                 folderPath: null,
               } as ConversationItem;
             } catch (error) {
@@ -362,7 +382,9 @@ const HomePanel: React.FC<HomePanelProps> = ({
           }),
         );
 
-        const validHistory = conversationsData.filter((c): c is ConversationItem => c !== null);
+        const validHistory = conversationsData.filter(
+          (c): c is ConversationItem => c !== null && c.messageCount > 0,
+        );
         setConversations(validHistory);
       } catch (error) {
         console.error('[Home] Failed to load history:', error);
@@ -418,32 +440,13 @@ const HomePanel: React.FC<HomePanelProps> = ({
   const handleSend = useCallback(
     (model: any, account: any) => {
       if (message.trim() || uploadedFiles.length > 0 || attachedItems.length > 0) {
-        // DeepSeek time-block check
-        if (isDeepSeekProvider(model?.providerId)) {
-          const providerConfig = providers.find(
-            (p: any) => p.provider_id?.toLowerCase() === model?.providerId?.toLowerCase(),
-          );
-          const ranges = providerConfig?.blocked_time_ranges ?? null;
-          if (isBlockedNow(ranges)) {
-            const rangeLabel = getBlockedRangeLabel(ranges);
-            const allRanges = getBlockedHoursDescription(ranges);
-            onSendMessage(
-              `⛔ DeepSeek bị chặn trong khung giờ ${allRanges}. Hiện tại đang trong khung ${rangeLabel}. Vui lòng thử lại sau.`,
-              [],
-              model,
-              account,
-              {},
-            );
-            return;
-          }
-        }
-
-        onSendMessage(message, [...uploadedFiles, ...attachedItems], model, account, {
-
+        const overrides = {
           useSkillEnabled: conversationUseSkillEnabled,
           memoryEnabled: conversationMemoryEnabled,
           toolFormat: conversationToolFormat,
-        });
+          workflowAgentId: workflowAgentId as any,
+        };
+        onSendMessage(message, [...uploadedFiles, ...attachedItems], model, account, overrides);
         setMessage('');
         clearDraft();
         clearFiles();
@@ -475,11 +478,14 @@ const HomePanel: React.FC<HomePanelProps> = ({
 
   return (
     <div className="flex flex-col h-full relative">
-
+      {/* Workspace path badge — góc phải trên, cho biết Zen đang đứng ở folder nào */}
+      <div className="absolute top-2 right-3 z-10">
+        <WorkspacePathBadge />
+      </div>
       {/* Dashboard scroll area */}
       <div className="flex-1 overflow-auto flex flex-col">
         <div
-          className="flex-1 flex flex-col items-center justify-start py-8 px-4 text-primary"
+          className="flex-1 flex flex-col items-center justify-start py-8 px-4 text-text-primary"
           style={{
             animation: 'fadeIn 0.5s ease-out',
             maxWidth: '680px',
@@ -491,6 +497,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
           <HomeHeader imagesUri={imagesUri} />
 
           <AgentNavBadge className="w-full mb-2" onSelect={onOpenSubView} />
+
 
           <div className="w-full mb-4 flex flex-col gap-3 empty:hidden">
             <HomeBanner
@@ -567,6 +574,16 @@ const HomePanel: React.FC<HomePanelProps> = ({
           }}
           onAttachedItemClick={() => {}}
         />
+        <div
+          className={
+            workflowSync && workflowSync.agentId !== 'orchestrator'
+              ? 'opacity-50 pointer-events-none select-none'
+              : undefined
+          }
+          {...(workflowSync && workflowSync.agentId !== 'orchestrator'
+            ? ({ inert: '' } as object)
+            : {})}
+        >
         <MessageInput
           message={message}
           setMessage={setMessage}
@@ -612,6 +629,7 @@ const HomePanel: React.FC<HomePanelProps> = ({
             toggleConversationToolFormat();
           }}
         />
+        </div>
       </div>
 
       <style>{`

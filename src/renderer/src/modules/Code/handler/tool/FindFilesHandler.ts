@@ -7,6 +7,7 @@
  */
 
 import { BaseParams, BaseResult } from './FileHandlerTypes';
+import { resolveWorkspacePath } from '../../utils/pathResolver';
 
 interface FindFilesParams extends BaseParams {
   fileName?: string;
@@ -28,7 +29,12 @@ export class FindFilesHandler {
       const api = (window as any).api;
       if (!api?.invoke) throw new Error('IPC not available');
 
-      const results = await api.invoke('fs:find-files', folderPath || '.', fileName);
+      // Resolve relative folder against workspace root so search hits the project.
+      const resolvedFolder = await resolveWorkspacePath(
+        folderPath || '.',
+        (message as any).basePath,
+      );
+      const results = await api.invoke('fs:find-files', resolvedFolder, fileName);
 
       return {
         command: 'findFilesResult',

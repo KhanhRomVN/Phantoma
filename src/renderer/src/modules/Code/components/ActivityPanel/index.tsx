@@ -22,6 +22,7 @@ import {
   Folder,
   Search as SearchIcon,
   Palette,
+  Users,
 } from 'lucide-react';
 
 // ── Hooks ─
@@ -33,6 +34,7 @@ import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { Design } from './Design';
+import { Account } from './Account';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -46,6 +48,7 @@ const TABS = [
     icon: <Palette className="w-4 h-4" />,
     label: 'Design',
   },
+  { id: 'account', icon: <Users className="w-4 h-4" />, label: 'Accounts' },
 ];
 
 const MIN_WIDTH = 200;
@@ -54,10 +57,13 @@ const MAX_WIDTH = 600;
 // ─── Component ──────────────────────────────────────────────────────────
 export function ActivityPanel() {
   // ── Store — select riêng activityPanelTab thay vì toàn bộ project ──
-  const activityPanelTab = useCodeStore((s) => {
+  const isAccountPanelOpen = useCodeStore((s) => s.isAccountPanelOpen);
+  const setAccountPanelOpen = useCodeStore((s) => s.setAccountPanelOpen);
+  const projectTab = useCodeStore((s) => {
     const p = s.projects.find((p) => p.id === s.currentProjectId);
     return p?.activityPanelTab ?? 'explore';
   });
+  const activityPanelTab = isAccountPanelOpen ? 'account' : projectTab;
   const setActivityPanelTab = useCodeStore((s) => s.setActivityPanelTab);
   const activityPanelWidth = useCodeStore((s) => s.activityPanelWidth);
   const setActivityPanelWidth = useCodeStore((s) => s.setActivityPanelWidth);
@@ -84,6 +90,12 @@ export function ActivityPanel() {
 
   // ── Handlers ──
   const handleTabChange = (tab: string) => {
+    if (tab === 'account') {
+      if (contentViewMode === 'design') setContentViewMode(lastViewModeRef.current);
+      setAccountPanelOpen(true);
+      return;
+    }
+    setAccountPanelOpen(false);
     if (tab === 'design') {
       if (hasActiveDesign) setContentViewMode('design');
     } else if (contentViewMode === 'design') {
@@ -124,6 +136,8 @@ export function ActivityPanel() {
         return <Search />;
       case 'design':
         return null;
+      case 'account':
+        return <Account />;
 
       default:
         return <FileExplore />;

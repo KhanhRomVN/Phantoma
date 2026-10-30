@@ -69,8 +69,9 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   const nodes: FileNode[] = [];
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+
     const node: FileNode = {
-      id: `scan_${Math.random().toString(36).slice(2, 9)}`,
+      id: `fs_${entry.path}`,
       name: entry.name,
       type: entry.isDirectory ? 'folder' : 'file',
       path: entry.path,
@@ -91,7 +92,6 @@ import { cn } from '@renderer/shared/utils/cn';
 import { ConfirmDeleteFileModal } from './ConfirmDeleteFileModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-let lazyFileIdCounter = 100000;
 
 interface DirEntry {
   name: string;
@@ -101,13 +101,19 @@ interface DirEntry {
   mtime: number;
 }
 
-const dirEntryToFileNode = (entry: DirEntry): FileNode => ({
-  id: `fs_lazy_${++lazyFileIdCounter}`,
-  name: entry.name,
-  type: entry.isDirectory ? 'folder' : 'file',
-  path: entry.path,
-  children: entry.isDirectory ? [] : undefined,
-});
+const lazyNodeRegistry = new Map<string, FileNode>();
+
+const dirEntryToFileNode = (entry: DirEntry): FileNode => {
+  const node: FileNode = {
+    id: `fs_${entry.path}`,
+    name: entry.name,
+    type: entry.isDirectory ? 'folder' : 'file',
+    path: entry.path,
+    children: entry.isDirectory ? [] : undefined,
+  };
+  lazyNodeRegistry.set(node.id, node);
+  return node;
+};
 
 const fetchDirChildren = async (dirPath: string): Promise<FileNode[]> => {
   try {
@@ -134,15 +140,19 @@ async function refreshProjectTree(projectId: string, projectPath: string) {
 }
 
 /** Tìm node theo id trong cây đệ quy */
-function findNodeById(nodes: FileNode[], id: string): FileNode | null {
+function findNodeInTree(nodes: FileNode[], id: string): FileNode | null {
   for (const n of nodes) {
     if (n.id === id) return n;
     if (n.children) {
-      const found = findNodeById(n.children, id);
+      const found = findNodeInTree(n.children, id);
       if (found) return found;
     }
   }
   return null;
+}
+
+function findNodeById(nodes: FileNode[], id: string): FileNode | null {
+  return findNodeInTree(nodes, id) ?? lazyNodeRegistry.get(id) ?? null;
 }
 
 /** Thu thập tên + path của các node được chọn */
@@ -292,8 +302,6 @@ const TreeNode = memo(function TreeNode({
   onNodeClick,
   onDeleteRequest,
 }: TreeNodeProps) {
-  const openFile = useCodeStore((s) => s.openFile);
-  const setActiveFileTab = useCodeStore((s) => s.setActiveFileTab);
   const toggleFolderExpand = useCodeStore((s) => s.toggleFolderExpand);
 
   // Selector tinh: chỉ chọn expanded boolean cho chính node này + dirVersion
@@ -338,11 +346,11 @@ const TreeNode = memo(function TreeNode({
   useEffect(() => {
     if (dirVersion !== dirVersionRef.current) {
       dirVersionRef.current = dirVersion;
-      if (expanded && lazyChildren !== null) {
-        setLazyChildren(null);
+      if (isFolder && node.path) {
+        fetchDirChildren(node.path).then(setLazyChildren);
       }
     }
-  }, [dirVersion, expanded, lazyChildren]);
+  }, [dirVersion, isFolder, node.path]);
 
   const children = lazyChildren !== null ? lazyChildren : node.children;
   const hasChildren = children && children.length > 0;
@@ -359,7 +367,7 @@ const TreeNode = memo(function TreeNode({
 
   // Auto-load children
   useEffect(() => {
-    if (isFolder && expanded && !hasChildren && node.path && lazyChildren === null && !loading) {
+    if (isFolder && expanded && node.path && lazyChildren === null && !loading) {
       setLoading(true);
       fetchDirChildren(node.path)
         .then((kids) => {
@@ -370,55 +378,31 @@ const TreeNode = memo(function TreeNode({
           setLoading(false);
         });
     }
-  }, [isFolder, expanded, hasChildren, node.path, lazyChildren, loading, dirVersion]);
+  }, [isFolder, expanded, node.path, lazyChildren, loading, dirVersion]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
+      const hasModifier = e.ctrlKey || e.metaKey || e.shiftKey;
       onNodeClick(node.id, e.ctrlKey || e.metaKey, e.shiftKey);
-
-      // Chỉ xử lý folder expand/collapse — file click disabled
-      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        if (!isFolder) {
-          const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
-          if (sessionId && node.path) {
-            useCodeStore.getState().requestOpenFile(sessionId, node.path, node.name);
-          }
-          return;
-        }
-
-        if (expanded) {
-          toggleFolderExpand(projectId, node.id);
-          setTimeout(() => logRenderCountAndReset(`COLLAPSE "${node.name}"`), 100);
-          return;
-        }
-
-        if (!hasChildren && node.path && lazyChildren === null) {
-          setLoading(true);
-          toggleFolderExpand(projectId, node.id);
-          setTimeout(() => logRenderCountAndReset(`EXPAND+FETCH "${node.name}"`), 100);
-          fetchDirChildren(node.path).then((kids) => {
-            setLazyChildren(kids);
-            setLoading(false);
-          });
-        } else {
-          toggleFolderExpand(projectId, node.id);
-          setTimeout(() => logRenderCountAndReset(`EXPAND_CACHED "${node.name}"`), 100);
-        }
+      if (isFolder && !hasModifier) {
+        toggleFolderExpand(projectId, node.id);
+        setTimeout(() => logRenderCountAndReset(`TOGGLE "${node.name}"`), 100);
       }
     },
-    [
-      isFolder,
-      expanded,
-      hasChildren,
-      node.path,
-      node.id,
-      projectId,
-      openFile,
-      setActiveFileTab,
-      toggleFolderExpand,
-      lazyChildren,
-      onNodeClick,
-    ],
+    [isFolder, node.id, node.name, projectId, toggleFolderExpand, onNodeClick],
+  );
+
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (isFolder || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      onNodeClick(node.id, false, false);
+
+      const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
+      if (sessionId && node.path) {
+        useCodeStore.getState().requestOpenFile(sessionId, node.path, node.name);
+      }
+    },
+    [isFolder, node.path, node.id, node.name, onNodeClick],
   );
 
   // ── Context menu actions ──────────────────────────────────────────────────
@@ -438,7 +422,8 @@ const TreeNode = memo(function TreeNode({
     } else if (node.path) {
       const p = getProject();
       if (p?.path) {
-        const rootPath = p.path.endsWith('/') ? p.path : p.path + '/';
+        const root = p.explorerRoot ?? p.path;
+        const rootPath = root.endsWith('/') ? root : root + '/';
         const relative = node.path.startsWith(rootPath)
           ? node.path.substring(rootPath.length)
           : node.path;
@@ -501,6 +486,16 @@ const TreeNode = memo(function TreeNode({
     [isFolder, expanded, node.path, node.id, projectId, toggleFolderExpand, setCreating],
   );
 
+  const handleOpenFolder = useCallback(async () => {
+    if (!node.path) return;
+    try {
+      const err = await window.api.invoke('shell:open-path', node.path);
+      if (err) console.error('[FileExplore] Cannot open folder:', err);
+    } catch (err) {
+      console.error('[FileExplore] Failed to open folder:', err);
+    }
+  }, [node.path]);
+
   const handleCreated = useCallback(() => {
     setCreating(null);
     setLazyChildren(null);
@@ -525,6 +520,7 @@ const TreeNode = memo(function TreeNode({
         <DropdownTrigger asChild>
           <button
             onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
             draggable={!isFolder && !!node.path}
             onDragStart={(e) => {
               if (isFolder || !node.path) return;
@@ -535,7 +531,7 @@ const TreeNode = memo(function TreeNode({
               );
             }}
             className={cn(
-              'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group',
+              'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group outline-none focus:outline-none focus-visible:outline-none',
               isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
               gitStatus[node.path ?? ''] === 'added'
                 ? 'text-emerald-500'
@@ -573,6 +569,7 @@ const TreeNode = memo(function TreeNode({
               className="w-4 h-4 shrink-0"
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
+                // Debug log - có thể xóa sau khi fix
                 if (img.src === fallbackIcon) {
                   img.style.display = 'none';
                 } else {
@@ -591,6 +588,7 @@ const TreeNode = memo(function TreeNode({
               <DropdownItem onClick={() => handleCreateFromContext('folder')}>
                 New Folder
               </DropdownItem>
+              <DropdownItem onClick={handleOpenFolder}>Open Folder</DropdownItem>
               <DropdownSeparator />
             </>
           )}
@@ -908,7 +906,8 @@ export function FileExplore() {
     if (!p?.path) return;
     const ids = selectedNodeIds.size > 0 ? Array.from(selectedNodeIds) : [];
     if (ids.length === 0) return;
-    const rootPath = p.path.endsWith('/') ? p.path : p.path + '/';
+    const root = p.explorerRoot ?? p.path;
+    const rootPath = root.endsWith('/') ? root : root + '/';
     const paths: string[] = [];
     for (const id of ids) {
       const found = findNodeById(p.files, id);
@@ -973,7 +972,7 @@ export function FileExplore() {
     if (!p?.path) return;
 
     // Xác định thư mục đích: ưu tiên folder đang được chọn, nếu không thì root
-    let destDir = p.path;
+    let destDir = p.explorerRoot ?? p.path;
     if (selectedNodeIds.size === 1) {
       const singleId = Array.from(selectedNodeIds)[0];
       const selectedNode = findNodeById(p.files, singleId);

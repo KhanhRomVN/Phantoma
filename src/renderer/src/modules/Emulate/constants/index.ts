@@ -12,3 +12,4 @@ export * from './resource';
 export * from './platforms';
 export * from './tools';
 export * from './defaults';
+export * from './tag-registry';

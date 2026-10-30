@@ -24,6 +24,7 @@ import { extensionService } from '../../../services/ExtensionService';
 
 // ── Types ──
 import { Message } from '../types/message';
+import type { WorkflowAgentId } from '../types/workflow-agents';
 
 // ── Local ──
 import { ConversationCache } from './ConversationCache';
@@ -38,12 +39,18 @@ function convertMessagesToNewFormat(messages: Message[]): NewConversationData['m
   return messages
     .filter((m) => !m.isCancelled)
     .map((m) => ({
+      ...m,
       id: m.id || generateMessageId(),
       role: m.role,
       content: m.content,
       timestamp: m.timestamp || Date.now(),
-      tokenUsage: m.token_usage,
+      tokenUsage: m.token_usage ?? m.usage?.total_tokens,
+      token_usage: m.token_usage ?? m.usage?.total_tokens,
       conversationId: m.conversationId,
+      providerId: m.providerId,
+      modelId: m.modelId,
+      accountId: m.accountId,
+      isError: m.isError,
     }));
 }
 
@@ -51,7 +58,7 @@ function convertMessagesToNewFormat(messages: Message[]): NewConversationData['m
  * Get moduleId from feature context
  * This should be called with proper context from parent component
  */
-function getModuleIdFromContext(sessionId: number, folderPath: string | null): string {
+export function getModuleIdFromContext(sessionId: number, folderPath: string | null): string {
   // Try to get from global feature context
   const feature = (window as any).__activeFeature;
   const targetId = (window as any).__activeTargetId;
@@ -116,6 +123,7 @@ export const saveConversation = async (
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
     toolFormat?: 'xml' | 'json';
+    workflowAgentId?: WorkflowAgentId | null;
   },
 ): Promise<string> => {
   try {
@@ -125,7 +133,7 @@ export const saveConversation = async (
     // Get existing conversation data
     let existingData: NewConversationData | null = null;
     try {
-      existingData = await NewConversationService.get(moduleId, convId);
+      existingData = await NewConversationService.get(moduleId, convId, folderPath);
     } catch (error) {
       // Conversation doesn't exist yet, will create new
     }
@@ -178,7 +186,7 @@ export const saveConversation = async (
     };
 
     // Save to new system
-    await NewConversationService.save(moduleId, convId, newData);
+    await NewConversationService.save(moduleId, convId, newData, folderPath);
 
     // Update cache
     ConversationCache.set(convId, {
@@ -214,7 +222,7 @@ export const deleteConversation = async (
     ConversationCache.delete(conversationId);
 
     // Delete from new system
-    await NewConversationService.delete(moduleId, conversationId);
+    await NewConversationService.delete(moduleId, conversationId, folderPath);
 
     // Notify backend (keep for compatibility)
     extensionService.postMessage({

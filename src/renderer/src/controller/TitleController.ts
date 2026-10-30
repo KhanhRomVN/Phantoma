@@ -24,6 +24,7 @@ export class TitleController {
     moduleId: string,
     conversationId: string,
     title: string,
+    folderPath?: string | null,
   ): Promise<TitleControllerResult> {
     const ipc = getIpc();
     if (!ipc) return { success: false, error: 'Electron IPC not available' };
@@ -33,6 +34,7 @@ export class TitleController {
         moduleId,
         conversationId,
         title,
+        folderPath,
       });
       if (!result?.success) {
         return { success: false, error: result?.error || 'Failed to update title' };

@@ -13,9 +13,18 @@
  */
 
 import React from 'react';
+import { Home } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+} from '@renderer/components/ui/Dropdown';
 import type { Message } from '../types/message';
 import { NAV_ITEMS, type NavTarget } from '../../../components/AgentNavBadge';
+import { useWorkflowAgentSync } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ChatHeaderProps {
@@ -44,6 +53,8 @@ interface ChatHeaderProps {
   onTitleChange?: (title: string) => void;
   /** Optional: có giá trị khi topBar bị ẩn → hiện hàng icon AgentNavBadge (không có icon Chat). */
   onOpenSubView?: (target: NavTarget) => void;
+  /** Optional: quay về màn hình Home. */
+  onGoHome?: () => void;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────
@@ -153,16 +164,7 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
 }) => {
   const [open, setOpen] = React.useState(false);
   const [hov, setHov] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [open]);
 
   const items: {
     label: string;
@@ -224,9 +226,9 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
   ];
 
   return (
-    <div ref={ref} className="relative">
+    <Dropdown open={open} onOpenChange={setOpen} align="end" side="bottom" sideOffset={4}>
+      <DropdownTrigger asChild>
       <button
-        onClick={() => setOpen((v) => !v)}
         title="More options"
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
@@ -242,41 +244,23 @@ const ConversationMenu: React.FC<ConversationMenuProps> = ({
           <circle cx="12" cy="19" r="1" />
         </svg>
       </button>
-
-      {open && (
-        <div className="absolute top-[calc(100%+4px)] right-0 z-[9999] bg-[var(--vscode-menu-background,#1e1e1e)] border border-[var(--vscode-menu-border,#454545)] rounded-md shadow-[0_4px_16px_rgba(0,0,0,0.35)] min-w-[180px] py-1 overflow-hidden">
-          {items.map((item) => (
-            <React.Fragment key={item.label}>
-              {item.sep && <div className="h-px bg-foreground/[0.08] my-1" />}
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  item.action?.();
-                }}
-                disabled={!item.action}
-                className={cn(
-                  'w-full px-3 py-1.5 flex items-center gap-2 bg-transparent border-none text-xs text-left transition-colors',
-                  item.action ? 'cursor-pointer' : 'cursor-not-allowed opacity-40',
-                  item.danger ? 'text-error' : 'text-text-primary',
-                )}
-                onMouseEnter={(e) => {
-                  if (item.action)
-                    e.currentTarget.style.backgroundColor = item.danger
-                      ? 'color-mix(in srgb, var(--vscode-editorError-foreground, #ef4444) 12%, transparent)'
-                      : 'var(--vscode-menu-selectionBackground, rgba(255,255,255,0.06))';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                <span className="shrink-0 flex items-center">{item.icon}</span>
-                {item.label}
-              </button>
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-    </div>
+      </DropdownTrigger>
+      <DropdownContent>
+        {items.map((item) => (
+          <React.Fragment key={item.label}>
+            {item.sep && <DropdownSeparator />}
+            <DropdownItem
+              icon={item.icon}
+              disabled={!item.action}
+              variant={item.danger ? 'error' : 'default'}
+              onClick={() => item.action?.()}
+            >
+              {item.label}
+            </DropdownItem>
+          </React.Fragment>
+        ))}
+      </DropdownContent>
+    </Dropdown>
   );
 };
 
@@ -362,7 +346,7 @@ const StatsBadge: React.FC<StatsBadgeProps> = ({
 
       {tooltipPos && (
         <div
-          className="fixed z-[99999] bg-[var(--sidebar-bg,var(--input-bg))] border border-border rounded-[10px] px-3 py-2.5 min-w-[200px] shadow-[0_4px_24px_rgba(0,0,0,0.28)] pointer-events-none text-[11px] text-text-primary leading-normal"
+          className="fixed z-[99999] bg-tooltip-background border border-border rounded-xl px-3 py-2.5 min-w-[200px] shadow-2xl pointer-events-none text-[11px] text-text-primary leading-normal"
           style={{ left: tooltipPos.x, top: tooltipPos.y, transform: 'translateX(-100%)' }}
         >
           <div className="text-[10px] font-bold uppercase tracking-[0.07em] opacity-50 mb-1.5">
@@ -420,9 +404,21 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onExportAsJson,
   onTitleChange,
   onOpenSubView,
+  onGoHome,
 }) => {
   const providerId = displayedModel?.providerId || '';
   const faviconUrl = getFaviconUrl(providerId, displayedModel?.favicon);
+
+  const workflowSync = useWorkflowAgentSync();
+  const handleGoHome = () => {
+    if (workflowSync?.agentId !== 'orchestrator') {
+      onGoHome?.();
+      return;
+    }
+    const detail = { handled: false, proceed: () => onGoHome?.() };
+    window.dispatchEvent(new CustomEvent('phantoma:orchestrator-go-home', { detail }));
+    if (!detail.handled) onGoHome?.();
+  };
 
   const usageNum = currentAccount?.usage != null ? Number(currentAccount.usage) : null;
   const usageColor =
@@ -449,8 +445,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   }, [derivedTitle, onTitleChange]);
 
   return (
-    <div className="flex flex-col border-b border-border bg-background">
-      <div className="px-4 py-2 flex flex-col gap-1">
+    <div className="flex flex-col bg-background">
+      <div
+        className="px-4 py-2 flex flex-col gap-1 w-full border-x border-b border-border rounded-bl-md rounded-br-md"
+        style={{ maxWidth: '680px', margin: '0 auto' }}
+      >
         {/* Row 1: title | [search] [3-dot] */}
         <div className="flex items-center gap-1.5 min-w-0">
           <span
@@ -459,6 +458,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           >
             {derivedTitle}
           </span>
+
+          <SqButton title="Home" onClick={handleGoHome}>
+            <Home size={15} />
+          </SqButton>
 
           <SqButton
             title="Search in chat"

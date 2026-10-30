@@ -77,11 +77,11 @@ export const BranchSidebar = memo(function BranchSidebar({
         className={cn(
           'relative w-full flex items-center gap-2 pl-6 pr-3 h-7 text-left text-[12px] font-mono transition-colors cursor-pointer',
           isCurrent
-            ? 'bg-primary/10 text-primary'
+            ? 'bg-card-hover text-text-secondary'
             : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
         )}
       >
-        {isCurrent && <span className={'absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-primary'} />}
+        {isCurrent && <span className={'absolute left-0 top-1 bottom-1 w-[3px] rounded-r bg-text-secondary'} />}
         <GitBranch className={'w-3 h-3 shrink-0'} />
         <span className={'truncate'}>
           {isRemote && slash > 0 ? (
@@ -95,7 +95,7 @@ export const BranchSidebar = memo(function BranchSidebar({
         </span>
         {busy === name && <Loader2 className={'ml-auto w-3 h-3 animate-spin'} />}
         {isCurrent && busy !== name && (
-          <span className={'ml-auto text-[9px] uppercase tracking-wide px-1 rounded bg-primary/20'}>HEAD</span>
+          <span className={'ml-auto text-[9px] uppercase tracking-wide px-1 rounded bg-card-background border border-border text-text-secondary'}>HEAD</span>
         )}
       </button>
     );

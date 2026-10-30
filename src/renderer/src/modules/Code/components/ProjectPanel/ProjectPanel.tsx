@@ -43,6 +43,7 @@ import {
   Link2,
   GitBranch,
   Square,
+  Settings,
 } from 'lucide-react';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
@@ -68,7 +69,7 @@ import {
 } from '@renderer/components/ui/Dropdown';
 
 // ── Local modals ──
-import { OpenProjectModal } from '../modal/OpenProjectModal/index';
+import { OpenProjectModal } from '../modal/OpenProjectModal';
 import { ConfirmDeleteProjectModal } from '../modal/ConfirmDeleteProjectModal';
 import { CreateBranchModal, type CreatedBranchResult } from '../modal/CreateBranchModal';
 import { ConfirmDeleteBranchModal } from '../modal/ConfirmDeleteBranchModal';
@@ -177,6 +178,7 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
     }
 
     const rawBranches: string[] = res.branches || [];
+    const worktreePaths: Record<string, string> = res.worktreePaths || {};
 
     // Common remote names that might appear as standalone entries due to parsing quirks
     const COMMON_REMOTES = ['origin', 'upstream'];
@@ -218,6 +220,7 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
       name,
       visible: true,
       sessions: [],
+      path: worktreePaths[name],
     }));
   } catch (e) {
     console.error('[ProjectPanel] Exception fetching branches', e);
@@ -304,7 +307,6 @@ function GroupHeader({
     onRenameDone(commit ? (inputRef.current?.value ?? null) : null);
   };
 
-
   // Generate stable random color based on group ID/name hash
   const groupColor = useMemo(() => {
     let hash = 0;
@@ -358,7 +360,6 @@ function GroupHeader({
         <ChevronRight className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
       )}
 
-
       {renaming ? (
         <input
           ref={inputRef}
@@ -376,9 +377,7 @@ function GroupHeader({
       )}
       <span className="font-medium text-text-secondary/50">{count}</span>
       <span className="flex-1" />
-      <KebabButton
-        onClick={(e) => onOpenMenu({ top: e.clientY, left: e.clientX })}
-      />
+      <KebabButton onClick={(e) => onOpenMenu({ top: e.clientY, left: e.clientX })} />
     </div>
   );
 }
@@ -410,6 +409,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const rawProjects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
+  const setExplorerRoot = useCodeStore((s) => s.setExplorerRoot);
   const updateProject = useCodeStore((s) => s.updateProject);
 
   // Content View Actions
@@ -488,8 +488,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
             bottomPanelTab: fresh.bottomPanelTab ?? 'output',
             isBottomPanelOpen: fresh.isBottomPanelOpen ?? true,
             activityPanelTab: fresh.activityPanelTab ?? 'explore',
-            unsavedFiles: new Set(fresh.unsavedFiles || []),
-            originalContents: fresh.originalContents ?? {},
+            unsavedFiles: new Set<string>(),
+            originalContents: {},
             dirVersions: fresh.dirVersions ?? {},
             designs: fresh.designs ?? [],
           } as ProjectExtended;
@@ -539,9 +539,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [filterStatus, setFilterStatus] = useState<'all' | SessionStatus>('all');
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [dropdownTarget, setDropdownTarget] = useState<DropdownTarget | null>(null);
+  const isSettingsOpen = useCodeStore((s) => s.contentViewMode === 'settings');
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addToGroupId, setAddToGroupId] = useState<string | null>(null);
+  const [pendingGroupAssign, setPendingGroupAssign] = useState<{
+    projectId: string;
+    groupId: string;
+  } | null>(null);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<ProjectExtended | null>(null);
   const [createBranchProjectId, setCreateBranchProjectId] = useState<string | null>(null);
+  const [gitRepoByProject, setGitRepoByProject] = useState<Record<string, boolean>>({});
   const [confirmDeleteBranchTarget, setConfirmDeleteBranchTarget] = useState<{
     project: ProjectExtended;
     branchName: string;
@@ -627,7 +634,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     ...gitBranch,
                     sessions: existing.sessions,
                     visible: existing.visible,
-                    path: existing.path,
+                    path: gitBranch.path ?? existing.path,
                   };
                 }
                 // New branch from Git, start with empty sessions
@@ -726,6 +733,17 @@ export const ProjectPanel = memo(function ProjectPanel() {
     setExpandedIds((prev) => (prev.has(projectId) ? prev : new Set(prev).add(projectId)));
   }, []);
 
+  /** Select project without touching expanded state (used by clicking card header). */
+  const handleSelectProject = useCallback(
+    (projectId: string) => {
+      setSelectedSessionId(null);
+      setActiveGitProjectId(null);
+      setActiveTaskManagerProjectId(null);
+      setCurrentProject(projectId);
+    },
+    [setCurrentProject],
+  );
+
   const handleSelectSession = useCallback(
     (sessionId: string) => {
       if (!sessionId) {
@@ -750,6 +768,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       // Set current project in store ONLY when a session is selected
       setCurrentProject(parentProject.id);
+      const parentBranch = parentProject.branches.find((b) =>
+        b.sessions.some((s) => s.id === sessionId),
+      );
+      setExplorerRoot(parentProject.id, parentBranch?.path ?? null);
 
       // If Task Manager was open, close it when selecting a session (implicit switch back to workspace)
       if (activeTaskManagerProjectId) {
@@ -766,6 +788,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [
       projects,
       setCurrentProject,
+      setExplorerRoot,
       setActiveWorkspaceSessionId,
       setContentViewMode,
       activeTaskManagerProjectId,
@@ -776,6 +799,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
   /** Toggle Git view for a specific project. Clicking again closes it. */
   const handleToggleGit = useCallback(
     (projectId: string) => {
+      // Skip if project has no git repo — Code module still works, git view unavailable.
+      if (gitRepoByProject[projectId] === false) return;
+
       setSelectedSessionId(null);
       setActiveTaskManagerProjectId(null);
 
@@ -788,7 +814,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
         setContentViewMode('git');
       }
     },
-    [activeGitProjectId, setContentViewMode, setCurrentProject],
+    [activeGitProjectId, setContentViewMode, setCurrentProject, gitRepoByProject],
   );
 
   /** Toggle Task Manager for a specific project. Clicking again closes it. */
@@ -868,6 +894,13 @@ export const ProjectPanel = memo(function ProjectPanel() {
       patchProject(projectId, (p) => ({ ...p, groupId })),
     [patchProject],
   );
+
+  useEffect(() => {
+    if (!pendingGroupAssign) return;
+    if (!projects.some((p) => p.id === pendingGroupAssign.projectId)) return;
+    setProjectGroup(pendingGroupAssign.projectId, pendingGroupAssign.groupId);
+    setPendingGroupAssign(null);
+  }, [pendingGroupAssign, projects, setProjectGroup]);
 
   // Removed unused createGroupFromProject as logic shifted to GroupPickerForm + Drag/Drop
 
@@ -1125,7 +1158,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
     (sessionId: string) => {
       const task = bySession[sessionId];
       const path = findSessionProjectPath(sessionId);
-      if (task && path) void taskService.update(path, task.id, { sessionId: null, branchName: null });
+      if (task && path)
+        void taskService.update(path, task.id, { sessionId: null, branchName: null });
     },
     [bySession, findSessionProjectPath],
   );
@@ -1207,7 +1241,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
         if (row) {
           const ghost = row.cloneNode(true) as HTMLElement;
           ghost.querySelectorAll('[data-drag-hide]').forEach((n) => n.remove());
-          ghost.className = 'flex items-center gap-2 px-3 py-2 rounded-none bg-card-background border-y border-divider text-text-primary';
+          ghost.className =
+            'flex items-center gap-2 px-3 py-2 rounded-none bg-card-background border-y border-divider text-text-primary';
           Object.assign(ghost.style, {
             position: 'fixed',
             top: '-1000px',
@@ -1333,12 +1368,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const drag = dragRef.current;
       if (!drag) return;
       e.preventDefault();
-      // Debug log - có thể xóa sau khi fix
-      console.log('[DEBUG] handleDrop', {
-        type: drag.type,
-        groupId: drag.groupId,
-        targetGid: (e.currentTarget as HTMLElement).dataset.gid,
-      });
       clearDragMarks();
       drag.el?.classList.remove('pp-dragging');
       if (drag.el) drag.el.style.opacity = '';
@@ -1434,12 +1463,31 @@ export const ProjectPanel = memo(function ProjectPanel() {
       ? (groups.find((g) => g.id === dropdownTarget.groupId) ?? null)
       : null;
   const activeTask =
-    dropdownTarget?.kind === 'task'
-      ? (bySession[dropdownTarget.sessionId] ?? null)
-      : null;
+    dropdownTarget?.kind === 'task' ? (bySession[dropdownTarget.sessionId] ?? null) : null;
   const activeProjectIndex = activeProject
     ? projects.findIndex((p) => p.id === activeProject.id)
     : -1;
+
+  // Load git repo status for ALL projects so each card can show a "No git" badge
+  // (previously only the active project was checked, leaving other cards unknown).
+  useEffect(() => {
+    let cancelled = false;
+    for (const p of projects) {
+      if (!p.path || gitRepoByProject[p.id] !== undefined) continue;
+      (window as any).api
+        .invoke('git:is-repo', p.path)
+        .then((ok: boolean) => {
+          if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [p.id]: !!ok }));
+        })
+        .catch(() => {
+          if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [p.id]: false }));
+        });
+    }
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects.map((p) => p.id + ':' + p.path).join('|')]);
 
   // ── Render helpers ──
   const renderCard = (project: ProjectExtended) => (
@@ -1447,9 +1495,12 @@ export const ProjectPanel = memo(function ProjectPanel() {
       key={project.id}
       project={project}
       isSelected={expandedIds.has(project.id)}
+      isProjectSelected={currentProjectId === project.id}
+      onSelectProject={handleSelectProject}
       selectedSessionId={selectedSessionId}
       isTaskManagerActive={activeTaskManagerProjectId === project.id}
       isGitActive={activeGitProjectId === project.id}
+      hasGit={gitRepoByProject[project.id]}
       onToggleGit={handleToggleGit}
       draggable={sortMode === 'manual'}
       isGlobalDragging={isGlobalDragging}
@@ -1564,6 +1615,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
             title="Add project"
           >
             <Plus className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Settings */}
+          <button
+            onClick={() => useCodeStore.getState().setContentViewMode('settings')}
+            className={cn(headerBtn, isSettingsOpen ? headerBtnOn : headerBtnIdle)}
+            title="Settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -1780,12 +1840,18 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
                 <DropdownItem
                   icon={<GitBranch className="w-3.5 h-3.5" />}
+                  disabled={gitRepoByProject[activeProject.id] !== true}
                   onClick={() => {
                     setCreateBranchProjectId(activeProject.id);
                     closeDropdown();
                   }}
                 >
                   Create branch...
+                  {gitRepoByProject[activeProject.id] === false && (
+                    <span className="ml-2 text-[10px] text-text-secondary/60">
+                      No git repository
+                    </span>
+                  )}
                 </DropdownItem>
 
                 <DropdownSeparator />
@@ -2027,6 +2093,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
             {dropdownTarget.kind === 'group' && activeGroup && (
               <>
                 <DropdownItem
+                  icon={<FolderPlus className="w-3 h-3" />}
+                  onClick={() => {
+                    setAddToGroupId(activeGroup.id);
+                    setAddModalOpen(true);
+                    closeDropdown();
+                  }}
+                >
+                  Add project
+                </DropdownItem>
+                <DropdownItem
                   icon={<Pencil className="w-3 h-3" />}
                   onClick={() => {
                     setEditingGroupId(activeGroup.id);
@@ -2086,7 +2162,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   proj?.branches.find((b) =>
                     b.sessions.some((s) => s.id === dropdownTarget.sessionId),
                   )?.name ?? null;
-                const candidates = (tasksByPath[path] ?? []).filter((t) => !t.archived && !t.sessionId);
+                const candidates = (tasksByPath[path] ?? []).filter(
+                  (t) => !t.archived && !t.sessionId,
+                );
                 if (candidates.length === 0) {
                   return (
                     <span className="block px-2 py-1 text-xs text-text-secondary/60">
@@ -2136,7 +2214,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
             {/* SESSION CONTEXT MENU */}
             {dropdownTarget.kind === 'session' && (
               <>
-
                 {bySession[dropdownTarget.sessionId] ? (
                   <>
                     <DropdownItem
@@ -2157,7 +2234,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     {TASK_STATUSES.map(([k, l]) => (
                       <DropdownItem
                         key={k}
-                        icon={ck(bySession[dropdownTarget.sessionId]?.status === k, <TaskIcon status={k} />)}
+                        icon={ck(
+                          bySession[dropdownTarget.sessionId]?.status === k,
+                          <TaskIcon status={k} />,
+                        )}
                         onClick={() => {
                           setTaskStatus(dropdownTarget.sessionId, k);
                           closeDropdown();
@@ -2232,7 +2312,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
       </div>
 
       {/* ── Project Modals ── */}
-      <OpenProjectModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
+      <OpenProjectModal
+        isOpen={addModalOpen}
+        onClose={() => {
+          setAddModalOpen(false);
+          setAddToGroupId(null);
+        }}
+        onProjectAdded={(projectId) => {
+          if (addToGroupId) setPendingGroupAssign({ projectId, groupId: addToGroupId });
+        }}
+      />
 
       {/* ── Confirm Delete Project Modal ── */}
       <ConfirmDeleteProjectModal

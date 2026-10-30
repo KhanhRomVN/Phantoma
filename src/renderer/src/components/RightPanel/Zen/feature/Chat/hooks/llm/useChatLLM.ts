@@ -19,6 +19,7 @@ import { Message, QuestionAnswer } from '../../types/message';
 import { ToolAction, parseAIResponse } from '../../services/ResponseParser';
 import { ChatSession } from '../../types/chat';
 import { AgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
+import type { WorkflowAgentId } from '../../types/workflow-agents';
 
 // ── Context ──
 import { useSettings } from '../../../../context/SettingsContext';
@@ -26,10 +27,10 @@ import { useProject } from '../../../../context/ProjectContext';
 
 // ── Hooks ──
 import { useFileUpload } from '../workspace/useFileUpload';
-import {
-  getLastScreenshotFileId,
-  clearLastScreenshotFileId,
-} from '../../services/tool-executors/ReconExecutor';
+import { getModuleService } from '../../services/ModuleRegistry';
+
+const getLastScreenshotFileId = () => getModuleService('recon', 'getLastScreenshotFileId')?.();
+const clearLastScreenshotFileId = () => getModuleService('recon', 'clearLastScreenshotFileId')?.();
 import { useStreamingState } from './useStreamingState';
 import { useConversationRefs } from './useConversationRefs';
 import { useMessageHandlers } from './useMessageHandlers';
@@ -43,35 +44,37 @@ import {
 } from '../../services/ConversationService';
 import { PromptBuilder } from '../../services/PromptBuilder';
 import { StreamingService } from '../../services/StreamingService';
+import {
+  hasDeepseekDSML,
+  processDeepseekContent,
+} from '../../services/DeepseekDSMLParser';
+import { cleanClaudeSandboxTools } from '../../services/ClaudeSandboxToolCleanner';
+import { buildToolFormatReminder } from '@renderer/modules/Code/prompts/code/tool-format-reminder';
+import {
+  buildSubAgentFormatReminder,
+  isReminderSubAgent,
+} from '@renderer/modules/Code/prompts/sub-agent-format-reminder';
+import { DEEPSEEK_DSML_REMINDER } from '../../prompts/deepseek-dsml-reminder';
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '../../constants/constants';
-
-// ── Utils ──
-import {
-  isBlockedNow,
-  isDeepSeekProvider,
-  getBlockedRangeLabel,
-  getBlockedHoursDescription,
-} from '@renderer/utils/timeBlock';
+import { TOOL_ACTION_TYPES } from '../../constants/tag-registry';
 
 // ── Controllers ──
-import { EmulateController } from '@renderer/controller/EmulateController';
+const EmulateController = getModuleService('emulate', 'EmulateController');
 
 // ── Prompts ──
-import {
-  buildTrafficContext,
-  buildEmptyTrafficContext,
-  buildFilterContext,
-  buildEmptyFilterContext,
-} from '../../prompts/emulate';
+const buildTrafficContext = getModuleService('emulate', 'buildTrafficContext');
+const buildEmptyTrafficContext = getModuleService('emulate', 'buildEmptyTrafficContext');
+const buildFilterContext = getModuleService('emulate', 'buildFilterContext');
+const buildEmptyFilterContext = getModuleService('emulate', 'buildEmptyFilterContext');
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ConversationOverrides {
   useSkillEnabled?: boolean;
   memoryEnabled?: boolean;
   toolFormat?: 'xml' | 'json';
+  workflowAgentId?: WorkflowAgentId | null;
 }
 
 interface UseChatLLMProps {
@@ -84,6 +87,8 @@ interface UseChatLLMProps {
   providerBlockedRanges?: Array<{ startTime: number; endTime: number }> | null;
   /** Cờ anti_system_prompt_injection từ provider config — thay cho hardcode providerId === "claude" */
   antiSystemPromptInjection?: boolean;
+  /** Workflow agent ID for specialized prompts (orchestrator/planner/executor/reviewer) */
+  workflowAgentId?: WorkflowAgentId | null;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
     actions: ToolAction[],
@@ -111,25 +116,34 @@ export const parseQuestionAnswerTag = (content: string): Record<string, Question
   const innerContent = match[1].trim();
   const answers: Record<string, QuestionAnswer> = {};
 
+  // Parse each line: "N. answer" (without questionId)
   const lines = innerContent.split('\n');
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed === 'No answer') continue;
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
 
-    const lineMatch = /^\d+\.\s+([^:]+):\s+(.+)$/i.exec(trimmed);
+    // Match pattern: "N. answer" or "N. " (empty answer)
+    const lineMatch = /^(\d+)\.\s*(.*)$/i.exec(trimmed);
     if (!lineMatch) continue;
 
-    const questionId = lineMatch[1].trim();
-    const answerValue = lineMatch[2].trim();
+    const lineNumber = parseInt(lineMatch[1], 10);
+    const answerText = lineMatch[2].trim();
 
-    let parsedValue: string | string[] | boolean = answerValue;
+    // Use line number as questionId (matching question.id format: "1", "2", "3", etc.)
+    const questionId = String(lineNumber);
 
-    if (answerValue.toLowerCase() === 'true') {
+    // Skip if empty answer (no value provided)
+    if (!answerText) {
+      continue;
+    }
+
+    // Keep answer as string - QuestionBlock will handle type conversion based on question type
+    let parsedValue: string | string[] | boolean = answerText;
+
+    // Only convert explicit "true"/"false" literals to boolean
+    if (answerText.toLowerCase() === 'true') {
       parsedValue = true;
-    } else if (answerValue.toLowerCase() === 'false') {
+    } else if (answerText.toLowerCase() === 'false') {
       parsedValue = false;
-    } else if (answerValue.includes(',')) {
-      parsedValue = answerValue.split(',').map((v) => v.trim());
     }
 
     answers[questionId] = {
@@ -147,6 +161,7 @@ export const useChatLLM = ({
   feature,
   conversationOverrides,
   providerBlockedRanges,
+  workflowAgentId,
   onConversationIdChange,
   onToolRequest,
   onTurnComplete,
@@ -172,6 +187,14 @@ export const useChatLLM = ({
   useEffect(() => {
     onTurnCompleteRef.current = onTurnComplete;
   }, [onTurnComplete]);
+
+  const MAX_NO_TAG_RETRY = 5;
+  const noTagRetryCountRef = useRef(0);
+  const MAX_SUB_AGENT_FORMAT_REMINDER = 5;
+  const subAgentReminderCountRef = useRef(0);
+  const MAX_MOCK_REQUESTS = 2;
+  const mockRequestCountRef = useRef(0);
+  const dsmlReminderPendingRef = useRef(false);
 
   const {
     streamingState,
@@ -307,48 +330,6 @@ export const useChatLLM = ({
         return;
       }
 
-      // ── Time Block Check (DeepSeek) ────────────────────────────────────
-      const timeBlockProviderId = model?.providerId ?? lastUsedModelRef.current?.providerId;
-      if (
-        !skipFirstRequestLogic &&
-        isDeepSeekProvider(timeBlockProviderId) &&
-        isBlockedNow(providerBlockedRanges)
-      ) {
-        const rangeLabel = getBlockedRangeLabel(providerBlockedRanges);
-        const allRanges = getBlockedHoursDescription(providerBlockedRanges);
-        const errorMsg =
-          `DeepSeek bị chặn trong khung giờ ${allRanges}. ` +
-          `Hiện tại đang trong khung ${rangeLabel}. Vui lòng thử lại sau.`;
-
-        const convIdToDelete = currentConversationIdRef.current;
-        if (convIdToDelete) {
-          deleteConversation(convIdToDelete);
-          extensionService.postMessage({
-            command: 'deleteConversation',
-            conversationId: convIdToDelete,
-            requestId: `time-block-${Date.now()}`,
-          });
-          currentConversationIdRef.current = '';
-          backendConversationIdRef.current = '';
-          messagesRef.current = [];
-          setCurrentConversationId('');
-          setMessages([]);
-        }
-
-        const blockErrorMessage: Message = {
-          id: `msg-${Date.now()}-time-block-error`,
-          role: 'assistant',
-          content: errorMsg,
-          timestamp: Date.now(),
-          isError: true,
-        };
-        setMessages([blockErrorMessage]);
-        messagesRef.current = [blockErrorMessage];
-        onTurnCompleteRef.current?.();
-        return;
-      }
-      // ────────────────────────────────────────────────────────────────────
-
       const sessionId = selectedTab?.sessionId || -1;
       const folderPath = selectedTab?.folderPath || null;
 
@@ -407,11 +388,6 @@ export const useChatLLM = ({
         if (model) lastUsedModelRef.current = model;
         if (account) lastUsedAccountRef.current = account;
         setConversationToolOverrides({});
-
-        extensionService.postMessage({
-          command: 'createEmptyChatLog',
-          chatUuid: effectiveChatUuid,
-        });
       }
 
       const isReq1 = filteredMessages.length === 0 && !skipFirstRequestLogic;
@@ -458,19 +434,8 @@ export const useChatLLM = ({
       // Since Phantoma's SettingsContext does not yet expose global toggles for Skill/Memory,
       // we default to false if no explicit override is provided in the current conversation.
       const effectiveUseSkill = conversationOverridesRef.current?.useSkillEnabled ?? false;
-
       const effectiveMemory = conversationOverridesRef.current?.memoryEnabled ?? false;
-
       const effectiveToolFormat = conversationOverridesRef.current?.toolFormat ?? 'xml';
-
-      // [DEBUG] Log effective settings for verification
-      console.log('[Phantoma][ChatLLM] Effective Settings:', {
-        useSkill: effectiveUseSkill,
-        memory: effectiveMemory,
-        toolFormat: effectiveToolFormat,
-        promptLengthMode,
-        rawOverrides: conversationOverridesRef.current,
-      });
 
       // Determine model/account before building prompt to resolve providerId correctly
       const oldModel = lastUsedModelRef.current;
@@ -521,10 +486,24 @@ export const useChatLLM = ({
         }
       }
 
+      // Block excessive mock requests to avoid an infinite loop when mock-response.txt has content
+      if (StreamingService.isMockActive()) {
+        if (isNewSession) mockRequestCountRef.current = 0;
+        mockRequestCountRef.current += 1;
+        if (mockRequestCountRef.current > MAX_MOCK_REQUESTS) {
+          console.warn(
+            `[DEBUG][Mock] Blocked request #${mockRequestCountRef.current} (limit ${MAX_MOCK_REQUESTS}) to avoid loop while mock-response.txt has value`,
+          );
+          mockRequestCountRef.current = 0;
+          onTurnCompleteRef.current?.();
+          return;
+        }
+      }
+
       // Build prompt using PromptBuilder with per-conversation overrides applied
       const promptProviderId = finalModel?.providerId ?? lastUsedModelRef.current?.providerId;
 
-      const promptPayload = await PromptBuilder.buildPrompt({
+      const builtPayload = await PromptBuilder.buildPrompt({
         content,
         isReq1,
         skipFirstRequestLogic: skipFirstRequestLogic || false,
@@ -541,7 +520,18 @@ export const useChatLLM = ({
         toolFormat: effectiveToolFormat,
         providerId: promptProviderId,
         promptLengthMode,
+        workflowAgentId,
       });
+
+      const reminderPrefix = dsmlReminderPendingRef.current
+        ? `${DEEPSEEK_DSML_REMINDER}\n\n${buildToolFormatReminder(
+            conversationOverridesRef.current?.toolFormat ?? 'xml',
+          )}\n\n`
+        : '';
+      if (dsmlReminderPendingRef.current) {
+        dsmlReminderPendingRef.current = false;
+      }
+      const promptPayload = `${reminderPrefix}${builtPayload}`;
 
       const userMessage: Message = {
         id: `msg-${Date.now()}-${skipFirstRequestLogic ? 'tool' : 'user'}`,
@@ -712,6 +702,8 @@ export const useChatLLM = ({
 
         setMessages((prev) => [...prev, placeholderAssistant]);
 
+        const parsedContentRef = { value: '' };
+
         // Stream the response using StreamingService
         const { message: assistantMessage, backendConversationId } =
           await StreamingService.streamChat(
@@ -769,7 +761,22 @@ export const useChatLLM = ({
                 // Thay vao do chi tich luy vao ref, ProcessingIndicator tu hien thi timer
                 // Tranh 130+ lan re-render toan bo UI moi khi stream
               },
-              onContent: (content) => {
+              onContent: (rawContent) => {
+                let content = rawContent;
+                if ((finalModel?.providerId ?? '').toLowerCase() === 'deepseek') {
+                  if (hasDeepseekDSML(rawContent)) {
+                    dsmlReminderPendingRef.current = true;
+                  }
+                  const processed = processDeepseekContent(
+                    rawContent,
+                    conversationOverridesRef.current?.toolFormat ?? 'xml',
+                  );
+                  if (processed.convertedToolCount > 0) content = processed.content;
+                }
+                if ((finalModel?.providerId ?? '').toLowerCase() === 'claude') {
+                  content = cleanClaudeSandboxTools(content);
+                }
+                parsedContentRef.value = content;
                 // Update UI with parsed content (called ONCE at the end with full content)
                 setMessages((prev) => {
                   const targetIndex = prev.findIndex((m) => m.id === assistantMessageId);
@@ -792,6 +799,13 @@ export const useChatLLM = ({
           );
 
         assistantMessage.id = assistantMessageId;
+
+        if (parsedContentRef.value) {
+          assistantMessage.content = parsedContentRef.value;
+          assistantMessage.rawResponse = assistantMessage.thinking
+            ? `${assistantMessage.thinking}\n\n${parsedContentRef.value}`
+            : parsedContentRef.value;
+        }
 
         if (backendConversationId) {
           backendConversationIdRef.current = backendConversationId;
@@ -965,6 +979,37 @@ export const useChatLLM = ({
           conversationOverridesRef.current,
         );
 
+        // ─── SUB-AGENT FORMAT REMINDER ───────────────────────────────────────
+        // Sub-agents have no markdown/question/code UI: a response without any
+        // tool call (incl. send_message) would stall the chat. Auto-send the reminder.
+        if (isReminderSubAgent(workflowAgentId)) {
+          const noActionTaken =
+            hasParsingError || !!parsed?.onlyThinkingDetected || !parsed?.actions?.length;
+          if (!noActionTaken) {
+            subAgentReminderCountRef.current = 0;
+          } else if (subAgentReminderCountRef.current < MAX_SUB_AGENT_FORMAT_REMINDER) {
+            subAgentReminderCountRef.current += 1;
+            console.warn(
+              `[DEBUG][SubAgentReminder] ${workflowAgentId}: no tool call → reminder ${subAgentReminderCountRef.current}/${MAX_SUB_AGENT_FORMAT_REMINDER}`,
+            );
+            return sendMessage(
+              buildSubAgentFormatReminder(
+                workflowAgentId as string,
+                conversationOverridesRef.current?.toolFormat ?? 'xml',
+              ),
+              undefined,
+              undefined,
+              undefined,
+              true,
+              undefined,
+              true,
+            );
+          } else {
+            subAgentReminderCountRef.current = 0;
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         // 🚨 DETECT ONLY-THINKING RESPONSE
         if (!hasParsingError && parsed && parsed.onlyThinkingDetected) {
           console.warn(
@@ -973,6 +1018,44 @@ export const useChatLLM = ({
           onTurnCompleteRef.current?.();
           return;
         }
+
+        // ─── NO-TAG RETRY ────────────────────────────────────────────────────
+        // If the response contains no known TAG_REGISTRY tag at all, the model
+        // likely failed to use any tool format. Retry up to MAX_NO_TAG_RETRY.
+        if (!hasParsingError && parsed) {
+          const { hasRegisteredTag } = await import('../../utils/responseValidation');
+          const rawForCheck = assistantMessage.rawResponse || assistantMessage.content;
+          const tagMatched = hasRegisteredTag(rawForCheck);
+          if (tagMatched) {
+            noTagRetryCountRef.current = 0;
+          } else if (noTagRetryCountRef.current < MAX_NO_TAG_RETRY) {
+            noTagRetryCountRef.current += 1;
+            console.warn(
+              `[DEBUG][NoTagRetry] No TAG_REGISTRY match → retry ${noTagRetryCountRef.current}/${MAX_NO_TAG_RETRY}`,
+            );
+            if (!skipFirstRequestLogic) userRequestCountRef.current -= 1;
+            const messagesBeforeRetry = updatedMessages.slice(0, -1);
+            messagesRef.current = messagesBeforeRetry;
+            setMessages(messagesBeforeRetry);
+            return sendMessage(
+              content,
+              files,
+              finalModel,
+              finalAccount,
+              skipFirstRequestLogic,
+              actionIds,
+              uiHidden,
+              parentMessageId,
+              extraOptions,
+            );
+          } else {
+            console.warn(
+              `[DEBUG][NoTagRetry] Retry limit reached (${MAX_NO_TAG_RETRY}) → giving up, keeping response as-is`,
+            );
+            noTagRetryCountRef.current = 0;
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         if (!hasParsingError && parsed && onMalformedTool) {
           parsed.actions.forEach((action: any, index: number) => {
@@ -987,8 +1070,15 @@ export const useChatLLM = ({
           });
         }
 
-        if (!hasParsingError && parsed && onToolRequest && parsed.actions?.length > 0) {
-          onToolRequest(parsed.actions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
+        const USER_CONFIRM_TOOLS = ['create_agent'];
+        const autoActions =
+          !hasParsingError && parsed?.actions
+            ? parsed.actions
+                .map((a: any, i: number) => ({ ...a, _index: i }))
+                .filter((a: any) => !USER_CONFIRM_TOOLS.includes(a.type))
+            : [];
+        if (!hasParsingError && parsed && onToolRequest && autoActions.length > 0) {
+          onToolRequest(autoActions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
         } else {
           // Notify turn complete if no tools were executed or parsing failed
           onTurnCompleteRef.current?.();
@@ -996,6 +1086,7 @@ export const useChatLLM = ({
       } catch (error) {
         dispatchStreaming({ type: 'RESET_STREAMING' });
         abortControllerRef.current = null;
+        noTagRetryCountRef.current = 0;
 
         if (error instanceof Error && error.name === 'AbortError') {
           setIsProcessingSync(false);
@@ -1134,14 +1225,21 @@ export const useChatLLM = ({
                 const answer = answers[qId];
                 const number = index + 1;
 
-                if (!answer || !answer.value) {
-                  return `${number}. No answer`;
+                // Check if answer is missing or empty (but allow boolean false)
+                if (!answer || (answer.value !== false && !answer.value)) {
+                  return `${number}. `;
                 }
 
+                // Handle boolean values for confirm type
+                if (typeof answer.value === 'boolean') {
+                  return `${number}. ${answer.value ? 'Yes' : 'No'}`;
+                }
+
+                // Handle array values for multi-choice
                 const value = Array.isArray(answer.value)
                   ? answer.value.join(', ')
                   : String(answer.value);
-                return `${number}. ${qId}: ${value}`;
+                return `${number}. ${value}`;
               })
               .join('\n');
 

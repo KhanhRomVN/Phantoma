@@ -105,11 +105,10 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                'relative p-1.5 rounded-md flex items-center justify-center transition-all duration-200',
+                'relative p-1.5 rounded-md flex items-center justify-center gap-1.5 shrink-0 border-0 outline-none focus:outline-none focus-visible:outline-none transition-all duration-200',
                 !isActive &&
                   'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
-                isActive && 'text-[--tab-color] bg-[--tab-color-bg]',
-                'border-b-2 border-solid border-transparent',
+                isActive && 'px-2.5 text-[--tab-color] bg-[--tab-color-bg]',
               )}
               style={
                 isActive
@@ -124,6 +123,11 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
               <div className="flex items-center justify-center shrink-0 w-3.5 h-3.5">
                 {tab.icon}
               </div>
+              {isActive && (
+                <span className="text-xs font-semibold leading-none whitespace-nowrap">
+                  {tab.label}
+                </span>
+              )}
             </button>
           );
         })}

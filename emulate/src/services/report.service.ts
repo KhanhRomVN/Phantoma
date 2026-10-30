@@ -10,8 +10,8 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Local 
-import type { Report, CreateReportInput, UpdateReportInput } from '../../domain/emulate';
-import { ReportRepository } from '../../repositories/emulate/report.repository';
+import type { Report, CreateReportInput, UpdateReportInput } from '../domain/emulate';
+import { ReportRepository } from '../repositories/report.repository';
 
 // ─── Service ────────────────────────────────────────────────────────────
 

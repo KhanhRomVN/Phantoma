@@ -11,12 +11,14 @@
 
 // ─── Functions ──────────────────────────────────────────────────────────
 const decodeHtmlEntities = (text: string): string => {
+  if (!text) return "";
   return text
-    .replace(/&/g, "&")
     .replace(/</g, "<")
     .replace(/>/g, ">")
     .replace(/"/g, '"')
-    .replace(/'/g, "'");
+    .replace(/'/g, "'")
+    .replace(/'/g, "'")
+    .replace(/&/g, "&"); // & decode cuối cùng để tránh double unescaping
 };
 
 // Re-export so ToolParser can import from one place without duplicating.

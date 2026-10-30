@@ -19,9 +19,11 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 import { ApiResponse } from '@renderer/types/api';
+import { DEV_PORTS, serverBaseUrl } from '@app/ports';
 
 // ─── Constants ──────────────────────────────────────────────────────────
-const DEFAULT_BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8080';
+// Dev: DEV_PORTS.server. Build: sẽ được cập nhật qua IPC bên dưới.
+const DEFAULT_BASE_URL = import.meta.env.VITE_SERVER_URL || serverBaseUrl(DEV_PORTS.server);
 
 // ─── Class ──────────────────────────────────────────────────────────────
 class ApiService {
@@ -30,6 +32,16 @@ class ApiService {
   constructor(baseUrl?: string) {
     const storedUrl = localStorage.getItem('server_url');
     this.baseUrl = baseUrl || (storedUrl ? `http://${storedUrl}` : DEFAULT_BASE_URL);
+
+    // Packaged build: main chọn port ngẫu nhiên -> cập nhật lại.
+    if (!storedUrl && window.api?.runtime?.getPorts) {
+      window.api.runtime
+        .getPorts()
+        .then((ports) => {
+          if (ports?.server) this.baseUrl = serverBaseUrl(ports.server);
+        })
+        .catch(() => {});
+    }
   }
 
   /**

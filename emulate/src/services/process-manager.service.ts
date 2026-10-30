@@ -26,7 +26,6 @@ class ProcessManagerService {
    */
   public register(targetId: string, pid: number, port: number): void {
     this.processes.set(targetId, { pid, port, targetId });
-    logger.info(`[ProcMgr] Registered process for target ${targetId} (PID: ${pid}, Port: ${port})`);
   }
 
   /**
@@ -46,15 +45,12 @@ class ProcessManagerService {
       // 2. Kill the OS process group
       // Using negative PID sends signal to entire process group started by spawn(detached: true)
       process.kill(-proc.pid, 'SIGTERM');
-      logger.info(`[ProcMgr] Terminated process group for target ${targetId} (PID: ${proc.pid})`);
-      
       this.processes.delete(targetId);
       return true;
     } catch (err: any) {
       if (err.code === 'ESRCH') {
         // Process already dead, just clean up registry
         this.processes.delete(targetId);
-        logger.info(`[ProcMgr] Process ${proc.pid} was already dead. Cleaned up.`);
         return true;
       }
       logger.error(`[ProcMgr] Failed to terminate target ${targetId}:`, err.message);
@@ -68,11 +64,8 @@ class ProcessManagerService {
   public async terminateAll(): Promise<void> {
     const ids = Array.from(this.processes.keys());
     if (ids.length === 0) return;
+    await Promise.allSettled(ids.map((id) => this.terminate(id)));
 
-    logger.info(`[ProcMgr] Terminating all ${ids.length} active processes...`);
-    
-    await Promise.allSettled(ids.map(id => this.terminate(id)));
-    
     // Ensure map is empty
     this.processes.clear();
   }
@@ -83,16 +76,16 @@ class ProcessManagerService {
   public hasActiveProcesses(): boolean {
     return this.processes.size > 0;
   }
-  
+
   /**
    * Get list of active targets (for health checks).
    */
   public getActiveTargets() {
-    return Array.from(this.processes.values()).map(p => ({
+    return Array.from(this.processes.values()).map((p) => ({
       targetId: p.targetId,
       pid: p.pid,
       port: p.port,
-      alive: this.isAlive(p.pid)
+      alive: this.isAlive(p.pid),
     }));
   }
 

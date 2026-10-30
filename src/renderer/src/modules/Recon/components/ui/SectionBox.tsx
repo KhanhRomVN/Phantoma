@@ -82,7 +82,9 @@ export default function SectionBox({ box }: Props) {
   const isCanvas = cfg.ui === 'graph' || cfg.ui === 'map';
   const canvasRows = cfg.ui === 'map' ? mapRowsFor(cfg.w) : cfg.w;
   const style: React.CSSProperties = isCanvas
-    ? { minHeight: `calc(${canvasRows} * var(--row-h, ${CELL_HEIGHT}px) + ${canvasRows - 1} * 1rem)` }
+    ? {
+        minHeight: `calc(${canvasRows} * var(--row-h, ${CELL_HEIGHT}px) + ${canvasRows - 1} * 1rem)`,
+      }
     : cfg.maxH
       ? { maxHeight: `calc(${cfg.maxH} * var(--row-h, ${CELL_HEIGHT}px) + ${cfg.maxH - 1} * 1rem)` }
       : {};
@@ -173,7 +175,12 @@ export default function SectionBox({ box }: Props) {
       </div>
 
       {/* Body - Renders specific UI based on type */}
-      <div className={cn('flex-1 relative flex flex-col', cfg.maxH && !isCanvas ? 'overflow-auto' : 'overflow-hidden')}>
+      <div
+        className={cn(
+          'flex-1 relative flex flex-col',
+          cfg.maxH && !isCanvas ? 'overflow-auto' : 'overflow-hidden',
+        )}
+      >
         {renderBody(
           data.type === 'annotation' || data.type === 'callout'
             ? { ...data, cols: Number(cfg.options?.cols) || 1 }
@@ -187,26 +194,12 @@ export default function SectionBox({ box }: Props) {
   );
 }
 
-// [DEBUG] module-loaded: nếu không thấy dòng này trong console thì renderer đang chạy bản cũ
-console.log('[DEBUG] SectionBox module loaded (có case markdown)');
-
 function renderBody(
   data: any,
   filterText: string,
   options?: Record<string, any>,
   mapMode?: MapMode,
 ): React.ReactNode {
-  // [DEBUG] kiểm tra giá trị type thực tế (độ dài + mã ký tự phát hiện ký tự ẩn như \r)
-  console.log(
-    '[DEBUG] renderBody type=',
-    JSON.stringify(data.type),
-    'len=',
-    String(data.type).length,
-    'codes=',
-    Array.from(String(data.type)).map((c) => c.charCodeAt(0)),
-    'keys=',
-    Object.keys(data),
-  );
   switch (data.type) {
     case 'kv':
       return <KvView items={data.items} cols={data.cols || 1} />;

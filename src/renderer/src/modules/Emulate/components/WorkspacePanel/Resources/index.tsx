@@ -44,11 +44,15 @@ interface ResourcesPanelProps {
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
-  const requests = useNetworkStore((s) => s.requests);
+  const assetsVersion = useNetworkStore((s) => s.assetsVersion);
+  const requests = useMemo(
+    () => Array.from(useNetworkStore.getState().assetMap.values()),
+    [assetsVersion],
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<ResourceType>>(
-    new Set(['image', 'video', 'audio', 'wasm', 'font', 'document']),
+    new Set(['js', 'image', 'video', 'audio', 'wasm', 'font', 'document']),
   );
   // Detect WASM modules
   const wasmItems = useMemo(() => detectWasm(requests), [requests]);
@@ -129,6 +133,7 @@ export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
   // Group items by type
   const groupedItems = useMemo(() => {
     const groups: Record<ResourceType, ResourceItem[]> = {
+      js: [],
       image: [],
       video: [],
       audio: [],
@@ -160,6 +165,7 @@ export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
 
     const term = searchTerm.toLowerCase();
     const filtered: Record<ResourceType, ResourceItem[]> = {
+      js: [],
       image: [],
       video: [],
       audio: [],

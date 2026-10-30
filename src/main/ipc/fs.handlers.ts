@@ -56,9 +56,9 @@ import { exec as execCallback, spawn, ChildProcess } from 'child_process';
 // ── External ──
 import chokidar, { FSWatcher } from 'chokidar';
 
-
 // ── Internal ──
 import { logger } from '../utils/logger';
+import { scanSquareImages, readImageDataUrl } from '../utils/image-scan';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -474,7 +474,13 @@ export function setupFSHandlers() {
 
       proc.on('error', (err) => {
         if (!activeSearches.delete(searchId)) return;
-        send('fs:search-done', { searchId, totalMatches, totalFiles, truncated, error: err.message });
+        send('fs:search-done', {
+          searchId,
+          totalMatches,
+          totalFiles,
+          truncated,
+          error: err.message,
+        });
       });
 
       proc.on('close', (code) => {
@@ -547,10 +553,8 @@ export function setupFSHandlers() {
 
   // Shell: open path in OS file manager
   ipcMain.handle('shell:open-path', async (_, targetPath: string) => {
-    console.log('[DEBUG] shell:open-path called', { targetPath, exists: fs.existsSync(targetPath) });
     const { shell } = await import('electron');
     const result = await shell.openPath(targetPath);
-    console.log('[DEBUG] shell:open-path result', JSON.stringify(result));
     return result;
   });
 
@@ -595,5 +599,18 @@ export function setupFSHandlers() {
       }
     }
     return { validCount: paths.length - invalidPaths.length, invalidPaths };
+  });
+
+  ipcMain.handle('fs:scan-square-images', async (_, projectPath: string) => {
+    try {
+      return await scanSquareImages(projectPath);
+    } catch (err) {
+      logger.warn('[fs] scan-square-images failed:', err);
+      return [];
+    }
+  });
+
+  ipcMain.handle('fs:read-image-data-url', async (_, filePath: string, maxSide?: number) => {
+    return readImageDataUrl(filePath, maxSide);
   });
 }

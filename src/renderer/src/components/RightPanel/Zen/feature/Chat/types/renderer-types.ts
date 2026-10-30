@@ -17,7 +17,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '../constants/constants';
+import { TOOL_ACTION_TYPES } from '../constants/tag-registry';
 
 // ── Services ──
 import { ToolAction } from '../services/ResponseParser';
@@ -110,6 +110,8 @@ export interface BaseRendererProps {
     type: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
   ) => void;
   conversationId?: string;
+  /** Module sở hữu renderer (code/recon/emulate/...) — dùng để tra label đúng module khi trùng tên tool. */
+  moduleId?: string | null;
 }
 
 /**
@@ -121,6 +123,7 @@ export interface MergedRendererProps extends BaseRendererProps {
   onConfirmSingleLineAction?: (actionId: string) => void;
   onRejectSingleLineAction?: (actionId: string) => void;
   rejectedActions?: Set<string>;
+  firstUnclickedActionIndex?: number;
 }
 
 

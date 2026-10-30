@@ -32,7 +32,7 @@
  * ------------------------------------------------------------------
  */
 
-import { ipcMain, BrowserView, shell, BrowserWindow } from 'electron';
+import { ipcMain, BrowserView, shell, BrowserWindow, net } from 'electron';
 import * as fs from 'fs';
 
 // Store active BrowserViews
@@ -74,6 +74,30 @@ export function registerWorkspaceHandlers() {
       // Bounds tạm thời (sẽ bị renderer thay thế ngay). Đặt nhỏ để tránh
       // flash phủ toàn màn hình trước khi renderer báo vị trí thật.
       view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+
+      view.webContents.on('page-title-updated', (_e, title) => {
+        event.sender.send('browser:title-updated', { browserId, title });
+      });
+
+      view.webContents.on('page-favicon-updated', async (_e, favicons) => {
+        const faviconUrl = favicons?.[0] ?? null;
+        let favicon: string | null = null;
+        if (faviconUrl) {
+          try {
+            const res = await net.fetch(faviconUrl);
+            if (res.ok) {
+              const type = res.headers.get('content-type') ?? 'image/x-icon';
+              const buf = Buffer.from(await res.arrayBuffer());
+              favicon = `data:${type};base64,${buf.toString('base64')}`;
+            }
+          } catch {
+            favicon = null;
+          }
+        }
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('browser:favicon-updated', { browserId, favicon });
+        }
+      });
 
       // Load URL
       await view.webContents.loadURL(url);

@@ -16,7 +16,6 @@ interface Props {
 function AnnotationRow({ item }: { item: AnnotationItem }) {
   const hex = resolveColor(item.color) ?? resolveColor('blue')!;
   const [expanded, setExpanded] = useState(false);
-  console.log('[DEBUG] AnnotationRow content=', JSON.stringify(item.content), 'desc=', JSON.stringify(item.desc));
 
   return (
     <div className="rounded-md border border-border/50 bg-background/40 px-3 py-2.5 text-left space-y-2">

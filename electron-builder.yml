@@ -2,7 +2,7 @@ appId: com.khanhromvn.phantoma
 productName: Phantoma
 directories:
   buildResources: build
-  output: release/v${version}
+  output: release-build/v${version}
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -20,13 +20,27 @@ extraResources:
     to: resources
     filter:
       - '**/*.wasm'
-  # express-server (runtime backend) — chạy như process riêng
-  - from: express-server/dist
-    to: express-server/dist
-  - from: express-server/package.json
-    to: express-server/package.json
-  - from: express-server/node_modules
-    to: express-server/node_modules
+  # images (logo, icons) — truy cập qua process.resourcesPath khi build
+  - from: images
+    to: images
+    filter:
+      - '**/*'
+  # server (shell backend) — dist + package.json + node_modules
+  - from: server/dist
+    to: server/dist
+  - from: server/package.json
+    to: server/package.json
+  - from: server/node_modules
+    to: server/node_modules
+    filter:
+      - '**/*'
+  # emulate (emulate service) — dist + package.json + node_modules
+  - from: emulate/dist
+    to: emulate/dist
+  - from: emulate/package.json
+    to: emulate/package.json
+  - from: emulate/node_modules
+    to: emulate/node_modules
     filter:
       - '**/*'
 

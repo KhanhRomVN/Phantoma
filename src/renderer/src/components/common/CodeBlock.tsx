@@ -115,7 +115,7 @@ const buildWidgetColors = (tw: any): Record<string, string> => {
     'input.border': rgbToHex(tw.border),
     'inputOption.activeBackground': rgbToHex(tw.primary, '33'),
     'inputOption.activeBorder': rgbToHex(tw.primary),
-    'focusBorder': rgbToHex(tw.primary),
+    focusBorder: rgbToHex(tw.primary),
     'editor.findMatchBackground': rgbToHex(tw.primary, '66'),
     'editor.findMatchHighlightBackground': rgbToHex(tw.primary, '33'),
     'editorSuggestWidget.background': rgbToHex(tw.dropdownBackground),
@@ -124,9 +124,7 @@ const buildWidgetColors = (tw: any): Record<string, string> => {
     'editorHoverWidget.background': rgbToHex(tw.tooltipBackground),
     'editorHoverWidget.border': rgbToHex(tw.border),
   };
-  return Object.fromEntries(
-    Object.entries(entries).filter((e): e is [string, string] => !!e[1]),
-  );
+  return Object.fromEntries(Object.entries(entries).filter((e): e is [string, string] => !!e[1]));
 };
 
 // Chuyển đổi theme sang định dạng Monaco
@@ -514,6 +512,15 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         editorInstance.current.addCommand(
           window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS,
           () => {
+            const hostEl = editorRef.current;
+            if (
+              !hostEl ||
+              hostEl.offsetParent === null ||
+              getComputedStyle(hostEl).visibility === 'hidden'
+            ) {
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
+              return;
+            }
             // Save file to disk
             if (fileId && filePath) {
               const content = editorInstance.current.getValue();
@@ -521,6 +528,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
                 .invoke('fs:write-file', filePath, content)
                 .then(() => {
                   markFileAsSaved(fileId);
+                  setOriginalContent(fileId, content);
                 })
                 .catch((err: Error) => {
                   console.error('[CodeBlock] ❌ Failed to save file:', err);
@@ -597,7 +605,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           }
 
           const script = document.createElement('script');
-          script.src = '/monaco/vs/loader.js';
+          script.src = new URL('monaco/vs/loader.js', document.baseURI).href;
           script.async = true;
           script.onload = () => resolve();
           document.body.appendChild(script);
@@ -608,7 +616,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
       window.monacoLoadingPromise
         .then(() => {
           if (window.require) {
-            window.require.config({ paths: { vs: '/monaco/vs' } });
+            window.require.config({ paths: { vs: new URL('monaco/vs', document.baseURI).href } });
             window.require(
               ['vs/editor/editor.main'],
               () => {
@@ -667,6 +675,55 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
       previousCodeRef.current = code;
     }
   }, [code, fileId, enableLSP, filePath, language, markFileAsSaved, setOriginalContent]);
+
+  // Fallback Ctrl+S: editor is visible but not focused (e.g. right after switching tabs)
+  useEffect(() => {
+    if (!fileId || !filePath) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.shiftKey || e.altKey || e.key.toLowerCase() !== 's') return;
+      const el = editorRef.current;
+      const editor = editorInstance.current;
+      if (!el || !editor) return;
+      if (getComputedStyle(el).visibility === 'hidden' || el.offsetParent === null) return;
+      const storeState = useCodeStore.getState();
+      const isDirty = storeState.projects
+        .find((p) => p.id === storeState.currentProjectId)
+        ?.unsavedFiles.has(fileId);
+      if (!isDirty) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const content = editor.getValue();
+      window.api
+        .invoke('fs:write-file', filePath, content)
+        .then(() => {
+          markFileAsSaved(fileId);
+          setOriginalContent(fileId, content);
+        })
+        .catch((err: Error) => {
+          console.error('[CodeBlock] Failed to save file:', err);
+        });
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [fileId, filePath, markFileAsSaved, setOriginalContent]);
+
+  useEffect(() => {
+    if (!fileId || !filePath) return;
+    const onSaveRequest = (e: Event) => {
+      const detail = (e as CustomEvent<{ fileId: string; pending: Promise<void>[] }>).detail;
+      const editor = editorInstance.current;
+      if (!detail || detail.fileId !== fileId || !editor) return;
+      const content = editor.getValue();
+      detail.pending.push(
+        window.api.invoke('fs:write-file', filePath, content).then(() => {
+          markFileAsSaved(fileId);
+          setOriginalContent(fileId, content);
+        }),
+      );
+    };
+    window.addEventListener('code:save-file', onSaveRequest);
+    return () => window.removeEventListener('code:save-file', onSaveRequest);
+  }, [fileId, filePath, markFileAsSaved, setOriginalContent]);
 
   // Update word wrap dynamically
   useEffect(() => {

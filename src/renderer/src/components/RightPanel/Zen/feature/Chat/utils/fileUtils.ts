@@ -12,12 +12,12 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Constants ──
-import { ALLOWED_FILE_EXTENSIONS } from "../constants/constants";
+import { ALLOWED_FILE_EXTENSIONS } from '../constants/tag-registry';
 
 // ─── Functions ──────────────────────────────────────────────────────────
 /** Returns true if the file extension is in the allowed list. */
 export const isFileAllowed = (filename: string): boolean => {
-  const ext = filename.substring(filename.lastIndexOf(".")).toLowerCase();
+  const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
   return ALLOWED_FILE_EXTENSIONS.includes(ext);
 };
 

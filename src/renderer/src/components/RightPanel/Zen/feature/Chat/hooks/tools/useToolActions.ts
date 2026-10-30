@@ -19,10 +19,9 @@ import { ToolAction } from '../../services/ResponseParser';
 import { Message } from '../../types/message';
 
 // ── Hooks ──
-import { getPermissionDecision } from './useToolExecution';
 
 // ── Constants ──
-import { isToolClickable, TOOL_ACTION_TYPES } from '../../constants/constants';
+import { isToolClickable, TOOL_ACTION_TYPES } from '../../constants/tag-registry';
 
 // ── Utils ──
 
@@ -266,8 +265,12 @@ export const useToolActions = ({
     lastMessage.parsed.actions.forEach((action: ToolAction, idx: number) => {
       const actionId = `${lastMessage.id}-action-${idx}`;
 
-      // Skip display-only tools - they should not be auto-executed
-      if (action.type === 'git_status' || action.type === 'commit_message') {
+      // Skip display-only tools and tools requiring user confirmation
+      if (
+        action.type === 'git_status' ||
+        action.type === 'commit_message' ||
+        action.type === 'create_agent' // Requires user confirmation in UI
+      ) {
         return;
       }
 
@@ -302,13 +305,9 @@ export const useToolActions = ({
         return;
       }
 
-      // Check if this tool is registered
-      const decision = getPermissionDecision(action.type);
-      if (decision === 'allow' || decision === TOOL_ACTION_TYPES.REJECT) {
-        // Collect for batch update
-        actionsToMarkTriggered.push(actionId);
-        actionsToRun.push({ ...action, actionId, _index: idx } as any);
-      }
+      // All tools are allowed — collect for batch update
+      actionsToMarkTriggered.push(actionId);
+      actionsToRun.push({ ...action, actionId, _index: idx } as any);
     });
 
     // BATCH STATE UPDATE: Update all triggered actions at once (after loop)
@@ -340,14 +339,7 @@ export const useToolActions = ({
         onSendToolRequest(acceptActions as any, lastMessage, true);
       }
     }
-  }, [
-    parsedMessages,
-    onSendToolRequest,
-    clickedActions,
-    failedActions,
-    isProcessing,
-    isRestored,
-  ]);
+  }, [parsedMessages, onSendToolRequest, clickedActions, failedActions, isProcessing, isRestored]);
 
   return {
     clickedActions,

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Input } from '@renderer/components/ui/Input';
 import { Button } from '@renderer/components/ui/Button';
-import type { ReconTarget } from '../../../controller/ReconController';
+import type { ReconTarget } from '../ReconController';
 import { TYPE_META, TYPE_ORDER, resolveType, withAlpha, TypeIcon } from './targetType';
 import type { TargetType } from './targetType';
 

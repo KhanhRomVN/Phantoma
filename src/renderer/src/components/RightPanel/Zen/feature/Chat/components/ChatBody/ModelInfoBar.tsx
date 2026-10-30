@@ -106,7 +106,7 @@ const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
   };
 
   const codiconStyle: React.CSSProperties = {
-    fontSize: '18px',
+    fontSize: '19px',
     color: "$('--text-primary')",
   };
 
@@ -122,19 +122,19 @@ const ModelInfoBar: React.FC<ModelInfoBarProps> = ({ message }) => {
   };
 
   const modelNameStyle: React.CSSProperties = {
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: 700,
     color: "$('--text-primary')",
   };
 
   const separatorStyle: React.CSSProperties = {
-    fontSize: '12px',
+    fontSize: '13px',
     color: "$('--text-secondary')",
     opacity: 0.5,
   };
 
   const accountStyle: React.CSSProperties = {
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 500,
     color: "$('--text-secondary')",
     opacity: 0.9,

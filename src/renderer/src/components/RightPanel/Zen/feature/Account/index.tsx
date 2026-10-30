@@ -22,8 +22,6 @@ import {
   Download,
   Filter,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Users,
   Copy,
   RefreshCw,
@@ -32,10 +30,10 @@ import {
   Square,
 } from 'lucide-react';
 import AccountCard from './components/AccountCard';
-import AddAccountDrawer from './components/AddAccountDrawer';
-import EditAccountDrawer from './components/EditAccountDrawer';
-import ConfirmDeleteAccountDrawer from './components/ConfirmDeleteAccountDrawer';
-import ImportDuplicatesDrawer, { DuplicateEntry } from './components/ImportDuplicatesDrawer';
+import AddAccountModal from './components/AddAccountModal';
+import EditAccountModal from './components/EditAccountModal';
+import ConfirmDeleteAccountModal from './components/ConfirmDeleteAccountModal';
+import ImportDuplicatesModal, { DuplicateEntry } from './components/ImportDuplicatesModal';
 import { AccountListSkeleton } from './components/AccountListSkeleton';
 import {
   Dropdown,
@@ -47,8 +45,7 @@ import { useAccounts } from './hooks/useAccounts';
 import { useSettings } from '../../context/SettingsContext';
 
 import { extensionService, messageDispatcher } from '../../services/ExtensionService';
-import { Drawer, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
-import { Button } from '@renderer/components/ui/Button';
+import { Drawer, DrawerBody } from '@renderer/components/ui/Drawer';
 import { Input } from '@renderer/components/ui/Input';
 import { $ } from '@renderer/utils/color';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
@@ -58,9 +55,17 @@ import NavPanelHeader from '../../components/NavPanelHeader';
 
 interface AccountPanelProps {
   isOpen: boolean;
-  onClose: () => void;
-  onNavigate: (target: NavTarget) => void;
+  onClose?: () => void;
+  onNavigate?: (target: NavTarget) => void;
+  /** Render inline (no Drawer, no nav header) — dùng trong ActivityPanel */
+  embedded?: boolean;
 }
+
+const EmbeddedShell: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
+  <div className="flex flex-col flex-1 min-h-0 h-full bg-background">{children}</div>
+);
+
+const noop = () => {};
 
 // ─── SelectionOverlayBar Sub-components ─────────────────────────────────
 const OverlayBarButton: React.FC<{
@@ -115,7 +120,22 @@ const OverlayBarButton: React.FC<{
   );
 };
 
-const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate }) => {
+const CountBadge: React.FC<{ count: number }> = ({ count }) => (
+  <span className="min-w-[20px] h-[18px] px-1.5 rounded-[5px] bg-[rgba(128,128,128,0.18)] text-text-secondary text-[10px] font-semibold inline-flex items-center justify-center box-border">
+    {count}
+  </span>
+);
+
+const AccountPanel: React.FC<AccountPanelProps> = ({
+  isOpen,
+  onClose = noop,
+  onNavigate = noop,
+  embedded = false,
+}) => {
+  const Shell: React.ElementType = embedded ? EmbeddedShell : Drawer;
+  const shellProps = embedded
+    ? {}
+    : { isOpen, onClose, height: '100%', strategy: 'absolute' as const };
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<FlatAccount | null>(null);
   const { apiUrl } = useSettings();
@@ -127,6 +147,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
 
   const {
     accounts,
+    providerScopedAccounts,
     allAccounts,
     loading,
     providerConfigs,
@@ -147,11 +168,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
     setProviderFilter,
     switchKiroAccount,
     refreshAccountToken,
-    statusCounts,
     statusFilter,
-    setStatusFilter,
-    statsPeriod,
-    setStatsPeriod,
   } = useAccounts(isOpen);
 
   const handleImport = () => {
@@ -304,15 +321,35 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
     }
   };
 
-  const handlePrevPage = () => {
-    if (pagination.page > 1) {
-      fetchAccounts(pagination.page - 1, pagination.limit);
-    }
-  };
+  const [refreshingAll, setRefreshingAll] = useState(false);
+  const [refreshResults, setRefreshResults] = useState<
+    Record<string, { success: boolean; error?: string }>
+  >({});
 
-  const handleNextPage = () => {
-    if (pagination.page < pagination.total_pages) {
-      fetchAccounts(pagination.page + 1, pagination.limit);
+  const handleRefreshAll = async () => {
+    if (refreshingAll) return;
+    setRefreshingAll(true);
+    try {
+      const refreshable = accounts.filter(
+        (a) => providerConfigs.find((p) => p.provider_id === a.provider_id)?.can_refresh_token,
+      );
+      setRefreshingIds(new Set(refreshable.map((a) => a.id)));
+      const results: Record<string, { success: boolean; error?: string }> = {};
+      await Promise.all(
+        refreshable.map(async (a) => {
+          try {
+            results[a.id] = await refreshAccountToken(a.id, a.provider_id);
+          } catch (err: any) {
+            results[a.id] = { success: false, error: err?.message };
+          }
+        }),
+      );
+      setRefreshResults(results);
+      setTimeout(() => setRefreshResults({}), 3500);
+      await fetchAccounts(pagination.page, pagination.limit, true);
+    } finally {
+      setRefreshingIds(new Set());
+      setRefreshingAll(false);
     }
   };
 
@@ -337,14 +374,16 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
   });
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} height="100%" strategy="absolute">
-      <NavPanelHeader
-        title="Accounts"
-        description="Manage your API accounts"
-        current="account"
-        onNavigate={onNavigate}
-        onClose={onClose}
-      />
+    <Shell {...shellProps}>
+      {!embedded && (
+        <NavPanelHeader
+          title="Accounts"
+          description="Manage your API accounts"
+          current="account"
+          onNavigate={onNavigate}
+          onClose={onClose}
+        />
+      )}
 
       {/* Action Bar */}
       <div className="px-4 pt-3 pb-2 shrink-0 flex gap-2 items-center bg-background">
@@ -373,7 +412,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
               <Filter size={16} />
             </button>
           </DropdownTrigger>
-          <DropdownContent>
+          <DropdownContent hideScrollbar>
             <DropdownItem
               icon={
                 <div
@@ -385,7 +424,10 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
               }
               onClick={() => setProviderFilter('')}
             >
-              All Providers [{accounts.length}]
+              <span className="flex items-center gap-2">
+                All Providers
+                <CountBadge count={providerScopedAccounts.length} />
+              </span>
             </DropdownItem>
             {sortedProviderConfigs.map((provider) => (
               <DropdownItem
@@ -403,12 +445,37 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
                 }
                 onClick={() => setProviderFilter(provider.provider_id)}
               >
-                {provider.provider_name} [
-                {accounts.filter((acc) => acc.provider_id === provider.provider_id).length}]
+                <span className="flex items-center gap-2">
+                  {provider.provider_name}
+                  <CountBadge
+                    count={
+                      providerScopedAccounts.filter((acc) => acc.provider_id === provider.provider_id)
+                        .length
+                    }
+                  />
+                </span>
               </DropdownItem>
             ))}
           </DropdownContent>
         </Dropdown>
+
+        <button
+          onClick={handleRefreshAll}
+          disabled={refreshingAll}
+          className="w-[34px] h-[34px] rounded-lg flex items-center justify-center shrink-0 text-text-secondary p-0"
+          style={{
+            backgroundColor: $('--input-background'),
+            border: 'none',
+            cursor: refreshingAll ? 'not-allowed' : 'pointer',
+            opacity: refreshingAll ? 0.6 : 1,
+          }}
+          title="Refresh accounts"
+        >
+          <RefreshCw
+            size={16}
+            style={refreshingAll ? { animation: 'importSpin 1s linear infinite' } : undefined}
+          />
+        </button>
 
         <button
           onClick={() => setDialogOpen(true)}
@@ -460,38 +527,6 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
         </Dropdown>
       </div>
 
-      {/* Status badges — click để filter */}
-      <div className="px-4 pb-1 shrink-0 flex gap-1.5 flex-wrap">
-        {(
-          [
-            { key: 'active', label: 'Active', count: statusCounts.active },
-            { key: 'expired', label: 'Expired', count: statusCounts.expired },
-            { key: 'error', label: 'Error', count: 0, disabled: true },
-            { key: 'inactive', label: 'Inactive', count: statusCounts.inactive },
-          ] as const
-        ).map((b) => {
-          const isOn = statusFilter === b.key;
-          const disabled = 'disabled' in b && b.disabled;
-          return (
-            <button
-              key={b.key}
-              type="button"
-              disabled={disabled}
-              onClick={() => !disabled && setStatusFilter(isOn ? '' : (b.key as any))}
-              title={disabled ? 'No data source yet' : `Filter: ${b.label}`}
-              className="text-[11px] px-2 py-[3px] rounded-full border-none"
-              style={{
-                backgroundColor: isOn ? `color-mix(in srgb, ${$('--primary')} 20%, transparent)` : $('--input-background'),
-                color: isOn ? $('--primary') : $('--text-secondary'),
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                opacity: disabled ? 0.5 : 1,
-              }}
-            >
-              {b.label}[{b.count}]
-            </button>
-          );
-        })}
-      </div>
 
       {/* ── Selection Overlay Bar ─────────────────────────────────────── */}
       {selectedAccounts.size > 0 && (
@@ -593,22 +628,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
             {accounts.length}
           </span>
         </div>
-        <div className="flex gap-1 p-[3px] rounded-lg" style={{ backgroundColor: $('--input-background') }}>
-          {(['day', 'week', 'month', 'year', 'all'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setStatsPeriod(p)}
-              className="px-3 py-1 rounded-md border-none text-[11px] font-medium capitalize"
-              style={{
-                backgroundColor: statsPeriod === p ? `color-mix(in srgb, ${$('--primary')} 15%, transparent)` : 'transparent',
-                color: statsPeriod === p ? $('--primary') : $('--text-secondary'),
-                cursor: 'pointer',
-              }}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+
       </div>
 
       {/* Account List */}
@@ -646,48 +666,22 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
                 onRefreshToken={() => refreshAccountToken(account.id, account.provider_id)}
                 onEdit={() => setEditAccount(account)}
                 providerConfig={pc}
+                externalRefreshing={refreshingIds.has(account.id)}
+                externalRefreshResult={refreshResults[account.id] ?? null}
               />
             );
           })
         )}
       </DrawerBody>
 
-      {/* Pagination */}
-      {pagination.total_pages > 1 && (
-        <DrawerFooter>
-          <span className="text-[11px] text-text-secondary">
-            {pagination.page} / {pagination.total_pages}
-          </span>
-          <div className="flex gap-2 ml-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page === 1}
-              onClick={handlePrevPage}
-            >
-              <ChevronLeft size={14} />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page === pagination.total_pages}
-              onClick={handleNextPage}
-            >
-              Next
-              <ChevronRight size={14} />
-            </Button>
-          </div>
-        </DrawerFooter>
-      )}
 
-      <AddAccountDrawer
+      <AddAccountModal
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSuccess={() => fetchAccounts(pagination.page, pagination.limit, true)}
       />
 
-      <EditAccountDrawer
+      <EditAccountModal
         open={!!editAccount}
         account={editAccount}
         onOpenChange={(o) => {
@@ -701,7 +695,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
         }
       />
 
-      <ConfirmDeleteAccountDrawer
+      <ConfirmDeleteAccountModal
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         onConfirm={executeDelete}
@@ -712,7 +706,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
         count={deleteItem ? 1 : selectedAccounts.size}
       />
 
-      <ImportDuplicatesDrawer
+      <ImportDuplicatesModal
         open={importPreviewOpen}
         onOpenChange={setImportPreviewOpen}
         duplicates={importDuplicates as any}
@@ -778,7 +772,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({ isOpen, onClose, onNavigate
           opacity: 0.7;
         }
       `}</style>
-    </Drawer>
+    </Shell>
   );
 };
 

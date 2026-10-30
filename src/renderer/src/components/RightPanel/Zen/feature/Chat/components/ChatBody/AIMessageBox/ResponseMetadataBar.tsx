@@ -162,7 +162,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
 
   return (
     <div>
-      <div className="relative py-1.5 text-[11px] font-mono leading-[1.6] flex justify-end items-center gap-3 select-none flex-wrap">
+      <div className="relative py-1.5 text-[12px] font-mono leading-[1.6] flex justify-end items-center gap-3 select-none flex-wrap">
         {/* Request Badge */}
         <div className="inline-flex items-center gap-1.5">
           <div
@@ -265,7 +265,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
               >
                 {DebugIcon}
               </span>
-              <span className="text-text-primary font-semibold text-[11px]">
+              <span className="text-text-primary font-semibold text-[12px]">
                 {message.parseDebugInfo.parseError
                   ? 'Parse Error'
                   : `${message.parseDebugInfo.successfulActions}/${message.parseDebugInfo.totalActions}`}
@@ -275,14 +275,14 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
         )}
 
         {/* Response Number */}
-        <span className="text-text-secondary text-[11px] font-semibold">[{responseNumber}]</span>
+        <span className="text-text-secondary text-[12px] font-semibold">[{responseNumber}]</span>
       </div>
 
       {showRaw && (
         <div className="mt-1 mb-2 flex flex-col gap-2">
           {requestChecked && previousUserMessage?.rawRequest && (
             <div>
-              <div className="text-[11px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
+              <div className="text-[12px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
                 Request (User Content)
               </div>
               <div className="max-h-[400px] overflow-auto">
@@ -292,7 +292,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
           )}
           {responseChecked && message.rawResponse && (
             <div>
-              <div className="text-[11px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
+              <div className="text-[12px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
                 Response (Assistant Content)
               </div>
               <div className="max-h-[400px] overflow-auto">
@@ -302,7 +302,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
           )}
           {parseDebugChecked && message.parseDebugInfo && (
             <div>
-              <div className="text-[11px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
+              <div className="text-[12px] font-semibold text-text-secondary mb-1 uppercase tracking-[0.5px]">
                 Parse Debug Log
               </div>
               <div className="max-h-[400px] overflow-auto">
@@ -437,7 +437,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
             </div>
           )}
           {showRaw && !previousUserMessage?.rawRequest && !message.rawResponse && (
-            <div className="text-[11px] text-text-secondary italic p-2">
+            <div className="text-[12px] text-text-secondary italic p-2">
               Raw data not available for this response (may have been loaded from history before
               this feature was added).
             </div>

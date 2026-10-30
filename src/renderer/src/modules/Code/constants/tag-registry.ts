@@ -1,0 +1,179 @@
+/**
+ * ------------------------------------------------------------------
+ * Code Tool Tag Registry
+ * ------------------------------------------------------------------
+ * Định nghĩa metadata cho các tool thao tác với code/filesystem.
+ * Bao gồm cấu hình permission, timeout, và features cho từng tool.
+ *
+ * Main exports:
+ * - CODE_TAG_REGISTRY : Registry chứa định nghĩa 16 code tools
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+import type { TagDefinition } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tag-types';
+
+// ─── Constants ──────────────────────────────────────────────────────────
+export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
+  read_file: {
+    id: 'read_file',
+    title: 'READ',
+    category: 'tool',
+    timeout: 60000,
+    features: {
+      showFileStats: true,
+    },
+  },
+
+  write_to_file: {
+    id: 'write_to_file',
+    title: 'WRITE',
+    category: 'tool',
+    timeout: 60000,
+    features: {
+      showFileStats: true,
+      isFileMutation: true,
+    },
+  },
+
+  replace_in_file: {
+    id: 'replace_in_file',
+    title: 'UPDATE',
+    category: 'tool',
+    timeout: 60000,
+    features: {
+      validateFuzzyMatch: true,
+      isFileMutation: true,
+    },
+  },
+
+  revert_file: {
+    id: 'revert_file',
+    title: 'REVERT',
+    category: 'tool',
+    timeout: 60000,
+    features: {
+      isFileMutation: true,
+    },
+  },
+
+  view_replace_history: {
+    id: 'view_replace_history',
+    title: 'HISTORY REPLACE',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  list_files: {
+    id: 'list_files',
+    title: 'LIST',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  find_files: {
+    id: 'find_files',
+    title: 'FIND',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  grep: {
+    id: 'grep',
+    title: 'GREP',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  delete_file: {
+    id: 'delete_file',
+    title: 'DELETE',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  run_command: {
+    id: 'run_command',
+    title: 'EXECUTE',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  git_status: {
+    id: 'git_status',
+    title: 'GIT STATUS',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  commit_message: {
+    id: 'commit_message',
+    title: 'COMMIT MESSAGE',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  git_diff: {
+    id: 'git_diff',
+    title: 'DIFF',
+    category: 'tool',
+    timeout: 60000,
+  },
+
+  read_skill: {
+    id: 'read_skill',
+    title: 'READ SKILL',
+    category: 'tool',
+    timeout: 20000,
+  },
+
+  read_memory: {
+    id: 'read_memory',
+    title: 'READ MEMORY',
+    category: 'tool',
+    timeout: 30000,
+  },
+
+  update_memory: {
+    id: 'update_memory',
+    title: 'UPDATE MEMORY',
+    category: 'tool',
+    timeout: 30000,
+  },
+
+  conversation_title: {
+    id: 'conversation_title',
+    title: 'TITLE',
+    category: 'ui',
+  },
+
+  list_agents: {
+    id: 'list_agents',
+    title: 'LIST AGENTS',
+    category: 'tool',
+    timeout: 10000,
+  },
+
+  create_agent: {
+    id: 'create_agent',
+    title: 'CREATE AGENT',
+    category: 'tool',
+    timeout: 30000,
+    // Note: Do NOT auto-execute - wait for user confirmation
+    // (handled in useToolActions skip list)
+  },
+
+  send_message: {
+    id: 'send_message',
+    title: 'SEND MESSAGE',
+    category: 'tool',
+    timeout: 30000,
+  },
+
+  delete_agent: {
+    id: 'delete_agent',
+    title: 'DELETE AGENT',
+    category: 'tool',
+    timeout: 10000,
+  },
+};

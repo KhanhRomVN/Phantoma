@@ -39,6 +39,11 @@ export const RESOURCE_TYPES = {
     extensions: /\.(woff|woff2|ttf|otf|eot)$/i,
     contentType: /font/i,
   },
+  js: {
+    label: 'JavaScript',
+    extensions: /\.(js|mjs|cjs)$/i,
+    contentType: /^(text|application)\/(x-)?(javascript|ecmascript)/i,
+  },
   document: {
     label: 'Documents',
     extensions: /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|xml|json)$/i,
@@ -57,7 +62,8 @@ export type ResourceType = keyof typeof RESOURCE_TYPES;
 // ─── Functions ──────────────────────────────────────────────────────────
 export function detectResourceType(contentType: string, path: string): ResourceType {
   const ct = contentType.toLowerCase();
-  const p = path.toLowerCase();
+  // Bỏ query/hash để extension khớp được với path như /app.js?v=1
+  const p = path.toLowerCase().split(/[?#]/)[0];
 
   // Ưu tiên khớp content-type trước
   if (ct.startsWith('image/')) return 'image';
@@ -65,6 +71,7 @@ export function detectResourceType(contentType: string, path: string): ResourceT
   if (ct.startsWith('audio/')) return 'audio';
   if (ct === 'application/wasm') return 'wasm';
   if (ct.includes('font')) return 'font';
+  if (ct.includes('javascript') || ct.includes('ecmascript')) return 'js';
 
   // Fallback khớp theo extension
   if (p.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|bmp|avif)$/)) return 'image';
@@ -72,6 +79,7 @@ export function detectResourceType(contentType: string, path: string): ResourceT
   if (p.match(/\.(mp3|wav|aac|flac|m4a|ogg|opus)$/)) return 'audio';
   if (p.endsWith('.wasm')) return 'wasm';
   if (p.match(/\.(woff|woff2|ttf|otf|eot)$/)) return 'font';
+  if (p.match(/\.(js|mjs|cjs)$/)) return 'js';
   if (p.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|xml|json)$/)) return 'document';
 
   return 'other';

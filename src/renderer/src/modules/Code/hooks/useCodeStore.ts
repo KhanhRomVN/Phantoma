@@ -38,7 +38,7 @@ import type { MCP, MCPInput } from '../types/mcp';
 import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
-export type PanelType = 'terminal' | 'website' | 'note' | 'emulator' | 'file' | 'agent';
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent';
 
 export interface StoredWorkspacePanel {
   sessionId?: string;
@@ -59,6 +59,8 @@ export interface StoredWorkspacePanel {
   agentConversationId?: string | null;
   /** Title conversation hiện tại của Agent panel, hiển thị trên tab dạng 'Zen|<title>'. */
   agentTitle?: string | null;
+  /** ID của workflow agent mà Zen tab này đang liên kết (nếu có). */
+  workflowAgentId?: string | null;
 }
 
 export interface Project {
@@ -67,6 +69,8 @@ export interface Project {
   path: string;
   color: string;
   template: string;
+  /** Đường dẫn ảnh vuông do user chọn làm logo project (null/undefined = dùng icon mặc định). */
+  logoPath?: string | null;
   services: Service[];
   files: FileNode[];
   designs: Design[];
@@ -88,7 +92,7 @@ export interface Project {
   isBottomPanelOpen: boolean;
   // ── Activity panel per-project ──
   activityPanelTab:
-    'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp';
+    'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp' | 'account';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -177,7 +181,8 @@ function createDefaultPerProject() {
 
 // ─── Store Interface ────────────────────────────────────────────────────
 
-export type ContentViewMode = 'files' | 'tasks' | 'workspace' | 'git' | 'design';
+export type ContentViewMode =
+  'files' | 'tasks' | 'workspace' | 'git' | 'design' | 'agents' | 'settings';
 
 interface CodeState {
   projects: Project[];
@@ -185,6 +190,8 @@ interface CodeState {
   isProjectManagerOpen: boolean;
   isNewProjectOpen: boolean;
   activityPanelWidth: number;
+  /** Account tab độc lập với project (không lưu theo project) */
+  isAccountPanelOpen: boolean;
   forceShowLSPOverlay: boolean;
   pendingAction: (() => void) | null;
   isSaveConfirmModalOpen: boolean;
@@ -195,7 +202,7 @@ interface CodeState {
   openFileRequest: { sessionId: string; filePath: string; name: string; nonce: number } | null;
 
   // Actions
-  addProject: (project: ProjectInput) => void;
+  addProject: (project: ProjectInput) => string;
   removeProject: (id: string) => void;
   updateProject: (id: string, data: Partial<Project>) => void;
   setCurrentProject: (id: string) => void;
@@ -210,12 +217,13 @@ interface CodeState {
   setBottomPanelTab: (tab: 'output' | 'terminal' | 'port' | 'performance' | 'problems') => void;
   toggleBottomPanel: () => void;
   setActivityPanelTab: (
-    tab: 'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp',
+    tab: 'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp' | 'account',
   ) => void;
   setProjectManagerOpen: (open: boolean) => void;
   setNewProjectOpen: (open: boolean) => void;
   setProjectFiles: (projectId: string, files: FileNode[]) => void;
   setActivityPanelWidth: (width: number) => void;
+  setAccountPanelOpen: (open: boolean) => void;
   setForceShowLSPOverlay: (show: boolean) => void;
   toggleFolderExpand: (projectId: string, folderId: string) => void;
   collapseAllFolders: (projectId: string) => void;
@@ -224,6 +232,7 @@ interface CodeState {
   markFileAsUnsaved: (fileId: string, content: string) => void;
   markFileAsSaved: (fileId: string) => void;
   setOriginalContent: (fileId: string, content: string) => void;
+  discardFileState: (fileId: string) => void;
   hasUnsavedChanges: () => boolean;
   getUnsavedFiles: () => string[];
   saveAllFiles: () => Promise<void>;
@@ -481,13 +490,14 @@ export const useCodeStore = create<CodeState>()(
         isProjectManagerOpen: false,
         isNewProjectOpen: false,
         activityPanelWidth: 320,
+        isAccountPanelOpen: false,
         forceShowLSPOverlay: false,
         pendingAction: null,
         isSaveConfirmModalOpen: false,
         // ── Content View State Defaults ──
         contentViewMode: 'files' as ContentViewMode,
         activeWorkspaceSessionId: null as string | null,
-  focusPanelRequest: null as { sessionId: string; panelId: string; nonce: number } | null,
+        focusPanelRequest: null as { sessionId: string; panelId: string; nonce: number } | null,
         openFileRequest: null as {
           sessionId: string;
           filePath: string;
@@ -509,6 +519,7 @@ export const useCodeStore = create<CodeState>()(
             projects: [...state.projects, newProject],
             currentProjectId: newProject.id,
           }));
+          return newProject.id;
         },
 
         removeProject: (id) => {
@@ -679,6 +690,10 @@ export const useCodeStore = create<CodeState>()(
           }));
         },
 
+        setAccountPanelOpen: (open) => {
+          set({ isAccountPanelOpen: open });
+        },
+
         setActivityPanelWidth: (width) => {
           set({ activityPanelWidth: width });
         },
@@ -736,7 +751,6 @@ export const useCodeStore = create<CodeState>()(
         markFileAsUnsaved: (fileId: string, content: string) => {
           const project = getCurrentProject();
           if (!project) return;
-
           updateCurrentProject((p) => {
             const node = p.fileNodeMap[fileId];
             const updatedNodeMap = node
@@ -767,6 +781,15 @@ export const useCodeStore = create<CodeState>()(
             ...p,
             originalContents: { ...p.originalContents, [fileId]: content },
           }));
+        },
+
+        discardFileState: (fileId: string) => {
+          updateCurrentProject((p) => {
+            const unsavedFiles = new Set(p.unsavedFiles);
+            unsavedFiles.delete(fileId);
+            const { [fileId]: _discarded, ...originalContents } = p.originalContents;
+            return { ...p, unsavedFiles, originalContents };
+          });
         },
 
         hasUnsavedChanges: () => {
@@ -1155,9 +1178,7 @@ export const useCodeStore = create<CodeState>()(
                     ...p,
                     branches: (p.branches || []).map((b) => ({
                       ...b,
-                      sessions: b.sessions.map((s) =>
-                        s.id === sessionId ? { ...s, procs } : s,
-                      ),
+                      sessions: b.sessions.map((s) => (s.id === sessionId ? { ...s, procs } : s)),
                     })),
                   },
             ),
@@ -1194,7 +1215,8 @@ export const useCodeStore = create<CodeState>()(
         const partializedProjects = state.projects.map((p) => ({
           ...p,
           files: [],
-          unsavedFiles: Array.from(p.unsavedFiles),
+          unsavedFiles: [],
+          originalContents: {},
           currentFileId: null,
           // Persist branches but strip ephemeral agent/process data —
           // these are runtime-only and must not survive a page reload.
@@ -1224,7 +1246,8 @@ export const useCodeStore = create<CodeState>()(
         if (merged.projects) {
           merged.projects = merged.projects.map((p: any) => ({
             ...p,
-            unsavedFiles: new Set(p.unsavedFiles || []),
+            unsavedFiles: new Set<string>(),
+            originalContents: {},
           }));
         }
         return merged;

@@ -18,6 +18,7 @@
 // ── Utils ──
 import { SecurityValidator } from '../../utils/security';
 import { FuzzyMatcher } from '../../utils/FuzzyMatcher';
+import { resolveWorkspacePath } from '../../utils/pathResolver';
 
 // ── Managers ──
 import { FileLockManager } from '../../managers/FileLockManager';
@@ -95,14 +96,17 @@ export class ReplaceInFileHandler {
   }
 
   private async handleInternal(message: ReplaceInFileParams): Promise<ReplaceInFileResult> {
-    const pathValue = message.path || message.filePath || message.file_path;
-    if (!pathValue) {
+    const inputPath = message.path || message.filePath || message.file_path;
+    if (!inputPath) {
       return {
         command: 'replaceInFileResult',
         requestId: message.requestId,
         error: "The 'path' argument must be of type string.",
       };
     }
+
+    // Resolve relative path against workspace root (same as ReadFileHandler).
+    const pathValue = await resolveWorkspacePath(inputPath, (message as any).basePath);
 
     const api = (window as any).api;
     if (!api?.invoke) {

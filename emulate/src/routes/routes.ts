@@ -29,7 +29,8 @@ import { processManager } from '../services/process-manager.service';
 import { ebpfSniffer } from '../services/ebpf-sniffer.service';
 import { wssHub } from '../services/wss-hub.service';
 import { getCaptureMethodsForPlatform, Platform } from '../config/capture-methods';
-import { getCurrentPath, reinit as reinitDb } from '../database/connection';
+
+import { getAppDataDir } from '../config/server.config';
 
 /**
  * Tìm một cổng TCP trống ngẫu nhiên trong khoảng [minPort, maxPort].
@@ -176,24 +177,12 @@ export function registerEmulateRoutes(
     const platform = req.params.platform as Platform;
     const methods = getCaptureMethodsForPlatform(platform);
 
-    // Debug Log
-    console.log(`[Emulate API] GET /capture-methods/${platform}`);
-    console.log(
-      `[Emulate API] Returning ${methods.length} methods:`,
-      methods.map((m) => m.id),
-    );
-
     res.json({ platform, methods });
   });
 
   // Runtime Launch Endpoint
   router.post('/runtime/launch', async (req, res) => {
-    const { targetId, mode, proxyUrl, customUrl } = req.body;
-
-    console.log(`[Emulate API] POST /runtime/launch`);
-    console.log(`  - Target ID: ${targetId}`);
-    console.log(`  - Mode: ${mode}`);
-    console.log(`  - URL: ${customUrl || proxyUrl}`);
+    const { targetId, mode, proxyUrl, customUrl, userDataDir: requestedUserDataDir } = req.body;
 
     try {
       if (mode === 'cdp') {
@@ -206,7 +195,6 @@ export function registerEmulateRoutes(
         let debugPort: number;
         try {
           debugPort = await findFreePort(9300, 9400);
-          console.log(`[CDP Launcher] Allocated free port: ${debugPort}`);
         } catch (err) {
           throw new Error('Failed to allocate a free debugging port.');
         }
@@ -233,21 +221,84 @@ export function registerEmulateRoutes(
 
         // 4. Spawn Process
         // Note: --user-data-dir ensures a fresh profile instance so it doesn't attach to existing running Chrome
-        const userDataDir = `/tmp/phantoma-cdp-${targetId}`;
+        // ASSUMED: path dạng "<base>/Default" hoặc "<base>/Profile N" là profile con của Chrome user-data-dir
+        let userDataDir = `${getAppDataDir()}/cdp-profiles/${targetId}/default`;
+        fs.mkdirSync(userDataDir, { recursive: true });
+        let profileDirectory: string | undefined;
+        if (typeof requestedUserDataDir === 'string' && requestedUserDataDir.trim()) {
+          const cleaned = requestedUserDataDir.trim().replace(/[\\/]+$/, '');
+          const sepIdx = Math.max(cleaned.lastIndexOf('/'), cleaned.lastIndexOf('\\'));
+          const baseName = cleaned.slice(sepIdx + 1);
+          if (sepIdx > 0 && /^(Default|Profile \d+)$/.test(baseName)) {
+            userDataDir = cleaned.slice(0, sepIdx);
+            profileDirectory = baseName;
+          } else {
+            userDataDir = cleaned;
+          }
+          if (!fs.existsSync(userDataDir)) {
+            fs.mkdirSync(userDataDir, { recursive: true });
+          }
+        }
+
+        if (profileDirectory) {
+          // ASSUMED: Chrome bỏ qua --remote-debugging-port với user-data-dir mặc định và Chrome đang chạy giữ lock profile → clone profile sang thư mục riêng (bỏ qua cache)
+          const sourceRoot = userDataDir;
+          const cloneRoot = `${getAppDataDir()}/cdp-profiles/${targetId}/clone`;
+          const alreadyCloned = fs.existsSync(`${cloneRoot}/${profileDirectory}`);
+          const skipNames = new Set([
+            'Cache',
+            'Code Cache',
+            'GPUCache',
+            'GrShaderCache',
+            'ShaderCache',
+            'DawnCache',
+            'Crashpad',
+            'Service Worker',
+            'lockfile',
+            'SingletonLock',
+            'SingletonSocket',
+            'SingletonCookie',
+          ]);
+          const copyFilter = (src: string) => !skipNames.has(src.slice(src.lastIndexOf('/') + 1));
+
+          if (!alreadyCloned) {
+            await fs.promises.mkdir(cloneRoot, { recursive: true });
+            if (fs.existsSync(`${sourceRoot}/Local State`)) {
+              await fs.promises.copyFile(`${sourceRoot}/Local State`, `${cloneRoot}/Local State`);
+            }
+            await fs.promises.cp(
+              `${sourceRoot}/${profileDirectory}`,
+              `${cloneRoot}/${profileDirectory}`,
+              {
+                recursive: true,
+                force: true,
+                filter: copyFilter,
+              },
+            );
+          }
+          userDataDir = cloneRoot;
+        }
 
         const args = [
           `--remote-debugging-port=${debugPort}`,
           `--user-data-dir=${userDataDir}`,
+          ...(profileDirectory ? [`--profile-directory=${profileDirectory}`] : []),
           '--no-first-run',
           '--no-default-browser-check',
+          // ASSUMED: profile riêng của target dùng mock keyring để key mã hóa Cookies ổn định giữa các lần mở (giống temp/Zentri launch.ts); profile clone từ Chrome thật giữ keyring gốc để giải mã được cookie cũ
+          ...(profileDirectory ? [] : ['--password-store=basic', '--use-mock-keychain']),
           urlToOpen,
         ];
-
-        console.log(`[CDP Launcher] Spawning: ${chromePath} ${args.join(' ')}`);
 
         const child = spawn(chromePath, args, {
           detached: true, // Detach from parent so it keeps running even if server restarts
           stdio: 'ignore',
+        });
+
+        child.on('error', (e) => console.error('[DEBUG][CDP Launcher] child error:', e));
+        let childExited = false;
+        child.on('exit', (code, signal) => {
+          childExited = true;
         });
 
         child.unref(); // Allow Node.js to exit independently
@@ -255,13 +306,25 @@ export function registerEmulateRoutes(
         // Register process with central manager
         if (child.pid) {
           processManager.register(targetId, child.pid, debugPort);
-          console.log(
-            `[CDP Launcher] Registered process for target ${targetId}: port=${debugPort}, pid=${child.pid}`,
-          );
         }
 
-        // Wait slightly to ensure browser starts up before responding
-        await new Promise((r) => setTimeout(r, 1000));
+        // Chờ debug port sẵn sàng (Chrome đã mở cửa sổ) rồi mới respond
+        const readyDeadline = Date.now() + 15000;
+        while (!childExited && Date.now() < readyDeadline) {
+          try {
+            const probe = await fetch(`http://127.0.0.1:${debugPort}/json/version`);
+            if (probe.ok) break;
+          } catch {
+            // port chưa mở, thử lại
+          }
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+
+        if (childExited) {
+          throw new Error(
+            'Chrome thoát ngay sau khi khởi động (profile đang bị Chrome khác dùng hoặc bị chặn remote debugging).',
+          );
+        }
 
         return res.json({
           success: true,
@@ -294,7 +357,6 @@ export function registerEmulateRoutes(
   // Runtime Terminate Endpoint — delegates to ProcessManager
   router.post('/runtime/terminate', async (req, res) => {
     const { targetId } = req.body ?? {};
-    console.log(`[Emulate API] POST /runtime/terminate - Target: ${targetId || 'all'}`);
 
     try {
       if (targetId) {
@@ -326,12 +388,6 @@ export function registerEmulateRoutes(
   router.post('/runtime/targets/register', async (req, res) => {
     const { targetId, title, favicon, platform, url } = req.body;
 
-    console.log(`[Emulate API] POST /runtime/targets/register`);
-    console.log(`  - Target ID: ${targetId}`);
-    console.log(`  - Title: ${title}`);
-    console.log(`  - Platform: ${platform}`);
-    console.log(`  - URL: ${url}`);
-
     // TODO: Store mapping between targetId and current active sessions/proxies
 
     res.json({
@@ -354,12 +410,6 @@ export function registerEmulateRoutes(
       actualPort = trackedTarget.port;
     }
 
-    console.log(`[Emulate API] POST /runtime/cdp/connect`);
-    console.log(`  - Requested Port: ${requestedPort}`);
-    console.log(`  - Actual Port Used: ${actualPort} (from manager: ${!!trackedTarget})`);
-    console.log(`  - Target ID: ${targetId}`);
-    console.log(`  - Expected URL: ${expectedUrl || 'None'}`);
-
     try {
       const success = await cdpService.connect(actualPort, targetId || 'default', expectedUrl);
 
@@ -377,8 +427,6 @@ export function registerEmulateRoutes(
   // Global SSE Endpoint for All Runtime Events
   // Matches the expectation of runtime-sse-bridge.ts which listens on /events
   router.get('/events', (req, res) => {
-    console.log('[Emulate API] GET /events - Establishing global SSE stream...');
-
     // Set headers for Server-Sent Events
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -412,7 +460,6 @@ export function registerEmulateRoutes(
 
     // Cleanup listeners when client disconnects
     req.on('close', () => {
-      console.log('[Emulate API] Global SSE connection closed.');
       cdpService.removeListener('cdp:request', onCdpRequest);
       cdpService.removeListener('cdp:response', onCdpResponse);
       cdpService.removeListener('cdp:finished', onCdpFinished);
@@ -422,7 +469,6 @@ export function registerEmulateRoutes(
   // Disconnect from CDP Instance
   router.post('/runtime/cdp/disconnect', async (req, res) => {
     const { targetId } = req.body;
-    console.log(`[Emulate API] POST /runtime/cdp/disconnect - Target: ${targetId}`);
 
     try {
       await cdpService.disconnect(targetId || 'default');
@@ -436,7 +482,6 @@ export function registerEmulateRoutes(
   router.post('/runtime/cdp/reload', async (req, res) => {
     const { targetId } = req.body ?? {};
     const key = targetId || 'default';
-    console.log(`[Emulate API] POST /runtime/cdp/reload - Target: ${key}`);
     try {
       const ok = await cdpService.reload(key);
       res.json({ success: ok });
@@ -453,7 +498,7 @@ export function registerEmulateRoutes(
     if (!url) {
       return res.status(400).json({ success: false, error: 'url is required' });
     }
-    console.log(`[Emulate API] POST /runtime/cdp/navigate - Target: ${key}, Url: ${url}`);
+
     try {
       const ok = await cdpService.navigate(key, url);
       res.json({ success: ok });
@@ -467,7 +512,6 @@ export function registerEmulateRoutes(
   router.post('/runtime/cdp/inject-border', async (req, res) => {
     const { targetId, color } = req.body ?? {};
     const key = targetId || 'default';
-    console.log(`[Emulate API] POST /runtime/cdp/inject-border - Target: ${key}`);
     try {
       const ok = await cdpService.injectBorder(key, color);
       res.json({ success: ok });
@@ -488,70 +532,37 @@ export function registerEmulateRoutes(
     }
   });
 
-  // ─── Database Path Management ────────────────────────────────────────
-  // GET /database/path — trả về đường dẫn SQLite DB hiện tại
-  router.get('/database/path', (_req, res) => {
-    try {
-      const currentPath = getCurrentPath();
-      if (!currentPath) {
-        return res.status(503).json({ error: 'Database not initialized yet' });
-      }
-      res.json({ path: currentPath });
-    } catch (err: any) {
-      console.error('[Emulate API] GET /database/path failed:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // PUT /database/path — swap DB file runtime (không cần restart server)
-  router.put('/database/path', (req, res) => {
-    const { path: newPath } = req.body ?? {};
-    if (!newPath || typeof newPath !== 'string') {
-      return res.status(400).json({ error: 'path is required and must be a string' });
-    }
-    try {
-      reinitDb(newPath);
-      console.log(`[Emulate API] Database swapped to: ${newPath}`);
-      res.json({ path: newPath, status: 'ok' });
-    } catch (err: any) {
-      console.error('[Emulate API] PUT /database/path failed:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
   // ─── eBPF TLS Sniffer Endpoints ──────────────────────────────────────
-  
+
   /**
    * Start capturing plaintext HTTPS traffic using eBPF uprobes.
    * Body: { pid?: number } - Optional filter by Process ID.
    */
   router.post('/runtime/ebpf/start', async (req, res) => {
     const { pid } = req.body ?? {};
-    console.log(`[Emulate API] POST /runtime/ebpf/start - PID Filter: ${pid || 'ALL'}`);
-
     try {
       const success = await ebpfSniffer.start({ pid });
-      
+
       if (success) {
         // Forward events from sniffer to WebSocket Hub for real-time streaming
         ebpfSniffer.on('ebpf:data', (event) => {
           // Emit via global bus so frontend receives it alongside CDP events
           wssHub.broadcast({ type: 'ebpf:https-event', data: event });
         });
-        
+
         ebpfSniffer.on('ebpf:error', (errorData) => {
           wssHub.broadcast({ type: 'ebpf:error', data: errorData });
         });
 
-        res.json({ 
-          success: true, 
+        res.json({
+          success: true,
           message: 'eBPF sniffer started. Capturing SSL/TLS plaintext.',
-          filteredByPid: !!pid 
+          filteredByPid: !!pid,
         });
       } else {
-        res.status(500).json({ 
-          success: false, 
-          error: 'Failed to start eBPF sniffer. Check logs for permission/kernel issues.' 
+        res.status(500).json({
+          success: false,
+          error: 'Failed to start eBPF sniffer. Check logs for permission/kernel issues.',
         });
       }
     } catch (err: any) {
@@ -564,7 +575,6 @@ export function registerEmulateRoutes(
    * Stop the active eBPF capture session.
    */
   router.post('/runtime/ebpf/stop', (_req, res) => {
-    console.log(`[Emulate API] POST /runtime/ebpf/stop`);
     try {
       ebpfSniffer.stop();
       res.json({ success: true, message: 'eBPF sniffer stopped.' });
@@ -578,9 +588,9 @@ export function registerEmulateRoutes(
    * Get current status of the eBPF sniffer.
    */
   router.get('/runtime/ebpf/status', (_req, res) => {
-    res.json({ 
+    res.json({
       running: ebpfSniffer.getStatus(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   });
 
@@ -593,8 +603,6 @@ export function registerEmulateRoutes(
    */
   router.post('/runtime/cli/ebpf', async (req, res) => {
     const { targetId, executablePath, sudoPassword } = req.body ?? {};
-    console.log(`[Emulate API] POST /runtime/cli/ebpf - Target: ${targetId}`);
-
     if (!targetId || !executablePath) {
       return res
         .status(400)
@@ -678,8 +686,6 @@ export function registerEmulateRoutes(
    */
   router.post('/runtime/cli/:targetId/stop', async (req, res) => {
     const { targetId } = req.params;
-    console.log(`[Emulate API] POST /runtime/cli/${targetId}/stop`);
-
     try {
       ebpfSniffer.stop();
       ebpfOwnerTargetId = null;

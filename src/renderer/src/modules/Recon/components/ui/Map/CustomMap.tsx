@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Map, { Marker, NavigationControl, type MapRef } from 'react-map-gl/maplibre';
-import type { MapLayerMouseEvent } from 'maplibre-gl';
+import { setWorkerUrl, type MapLayerMouseEvent } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { MapLocation, MapRegion } from '../types';
 import { cn } from '@renderer/shared/utils/cn';
@@ -52,12 +52,10 @@ export default function CustomMap({ locations, regions = [] }: Props) {
     lng: number;
   } | null>(null);
 
-  // Set worker URL từ resources folder (electron protocol)
+  // Worker offline từ public/maplibre (relative document.baseURI: đúng cả dev http:// lẫn build file://)
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).electron) {
-      // Electron app: dùng resources path
-      (window as any).VITE_MAPLIBRE_WORKER_URL = 'app://./resources/maplibre/maplibre-gl-worker.js';
-    }
+    const workerUrl = new URL('maplibre/maplibre-gl-worker.js', document.baseURI).href;
+    setWorkerUrl(workerUrl);
   }, []);
 
   if (locations.length === 0) {
@@ -125,7 +123,6 @@ export default function CustomMap({ locations, regions = [] }: Props) {
   const handleCreateLocation = () => {
     if (!contextMenu) return;
     // TODO: Implement create location logic
-    console.log('Create location at:', contextMenu.lat, contextMenu.lng);
     setContextMenu(null);
   };
 
@@ -162,7 +159,6 @@ export default function CustomMap({ locations, regions = [] }: Props) {
                 e.target.setPaintProperty(layer, prop as 'fill-color', color);
             });
             setMapLoaded(true);
-            console.log('[CustomMap] Map loaded successfully');
           }}
           onError={(e) => {
             console.error('[CustomMap] Map error:', e);

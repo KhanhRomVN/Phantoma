@@ -16,13 +16,14 @@ import { memo, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 
 // ── Icons ─
-import { Terminal, Loader2, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Terminal, Loader2, AlertTriangle } from 'lucide-react';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
 // ── Task link ──
+import { useCodeStore } from '../../hooks/useCodeStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import type { StoredTask } from '../../services/task.service';
 import { TASK_DRAG_TYPE } from '../ContentPanel/TaskManager/kanban/TaskDropZones';
@@ -352,6 +353,18 @@ export function AgentChip({
   );
 }
 
+export function ZenBadge({ count }: { count: number }) {
+  const imagesUri = (window as any).__zenImagesUri || '/images';
+  const logo = `${imagesUri}/zen-logo.png`;
+  return (
+    <span className="inline-flex items-center gap-1.5 bg-card-hover border border-border rounded-[4px] overflow-hidden pl-0 pr-2.5 text-[11px] text-text-secondary">
+      <img src={logo} alt="Zen" className="w-[20px] h-[20px] object-contain shrink-0" />
+      Zen
+      <span className="font-mono opacity-70">x{count}</span>
+    </span>
+  );
+}
+
 /** Compact "terminal N ●" pill summarising background processes */
 export function ProcessPill({ procs }: { procs: ProcessInfo[] }) {
   const worst = getWorstProcessStatus(procs);
@@ -427,25 +440,22 @@ function ProcessList({
           {p.status === 'crashed' && (
             <span className="text-[10px] text-[#ff4757]">exit {p.exitCode ?? 1}</span>
           )}
-
         </div>
       ))}
     </div>
   );
 }
 
-/** Task row inside a session card (with status picker button) */
-function TaskRow({
+/** Task icon button shown in the session title row — opens the status picker */
+function TaskIconButton({
   sessionId,
-  task: t,
+  task,
   onOpenTaskMenu,
 }: {
   sessionId: string;
   task: StoredTask;
   onOpenTaskMenu?: (sessionId: string, pos: MenuPosition) => void;
 }) {
-  const label = TASK_STATUSES.find(([k]) => k === t.status)?.[1] ?? t.status;
-
   const openMenu = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     const r = e.currentTarget.getBoundingClientRect();
@@ -453,25 +463,13 @@ function TaskRow({
   };
 
   return (
-    <div className="flex items-center gap-2 min-w-0 px-[7px] py-[5px] rounded-md bg-background text-[11.5px]">
-      <TaskIcon status={t.status} />
-      <span
-        className={cn(
-          'flex-1 min-w-0 truncate',
-          t.status === 'done' && 'text-text-secondary/50 line-through',
-        )}
-        title={t.title}
-      >
-        {t.title}
-      </span>
-      <button
-        onClick={openMenu}
-        className="flex items-center gap-[3px] shrink-0 font-mono text-[10px] text-text-secondary px-[5px] py-px rounded-[5px] hover:bg-dropdown-item-hover hover:text-text-primary cursor-pointer"
-      >
-        {label}
-        <ChevronDown className="w-[11px] h-[11px]" />
-      </button>
-    </div>
+    <button
+      onClick={openMenu}
+      title={task.title}
+      className="flex items-center shrink-0 cursor-pointer rounded hover:bg-dropdown-item-hover"
+    >
+      <TaskIcon status={task.status} />
+    </button>
   );
 }
 
@@ -487,8 +485,10 @@ export const SessionCard = memo(function SessionCard({
   draggable = true, // Default to true, but can be overridden by parent if needed
   projectName = '',
   branchName = '',
+  projectId = '',
   onDropTask,
 }: {
+  projectId?: string;
   projectName?: string;
   branchName?: string;
   onDropTask?: (taskId: string, sessionId: string) => void;
@@ -505,6 +505,12 @@ export const SessionCard = memo(function SessionCard({
   const task = useSessionTasks((s) => s.bySession[session.id]);
   const displayName = task?.title ?? getTempSessionName(session.id, projectName, branchName);
   const [dropOver, setDropOver] = useState(false);
+  const zenChatCount = useCodeStore(
+    (s) =>
+      (s.projects.find((p) => p.id === projectId)?.workspacePanels ?? []).filter(
+        (wp) => wp.type === 'agent' && wp.sessionId === session.id,
+      ).length,
+  );
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -541,21 +547,21 @@ export const SessionCard = memo(function SessionCard({
     >
       {/* Title row */}
       <div className="flex items-center gap-[6px] text-[12.5px] font-semibold leading-none h-[16px]">
-        <StatusDot status={st} size="small" />
+        {task && (
+          <TaskIconButton sessionId={session.id} task={task} onOpenTaskMenu={onOpenTaskMenu} />
+        )}
         <span className="flex-1 min-w-0 truncate text-text-primary" title={displayName}>
           {displayName}
         </span>
       </div>
 
-      {/* Task - Only if exists */}
-      {task && <TaskRow sessionId={session.id} task={task} onOpenTaskMenu={onOpenTaskMenu} />}
-
       {/* Agents - Only if exists */}
-      {session.agents.length > 0 && (
+      {(session.agents.length > 0 || zenChatCount > 0) && (
         <div className="flex gap-[4px] flex-wrap items-center leading-none">
           {session.agents.map((a, i) => (
             <AgentChip key={i} agent={a} sessionStatus={st} />
           ))}
+          {zenChatCount > 0 && <ZenBadge count={zenChatCount} />}
         </div>
       )}
 
@@ -568,11 +574,7 @@ export const SessionCard = memo(function SessionCard({
 
       {/* Background processes - Only if exists */}
       {(session.procs?.length ?? 0) > 0 && (
-        <ProcessList
-          sessionId={session.id}
-          procs={session.procs!}
-          onInteract={onProcessInteract}
-        />
+        <ProcessList sessionId={session.id} procs={session.procs!} onInteract={onProcessInteract} />
       )}
     </div>
   );

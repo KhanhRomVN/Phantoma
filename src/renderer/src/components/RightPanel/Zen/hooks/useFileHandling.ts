@@ -25,7 +25,7 @@ import { UploadedFile, ExternalFile, AttachedItem } from '../types/file-uploader
 import { isFileAllowed, readFileAsText } from '../feature/Chat/utils/fileUtils';
 
 // ── Constants ──
-import { ALLOWED_FILE_EXTENSIONS } from '../feature/Chat/constants/constants';
+import { ALLOWED_FILE_EXTENSIONS } from '../feature/Chat/constants/tag-registry';
 
 interface UseFileHandlingProps {
   accountId?: string;

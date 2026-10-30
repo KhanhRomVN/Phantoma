@@ -36,8 +36,8 @@ import { ipcMain } from 'electron';
 // ── Node.js ──
 import { execFile } from 'child_process';
 import { promises as fs } from 'fs';
-import { homedir, tmpdir } from 'os';
-import { dirname, join, resolve } from 'path';
+import { tmpdir } from 'os';
+import { basename, dirname, join, resolve } from 'path';
 
 // ── Internal ──
 import { logger } from '../utils/logger';
@@ -239,7 +239,20 @@ export function setupGitHandlers(): void {
         .map((line) => line.trim())
         .filter((line) => line.length > 0 && !line.startsWith('remotes/origin/HEAD'));
 
-      return { branches };
+      const worktreePaths: Record<string, string> = {};
+      const wtList = await runGit(['worktree', 'list', '--porcelain'], cwd);
+      if (!wtList.error) {
+        const mainRoot = resolve(cwd);
+        for (const block of wtList.stdout.split(/\n\s*\n/)) {
+          const lines = block.split('\n');
+          const wtPath = lines.find((l) => l.startsWith('worktree '))?.slice(9).trim();
+          const ref = lines.find((l) => l.startsWith('branch '))?.slice(7).trim();
+          if (!wtPath || !ref || resolve(wtPath) === mainRoot) continue;
+          worktreePaths[ref.replace(/^refs\/heads\//, '')] = wtPath;
+        }
+      }
+
+      return { branches, worktreePaths };
     } catch (e: any) {
       logger.error('[git:list-branches] Error:', e);
       return { error: e.message || String(e) };
@@ -622,6 +635,35 @@ export function setupGitHandlers(): void {
     }
   });
 
+
+  // ── Is Repo (kiểm tra project có git hay không) ──
+  ipcMain.handle('git:is-repo', async (_event, projectPath: string) => {
+    const res = await runGit(['rev-parse', '--is-inside-work-tree'], projectPath || process.cwd());
+    return !res.error && res.stdout.trim() === 'true';
+  });
+
+  // ── Worktree Preview (dữ liệu cho modal confirm tạo branch) ──
+  ipcMain.handle('git:worktree-preview', async (_event, projectPath: string) => {
+    const cwd = projectPath || process.cwd();
+    const content = await fs.readFile(join(cwd, '.gitignore'), 'utf8').catch(() => null);
+    const status = await runGit(['status', '--porcelain'], cwd);
+    const changedFiles = status.error
+      ? 0
+      : status.stdout.split('\n').filter((l) => l.trim()).length;
+    const ignored = await runGit(
+      ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
+      cwd,
+    );
+    const ignoredPaths = ignored.error
+      ? []
+      : ignored.stdout.split('\0').filter((p) => p.length > 0);
+    return {
+      ignoredPaths,
+      hasGitignore: content !== null,
+      changedFiles,
+    };
+  });
+
   // ── Create Branch (git worktree) ──
   ipcMain.handle(
     'git:create-branch-worktree',
@@ -631,10 +673,23 @@ export function setupGitHandlers(): void {
       newBranch: string,
       sourceBranch: string,
       mode: 'latest-commit' | 'local',
+      copyPaths: string[] = [],
+      targetDir?: string,
     ) => {
+      const cwd = projectPath || process.cwd();
+      const name = (newBranch || '').trim();
+      let rollback: (() => Promise<void>) | null = null;
       try {
-        const cwd = projectPath || process.cwd();
-        const name = (newBranch || '').trim();
+        const report = (p: {
+          step: 'worktree' | 'local' | 'copy';
+          current?: number;
+          total?: number;
+          label?: string;
+        }) => _event.sender.send('git:create-branch-progress', p);
+        report({ step: 'worktree' });
+
+        const isRepo = await runGit(['rev-parse', '--is-inside-work-tree'], cwd);
+        if (isRepo.error) return { error: 'Project này chưa có git repository' };
 
         const formatCheck = await runGit(['check-ref-format', '--branch', name], cwd);
         if (formatCheck.error) return { error: `Tên branch không hợp lệ: ${name}` };
@@ -655,17 +710,30 @@ export function setupGitHandlers(): void {
           }
         }
 
-        const targetPath = join(
-          homedir(),
-          '.phantoma',
-          `code:${Buffer.from(resolve(cwd)).toString('base64url')}`,
-          'worktrees',
-          name.replace(/\//g, '-'),
-        );
+        // ASSUMED: mặc định lưu cùng cấp với project (thư mục cha); '/' trong tên branch đổi thành '-' để không tạo thư mục lồng
+        const projectRoot = resolve(cwd);
+        const baseDir = targetDir?.trim() ? resolve(targetDir.trim()) : dirname(projectRoot);
+        const targetPath = join(baseDir, `${basename(projectRoot)}-${name.replace(/\//g, '-')}`);
+        if (await fs.lstat(targetPath).catch(() => null)) {
+          return { error: `Thư mục "${targetPath}" đã tồn tại` };
+        }
         const add = await runGit(['worktree', 'add', '-b', name, targetPath, sourceBranch], cwd);
         if (add.error) return { error: add.stderr || add.error.message };
 
+        rollback = async () => {
+          const prevNoAsar = process.noAsar;
+          process.noAsar = true;
+          try {
+            await fs.rm(targetPath, { recursive: true, force: true });
+          } finally {
+            process.noAsar = prevNoAsar;
+          }
+          await runGit(['worktree', 'prune'], cwd);
+          await runGit(['branch', '-D', name], cwd);
+        };
+
         if (mode === 'local') {
+          report({ step: 'local' });
           const patchFile = join(tmpdir(), `phantoma-${Date.now()}.patch`);
           const diff = await runGit(['diff', 'HEAD', '--binary', '--output', patchFile], cwd);
           if (!diff.error) {
@@ -686,9 +754,33 @@ export function setupGitHandlers(): void {
           }
         }
 
+        for (const [i, raw] of copyPaths.entries()) {
+          report({ step: 'copy', current: i + 1, total: copyPaths.length, label: raw });
+          const rel = raw.replace(/\/+$/, '');
+          if (!rel || rel.startsWith('/') || rel.split('/').includes('..')) continue;
+          const src = join(cwd, rel);
+          const dest = join(targetPath, rel);
+          const stat = await fs.stat(src).catch(() => null);
+          if (!stat || (await fs.lstat(dest).catch(() => null))) continue;
+          await fs.mkdir(dirname(dest), { recursive: true });
+          if (stat.isDirectory()) {
+            // Electron's fs treats *.asar as archives (e.g. electron/dist/resources/default_app.asar) and cp fails on them
+            const prevNoAsar = process.noAsar;
+            process.noAsar = true;
+            try {
+              await fs.cp(src, dest, { recursive: true });
+            } finally {
+              process.noAsar = prevNoAsar;
+            }
+          } else await fs.copyFile(src, dest);
+        }
+
         return { branch: name, path: targetPath };
       } catch (e: any) {
         logger.error('[git:create-branch-worktree] Error:', e);
+        await rollback?.().catch((re) =>
+          logger.error('[git:create-branch-worktree] Rollback failed:', re),
+        );
         return { error: e.message || String(e) };
       }
     },

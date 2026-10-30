@@ -32,6 +32,8 @@ import { ActivityPanel } from './components/ActivityPanel';
 import { ToastContainer } from './components/common/ToastContainer';
 import { FooterBar } from './components/FooterBar';
 import { ProjectPanel } from './components/ProjectPanel/ProjectPanel';
+import { QuickOpenModal } from './components/modal/QuickOpenModal';
+import './services/unsaved.service';
 
 // ─── Directory Scanner ─────────────────────────────────────────────────
 
@@ -43,7 +45,7 @@ interface DirEntry {
   mtime: number;
 }
 
-let scanIdCounter = 0;
+
 
 /** Recursively scans a directory via IPC and builds a FileNode tree. */
 async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
@@ -59,8 +61,9 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   const nodes: FileNode[] = [];
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+    if (depth === 0 && entry.isDirectory && entry.name === 'worktrees') continue;
     const node: FileNode = {
-      id: `scan_${++scanIdCounter}`,
+      id: `fs_${entry.path}`,
       name: entry.name,
       type: entry.isDirectory ? 'folder' : 'file',
       path: entry.path,
@@ -76,32 +79,14 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
 // ─── Component ──────────────────────────────────────────────────────────
 export function Code() {
   // ── Store ──
-  const {
-    setProjectManagerOpen,
-    setNewProjectOpen,
-    projects,
-    hydrateProjectFiles,
-    hasUnsavedChanges,
-  } = useCodeStore();
+  const { setProjectManagerOpen, setNewProjectOpen, projects, hydrateProjectFiles } =
+    useCodeStore();
   // ── State ──
-  const [, setQuickOpenOpen] = useState(false);
-
+  const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   // ── Refs ──
   const hydratedRef = useRef(false);
 
   // ── Effects ──
-  // Prevent closing app with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges()) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
 
   // Restore project files from localStorage on startup
   useEffect(() => {
@@ -109,9 +94,10 @@ export function Code() {
     hydratedRef.current = true;
 
     projects.forEach((project) => {
-      const shouldScan = !!project.path && project.files.length === 0;
+      const scanRoot = project.explorerRoot ?? project.path;
+      const shouldScan = !!scanRoot && project.files.length === 0;
       if (shouldScan) {
-        scanDirectory(project.path)
+        scanDirectory(scanRoot)
           .then((files: FileNode[]) => {
             hydrateProjectFiles(project.id, files);
           })
@@ -238,6 +224,7 @@ export function Code() {
         {!isGitView && <ActivityPanel />}
       </div>
       <FooterBar />
+      <QuickOpenModal isOpen={quickOpenOpen} onClose={() => setQuickOpenOpen(false)} />
     </div>
   );
 }

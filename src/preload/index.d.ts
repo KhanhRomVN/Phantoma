@@ -8,6 +8,10 @@ interface API {
   send(channel: string, ...args: any[]): void;
   on(channel: string, func: (...args: any[]) => void): (...args: any[]) => void;
   off(channel: string, func: (...args: any[]) => void): void;
+  runtime: {
+    getPorts(): Promise<{ server: number; emulate: number }>;
+    startEmulate(): Promise<{ server: number; emulate: number }>;
+  };
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface ElectronIpcRenderer {}

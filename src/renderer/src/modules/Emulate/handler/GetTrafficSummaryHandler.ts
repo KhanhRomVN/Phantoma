@@ -13,7 +13,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import { NetworkRequest } from '../types/inspector';
-import type { TrafficSummary } from '@renderer/components/RightPanel/Zen/feature/Chat/prompts/emulate';
+import type { TrafficSummary } from '@renderer/modules/Emulate/prompts/emulate';
 
 // ─── Class ──────────────────────────────────────────────────────────────
 export class GetTrafficSummaryHandler {

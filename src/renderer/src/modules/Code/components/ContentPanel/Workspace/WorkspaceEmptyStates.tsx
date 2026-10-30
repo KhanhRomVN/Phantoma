@@ -9,13 +9,13 @@ import {
   Plus,
   Terminal as TerminalIcon,
   Globe,
-  FileText,
+
   FolderOpen,
   GitBranch,
   Bot,
   LayoutGrid,
 } from 'lucide-react';
-import { OpenProjectModal } from '../../modal/OpenProjectModal/index';
+import { OpenProjectModal } from '../../modal/OpenProjectModal';
 import { CreateProjectModal } from '../../modal/CreateProjectModal';
 
 // ─── Shared pieces ────────────────────────────────────────────────────
@@ -177,7 +177,7 @@ EmptyState.displayName = 'EmptyState';
 
 // ─── Project selected, no panels ──────────────────────────────────────
 
-export type EmptyWorkspaceAction = 'browser' | 'terminal' | 'agent' | 'markdown';
+export type EmptyWorkspaceAction = 'browser' | 'terminal' | 'agent';
 
 export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
   onAddPanel,
@@ -226,13 +226,7 @@ export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
           subtitle="Assign task to agent"
           onClick={() => handleAction('agent')}
         />
-        <ActionCard
-          accent="info"
-          icon={<FileText className="w-4 h-4" />}
-          title="Markdown"
-          subtitle="Write notes in markdown"
-          onClick={() => handleAction('markdown')}
-        />
+
       </div>
 
       <Hints

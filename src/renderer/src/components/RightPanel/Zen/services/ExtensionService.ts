@@ -26,6 +26,61 @@
 // register(requestId, handler, timeout, onTimeout) pattern.
 // Internally bridges to window.api.on for IPC responses.
 
+import {
+  finalizeAllRunCommands,
+  finalizeRunCommand,
+  sendRunCommandInput,
+} from '../feature/Chat/services/tool-executors/RunCommandExecutor';
+import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
+
+// ─── Renderer-only UI commands ────────────────────────────────────────
+// These have no IPC handler in main; they only drive Code-module UI state.
+const UI_COMMANDS = new Set<string>([
+  'openFile',
+  'openWriteToFile',
+  'openFileDiff',
+
+  'openTempImage',
+]);
+
+function handleUiCommand(message: any): void {
+  const { command, requestId } = message;
+  try {
+    const store = useCodeStore.getState();
+    const sessionId = store.activeWorkspaceSessionId;
+
+    if (command === 'openFile' && message.path && sessionId) {
+      const rawFilePath = String(message.path);
+      let resolvedPath = rawFilePath;
+      if (!rawFilePath.startsWith('/') && !/^[a-zA-Z]:[\\/]/.test(rawFilePath)) {
+        const project = store.projects.find((p) => p.id === store.currentProjectId);
+        const branch = (project as any)?.branches?.find((b: any) =>
+          b.sessions?.some((sess: any) => sess.id === sessionId),
+        );
+        const basePath: string | undefined = branch?.path ?? project?.path;
+        if (basePath) {
+          resolvedPath = `${basePath.replace(/[\\/]+$/, '')}/${rawFilePath.replace(/^\.[\\/]/, '')}`;
+        }
+      }
+      const name = resolvedPath.split(/[\\/]/).pop() || resolvedPath;
+      store.requestOpenFile(
+        sessionId,
+        resolvedPath,
+        name,
+        message.line ? { line: message.line, column: message.column } : undefined,
+      );
+    }
+    // Other UI commands (openWriteToFile, openFileDiff, ...) are accepted
+    // without throwing; they currently only need to exist locally.
+  } catch (e) {
+    console.warn(`[ExtensionService] handleUiCommand failed for "${command}":`, e);
+  }
+
+  if (requestId) {
+    messageDispatcher.resolve(requestId, { command, requestId, success: true });
+  }
+}
+
 type MessageHandler = (data: any) => void;
 
 class MessageDispatcher {
@@ -40,7 +95,7 @@ class MessageDispatcher {
     const api = getApi();
     if (api) {
       // Listen for response messages from main process
-      api.on('messageResponse', (msg: any) => {
+      api.on('messageResponse', (_event: any, msg: any) => {
         if (!msg?.requestId) return;
         const handler = this.handlers.get(msg.requestId);
         if (handler) {
@@ -247,6 +302,28 @@ class ExtensionService {
       } else {
         storageList(prefix).then((r) => reply({ keys: r.keys }));
       }
+      return;
+    }
+
+    // run_command terminal controls are handled locally by RunCommandExecutor (no IPC handler in main).
+    if (cmd === 'closeTerminal') {
+      finalizeRunCommand({ actionId: message.actionId, terminalId: message.terminalId });
+      return;
+    }
+    if (cmd === 'terminalInput') {
+      if (message.terminalId) sendRunCommandInput(message.terminalId, message.data ?? message.input ?? '');
+      return;
+    }
+    if (cmd === 'removeTerminal') return;
+    if (cmd === 'stopCommand') {
+      finalizeAllRunCommands();
+      return;
+    }
+
+    // UI-navigation commands are renderer-only: no IPC handler exists in main.
+    // Route them to useCodeStore so the Code module opens files/previews locally.
+    if (UI_COMMANDS.has(cmd)) {
+      handleUiCommand(message);
       return;
     }
 

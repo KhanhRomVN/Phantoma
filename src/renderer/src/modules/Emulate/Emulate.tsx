@@ -27,18 +27,20 @@ import useTargetData from './hooks/useTargetData';
 import { useRequestFilter } from './hooks/useRequestFilter';
 import useNetworkEvents from './hooks/useNetworkEvents';
 import useHealthCheck from './hooks/useHealthCheck';
+import { useActiveModule } from '@renderer/hooks/useActiveModule';
 
 // ── Services ──
 import { emulateApi } from './services/emulate-api.service';
 import { runtimeApi } from './services/runtime-api.service';
 import { installRuntimeWsBridge, wsBus } from './services/runtime-ws-bridge';
-import { EmulateController } from '../../controller/EmulateController';
+import { refreshEmulateBaseFromIpc } from './services/emulate-base-url';
+import { EmulateController } from './EmulateController';
 
 // ── UI ──
 import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
 import { initialFilterState } from './components/WorkspacePanel/Home/Home';
 import WorkspacePanel from './components/WorkspacePanel';
-import { AddTargetModal } from './components/TargetListPanel/AddTargetModal';
+import { TargetModal } from './components/TargetListPanel/TargetModal';
 import TargetSidebar from './components/TargetListPanel';
 import { FooterBar } from './components/FooterBar';
 
@@ -94,7 +96,9 @@ export default React.memo(function Emulate({
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addModalPlatform, setAddModalPlatform] = useState<'web' | 'pc' | 'android' | 'cli'>('web');
+  const [addModalPlatform, setAddModalPlatform] = useState<'web' | 'pc' | 'android' | 'cli' | null>(
+    null,
+  );
   const [editingApp, setEditingApp] = useState<{
     id: string;
     name: string;
@@ -409,7 +413,19 @@ export default React.memo(function Emulate({
 
   // Cài WebSocket bridge một lần — thay window.api.on/off bằng WebSocket connection.
   useEffect(() => {
-    installRuntimeWsBridge();
+    // Prod: spawn emulate on-demand, rồi mới cài bridge (bridge đọc port hiện tại).
+    const setup = async () => {
+      if (window.api?.runtime?.startEmulate) {
+        try {
+          await window.api.runtime.startEmulate();
+        } catch (err) {
+          console.warn('[Emulate] startEmulate failed:', err);
+        }
+        await refreshEmulateBaseFromIpc();
+      }
+      installRuntimeWsBridge();
+    };
+    void setup();
 
     // Helper to perform cleanup logic shared by both immediate and permanent disconnects
     const handleCleanupOnDisconnect = async (reason: string) => {
@@ -427,7 +443,6 @@ export default React.memo(function Emulate({
             await runtimeApi.terminateApp(tid);
           } catch (err) {
             // Ignore errors here, as server might be down or unreachable
-            console.debug(`[Emulate] Could not reach server to terminate ${tid}:`, err);
           } finally {
             // Always update local UI state regardless of API success/failure
             stopTargetRef.current(tid);
@@ -554,7 +569,13 @@ export default React.memo(function Emulate({
     [stopTarget, handleClearRequests],
   );
 
-  useHealthCheck({ intervalMs: 5000, onTargetDead: handleTargetDead });
+  const { activeModule } = useActiveModule();
+  const hasActiveTarget = Object.values(targetStates).some((s) => s?.isActive);
+  useHealthCheck({
+    intervalMs: 5000,
+    onTargetDead: handleTargetDead,
+    enabled: activeModule === 'emulate' && hasActiveTarget,
+  });
 
   const handleStartTarget = useCallback(
     (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
@@ -577,6 +598,7 @@ export default React.memo(function Emulate({
       useEnvInject?: boolean,
       _deviceSerial?: string,
       useSandbox?: boolean,
+      userDataDir?: string,
     ) => {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -592,6 +614,7 @@ export default React.memo(function Emulate({
           useEnvInject,
           appId, // Pass targetId (appId) to track process per target
           useSandbox,
+          userDataDir,
         );
         if (result.success && result.data) {
           const newTab: TargetTab = {
@@ -768,7 +791,7 @@ export default React.memo(function Emulate({
     [targetTabs, saveTarget],
   );
 
-  const handleOpenAddModal = useCallback((platform: 'web' | 'pc' | 'android' | 'cli') => {
+  const handleOpenAddModal = useCallback((platform: 'web' | 'pc' | 'android' | 'cli' | null) => {
     setAddModalPlatform(platform);
     setIsAddModalOpen(true);
   }, []);
@@ -855,8 +878,8 @@ export default React.memo(function Emulate({
       />
 
       {/* Modals */}
-      {addModalPlatform && (
-        <AddTargetModal
+      {isAddModalOpen && (
+        <TargetModal
           isOpen={isAddModalOpen}
           platform={addModalPlatform}
           onClose={() => {

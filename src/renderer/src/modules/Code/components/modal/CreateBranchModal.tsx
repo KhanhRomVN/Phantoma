@@ -19,6 +19,12 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { Button } from '@renderer/components/ui/Button/Button';
+import {
+  ConfirmCreateBranchModal,
+  autoSelectIgnored,
+  type BranchProgress,
+  type WorktreePreview,
+} from './ConfirmCreateBranchModal';
 
 type CopyMode = 'latest-commit' | 'local';
 
@@ -60,6 +66,10 @@ export function CreateBranchModal({
   const [currentBranch, setCurrentBranch] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [preview, setPreview] = useState<WorktreePreview | null>(null);
+  const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+  const [progress, setProgress] = useState<BranchProgress | null>(null);
 
   const nameId = useId();
   const sourceId = useId();
@@ -70,6 +80,9 @@ export function CreateBranchModal({
     setMode('latest-commit');
     setError('');
     setSubmitting(false);
+    setConfirmOpen(false);
+    setPreview(null);
+    setSelectedPaths([]);
     setSource(defaultSource && branches.includes(defaultSource) ? defaultSource : (branches[0] ?? ''));
     (window as any).api
       .invoke('git:status', projectPath)
@@ -84,7 +97,7 @@ export function CreateBranchModal({
   const effectiveMode: CopyMode = localAvailable ? mode : 'latest-commit';
   const canSubmit = trimmedName !== '' && !nameTaken && source !== '' && !submitting;
 
-  const worktreeFolder = '~/.phantoma/code:…/worktrees/';
+  const worktreeFolder = `${projectName}/worktrees/`;
 
   const hint =
     effectiveMode === 'local'
@@ -95,10 +108,29 @@ export function CreateBranchModal({
       ? `Local changes are only available for the checked-out branch (${currentBranch}).`
       : '';
 
+  const openConfirm = async () => {
+    if (!canSubmit) return;
+    setError('');
+    setPreview(null);
+    setConfirmOpen(true);
+    try {
+      const res: WorktreePreview = await (window as any).api.invoke('git:worktree-preview', projectPath);
+      setPreview(res);
+      setSelectedPaths(autoSelectIgnored(res.ignoredPaths));
+    } catch {
+      setPreview({ hasGitignore: false, alreadyIgnored: false, changedFiles: 0, ignoredPaths: [] });
+    }
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     setError('');
+    setProgress({ step: 'worktree' });
+    const off = (window as any).api.on(
+      'git:create-branch-progress',
+      (_e: unknown, p: BranchProgress) => setProgress(p),
+    );
     try {
       const res = await (window as any).api.invoke(
         'git:create-branch-worktree',
@@ -106,6 +138,7 @@ export function CreateBranchModal({
         trimmedName,
         source,
         effectiveMode,
+        selectedPaths,
       );
       if (res?.error) {
         setError(res.error);
@@ -116,6 +149,8 @@ export function CreateBranchModal({
     } catch (e: any) {
       setError(e?.message || String(e));
     } finally {
+      off?.();
+      setProgress(null);
       setSubmitting(false);
     }
   };
@@ -190,7 +225,7 @@ export function CreateBranchModal({
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              onKeyDown={(e) => e.key === 'Enter' && openConfirm()}
               placeholder="feature/my-branch"
               spellCheck={false}
               className={cn(FIELD, 'px-3 font-mono text-[12.5px]', nameTaken && 'border-error focus:border-error')}
@@ -269,7 +304,7 @@ export function CreateBranchModal({
           variant="soft"
           size="sm"
           className="h-8 gap-1.5 font-semibold"
-          onClick={handleSubmit}
+          onClick={openConfirm}
           disabled={!canSubmit}
         >
           {submitting ? (
@@ -277,9 +312,26 @@ export function CreateBranchModal({
           ) : (
             <GitBranch className="h-3.5 w-3.5" />
           )}
-          {submitting ? 'Creating…' : 'Create branch'}
+          Review & create
         </Button>
       </div>
+
+      <ConfirmCreateBranchModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleSubmit}
+        submitting={submitting}
+        error={error}
+        projectName={projectName}
+        source={source}
+        branchName={trimmedName}
+        slug={slug}
+        mode={effectiveMode}
+        preview={preview}
+        selectedPaths={selectedPaths}
+        onSelectedPathsChange={setSelectedPaths}
+        progress={progress}
+      />
     </Modal>
   );
 }

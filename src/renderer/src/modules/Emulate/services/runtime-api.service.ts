@@ -12,25 +12,25 @@
  * - _mainClient: Cho các legacy endpoints (nếu còn) trên port 8080.
  * - _emulateClient: Cho các runtime endpoints mới trên port 3002.
  *
- * SSE event stream: xem hook useRuntimeEvents / runtime-sse-bridge.
+ * Event stream: xem hook useNetworkEvents / runtime-ws-bridge.
  * ------------------------------------------------------------------
  */
 
 import ApiService from '@renderer/services/api.service';
+import { resolveEmulateBaseUrl } from './emulate-base-url';
 
-// Client cho Emulate Service (Port 3002)
+// Client cho Emulate Service
 let _emulateClientInstance: ApiService | null = null;
 
 function getEmulateClient(): ApiService {
   if (!_emulateClientInstance) {
     const storedUrl = localStorage.getItem('emulate_service_url');
-    const baseUrl = storedUrl ? `http://${storedUrl}` : 'http://localhost:3002';
+    const baseUrl = storedUrl ? `http://${storedUrl}` : resolveEmulateBaseUrl();
     _emulateClientInstance = new ApiService(baseUrl);
-    
-    // Listen for URL changes to recreate client
+
     window.addEventListener('emulateUrlChanged', () => {
       const newStoredUrl = localStorage.getItem('emulate_service_url');
-      const newBaseUrl = newStoredUrl ? `http://${newStoredUrl}` : 'http://localhost:3002';
+      const newBaseUrl = newStoredUrl ? `http://${newStoredUrl}` : resolveEmulateBaseUrl();
       _emulateClientInstance!.setBaseUrl(newBaseUrl);
     });
   }
@@ -70,6 +70,7 @@ class RuntimeApiService {
     useEnvInject?: boolean,
     targetId?: string,
     useSandbox?: boolean,
+    userDataDir?: string,
   ) {
     return this.invoke<{ success: boolean }>(() =>
       getEmulateClient().post(`${BASE}/launch`, {
@@ -80,6 +81,7 @@ class RuntimeApiService {
         useEnvInject,
         targetId,
         useSandbox,
+        userDataDir,
       }),
     );
   }

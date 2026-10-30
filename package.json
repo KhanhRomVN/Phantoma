@@ -38,15 +38,11 @@
   },
   "scripts": {
     "dev": "electron-vite dev --noSandbox --remoteDebuggingPort=9222",
-    "build": "npm run build",
-    "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
-    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "build": "node scripts/build-interactive.js",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json --composite false && tsc --noEmit -p tsconfig.web.json --composite false",
     "lint": "eslint .",
-    "build:win": "npm run typecheck && electron-vite build && electron-builder --win",
-    "build:mac": "npm run typecheck && electron-vite build && electron-builder --mac",
-    "build:linux": "npm run typecheck && electron-vite build && electron-builder --linux",
-    "build:select": "node scripts/build-interactive.js"
+    "test:build": "node scripts/test-build.js",
+    "test:latest": "node scripts/run-latest.js"
   },
   "dependencies": {
     "@babel/standalone": "^8.0.4",
@@ -64,6 +60,7 @@
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.18",
+    "@tencentcloud/chat": "^3.6.7",
     "@types/adm-zip": "^0.5.8",
     "@types/dagre": "0.7.54",
     "@types/qrcode": "^1.5.6",

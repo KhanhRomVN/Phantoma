@@ -148,7 +148,7 @@ const FileRow: React.FC<{
           (e.currentTarget as HTMLImageElement).style.display = 'none';
         }}
       />
-      <div className="flex-1 min-w-0 font-mono text-[11.5px] text-text-primary truncate">
+      <div className="flex-1 min-w-0 font-mono text-[12.5px] text-text-primary truncate">
         <span className="text-text-secondary opacity-60">{highlight(dirPart)}</span>
         {highlight(namePart)}
       </div>
@@ -183,8 +183,8 @@ const FileGroup: React.FC<{
           {def.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[12.5px] font-medium text-text-primary">{def.name}</div>
-          <div className="text-[11px] text-text-secondary opacity-70 mt-px">{def.desc}</div>
+          <div className="text-[13.5px] font-medium text-text-primary">{def.name}</div>
+          <div className="text-[12px] text-text-secondary opacity-70 mt-px">{def.desc}</div>
         </div>
         <div className="text-text-secondary opacity-50">
           <ChevronIcon open={open} />
@@ -273,7 +273,7 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
             <div className="text-base font-semibold text-text-primary tracking-tight mb-1.5">
               Revert to this point?
             </div>
-            <div className="text-[12.5px] text-text-secondary leading-relaxed max-w-[320px] opacity-85">
+            <div className="text-[13.5px] text-text-secondary leading-relaxed max-w-[320px] opacity-85">
               The conversation will return to the state before this message. Messages and changes
               after this point cannot be recovered.
             </div>
@@ -282,7 +282,7 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
           {totalAll > 0 && (
             <div className="bg-input rounded-xl px-3.5 py-3 mb-2.5">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-semibold text-text-primary">
+                <div className="text-[13px] font-semibold text-text-primary">
                   {totalAll} file{totalAll !== 1 ? 's' : ''} affected{' '}
                   <span className="font-normal text-text-secondary opacity-60">
                     · since this message
@@ -315,7 +315,7 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
                     l.count > 0 && (
                       <div
                         key={l.label}
-                        className="flex items-center gap-1.5 text-[11px] text-text-secondary"
+                        className="flex items-center gap-1.5 text-[12px] text-text-secondary"
                       >
                         <div
                           className="w-[7px] h-[7px] rounded-full shrink-0"
@@ -342,7 +342,7 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Filter by filename…"
-                className="w-full h-[34px] bg-input border-none rounded-lg text-text-primary font-inherit text-xs pl-8 pr-8 outline-none"
+                className="w-full h-[34px] bg-input border-none rounded-lg text-text-primary font-inherit text-[13px] pl-8 pr-8 outline-none"
               />
               {hasSearch && (
                 <button
@@ -358,11 +358,11 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
           )}
 
           {totalAll === 0 ? (
-            <div className="text-center text-xs text-text-secondary opacity-45 py-6 px-2">
+            <div className="text-center text-[13px] text-text-secondary opacity-45 py-6 px-2">
               No file changes to revert
             </div>
           ) : totalFiltered === 0 ? (
-            <div className="text-center text-xs text-text-secondary opacity-45 py-4 px-2">
+            <div className="text-center text-[13px] text-text-secondary opacity-45 py-4 px-2">
               No files match "{query}"
             </div>
           ) : (
@@ -384,7 +384,7 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
         <div className="shrink-0 flex gap-2 px-4 pt-3 pb-4">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-[9px] bg-foreground/8 border-none text-text-secondary text-xs font-medium cursor-pointer hover:bg-foreground/13 transition-colors"
+            className="flex-1 py-2.5 rounded-[9px] bg-foreground/8 border-none text-text-secondary text-[13px] font-medium cursor-pointer hover:bg-foreground/13 transition-colors"
           >
             Cancel
           </button>
@@ -392,7 +392,7 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
             onClick={handleConfirm}
             disabled={reverting}
             className={cn(
-              'flex-1 py-2.5 rounded-[9px] border-none text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors',
+              'flex-1 py-2.5 rounded-[9px] border-none text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-colors',
               reverting
                 ? 'bg-primary/14 text-primary/50 cursor-not-allowed'
                 : 'bg-primary/22 text-primary cursor-pointer hover:bg-primary/30',

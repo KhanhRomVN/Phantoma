@@ -18,6 +18,29 @@ import { Message } from '../types/message';
 
 // ── Local ──
 import { calculateTokens } from './ConversationService';
+import mockResponse from '../__mock__/mock-response.txt?raw';
+
+const MOCK_CHUNK_SIZE = 40;
+
+const createMockResponse = (text: string): Response => {
+  const encoder = new TextEncoder();
+  let offset = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (offset >= text.length) {
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+        return;
+      }
+      const content = text.slice(offset, offset + MOCK_CHUNK_SIZE);
+      offset += MOCK_CHUNK_SIZE;
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ content })}\n\n`),
+      );
+    },
+  });
+  return new Response(stream, { status: 200 });
+};
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface StreamConfig {
@@ -47,6 +70,15 @@ export interface StreamCallbacks {
 }
 
 export class StreamingService {
+  static isMockActive(): boolean {
+    // A zero-byte mock file makes Vite return the module URL as the default
+    // export instead of an empty string. Treat path-like values as "no mock".
+    const text = (mockResponse || '').trim();
+    if (text.length === 0) return false;
+    if (text.startsWith('/') && text.includes('mock-response.txt')) return false;
+    return true;
+  }
+
   static async streamChat(
     config: StreamConfig,
     callbacks: StreamCallbacks,
@@ -72,12 +104,14 @@ export class StreamingService {
       ...(config.editMessageId ? { edit_message_id: config.editMessageId } : {}),
     };
 
-    const response = await fetch(`${config.apiUrl}/v1/chat/accounts/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: config.abortSignal,
-    });
+    const response = StreamingService.isMockActive()
+      ? createMockResponse(mockResponse)
+      : await fetch(`${config.apiUrl}/v1/chat/accounts/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: config.abortSignal,
+        });
 
     if (!response.ok) {
       let errorDetail = `API Error: ${response.status}`;
@@ -277,7 +311,11 @@ export class StreamingService {
       assistantMessage.token_usage = calculateTokens(assistantMessage.content);
     }
 
-    assistantMessage.rawResponse = assistantMessage.content;
+    // 🔧 FIX: Combine thinking + content for rawResponse so parser can extract thinking blocks
+    // Backend already wraps thinking in <thinking> tags, so just concatenate directly
+    assistantMessage.rawResponse = assistantMessage.thinking
+      ? `${assistantMessage.thinking}\n\n${assistantMessage.content}`
+      : assistantMessage.content;
 
     return { message: assistantMessage, backendConversationId };
   }

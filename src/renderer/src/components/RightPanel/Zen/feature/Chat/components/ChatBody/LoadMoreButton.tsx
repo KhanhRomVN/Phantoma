@@ -17,14 +17,14 @@ export const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({
 
   return (
     <div className="flex flex-col items-center gap-3 py-5 border-b border-border mb-4">
-      <div className="text-xs text-text-secondary text-center">
+      <div className="text-[13px] text-text-secondary text-center">
         {hiddenCount} earlier message{hiddenCount > 1 ? 's' : ''} hidden
       </div>
 
       <div className="flex gap-2 items-center">
         <button
           onClick={onLoadMore}
-          className="bg-primary text-white border-none py-1.5 px-3.5 rounded cursor-pointer text-xs font-medium flex items-center gap-1.5 transition-all duration-200"
+          className="bg-primary text-white border-none py-1.5 px-3.5 rounded cursor-pointer text-[13px] font-medium flex items-center gap-1.5 transition-all duration-200"
           onMouseEnter={(e) => {
             e.currentTarget.style.opacity = '0.8';
           }}
@@ -41,7 +41,7 @@ export const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({
         {hiddenCount > 10 && (
           <button
             onClick={onLoadAll}
-            className="bg-transparent text-primary border border-primary py-1.5 px-3.5 rounded cursor-pointer text-xs font-medium flex items-center gap-1.5 transition-all duration-200"
+            className="bg-transparent text-primary border border-primary py-1.5 px-3.5 rounded cursor-pointer text-[13px] font-medium flex items-center gap-1.5 transition-all duration-200"
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'color-mix(in srgb, rgb(10, 132, 255) 10%, transparent)';
             }}

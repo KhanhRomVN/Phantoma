@@ -22,13 +22,15 @@ export type EffortLevel = (typeof EFFORT_LEVELS)[number];
 
 export const DEFAULT_EFFORT: EffortLevel = "medium";
 
-export const EFFORT_COLOR: Record<EffortLevel, string> = {
-  low: $('--text-secondary'),
-  medium: $('--blue'),
-  high: $('--green'),
-  xhigh: $('--yellow'),
-  max: $('--red'),
+const EFFORT_COLOR_VAR: Record<EffortLevel, string> = {
+  low: '--text-secondary',
+  medium: '--blue',
+  high: '--green',
+  xhigh: '--yellow',
+  max: '--red',
 };
+
+export const getEffortColor = (lvl: EffortLevel): string => $(EFFORT_COLOR_VAR[lvl]);
 
 export const EFFORT_LABEL: Record<EffortLevel, string> = {
   low: "Low",
@@ -116,13 +118,13 @@ const EffortDropdown: React.FC<EffortDropdownProps> = ({
   const [hovered, setHovered] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
 
-  const color = EFFORT_COLOR[effort];
+  const color = getEffortColor(effort);
   const Icon = EFFORT_META[effort].icon;
   const lastIndex = Math.max(options.length - 1, 1);
   const currentIndex = Math.max(options.indexOf(effort), 0);
   const percent = (currentIndex / lastIndex) * 100;
   const gradient = `linear-gradient(to right, ${options
-    .map((lvl) => EFFORT_COLOR[lvl])
+    .map((lvl) => getEffortColor(lvl))
     .join(", ")})`;
 
   const selectFromClientX = (clientX: number) => {
@@ -195,7 +197,7 @@ const EffortDropdown: React.FC<EffortDropdownProps> = ({
   );
 
   return (
-    <Dropdown side="top" align="start" sideOffset={4}>
+    <Dropdown side="top" align="start" sideOffset={4} width={300}>
       <DropdownTrigger asChild>{trigger}</DropdownTrigger>
       <DropdownContent size="lg">
         <div style={{ padding: "10px 14px 12px" }}>
@@ -298,7 +300,7 @@ const EffortDropdown: React.FC<EffortDropdownProps> = ({
                   className={`absolute -translate-x-1/2 text-[9.5px] whitespace-nowrap select-none cursor-pointer transition-colors ${isActive ? 'font-bold' : 'font-medium text-text-secondary opacity-70 hover:opacity-100'}`}
                   style={{
                     left: `${(i / lastIndex) * 100}%`,
-                    color: isActive ? EFFORT_COLOR[lvl] : undefined,
+                    color: isActive ? getEffortColor(lvl) : undefined,
                   }}
                 >
                   {EFFORT_LABEL[lvl]}

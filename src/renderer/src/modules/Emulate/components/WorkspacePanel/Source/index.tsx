@@ -41,7 +41,11 @@ interface SourcesPanelProps {
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function SourcesPanel({ unpackedScripts }: SourcesPanelProps) {
-  const requests = useNetworkStore((s) => s.requests);
+  const assetsVersion = useNetworkStore((s) => s.assetsVersion);
+  const requests = useMemo(
+    () => Array.from(useNetworkStore.getState().assetMap.values()),
+    [assetsVersion],
+  );
   const [selectedContent, setSelectedContent] = useState<SelectedSourceContent | null>(null);
 
   const sourceTree = useMemo(() => {

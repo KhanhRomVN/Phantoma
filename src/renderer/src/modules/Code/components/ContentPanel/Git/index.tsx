@@ -342,7 +342,7 @@ export const GitView = memo(function GitView() {
           <GitCommit className={'w-4 h-4 text-text-secondary'} />
           <span className={'text-[13px] font-semibold text-text-primary truncate'}>{projectName}</span>
           {currentBranch && (
-            <span className={'inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-primary/15 text-primary border border-primary/30 font-mono text-[11px]'}>
+            <span className={'inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-card-background text-text-secondary border border-border font-mono text-[11px]'}>
               <GitBranch className={'w-3 h-3'} />
               {currentBranch}
             </span>

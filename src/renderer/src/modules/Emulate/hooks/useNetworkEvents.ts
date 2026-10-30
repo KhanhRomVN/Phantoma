@@ -734,28 +734,43 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     // CDP Events
     sub('cdp:request', (_e, d) => {
-      try { handleCdpRequest(d as CdpRequestData); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleCdpRequest(d as CdpRequestData);
+      } catch (err) {
+        onError?.(err);
+      }
     });
-    
+
     sub('cdp:response', (_e, d) => {
-      try { handleCdpResponse(d as CdpResponseData); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleCdpResponse(d as CdpResponseData);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     sub('cdp:response-body', (_e, d) => {
-      try { handleCdpResponseBody(d as CdpResponseBodyData); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleCdpResponseBody(d as CdpResponseBodyData);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     sub('cdp:script-unpacked', (_e, d) => {
-      try { handleScriptUnpacked(d as CdpScriptUnpackedData); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleScriptUnpacked(d as CdpScriptUnpackedData);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     sub('cdp:script-source', (_e, d) => {
-      try { handleScriptSource(d as CdpScriptSourceData); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleScriptSource(d as CdpScriptSourceData);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     sub('cdp:error', (_e, d) => {
@@ -764,28 +779,43 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     // Proxy Events (if applicable via same bus later)
     sub('proxy:request', (_e, d) => {
-      try { handleProxyRequest(d); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleProxyRequest(d);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     sub('proxy:response', (_e, d) => {
-      try { handleProxyResponse(d); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleProxyResponse(d);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     sub('proxy:response-body', (_e, d) => {
-      try { handleProxyResponseBody(d); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleProxyResponseBody(d);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     sub('proxy:request-body', (_e, d) => {
-      try { handleProxyRequestBody(d); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleProxyRequestBody(d);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     sub('proxy:ssl-bypass', (_e, d) => {
-      try { handleSslBypass(d); } 
-      catch (err) { onError?.(err); }
+      try {
+        handleSslBypass(d);
+      } catch (err) {
+        onError?.(err);
+      }
     });
 
     // WebSocket Store Events
@@ -801,8 +831,8 @@ export function useNetworkEvents(options: UseNetworkEventsOptions = {}) {
 
     return () => {
       // Unsubscribe all listeners
-      unsubscribes.forEach(fn => fn());
-      
+      unsubscribes.forEach((fn) => fn());
+
       // Clear all pending timeouts on unmount
       pendingTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
       pendingTimeoutsRef.current.clear();

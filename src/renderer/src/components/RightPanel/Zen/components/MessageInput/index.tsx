@@ -19,10 +19,11 @@ import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
 import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
 import { useAgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
 import { useProject } from '../../context/ProjectContext';
-import { combinePromptsForMode } from '../../feature/Chat/prompts/code';
-import type { SystemInfo } from '../../feature/Chat/prompts/code';
+import { combinePromptsForMode } from '@renderer/modules/Code/prompts/code';
+import type { SystemInfo } from '@renderer/modules/Code/prompts/code';
+import { getPromptCapabilities } from '../../feature/Chat/services/ModuleRegistry';
 // Use existing Phantoma drawer component
-import ProviderModelDrawer from './ProviderModelDrawer';
+import SelectModelAccountModal from './SelectModelAccountModal';
 import { cacheGet, cacheSet, providersKey } from './providerModelCache';
 import SkillPickerDrawer, { type PickedSkill } from './SkillPickerDrawer';
 import PromptLengthDropdown, {
@@ -48,6 +49,9 @@ const getBlockedHoursDescription = (_ranges: any) => '';
 import { useWorkspaceZipSize } from './hooks/useWorkspaceZipSize';
 import { useAccountStats } from '../../feature/Chat/hooks/api/useAccountStats';
 import { ClaudeZipBadge } from './ClaudeZipBadge';
+import { useAccountAgents, useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
+import { useMultiAgentControl } from '../../context/MultiAgentContext';
+import { Workflow as WorkflowIcon } from 'lucide-react';
 import { ZenCliHintBar } from './ZenCliHintBar';
 import { SimpleTooltip, TooltipRow, TooltipCard } from './SimpleTooltip';
 
@@ -534,6 +538,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     onConversationUseSkillToggle,
     onConversationMemoryToggle,
     onConversationToolFormatToggle,
+    workflowAgentId,
   }) => {
     const onSendMessage = () => {
       const resolved = resolveMentionTokens(message);
@@ -556,7 +561,25 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       setPromptLengthMode,
     } = useSettings();
     const { activeFeature } = useAgentFeature();
-    const supportsPromptLength = activeFeature === 'code';
+    const workflowSync = useWorkflowAgentSync();
+    const accountAgentsMap = useAccountAgents();
+    // Get capabilities based on moduleId + promptId
+    // workflowAgentId (orchestrator/planner/executor/reviewer) is used as promptId for Code module
+    // Priority: explicit prop > context > undefined
+    const resolvedWorkflowAgentId =
+      workflowAgentId ?? workflowSync?.agentType ?? workflowSync?.agentId ?? undefined;
+    const promptId = resolvedWorkflowAgentId ?? undefined; // undefined defaults to main prompt (code/emulate/recon)
+    const capabilities = React.useMemo(() => {
+      const caps = getPromptCapabilities(activeFeature ?? 'code', promptId);
+      return caps;
+    }, [activeFeature, promptId]);
+    const supportsPromptLength = capabilities.promptLength ?? false;
+    const supportsSystemPromptMode = capabilities.systemPromptMode ?? false;
+    const supportsSkill = capabilities.skill ?? false;
+    const supportsMemory = capabilities.memory ?? false;
+    const supportsToolFormat = capabilities.toolFormat ?? false;
+    const supportsMultiAgent = capabilities.multiAgent ?? false;
+    const multiAgent = useMultiAgentControl();
 
     const [providers, setProviders] = React.useState<any[]>([]);
     const [isLoadingProviders, setIsLoadingProviders] = React.useState(false);
@@ -591,7 +614,10 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       if (!accountId) return;
       const clientId = getClientId();
       const projectName =
-        (folderPath || '').replace(/[\\/]+$/, '').split(/[\\/]/).pop() || '';
+        (folderPath || '')
+          .replace(/[\\/]+$/, '')
+          .split(/[\\/]/)
+          .pop() || '';
       let cancelled = false;
       const beat = () => {
         if (cancelled) return;
@@ -1368,7 +1394,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             )}
 
             {showModelDrawer && (
-              <ProviderModelDrawer
+              <SelectModelAccountModal
                 isOpen={showModelDrawer}
                 onClose={() => setShowModelDrawer(false)}
                 providers={providers}
@@ -1380,6 +1406,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 currentModelId={currentModel?.id}
                 currentAccountId={currentAccount?.id}
                 currentEffort={effortInfo?.effort}
+                accountAgents={accountAgentsMap}
                 onSelect={(selected) => {
                   const prov = providers.find((p: any) => p.provider_id === selected.providerId);
                   const modelObj = prov?.models?.find((m: any) => m.id === selected.modelId);
@@ -1920,30 +1947,81 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   />
                 )}
 
-                {/* Prompt Settings (Style · Skill · Memory · Format) — Home only, ẩn khi promptLength=none */}
-                {!isConversationStarted && (!supportsPromptLength || promptLengthMode !== 'none') && (
-                  <>
-                    <PromptSettingsDropdown
-                      systemPromptMode={systemPromptMode}
-                      onSelectSystemPromptMode={(mode) => {
-                        if (!!(currentProviderConfig as any)?.anti_system_prompt_injection) return;
-                        setSystemPromptMode(mode as any);
+                {!isConversationStarted && supportsMultiAgent && multiAgent && (
+                  <SimpleTooltip
+                    content={
+                      multiAgent.enabled
+                        ? 'Multi-agent: on (Orchestrator)'
+                        : multiAgent.blocked
+                          ? 'This branch already has an Orchestrator'
+                          : 'Enable multi-agent for this branch'
+                    }
+                  >
+                    <button
+                      type="button"
+                      disabled={multiAgent.blocked && !multiAgent.enabled}
+                      onClick={multiAgent.toggle}
+                      aria-pressed={multiAgent.enabled}
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: multiAgent.enabled ? 'rgba(167,139,250,0.15)' : 'transparent',
+                        color: multiAgent.enabled ? '#A78BFA' : $('--text-secondary'),
+                        opacity: multiAgent.blocked && !multiAgent.enabled ? 0.4 : 1,
+                        cursor:
+                          multiAgent.blocked && !multiAgent.enabled ? 'not-allowed' : 'pointer',
+                        flexShrink: 0,
                       }}
-                      isAntiInjection={
-                        !!(currentProviderConfig as any)?.anti_system_prompt_injection
-                      }
-
-                      skillEnabled={!!conversationUseSkillEnabled}
-                      onSkillToggle={onConversationUseSkillToggle}
-                      memoryEnabled={!!conversationMemoryEnabled}
-                      onMemoryToggle={onConversationMemoryToggle}
-                      toolFormat={conversationToolFormat ?? 'xml'}
-                      onToolFormatToggle={() => {
-                        onConversationToolFormatToggle?.();
-                      }}
-                    />
-                  </>
+                    >
+                      <WorkflowIcon size={14} />
+                    </button>
+                  </SimpleTooltip>
                 )}
+
+                {/* Prompt Settings (Style · Skill · Memory · Format) — Home only, ẩn khi promptLength=none */}
+                {!isConversationStarted &&
+                  (supportsSystemPromptMode ||
+                    supportsSkill ||
+                    supportsMemory ||
+                    supportsToolFormat) &&
+                  (!supportsPromptLength || promptLengthMode !== 'none') && (
+                    <>
+                      <PromptSettingsDropdown
+                        systemPromptMode={systemPromptMode}
+                        onSelectSystemPromptMode={
+                          supportsSystemPromptMode
+                            ? (mode) => {
+                                if (!!(currentProviderConfig as any)?.anti_system_prompt_injection)
+                                  return;
+                                setSystemPromptMode(mode as any);
+                              }
+                            : undefined
+                        }
+                        isAntiInjection={
+                          !!(currentProviderConfig as any)?.anti_system_prompt_injection
+                        }
+                        skillEnabled={supportsSkill ? !!conversationUseSkillEnabled : undefined}
+                        onSkillToggle={supportsSkill ? onConversationUseSkillToggle : undefined}
+                        memoryEnabled={supportsMemory ? !!conversationMemoryEnabled : undefined}
+                        onMemoryToggle={supportsMemory ? onConversationMemoryToggle : undefined}
+                        toolFormat={
+                          supportsToolFormat ? (conversationToolFormat ?? 'xml') : undefined
+                        }
+                        onToolFormatToggle={
+                          supportsToolFormat
+                            ? () => {
+                                onConversationToolFormatToggle?.();
+                              }
+                            : undefined
+                        }
+                      />
+                    </>
+                  )}
 
                 {/* Prompt Length Selector - Home only, hidden when anti-injection is active */}
                 {!isConversationStarted && supportsPromptLength && !isAntiInjectionProvider && (
@@ -2177,7 +2255,6 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     responseRangesSame &&
     conversationFileStatsSame &&
     attachedItemsSame &&
-
     useSkillSame &&
     memorySame &&
     toolFormatSame;

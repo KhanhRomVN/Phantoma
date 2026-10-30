@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { FlatAccount } from '../types';
 import { CopyableText } from '../utils';
+import { ICON_METHODS, authIconFile, splitAuthMethod } from './addAccount.utils';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import {
   Dropdown,
@@ -53,6 +54,8 @@ interface AccountCardProps {
   onEdit?: () => void;
   providerConfig?: any;
   statsPeriod?: 'day' | 'week' | 'month' | 'year' | 'all';
+  externalRefreshing?: boolean;
+  externalRefreshResult?: { success: boolean; error?: string } | null;
 }
 
 // Custom icon: lucide-square-dashed-mouse-pointer
@@ -92,6 +95,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
   onEdit,
   providerConfig,
   statsPeriod = 'day',
+  externalRefreshing = false,
+  externalRefreshResult = null,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -183,6 +188,26 @@ const AccountCard: React.FC<AccountCardProps> = ({
     };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
   };
+
+  const prevExternalRefreshing = useRef(false);
+  useEffect(() => {
+    if (externalRefreshing) setIsRefreshing(true);
+    else if (prevExternalRefreshing.current) setIsRefreshing(false);
+    prevExternalRefreshing.current = externalRefreshing;
+  }, [externalRefreshing]);
+
+  useEffect(() => {
+    if (!externalRefreshResult) return;
+    if (refreshStatusTimerRef.current) clearTimeout(refreshStatusTimerRef.current);
+    setRefreshStatus(externalRefreshResult.success ? 'success' : 'error');
+    setRefreshError(
+      externalRefreshResult.success ? null : externalRefreshResult.error || 'Refresh failed',
+    );
+    refreshStatusTimerRef.current = setTimeout(() => {
+      setRefreshStatus('idle');
+      setRefreshError(null);
+    }, 3000);
+  }, [externalRefreshResult]);
 
   const handleRefreshToken = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -367,9 +392,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   {account.auth_method &&
                     (() => {
                       const method = account.auth_method;
-                      const baseUri = (window as any).__zenImagesUri as string | undefined;
-                      const knownIcons = ['google', 'github', 'x'];
-                      const hasIcon = knownIcons.includes(method) && baseUri;
+                      const baseUri =
+                        ((window as any).__zenImagesUri as string | undefined) || '/images';
+                      const iconParts = splitAuthMethod(method).filter((p) =>
+                        ICON_METHODS.includes(p),
+                      );
                       return (
                         <span
                           style={{
@@ -388,12 +415,15 @@ const AccountCard: React.FC<AccountCardProps> = ({
                             flexShrink: 0,
                           }}
                         >
-                          {hasIcon ? (
-                            <img
-                              src={`${baseUri}/auth_icons/${method}.svg`}
-                              alt={method}
-                              style={{ width: '12px', height: '12px', objectFit: 'contain' }}
-                            />
+                          {iconParts.length > 0 ? (
+                            iconParts.map((p) => (
+                              <img
+                                key={p}
+                                src={`${baseUri}/auth_icons/${authIconFile(p)}`}
+                                alt={p}
+                                style={{ width: '12px', height: '12px', objectFit: 'contain' }}
+                              />
+                            ))
                           ) : (
                             <Key size={11} />
                           )}

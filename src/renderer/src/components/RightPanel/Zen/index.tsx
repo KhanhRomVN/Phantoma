@@ -23,17 +23,22 @@ import AccountPanel from './feature/Account';
 import HistoryPanel from './feature/History';
 import MarketplacePanel from './feature/Marketplace';
 import SettingsPanel from './feature/Setting';
+import ChatRoomPanel from './feature/ChatRoom';
 
 // CONTEXT
 import { ProjectProvider } from './context/ProjectContext';
 import { useAgentFeature } from './context/FeatureContext';
 import { useDesignStore } from '@renderer/modules/Code/hooks/useDesignStore';
+import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
 
 // ── Types ──
 import { ChatSession } from './feature/Chat/types/chat';
 
 // ── Utils ── (icons)
 import { MousePointer } from 'lucide-react';
+import { AgentRootContext } from './context/AgentRootContext';
+import { useWorkflowAgentSync } from './context/WorkflowAgentContext';
+import { useToolFormatSettings } from './hooks/useToolFormatSettings';
 
 // ─── Page switcher ─────────────────────────────────────────────────────────
 
@@ -80,6 +85,7 @@ function AgentView({
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
   const [subView, setSubView] = useState<SubView>(null);
+  const [showChatRoom, setShowChatRoom] = useState(false);
 
   const onConversationChangeRef = useRef(onConversationChange);
   onConversationChangeRef.current = onConversationChange;
@@ -108,6 +114,15 @@ function AgentView({
     if (isVisibleRef.current) onConversationChangeRef.current?.(conversationId);
   }, []);
 
+  // Reset to Home on window reload/refresh
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      setCurrentChat(null);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   const handleHomeSendMessage = useCallback(
     (
       content: string,
@@ -118,6 +133,7 @@ function AgentView({
         useSkillEnabled?: boolean;
         memoryEnabled?: boolean;
         toolFormat?: 'xml' | 'json';
+        workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
       },
     ) => {
       setInitialMessageData({ content, files, model, account, conversationOverrides });
@@ -132,6 +148,44 @@ function AgentView({
     },
     [],
   );
+
+  const workflowSync = useWorkflowAgentSync();
+  const handleHomeUserSend = useCallback(
+    (...args: Parameters<typeof handleHomeSendMessage>) => {
+      if (workflowSync?.agentId === 'orchestrator' && args[0].trim()) {
+        workflowSync.notifyUserMessage?.(args[0]);
+      }
+      handleHomeSendMessage(...args);
+    },
+    [workflowSync, handleHomeSendMessage],
+  );
+  const pendingInbox = workflowSync?.inbox?.[0];
+  const { toolFormat: inboxToolFormat } = useToolFormatSettings(
+    workflowSync?.model?.providerId,
+    workflowSync?.model?.id,
+  );
+
+  // Deliver send_message to a Zen tab that is still on Home: start its first conversation
+  useEffect(() => {
+    if (!workflowSync || !pendingInbox) return;
+    if (currentChat) {
+      return;
+    }
+    if (!workflowSync.model || !workflowSync.account) {
+      return;
+    }
+    handleHomeSendMessage(
+      `<agent-message from="${pendingInbox.from}">\n${pendingInbox.content}\n</agent-message>`,
+      [],
+      workflowSync.model,
+      workflowSync.account,
+      {
+        toolFormat: inboxToolFormat,
+        workflowAgentId: (workflowSync.agentType ?? workflowSync.agentId) as any,
+      },
+    );
+    workflowSync.shiftInbox?.();
+  }, [workflowSync, pendingInbox, currentChat, handleHomeSendMessage, inboxToolFormat]);
 
   const handleBack = useCallback((contentToReturn?: string) => {
     setCurrentChat(null);
@@ -171,6 +225,15 @@ function AgentView({
     };
   }, [isVisible, handleBack]);
 
+  // Mở chatroom khi OnlineBadge phát sự kiện 'zen:open-chatroom'
+  useEffect(() => {
+    const handleOpenChatRoom = () => {
+      if (isVisible) setShowChatRoom(true);
+    };
+    window.addEventListener('zen:open-chatroom', handleOpenChatRoom);
+    return () => window.removeEventListener('zen:open-chatroom', handleOpenChatRoom);
+  }, [isVisible]);
+
   return (
     <div
       className="flex-1 overflow-hidden bg-background flex flex-col"
@@ -192,7 +255,7 @@ function AgentView({
           />
         ) : (
           <HomePanel
-            onSendMessage={handleHomeSendMessage}
+            onSendMessage={handleHomeUserSend}
             onLoadConversation={handleLoadConversation}
             initialValue={homeInitialValue}
             onOpenSubView={setSubView}
@@ -219,6 +282,11 @@ function AgentView({
         {subView === 'setting' && (
           <SettingsPanel isOpen={true} onClose={() => setSubView(null)} onNavigate={setSubView} />
         )}
+        {showChatRoom && (
+          <div className="absolute inset-0 z-[1000] flex flex-col bg-background">
+            <ChatRoomPanel onClose={() => setShowChatRoom(false)} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -239,9 +307,13 @@ export function AgentPanel({
   onTitleChange,
 }: AgentPanelProps) {
   const firstViewKeyRef = useRef<string | null>(null);
+  const [rootEl, setRootEl] = useState<HTMLElement | null>(null);
   const { activeFeature, emulateState, codeState, reconState } = useAgentFeature();
   const { activeTargetId, targetStates } = emulateState;
   const { currentProjectId } = codeState;
+  const currentExplorerRoot = useCodeStore(
+    (s) => s.projects.find((p) => p.id === currentProjectId)?.explorerRoot ?? null,
+  );
   const { activeTargetId: reconActiveTargetId, targets: reconTargets } = reconState;
   const activeDesignId = useDesignStore((s) => s.activeDesignId);
   const currentTargetState = activeTargetId ? targetStates[activeTargetId] : null;
@@ -263,6 +335,10 @@ export function AgentPanel({
       // Set global context for conversation service
       (window as any).__activeFeature = 'code';
       (window as any).__currentProjectId = currentProjectId;
+      // Workspace folder path — key hash dùng CHUNG với Zen (PathService).
+      const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+      const root = project?.explorerRoot ?? project?.path;
+      if (root) (window as any).__zenWorkspaceFolderPath = root;
     } else if (activeFeature === 'recon' && reconActiveTargetId) {
       key = `recon:${reconActiveTargetId}`;
       // Set global context for conversation service
@@ -279,18 +355,10 @@ export function AgentPanel({
     activeTargetId,
     isTargetActive,
     currentProjectId,
+    currentExplorerRoot,
     reconActiveTargetId,
     activeDesignId,
   ]);
-
-  useEffect(() => {
-    console.log('[DEBUG][AgentPanel] state', {
-      activeFeature,
-      currentProjectId,
-      activeKey,
-      openedKeys: Array.from(openedKeysRef.current),
-    });
-  }, [activeFeature, currentProjectId, activeKey]);
 
   // Khi activeKey thay đổi, thêm vào openedKeys
   useEffect(() => {
@@ -354,62 +422,67 @@ export function AgentPanel({
 
   return (
     <ProjectProvider>
-      <div className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative">
-        {/* Overlay cho feature không hỗ trợ */}
-        {showGenericOverlay && <AgentOverlay featureName={activeFeature || undefined} />}
+      <AgentRootContext.Provider value={rootEl}>
+        <div
+          ref={setRootEl}
+          className="flex flex-col bg-background rounded-xl overflow-hidden shadow-2xl h-full font-sans text-text-primary relative"
+        >
+          {/* Overlay cho feature không hỗ trợ */}
+          {showGenericOverlay && <AgentOverlay featureName={activeFeature || undefined} />}
 
-        {/* Overlay cho emulate khi chưa có target */}
-        {showEmulateOverlay && renderEmulateOverlay()}
+          {/* Overlay cho emulate khi chưa có target */}
+          {showEmulateOverlay && renderEmulateOverlay()}
 
-        {/* Overlay cho recon khi chưa có target */}
-        {showReconOverlay && (
-          <AgentOverlay
-            title="Select a target to start"
-            description="Please select a target from the left panel to use the Agent"
-            icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
-          />
-        )}
+          {/* Overlay cho recon khi chưa có target */}
+          {showReconOverlay && (
+            <AgentOverlay
+              title="Select a target to start"
+              description="Please select a target from the left panel to use the Agent"
+              icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
+            />
+          )}
 
-        {showDesignOverlay && (
-          <AgentOverlay
-            title="Open a design to start"
-            description="Please open or create a design to use the Design Agent"
-            icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
-          />
-        )}
+          {showDesignOverlay && (
+            <AgentOverlay
+              title="Open a design to start"
+              description="Please open or create a design to use the Design Agent"
+              icon={<MousePointer className="w-8 h-8 text-primary opacity-80" />}
+            />
+          )}
 
-        {/* Keep-alive views — tất cả đều mounted, chỉ activeKey hiển thị */}
-        {!showGenericOverlay && !showEmulateOverlay && (
-          <div className="flex-1 overflow-hidden bg-background flex flex-col">
-            {(() => {
-              const keys = Array.from(openedKeysRef.current);
-              return keys.map((key) => {
-                const feature = key.startsWith('emulate:')
-                  ? 'emulate'
-                  : key.startsWith('recon:')
-                    ? 'recon'
-                    : key.startsWith('design:')
-                      ? 'design'
-                      : 'code';
-                const isVisible = key === activeKey;
-                if (firstViewKeyRef.current === null) firstViewKeyRef.current = key;
-                return (
-                  <AgentView
-                    key={key}
-                    feature={feature}
-                    isVisible={isVisible}
-                    initialConversationId={
-                      key === firstViewKeyRef.current ? initialConversationId : undefined
-                    }
-                    onConversationChange={onConversationChange}
-                    onTitleChange={onTitleChange}
-                  />
-                );
-              });
-            })()}
-          </div>
-        )}
-      </div>
+          {/* Keep-alive views — tất cả đều mounted, chỉ activeKey hiển thị */}
+          {!showGenericOverlay && !showEmulateOverlay && (
+            <div className="flex-1 overflow-hidden bg-background flex flex-col">
+              {(() => {
+                const keys = Array.from(openedKeysRef.current);
+                return keys.map((key) => {
+                  const feature = key.startsWith('emulate:')
+                    ? 'emulate'
+                    : key.startsWith('recon:')
+                      ? 'recon'
+                      : key.startsWith('design:')
+                        ? 'design'
+                        : 'code';
+                  const isVisible = key === activeKey;
+                  if (firstViewKeyRef.current === null) firstViewKeyRef.current = key;
+                  return (
+                    <AgentView
+                      key={key}
+                      feature={feature}
+                      isVisible={isVisible}
+                      initialConversationId={
+                        key === firstViewKeyRef.current ? initialConversationId : undefined
+                      }
+                      onConversationChange={onConversationChange}
+                      onTitleChange={onTitleChange}
+                    />
+                  );
+                });
+              })()}
+            </div>
+          )}
+        </div>
+      </AgentRootContext.Provider>
     </ProjectProvider>
   );
 }

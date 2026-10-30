@@ -20,3 +20,39 @@ out
 temp
 release
 
+worktrees/
+release-build
+
+# Server
+server/package-lock.json
+server/pnpm-lock.yaml
+server/yarn.lock
+server/jspm_packages/
+server/build/
+server/.tsup/
+server/src/scratch/
+server/dist-bin/
+server/.git_disabled/
+
+# Logs
+logs/
+
+# Build info
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Editor/OS
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+Thumbs.db
+
+Nomad

@@ -20,12 +20,6 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 import { $ } from '@renderer/utils/color';
 
-// ── Hooks ──
-import { useProject } from '../../../../../context/ProjectContext';
-
-// ── Services ──
-import { extensionService } from '../../../../../services/ExtensionService';
-
 // ── Constants ──
 import {
   shouldShowFileStats,
@@ -35,7 +29,7 @@ import {
   EXECUTION_STATUS,
   type TerminalStatus,
   TAG_REGISTRY,
-} from '../../../constants/constants';
+} from '../../../constants/tag-registry';
 
 // ── Types ──
 import { ToolAction } from '../../../services/ResponseParser';
@@ -46,80 +40,15 @@ import { GroupType } from '../../../types/renderer-types';
 import { formatActionForDisplay } from '../../../services/ResponseParser';
 
 // ── Components ──
-import {
-  CommitMessageRenderer,
-  DeleteFileRenderer,
-  ErrorRenderer,
-  WriteToFileRenderer,
-  ReplaceInFileRenderer,
-  ReadFileRenderer,
-  ListFilesRenderer,
-  FindFilesRenderer,
-  GrepRenderer,
-  RevertFileRenderer,
-  ViewReplaceHistoryRenderer,
-  RunCommandRenderer,
-  GitStatusRenderer,
-  GitDiffRenderer,
-  MarkdownRenderer,
-  QuestionRenderer,
-  WarningRenderer,
-  ReadMemoryRenderer,
-  UpdateMemoryRenderer,
-  ReadSkillRenderer,
-  ListHttpsRenderer,
-  ListHostsRenderer,
-  ListSourcesRenderer,
-  GetSourceDetailRenderer,
-  GetHttpsDetailRenderer,
-  ApplyFilterRenderer,
-  ListResourcesRenderer,
-  GetResourceContentRenderer,
-  SendToRepeaterRenderer,
-  ListRepeatersRenderer,
-  DeleteRepeaterRenderer,
-  GetRepeaterDetailRenderer,
-  UpdateRepeaterContentRenderer,
-  RunRepeaterRenderer,
-  ListReportsRenderer,
-  CreateReportRenderer,
-  ReadReportRenderer,
-  UpdateReportRenderer,
-  ListReportFilesRenderer,
-  CreateReportFileRenderer,
-  ReadReportFileRenderer,
-  UpdateReportFileRenderer,
-  DeleteReportFileRenderer,
-  ExecuteCommandRenderer,
-  ListTabsRenderer,
-  CreateTabRenderer,
-  CloseTabRenderer,
-  SwitchTabRenderer,
-  NavigateRenderer,
-  BackRenderer,
-  ForwardRenderer,
-  ReloadRenderer,
-  GetPageContentRenderer,
-  ListElementsRenderer,
-  ClickElementRenderer,
-  FillInputRenderer,
-  PressKeyRenderer,
-  ScrollRenderer,
-  CaptureScreenshotRenderer,
-  SelectOptionRenderer,
-  WaitForRenderer,
-  ScrollToElementRenderer,
-  ListFramesRenderer,
-  HoverRenderer,
-  ClearInputRenderer,
-  UploadFileRenderer,
-  EvaluateJsRenderer,
-} from './renderers';
-import ErrorBlock from './blocks/other/ErrorBlock';
+import { getModuleRenderers, getModuleRenderer } from '../../../services/ModuleRegistry';
+import { ErrorRenderer } from './renderers/ErrorRenderer';
+import { MarkdownRenderer } from './renderers/MarkdownRenderer';
+import { QuestionRenderer } from './renderers/QuestionRenderer';
+import { WarningRenderer } from './renderers/WarningRenderer';
+import ErrorBlock from './ErrorBlock';
 import ActionBar from './ActionBar';
 import { ThinkingBlock } from './ThinkingBlock';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
-// GitDiffBlock removed - using GitDiffRenderer instead
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
 interface TagRouterProps {
@@ -180,6 +109,8 @@ interface TagRouterProps {
   >;
   onProceedDangerousCommand?: (actionId: string) => void;
   onCancelDangerousCommand?: (actionId: string) => void;
+  /** Feature/module hiện tại (code/recon/emulate/...) để chọn renderer đúng module khi trùng tool name. */
+  feature?: string | null;
 }
 
 const TagRouterInternal: React.FC<TagRouterProps> = ({
@@ -215,12 +146,14 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   dangerousCommands,
   onProceedDangerousCommand,
   onCancelDangerousCommand,
+  feature,
 }) => {
-  const { rootPath } = useProject();
-
   // conversation_title is a silent tool — it updates the title in the background
   // but doesn't render any UI. Skip early.
-  if (group.type === 'tools' && group.items.every((it) => it.action.type === 'conversation_title')) {
+  if (
+    group.type === 'tools' &&
+    group.items.every((it) => it.action.type === 'conversation_title')
+  ) {
     return null;
   }
 
@@ -231,7 +164,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
 
   if (group.type === 'code') {
     return (
-      <div className="pt-1 text-xs text-text-primary">
+      <div className="pt-1 text-[13px] text-text-primary">
         <CodeBlock code={group.content} language={group.language} wordWrap="off" />
       </div>
     );
@@ -329,7 +262,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
   const [fileStatsMap, setFileStatsMap] = React.useState<
     Record<string, { lines: number; loading: boolean }>
   >({});
-  const [storedOutput, setStoredOutput] = useState<string | null>(null);
   const [, setCollapsedActions] = useState<Set<string>>(new Set());
   const processedActions = React.useRef<Set<string>>(new Set());
 
@@ -345,43 +277,6 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     });
     setCollapsedActions(initialCollapsed);
   }, [toolGroup, messageId]);
-
-  // Fetch terminal output from history
-  const runCommandAction = toolGroup.find((g) => g.action.type === 'run_command');
-  useEffect(() => {
-    if (!nextUserMessage?.content || !runCommandAction) return;
-    const commandText = runCommandAction.action.params.command;
-    if (!commandText) return;
-
-    const escaped = commandText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = new RegExp(
-      `Output: \\[run_command for '${escaped}'.*?\\] .*?with "terminal_output-([a-f0-9-]+)"`,
-    ).exec(nextUserMessage.content);
-
-    if (match?.[1]) {
-      const outputUuid = match[1];
-      const requestId = `read-terminal-${outputUuid}`;
-      if (processedActions.current.has(requestId) || storedOutput) return;
-
-      const handleMessage = (event: MessageEvent) => {
-        const msg = event.data;
-        if (msg.command === 'readTerminalOutputResult' && msg.outputUuid === outputUuid) {
-          if (msg.content) setStoredOutput(msg.content);
-          window.removeEventListener('message', handleMessage);
-        }
-      };
-      window.addEventListener('message', handleMessage);
-      processedActions.current.add(requestId);
-      extensionService.postMessage({
-        command: 'readTerminalOutput',
-        chatUuid: conversationId || nextUserMessage.conversationId || '',
-        outputUuid,
-        requestId,
-      });
-      return () => window.removeEventListener('message', handleMessage);
-    }
-    return;
-  }, [nextUserMessage?.id, runCommandAction?.action.params.command, messageId, storedOutput]);
 
   // Validate fuzzy match & fetch file stats
   React.useEffect(() => {
@@ -487,14 +382,18 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                   {/* Content */}
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <div className="flex items-center gap-2 text-xs text-text-primary">
+                      <div className="flex items-center gap-2 text-[13px] text-text-primary">
                         <span className="font-semibold opacity-80">{toolLabel}</span>
                         {fileName && (
                           <>
                             <span className="flex items-center">
-                              <img src={getFileIconPath(filePath)} alt="" style={{ width: '16px', height: '16px' }} />
+                              <img
+                                src={getFileIconPath(filePath)}
+                                alt=""
+                                style={{ width: '16px', height: '16px' }}
+                              />
                             </span>
-                            <span className="font-medium opacity-90 font-mono text-[11px]">
+                            <span className="font-medium opacity-90 font-mono text-[12px]">
                               {fileName}
                             </span>
                           </>
@@ -512,7 +411,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
                           }}
                         />
                         <span
-                          className="text-[10px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 pl-5 rounded-sm"
+                          className="text-[11px] opacity-60 font-mono whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 pl-5 rounded-sm"
                           style={{ color: $('--text-secondary') }}
                           title={filePath}
                         >
@@ -549,248 +448,11 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     );
   }
 
-  // Handle view_replace_history
-  if (toolType === 'view_replace_history') {
-    const action = firstAction;
-    const actionIndex = toolGroup[0].index;
-    return (
-      <ViewReplaceHistoryRenderer
-        action={action}
-        actionIndex={actionIndex}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${actionIndex}`)}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        fileStatsMap={fileStatsMap}
-        onToolClick={onToolClick}
-      />
-    );
-  }
+  // Renderer của các module (Code/Emulate/Recon/...) lấy từ registry
+  const allToolRenderers: Record<string, React.ComponentType<any>> = getModuleRenderers();
 
-  if (toolType === 'write_to_file') {
-    return (
-      <>
-        {toolGroup.map(({ action, index }) => {
-          const isClicked = clickedActions.has(`${messageId}-action-${index}`);
-          const isFirstInGroup = index === toolGroup[0].index;
-          const isActive = isActiveGroup && isFirstInGroup;
-
-          if (
-            firstUnclickedActionIndex !== undefined &&
-            index > firstUnclickedActionIndex &&
-            !isClicked
-          ) {
-            return null;
-          }
-
-          return (
-            <WriteToFileRenderer
-              key={index}
-              action={action}
-              actionIndex={index}
-              messageId={messageId}
-              isActionClicked={isClicked}
-              isActiveGroup={isActive}
-              isLastMessage={isLastMessage}
-              isLastItemInList={isLastItemInList && index === toolGroup[toolGroup.length - 1].index}
-              toolOutputs={toolOutputs}
-              allMessages={allMessages}
-              fileStatsMap={fileStatsMap}
-              onToolClick={onToolClick}
-              conversationId={conversationId}
-              singleLineReviewActions={singleLineReviewActions}
-              onConfirmSingleLineAction={onConfirmSingleLineAction}
-              onRejectSingleLineAction={onRejectSingleLineAction}
-            />
-          );
-        })}
-      </>
-    );
-  }
-
-  if (toolType === 'replace_in_file') {
-    return (
-      <>
-        {toolGroup.map(({ action, index }) => {
-          const isClicked = clickedActions.has(`${messageId}-action-${index}`);
-          const isFirstInGroup = index === toolGroup[0].index;
-          const isActive = isActiveGroup && isFirstInGroup;
-
-          const willHide =
-            firstUnclickedActionIndex !== undefined &&
-            index > firstUnclickedActionIndex &&
-            !isClicked;
-
-          if (willHide) {
-            return null;
-          }
-
-          return (
-            <ReplaceInFileRenderer
-              key={index}
-              action={action}
-              actionIndex={index}
-              messageId={messageId}
-              isActionClicked={isClicked}
-              isActiveGroup={isActive}
-              isLastMessage={isLastMessage}
-              isLastItemInList={isLastItemInList && index === toolGroup[toolGroup.length - 1].index}
-              toolOutputs={toolOutputs}
-              allMessages={allMessages}
-              fileStatsMap={fileStatsMap}
-              onToolClick={onToolClick}
-              conversationId={conversationId}
-              mergedItems={toolGroup.length > 1 ? toolGroup : undefined}
-              rejectedActions={rejectedActions}
-            />
-          );
-        })}
-      </>
-    );
-  }
-
-  if (toolType === 'run_command') {
-    const actionId = `${messageId}-action-${toolGroup[0].index}`;
-    return (
-      <RunCommandRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(actionId)}
-        isRejected={rejectedActions?.has(actionId)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        toolOutputs={toolOutputs}
-        terminalStatus={terminalStatus}
-        nextUserMessage={nextUserMessage}
-        rootPath={rootPath}
-        onToolClick={onToolClick}
-        storedOutput={storedOutput}
-        dangerousCommand={dangerousCommands?.[actionId]}
-        onProceedDangerousCommand={onProceedDangerousCommand}
-        onCancelDangerousCommand={onCancelDangerousCommand}
-      />
-    );
-  }
-
-  if (toolType === 'git_status') {
-    let finalGitStatusItems = gitStatusItems;
-    if (!finalGitStatusItems || finalGitStatusItems.length === 0) {
-      let itemsFromParams = firstAction.params?.items || [];
-      if (typeof itemsFromParams === 'string') {
-        try {
-          itemsFromParams = JSON.parse(itemsFromParams);
-        } catch (e) {
-          itemsFromParams = [];
-        }
-      }
-      finalGitStatusItems = itemsFromParams;
-    }
-    return (
-      <GitStatusRenderer
-        action={firstAction}
-        actionIndex={toolGroup[0].index}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(`${messageId}-action-${toolGroup[0].index}`)}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        isLastItemInList={isLastItemInList}
-        toolOutputs={toolOutputs}
-        onToolClick={onToolClick}
-        gitStatusItems={finalGitStatusItems}
-        branch={gitStatusBranch}
-        isProcessing={isGitProcessing || executionState?.status === 'running'}
-        onConfirm={onGitConfirm}
-        onCancel={onGitCancel}
-        isVisible={isGitStatusVisible}
-      />
-    );
-  }
-
-  if (toolType === 'commit_message') {
-    const action = firstAction;
-    const actionIndex = toolGroup[0].index;
-    const actionId = `${messageId}-action-${actionIndex}`;
-    const isRejected = rejectedActions?.has(actionId) || false;
-
-    return (
-      <CommitMessageRenderer
-        action={action}
-        actionIndex={actionIndex}
-        messageId={messageId}
-        isActionClicked={clickedActions.has(actionId)}
-        isRejected={isRejected}
-        isLastItemInList={isLastItemInList}
-        onToolClick={onToolClick}
-        branch={gitStatusBranch}
-      />
-    );
-  }
-
-  const allToolRenderers: Record<string, React.FC<any>> = {
-    // Code tools
-    read_file: ReadFileRenderer,
-    // Memory / Skill / Title tools
-    read_memory: ReadMemoryRenderer,
-    update_memory: UpdateMemoryRenderer,
-    read_skill: ReadSkillRenderer,
-    list_files: ListFilesRenderer,
-    find_files: FindFilesRenderer,
-    grep: GrepRenderer,
-    delete_file: DeleteFileRenderer,
-    revert_file: RevertFileRenderer,
-    // Emulate tools
-    list_https: ListHttpsRenderer,
-    list_hosts: ListHostsRenderer,
-    list_sources: ListSourcesRenderer,
-    get_source_detail: GetSourceDetailRenderer,
-    get_https_detail: GetHttpsDetailRenderer,
-    apply_filter: ApplyFilterRenderer,
-    list_resources: ListResourcesRenderer,
-    get_resource_content: GetResourceContentRenderer,
-    send_to_repeater: SendToRepeaterRenderer,
-    list_repeaters: ListRepeatersRenderer,
-    delete_repeater: DeleteRepeaterRenderer,
-    get_repeater_detail: GetRepeaterDetailRenderer,
-    update_repeater_content: UpdateRepeaterContentRenderer,
-    run_repeater: RunRepeaterRenderer,
-    list_reports: ListReportsRenderer,
-    create_report: CreateReportRenderer,
-    read_report: ReadReportRenderer,
-    update_report: UpdateReportRenderer,
-    list_report_files: ListReportFilesRenderer,
-    create_report_file: CreateReportFileRenderer,
-    read_report_file: ReadReportFileRenderer,
-    update_report_file: UpdateReportFileRenderer,
-    delete_report_file: DeleteReportFileRenderer,
-    execute_command: ExecuteCommandRenderer,
-    // Recon tools
-    list_tabs: ListTabsRenderer,
-    create_tab: CreateTabRenderer,
-    close_tab: CloseTabRenderer,
-    switch_tab: SwitchTabRenderer,
-    navigate: NavigateRenderer,
-    back: BackRenderer,
-    forward: ForwardRenderer,
-    reload: ReloadRenderer,
-    get_page_content: GetPageContentRenderer,
-    list_elements: ListElementsRenderer,
-    click_element: ClickElementRenderer,
-    fill_input: FillInputRenderer,
-    press_key: PressKeyRenderer,
-    scroll: ScrollRenderer,
-    capture_screenshot: CaptureScreenshotRenderer,
-    select_option: SelectOptionRenderer,
-    wait_for: WaitForRenderer,
-    scroll_to_element: ScrollToElementRenderer,
-    list_frames: ListFramesRenderer,
-    hover: HoverRenderer,
-    clear_input: ClearInputRenderer,
-    upload_file: UploadFileRenderer,
-    evaluate_js: EvaluateJsRenderer,
-  };
-
-  const ToolRenderer = allToolRenderers[toolType];
+  // Ưu tiên renderer của module hiện tại để tránh module khác ghi đè khi trùng tool name.
+  const ToolRenderer = getModuleRenderer(feature, toolType) ?? allToolRenderers[toolType];
   if (ToolRenderer) {
     return (
       <>
@@ -809,25 +471,28 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
             fileStatsMap={fileStatsMap}
             onToolClick={onToolClick}
             conversationId={conversationId}
+            isRejected={rejectedActions?.has(`${messageId}-action-${index}`)}
+            rejectedActions={rejectedActions}
+            mergedItems={toolGroup.length > 1 ? toolGroup : undefined}
+            firstUnclickedActionIndex={firstUnclickedActionIndex}
+            singleLineReviewActions={singleLineReviewActions}
+            onConfirmSingleLineAction={onConfirmSingleLineAction}
+            onRejectSingleLineAction={onRejectSingleLineAction}
+            moduleId={feature ?? null}
+            terminalStatus={terminalStatus}
+            nextUserMessage={nextUserMessage}
+            dangerousCommand={dangerousCommands?.[`${messageId}-action-${index}`]}
+            onProceedDangerousCommand={onProceedDangerousCommand}
+            onCancelDangerousCommand={onCancelDangerousCommand}
+            gitStatusItems={gitStatusItems}
+            branch={gitStatusBranch}
+            isProcessing={isGitProcessing || executionState?.status === 'running'}
+            isVisible={isGitStatusVisible}
+            onConfirm={onGitConfirm}
+            onCancel={onGitCancel}
           />
         ))}
       </>
-    );
-  }
-
-  if (toolType === 'git_diff') {
-    const actionIndex = toolGroup[0].index;
-    return (
-      <GitDiffRenderer
-        action={firstAction}
-        actionIndex={actionIndex}
-        messageId={messageId}
-        isActiveGroup={isActiveGroup}
-        isLastMessage={isLastMessage}
-        toolOutputs={toolOutputs}
-        onToolClick={onToolClick}
-        branch={gitStatusBranch}
-      />
     );
   }
 
@@ -846,7 +511,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
               if (isToolClickable(action.type)) onToolClick(action, messageId, index, 'accept');
             }}
           >
-            <span className="text-xs text-text-primary font-semibold flex-1">
+            <span className="text-[13px] text-text-primary font-semibold flex-1">
               {formatActionForDisplay(action)}
             </span>
             {isToolClickable(action.type) && (

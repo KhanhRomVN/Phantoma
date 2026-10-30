@@ -24,7 +24,7 @@ class SseHub {
    */
   addClient(res: Response): () => void {
     const clientId = `sse-${++this.counter}`;
-    
+
     // Set headers for SSE
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -32,7 +32,6 @@ class SseHub {
     res.flushHeaders();
 
     this.clients.set(clientId, { id: clientId, res });
-    logger.info(`[SSE] New client connected: ${clientId}. Total: ${this.clients.size}`);
 
     // Return cleanup function
     return () => {
@@ -43,7 +42,6 @@ class SseHub {
   removeClient(id: string) {
     if (this.clients.has(id)) {
       this.clients.delete(id);
-      logger.info(`[SSE] Client disconnected: ${id}. Total: ${this.clients.size}`);
     }
   }
 
@@ -54,7 +52,7 @@ class SseHub {
     if (this.clients.size === 0) return;
 
     const message = JSON.stringify({ channel, data, timestamp: Date.now() });
-    
+
     for (const [_, client] of this.clients) {
       try {
         client.res.write(`data: ${message}\n\n`);

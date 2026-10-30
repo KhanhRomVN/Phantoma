@@ -126,4 +126,8 @@ export interface Message {
       rawContent: string;
     };
   };
+  /** Flag indicating this message is awaiting a format-retry next-request. */
+  isAwaitingFormatRetry?: boolean;
+  /** Unparsed content blocks from partial parse (will be sent in next-request). */
+  unparsedContent?: string;
 }

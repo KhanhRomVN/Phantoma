@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FlatAccount, Pagination } from '../types';
 import { useDbFetch } from '../../../services/useDbFetch';
 import { extractAccessToken, isJwtExpired } from '@renderer/utils/jwt';
+import { compareAccountsByUsage } from '../../../utils/accountSort';
 
 /** Trạng thái tài khoản dùng cho status badges ở AccountPanel. */
 export type AccountStatus = 'active' | 'expired' | 'error' | 'inactive';
@@ -26,9 +27,33 @@ export const getAccountStatus = (account: FlatAccount): AccountStatus => {
   return 'inactive';
 };
 
+const ACCOUNTS_CACHE_KEY = 'zen.accounts.cache.v1';
+const PROVIDERS_CACHE_KEY = 'zen.providers.cache.v1';
+
+const readCache = <T>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writeCache = (key: string, value: unknown) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* quota exceeded — bỏ qua */
+  }
+};
+
 export const useAccounts = (isOpen: boolean) => {
-  const [allAccounts, setAllAccounts] = useState<FlatAccount[]>([]);
-  const [providerConfigs, setProviderConfigs] = useState<any[]>([]);
+  const [allAccounts, setAllAccounts] = useState<FlatAccount[]>(() =>
+    readCache<FlatAccount[]>(ACCOUNTS_CACHE_KEY, []),
+  );
+  const [providerConfigs, setProviderConfigs] = useState<any[]>(() =>
+    readCache<any[]>(PROVIDERS_CACHE_KEY, []),
+  );
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [providerFilter, setProviderFilter] = useState<string>('');
@@ -38,7 +63,7 @@ export const useAccounts = (isOpen: boolean) => {
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
     page: 1,
-    limit: 20,
+    limit: 10000,
     total_pages: 1,
   });
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
@@ -79,6 +104,7 @@ export const useAccounts = (isOpen: boolean) => {
             const pResult = await callBackend('/v1/providers');
             if (pResult.success && pResult.data) {
               setProviderConfigs(pResult.data);
+              writeCache(PROVIDERS_CACHE_KEY, pResult.data);
             }
           } catch (err) {
             console.error('Failed to fetch providers:', err);
@@ -93,7 +119,7 @@ export const useAccounts = (isOpen: boolean) => {
         });
         // searchQuery không gửi lên backend — search đa trường (email + provider_id
         // + provider_name) được thực hiện client-side sau khi fetch.
-        if (providerFilter && providerFilter !== '') params.append('provider_id', providerFilter);
+
         if (emailFilter.length === 1) params.append('email', emailFilter[0]);
 
         const result = await callBackend(`/v1/accounts?${params.toString()}`);
@@ -179,6 +205,9 @@ export const useAccounts = (isOpen: boolean) => {
           );
 
           setAllAccounts(accountsWithStats);
+          if (emailFilter.length === 0 && statsPeriod === 'day') {
+            writeCache(ACCOUNTS_CACHE_KEY, accountsWithStats);
+          }
           setPagination({
             total: result.data.pagination?.total || 0,
             page: result.data.pagination?.page || page,
@@ -192,7 +221,7 @@ export const useAccounts = (isOpen: boolean) => {
         if (!silent) setLoading(false);
       }
     },
-    [isOpen, providerFilter, emailFilter, providerConfigs.length, callBackend, statsPeriod],
+    [isOpen, emailFilter, providerConfigs.length, callBackend, statsPeriod],
   );
 
   // ── Effects ──
@@ -201,7 +230,7 @@ export const useAccounts = (isOpen: boolean) => {
       // Reset về trang 1 + ép refetch providers mỗi khi panel mở HOẶC đổi
       // database (tránh hiện account/provider của database trước đó).
       setPagination((prev) => ({ ...prev, page: 1 }));
-      fetchAccounts(1, pagination.limit, false, true);
+      fetchAccounts(1, pagination.limit, allAccounts.length > 0, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -211,7 +240,7 @@ export const useAccounts = (isOpen: boolean) => {
     if (isOpen) {
       fetchAccounts(1, pagination.limit);
     }
-  }, [providerFilter, emailFilter, statsPeriod]);
+  }, [emailFilter, statsPeriod]);
 
   // ── Handlers ──
   const executeDelete = async () => {
@@ -317,7 +346,7 @@ export const useAccounts = (isOpen: boolean) => {
 
   // Áp dụng filter client-side: search mở rộng + status.
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const accounts = allAccounts.filter((acc) => {
+  const providerScopedAccounts = [...allAccounts].sort(compareAccountsByUsage).filter((acc) => {
     if (statusFilter && getAccountStatus(acc) !== statusFilter) return false;
     if (!normalizedQuery) return true;
     const providerName = providerNameById.get(acc.provider_id) || '';
@@ -327,9 +356,13 @@ export const useAccounts = (isOpen: boolean) => {
       providerName.toLowerCase().includes(normalizedQuery)
     );
   });
+  const accounts = providerFilter
+    ? providerScopedAccounts.filter((acc) => acc.provider_id === providerFilter)
+    : providerScopedAccounts;
 
   return {
     accounts,
+    providerScopedAccounts,
     allAccounts,
     statusCounts,
     statusFilter,

@@ -180,7 +180,7 @@ export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: P
 
   // Load repeater requests from DB
   const loadDbRequests = async () => {
-    if (!targetId || !isTargetRunning) {
+    if (!targetId) {
       setDbRequests([]);
       return;
     }
@@ -276,7 +276,7 @@ export function PayloadPanel({ selectedRequestId, targetId, isTargetRunning }: P
               placeholder="Search repeater requests..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-9 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-amber-500/50 outline-none"
+              className="w-full h-9 bg-input-background border border-input-border-default rounded-none pl-8 pr-3 text-sm text-text-primary outline-none focus:outline-none focus:ring-0"
             />
           </div>
         </div>

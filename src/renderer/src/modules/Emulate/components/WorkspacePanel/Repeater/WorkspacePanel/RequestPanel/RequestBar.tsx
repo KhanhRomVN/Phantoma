@@ -22,12 +22,12 @@ interface RequestBarProps {
 
 const METHOD_COLORS: Record<string, string> = {
   GET: 'text-emerald-400',
-  POST: 'text-blue-400',
+  POST: 'text-blue',
   PUT: 'text-amber-400',
-  DELETE: 'text-red-400',
-  PATCH: 'text-purple-400',
+  DELETE: 'text-red',
+  PATCH: 'text-purple',
   HEAD: 'text-indigo-400',
-  OPTIONS: 'text-teal-400',
+  OPTIONS: 'text-teal',
   TRACE: 'text-pink-400',
   CONNECT: 'text-violet-400',
 };
@@ -99,7 +99,7 @@ export function RequestBar({
         onChange={(e) => onUrlChange(e.target.value)}
         readOnly={readOnly}
         placeholder="Enter URL..."
-        className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono read-only:opacity-60"
+        className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono read-only:opacity-60 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
       />
 
       <Tooltip

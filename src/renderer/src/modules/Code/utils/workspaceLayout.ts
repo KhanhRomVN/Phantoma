@@ -26,7 +26,7 @@
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-export type PanelType = 'terminal' | 'website' | 'note' | 'emulator' | 'file' | 'agent';
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent';
 
 export interface WorkspacePanel {
   id: string;
@@ -41,7 +41,7 @@ export interface WorkspacePanel {
   sessionId?: string;
   /** Detected AI Provider ID (for terminals) */
   providerId?: string | null;
-  
+
   // ── NEW: ZenCLI session binding for auto-resume ──
   /** Conversation ID của ZenCLI đang bind với terminal này. null nếu chưa bind. */
   zencliConversationId?: string | null;
@@ -51,6 +51,16 @@ export interface WorkspacePanel {
   agentConversationId?: string | null;
   /** Title conversation hiện tại của Agent panel, hiển thị trên tab dạng 'Zen|<title>'. */
   agentTitle?: string | null;
+  /** ID của workflow agent (vd. 'orchestrator') mà Zen tab này đang liên kết; model + account được đồng bộ với AgentCard. */
+  workflowAgentId?: string | null;
+  /** Terminal đang chạy tiến trình foreground (runtime-only, dùng cho icon xanh trên tab). */
+  terminalRunning?: boolean;
+  /** Tên tiến trình đang chạy trong terminal (runtime-only). */
+  terminalProcess?: string | null;
+  /** Title trang web hiện tại của Browser panel (runtime-only). */
+  browserTitle?: string | null;
+  /** Favicon URL của trang web hiện tại của Browser panel (runtime-only). */
+  browserFavicon?: string | null;
 }
 
 export type PaneId = 'tl' | 'tr' | 'bl' | 'br';
@@ -189,8 +199,13 @@ export function getPaneAtPoint(
 // ─── Reducer ──────────────────────────────────────────────────────────
 
 export type WorkspaceAction =
-  | { type: 'reset'; panels: WorkspacePanel[]; activeId: string | null; layout?: WorkspaceLayoutSnapshot }
-  | { type: 'add'; panel: WorkspacePanel; pane?: PaneId }
+  | {
+      type: 'reset';
+      panels: WorkspacePanel[];
+      activeId: string | null;
+      layout?: WorkspaceLayoutSnapshot;
+    }
+  | { type: 'add'; panel: WorkspacePanel; pane?: PaneId; background?: boolean }
   | { type: 'close'; id: string }
   | { type: 'select'; pane: PaneId; id: string }
   | { type: 'focus'; id: string }
@@ -217,23 +232,27 @@ export function createInitialState(
     const paneTabs = emptyTabs();
     const paneActive = noActive();
     for (const pane of PANE_IDS) {
-      paneTabs[pane] = (layout.paneTabs?.[pane] ?? []).filter((id) => valid.has(id) && !placed.has(id));
+      paneTabs[pane] = (layout.paneTabs?.[pane] ?? []).filter(
+        (id) => valid.has(id) && !placed.has(id),
+      );
       paneTabs[pane].forEach((id) => placed.add(id));
       const saved = layout.paneActive?.[pane];
-      paneActive[pane] = saved && paneTabs[pane].includes(saved) ? saved : (paneTabs[pane][0] ?? null);
+      paneActive[pane] =
+        saved && paneTabs[pane].includes(saved) ? saved : (paneTabs[pane][0] ?? null);
     }
     const orphans = ids.filter((id) => !placed.has(id));
     if (orphans.length > 0) {
       paneTabs.tl = [...paneTabs.tl, ...orphans];
       paneActive.tl = paneActive.tl ?? orphans[0];
     }
-    return normalize({
+    const restored = normalize({
       panels,
       paneTabs,
       paneActive,
       focusedPane: layout.focusedPane ?? 'tl',
       sizes: { ...DEFAULT_SIZES, ...layout.sizes },
     });
+    return restored;
   }
   const active = activeId && ids.includes(activeId) ? activeId : (ids[0] ?? null);
   return {
@@ -289,14 +308,23 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       return createInitialState(action.panels, action.activeId, action.layout);
 
     case 'add': {
-      const pane = action.pane ?? state.focusedPane;
+      const base = state;
+      const pane: PaneId = action.pane ?? state.focusedPane;
       const { id } = action.panel;
+      const keepFocus =
+        !!action.background &&
+        !!base.paneActive[pane] &&
+        base.paneTabs[base.focusedPane]?.length > 0;
+
       return normalize({
-        ...state,
-        panels: [...state.panels, action.panel],
-        paneTabs: { ...state.paneTabs, [pane]: [...state.paneTabs[pane], id] },
-        paneActive: { ...state.paneActive, [pane]: id },
-        focusedPane: pane,
+        ...base,
+        panels: [...base.panels, action.panel],
+        paneTabs: { ...base.paneTabs, [pane]: [...base.paneTabs[pane], id] },
+        paneActive: keepFocus ? base.paneActive : { ...base.paneActive, [pane]: id },
+        focusedPane:
+          action.background && base.paneTabs[base.focusedPane]?.length > 0
+            ? base.focusedPane
+            : pane,
       });
     }
 

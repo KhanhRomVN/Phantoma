@@ -23,12 +23,17 @@ const storage = new ConversationStorage();
 
 // ─── Functions ──────────────────────────────────────────────────────────
 export function setupTitleHandlers(): void {
-  ipcMain.handle('title:update', async (_, { moduleId, conversationId, title }) => {
+  ipcMain.handle('title:update', async (_, { moduleId, conversationId, title, folderPath }) => {
     try {
       if (!title || !title.trim()) {
         return { success: false, error: 'title is required' };
       }
-      const ok = await storage.updateConversationTitle(moduleId, conversationId, title.trim());
+      const ok = await storage.updateConversationTitle(
+        moduleId,
+        conversationId,
+        title.trim(),
+        folderPath ?? null,
+      );
       return { success: ok };
     } catch (error: any) {
       logger.error('[IPC][title:update] Failed:', error.message);

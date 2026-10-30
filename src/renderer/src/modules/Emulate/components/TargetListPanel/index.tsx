@@ -23,8 +23,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 
 // ── UI ──
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Modal, ModalHeader, ModalBody } from '@renderer/components/ui/Modal';
+import { Plus, ChevronLeft, ChevronRight, Crosshair, Search } from 'lucide-react';
+
 import TargetCard from './TargetCard';
 import { RunningOptionTargetModal } from './RunningOptionTargetModal';
 
@@ -44,12 +44,6 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getFaviconUrl } from '../../../../shared/utils/faviconUtils';
 
 // ─── Constants ──────────────────────────────────────────────────────────
-const PLATFORM_COLOR_RGB: Record<AppPlatform, string> = {
-  web: '14, 165, 233',
-  pc: '167, 139, 250',
-  android: '52, 211, 153',
-  cli: '251, 191, 36',
-};
 
 // ─── Functions ──────────────────────────────────────────────────────────
 export function getTargetPlatform(tab: TargetTab): AppPlatform {
@@ -94,16 +88,27 @@ interface TargetListPanelProps {
     useEnvInject?: boolean,
     deviceSerial?: string,
     useSandbox?: boolean,
+    userDataDir?: string,
   ) => Promise<void>;
-  onStartEbpf: (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => Promise<void>;
+  onStartEbpf: (
+    targetId: string,
+    executablePath?: string,
+    useSandbox?: boolean,
+    sudoPassword?: string,
+  ) => Promise<void>;
   onStartCdp: (targetId: string, executablePath?: string, useSandbox?: boolean) => Promise<void>;
-  onStartPcap: (targetId: string, executablePath?: string, useSandbox?: boolean, sudoPassword?: string) => Promise<void>;
+  onStartPcap: (
+    targetId: string,
+    executablePath?: string,
+    useSandbox?: boolean,
+    sudoPassword?: string,
+  ) => Promise<void>;
   onStartAppDebug: (
     targetId: string,
     executablePath?: string,
     useSandbox?: boolean,
   ) => Promise<void>;
-  onOpenAddModal: (platform: AppPlatform) => void;
+  onOpenAddModal: (platform: AppPlatform | null) => void;
   onEditTarget?: (id: string) => void;
   onStopSession?: (e: React.MouseEvent, appId: string) => void;
   activeAppId?: string;
@@ -132,7 +137,6 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
   const [filterPlatform, setFilterPlatform] = useState<'all' | AppPlatform>('all');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const [isPlatformModalOpen, setIsPlatformModalOpen] = useState(false);
 
   const [deviceList, setDeviceList] = useState<{ name: string; serial: string; type: string }[]>(
     [],
@@ -173,12 +177,20 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
 
   // ── Running modal handlers ──
   const handleStartCDP = useCallback(
-    (targetId: string, targetUrl?: string) => {
+    (targetId: string, targetUrl?: string, userDataDir?: string) => {
       onSelectTarget(targetId);
       onStartTarget(targetId, 'cdp');
       if (onLaunchTarget) {
-        onLaunchTarget(targetId, 'http://127.0.0.1:8081', targetUrl, 'cdp').then(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 3000));
+        return onLaunchTarget(
+          targetId,
+          'http://127.0.0.1:8081',
+          targetUrl,
+          'cdp',
+          undefined,
+          undefined,
+          undefined,
+          userDataDir,
+        ).then(async () => {
           const ports = [9222];
           for (const port of ports) {
             try {
@@ -194,6 +206,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
           }
         });
       }
+      return Promise.resolve();
     },
     [onSelectTarget, onStartTarget, onLaunchTarget],
   );
@@ -311,7 +324,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
               />
               <button
                 title="Add target"
-                onClick={() => setIsPlatformModalOpen(true)}
+                onClick={() => onOpenAddModal(null)}
                 className="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg border border-border bg-input-background text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
               >
                 <Plus className="w-5 h-5" />
@@ -347,10 +360,28 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
         {/* Target list */}
         <div className={cn('flex-1 overflow-y-auto', effectiveCollapsed ? 'p-1' : 'px-3 py-1.5')}>
           {visibleTargets.length === 0 ? (
-            <div className="text-center text-text-secondary text-sm py-6">
-              {targetSearchQuery || filterPlatform !== 'all'
-                ? 'No matching targets'
-                : 'No targets found'}
+            <div className="h-full flex flex-col items-center justify-center p-3 text-center gap-3 opacity-70">
+              <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
+                {targetSearchQuery || filterPlatform !== 'all' ? (
+                  <Search className="w-6 h-6" />
+                ) : (
+                  <Crosshair className="w-6 h-6" />
+                )}
+              </div>
+              {!effectiveCollapsed && (
+                <div>
+                  <p className="text-sm font-medium text-text-primary mb-1">
+                    {targetSearchQuery || filterPlatform !== 'all'
+                      ? 'No matching targets'
+                      : 'No targets found'}
+                  </p>
+                  <p className="text-xs text-text-secondary max-w-[220px] mx-auto leading-relaxed">
+                    {targetSearchQuery || filterPlatform !== 'all'
+                      ? 'Try a different keyword or platform filter.'
+                      : 'Add a target with the + button to start inspecting.'}
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -426,48 +457,6 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
           )}
         </div>
       </div>
-
-      {isPlatformModalOpen && (
-        <Modal
-          isOpen={isPlatformModalOpen}
-          onClose={() => setIsPlatformModalOpen(false)}
-          className="max-w-lg"
-        >
-          <ModalHeader
-            title="Add Target"
-            description="Choose a platform"
-            onClose={() => setIsPlatformModalOpen(false)}
-          />
-          <ModalBody>
-            <div className="grid grid-cols-2 gap-3">
-              {(Object.keys(PLATFORMS) as AppPlatform[]).map((pid) => {
-                const p = PLATFORMS[pid];
-                const Icon = p.icon;
-                const rgb = PLATFORM_COLOR_RGB[pid];
-                return (
-                  <button
-                    key={pid}
-                    onClick={() => {
-                      setIsPlatformModalOpen(false);
-                      onOpenAddModal(pid);
-                    }}
-                    className="flex flex-col items-start gap-2 p-4 rounded-xl border border-border bg-input-background hover:bg-dropdown-item-hover transition-colors"
-                  >
-                    <span
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `rgba(${rgb}, 0.12)`, color: `rgb(${rgb})` }}
-                    >
-                      <Icon className="w-5 h-5" />
-                    </span>
-                    <span className="text-sm font-semibold text-text-primary">{p.label}</span>
-                    <span className="text-xs text-text-secondary">{p.description}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </ModalBody>
-        </Modal>
-      )}
 
       <RunningOptionTargetModal
         isOpen={showRunningModal}

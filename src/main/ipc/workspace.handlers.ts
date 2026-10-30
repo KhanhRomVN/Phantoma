@@ -235,6 +235,28 @@ export function setupWorkspaceDataHandlers(): void {
     }
   });
 
+  ipcMain.handle('workspace:list-files', async (_, rootPath: string) => {
+    try {
+      if (!rootPath || !existsSync(rootPath)) return { success: false, files: [] };
+      const out = await runGitArgs(
+        ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+        rootPath,
+      );
+      if (out) {
+        const files = out.split('\0').filter(Boolean);
+        return { success: true, files: Array.from(new Set(files)).slice(0, 20000) };
+      }
+      // ASSUMED: non-git folders fall back to the SKIP_DIRS walk
+      const files: WorkspaceEntry[] = [];
+      const folders: WorkspaceEntry[] = [];
+      await walkDir(rootPath, rootPath, 0, files, folders);
+      return { success: true, files: files.map((f) => f.path) };
+    } catch (e: any) {
+      logger.error('[workspace:list-files] Error:', e);
+      return { success: false, error: e.message || String(e), files: [] };
+    }
+  });
+
   ipcMain.handle('workspace:get-folders', async (_, rootPath: string) => {
     try {
       if (!rootPath || !existsSync(rootPath)) {
