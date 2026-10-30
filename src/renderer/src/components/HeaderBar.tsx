@@ -158,13 +158,13 @@ export function HeaderBar({
         <div className="flex items-center gap-3 flex-1">
           <div className="flex items-center gap-2">
             <img
-              src="/images/phantoma-dark-logo.png"
+              src={`${(window as any).__zenImagesUri || '/images'}/phantoma-dark-logo.png`}
               alt="Phantoma"
               className="w-6 h-6 shrink-0 object-contain dark:hidden"
               draggable={false}
             />
             <img
-              src="/images/phantoma-light-logo.png"
+              src={`${(window as any).__zenImagesUri || '/images'}/phantoma-light-logo.png`}
               alt="Phantoma"
               className="w-6 h-6 shrink-0 object-contain hidden dark:block"
               draggable={false}

@@ -28,6 +28,7 @@ setupLogger();
 
 // Import core modules
 import { windowManager } from './core/window/WindowManager';
+import { startShellServer, stopServers } from './services/server-spawner';
 
 // Import IPC handlers
 import {
@@ -47,6 +48,7 @@ import {
   setupWorkspaceDataHandlers,
   setupDesignHandlers,
   setupConversationHandlers,
+  setupRuntimeHandlers,
 } from './ipc';
 
 // Ensure certificate directory exists for http-mitm-proxy
@@ -79,9 +81,16 @@ app.whenReady().then(() => {
   setupWorkspaceDataHandlers();
   setupDesignHandlers();
   setupConversationHandlers();
+  setupRuntimeHandlers();
 
-  // Create main window
-  windowManager.createMainWindow();
+  // Packaged build: spawn shell server (emulate starts on-demand)
+  startShellServer()
+    .catch((err) => logger.error('[Main] startShellServer failed:', err))
+    .finally(() => windowManager.createMainWindow());
+
+  app.on('before-quit', () => {
+    stopServers();
+  });
 
   // Lifecycle: Quit behavior
   app.on('window-all-closed', () => {

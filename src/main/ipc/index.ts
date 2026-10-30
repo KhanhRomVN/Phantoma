@@ -29,3 +29,4 @@ export { setupSkillHandlers } from './skill.handlers';
 export { setupTitleHandlers } from './title.handlers';
 export { setupWorkspaceDataHandlers } from './workspace.handlers';
 export { setupDesignHandlers } from './design.handlers';
+export { setupRuntimeHandlers } from './runtime.handlers';

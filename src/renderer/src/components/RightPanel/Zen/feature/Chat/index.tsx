@@ -15,8 +15,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useAgentFeature } from '../../context/FeatureContext';
-import { useProject } from '../../context/ProjectContext';
 import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 import type { WorkflowAgentId } from './types/workflow-agents';
 // Core chat hooks

@@ -32,6 +32,7 @@ function getEnv(key: string, defaultVal: string): string {
   return val && val !== '' ? val : defaultVal;
 }
 
+
 export function getAppDataDir(): string {
   return expandHome('~/.phantoma');
 }
@@ -39,7 +40,7 @@ export function getAppDataDir(): string {
 // ─── State ─────────────────────────────────────────────────────────────
 
 const currentConfig: AppConfig = {
-  port: parseInt(getEnv('EMULATE_PORT', '3002'), 10), // Default to a different port than interceptor (3001) or main server (8080)
+  port: parseInt(getEnv('EMULATE_PORT', '3002'), 10), // ASSUMED: fallback = DEFAULT_EMULATE_PORT in src/shared/ports.ts
   env: getEnv('ENV', 'development'),
   dbPath: expandHome(getEnv('EMULATE_DB_PATH', '~/.phantoma/phantoma.sql')),
 };

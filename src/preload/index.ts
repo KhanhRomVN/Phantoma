@@ -14,6 +14,10 @@ const api = {
   removeAllListeners: (channel: string) => {
     electronAPI.ipcRenderer.removeAllListeners(channel);
   },
+  runtime: {
+    getPorts: () => electronAPI.ipcRenderer.invoke('runtime:get-ports'),
+    startEmulate: () => electronAPI.ipcRenderer.invoke('runtime:start-emulate'),
+  },
 };
 
 // Expose APIs to renderer

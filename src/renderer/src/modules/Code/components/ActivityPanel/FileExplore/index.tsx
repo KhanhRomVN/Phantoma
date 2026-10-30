@@ -569,6 +569,8 @@ const TreeNode = memo(function TreeNode({
               className="w-4 h-4 shrink-0"
               onError={(e) => {
                 const img = e.target as HTMLImageElement;
+                // Debug log - có thể xóa sau khi fix
+                console.log(`[DEBUG] Icon load FAILED: node=${node.name} isFolder=${isFolder} iconSrc=${iconSrc} img.src=${img.src} fallbackIcon=${fallbackIcon}`);
                 if (img.src === fallbackIcon) {
                   img.style.display = 'none';
                 } else {

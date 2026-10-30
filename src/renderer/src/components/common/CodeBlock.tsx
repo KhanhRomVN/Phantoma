@@ -605,7 +605,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           }
 
           const script = document.createElement('script');
-          script.src = '/monaco/vs/loader.js';
+          script.src = new URL('monaco/vs/loader.js', document.baseURI).href;
           script.async = true;
           script.onload = () => resolve();
           document.body.appendChild(script);
@@ -616,7 +616,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
       window.monacoLoadingPromise
         .then(() => {
           if (window.require) {
-            window.require.config({ paths: { vs: '/monaco/vs' } });
+            window.require.config({ paths: { vs: new URL('monaco/vs', document.baseURI).href } });
             window.require(
               ['vs/editor/editor.main'],
               () => {

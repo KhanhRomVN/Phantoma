@@ -133,7 +133,7 @@ export const CodeAgent = memo(function CodeAgent({
     ],
   );
   const hasActiveDesign = useDesignStore((s) => s.activeDesignId !== null);
-  const { activeFeature, codeState, setActiveFeature, setCodeState } = useAgentFeature();
+  const { activeFeature, setActiveFeature, setCodeState } = useAgentFeature();
   const desiredFeature = hasActiveDesign ? 'design' : 'code';
 
   useEffect(() => {

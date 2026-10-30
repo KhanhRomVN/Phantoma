@@ -20,8 +20,8 @@ import type {
   CreateRepeaterHistoryInput,
   RepeaterHistoryRun,
   CreateRepeaterHistoryRunInput,
-} from '../../domain/emulate';
-import { RepeaterRepository } from '../../repositories/emulate/repeater.repository';
+} from '../domain/emulate';
+import { RepeaterRepository } from '../repositories/repeater.repository';
 
 // ─── Service ────────────────────────────────────────────────────────────
 

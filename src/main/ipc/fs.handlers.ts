@@ -58,6 +58,7 @@ import chokidar, { FSWatcher } from 'chokidar';
 
 // ── Internal ──
 import { logger } from '../utils/logger';
+import { scanSquareImages, readImageDataUrl } from '../utils/image-scan';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -598,5 +599,18 @@ export function setupFSHandlers() {
       }
     }
     return { validCount: paths.length - invalidPaths.length, invalidPaths };
+  });
+
+  ipcMain.handle('fs:scan-square-images', async (_, projectPath: string) => {
+    try {
+      return await scanSquareImages(projectPath);
+    } catch (err) {
+      logger.warn('[fs] scan-square-images failed:', err);
+      return [];
+    }
+  });
+
+  ipcMain.handle('fs:read-image-data-url', async (_, filePath: string, maxSide?: number) => {
+    return readImageDataUrl(filePath, maxSide);
   });
 }

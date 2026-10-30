@@ -18,7 +18,11 @@ import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 
 // ── Utils ──
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import {
+  getFileIconPath,
+  getFolderIconPath,
+  getIconBaseUri,
+} from '@renderer/shared/utils/fileIconMapper';
 
 // ── Components ──
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
@@ -184,7 +188,9 @@ const TreeNode: React.FC<{
   const iconPath =
     node.type === 'folder' ? getFolderIconPath(node.name, isExpanded) : getFileIconPath(node.path);
   const fallbackIcon =
-    node.type === 'folder' ? '/images/icon/folder-base.svg' : '/images/icon/file.svg';
+    node.type === 'folder'
+      ? `${getIconBaseUri()}/folder-base.svg`
+      : `${getIconBaseUri()}/file.svg`;
 
   return (
     <div>

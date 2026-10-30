@@ -32,6 +32,7 @@ import useHealthCheck from './hooks/useHealthCheck';
 import { emulateApi } from './services/emulate-api.service';
 import { runtimeApi } from './services/runtime-api.service';
 import { installRuntimeWsBridge, wsBus } from './services/runtime-ws-bridge';
+import { refreshEmulateBaseFromIpc } from './services/emulate-base-url';
 import { EmulateController } from './EmulateController';
 
 // ── UI ──
@@ -411,7 +412,19 @@ export default React.memo(function Emulate({
 
   // Cài WebSocket bridge một lần — thay window.api.on/off bằng WebSocket connection.
   useEffect(() => {
-    installRuntimeWsBridge();
+    // Prod: spawn emulate on-demand, rồi mới cài bridge (bridge đọc port hiện tại).
+    const setup = async () => {
+      if (window.api?.runtime?.startEmulate) {
+        try {
+          await window.api.runtime.startEmulate();
+        } catch (err) {
+          console.warn('[Emulate] startEmulate failed:', err);
+        }
+        await refreshEmulateBaseFromIpc();
+      }
+      installRuntimeWsBridge();
+    };
+    void setup();
 
     // Helper to perform cleanup logic shared by both immediate and permanent disconnects
     const handleCleanupOnDisconnect = async (reason: string) => {

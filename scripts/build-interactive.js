@@ -25,10 +25,31 @@ const skipOptions = [
   { label: 'Skip typecheck (faster, assumes code is clean)', value: true },
 ];
 
-const steps = [
-  { title: 'Select build target', items: targets, cursor: 0 },
-  { title: 'Typecheck?', items: skipOptions, cursor: 0 },
-];
+function serverDistExists() {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.join(__dirname, '..');
+  return (
+    fs.existsSync(path.join(root, 'server', 'dist', 'index.js')) &&
+    fs.existsSync(path.join(root, 'emulate', 'dist', 'index.js'))
+  );
+}
+
+const steps = [{ title: 'Select build target', items: targets, cursor: 0 }];
+
+// Nếu đã có dist sẵn -> hỏi dùng lại hay build lại
+if (serverDistExists()) {
+  steps.push({
+    title: 'Đã có dist sẵn (server + emulate). Dùng lại hay build lại?',
+    items: [
+      { label: 'Dùng lại bản build có sẵn (nhanh hơn)', value: 'reuse' },
+      { label: 'Build lại server + emulate', value: 'rebuild' },
+    ],
+    cursor: 0,
+  });
+}
+
+steps.push({ title: 'Typecheck?', items: skipOptions, cursor: 0 });
 
 function renderStep(step) {
   process.stdout.write('\x1B[?25l');
@@ -49,9 +70,13 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function runCommand(cmd, args) {
+function runCommand(cmd, args, opts = {}) {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { stdio: 'inherit', shell: process.platform === 'win32' });
+    const child = spawn(cmd, args, {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+      ...opts,
+    });
     child.on('exit', (code) => resolve(code ?? 0));
   });
 }
@@ -86,14 +111,21 @@ async function main() {
   if (process.stdin.isTTY) process.stdin.setRawMode(true);
   process.stdin.resume();
 
-  const target = await promptStep(steps[0]);
-  const skipChoice = await promptStep(steps[1]);
+  const answers = [];
+  for (const step of steps) {
+    answers.push(await promptStep(step));
+  }
 
   process.stdin.setRawMode(false);
   process.stdin.pause();
 
-  const skipTypecheck = skipChoice.value;
+  const target = answers[0];
+  const hasReuseStep = steps.length === 3;
+  const serverChoice = hasReuseStep ? answers[1].value : 'rebuild';
+  const skipTypecheck = (hasReuseStep ? answers[2] : answers[1]).value;
+
   console.log(`\n\u2192 Build: ${target.label}`);
+  console.log(`\u2192 Server: ${serverChoice === 'reuse' ? 'reuse existing dist' : 'rebuild'}`);
   console.log(`\u2192 Typecheck: ${skipTypecheck ? 'skipped' : 'enabled'}\n`);
 
   await sleep(500);
@@ -108,6 +140,23 @@ async function main() {
     await sleep(500);
   }
 
+  if (serverChoice === 'rebuild') {
+    console.log('\u2192 Building server...');
+    const serverCode = await runCommand('node', ['scripts/build-server.js', 'server']);
+    if (serverCode !== 0) {
+      console.error('\nserver build failed. Aborting.');
+      process.exit(serverCode);
+    }
+    console.log('\u2192 Building emulate...');
+    const emulateCode = await runCommand('node', ['scripts/build-server.js', 'emulate']);
+    if (emulateCode !== 0) {
+      console.error('\nemulate build failed. Aborting.');
+      process.exit(emulateCode);
+    }
+  } else {
+    console.log('\u2192 Reusing existing server/emulate dist');
+  }
+
   console.log('\u2192 Running electron-vite build...');
   const viteCode = await runCommand('npx', ['electron-vite', 'build']);
   if (viteCode !== 0) {
@@ -117,7 +166,11 @@ async function main() {
 
   console.log('\u2192 Running electron-builder...');
   const builderCode = await runCommand('npx', ['electron-builder', ...target.args]);
-  process.exit(builderCode);
+  if (builderCode !== 0) process.exit(builderCode);
+
+  console.log('\u2192 Copying release artifacts...');
+  const copyCode = await runCommand('node', ['scripts/copy-artifacts.js']);
+  process.exit(copyCode);
 }
 
 main();

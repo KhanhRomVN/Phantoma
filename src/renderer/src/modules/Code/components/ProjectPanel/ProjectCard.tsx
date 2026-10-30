@@ -14,6 +14,7 @@
 
 import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { useCodeStore } from '../../hooks/useCodeStore';
+import { ProjectLogoImage } from '../ProjectLogo';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { taskService, type StoredTask } from '../../services/task.service';
 import {
@@ -72,6 +73,8 @@ import {
 export interface ProjectExtended {
   id: string;
   name: string;
+  /** Ảnh vuông user chọn làm logo (đường dẫn tuyệt đối) */
+  logoPath?: string | null;
   hidden: boolean;
   /** Accent color of the project icon (hex) */
   color: string;
@@ -253,13 +256,32 @@ export function getProjectIdentity(seed: string): { color: string; Icon: LucideI
 }
 
 /** Colored project icon (color-mix tinted background) */
-export function ProjectIcon({ color, Icon }: { color: string; Icon: LucideIcon }) {
-  return (
+export function ProjectIcon({
+  color,
+  Icon,
+  logoPath,
+}: {
+  color: string;
+  Icon: LucideIcon;
+  logoPath?: string | null;
+}) {
+  const fallback = (
     <span
       className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0 self-center"
       style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)` }}
     >
       <Icon className="w-[15px] h-[15px]" />
+    </span>
+  );
+  if (!logoPath) return fallback;
+  return (
+    <span className="w-[26px] h-[26px] rounded-[8px] overflow-hidden flex items-center justify-center shrink-0 self-center">
+      <ProjectLogoImage
+        path={logoPath}
+        side={52}
+        className="w-full h-full object-contain"
+        fallback={fallback}
+      />
     </span>
   );
 }
@@ -630,7 +652,7 @@ export const ProjectCard = memo(function ProjectCard({
         }}
       >
         <div className="flex items-center gap-2" data-drag-row>
-          <ProjectIcon color={identity.color} Icon={identity.Icon} />
+          <ProjectIcon color={identity.color} Icon={identity.Icon} logoPath={project.logoPath} />
           <span
             className={cn(
               'font-display font-semibold text-[12.5px] truncate flex-1 min-w-0 transition-colors',

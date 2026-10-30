@@ -63,6 +63,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Services ──
 import ApiService from '@renderer/services/api.service';
+import { resolveEmulateBaseUrl } from './emulate-base-url';
 
 // ── Types ─
 import type { TargetTab } from '../types/target.types';
@@ -187,7 +188,7 @@ class EmulateApiService {
 
   private createClient(): ApiService {
     const storedUrl = localStorage.getItem('emulate_service_url');
-    const baseUrl = storedUrl ? `http://${storedUrl}` : 'http://localhost:3002';
+    const baseUrl = storedUrl ? `http://${storedUrl}` : resolveEmulateBaseUrl();
     return new ApiService(baseUrl);
   }
 

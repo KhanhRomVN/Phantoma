@@ -69,6 +69,8 @@ export interface Project {
   path: string;
   color: string;
   template: string;
+  /** Đường dẫn ảnh vuông do user chọn làm logo project (null/undefined = dùng icon mặc định). */
+  logoPath?: string | null;
   services: Service[];
   files: FileNode[];
   designs: Design[];

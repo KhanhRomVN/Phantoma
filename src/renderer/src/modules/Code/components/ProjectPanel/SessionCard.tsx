@@ -16,7 +16,7 @@ import { memo, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 
 // ── Icons ─
-import { Terminal, Loader2, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Terminal, Loader2, AlertTriangle } from 'lucide-react';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -440,7 +440,6 @@ function ProcessList({
           {p.status === 'crashed' && (
             <span className="text-[10px] text-[#ff4757]">exit {p.exitCode ?? 1}</span>
           )}
-
         </div>
       ))}
     </div>
@@ -549,11 +548,7 @@ export const SessionCard = memo(function SessionCard({
       {/* Title row */}
       <div className="flex items-center gap-[6px] text-[12.5px] font-semibold leading-none h-[16px]">
         {task && (
-          <TaskIconButton
-            sessionId={session.id}
-            task={task}
-            onOpenTaskMenu={onOpenTaskMenu}
-          />
+          <TaskIconButton sessionId={session.id} task={task} onOpenTaskMenu={onOpenTaskMenu} />
         )}
         <span className="flex-1 min-w-0 truncate text-text-primary" title={displayName}>
           {displayName}
@@ -579,11 +574,7 @@ export const SessionCard = memo(function SessionCard({
 
       {/* Background processes - Only if exists */}
       {(session.procs?.length ?? 0) > 0 && (
-        <ProcessList
-          sessionId={session.id}
-          procs={session.procs!}
-          onInteract={onProcessInteract}
-        />
+        <ProcessList sessionId={session.id} procs={session.procs!} onInteract={onProcessInteract} />
       )}
     </div>
   );

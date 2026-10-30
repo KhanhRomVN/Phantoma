@@ -137,7 +137,7 @@ class CdpService extends EventEmitter {
         });
 
         // STEP 1: Remove known internal targets (Electron/Vite/DevTools)
-        const externalPages = pages.filter((p) => !isInternalTarget(p));
+        const externalPages = pages.filter((p: any) => !isInternalTarget(p));
 
         if (externalPages.length === 0) {
           console.warn(

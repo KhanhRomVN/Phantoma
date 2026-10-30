@@ -23,6 +23,9 @@ import { cn } from '@renderer/shared/utils/cn';
 import { Favicon, getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { detectProjectStack, type StackInfo } from '@renderer/utils/detectStack';
+import { ProjectLogoImage } from '../ProjectLogo';
+
+type LogoCandidate = { path: string; name: string; width: number; height: number };
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
@@ -745,6 +748,10 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   const [folderNameEdited, setFolderNameEdited] = useState(false);
 
   const fetchingPathsRef = useRef<Set<string>>(new Set());
+  const scanningLogoRef = useRef<Set<string>>(new Set());
+  const updateProject = useCodeStore((s) => s.updateProject);
+  const [logoScan, setLogoScan] = useState<Record<string, LogoCandidate[]>>({});
+  const [logoChoice, setLogoChoice] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     if (!isOpen) return;
@@ -758,6 +765,8 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     setCloneFolderName('');
     setCloneDest(DEFAULT_CLONE_DEST);
     setFolderNameEdited(false);
+    setLogoScan({});
+    setLogoChoice({});
   }, [isOpen]);
 
   const recentProjects = useMemo(() => {
@@ -811,6 +820,17 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         });
     });
   }, [target?.path, browsePath, recentProjects, stackCache]);
+
+  useEffect(() => {
+    const p = target?.path;
+    if (!p || logoScan[p] || scanningLogoRef.current.has(p)) return;
+    scanningLogoRef.current.add(p);
+    window.api
+      .invoke('fs:scan-square-images', p)
+      .then((res) => setLogoScan((prev) => ({ ...prev, [p]: Array.isArray(res) ? res : [] })))
+      .catch(() => setLogoScan((prev) => ({ ...prev, [p]: [] })))
+      .finally(() => scanningLogoRef.current.delete(p));
+  }, [target?.path, logoScan]);
 
   const cloneUrlValid = GIT_URL_REGEX.test(cloneUrl.trim());
   const cloneFolderValid = cloneFolderName.trim().length > 0 && !/[\\/]/.test(cloneFolderName);
@@ -891,7 +911,13 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         onProjectAdded?.(newId);
       } else if (selection?.type === 'folder' && browsePath) {
         const name = browsePath.split('/').pop() || 'Untitled';
-        const newId = addProject({ name, path: browsePath, color: '#4fa8e0', template: 'blank' });
+        const newId = addProject({
+          name,
+          path: browsePath,
+          color: '#4fa8e0',
+          template: 'blank',
+          logoPath: logoChoice[browsePath] ?? null,
+        });
         onProjectAdded?.(newId);
       } else if (selection?.type === 'project') {
         setCurrentProject(selection.id);
@@ -1017,6 +1043,45 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     </div>
   );
 
+  const renderLogoStrip = (projectPath: string, visible: boolean) => {
+    const candidates = logoScan[projectPath];
+    if (!visible || !candidates || candidates.length === 0) return null;
+    const proj = projects.find((p) => p.path === projectPath);
+    const current = proj ? (proj.logoPath ?? null) : (logoChoice[projectPath] ?? null);
+    const pick = (filePath: string | null) => {
+      if (proj) updateProject(proj.id, { logoPath: filePath });
+      else setLogoChoice((prev) => ({ ...prev, [projectPath]: filePath }));
+    };
+    return (
+      <div className="pl-[58px] pr-2 pt-1 pb-2 text-left">
+        <div className="text-[10px] uppercase tracking-[0.08em] text-text-secondary/50 mb-1.5">
+          Logo
+        </div>
+        <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+          {candidates.map((c) => (
+            <button
+              key={c.path}
+              type="button"
+              title={`${c.name} (${c.width}×${c.height})`}
+              onClick={(e) => {
+                e.stopPropagation();
+                pick(current === c.path ? null : c.path);
+              }}
+              className={cn(
+                'w-10 h-10 shrink-0 rounded-lg border overflow-hidden grid place-items-center bg-white/[0.05] transition-colors',
+                current === c.path
+                  ? 'border-primary ring-1 ring-primary'
+                  : 'border-border hover:border-text-secondary/60',
+              )}
+            >
+              <ProjectLogoImage path={c.path} side={64} className="w-full h-full object-contain" />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderRow = (opts: {
     key: string;
     name: string;
@@ -1027,8 +1092,8 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     onOpen?: () => void;
     onRemove?: (e: React.MouseEvent) => void;
   }) => (
+    <div key={opts.key}>
     <div
-      key={opts.key}
       role="button"
       tabIndex={0}
       style={{ outline: 'none', boxShadow: 'none' }}
@@ -1072,6 +1137,8 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       )}
+    </div>
+    {renderLogoStrip(opts.path, opts.selected)}
     </div>
   );
 

@@ -29,7 +29,7 @@ import { processManager } from '../services/process-manager.service';
 import { ebpfSniffer } from '../services/ebpf-sniffer.service';
 import { wssHub } from '../services/wss-hub.service';
 import { getCaptureMethodsForPlatform, Platform } from '../config/capture-methods';
-import { getCurrentPath, reinit as reinitDb } from '../database/connection';
+
 import { getAppDataDir } from '../config/server.config';
 
 /**
@@ -535,36 +535,6 @@ export function registerEmulateRoutes(
       res.json({ success: true, data: state });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  // ─── Database Path Management ────────────────────────────────────────
-  // GET /database/path — trả về đường dẫn SQLite DB hiện tại
-  router.get('/database/path', (_req, res) => {
-    try {
-      const currentPath = getCurrentPath();
-      if (!currentPath) {
-        return res.status(503).json({ error: 'Database not initialized yet' });
-      }
-      res.json({ path: currentPath });
-    } catch (err: any) {
-      console.error('[Emulate API] GET /database/path failed:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // PUT /database/path — swap DB file runtime (không cần restart server)
-  router.put('/database/path', (req, res) => {
-    const { path: newPath } = req.body ?? {};
-    if (!newPath || typeof newPath !== 'string') {
-      return res.status(400).json({ error: 'path is required and must be a string' });
-    }
-    try {
-      reinitDb(newPath);
-      res.json({ path: newPath, status: 'ok' });
-    } catch (err: any) {
-      console.error('[Emulate API] PUT /database/path failed:', err);
-      res.status(500).json({ error: err.message });
     }
   });
 

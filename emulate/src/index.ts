@@ -34,7 +34,8 @@ import { showWelcome, printStarted } from './utils/welcome';
 // Load environment variables
 dotenv.config();
 
-const DEFAULT_PORT = parseInt(process.env.EMULATE_PORT || '3002', 10);
+if (!process.env.EMULATE_PORT) throw new Error('EMULATE_PORT is required (no fallback)');
+const DEFAULT_PORT = parseInt(process.env.EMULATE_PORT, 10);
 const app = express();
 const startupLogger = createLogger('Startup');
 
@@ -52,16 +53,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Health check endpoint
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'phantoma-emulate-service' });
-});
-
-// SSE Endpoint for streaming proxy events
-app.get('/events', (req, res) => {
-  const cleanup = sseHub.addClient(res);
-
-  // Handle client disconnect
-  req.on('close', () => {
-    cleanup();
-  });
 });
 
 // --- API Endpoints for Proxy Control ---
@@ -150,8 +141,8 @@ function attachEventListeners(sessionId: string) {
   if (!session) return;
 
   session.server.on('event', (evt: { channel: string; data: any; timestamp: number }) => {
-    // Broadcast to all connected SSE clients (Main Server or Frontend)
-    sseHub.broadcast(evt.channel, evt.data);
+    // Broadcast via WebSocket hub
+    wssHub.broadcast({ type: evt.channel, data: evt.data });
   });
 }
 
