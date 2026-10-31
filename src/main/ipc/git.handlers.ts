@@ -61,6 +61,13 @@ function runGit(
   });
 }
 
+/** Copy a file/folder with native `cp -a --reflink=auto` (fast, CoW when supported). Resolves false on any failure so callers can fall back. */
+function copyFast(src: string, dest: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    execFile('cp', ['-a', '--reflink=auto', '--', src, dest], (err) => resolve(!err));
+  });
+}
+
 export function setupGitHandlers(): void {
   // ── Commit Diff ──
   ipcMain.handle('git:commit-diff', async (_event, projectPath: string, hash: string) => {
@@ -170,13 +177,13 @@ export function setupGitHandlers(): void {
   });
 
   // ── Log (commit graph) ──
-  ipcMain.handle('git:log', async (_event, projectPath: string, limit?: number) => {
+  ipcMain.handle('git:log', async (_event, projectPath: string, limit?: number, ref?: string) => {
     try {
       const cwd = projectPath || process.cwd();
       const result = await runGit(
         [
           'log',
-          '--all',
+          ...(ref ? [ref] : ['--all']),
           '--date-order',
           `--max-count=${limit ?? 300}`,
           '--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%D%x1f%s',
@@ -685,14 +692,25 @@ export function setupGitHandlers(): void {
     return !res.error && res.stdout.trim() === 'true';
   });
 
+  const previewCancels = new Set<string>();
+  ipcMain.handle('git:worktree-preview-cancel', (_event, requestId: string) => {
+    previewCancels.add(requestId);
+    return true;
+  });
+
   // ── Worktree Preview (dữ liệu cho modal confirm tạo branch) ──
-  ipcMain.handle('git:worktree-preview', async (_event, projectPath: string) => {
+  ipcMain.handle(
+    'git:worktree-preview',
+    async (_event, projectPath: string, requestId?: string, withSizes = true) => {
     const cwd = projectPath || process.cwd();
     const content = await fs.readFile(join(cwd, '.gitignore'), 'utf8').catch(() => null);
     const status = await runGit(['status', '--porcelain'], cwd);
     const changedFiles = status.error
       ? 0
       : status.stdout.split('\n').filter((l) => l.trim()).length;
+    if (!withSizes) {
+      return { ignoredPaths: [] as string[], hasGitignore: content !== null, changedFiles };
+    }
     const ignored = await runGit(
       ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
       cwd,
@@ -700,12 +718,31 @@ export function setupGitHandlers(): void {
     const ignoredPaths = ignored.error
       ? []
       : ignored.stdout.split('\0').filter((p) => p.length > 0);
-    // sequential walk per path, no entry cap — upgrade path: cache results or cap entry count for huge trees
-    const sizeOf = async (root: string): Promise<number> => {
+    const isCancelled = () => !!requestId && previewCancels.has(requestId);
+    let scanned = 0;
+    let doneCount = 0;
+    let lastReport = 0;
+    const report = (label: string, force = false) => {
+      if (!requestId) return;
+      const now = Date.now();
+      if (!force && now - lastReport < 100) return;
+      lastReport = now;
+      _event.sender.send('git:worktree-preview-progress', {
+        requestId,
+        done: doneCount,
+        total: ignoredPaths.length,
+        scanned,
+        label,
+      });
+    };
+    const sizeOf = async (root: string, label: string): Promise<number> => {
       let total = 0;
       const stack = [root];
       while (stack.length) {
+        if (isCancelled()) break;
         const cur = stack.pop() as string;
+        scanned++;
+        report(label);
         const st = await fs.lstat(cur).catch(() => null);
         if (!st) continue;
         if (st.isDirectory()) {
@@ -720,16 +757,22 @@ export function setupGitHandlers(): void {
     const sizes: Record<string, number> = {};
     await Promise.all(
       ignoredPaths.map(async (p) => {
-        sizes[p] = await sizeOf(join(cwd, p));
+        const size = await sizeOf(join(cwd, p), p);
+        if (!isCancelled()) sizes[p] = size;
+        doneCount++;
+        report(p, true);
       }),
     );
+    const cancelled = isCancelled();
+    if (requestId) previewCancels.delete(requestId);
     return {
       ignoredPaths,
       hasGitignore: content !== null,
       changedFiles,
-      sizes,
+      ...(cancelled ? { cancelled: true } : { sizes }),
     };
-  });
+    },
+  );
 
   // ── Create Branch (git worktree) ──
   ipcMain.handle(
@@ -739,10 +782,11 @@ export function setupGitHandlers(): void {
       projectPath: string,
       newBranch: string,
       sourceBranch: string,
-      mode: 'latest-commit' | 'local',
+      mode: 'latest-commit' | 'local' | 'commit',
       copyPaths: string[] = [],
       targetDir?: string,
       useExisting = false,
+      commitSha?: string,
     ) => {
       const cwd = projectPath || process.cwd();
       const name = (newBranch || '').trim();
@@ -787,6 +831,13 @@ export function setupGitHandlers(): void {
           if (source.error) return { error: `Branch nguồn "${sourceBranch}" không tồn tại` };
         }
 
+        if (mode === 'commit') {
+          const sha = (commitSha || '').trim();
+          if (!/^[0-9a-f]{7,40}$/i.test(sha)) return { error: 'Commit không hợp lệ' };
+          const verify = await runGit(['rev-parse', '--verify', '--quiet', `${sha}^{commit}`], cwd);
+          if (verify.error) return { error: `Commit "${sha}" không tồn tại` };
+        }
+
         if (mode === 'local') {
           const current = await runGit(['branch', '--show-current'], cwd);
           if (current.stdout.trim() !== sourceBranch) {
@@ -806,7 +857,14 @@ export function setupGitHandlers(): void {
             ? remoteRef
               ? ['worktree', 'add', '--track', '-b', name, targetPath, remoteRef]
               : ['worktree', 'add', targetPath, name]
-            : ['worktree', 'add', '-b', name, targetPath, sourceBranch],
+            : [
+                'worktree',
+                'add',
+                '-b',
+                name,
+                targetPath,
+                mode === 'commit' && commitSha ? commitSha.trim() : sourceBranch,
+              ],
           cwd,
         );
         if (add.error) return { error: add.stderr || add.error.message };
@@ -854,6 +912,7 @@ export function setupGitHandlers(): void {
           const stat = await fs.stat(src).catch(() => null);
           if (!stat || (await fs.lstat(dest).catch(() => null))) continue;
           await fs.mkdir(dirname(dest), { recursive: true });
+          if (await copyFast(src, dest)) continue;
           if (stat.isDirectory()) {
             // Electron's fs treats *.asar as archives (e.g. electron/dist/resources/default_app.asar) and cp fails on them
             const prevNoAsar = process.noAsar;
@@ -919,4 +978,99 @@ export function setupGitHandlers(): void {
       return { error: e.message || String(e) };
     }
   });
+
+  // ── Branch Sync (pull changed files from another branch, skipping gitignored paths) ──
+  const readBranchDiff = async (cwd: string, ref: string) => {
+    if (!ref) return { error: 'Thiếu branch nguồn' };
+    const verify = await runGit(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], cwd);
+    if (verify.error) return { error: `Branch nguồn "${ref}" không tồn tại` };
+    const headSha = await runGit(['rev-parse', 'HEAD'], cwd);
+    const refSha = await runGit(['rev-parse', `${ref}^{commit}`], cwd);
+    const curBranch = await runGit(['branch', '--show-current'], cwd);
+    logger.info?.('[DEBUG][readBranchDiff]', {
+      cwd,
+      ref,
+      currentBranch: curBranch.stdout?.trim(),
+      headSha: headSha.stdout?.trim(),
+      refSha: refSha.stdout?.trim(),
+      sameCommit: headSha.stdout?.trim() === refSha.stdout?.trim(),
+    });
+    const [names, nums] = await Promise.all([
+      runGit(['diff', '-R', '--no-renames', '--name-status', '-z', ref, 'HEAD'], cwd),
+      runGit(['diff', '-R', '--no-renames', '--numstat', '-z', ref, 'HEAD'], cwd),
+    ]);
+    if (names.error) return { error: names.stderr || names.error.message };
+    const stats = new Map<string, { added: number; deleted: number }>();
+    for (const rec of nums.stdout.split('\0')) {
+      const [a, d, ...rest] = rec.split('\t');
+      const p = rest.join('\t');
+      if (p) stats.set(p, { added: parseInt(a, 10) || 0, deleted: parseInt(d, 10) || 0 });
+    }
+    const parts = names.stdout.split('\0').filter((s) => s.length > 0);
+    const files: {
+      path: string;
+      status: 'added' | 'modified' | 'deleted';
+      added: number;
+      deleted: number;
+    }[] = [];
+    for (let i = 0; i + 1 < parts.length; i += 2) {
+      const code = parts[i][0];
+      const status = code === 'A' ? 'added' : code === 'D' ? 'deleted' : 'modified';
+      const st = stats.get(parts[i + 1]) ?? { added: 0, deleted: 0 };
+      files.push({ path: parts[i + 1], status, added: st.added, deleted: st.deleted });
+    }
+    const ignored = new Set<string>();
+    for (let i = 0; i < files.length; i += 200) {
+      const chunk = files.slice(i, i + 200).map((f) => f.path);
+      const res = await runGit(['check-ignore', '--no-index', '-z', '--', ...chunk], cwd);
+      res.stdout
+        .split('\0')
+        .filter(Boolean)
+        .forEach((p) => ignored.add(p));
+    }
+    return { files: files.filter((f) => !ignored.has(f.path)) };
+  };
+
+  ipcMain.handle(
+    'git:branch-sync-preview',
+    async (_event, projectPath: string, sourceRef: string) => {
+      try {
+        return await readBranchDiff(projectPath || process.cwd(), (sourceRef || '').trim());
+      } catch (e: any) {
+        logger.error('[git:branch-sync-preview] Error:', e);
+        return { error: e.message || String(e) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    'git:branch-sync-apply',
+    async (_event, projectPath: string, sourceRef: string, paths: string[]) => {
+      try {
+        const cwd = resolve(projectPath || process.cwd());
+        const ref = (sourceRef || '').trim();
+        const diff = await readBranchDiff(cwd, ref);
+        if ('error' in diff) return diff;
+        const wanted = new Set(paths ?? []);
+        const targets = diff.files.filter((f) => wanted.has(f.path));
+        const restore = targets
+          .filter((f) => f.status !== 'deleted')
+          .map((f) => `:(literal)${f.path}`);
+        for (let i = 0; i < restore.length; i += 200) {
+          const res = await runGit(
+            ['restore', `--source=${ref}`, '--worktree', '--', ...restore.slice(i, i + 200)],
+            cwd,
+          );
+          if (res.error) return { error: res.stderr || res.error.message };
+        }
+        for (const f of targets.filter((t) => t.status === 'deleted')) {
+          await fs.rm(resolve(cwd, f.path), { force: true });
+        }
+        return { applied: targets.length };
+      } catch (e: any) {
+        logger.error('[git:branch-sync-apply] Error:', e);
+        return { error: e.message || String(e) };
+      }
+    },
+  );
 }

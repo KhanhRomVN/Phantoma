@@ -55,6 +55,7 @@ import { exec as execCallback, spawn, ChildProcess } from 'child_process';
 
 // ── External ──
 import chokidar, { FSWatcher } from 'chokidar';
+import debounce from 'lodash.debounce';
 
 // ── Internal ──
 import { logger } from '../utils/logger';
@@ -158,18 +159,21 @@ const watchers = new Map<string, FSWatcher>();
 function startWatching(projectPath: string, sender: Electron.WebContents): void {
   if (watchers.has(projectPath)) return;
 
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   const changedDirs = new Set<string>();
 
-  const flush = () => {
-    changedDirs.forEach((dirPath) => {
-      sender.send('fs:dir-changed', { dirPath, projectPath });
-    });
-    changedDirs.clear();
-  };
+  const flush = debounce(
+    () => {
+      changedDirs.forEach((dirPath) => {
+        sender.send('fs:dir-changed', { dirPath, projectPath });
+      });
+      changedDirs.clear();
+    },
+    300,
+    { maxWait: 1000 },
+  );
 
   const watcher = chokidar.watch(projectPath, {
-    ignored: [/(^|[\/\\])\../, '**/node_modules/**', '**/.git/**', '**/log.log'],
+    ignored: [/[\/\\](node_modules|\.git)[\/\\]./, '**/log.log'],
     persistent: true,
     ignoreInitial: true,
     depth: 99,
@@ -178,8 +182,7 @@ function startWatching(projectPath: string, sender: Electron.WebContents): void 
   watcher.on('all', (_eventName, filePath) => {
     const dir = path.dirname(filePath);
     changedDirs.add(dir);
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(flush, 300);
+    flush();
   });
 
   watcher.on('error', (err) => {

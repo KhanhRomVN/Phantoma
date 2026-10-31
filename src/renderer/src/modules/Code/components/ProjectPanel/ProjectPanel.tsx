@@ -44,7 +44,9 @@ import {
   GitBranch,
   Square,
   Settings,
+  Download as DownloadIcon,
 } from 'lucide-react';
+import { SyncBranchModal } from '../modal/SyncBranchModal';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
@@ -76,7 +78,8 @@ import { OpenProjectModal } from '../modal/OpenProjectModal';
 import { ConfirmDeleteProjectModal } from '../modal/ConfirmDeleteProjectModal';
 import { CreateBranchModal, type CreatedBranchResult } from '../modal/CreateBranchModal';
 import { ConfirmDeleteBranchModal } from '../modal/ConfirmDeleteBranchModal';
-import { ConfirmMergeProjectModal, type MergeCandidate } from '../modal/ConfirmMergeProjectModal';
+import { ConfirmUnlinkBranchModal } from '../modal/ConfirmUnlinkBranchModal';
+import { ConfirmLinkProjectModal, type MergeCandidate } from '../modal/ConfirmLinkProjectModal';
 
 // ── Group Picker Form ──
 import { GroupPickerForm, GROUP_ICONS } from './GroupPickerForm';
@@ -174,6 +177,8 @@ const mkSum = (
 /** Fetches real git branches for a project via IPC and maps them to BranchInfo[] */
 async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
   try {
+    // ASSUMED: prune ref remote đã xóa trên GitHub; bỏ qua lỗi khi offline
+    await (window as any).api.invoke('git:fetch', projectPath).catch(() => null);
     const res = await (window as any).api.invoke('git:list-branches', projectPath);
 
     if (res?.error) {
@@ -575,9 +580,20 @@ export const ProjectPanel = memo(function ProjectPanel() {
     branchName: string;
   } | null>(null);
   const [gitRepoByProject, setGitRepoByProject] = useState<Record<string, boolean>>({});
+  const [syncBranchTarget, setSyncBranchTarget] = useState<{
+    project: ProjectExtended;
+    branchName: string;
+    branchPath: string;
+  } | null>(null);
   const [confirmDeleteBranchTarget, setConfirmDeleteBranchTarget] = useState<{
     project: ProjectExtended;
     branchName: string;
+    branchPath: string;
+  } | null>(null);
+  const [confirmUnlinkBranchTarget, setConfirmUnlinkBranchTarget] = useState<{
+    project: ProjectExtended;
+    branchName: string;
+    branchPath: string;
   } | null>(null);
   const [toast, setToast] = useState<{ msg: string; on: boolean }>({ msg: '', on: false });
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -632,6 +648,62 @@ export const ProjectPanel = memo(function ProjectPanel() {
   // Track which project IDs have already been fetched to prevent infinite loops/re-fetching
   const fetchedBranchesRef = useRef<Set<string>>(new Set());
 
+  // Tự xóa project khỏi panel khi folder nguồn không còn tồn tại trên ổ đĩa.
+  // Chạy lúc mount và mỗi khi cửa sổ được focus lại (bắt trường hợp xóa folder khi app đang mở).
+  const validateAndPrune = useCallback(async () => {
+    const all = useCodeStore.getState().projects.filter((p) => p.path);
+    if (all.length === 0) return;
+
+    // Tập hợp mọi path cần kiểm tra: path project + path của các branch đã link (worktree)
+    const pathSet = new Set<string>();
+    for (const p of all) {
+      if (p.path) pathSet.add(p.path);
+      for (const b of p.branches ?? []) {
+        if ((b as any).path) pathSet.add((b as any).path as string);
+      }
+    }
+    if (pathSet.size === 0) return;
+
+    let invalid: string[] = [];
+    try {
+      const res = await (window as any).api.invoke('fs:validate-paths', Array.from(pathSet));
+      invalid = res?.invalidPaths ?? [];
+    } catch {
+      return;
+    }
+    if (invalid.length === 0) return;
+    const gone = new Set(invalid);
+    const state = useCodeStore.getState();
+
+    for (const p of all) {
+      if (p.path && gone.has(p.path)) {
+        state.removeProject(p.id);
+        continue;
+      }
+      // Prune các branch link có worktree path đã bị xóa
+      const staleBranches = (p.branches ?? []).filter((b) => {
+        const bp = (b as any).path as string | undefined;
+        return bp ? gone.has(bp) : false;
+      });
+      if (staleBranches.length === 0) continue;
+      const staleNames = new Set(staleBranches.map((b) => b.name));
+      const newBranches = (p.branches ?? []).filter((b) => !staleNames.has(b.name));
+      const unlinked = new Set<string>((p as any).unlinkedBranches ?? []);
+      staleNames.forEach((n) => unlinked.add(n));
+      state.updateProject(p.id, {
+        branches: newBranches,
+        unlinkedBranches: Array.from(unlinked),
+      } as any);
+    }
+  }, []);
+
+  useEffect(() => {
+    validateAndPrune();
+    const onFocus = () => validateAndPrune();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [validateAndPrune]);
+
   // Fetch real git branches for projects that haven't been processed yet
   useEffect(() => {
     const fetchPendingBranches = async () => {
@@ -652,7 +724,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
             patchProject(proj.id, (p) => {
               const existingBranchMap = new Map(p.branches.map((b) => [b.name, b]));
 
-              const mergedBranches = realBranches.map((gitBranch) => {
+              const unlinked = new Set<string>((p as any).unlinkedBranches ?? []);
+              const visibleGitBranches = realBranches.filter((b) => !unlinked.has(b.name));
+              const mergedBranches = visibleGitBranches.map((gitBranch) => {
                 const existing = existingBranchMap.get(gitBranch.name);
                 if (existing) {
                   // Keep existing sessions and visibility settings
@@ -667,10 +741,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 return gitBranch;
               });
 
-              // Sync back to store to ensure persistence reflects the merged state
-              updateProject(proj.id, { branches: mergedBranches });
+              // Branch đã link (có path) nhưng bị loại khỏi git list của project gốc (vd: worktree branch)
+              // vẫn phải được giữ lại — so khớp theo name + path, không chỉ name.
+              const linkedOnly = p.branches.filter(
+                (b) => b.path && !mergedBranches.some((m) => m.name === b.name),
+              );
+              const finalBranches = [...mergedBranches, ...linkedOnly];
 
-              return { ...p, branches: mergedBranches };
+              updateProject(proj.id, { branches: finalBranches });
+
+              return { ...p, branches: finalBranches };
             });
           } else {
             // If no branches found (e.g., empty repo or not a git repo), we still consider it "fetched"
@@ -945,7 +1025,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
     const api = (window as any).api;
     const all = useCodeStore.getState().projects;
     const added = all.find((p) => p.id === newId);
-    // ASSUMED: project đã có branches trong store là project cũ được chọn lại, không phải project mới thêm
     if (!added?.path || (added.branches?.length ?? 0) > 0) return;
     const mine = await api.invoke('git:repo-identity', added.path).catch(() => null);
     if (!mine) return;
@@ -988,10 +1067,13 @@ export const ProjectPanel = memo(function ProjectPanel() {
             b.name === branch ? { ...b, path: newPath, visible: true } : b,
           )
         : [...target.branches, { name: branch, visible: true, sessions: [], path: newPath }];
-      patchProject(targetId, (p) => ({ ...p, branches: newBranches }));
-      updateProject(targetId, { branches: newBranches } as any);
+      const unlinkedBranches = ((target as any).unlinkedBranches ?? []).filter(
+        (n: string) => n !== branch,
+      );
+      patchProject(targetId, (p) => ({ ...p, branches: newBranches, unlinkedBranches }) as any);
+      updateProject(targetId, { branches: newBranches, unlinkedBranches } as any);
       removeProjectFromStore(newProjectId);
-      showToast(`Merged into "${target.name}"`);
+      showToast(`Linked to "${target.name}"`);
       setMergeTarget(null);
     },
     [mergeTarget, projects, patchProject, updateProject, removeProjectFromStore, showToast],
@@ -1018,7 +1100,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
     (project: ProjectExtended, result: CreatedBranchResult) => {
       const exists = project.branches.some((b) => b.name === result.branch);
       const newBranches: BranchInfo[] = exists
-        ? project.branches.map((b) => (b.name === result.branch ? { ...b, path: result.path, visible: true } : b))
+        ? project.branches.map((b) =>
+            b.name === result.branch ? { ...b, path: result.path, visible: true } : b,
+          )
         : [
             ...project.branches,
             { name: result.branch, visible: true, sessions: [], path: result.path },
@@ -1041,9 +1125,25 @@ export const ProjectPanel = memo(function ProjectPanel() {
     patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
     updateProject(project.id, { branches: newBranches } as any);
     setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
-    showToast(`Deleted branch "${branchName}"`);
+    showToast(`Deleted folder of branch "${branchName}"`);
     return {};
   }, [confirmDeleteBranchTarget, patchProject, updateProject, showToast]);
+
+  const unlinkBranch = useCallback(
+    (project: ProjectExtended, branchName: string) => {
+      const removed = project.branches.find((b) => b.name === branchName);
+      const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
+      const newBranches = project.branches.filter((b) => b.name !== branchName);
+      const unlinkedBranches = Array.from(
+        new Set<string>([...((project as any).unlinkedBranches ?? []), branchName]),
+      );
+      patchProject(project.id, (p) => ({ ...p, branches: newBranches, unlinkedBranches }) as any);
+      updateProject(project.id, { branches: newBranches, unlinkedBranches } as any);
+      setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
+      showToast(`Removed link to branch "${branchName}"`);
+    },
+    [patchProject, updateProject, showToast],
+  );
 
   // ── Branch actions ──
   const moveBranch = useCallback(
@@ -2092,6 +2192,19 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 >
                   Open Folder
                 </DropdownItem>
+                <DropdownItem
+                  icon={<DownloadIcon className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    setSyncBranchTarget({
+                      project: activeProject,
+                      branchName: activeBranch.name,
+                      branchPath: activeBranch.path ?? activeProject.path,
+                    });
+                    closeDropdown();
+                  }}
+                >
+                  Pull from branch...
+                </DropdownItem>
 
                 <DropdownSeparator />
 
@@ -2148,18 +2261,35 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   <>
                     <DropdownSeparator />
                     <DropdownItem
-                      icon={<Trash2 className="w-3.5 h-3.5" />}
+                      icon={<Unlink className="w-3.5 h-3.5" />}
                       variant="error"
                       onClick={() => {
-                        setConfirmDeleteBranchTarget({
+                        setConfirmUnlinkBranchTarget({
                           project: activeProject,
                           branchName: activeBranch.name,
+                          branchPath: activeBranch.path ?? activeProject.path,
                         });
                         closeDropdown();
                       }}
                     >
-                      Delete branch
+                      Remove link
                     </DropdownItem>
+                    {activeBranch.path && (
+                      <DropdownItem
+                        icon={<Trash2 className="w-3.5 h-3.5" />}
+                        variant="error"
+                        onClick={() => {
+                          setConfirmDeleteBranchTarget({
+                            project: activeProject,
+                            branchName: activeBranch.name,
+                            branchPath: activeBranch.path!,
+                          });
+                          closeDropdown();
+                        }}
+                      >
+                        Delete folder
+                      </DropdownItem>
+                    )}
                   </>
                 )}
               </>
@@ -2440,7 +2570,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
         }}
       />
 
-      <ConfirmMergeProjectModal
+      <ConfirmLinkProjectModal
         isOpen={!!mergeTarget}
         onClose={() => setMergeTarget(null)}
         onConfirm={confirmMergeProject}
@@ -2463,7 +2593,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
         onClose={() => setCreateBranchProjectId(null)}
         projectPath={createBranchProject?.path ?? ''}
         projectName={createBranchProject?.name ?? ''}
-        branches={(createBranchProject?.branches ?? []).map((b) => b.name)}
+        branches={(() => {
+          const bs = createBranchProject?.branches ?? [];
+          return bs.map((b) => b.name);
+        })()}
         remoteBranches={(createBranchProject?.branches ?? [])
           .filter((b) => b.remote)
           .map((b) => b.name)}
@@ -2492,12 +2625,40 @@ export const ProjectPanel = memo(function ProjectPanel() {
         }
       />
 
+      <SyncBranchModal
+        isOpen={!!syncBranchTarget}
+        onClose={() => setSyncBranchTarget(null)}
+        targetPath={syncBranchTarget?.branchPath ?? ''}
+        projectName={syncBranchTarget?.project.name ?? ''}
+        currentBranch={syncBranchTarget?.branchName ?? ''}
+        branches={(syncBranchTarget?.project.branches ?? []).map((b) => b.name)}
+        onApplied={(count, source) =>
+          showToast(`Pulled ${count} file${count === 1 ? '' : 's'} from "${source}"`)
+        }
+      />
+
       <ConfirmDeleteBranchModal
         isOpen={!!confirmDeleteBranchTarget}
         onClose={() => setConfirmDeleteBranchTarget(null)}
         onConfirm={confirmDeleteBranch}
         branchName={confirmDeleteBranchTarget?.branchName ?? ''}
         projectName={confirmDeleteBranchTarget?.project.name ?? ''}
+        projectPath={confirmDeleteBranchTarget?.project.path ?? ''}
+        branchPath={confirmDeleteBranchTarget?.branchPath ?? ''}
+        logoPath={confirmDeleteBranchTarget?.project.logoPath}
+        projectBranch={confirmDeleteBranchTarget?.project.defaultBranch}
+      />
+
+      <ConfirmUnlinkBranchModal
+        isOpen={!!confirmUnlinkBranchTarget}
+        onClose={() => setConfirmUnlinkBranchTarget(null)}
+        onConfirm={() =>
+          confirmUnlinkBranchTarget &&
+          unlinkBranch(confirmUnlinkBranchTarget.project, confirmUnlinkBranchTarget.branchName)
+        }
+        branchName={confirmUnlinkBranchTarget?.branchName ?? ''}
+        projectName={confirmUnlinkBranchTarget?.project.name ?? ''}
+        branchPath={confirmUnlinkBranchTarget?.branchPath ?? ''}
       />
 
       <ConfirmForceStartTaskModal

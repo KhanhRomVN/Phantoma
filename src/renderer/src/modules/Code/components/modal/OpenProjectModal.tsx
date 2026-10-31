@@ -27,6 +27,7 @@ import {
   type StackInfo,
 } from '@renderer/utils/detectStack';
 import { ProjectLogoImage } from '../ProjectLogo';
+import { DuplicateRepoModal, type DuplicateRepoKind } from './DuplicateRepoModal';
 
 type LogoCandidate = { path: string; name: string; width: number; height: number; src?: string };
 import { Modal } from '@renderer/components/ui/Modal';
@@ -889,7 +890,8 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   }, [isOpen]);
 
   const recentProjects = useMemo(() => {
-    let list = projects.filter((p) => p.id !== currentProjectId);
+    // ASSUMED: project đang hiển thị trên ProjectPanel (không hidden) thì ẩn khỏi danh sách recent
+    let list = projects.filter((p) => !!(p as any).hidden && p.id !== currentProjectId);
     const q = searchQuery.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -898,6 +900,22 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     }
     return [...list].reverse();
   }, [projects, searchQuery, currentProjectId]);
+
+  // ASSUMED: project đã link vào project khác bị xóa khỏi store, nên gợi ý lại từ path của branch đã link
+  const linkedRecent = useMemo(() => {
+    const known = new Set(projects.map((p) => p.path));
+    const q = searchQuery.trim().toLowerCase();
+    const out: { key: string; name: string; path: string }[] = [];
+    for (const p of projects) {
+      for (const b of p.branches ?? []) {
+        if (!b.path || known.has(b.path) || out.some((o) => o.path === b.path)) continue;
+        const name = b.path.split('/').pop() || b.name;
+        if (q && !name.toLowerCase().includes(q) && !b.path.toLowerCase().includes(q)) continue;
+        out.push({ key: `${p.id}::${b.name}`, name, path: b.path });
+      }
+    }
+    return out.reverse();
+  }, [projects, searchQuery]);
 
   const target = useMemo(() => {
     if (mode !== 'local' || !selection) return null;
@@ -1013,6 +1031,61 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     setFolderNameEdited(true);
   };
 
+  const [pendingDup, setPendingDup] = useState<{
+    kind: DuplicateRepoKind;
+    existingId: string;
+    existingName: string;
+    existingBranch: string;
+    newBranch: string;
+    defaultLinkName: string;
+  } | null>(null);
+
+  const repoNameFromUrl = (url: string) =>
+    url
+      .replace(/\/+$/, '')
+      .replace(/\.git$/, '')
+      .split(/[/:]/)
+      .pop() || '';
+
+  const findSameRepoProject = async (path: string, name: string) => {
+    const self = await window.api.invoke('git:repo-identity', path);
+    if (!self) return null;
+    for (const p of projects) {
+      if (p.path === path || p.name.toLowerCase() !== name.toLowerCase()) continue;
+      const other = await window.api.invoke('git:repo-identity', p.path);
+      if (!other) continue;
+      const same =
+        other.commonDir === self.commonDir ||
+        (!!self.remoteUrl && other.remoteUrl === self.remoteUrl);
+      if (same) return { project: p, self, other };
+    }
+    return null;
+  };
+
+  const addFolderProject = (path: string, linkName?: string, existingId?: string) => {
+    const name = path.split('/').pop() || 'Untitled';
+    const newId = addProject({
+      name,
+      path,
+      color: '#4fa8e0',
+      template: 'blank',
+      logoPath: logoChoice[path] ?? null,
+    });
+    if (linkName && existingId) {
+      updateProject(newId, { repoLinkName: linkName } as any);
+      updateProject(existingId, { repoLinkName: linkName } as any);
+    }
+    onProjectAdded?.(newId);
+  };
+
+  const handleDupConfirm = (linkName: string) => {
+    if (!pendingDup || !browsePath) return;
+    const isLink = pendingDup.kind === 'different-branch';
+    addFolderProject(browsePath, isLink ? linkName : undefined, pendingDup.existingId);
+    setPendingDup(null);
+    onClose();
+  };
+
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || loading) return;
     setLoading(true);
@@ -1033,15 +1106,21 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         });
         onProjectAdded?.(newId);
       } else if (selection?.type === 'folder' && browsePath) {
+        // ASSUMED: chỉ xét trùng repo khi tên project (basename folder) trùng với project đã thêm
         const name = browsePath.split('/').pop() || 'Untitled';
-        const newId = addProject({
-          name,
-          path: browsePath,
-          color: '#4fa8e0',
-          template: 'blank',
-          logoPath: logoChoice[browsePath] ?? null,
-        });
-        onProjectAdded?.(newId);
+        const dup = await findSameRepoProject(browsePath, name);
+        if (dup) {
+          setPendingDup({
+            kind: dup.self.branch === dup.other.branch ? 'same-branch' : 'different-branch',
+            existingId: dup.project.id,
+            existingName: dup.project.name,
+            existingBranch: dup.other.branch,
+            newBranch: dup.self.branch,
+            defaultLinkName: repoNameFromUrl(dup.self.remoteUrl) || dup.project.name,
+          });
+          return;
+        }
+        addFolderProject(browsePath);
       } else if (selection?.type === 'project') {
         setCurrentProject(selection.id);
         onProjectAdded?.(selection.id);
@@ -1065,7 +1144,9 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     effectiveBranch,
     effectiveCloneLogo,
     logoChoice,
+    projects,
     addProject,
+    updateProject,
     setCurrentProject,
     onClose,
   ]);
@@ -1257,7 +1338,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   );
 
   const renderLocalList = () => {
-    if (recentProjects.length === 0 && !browsePath) {
+    if (recentProjects.length === 0 && linkedRecent.length === 0 && !browsePath) {
       return (
         <div className="h-full flex flex-col items-center justify-center p-6 text-center gap-4">
           <div className="w-14 h-14 rounded-2xl border border-dashed border-border grid place-items-center text-text-secondary/40">
@@ -1313,6 +1394,30 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
                   onSelect: () => setSelection({ type: 'project', id: proj.id }),
                   onOpen: () => handleOpenProjectDirect(proj.id),
                   onRemove: (e) => handleRemoveProject(e, proj.id),
+                }),
+              )}
+            </div>
+          </div>
+        )}
+        {linkedRecent.length > 0 && (
+          <div>
+            <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2 pl-1 text-left">
+              Linked folders
+              <span className="ml-2 font-mono text-text-secondary/40">{linkedRecent.length}</span>
+            </h4>
+            <div className="space-y-1">
+              {linkedRecent.map((l) =>
+                renderRow({
+                  key: l.key,
+                  name: l.name,
+                  path: l.path,
+                  selected: selection?.type === 'folder' && browsePath === l.path,
+                  stack: stackCache.get(l.path),
+                  logoPath: getLogoPath(l.path),
+                  onSelect: () => {
+                    setBrowsePath(l.path);
+                    setSelection({ type: 'folder' });
+                  },
                 }),
               )}
             </div>
@@ -1440,6 +1545,16 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           </button>
         </div>
       </ModalFooter>
+      <DuplicateRepoModal
+        isOpen={!!pendingDup}
+        onClose={() => setPendingDup(null)}
+        onConfirm={handleDupConfirm}
+        kind={pendingDup?.kind ?? 'different-branch'}
+        existingName={pendingDup?.existingName ?? ''}
+        existingBranch={pendingDup?.existingBranch ?? ''}
+        newBranch={pendingDup?.newBranch ?? ''}
+        defaultLinkName={pendingDup?.defaultLinkName ?? ''}
+      />
     </Modal>
   );
 }

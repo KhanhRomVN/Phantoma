@@ -1,18 +1,5 @@
-import {
-  AlertCircle,
-  ArrowRight,
-  Check,
-  Copy,
-  FilePen,
-  FolderPlus,
-  GitBranch,
-  Loader2,
-  Minus,
-  Search,
-  Sparkles,
-  X,
-} from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { AlertCircle, Check, GitBranch, Loader2, Search, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { Modal } from '@renderer/components/ui/Modal';
@@ -20,6 +7,7 @@ import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button/Button';
+import { TreeUIPreview } from './TreeUIPreview';
 
 export interface WorktreePreview {
   hasGitignore: boolean;
@@ -27,6 +15,15 @@ export interface WorktreePreview {
   changedFiles: number;
   ignoredPaths: string[];
   sizes?: Record<string, number>;
+  cancelled?: boolean;
+}
+
+export interface ScanProgress {
+  requestId: string;
+  done: number;
+  total: number;
+  scanned: number;
+  label?: string;
 }
 
 export interface BranchProgress {
@@ -49,11 +46,18 @@ interface ConfirmCreateBranchModalProps {
   source: string;
   branchName: string;
   slug: string;
-  mode: 'latest-commit' | 'local';
+  mode: 'latest-commit' | 'local' | 'commit';
   preview: WorktreePreview | null;
   selectedPaths: string[];
   onSelectedPathsChange: (paths: string[]) => void;
   progress: BranchProgress | null;
+  scanProgress?: ScanProgress | null;
+  onStopScan?: () => void;
+  projectPath: string;
+  folderName: string;
+  targetDir: string;
+  logoPath?: string | null;
+  projectBranch?: string;
 }
 
 // ASSUMED: dependency folders (node_modules, .venv, venv) and env files (.env, .env.*) are auto-selected; build output and logs are not
@@ -62,7 +66,6 @@ const AUTO_SELECT_RE = /(^|\/)(node_modules|\.venv|venv)\/$|(^|\/)\.env(\..+)?$/
 export const autoSelectIgnored = (paths: string[]): string[] =>
   paths.filter((p) => AUTO_SELECT_RE.test(p));
 
-const MONO = 'font-mono text-text-primary';
 
 const STEP_LABEL: Record<BranchProgress['step'], string> = {
   worktree: 'Creating worktree',
@@ -82,22 +85,12 @@ const formatSize = (bytes: number): string => {
   return `${value >= 100 ? Math.round(value) : value.toFixed(1)} ${units[i]}`;
 };
 
-function SummaryRow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  return (
-    <li className="flex items-start gap-3 text-[13px] leading-relaxed text-text-secondary">
-      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md bg-white/[0.05] text-text-secondary">
-        {icon}
-      </span>
-      <span className="min-w-0 pt-px">{children}</span>
-    </li>
-  );
-}
 
 function TickBox({ checked }: { checked: boolean }) {
   return (
     <span
       className={cn(
-        'grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[5px] border transition-all duration-150',
+        'grid h-[14px] w-[14px] shrink-0 place-items-center rounded-[4px] border transition-all duration-150',
         checked
           ? 'border-primary bg-primary text-white'
           : 'border-text-secondary/40 bg-transparent group-hover:border-text-secondary',
@@ -105,7 +98,7 @@ function TickBox({ checked }: { checked: boolean }) {
     >
       <Check
         className={cn(
-          'h-3 w-3 transition-all duration-150',
+          'h-2.5 w-2.5 transition-all duration-150',
           checked ? 'scale-100 opacity-100' : 'scale-50 opacity-0',
         )}
         strokeWidth={3}
@@ -129,17 +122,6 @@ function Highlight({ text, query }: { text: string; query: string }) {
   );
 }
 
-function QuickAction({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-md px-2 py-1 text-[12px] font-medium text-text-secondary outline-none transition-colors hover:bg-white/[0.06] hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary/50"
-    >
-      {children}
-    </button>
-  );
-}
 
 function ProgressView({
   steps,
@@ -198,6 +180,60 @@ function ProgressView({
   );
 }
 
+function ScanView({
+  progress,
+  onStop,
+}: {
+  progress: ScanProgress | null | undefined;
+  onStop?: () => void;
+}) {
+  const total = progress?.total ?? 0;
+  const done = progress?.done ?? 0;
+  const pct = total > 0 ? (done / total) * 100 : 0;
+
+  return (
+    <section className="rounded-lg bg-input-background px-4 py-3.5">
+      <div className="flex items-center gap-3">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] font-medium text-text-primary">Scanning ignored files</div>
+          <p className="mt-0.5 truncate font-mono text-[12px] text-text-secondary">
+            {progress?.label || 'Preparing…'}
+          </p>
+        </div>
+        {onStop && (
+          <button
+            type="button"
+            onClick={onStop}
+            className="flex h-7 shrink-0 items-center gap-1 rounded-md bg-white/[0.06] px-2.5 text-[12px] font-medium text-text-secondary outline-none transition-colors hover:bg-white/[0.1] hover:text-text-primary"
+          >
+            <X className="h-3 w-3" />
+            Stop
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-border">
+        <div
+          className="h-full min-w-[8%] animate-pulse rounded-full bg-primary transition-[width] duration-300"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <p className="mt-2 flex items-center gap-1.5 font-mono text-[12px] tabular-nums text-text-secondary">
+        <span>
+          {done}/{total} folders
+        </span>
+        <span className="text-text-secondary/40">·</span>
+        <span>{(progress?.scanned ?? 0).toLocaleString()} items scanned</span>
+      </p>
+      <p className="mt-1 text-[12px] text-text-secondary/70">
+        Only used to show sizes. Stopping it does not affect the new branch.
+      </p>
+    </section>
+  );
+}
+
 export function ConfirmCreateBranchModal({
   isOpen,
   onClose,
@@ -206,20 +242,23 @@ export function ConfirmCreateBranchModal({
   error,
   actionTitle,
   confirmLabel,
-  existing = false,
   projectName,
-  source,
+  projectPath,
+  folderName,
+  targetDir,
+  logoPath,
+  projectBranch,
   branchName,
-  slug,
   mode,
   preview,
   selectedPaths,
   onSelectedPathsChange,
   progress,
+  scanProgress,
+  onStopScan,
 }: ConfirmCreateBranchModalProps) {
   const [query, setQuery] = useState('');
-  const willEditIgnore = !!preview && preview.hasGitignore && !preview.alreadyIgnored;
-  const changed = preview?.changedFiles ?? 0;
+
   const ignored = useMemo(() => preview?.ignoredPaths ?? [], [preview]);
   const sizes = preview?.sizes;
   const recommended = useMemo(() => autoSelectIgnored(ignored), [ignored]);
@@ -253,8 +292,6 @@ export function ConfirmCreateBranchModal({
       selectedPaths.includes(p) ? selectedPaths.filter((x) => x !== p) : [...selectedPaths, p],
     );
 
-  const selectVisible = () =>
-    onSelectedPathsChange(Array.from(new Set([...selectedPaths, ...visible])));
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} className="max-w-[580px]">
@@ -273,62 +310,18 @@ export function ConfirmCreateBranchModal({
           <ProgressView steps={steps} progress={progress} />
         ) : (
           <>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 font-mono text-[12.5px]">
-                {!existing && (
-                  <>
-                    <span className="min-w-0 max-w-[40%] truncate rounded-md border border-border px-2.5 py-1 text-text-secondary">
-                      {source}
-                    </span>
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-text-secondary/60" />
-                  </>
-                )}
-                <span className="inline-flex min-w-0 max-w-[60%] items-center gap-1.5 rounded-md border border-border bg-input-background px-2.5 py-1 text-text-primary">
-                  <GitBranch className="h-3 w-3 shrink-0 text-primary" />
-                  <span className="truncate">{branchName}</span>
-                </span>
-              </div>
-              <p className="text-[12px] text-text-secondary">
-                {existing
-                  ? 'Existing branch checked out in a new folder'
-                  : mode === 'local'
-                    ? 'Latest commit + local changes'
-                    : 'Latest commit'}
-              </p>
-            </div>
-
-            <ul className="flex flex-col gap-3">
-              <SummaryRow icon={<FolderPlus className="h-3.5 w-3.5" />}>
-                Creates <span className={MONO}>{projectName}/worktrees/{slug}</span> and opens it as a
-                separate project.
-              </SummaryRow>
-              {willEditIgnore && (
-                <SummaryRow icon={<FilePen className="h-3.5 w-3.5" />}>
-                  Adds <span className={MONO}>worktrees/</span> to{' '}
-                  <span className={MONO}>.gitignore</span>.
-                </SummaryRow>
-              )}
-              {!existing &&
-                (mode === 'local' ? (
-                  <SummaryRow icon={<Copy className="h-3.5 w-3.5" />}>
-                    Brings {changed} uncommitted file{changed === 1 ? '' : 's'} from{' '}
-                    <span className={MONO}>{source}</span>. The originals stay where they are.
-                  </SummaryRow>
-                ) : (
-                  changed > 0 && (
-                    <SummaryRow icon={<Minus className="h-3.5 w-3.5" />}>
-                      {changed} uncommitted file{changed === 1 ? '' : 's'} stay in{' '}
-                      <span className={MONO}>{source}</span>.
-                    </SummaryRow>
-                  )
-                ))}
-            </ul>
+            <TreeUIPreview
+              projectName={projectName}
+              projectPath={projectPath}
+              folderName={folderName}
+              targetDir={targetDir}
+              logoPath={logoPath}
+              projectBranch={projectBranch}
+              newBranch={branchName}
+            />
 
             {!preview ? (
-              <div className="flex items-center gap-2 text-[13px] text-text-secondary">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Scanning ignored files…
-              </div>
+              <ScanView progress={scanProgress} onStop={onStopScan} />
             ) : (
               ignored.length > 0 && (
                 <section>
@@ -336,16 +329,11 @@ export function ConfirmCreateBranchModal({
                     <div className="min-w-0">
                       <h4 className="text-[13px] font-medium text-text-primary">Ignored by git</h4>
                       <p className="mt-0.5 text-[12px] text-text-secondary">
+                        {preview.cancelled ? 'Size scan stopped, sizes unavailable. ' : ''}
                         Not part of the commit. Pick what the new branch should get.
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-0.5">
-                      <QuickAction onClick={() => onSelectedPathsChange(recommended)}>
-                        Recommended
-                      </QuickAction>
-                      <QuickAction onClick={selectVisible}>All</QuickAction>
-                      <QuickAction onClick={() => onSelectedPathsChange([])}>None</QuickAction>
-                    </div>
+
                   </div>
 
                   <div className="relative mb-2">
@@ -383,7 +371,6 @@ export function ConfirmCreateBranchModal({
                       const dir = clean.slice(0, clean.length - base.length);
                       const iconSrc = isDir ? getFolderIconPath(base, false) : getFileIconPath(base);
                       const size = sizes?.[p];
-                      const isRecommended = recommended.includes(p);
                       return (
                         <li key={p}>
                           <div
@@ -423,12 +410,7 @@ export function ConfirmCreateBranchModal({
                               )}
                               <Highlight text={isDir ? `${base}/` : base} query={q} />
                             </span>
-                            {isRecommended && (
-                              <span className="inline-flex shrink-0 items-center gap-1 rounded bg-primary/10 px-1.5 py-px text-[11px] font-semibold text-primary">
-                                <Sparkles className="h-2.5 w-2.5" />
-                                Recommended
-                              </span>
-                            )}
+
                             {size !== undefined && (
                               <span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-px font-mono text-[11.5px] tabular-nums text-text-secondary">
                                 {formatSize(size)}

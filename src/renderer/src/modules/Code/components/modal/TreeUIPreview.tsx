@@ -10,6 +10,7 @@ interface TreeUIPreviewProps {
   logoPath?: string | null;
   projectBranch?: string;
   newBranch?: string;
+  variant?: 'create' | 'delete';
 }
 
 type RowTag = 'current' | 'new';
@@ -72,13 +73,23 @@ function buildGroups(
   return [rows];
 }
 
-function RowIcon({ tag, logoPath }: { tag?: RowTag; logoPath?: string | null }) {
-  const fallback =
-    tag === 'new' ? (
-      <GitBranch className="h-3.5 w-3.5 text-primary" />
-    ) : (
-      <Folder className="h-3.5 w-3.5 text-text-secondary" />
-    );
+function RowIcon({
+  tag,
+  logoPath,
+  variant,
+}: {
+  tag?: RowTag;
+  logoPath?: string | null;
+  variant?: 'create' | 'delete';
+}) {
+  const isDeleting = tag === 'new' && variant === 'delete';
+  const fallback = isDeleting ? (
+    <Folder className="h-3.5 w-3.5 text-error" />
+  ) : tag === 'new' ? (
+    <GitBranch className="h-3.5 w-3.5 text-primary" />
+  ) : (
+    <Folder className="h-3.5 w-3.5 text-text-secondary" />
+  );
   if (!tag || !logoPath) {
     return <span className="grid h-4 w-4 shrink-0 place-items-center">{fallback}</span>;
   }
@@ -94,12 +105,24 @@ function RowIcon({ tag, logoPath }: { tag?: RowTag; logoPath?: string | null }) 
   );
 }
 
-function BranchBadge({ name, primary }: { name: string; primary?: boolean }) {
+function BranchBadge({
+  name,
+  primary,
+  danger,
+}: {
+  name: string;
+  primary?: boolean;
+  danger?: boolean;
+}) {
   return (
     <span
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-px text-[11px]',
-        primary ? 'bg-primary/10 text-primary' : 'bg-white/[0.06] text-text-secondary',
+        danger
+          ? 'bg-error/10 text-error'
+          : primary
+            ? 'bg-primary/10 text-primary'
+            : 'bg-white/[0.06] text-text-secondary',
       )}
     >
       <GitBranch className="h-2.5 w-2.5" />
@@ -116,6 +139,7 @@ export function TreeUIPreview({
   logoPath,
   projectBranch,
   newBranch,
+  variant,
 }: TreeUIPreviewProps) {
   const groups = buildGroups(projectPath, projectName, folderName, targetDir);
 
@@ -134,18 +158,25 @@ export function TreeUIPreview({
               title={row.label}
             >
               {row.depth > 0 && <span className="text-text-secondary/40">└</span>}
-              {(row.depth > 0 || row.tag) && <RowIcon tag={row.tag} logoPath={logoPath} />}
+              {(row.depth > 0 || row.tag) && (
+                <RowIcon tag={row.tag} logoPath={logoPath} variant={variant} />
+              )}
               <span
                 className={cn(
                   'min-w-0 truncate',
-                  row.tag === 'new' && 'font-semibold text-text-primary',
+                  row.tag === 'new' && variant !== 'delete' && 'font-semibold text-text-primary',
+                  row.tag === 'new' && variant === 'delete' && 'font-semibold text-error line-through',
                   row.tag === 'current' && 'text-text-primary',
                   !row.tag && 'text-text-secondary',
                 )}
               >
                 {row.label}
               </span>
-              {row.tag === 'new' && newBranch && <BranchBadge name={newBranch} primary />}
+              {row.tag === 'new' && newBranch && <BranchBadge
+                  name={newBranch}
+                  primary={variant !== 'delete'}
+                  danger={variant === 'delete'}
+                />}
               {row.tag === 'current' && projectBranch && <BranchBadge name={projectBranch} />}
             </div>
           ))}

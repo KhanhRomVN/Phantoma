@@ -55,6 +55,16 @@ import {
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../../hooks/useCodeStore';
 
+const nameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+const compareDirEntries = (
+  a: { name: string; isDirectory: boolean },
+  b: { name: string; isDirectory: boolean },
+): number => {
+  if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+  return nameCollator.compare(a.name, b.name) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+};
+
 // Local helper to avoid circular dependency or missing export in AddProjectModal
 async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   if (depth > 8) return []; // safety cap against runaway recursion
@@ -67,9 +77,7 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   if (!Array.isArray(entries)) return [];
 
   const nodes: FileNode[] = [];
-  for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
-
+  for (const entry of [...entries].sort(compareDirEntries)) {
     const node: FileNode = {
       id: `fs_${entry.path}`,
       name: entry.name,
@@ -77,7 +85,10 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
       path: entry.path,
     };
     if (entry.isDirectory) {
-      node.children = await scanDirectory(entry.path, depth + 1);
+      node.children =
+        entry.name === 'node_modules' || entry.name === '.git'
+          ? []
+          : await scanDirectory(entry.path, depth + 1);
     }
     nodes.push(node);
   }
@@ -120,14 +131,7 @@ const fetchDirChildren = async (dirPath: string): Promise<FileNode[]> => {
     const entries: DirEntry[] = await window.api.invoke('fs:list-dir', dirPath);
     if (!entries || !Array.isArray(entries)) return [];
 
-    return entries
-      .filter((e) => !e.name.startsWith('.') && e.name !== 'node_modules')
-      .sort((a, b) => {
-        if (a.isDirectory && !b.isDirectory) return -1;
-        if (!a.isDirectory && b.isDirectory) return 1;
-        return a.name.localeCompare(b.name);
-      })
-      .map(dirEntryToFileNode);
+    return [...entries].sort(compareDirEntries).map(dirEntryToFileNode);
   } catch {
     return [];
   }
