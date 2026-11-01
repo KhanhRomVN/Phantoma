@@ -1,4 +1,4 @@
-import type { ToolFormat } from "../code/mode-config";
+import type { ToolFormat } from "./types";
 import type { TesterToolName } from "./tools-reference";
 import {
   HANDOFF_AGENT,

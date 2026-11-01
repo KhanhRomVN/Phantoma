@@ -22,7 +22,7 @@ import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
 
 // ── Services ──
-import { saveConversation } from '../../services/ConversationService';
+import { saveConversation } from '../../services/conversationService';
 
 interface UseConversationPersistenceProps {
   currentConversationId: string | null;

@@ -1,4 +1,4 @@
-import type { SystemInfo } from "@renderer/modules/Code/prompts/code/system-context";
+import type { SystemInfo } from "./types";
 
 export const buildPlannerSystemContext = (info: SystemInfo): string => `# SYSTEM ENVIRONMENT
 OS: ${info.os}, Shell: ${info.shell}, Home: ${info.homeDir}, CWD: ${info.cwd}, Language: ${info.language}

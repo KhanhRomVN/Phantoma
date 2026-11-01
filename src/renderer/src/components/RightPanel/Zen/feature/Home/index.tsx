@@ -78,7 +78,7 @@ interface HomePanelProps {
     conversationOverrides?: {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
-      toolFormat?: 'xml' | 'json';
+      toolFormat?: 'xml' | 'json' | 'dsml';
       workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
     },
   ) => void;
@@ -625,8 +625,8 @@ const HomePanel: React.FC<HomePanelProps> = ({
             setConversationMemoryEnabled(next);
             setMemoryEnabled(next);
           }}
-          onConversationToolFormatToggle={() => {
-            toggleConversationToolFormat();
+          onConversationToolFormatToggle={(format) => {
+            toggleConversationToolFormat(format);
           }}
         />
         </div>

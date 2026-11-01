@@ -1,6 +1,5 @@
-import { MAX_READ_LINES_PER_TURN } from "@renderer/modules/Code/prompts/code/mode-config";
-import type { ToolFormat } from "../code/mode-config";
-
+import type { ToolFormat } from "./types";
+import { MAX_READ_LINES_PER_TURN } from "./types";
 export type PlannerToolName =
   | "read_file"
   | "list_files"

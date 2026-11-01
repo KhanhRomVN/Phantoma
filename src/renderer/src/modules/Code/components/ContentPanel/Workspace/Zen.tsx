@@ -9,6 +9,12 @@ import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../hooks/useWorkflow
 import { USER_ID } from '../../../types/agents';
 import AgentMessageBox from '../../../renderers/AgentMessageBox';
 import { parseAgentMessage } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
+import { DRAG_CANCEL_EVENT } from '@renderer/shared/utils/dragCancel';
+import {
+  MENTION_DRAG_TYPE,
+  ZEN_MENTION_DROP_EVENT,
+  readDraggedItems,
+} from '@renderer/components/RightPanel/Zen/components/MessageInput/mentionEditor';
 import {
   AccountAgentsContext,
   WorkflowAgentContext,
@@ -40,6 +46,20 @@ export const CodeAgent = memo(function CodeAgent({
 }: CodeAgentProps) {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const [rootEl, setRootEl] = useState<HTMLElement | null>(null);
+  const [isDropActive, setIsDropActive] = useState(false);
+
+  useEffect(() => {
+    if (!isDropActive) return;
+    const reset = () => setIsDropActive(false);
+    document.addEventListener('dragend', reset);
+    document.addEventListener('drop', reset);
+    document.addEventListener(DRAG_CANCEL_EVENT, reset);
+    return () => {
+      document.removeEventListener('dragend', reset);
+      document.removeEventListener('drop', reset);
+      document.removeEventListener(DRAG_CANCEL_EVENT, reset);
+    };
+  }, [isDropActive]);
   const agentConfig = useWorkflowStore(
     (s) => (workflowAgentId ? s.configs[workflowAgentId] : undefined) ?? EMPTY_AGENT_CONFIG,
   );
@@ -148,8 +168,37 @@ export const CodeAgent = memo(function CodeAgent({
     <div
       ref={setRootEl}
       id="code-agent-root"
+      data-zen-drop-root=""
       className="relative flex-1 h-full min-h-0 overflow-hidden"
+      onDragEnter={(e) => {
+        console.log('[DEBUG] Zen dragenter types:', Array.from(e.dataTransfer.types));
+        if (e.dataTransfer.types.includes(MENTION_DRAG_TYPE)) setIsDropActive(true);
+      }}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes(MENTION_DRAG_TYPE)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        setIsDropActive(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDropActive(false);
+      }}
+      onDropCapture={() => setIsDropActive(false)}
+      onDrop={(e) => {
+        console.log('[DEBUG] Zen drop types:', Array.from(e.dataTransfer.types));
+        if (!e.dataTransfer.types.includes(MENTION_DRAG_TYPE)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const items = readDraggedItems(e.dataTransfer);
+        if (items.length === 0) return;
+        e.currentTarget
+          .querySelector('[role="textbox"]')
+          ?.dispatchEvent(new CustomEvent(ZEN_MENTION_DROP_EVENT, { detail: items }));
+      }}
     >
+      {isDropActive && (
+        <div className="absolute inset-0 z-[60] pointer-events-none border-2 border-dashed border-primary bg-primary/10" />
+      )}
       <AgentRootContext.Provider value={rootEl}>
         <SettingsProvider>
           <MultiAgentContext.Provider value={multiAgent}>

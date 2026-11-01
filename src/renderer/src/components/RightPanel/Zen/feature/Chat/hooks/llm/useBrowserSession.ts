@@ -4,16 +4,15 @@ import { useState, useEffect, useCallback, useRef } from "react";
  * ------------------------------------------------------------------
  * useBrowserSession
  * ------------------------------------------------------------------
- * Hook quản lý trạng thái phiên trình duyệt cho provider zai-browser.
- * Kiểm tra trạng thái phiên khi mount và polling mỗi 5 giây.
+ * Hook managing browser session state for zai-browser provider.
+ * Checks session state on mount and polls every 5 seconds.
  *
- * PERFORMANCE: Sử dụng refs để tránh re-render không cần thiết.
+ * PERFORMANCE: Uses refs to avoid unnecessary re-renders.
  *
- * Main returns:
- * - isBrowserSessionReady : Browser session đã sẵn sàng chưa
- * - showBrowserWarning    : Hiển thị cảnh báo browser
- * - isLaunchingBrowser    : Đang khởi động browser
- * ------------------------------------------------------------------
+ * Main features:
+ * - isBrowserSessionReady : Whether browser session is ready
+ * - showBrowserWarning    : Show browser warning
+ * - isLaunchingBrowser    : Browser is launching
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────

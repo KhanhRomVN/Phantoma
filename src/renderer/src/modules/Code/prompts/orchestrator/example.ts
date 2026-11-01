@@ -1,7 +1,7 @@
 import type {
   SystemPromptMode,
   ToolFormat,
-} from "@renderer/modules/Code/prompts/code/mode-config";
+} from "./types";
 import { fenceCall, fenceMarkdown, fenceQuestion } from "./tools-reference";
 
 export const buildOrchestratorExample = (

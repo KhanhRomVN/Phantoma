@@ -5,6 +5,39 @@
 - Modal footer confirm action (e.g. Create group) uses `variant="soft"` from `@renderer/components/ui/Button` in every state (default, hover, disabled). Do not use `solid` or `outline` for it.
 - Modal footer Cancel button must NOT use the `variant` prop. Style it only via `className` with the soft look and secondary text: `bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background`.
 
+## Prompt capabilities (per system prompt)
+
+- Mỗi `prompts/<name>/config.ts` export `CAPABILITIES: ZenModuleCapabilities` — nguồn sự thật cho toolbar và build prompt của prompt đó.
+- `promptLength` / `styleCode`: `false` hoặc bỏ trống = tắt; `true` = bộ mặc định; `{ options: [...], default }` = tập riêng (1 phần tử = cố định, UI ẩn selector). Giá trị chọn được chuẩn hoá bằng `resolvePromptLength` / `resolveStyleCode` trong `ModuleRegistry.ts` (dùng ở `PromptBuilder` và `MessageInput`), không so sánh trực tiếp state settings.
+- Với prompt `code`, `config.ts` chứa luôn `SystemPromptMode`, `MODE_BEHAVIORS` (sub-config của styleCode) và `MAX_READ_LINES_PER_TURN`; `styleCode.options` lấy từ `Object.keys(MODE_BEHAVIORS)`. File `code-style.ts` đã bị xoá.
+- `toolFormats`: cần ≥ 1 phần tử (bỏ trống = `['xml', 'json']`), không có cờ `toolFormat`; 1 phần tử thì UI ẩn toggle.
+- `features: { commitMessage?: boolean }`: nhóm các feature riêng của prompt; chưa có nơi nào đọc `features.commitMessage`.
+
+## Tool format parser architecture
+
+- **Module structure**: `src/renderer/src/components/RightPanel/Zen/feature/Chat/services/tool-formats/` contains 3 self-contained format files + registry:
+  - `XMLFormat.ts` (444 lines) — XML tag scanner + serializer
+  - `JSONFormat.ts` (320 lines) — JSON fenced block scanner + normalizer
+  - `DSMLFormat.ts` (127 lines) — DSML calls block parser + foreign converter
+  - `index.ts` (68 lines) — central registry
+  - `types.ts` (29 lines) — `ToolFormatDefinition` interface
+- **Format definition**: Each `<Format>.ts` file exports a `ToolFormatDefinition` with:
+  - `id`, `label`, `description`, `colorVar` — metadata
+  - `normalize?: (content) => string` — pre-process before parsing (e.g. `wrapBareJsonObjects` for JSON)
+  - `parse?: (content, base, feature?) => ParsedResponse` — main parser logic (embedded in same file)
+  - `serializeCall?: (call) => string` — tool call → format string (for foreign conversion)
+  - `detectForeign?: (content) => boolean` — detect this format in content
+  - `convertForeign?: (content, serialize) => ForeignConversion` — convert to target format
+  - `foreignNotice?: string` — warning message when foreign format detected
+- **Parser scope**: Format parsers (`XMLFormat.ts`, `JSONFormat.ts`, `DSMLFormat.ts`) handle **format-level parsing** (XML tags, JSON fences, DSML blocks). They delegate **content parsing** to:
+  - `services/parsers/` — UI/display tag content (conversation_title, markdown, question, thinking)
+  - `modules/Code/parsers/` — Tool-specific params (read_file, write_to_file, grep, etc.)
+- **ResponseParser.ts** (144 lines) — thin dispatcher: `getToolFormat(id).parse(content, base, feature)` — NO inline parsing logic.
+- **Foreign format conversion**: `convertForeignToolCalls(content, targetFormat)` from registry handles DSML → XML/JSON uniformly, NOT per-provider hardcoded logic.
+- **System prompt integration**: System prompts in `src/renderer/src/modules/Code/prompts/` declare supported formats via `config.ts` → `CAPABILITIES.toolFormats` (default `['xml', 'json']`). Workflow agents may support only a subset (e.g. orchestrator/planner/executor/reviewer/tester support `['xml', 'json']`, main `code` prompt supports all three `['xml', 'json', 'dsml']`).
+- **UI integration**: `ModuleRegistry.ts` exposes `getPromptCapabilities(moduleId, promptId?)` to query which formats a given prompt supports; UI uses this to populate the tool-format dropdown per active system prompt.
+- **Adding a new format**: (1) Create `<Format>.ts` file with `parse(content, base, feature?)` function embedded. (2) Export `ToolFormatDefinition` with `parse`, `normalize`, `serializeCall`, etc. (3) Add to registry in `index.ts`. (4) Update `TOOL_FORMAT_IDS` in `types.ts`. NO changes to `ResponseParser.ts` needed.
+
 ## Runtime servers & ports
 
 - 2 server con: `server/` (shell backend, chỉ `/health`) và `emulate/` (Emulate service).

@@ -1,64 +1,59 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 /**
  * ------------------------------------------------------------------
  * useChatLLM
  * ------------------------------------------------------------------
- * Hook chính quản lý toàn bộ chat LLM flow.
- * Xử lý send message, streaming response, và tool execution.
+ * Main hook managing the entire chat LLM flow.
+ * Handles send message, streaming response, and tool execution.
  *
  * Main features:
- * - sendMessage          : Gửi message và xử lý streaming response
- * - stopGeneration       : Dừng generation đang chạy
- * - Tool auto-execution  : Tự động thực thi tool sau khi AI response
+ * - sendMessage          : Send message and handle streaming response
+ * - stopGeneration       : Stop ongoing generation
+ * - Tool auto-execution  : Auto-execute tools after AI response
  * ------------------------------------------------------------------
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 // ── Types ──
 import { Message, QuestionAnswer } from '../../types/message';
-import { ToolAction, parseAIResponse } from '../../services/ResponseParser';
-import { ChatSession } from '../../types/chat';
-import { AgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
+import { ToolAction, parseAIResponse } from '../../services/responseParser';
+import type { ChatSession } from '../../types/chat';
+
+import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
+import { getModuleService } from '../../services/moduleRegistry';
 import type { WorkflowAgentId } from '../../types/workflow-agents';
-
-// ── Context ──
-import { useSettings } from '../../../../context/SettingsContext';
-import { useProject } from '../../../../context/ProjectContext';
-
-// ── Hooks ──
-import { useFileUpload } from '../workspace/useFileUpload';
-import { getModuleService } from '../../services/ModuleRegistry';
-
-const getLastScreenshotFileId = () => getModuleService('recon', 'getLastScreenshotFileId')?.();
-const clearLastScreenshotFileId = () => getModuleService('recon', 'clearLastScreenshotFileId')?.();
+import type { ToolFormatId } from '../../services/tool-formats/types';
+import { DEFAULT_TOOL_FORMAT } from '../../services/tool-formats';
+import type { AgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
+import {
+  calculateTokens,
+  deleteConversation,
+  saveConversation,
+  logChatToWorkspace,
+} from '../../services/conversationService';
+import { PromptBuilder } from '../../services/promptBuilder';
+import { StreamingService } from '../../services/streamingService';
+import { cleanClaudeSandboxTools } from '../../services/claudeSandboxToolCleaner';
+import { buildToolFormatReminder } from '@renderer/modules/Code/prompts/code/tool-format-reminder';
+import { DEEPSEEK_DSML_REMINDER } from '../../prompts/deepseek-dsml-reminder';
+import { TOOL_ACTION_TYPES } from '../../constants/tag-registry';
+import { convertForeignToolCalls } from '../../services/tool-formats';
 import { useStreamingState } from './useStreamingState';
 import { useConversationRefs } from './useConversationRefs';
 import { useMessageHandlers } from './useMessageHandlers';
+import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
+import { useProject } from '@renderer/components/RightPanel/Zen/context/ProjectContext';
+import { useFileUpload } from '../workspace/useFileUpload';
 
-// ── Services ──
-import {
-  logChatToWorkspace,
-  saveConversation,
-  calculateTokens,
-  deleteConversation,
-} from '../../services/ConversationService';
-import { PromptBuilder } from '../../services/PromptBuilder';
-import { StreamingService } from '../../services/StreamingService';
-import {
-  hasDeepseekDSML,
-  processDeepseekContent,
-} from '../../services/DeepseekDSMLParser';
-import { cleanClaudeSandboxTools } from '../../services/ClaudeSandboxToolCleanner';
-import { buildToolFormatReminder } from '@renderer/modules/Code/prompts/code/tool-format-reminder';
-import {
-  buildSubAgentFormatReminder,
-  isReminderSubAgent,
-} from '@renderer/modules/Code/prompts/sub-agent-format-reminder';
-import { DEEPSEEK_DSML_REMINDER } from '../../prompts/deepseek-dsml-reminder';
-import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
-
-// ── Constants ──
-import { TOOL_ACTION_TYPES } from '../../constants/tag-registry';
+// ── Utils ──
+const notifyDesktop = (title: string, body: string): void => {
+  try {
+    window.api?.invoke('notification:show', { title, body })?.catch(() => {});
+  } catch {
+    // ignore
+  }
+};
 
 // ── Controllers ──
 const EmulateController = getModuleService('emulate', 'EmulateController');
@@ -73,7 +68,7 @@ const buildEmptyFilterContext = getModuleService('emulate', 'buildEmptyFilterCon
 interface ConversationOverrides {
   useSkillEnabled?: boolean;
   memoryEnabled?: boolean;
-  toolFormat?: 'xml' | 'json';
+  toolFormat?: ToolFormatId;
   workflowAgentId?: WorkflowAgentId | null;
 }
 
@@ -83,10 +78,8 @@ interface UseChatLLMProps {
   feature?: string | null;
   /** Per-conversation feature overrides from Home panel */
   conversationOverrides?: ConversationOverrides;
-  /** Blocked time ranges từ provider config — sync với deepseek.constant.ts qua API */
+  /** Blocked time ranges from provider config — synced with deepseek.constant.ts via API */
   providerBlockedRanges?: Array<{ startTime: number; endTime: number }> | null;
-  /** Cờ anti_system_prompt_injection từ provider config — thay cho hardcode providerId === "claude" */
-  antiSystemPromptInjection?: boolean;
   /** Workflow agent ID for specialized prompts (orchestrator/planner/executor/reviewer) */
   workflowAgentId?: WorkflowAgentId | null;
   onConversationIdChange?: (id: string) => void;
@@ -97,8 +90,8 @@ interface UseChatLLMProps {
     actionType?: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
   ) => void;
   /**
-   * Callback thông báo toàn bộ lượt trả lời đã kết thúc (markdown-only xong,
-   * hoặc chuỗi tool execution dừng hẳn).
+   * Callback fired when entire response turn is complete (markdown-only done,
+   * or tool execution chain stopped).
    */
   onTurnComplete?: () => void;
   onMalformedTool?: (
@@ -170,6 +163,8 @@ export const useChatLLM = ({
   // Ref to hold per-conversation overrides (from Home panel or restored from metadata).
   const conversationOverridesRef = useRef<ConversationOverrides | undefined>(conversationOverrides);
   const prevSelectedTabIdRef = useRef<string | number | undefined>(selectedTab?.sessionId);
+  const onTurnCompleteRef = useRef(onTurnComplete);
+  const dsmlReminderPendingRef = useRef(false);
   useEffect(() => {
     const currentTabId = selectedTab?.sessionId;
     const tabChanged = currentTabId !== prevSelectedTabIdRef.current;
@@ -182,19 +177,14 @@ export const useChatLLM = ({
     }
   }, [conversationOverrides, selectedTab?.sessionId]);
 
-  // Ref giữ onTurnComplete luôn mới nhất (tránh stale closure trong sendMessage async)
-  const onTurnCompleteRef = useRef(onTurnComplete);
   useEffect(() => {
     onTurnCompleteRef.current = onTurnComplete;
   }, [onTurnComplete]);
 
   const MAX_NO_TAG_RETRY = 5;
   const noTagRetryCountRef = useRef(0);
-  const MAX_SUB_AGENT_FORMAT_REMINDER = 5;
-  const subAgentReminderCountRef = useRef(0);
   const MAX_MOCK_REQUESTS = 2;
   const mockRequestCountRef = useRef(0);
-  const dsmlReminderPendingRef = useRef(false);
 
   const {
     streamingState,
@@ -220,7 +210,7 @@ export const useChatLLM = ({
 
   // NOTE: useSkillEnabled & memoryEnabled are not yet in SettingsContext for Phantoma.
   // We rely solely on conversationOverridesRef for now. Default to false if no override provided.
-  const { aiLanguage, promptLengthMode } = useSettings();
+  const { aiLanguage, promptLengthMode, systemPromptMode } = useSettings();
   const { workspace, treeView } = useProject();
   const { uploadFiles } = useFileUpload(apiUrl);
 
@@ -435,7 +425,8 @@ export const useChatLLM = ({
       // we default to false if no explicit override is provided in the current conversation.
       const effectiveUseSkill = conversationOverridesRef.current?.useSkillEnabled ?? false;
       const effectiveMemory = conversationOverridesRef.current?.memoryEnabled ?? false;
-      const effectiveToolFormat = conversationOverridesRef.current?.toolFormat ?? 'xml';
+      const effectiveToolFormat =
+        conversationOverridesRef.current?.toolFormat ?? DEFAULT_TOOL_FORMAT;
 
       // Determine model/account before building prompt to resolve providerId correctly
       const oldModel = lastUsedModelRef.current;
@@ -520,12 +511,13 @@ export const useChatLLM = ({
         toolFormat: effectiveToolFormat,
         providerId: promptProviderId,
         promptLengthMode,
+        systemPromptMode,
         workflowAgentId,
       });
 
       const reminderPrefix = dsmlReminderPendingRef.current
         ? `${DEEPSEEK_DSML_REMINDER}\n\n${buildToolFormatReminder(
-            conversationOverridesRef.current?.toolFormat ?? 'xml',
+            conversationOverridesRef.current?.toolFormat ?? DEFAULT_TOOL_FORMAT,
           )}\n\n`
         : '';
       if (dsmlReminderPendingRef.current) {
@@ -577,7 +569,8 @@ export const useChatLLM = ({
         for (let i = updatedMessages.length - 2; i >= 0; i--) {
           const msg = updatedMessages[i];
           if (msg.role === 'assistant') {
-            const effectiveToolFormat = conversationOverridesRef.current?.toolFormat ?? 'xml';
+            const effectiveToolFormat =
+              conversationOverridesRef.current?.toolFormat ?? DEFAULT_TOOL_FORMAT;
             const parsed = parseAIResponse(msg.content, effectiveToolFormat, feature);
             if (
               parsed.question &&
@@ -633,11 +626,15 @@ export const useChatLLM = ({
           ref_file_ids.push(...uploadedIds);
         }
 
-        // [DEBUG] Thêm file_id từ screenshot nếu có
-        const screenshotFileId = getLastScreenshotFileId();
-        if (screenshotFileId && !ref_file_ids.includes(screenshotFileId)) {
-          ref_file_ids.push(screenshotFileId);
-          clearLastScreenshotFileId();
+        // [DEBUG] Add file_id from screenshot if exists (Recon feature)
+        const getLastScreenshotFileId = getModuleService('recon', 'getLastScreenshotFileId');
+        const clearLastScreenshotFileId = getModuleService('recon', 'clearLastScreenshotFileId');
+        if (getLastScreenshotFileId && clearLastScreenshotFileId) {
+          const screenshotFileId = getLastScreenshotFileId();
+          if (screenshotFileId && !ref_file_ids.includes(screenshotFileId)) {
+            ref_file_ids.push(screenshotFileId);
+            clearLastScreenshotFileId();
+          }
         }
 
         let payloadMessages = updatedMessages
@@ -763,16 +760,23 @@ export const useChatLLM = ({
               },
               onContent: (rawContent) => {
                 let content = rawContent;
-                if ((finalModel?.providerId ?? '').toLowerCase() === 'deepseek') {
-                  if (hasDeepseekDSML(rawContent)) {
+                const streamToolFormat =
+                  conversationOverridesRef.current?.toolFormat ?? DEFAULT_TOOL_FORMAT;
+
+                // Convert foreign tool formats (DSML from any provider) to target format
+                const converted = convertForeignToolCalls(rawContent, streamToolFormat);
+                if (converted.convertedToolCount > 0) {
+                  content = converted.content;
+                  // Trigger reminder if DSML was detected from Deepseek in non-DSML mode
+                  if (
+                    (finalModel?.providerId ?? '').toLowerCase() === 'deepseek' &&
+                    streamToolFormat !== 'dsml' &&
+                    converted.detected.some((d) => d.id === 'dsml')
+                  ) {
                     dsmlReminderPendingRef.current = true;
                   }
-                  const processed = processDeepseekContent(
-                    rawContent,
-                    conversationOverridesRef.current?.toolFormat ?? 'xml',
-                  );
-                  if (processed.convertedToolCount > 0) content = processed.content;
                 }
+
                 if ((finalModel?.providerId ?? '').toLowerCase() === 'claude') {
                   content = cleanClaudeSandboxTools(content);
                 }
@@ -851,7 +855,6 @@ export const useChatLLM = ({
         abortControllerRef.current = null;
 
         // Parse response to extract tool sequence with error handling
-        const { parseAIResponse } = await import('../../services/ResponseParser');
         let parsed: any = null;
         let hasParsingError = false;
 
@@ -859,7 +862,8 @@ export const useChatLLM = ({
           // 🔧 FIX: Parse rawResponse (includes thinking) instead of content
           const contentToParse = assistantMessage.rawResponse || assistantMessage.content;
 
-          const effectiveToolFormat = conversationOverridesRef.current?.toolFormat ?? 'xml';
+          const effectiveToolFormat =
+            conversationOverridesRef.current?.toolFormat ?? DEFAULT_TOOL_FORMAT;
           parsed = parseAIResponse(contentToParse, effectiveToolFormat, feature);
 
           // Attach parsed data to assistantMessage
@@ -938,6 +942,7 @@ export const useChatLLM = ({
           // Update the assistant message to error state
           assistantMessage.content = errorContent;
           assistantMessage.isError = true;
+          notifyDesktop('Phantoma', `Failed to parse AI response: ${errorDetails}`);
 
           // 📊 Create parseDebugInfo for parse errors
           assistantMessage.parseDebugInfo = {
@@ -979,42 +984,22 @@ export const useChatLLM = ({
           conversationOverridesRef.current,
         );
 
-        // ─── SUB-AGENT FORMAT REMINDER ───────────────────────────────────────
-        // Sub-agents have no markdown/question/code UI: a response without any
-        // tool call (incl. send_message) would stall the chat. Auto-send the reminder.
-        if (isReminderSubAgent(workflowAgentId)) {
-          const noActionTaken =
-            hasParsingError || !!parsed?.onlyThinkingDetected || !parsed?.actions?.length;
-          if (!noActionTaken) {
-            subAgentReminderCountRef.current = 0;
-          } else if (subAgentReminderCountRef.current < MAX_SUB_AGENT_FORMAT_REMINDER) {
-            subAgentReminderCountRef.current += 1;
-            console.warn(
-              `[DEBUG][SubAgentReminder] ${workflowAgentId}: no tool call → reminder ${subAgentReminderCountRef.current}/${MAX_SUB_AGENT_FORMAT_REMINDER}`,
-            );
-            return sendMessage(
-              buildSubAgentFormatReminder(
-                workflowAgentId as string,
-                conversationOverridesRef.current?.toolFormat ?? 'xml',
-              ),
-              undefined,
-              undefined,
-              undefined,
-              true,
-              undefined,
-              true,
-            );
-          } else {
-            subAgentReminderCountRef.current = 0;
-          }
+        if (
+          !hasParsingError &&
+          parsed &&
+          parsed.actions.length === 0 &&
+          !parsed.onlyThinkingDetected &&
+          !(assistantMessage.rawResponse || assistantMessage.content || '').trim()
+        ) {
+          notifyDesktop('Phantoma', 'AI returned empty response.');
         }
-        // ─────────────────────────────────────────────────────────────────────
 
         // 🚨 DETECT ONLY-THINKING RESPONSE
         if (!hasParsingError && parsed && parsed.onlyThinkingDetected) {
           console.warn(
             '[Phantoma][sendMessage] ⚠️ Only-thinking response detected - skipping tool execution',
           );
+          notifyDesktop('Phantoma', 'AI returned only thinking section, no response content.');
           onTurnCompleteRef.current?.();
           return;
         }
@@ -1053,6 +1038,10 @@ export const useChatLLM = ({
               `[DEBUG][NoTagRetry] Retry limit reached (${MAX_NO_TAG_RETRY}) → giving up, keeping response as-is`,
             );
             noTagRetryCountRef.current = 0;
+            notifyDesktop(
+              'Phantoma',
+              'AI failed to use correct tool format after multiple retries.',
+            );
           }
         }
         // ─────────────────────────────────────────────────────────────────────
@@ -1077,6 +1066,12 @@ export const useChatLLM = ({
                 .map((a: any, i: number) => ({ ...a, _index: i }))
                 .filter((a: any) => !USER_CONFIRM_TOOLS.includes(a.type))
             : [];
+        if (
+          !hasParsingError &&
+          parsed?.actions?.some((a: any) => USER_CONFIRM_TOOLS.includes(a.type))
+        ) {
+          notifyDesktop('Phantoma', 'Confirmation (Accept) required to continue.');
+        }
         if (!hasParsingError && parsed && onToolRequest && autoActions.length > 0) {
           onToolRequest(autoActions, assistantMessage, false, TOOL_ACTION_TYPES.ACCEPT);
         } else {
@@ -1095,6 +1090,10 @@ export const useChatLLM = ({
         }
 
         // Fallback: notify turn complete on unexpected errors
+        notifyDesktop(
+          'Phantoma',
+          `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
         onTurnCompleteRef.current?.();
 
         console.error('[Zen sendMessage] error:', error);

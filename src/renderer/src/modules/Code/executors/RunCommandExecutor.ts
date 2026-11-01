@@ -1,5 +1,5 @@
 import { CodeController } from '../CodeController';
-import { RunCommandParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+import type { RunCommandParams } from '../types/tool-params';
 
 export const executeRunCommand = async (
   params: RunCommandParams,

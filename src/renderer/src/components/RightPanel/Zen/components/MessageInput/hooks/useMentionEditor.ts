@@ -4,6 +4,9 @@ import {
   getMentionContext,
   insertBadgeAt,
   insertBadgesAtCaret,
+  placeCaretAtEnd,
+  readDraggedItems,
+  ZEN_MENTION_DROP_EVENT,
   removeMentionBadge,
 } from '../mentionEditor';
 import type { MentionContext, MentionItem } from '../mentionEditor';
@@ -75,6 +78,55 @@ export const useMentionEditor = (
       root.removeEventListener('keydown', onKeyDown);
     };
   }, [editorRef, onContentChange]);
+
+  const toRelativeItem = React.useCallback(
+    (item: MentionItem): MentionItem => {
+      const base = rootPath ? rootPath.replace(/\/+$/, '') + '/' : null;
+      return base && item.path.startsWith(base)
+        ? { ...item, path: item.path.slice(base.length) }
+        : item;
+    },
+    [rootPath],
+  );
+
+  const addItems = React.useCallback(
+    (dropped: MentionItem[]) => {
+      const root = editorRef.current;
+      if (!root || dropped.length === 0) return;
+      const inserted = insertBadgesAtCaret(root, dropped.map(toRelativeItem));
+      if (inserted.length > 0) undoStackRef.current.push(inserted);
+      onContentChange();
+    },
+    [editorRef, onContentChange, toRelativeItem],
+  );
+
+  const handleDropMention = React.useCallback(
+    (e: React.DragEvent): boolean => {
+      const root = editorRef.current;
+      const dropped = readDraggedItems(e.dataTransfer);
+      if (!root || dropped.length === 0) return false;
+      e.preventDefault();
+      e.stopPropagation();
+      root.focus();
+      placeCaretAtEnd(root);
+      addItems(dropped);
+      return true;
+    },
+    [editorRef, addItems],
+  );
+
+
+  React.useEffect(() => {
+    const root = editorRef.current;
+    if (!root) return;
+    const handler = (event: Event) => {
+      root.focus();
+      placeCaretAtEnd(root);
+      addItems((event as CustomEvent<MentionItem[]>).detail);
+    };
+    root.addEventListener(ZEN_MENTION_DROP_EVENT, handler);
+    return () => root.removeEventListener(ZEN_MENTION_DROP_EVENT, handler);
+  }, [editorRef, addItems]);
 
   React.useEffect(() => {
     fetchedRef.current = false;
@@ -150,5 +202,6 @@ export const useMentionEditor = (
     updateFromSelection,
     closePopup,
     selectItem,
+    handleDropMention,
   };
 };

@@ -1,13 +1,9 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
+import type { WriteToFileParams } from '../types/tool-params';
 
 // Enable debug logs via localStorage
 const DEBUG_PARSER =
   typeof window !== 'undefined' && window.localStorage?.getItem('zen_debug_parser') === 'true';
-
-export interface WriteToFileParams {
-  file_path: string;
-  content: string;
-}
 
 export const parseWriteToFile = (innerContent: string): WriteToFileParams => {
   // Parse according to tools-reference.ts schema: file_path only

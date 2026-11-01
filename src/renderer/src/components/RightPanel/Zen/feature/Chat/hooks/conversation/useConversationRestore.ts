@@ -21,10 +21,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 // ── Types ──
 import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
+import type { ToolFormatId } from '../../services/tool-formats/types';
 
 // ── Services ──
-import { ConversationCache } from '../../services/ConversationCache';
-import { deleteConversation, getModuleIdFromContext } from '../../services/ConversationService';
+import { ConversationCache } from '../../services/conversationCache';
+import { deleteConversation, getModuleIdFromContext } from '../../services/conversationService';
 import { ConversationService as NewConversationService } from '@renderer/components/RightPanel/Zen/services/ConversationService';
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
@@ -56,7 +57,7 @@ interface UseConversationRestoreProps {
   onRestoreOverrides?: (overrides: {
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
-    toolFormat?: 'xml' | 'json';
+    toolFormat?: ToolFormatId;
   }) => void;
 }
 

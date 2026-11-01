@@ -19,7 +19,7 @@ import { ChatSession } from '../../types/chat';
 
 // ── Services ──
 import { extensionService } from '../../../../services/ExtensionService';
-import { saveConversation } from '../../services/ConversationService';
+import { saveConversation } from '../../services/conversationService';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface UseMessageHandlersProps {

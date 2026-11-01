@@ -1,4 +1,4 @@
-import type { SystemPromptMode, ToolFormat } from "../code/mode-config";
+import type { SystemPromptMode, ToolFormat } from "./types";
 
 export const buildExecutorIdentity = (
   language: string,

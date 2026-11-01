@@ -77,11 +77,6 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
 
 type ReactChild = React.ReactNode;
 
-// Helper to extract filename from path
-const getFilename = (path: string): string => {
-  return path.split(/[/\\]/).pop() || path;
-};
-
 // Helper to shorten path for display: folder/.../file
 const shortenPath = (fullPath: string, maxLength: number = 50): string => {
   if (fullPath.length <= maxLength) {
@@ -124,6 +119,11 @@ const isFilePath = (text: string): boolean => {
   return (text.includes('/') || text.includes('\\')) && /\.[a-zA-Z0-9]{1,10}$/.test(text);
 };
 
+// Helper to extract filename from path
+const getFilename = (path: string): string => {
+  return path.split('/').pop() || path.split('\\').pop() || path;
+};
+
 const escapeRegExp = (text: string): string => {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
@@ -139,9 +139,7 @@ const domNodeToReact = (
     const text = node.textContent || '';
     if (highlightText && highlightText.trim()) {
       const pattern =
-        highlightMode === 'regex'
-          ? `(${highlightText})`
-          : `(${escapeRegExp(highlightText)})`;
+        highlightMode === 'regex' ? `(${highlightText})` : `(${escapeRegExp(highlightText)})`;
       const flags = highlightMode === 'case' ? 'g' : 'gi';
 
       let regex: RegExp;

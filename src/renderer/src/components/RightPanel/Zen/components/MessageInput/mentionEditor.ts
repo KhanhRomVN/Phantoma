@@ -316,3 +316,24 @@ export const insertBadgeAt = (
   selection?.removeAllRanges();
   selection?.addRange(range);
 };
+
+
+export const MENTION_DRAG_TYPE = 'application/x-phantoma-mention';
+export const ZEN_MENTION_DROP_EVENT = 'zen-mention-drop';
+
+export const readDraggedItems = (dataTransfer: DataTransfer): MentionItem[] => {
+  try {
+    const payload = JSON.parse(dataTransfer.getData('application/json'));
+    if (payload?.type === 'phantoma-batch' && Array.isArray(payload.items)) {
+      return payload.items
+        .filter((i: any) => i?.filePath)
+        .map((i: any) => ({ path: i.filePath, type: i.isFolder ? 'folder' : 'file' }));
+    }
+    if (!payload?.filePath) return [];
+    if (payload.type === 'phantoma-file') return [{ path: payload.filePath, type: 'file' }];
+    if (payload.type === 'phantoma-folder') return [{ path: payload.filePath, type: 'folder' }];
+  } catch {
+    return [];
+  }
+  return [];
+};

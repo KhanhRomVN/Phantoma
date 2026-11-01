@@ -1,11 +1,6 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
 
-export interface ListFilesParams {
-  folder_path: string;
-  type?: string;
-  depth?: number | 'max';
-}
-
+import type { ListFilesParams } from '../types/tool-params';
 export const parseListFiles = (innerContent: string): ListFilesParams => {
   // Parse according to tools-reference.ts schema: folder_path only
   const folderPath = extractParamValue(innerContent, 'folder_path');

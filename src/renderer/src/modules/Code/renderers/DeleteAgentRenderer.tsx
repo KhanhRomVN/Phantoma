@@ -3,7 +3,7 @@ import React from 'react';
 import { cn } from '@renderer/shared/utils/cn';
 
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 import type { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
@@ -46,7 +46,9 @@ const DeleteAgentRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-1.5 text-xs text-text-primary cursor-default">
-            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('delete_agent', moduleId)}</span>
+            <span className="font-semibold opacity-80 shrink-0">
+              {getToolLabel('delete_agent', moduleId)}
+            </span>
             <span className="opacity-40 shrink-0">·</span>
             <span className="font-semibold shrink-0" style={{ color: target?.color }}>
               {targetName}

@@ -1,5 +1,5 @@
-import type { WorkflowAgentPromptConfig } from "../code/mode-config";
-import { joinSections } from "../code/mode-config";
+import type { WorkflowAgentPromptConfig } from "./types";
+import { joinSections } from "./types";
 import { buildOrchestratorToolValidation } from "./tool-validation";
 import { buildOrchestratorToolsReference } from "./tools-reference";
 import { buildOrchestratorExample } from "./example";
@@ -52,36 +52,36 @@ export const buildOrchestratorPrompt = (
   const context = buildOrchestratorSystemContext(systemInfo);
 
   if (promptLengthMode === "short") {
-    return joinSections([
+    return joinSections(
       identity,
       workflow,
       tools,
       buildOrchestratorCoreConstraints(language, toolFormat),
-      context,
-    ]);
+      context
+    );
   }
 
   const validation = buildOrchestratorToolValidation(toolFormat);
   const constraints = buildOrchestratorConstraints(mode, language, toolFormat);
 
   if (promptLengthMode === "medium") {
-    return joinSections([
+    return joinSections(
       identity,
       workflow,
       validation,
       tools,
       constraints,
-      context,
-    ]);
+      context
+    );
   }
 
-  return joinSections([
+  return joinSections(
     identity,
     workflow,
     validation,
     tools,
     buildOrchestratorExample(toolFormat, mode),
     constraints,
-    context,
-  ]);
+    context
+  );
 };

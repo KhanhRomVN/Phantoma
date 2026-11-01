@@ -1,7 +1,16 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronDown, Replace, Folder, X } from 'lucide-react';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+} from '@renderer/components/ui/Dropdown';
+import { Kbd } from '@renderer/components/ui/Kbd';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { cn } from '@renderer/shared/utils/cn';
+import { useCodeStore } from '../../../hooks/useCodeStore';
 import type { FileResult } from './useSearch';
 
 const MAX_MATCHES_PER_FILE = 200;
@@ -141,16 +150,57 @@ const FileGroup = memo(function FileGroup({
   const dir = slash >= 0 ? rel.slice(0, slash) : '';
   const shown = result.matches.slice(0, MAX_MATCHES_PER_FILE);
   const hidden = result.matches.length - shown.length;
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const copyText = (text: string) => {
+    navigator.clipboard.writeText(text).catch(() => {});
+  };
+
+  const lastCKeyTimeRef = useRef(0);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key.toLowerCase() !== 'c' || e.metaKey) return;
+    if (e.ctrlKey && e.altKey) {
+      e.preventDefault();
+      copyText(result.file);
+      return;
+    }
+    if (e.ctrlKey || e.altKey) return;
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastCKeyTimeRef.current < 300) {
+      lastCKeyTimeRef.current = 0;
+      copyText(rel);
+    } else {
+      lastCKeyTimeRef.current = now;
+    }
+  };
+
+  const handleOpenFile = () => {
+    const { activeWorkspaceSessionId, requestOpenFile } = useCodeStore.getState();
+    if (activeWorkspaceSessionId) requestOpenFile(activeWorkspaceSessionId, result.file, fileName);
+  };
+
+  const handleOpenFolder = async () => {
+    try {
+      await window.api.invoke('shell:open-path', result.file.substring(0, result.file.lastIndexOf('/')));
+    } catch (err) {
+      console.error('[Search] Failed to open folder:', err);
+    }
+  };
 
   return (
     <div>
+      <Dropdown open={menuOpen} onOpenChange={setMenuOpen} trigger="contextmenu" className="w-full">
+        <DropdownTrigger asChild>
       <div
         className="group flex items-center gap-1 pr-1.5 rounded hover:bg-card-hover transition-colors"
         style={{ paddingLeft: indent }}
       >
         <button
           onClick={() => onToggle(result.file, !isOpen)}
-          className="flex-1 min-w-0 flex items-center gap-1.5 py-1 text-left"
+          onKeyDown={handleKeyDown}
+          className="flex-1 min-w-0 flex items-center gap-1.5 py-1 text-left outline-none focus:outline-none focus-visible:outline-none"
           title={rel}
         >
           {isOpen ? (
@@ -197,6 +247,32 @@ const FileGroup = memo(function FileGroup({
           {result.matches.length}
         </span>
       </div>
+        </DropdownTrigger>
+        <DropdownContent className="min-w-[200px]" size="sm">
+          <DropdownItem onClick={handleOpenFile}>Open File</DropdownItem>
+          <DropdownItem onClick={handleOpenFolder}>Open Folder</DropdownItem>
+          <DropdownSeparator />
+          <DropdownItem onClick={() => copyText(result.file)}>
+            <span className="flex items-center justify-between w-full gap-4">
+              <span>Copy Path</span>
+              <Kbd>Ctrl+Alt+C</Kbd>
+            </span>
+          </DropdownItem>
+          <DropdownItem onClick={() => copyText(rel)}>
+            <span className="flex items-center justify-between w-full gap-4">
+              <span>Copy Relative Path</span>
+              <Kbd>C+C</Kbd>
+            </span>
+          </DropdownItem>
+          <DropdownSeparator />
+          {canReplace && (
+            <DropdownItem onClick={() => onReplaceFile(result.file)}>Replace in File</DropdownItem>
+          )}
+          <DropdownItem onClick={() => onDismiss(result.file)} variant="error">
+            Dismiss
+          </DropdownItem>
+        </DropdownContent>
+      </Dropdown>
 
       {isOpen && (
         <div>

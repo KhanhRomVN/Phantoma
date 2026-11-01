@@ -2,7 +2,7 @@
  * ------------------------------------------------------------------
  * useToolFormatSettings
  * ------------------------------------------------------------------
- * Quản lý toolFormat ('xml' | 'json') per (providerId, modelId).
+ * Quản lý toolFormat ('xml' | 'json' | 'dsml') per (providerId, modelId).
  *
  * Mặc định là 'json'.
  * Lưu vào localStorage với key:
@@ -20,11 +20,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 const storageKey = (providerId: string, modelId: string) =>
   `zen_tool_format__${providerId}__${modelId}`;
 
-const loadToolFormat = (providerId: string, modelId: string): 'xml' | 'json' => {
+const loadToolFormat = (providerId: string, modelId: string): 'xml' | 'json' | 'dsml' => {
   try {
     const key = storageKey(providerId, modelId);
     const raw = localStorage.getItem(key);
-    const result: 'xml' | 'json' = raw === 'xml' ? 'xml' : 'json';
+    const result: 'xml' | 'json' | 'dsml' = raw === 'xml' || raw === 'dsml' ? raw : 'json';
     return result;
   } catch (e) {
     console.warn('[ToolFormat] load failed:', e);
@@ -32,7 +32,7 @@ const loadToolFormat = (providerId: string, modelId: string): 'xml' | 'json' => 
   return 'json';
 };
 
-const saveToolFormat = (providerId: string, modelId: string, format: 'xml' | 'json') => {
+const saveToolFormat = (providerId: string, modelId: string, format: 'xml' | 'json' | 'dsml') => {
   try {
     const key = storageKey(providerId, modelId);
     localStorage.setItem(key, format);
@@ -66,7 +66,7 @@ export function useToolFormatSettings(
   const modelId = rawModelId ? splitModelAndEffort(rawModelId).base : rawModelId;
 
   // Khởi tạo từ preset của model (nếu có) hoặc default 'xml'
-  const [toolFormat, setToolFormatState] = useState<'xml' | 'json'>(() => {
+  const [toolFormat, setToolFormatState] = useState<'xml' | 'json' | 'dsml'>(() => {
     if (providerId && modelId) {
       return loadToolFormat(providerId, modelId);
     }
@@ -94,7 +94,7 @@ export function useToolFormatSettings(
 
   // Setter: lưu per-model
   const setToolFormat = useCallback(
-    (format: 'xml' | 'json') => {
+    (format: 'xml' | 'json' | 'dsml') => {
       setToolFormatState(format);
       if (providerId && modelId) {
         saveToolFormat(providerId, modelId, format);
@@ -108,10 +108,12 @@ export function useToolFormatSettings(
   );
 
   // Toggle helper
-  const toggleToolFormat = useCallback(() => {
-    const next = toolFormat === 'xml' ? 'json' : 'xml';
-    setToolFormat(next);
-  }, [toolFormat, setToolFormat]);
+  const toggleToolFormat = useCallback(
+    (format?: 'xml' | 'json' | 'dsml') => {
+      setToolFormat(format ?? (toolFormat === 'xml' ? 'json' : 'xml'));
+    },
+    [toolFormat, setToolFormat],
+  );
 
   return {
     toolFormat,

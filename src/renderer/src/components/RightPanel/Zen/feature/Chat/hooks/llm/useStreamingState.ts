@@ -2,13 +2,12 @@
  * ------------------------------------------------------------------
  * useStreamingState
  * ------------------------------------------------------------------
- * Reducer quản lý trạng thái streaming (processing/streaming/continuing)
- * gộp chung để giảm re-render.
+ * Reducer managing streaming state (processing/streaming/continuing)
+ * combined to reduce re-renders.
  *
- * Main exports:
- * - StreamingState     : Interface trạng thái streaming
- * - useStreamingState  : Hook quản lý streaming state
- * ------------------------------------------------------------------
+ * Main features:
+ * - StreamingState     : Streaming state interface
+ * - useStreamingState  : Hook managing streaming state
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────

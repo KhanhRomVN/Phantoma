@@ -14,30 +14,28 @@
 
 import type { Message } from '../types/message';
 import type { RevertFileEntry, RevertGroupKey } from '../types/revert';
-import { parseAIResponse } from '../services/ResponseParser';
-
-/** Các tool làm thay đổi file trên disk — map sang actionType chuẩn cho preview. */
-const FILE_MUTATING_TOOLS = new Set([
-  'write_to_file',
-  'create_file',
-  'replace_in_file',
-  'delete_file',
-  'rename_file',
-  'move_file',
-]);
+import { parseAIResponse } from '../services/responseParser';
+import { FILE_MUTATING_TOOLS } from '@renderer/modules/Code/constants/file-mutating-tools';
+import { checkToolMutation } from './tool-mutation-registry';
 
 /**
  * Phân loại một action thành nhóm revert.
- * - delete_file → restore (file sẽ được khôi phục lại)
- * - write_to_file / create_file → remove (file mới tạo sẽ bị xóa)
- * - còn lại → undo (file bị sửa sẽ được revert)
+ * Delegate to module-specific mutation checker.
  */
 export function classifyFile(entry: RevertFileEntry): RevertGroupKey {
-  if (entry.actionType === 'delete_file') return 'restore';
-  if (entry.actionType === 'write_to_file' || entry.actionType === 'create_file') {
-    return 'remove';
+  const mutation = checkToolMutation({ type: entry.actionType, params: {} });
+  
+  if (!mutation.mutates) return 'undo';
+  
+  switch (mutation.mutationType) {
+    case 'delete':
+      return 'restore';
+    case 'create':
+      return 'remove';
+    case 'modify':
+    default:
+      return 'undo';
   }
-  return 'undo';
 }
 
 /**

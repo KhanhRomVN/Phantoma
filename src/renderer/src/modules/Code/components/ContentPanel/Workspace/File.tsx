@@ -1,6 +1,7 @@
 import { memo, useEffect, useState } from 'react';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import { useCodeStore } from '../../../hooks/useCodeStore';
+import { FileBreadcrumb } from './FileBreadcrumb';
 
 interface CodeFileProps {
   filePath?: string;
@@ -31,25 +32,30 @@ export const CodeFile = memo(function CodeFile({ filePath, fileId }: CodeFilePro
     };
   }, [filePath]);
 
-  if (code === null) {
-    return (
-      <div className="flex-1 h-full flex items-center justify-center text-text-secondary/40 text-sm">
+  const body =
+    code === null ? (
+      <div className="flex-1 min-h-0 flex items-center justify-center text-text-secondary/40 text-sm">
         Loading...
       </div>
+    ) : (
+      <div className="flex-1 min-h-0">
+        <CodeBlock
+          code={code}
+          language={filePath?.split('.').pop()}
+          filePath={filePath}
+          fileId={fileId}
+          showLineNumbers
+          hideDiagnostics
+          revealPosition={reveal}
+          onRevealed={clearFileReveal}
+        />
+      </div>
     );
-  }
 
   return (
-    <div className="flex-1 h-full min-h-0">
-      <CodeBlock
-        code={code}
-        language={filePath?.split('.').pop()}
-        filePath={filePath}
-        fileId={fileId}
-        showLineNumbers
-        revealPosition={reveal}
-        onRevealed={clearFileReveal}
-      />
+    <div className="flex-1 h-full min-h-0 flex flex-col">
+      {filePath && <FileBreadcrumb filePath={filePath} />}
+      {body}
     </div>
   );
 });

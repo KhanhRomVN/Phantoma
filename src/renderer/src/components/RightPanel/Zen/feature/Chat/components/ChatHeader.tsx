@@ -64,63 +64,9 @@ const fmt = (num: number): string => {
   return num.toString();
 };
 
-const parseUserContent = (content: string): string => {
-  const regex = /## User Message\n<user-message>\n([\s\S]*?)\n<\/user-message>/;
-  const match = content.match(regex);
-  if (match) return match[1];
+import { extractFirstUserMessage } from '../utils/message-filters';
 
-  let cleaned = content
-    .replace(/^<user-message>\n?/, '')
-    .replace(/\n?<\/user-message>[\s\S]*$/, '');
-
-  if (cleaned.startsWith('```') && cleaned.includes('```', 3)) {
-    cleaned = cleaned.split('```')[1]?.trim() || cleaned;
-  }
-  return cleaned || '';
-};
-
-const extractFirstUserMessage = (messages: Message[] | undefined): string => {
-  if (!messages || !messages.length) return '';
-  const firstUserMsg = messages.find((msg) => msg.role === 'user');
-  if (!firstUserMsg) return '';
-
-  const rawContent = typeof firstUserMsg.content === 'string' ? firstUserMsg.content : '';
-  const parsed = parseUserContent(rawContent).trim();
-  const lines = parsed.split('\n').filter((l) => l.trim());
-  const titleCandidate = lines[0] || parsed.substring(0, 60);
-
-  return titleCandidate.length > 60 ? titleCandidate.substring(0, 57) + '...' : titleCandidate;
-};
-
-const getFaviconUrl = (providerId: string, fallback?: string): string => {
-  if (fallback) return fallback;
-  const pid = (providerId || '').toLowerCase();
-  const domain = (() => {
-    if (pid.includes('openai') || pid.includes('chatgpt') || pid.includes('gpt')) return 'openai.com';
-    if (pid.includes('anthropic') || pid.includes('claude')) return 'anthropic.com';
-    if (pid.includes('google') || pid.includes('gemini')) return 'google.com';
-    if (pid.includes('openrouter')) return 'openrouter.ai';
-    if (pid.includes('deepseek')) return 'deepseek.com';
-    if (pid.includes('grok') || pid.includes('xai') || pid.includes('x.ai')) return 'x.ai';
-    if (pid.includes('zenmux')) return 'zenmux.ai';
-    if (pid.includes('moonshot') || pid.includes('kimi')) return 'moonshot.cn';
-    if (pid.includes('qwen') || pid.includes('alibaba') || pid.includes('aliyun') || pid.includes('dashscope')) return 'qwen.ai';
-    if (pid.includes('groq')) return 'groq.com';
-    if (pid.includes('mistral')) return 'mistral.ai';
-    if (pid.includes('glm') || pid.includes('zai') || pid.includes('z-ai') || pid.includes('zhipu') || pid.includes('bigmodel')) return 'bigmodel.cn';
-    if (pid.includes('cohere')) return 'cohere.com';
-    if (pid.includes('perplexity')) return 'perplexity.ai';
-    if (pid.includes('together')) return 'together.ai';
-    if (pid.includes('fireworks')) return 'fireworks.ai';
-    if (pid.includes('meta') || pid.includes('llama')) return 'meta.com';
-    if (pid.includes('siliconflow')) return 'siliconflow.cn';
-    if (pid.includes('baichuan')) return 'baichuan-ai.com';
-    if (pid.includes('minimax')) return 'minimaxi.com';
-    if (pid.includes('01wanwu') || pid.includes('yi-')) return '01.ai';
-    return `${pid}.com`;
-  })();
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-};
+import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
 // ─── Sub-components ─────────────────────────────────────────────────────
 const SqButton: React.FC<{
@@ -406,8 +352,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onOpenSubView,
   onGoHome,
 }) => {
-  const providerId = displayedModel?.providerId || '';
-  const faviconUrl = getFaviconUrl(providerId, displayedModel?.favicon);
+  const websiteUrl = displayedModel?.website_url;
+  const faviconUrl = getFaviconUrl(websiteUrl, displayedModel?.favicon);
 
   const workflowSync = useWorkflowAgentSync();
   const handleGoHome = () => {
@@ -490,14 +436,33 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
         {/* Row 2: favicon · provider/model · email · stats */}
         <div className="flex items-center gap-1.5 min-w-0">
-          <img
-            src={faviconUrl}
-            alt="provider"
-            className="w-3.5 h-3.5 rounded-[2px] object-contain shrink-0"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
+          {faviconUrl ? (
+            <img
+              src={faviconUrl}
+              alt="provider"
+              className="w-3.5 h-3.5 rounded-[2px] object-contain shrink-0"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0 opacity-60"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4" />
+              <path d="M12 8h.01" />
+            </svg>
+          )}
 
           <span className="text-[11px] font-semibold text-text-primary whitespace-nowrap opacity-85 shrink-0">
             {displayedModel?.providerId || '?'}/{displayedModel?.id || 'chat'}

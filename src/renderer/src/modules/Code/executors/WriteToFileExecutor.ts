@@ -1,5 +1,5 @@
 import { CodeController } from '../CodeController';
-import { WriteToFileParams } from '../parsers/WriteToFileParser';
+import type { WriteToFileParams } from '../types/tool-params';
 
 export async function executeWriteToFile(
   params: WriteToFileParams,

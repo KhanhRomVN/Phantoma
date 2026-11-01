@@ -1,5 +1,5 @@
 import { CodeController } from '../CodeController';
-import { DeleteFileParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+import type { DeleteFileParams } from '../types/tool-params';
 
 export const executeDeleteFile = async (params: DeleteFileParams): Promise<string | null> => {
   const filePath = params.file_path;

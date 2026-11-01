@@ -21,20 +21,24 @@ import { cn } from '@renderer/shared/utils/cn';
 import {
   EXECUTION_STATUS,
   TOOL_ACTION_TYPES,
-  TERMINAL_STATUS,
   type TerminalStatus,
 } from '../../../constants/tag-registry';
 
 // ── Types ──
 import { Message } from '../../../types/message';
-import { ParsedResponse } from '../../../services/ResponseParser';
+import { isUserMessage } from '../../../utils/message-filters';
+import { ParsedResponse } from '../../../services/responseParser';
 import { GroupType } from '../../../types/renderer-types';
+
+// ── Utils ──
+import { checkToolMutation } from '../../../utils/tool-mutation-registry';
 
 // ── Utils ──
 import {
   buildDangerousCommandMap,
   type DangerousCommandInfo,
 } from '../../../utils/dangerousCommandDetector';
+import { isToolBusy } from '../../../utils/tool-status-registry';
 
 // ── Components ──
 import TagRouter from './TagRouter';
@@ -135,7 +139,6 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
   onRejectDangerousAction,
   feature,
 }) => {
-  // Detect dangerous run_command actions trong message này (regex trên command text)
   const dangerousCommands = React.useMemo<Record<string, DangerousCommandInfo>>(() => {
     if (!parsedContent?.actions?.length) return {};
     return buildDangerousCommandMap(message.id, parsedContent.actions);
@@ -193,7 +196,7 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
     let result: Message | null = null;
     if (msgIndex > 0) {
       for (let i = msgIndex - 1; i >= 0; i--) {
-        if (allMessages[i].role === 'user') {
+        if (isUserMessage(allMessages[i])) {
           result = allMessages[i];
           break;
         }
@@ -499,17 +502,23 @@ const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
               const hasHistoryOutput =
                 !!nextUserMessage || !!allMessages?.some((m) => m.actionIds?.includes(actionId));
               if (!isClicked && !hasOutput && !hasHistoryOutput) {
-                const isWriteTool =
-                  item.action.type === 'write_to_file' || item.action.type === 'replace_in_file';
-                if (isWriteTool) return false;
+                const mutation = checkToolMutation(item.action);
+                // File mutation tools (create/modify) should not be blocked before execution
+                if (mutation.mutates && mutation.mutationType !== 'delete') return false;
                 return true;
               }
-              if (item.action.type === 'run_command' && !hasHistoryOutput) {
-                const outputData = toolOutputs?.[actionId];
-                const terminalId =
-                  (outputData as any)?.terminalId || item.action.params.terminal_id;
-                if (terminalId && terminalStatus?.[terminalId] === TERMINAL_STATUS.BUSY)
-                  return true;
+              // Check if tool is busy using module-specific checker
+              if (
+                isToolBusy({
+                  actionId,
+                  action: item.action,
+                  hasOutput: !!hasOutput,
+                  hasHistoryOutput,
+                  toolOutputs,
+                  terminalStatus,
+                })
+              ) {
+                return true;
               }
               return false;
             });

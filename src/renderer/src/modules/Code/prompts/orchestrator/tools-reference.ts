@@ -1,4 +1,4 @@
-import type { ToolFormat } from "../code/mode-config";
+import type { ToolFormat } from "./types";
 
 export type OrchestratorToolName =
   | "conversation_title"

@@ -1,4 +1,4 @@
-import type { ToolFormat } from "../code/mode-config";
+import type { ToolFormat } from "./types";
 import { callText, tick } from "./tools-reference";
 
 export const buildPlannerMessaging = (toolFormat: ToolFormat = "xml"): string => {

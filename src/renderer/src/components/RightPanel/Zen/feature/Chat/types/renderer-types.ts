@@ -20,7 +20,7 @@
 import { TOOL_ACTION_TYPES } from '../constants/tag-registry';
 
 // ── Services ──
-import { ToolAction } from '../services/ResponseParser';
+import { ToolAction } from '../services/responseParser';
 
 // ── Types ──
 import { Message, Question } from './message';

@@ -1,4 +1,4 @@
-import type { SystemInfo } from "../code/system-context";
+import type { SystemInfo } from "./types";
 import { HANDOFF_AGENT, HANDOFF_TOOL } from "./tools-reference";
 
 export const buildTesterSystemContext = (info: SystemInfo): string => {

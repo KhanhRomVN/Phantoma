@@ -20,7 +20,11 @@ import MessageInput from '../../../components/MessageInput';
 
 // ── Types ──
 import { type FileMutationTool } from '../constants/tag-registry';
+import { isUserMessage, isAssistantMessage, isManualUserMessage } from '../utils/message-filters';
 import type { WorkflowAgentId } from '../types/workflow-agents';
+
+// ── Utils ──
+import { extractRawContentDiff } from '../utils/tool-mutation-registry';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ChatFooterProps {
@@ -142,7 +146,7 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
 }) => {
   // Calculate response range - count all assistant responses in the conversation
   const responseRange = React.useMemo(() => {
-    const assistantResponses = messages.filter((m: any) => m.role === 'assistant');
+    const assistantResponses = messages.filter(isAssistantMessage);
     const totalResponses = assistantResponses.length;
     if (totalResponses === 0) return null;
     return { start: 1, end: totalResponses };
@@ -173,12 +177,12 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
     let assistantCount = 0;
 
     messages.forEach((msg: any) => {
-      if (msg.role === 'assistant') {
+      if (isAssistantMessage(msg)) {
         assistantCount++;
       }
 
-      if (msg.role === 'user') {
-        const isManual = !msg.actionIds || msg.actionIds.length === 0;
+      if (isUserMessage(msg)) {
+        const isManual = isManualUserMessage(msg);
         if (isManual) {
           let rangeEnd = assistantCount;
 
@@ -213,52 +217,16 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
 
     messages.forEach((msg: any) => {
       if (msg.role === 'assistant' && msg.content) {
-        // Match write_to_file
-        const writeMatches = msg.content.matchAll(
-          /<write_to_file[^>]*?>[\s\S]*?<file_path[^>]*?>(.*?)<\/file_path>[\s\S]*?<content[^>]*?>([\s\S]*?)<\/content>[\s\S]*?<\/write_to_file>/gi,
-        );
-        for (const match of writeMatches) {
-          const filePath = match[1]?.trim();
-          const content = match[2] || '';
-          if (filePath) {
-            if (!fileChanges.has(filePath)) {
-              fileChanges.set(filePath, { additions: 0, deletions: 0 });
-            }
-            const stats = fileChanges.get(filePath)!;
-            stats.additions += content.split('\n').length;
+        // Delegate to module-specific raw content diff extractor
+        const extracted = extractRawContentDiff(msg.content);
+        extracted.forEach((stats: { additions: number; deletions: number }, filePath: string) => {
+          if (!fileChanges.has(filePath)) {
+            fileChanges.set(filePath, { additions: 0, deletions: 0 });
           }
-        }
-
-        // Match replace_in_file
-        const replaceMatches = msg.content.matchAll(
-          /<replace_in_file[^>]*?>[\s\S]*?<file_path[^>]*?>(.*?)<\/file_path>[\s\S]*?<old_content[^>]*?>([\s\S]*?)<\/old_content>[\s\S]*?<new_content[^>]*?>([\s\S]*?)<\/new_content>[\s\S]*?<\/replace_in_file>/gi,
-        );
-        for (const match of replaceMatches) {
-          const filePath = match[1]?.trim();
-          const oldContent = match[2] || '';
-          const newContent = match[3] || '';
-          if (filePath) {
-            if (!fileChanges.has(filePath)) {
-              fileChanges.set(filePath, { additions: 0, deletions: 0 });
-            }
-            const stats = fileChanges.get(filePath)!;
-            stats.deletions += oldContent.split('\n').length;
-            stats.additions += newContent.split('\n').length;
-          }
-        }
-
-        // Match revert_file and SUBTRACT
-        const revertMatches = msg.content.matchAll(
-          /<revert_file[^>]*?>[\s\S]*?<file_path[^>]*?>(.*?)<\/file_path>[\s\S]*?<\/revert_file>/gi,
-        );
-        for (const match of revertMatches) {
-          const filePath = match[1]?.trim();
-          if (filePath && fileChanges.has(filePath)) {
-            const stats = fileChanges.get(filePath)!;
-            stats.additions = 0;
-            stats.deletions = 0;
-          }
-        }
+          const existing = fileChanges.get(filePath)!;
+          existing.additions += stats.additions;
+          existing.deletions += stats.deletions;
+        });
       }
     });
 

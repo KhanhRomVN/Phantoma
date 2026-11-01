@@ -12,12 +12,8 @@ export type PromptLengthMode = 'none' | 'short' | 'medium' | 'long';
 interface PromptLengthDropdownProps {
   currentMode: PromptLengthMode;
   onSelect: (mode: PromptLengthMode) => void;
+  availableModes?: readonly string[];
   triggerButton: React.ReactNode;
-  /**
-   * Khi true, chỉ "None" được phép chọn — short/medium/long bị disabled.
-   * Dùng khi provider có anti-system-prompt-injection.
-   */
-  isNoneOnly?: boolean;
 }
 
 /**
@@ -122,8 +118,11 @@ const PromptLengthDropdown: React.FC<PromptLengthDropdownProps> = ({
   currentMode,
   onSelect,
   triggerButton,
-  isNoneOnly = false,
+  availableModes,
 }) => {
+  const visibleMetas = availableModes
+    ? PROMPT_LENGTH_MODE_META.filter((m) => availableModes.includes(m.key))
+    : PROMPT_LENGTH_MODE_META;
   const current =
     PROMPT_LENGTH_MODE_META.find((m) => m.key === currentMode) ?? PROMPT_LENGTH_MODE_META[3];
 
@@ -135,19 +134,12 @@ const PromptLengthDropdown: React.FC<PromptLengthDropdownProps> = ({
           .zen-pl-step .zen-pl-bar {
             transition: background 0.15s ease, box-shadow 0.15s ease;
           }
-          .zen-pl-step:not(.zen-pl-disabled):hover .zen-pl-bar {
+          .zen-pl-step:hover .zen-pl-bar {
             background: rgba(128, 128, 128, 0.4);
           }
         `}</style>
         <div className="p-[10px_12px_8px]">
           
-          {/* Banner khi isNoneOnly */}
-          {isNoneOnly && (
-            <div className="flex items-center gap-1.5 text-[10.5px] text-warn leading-snug mb-2.5 pb-2 border-b border-border/50">
-              <Ban size={11} className="shrink-0" />
-              <span>This provider injects its own prompt — only None is available.</span>
-            </div>
-          )}
 
           {/* Header: label + value pill */}
           <div className="flex items-center justify-between gap-2">
@@ -167,30 +159,22 @@ const PromptLengthDropdown: React.FC<PromptLengthDropdownProps> = ({
 
           {/* Step-bar */}
           <div className="flex items-end gap-2 h-[34px] mt-3 px-0.5">
-            {PROMPT_LENGTH_MODE_META.map((meta) => {
+            {visibleMetas.map((meta) => {
               const isSelected = currentMode === meta.key;
-              const isDisabled = isNoneOnly && !meta.isNoPrompt;
 
               return (
                 <div
                   key={meta.key}
-                  className={`zen-pl-step flex-1 flex flex-col items-center gap-1.5 cursor-pointer transition-opacity ${isSelected ? 'zen-pl-selected' : ''} ${isDisabled ? 'zen-pl-disabled opacity-30 cursor-not-allowed' : ''}`}
-                  onClick={() => {
-
-                    if (!isDisabled) onSelect(meta.key);
-                  }}
-                  title={
-                    isDisabled
-                      ? "Unavailable — provider uses its own system prompt"
-                      : meta.desc
-                  }
+                  className={`zen-pl-step flex-1 flex flex-col items-center gap-1.5 cursor-pointer transition-opacity ${isSelected ? 'zen-pl-selected' : ''}`}
+                  onClick={() => onSelect(meta.key)}
+                  title={meta.desc}
                 >
                   <div
                     className="zen-pl-bar w-full rounded-t-[3px] rounded-b-[1px] bg-gray-500/20"
                     style={{
                       height: `${meta.barHeight}px`,
-                      background: isSelected && !isDisabled ? meta.color : undefined,
-                      boxShadow: isSelected && !isDisabled
+                      background: isSelected ? meta.color : undefined,
+                      boxShadow: isSelected
                         ? `0 0 0 1px color-mix(in srgb, ${meta.color} 50%, transparent)`
                         : undefined,
                     }}
@@ -198,7 +182,7 @@ const PromptLengthDropdown: React.FC<PromptLengthDropdownProps> = ({
                   <span
                     className="text-[9.5px] font-semibold leading-none text-text-secondary"
                     style={{
-                      color: isSelected && !isDisabled ? meta.color : undefined,
+                      color: isSelected ? meta.color : undefined,
                     }}
                   >
                     {meta.shortLabel}

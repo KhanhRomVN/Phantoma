@@ -1,4 +1,5 @@
 import React from 'react';
+import { IPC_COMMANDS } from '../../constants/commands';
 /**
  * ------------------------------------------------------------------
  * UserMessageBox
@@ -308,7 +309,7 @@ const UserMessageBox: React.FC<UserMessageBoxProps> = ({
               const vscodeApi = (window as any).vscodeApi;
               if (vscodeApi) {
                 vscodeApi.postMessage({
-                  command: 'openTempImage',
+                  command: IPC_COMMANDS.OPEN_TEMP_IMAGE,
                   content: file.content,
                   filename: file.name,
                 });

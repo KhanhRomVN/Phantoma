@@ -1,5 +1,5 @@
-import type { SystemPromptMode } from "../code/mode-config";
-import { MODE_BEHAVIORS } from "../code/mode-config";
+import type { SystemPromptMode } from "./types";
+import { MODE_BEHAVIORS } from "./types";
 import { HANDOFF_TOOL, tick } from "./tools-reference";
 
 export const REVIEW_FORMAT = `## REVIEW format (the message sent to the orchestrator)

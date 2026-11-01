@@ -6,7 +6,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
@@ -99,7 +99,9 @@ const ListAgentsRenderer: React.FC<BaseRendererProps> = ({
             )}
             onClick={isCompleted ? () => setIsCollapsed((v) => !v) : undefined}
           >
-            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('list_agents', moduleId)}</span>
+            <span className="font-semibold opacity-80 shrink-0">
+              {getToolLabel('list_agents', moduleId)}
+            </span>
             {isCompleted && agents && (
               <span className="opacity-50 text-[10px] text-text-secondary shrink-0 ml-auto whitespace-nowrap">
                 {agents.length} {agents.length === 1 ? 'agent' : 'agents'}

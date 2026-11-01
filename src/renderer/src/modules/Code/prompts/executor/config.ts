@@ -2,13 +2,14 @@ import type { ZenModuleCapabilities } from '@renderer/components/RightPanel/Zen/
 
 /**
  * Capabilities for the Executor workflow agent.
- * Same prompt as the Code assistant minus commit-message, style-code, prompt-length, skill and memory.
- * Only tool-format (xml/json) is user-selectable.
+ * Uses fixed 'long' promptLength and 'fast' styleCode (like code prompt).
+ * Supports skill and memory; no features.
  */
 export const CAPABILITIES: ZenModuleCapabilities = {
-  promptLength: false,
-  systemPromptMode: false,
-  skill: false,
-  memory: false,
-  toolFormat: true,
+  promptLength: { options: ['long'], default: 'long' },
+  styleCode: { options: ['fast'], default: 'fast' },
+  skill: true,
+  memory: true,
+  toolFormats: ['xml', 'json'],
+  features: null,
 };

@@ -1,5 +1,5 @@
-import type { WorkflowAgentPromptConfig } from "../code/mode-config";
-import { joinSections } from "../code/mode-config";
+import type { WorkflowAgentPromptConfig } from "./types";
+import { joinSections } from "./types";
 import { buildPlannerToolValidation } from "./tool-validation";
 import { buildPlannerToolsReference } from "./tools-reference";
 import { buildPlannerExample } from "./example";
@@ -43,13 +43,13 @@ export const buildPlannerPrompt = (config: WorkflowAgentPromptConfig): string =>
   const context = buildPlannerSystemContext(systemInfo);
 
   if (promptLengthMode === "short") {
-    return joinSections([
+    return joinSections(
       identity,
       buildPlannerCoreRules(language),
       workflow,
       tools,
-      context,
-    ]);
+      context
+    );
   }
 
   const validation = buildPlannerToolValidation(toolFormat);
@@ -57,18 +57,18 @@ export const buildPlannerPrompt = (config: WorkflowAgentPromptConfig): string =>
   const messaging = buildPlannerMessaging(toolFormat);
 
   if (promptLengthMode === "medium") {
-    return joinSections([
+    return joinSections(
       identity,
       workflow,
       constraints,
       messaging,
       validation,
       tools,
-      context,
-    ]);
+      context
+    );
   }
 
-  return joinSections([
+  return joinSections(
     identity,
     workflow,
     constraints,
@@ -76,6 +76,6 @@ export const buildPlannerPrompt = (config: WorkflowAgentPromptConfig): string =>
     validation,
     tools,
     buildPlannerExample(toolFormat),
-    context,
-  ]);
+    context
+  );
 };

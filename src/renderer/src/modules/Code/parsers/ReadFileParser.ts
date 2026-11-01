@@ -1,10 +1,5 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
-
-export interface ReadFileParams {
-  file_path: string;
-  start_line?: number;
-  end_line?: number;
-}
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
+import type { ReadFileParams } from '../types/tool-params';
 
 export const parseReadFile = (innerContent: string): ReadFileParams => {
   // Parse according to tools-reference.ts schema: file_path only

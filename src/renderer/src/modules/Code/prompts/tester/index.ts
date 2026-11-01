@@ -1,5 +1,5 @@
-import type { WorkflowAgentPromptConfig } from "../code/mode-config";
-import { joinSections } from "../code/mode-config";
+import type { WorkflowAgentPromptConfig } from "./types";
+import { joinSections } from "./types";
 import { buildTesterToolValidation } from "./tool-validation";
 import { buildTesterToolsReference } from "./tools-reference";
 import { buildTesterExample } from "./example";
@@ -48,36 +48,36 @@ export const buildTesterPrompt = (
   const context = buildTesterSystemContext(systemInfo);
 
   if (promptLengthMode === "short") {
-    return joinSections([
+    return joinSections(
       tools,
       identity,
       workflow,
       buildTesterCoreConstraints(),
-      context,
-    ]);
+      context
+    );
   }
 
   const validation = buildTesterToolValidation(toolFormat);
   const constraints = buildTesterConstraints(toolFormat);
 
   if (promptLengthMode === "medium") {
-    return joinSections([
+    return joinSections(
       validation,
       tools,
       identity,
       workflow,
       constraints,
-      context,
-    ]);
+      context
+    );
   }
 
-  return joinSections([
+  return joinSections(
     validation,
     tools,
     buildTesterExample(toolFormat),
     identity,
     workflow,
     constraints,
-    context,
-  ]);
+    context
+  );
 };

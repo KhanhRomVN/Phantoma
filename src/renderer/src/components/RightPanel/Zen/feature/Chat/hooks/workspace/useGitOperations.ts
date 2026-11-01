@@ -14,7 +14,7 @@ import { useState, useMemo } from 'react';
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
 
-import { parseGitStatusOutput } from '../../utils/gitUtils';
+import { parseGitStatusOutput } from '../../utils/git-status-parser';
 
 // ── React ──
 import { useCallback } from 'react';
@@ -23,7 +23,7 @@ import { useCallback } from 'react';
 import { Message } from '../../types/message';
 
 // ── Prompts ──
-import { getModuleService } from '../../services/ModuleRegistry';
+import { getModuleService } from '../../services/moduleRegistry';
 const getCommitMessagePrompt = getModuleService('code', 'getCommitMessagePrompt');
 
 interface UseGitOperationsProps {
@@ -83,7 +83,11 @@ export const useGitOperations = ({
     const providerData = providers.find((p: any) => p.provider_id === currentModel.providerId);
     const modelData = providerData?.models?.find((m: any) => m.id === currentModel.id);
     if (!modelData) return currentModel;
-    return { ...currentModel, ...modelData };
+    return { 
+      ...currentModel, 
+      ...modelData,
+      website_url: providerData?.website_url || providerData?.website,
+    };
   }, [currentModel, providers]);
 
   const handleGitPullRequest = useCallback(async () => {

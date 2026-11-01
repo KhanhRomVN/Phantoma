@@ -19,6 +19,7 @@
  * - fs:delete-file      : Xóa một file duy nhất
  * - fs:remove-dir       : Xóa thư mục và toàn bộ nội dung bên trong (rm -rf)
  * - fs:rename           : Đổi tên hoặc di chuyển file/thư mục
+ * - fs:copy             : Sao chép file/thư mục (tự đặt tên "<name> copy" nếu đích đã tồn tại)
  * - fs:find-files       : Tìm kiếm file theo tên/pattern trong cây thư mục
  * - fs:search           : Tìm kiếm nâng cao với option case/word/regex/include/exclude
  * - fs:replace-all      : Thay thế hàng loạt chuỗi khớp trong nhiều file
@@ -352,12 +353,42 @@ export function setupFSHandlers() {
     return true;
   });
 
-  // Rename file/folder
-  ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
-    if (!fs.existsSync(oldPath)) throw new Error('File not found: ' + oldPath);
-    fs.mkdirSync(path.dirname(newPath), { recursive: true });
-    fs.renameSync(oldPath, newPath);
-    return true;
+  // Rename file/folder (positional args or { oldPath, newPath })
+  ipcMain.handle(
+    'fs:rename',
+    async (_, a: string | { oldPath: string; newPath: string }, b?: string) => {
+      const oldPath = typeof a === 'string' ? a : a.oldPath;
+      const newPath = typeof a === 'string' ? (b as string) : a.newPath;
+      if (!fs.existsSync(oldPath)) throw new Error('File not found: ' + oldPath);
+      if (typeof a !== 'string') {
+        if (oldPath === newPath) return true;
+        if (fs.existsSync(newPath) && oldPath.toLowerCase() !== newPath.toLowerCase()) {
+          throw new Error('Already exists: ' + newPath);
+        }
+      }
+      fs.mkdirSync(path.dirname(newPath), { recursive: true });
+      fs.renameSync(oldPath, newPath);
+      return true;
+    },
+  );
+
+  // Copy file/folder; picks a unique "<name> copy" target when dest already exists
+  ipcMain.handle('fs:copy', async (_, { src, dest }: { src: string; dest: string }) => {
+    if (!fs.existsSync(src)) throw new Error('File not found: ' + src);
+    const isDir = fs.statSync(src).isDirectory();
+    const dir = path.dirname(dest);
+    const ext = isDir ? '' : path.extname(dest);
+    const base = path.basename(dest, ext);
+    let target = dest;
+    for (let i = 1; fs.existsSync(target); i++) {
+      target = path.join(dir, `${base} copy${i > 1 ? ` ${i}` : ''}${ext}`);
+    }
+    if (isDir && (target + path.sep).startsWith(src + path.sep)) {
+      throw new Error('Cannot copy a folder into itself: ' + src);
+    }
+    fs.mkdirSync(dir, { recursive: true });
+    fs.cpSync(src, target, { recursive: true, errorOnExist: true });
+    return target;
   });
 
   // Find files by pattern

@@ -1,6 +1,6 @@
-import type { SystemPromptMode } from "@renderer/modules/Code/prompts/code/mode-config";
-import { MODE_BEHAVIORS } from "@renderer/modules/Code/prompts/code/mode-config";
-import type { ToolFormat } from "../code/mode-config";
+import type { SystemPromptMode } from "../shared-types";
+import { MODE_BEHAVIORS } from "../shared-types";
+import type { ToolFormat } from "./types";
 import { MAX_REWORK_ROUNDS } from "./workflow";
 
 const formatRule = (toolFormat: ToolFormat): string =>

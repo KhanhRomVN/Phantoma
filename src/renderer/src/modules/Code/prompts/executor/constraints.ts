@@ -1,6 +1,6 @@
 // src/webview-ui/src/features/chat/prompts/constraints.ts
-import type { SystemPromptMode } from "../code/mode-config";
-import { MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from "../code/mode-config";
+import type { SystemPromptMode } from "./types";
+import { MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from "./types";
 
 export const buildExecutorConstraints = (
   mode: SystemPromptMode = "balanced",

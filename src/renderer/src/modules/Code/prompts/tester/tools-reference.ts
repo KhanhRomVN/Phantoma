@@ -1,5 +1,6 @@
-import { MAX_READ_LINES_PER_TURN } from "../code/mode-config";
-import type { ToolFormat } from "../code/mode-config";
+import type { ToolFormat } from "./types";
+
+const MAX_READ_LINES_PER_TURN = 1500;
 
 export type TesterToolName =
   | "read_file"

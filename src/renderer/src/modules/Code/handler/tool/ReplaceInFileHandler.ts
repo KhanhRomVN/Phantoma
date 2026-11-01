@@ -25,20 +25,7 @@ import { FileLockManager } from '../../managers/FileLockManager';
 import { ReplaceInFileHistoryManager } from '../../managers/ReplaceInFileHistoryManager';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
-export interface ReplaceInFileParams {
-  path?: string;
-  filePath?: string;
-  file_path?: string;
-  old_str?: string;
-  new_str?: string;
-  diff?: string;
-  skipDiagnostics?: boolean;
-  requestId?: string;
-  conversationId?: string;
-  messageId?: string;
-  messageTimestamp?: number;
-  responseNumber?: number;
-}
+import type { ReplaceInFileParams } from '../../types/tool-params';
 
 export interface ReplaceInFileResult {
   command: string;

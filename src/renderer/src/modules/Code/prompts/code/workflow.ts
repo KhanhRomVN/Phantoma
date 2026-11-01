@@ -1,35 +1,65 @@
-// src/webview-ui/src/features/chat/prompts/workflow.ts
-import type { SystemPromptMode } from "./mode-config";
-import { MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from "./mode-config";
+/** Workflow: how the assistant works through a task, per mode (and per tool format for MEMORY / <question>). */
+
+import { type SystemPromptMode, MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from './config';
+import { type ToolFormat, DEFAULT_TOOL_FORMAT, getQuestionRefs } from './tool-format';
+
+// ── SHARED ──
+const MEMORY_INTRO = `# MEMORY (when enabled)
+When Memory is turned on for this conversation, the full content of the global memory file (\`~/.khanhromvn-zen/memory.md\`, shared across all projects) is automatically appended to every system prompt under a "# Memory" heading — you already see it, so do NOT call \`read_memory\` just to re-read what is already in context. Use it to carry durable, project-agnostic facts across conversations: user preferences, coding style, priorities, likes/dislikes, communication style. Never store details specific to a single project. Rules:
+- Record something ONLY when it is genuinely cross-session and stable (not transient task state, not secrets/credentials). Write in Markdown format (headings, lists, bold, etc.) for readability.`;
+
+// ── XML ──
+const MEMORY_RULES_XML = `- **CRITICAL**: Always call \`<read_memory />\` FIRST to verify the current content before attempting \`<update_memory>\`. Since \`<update_memory>\` relies on exact string matching (\`old_content\`), guessing or using stale snippets will cause failures. Read -> Verify snippet exists -> Update.
+- Append/update via \`<update_memory>\` with exact-match semantics (identical to replace_in_file, but always targets memory.md — no file_path). First write into an empty/non-existent file uses \`<old_content></old_content>\`.`;
+
+// ── JSON ──
+const MEMORY_RULES_JSON = `- **CRITICAL**: Always call \`read_memory\` FIRST (emit \`{"tool":"read_memory","params":{}}\`) to verify the current content before attempting \`update_memory\`. Since \`update_memory\` relies on exact string matching (\`old_content\`), guessing or using stale snippets will cause failures. Read -> Verify snippet exists -> Update.
+- Append/update via \`{"tool":"update_memory","params":{"old_content":"...","new_content":"..."}}\` with exact-match semantics (identical to replace_in_file, but always targets memory.md — no file_path). First write into an empty/non-existent file uses \`"old_content": ""\`.
+- ⚠ JSON-STRINGS: Both \`old_content\` and \`new_content\` are multi-line strings — every newline must be escaped as \\n and every double-quote as \\" for the block to remain valid JSON.`;
+
+// ── LOOKUP BY FORMAT ──
+const MEMORY_RULES: Record<ToolFormat, string> = {
+  xml: MEMORY_RULES_XML,
+  json: MEMORY_RULES_JSON,
+  dsml: MEMORY_RULES_XML,
+};
+
+const buildMemorySection = (toolFormat: ToolFormat): string =>
+  `${MEMORY_INTRO}\n${MEMORY_RULES[toolFormat]}`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Builder
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const buildWorkflow = (
-  mode: SystemPromptMode = "balanced",
-  toolFormat: "xml" | "json" = "xml",
+  mode: SystemPromptMode = 'balanced',
+  toolFormat: ToolFormat = DEFAULT_TOOL_FORMAT,
 ): string => {
   const behavior = MODE_BEHAVIORS[mode];
+  const { question: Q } = getQuestionRefs(toolFormat);
 
   const askSection = (() => {
     switch (behavior.askConfirmation) {
-      case "minimal":
+      case 'minimal':
         return `   - Only flag an assumption if it is IMPOSSIBLE to proceed without the user's input (e.g. missing env var name, unknown endpoint URL, required credential). If a reasonable default exists in the codebase, adopt it silently and note it in the plan. Do not list assumptions about style/convention — follow existing patterns automatically.`;
-      case "moderate":
+      case 'moderate':
         return `   - Flag any assumption that affects the approach or outcome. If 2+ valid approaches exist or the change touches >3 files, flag it. Single-file changes with clear patterns do not require flagging.`;
-      case "extensive":
-        return `   - Flag EVERY assumption, no matter how small. If any assumption has not been confirmed by file content or an explicit user statement, convert it to a <question>.`;
-      case "almost-never":
+      case 'extensive':
+        return `   - Flag EVERY assumption, no matter how small. If any assumption has not been confirmed by file content or an explicit user statement, convert it to a question.`;
+      case 'almost-never':
         return `   - Do not flag assumptions as questions. Instead, adopt the most reasonable interpretation based on codebase patterns and note it as \`// ASSUMED: ...\` in code. Only stop for: destructive commands, or information truly impossible to infer (secrets/credentials/external endpoints).`;
     }
   })();
 
   const pass2Section = (() => {
     switch (behavior.askConfirmation) {
-      case "minimal":
-        return `   - Review assumptions quickly. Only convert an assumption to a <question> if it blocks execution entirely (missing mandatory info). Otherwise, proceed with the most reasonable choice.`;
-      case "moderate":
-        return `   - Review every flagged assumption. If any assumption has not been confirmed by file content or explicit user statement, and it affects the approach, convert it to a <question>. Minor assumptions that don't affect the outcome can proceed silently.`;
-      case "extensive":
-        return `   - Review EVERY assumption. If ANY assumption is unverified → convert to <question> and do NOT proceed with that part of the plan. Also apply SELF-CHECK-MANDATORY: list every unresolved assumption or "None".`;
-      case "almost-never":
+      case 'minimal':
+        return `   - Review assumptions quickly. Only convert an assumption to ${Q} if it blocks execution entirely (missing mandatory info). Otherwise, proceed with the most reasonable choice.`;
+      case 'moderate':
+        return `   - Review every flagged assumption. If any assumption has not been confirmed by file content or explicit user statement, and it affects the approach, convert it to ${Q}. Minor assumptions that don't affect the outcome can proceed silently.`;
+      case 'extensive':
+        return `   - Review EVERY assumption. If ANY assumption is unverified → convert to ${Q} and do NOT proceed with that part of the plan. Also apply SELF-CHECK-MANDATORY: list every unresolved assumption or "None".`;
+      case 'almost-never':
         return `   - Skip detailed verification. Adopt the most reasonable interpretation, note assumptions as \`// ASSUMED: ...\` in code, and proceed. Only stop for destructive commands or truly missing information.`;
     }
   })();
@@ -41,25 +71,7 @@ export const buildWorkflow = (
     return `5. **VERIFY** — Tool error → diagnose root cause, fix or ask. Never silently retry.`;
   })();
 
-  // MEMORY section tool-call syntax differs between formats. In JSON mode,
-  // read_memory/update_memory are ordinary JSON tool calls (they are tools,
-  // not UI tags), so they must be shown in JSON form here. In XML mode they
-  // keep the XML tag form as before.
-  const memorySection = (() => {
-    if (toolFormat === "json") {
-      return `# MEMORY (when enabled)
-When Memory is turned on for this conversation, the full content of the global memory file (\`~/.khanhromvn-zen/memory.md\`, shared across all projects) is automatically appended to every system prompt under a "# Memory" heading — you already see it, so do NOT call \`read_memory\` just to re-read what is already in context. Use it to carry durable, project-agnostic facts across conversations: user preferences, coding style, priorities, likes/dislikes, communication style. Never store details specific to a single project. Rules:
-- Record something ONLY when it is genuinely cross-session and stable (not transient task state, not secrets/credentials). Write in Markdown format (headings, lists, bold, etc.) for readability.
-- **CRITICAL**: Always call \`read_memory\` FIRST (emit \`{"tool":"read_memory","params":{}}\`) to verify the current content before attempting \`update_memory\`. Since \`update_memory\` relies on exact string matching (\`old_content\`), guessing or using stale snippets will cause failures. Read -> Verify snippet exists -> Update.
-- Append/update via \`{"tool":"update_memory","params":{"old_content":"...","new_content":"..."}}\` with exact-match semantics (identical to replace_in_file, but always targets memory.md — no file_path). First write into an empty/non-existent file uses \`"old_content": ""\`.
-- ⚠ JSON-STRINGS: Both \`old_content\` and \`new_content\` are multi-line strings — every newline must be escaped as \\n and every double-quote as \\" for the block to remain valid JSON.`;
-    }
-    return `# MEMORY (when enabled)
-When Memory is turned on for this conversation, the full content of the global memory file (\`~/.khanhromvn-zen/memory.md\`, shared across all projects) is automatically appended to every system prompt under a "# Memory" heading — you already see it, so do NOT call read_memory just to re-read what is already in context. Use it to carry durable, project-agnostic facts across conversations: user preferences, coding style, priorities, likes/dislikes, communication style. Never store details specific to a single project. Rules:
-- Record something ONLY when it is genuinely cross-session and stable (not transient task state, not secrets/credentials). Write in Markdown format (headings, lists, bold, etc.) for readability.
-- **CRITICAL**: Always call \`<read_memory />\` FIRST to verify the current content before attempting \`<update_memory>\`. Since \`<update_memory>\` relies on exact string matching (\`old_content\`), guessing or using stale snippets will cause failures. Read -> Verify snippet exists -> Update.
-- Append/update via \`<update_memory>\` with exact-match semantics (identical to replace_in_file, but always targets memory.md — no file_path). First write into an empty/non-existent file uses \`<old_content></old_content>\`.`;
-  })();
+  const memorySection = buildMemorySection(toolFormat);
 
   return `# WORKFLOW
 ## Planning Process:

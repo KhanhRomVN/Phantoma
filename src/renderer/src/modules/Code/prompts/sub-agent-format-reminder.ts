@@ -1,20 +1,17 @@
-import type { ToolFormat } from "./code/mode-config";
-import { buildPlannerToolFormatReminder } from "./planner/tool-format-reminder";
-import { buildExecutorToolFormatReminder } from "./executor/tool-format-reminder";
-import { buildReviewerToolFormatReminder } from "./reviewer/tool-format-reminder";
-import { buildTesterToolFormatReminder } from "./tester/tool-format-reminder";
+type ToolFormat = 'xml' | 'json' | 'dsml';
 
-const BUILDERS: Record<string, (toolFormat: ToolFormat) => string> = {
-  planner: buildPlannerToolFormatReminder,
-  executor: buildExecutorToolFormatReminder,
-  reviewer: buildReviewerToolFormatReminder,
-  tester: buildTesterToolFormatReminder,
+const REMINDER_SUB_AGENTS = ['planner', 'executor', 'reviewer', 'tester'] as const;
+type ReminderSubAgent = (typeof REMINDER_SUB_AGENTS)[number];
+
+export const isReminderSubAgent = (agentId: string | null | undefined): boolean => {
+  if (!agentId) return false;
+  return REMINDER_SUB_AGENTS.includes(agentId as ReminderSubAgent);
 };
 
-export const isReminderSubAgent = (agentId?: string | null): boolean =>
-  !!agentId && agentId in BUILDERS;
-
 export const buildSubAgentFormatReminder = (
-  agentId: string,
+  _agentId: string,
   toolFormat: ToolFormat,
-): string => BUILDERS[agentId](toolFormat);
+): string => {
+  const formatName = toolFormat === 'json' ? 'JSON' : 'XML';
+  return `Your last response contained no tool calls. As a sub-agent, you MUST emit at least one tool call (e.g., send_message to report results) in every response. Respond now with the appropriate ${formatName} tool call.`;
+};

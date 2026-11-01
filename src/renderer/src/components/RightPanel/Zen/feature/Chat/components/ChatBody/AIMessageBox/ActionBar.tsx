@@ -23,7 +23,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { TOOL_ACTION_TYPES } from '../../../constants/tag-registry';
 
 // ── Types ──
-import { ToolAction } from '../../../services/ResponseParser';
+import { ToolAction } from '../../../services/responseParser';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface ActionBarProps {

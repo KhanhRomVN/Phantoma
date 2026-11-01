@@ -1,5 +1,5 @@
 import { CodeController } from '../CodeController';
-import { ReadFileParams } from '../parsers/ReadFileParser';
+import type { ReadFileParams } from '../types/tool-params';
 
 /**
  * Execute read_file tool — gọi CodeController.executeTool().

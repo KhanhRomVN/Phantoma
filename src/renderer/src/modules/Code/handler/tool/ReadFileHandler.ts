@@ -17,17 +17,7 @@
 import { SecurityValidator } from '../../utils/security';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
-export interface ReadFileParams {
-  path?: string;
-  filePath?: string;
-  file_path?: string;
-  start_line?: number;
-  startLine?: number;
-  end_line?: number;
-  endLine?: number;
-  skipDiagnostics?: boolean;
-  requestId?: string;
-}
+import type { ReadFileParams } from '../../types/tool-params';
 
 export interface ReadFileResult {
   command: string;

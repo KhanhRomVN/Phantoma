@@ -1,5 +1,5 @@
-import type { SystemPromptMode } from "../code/mode-config";
-import { MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from "../code/mode-config";
+import type { SystemPromptMode } from "./types";
+import { MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from "./types";
 
 export const RESULT_FORMAT = `## RESULT format (message layout and BODY of the final send_message)
 Message layout: TYPE: <RESULT|QUESTION>, STATUS: <OK|BLOCKED>, BODY: <content>. Field names and enum values stay in English.

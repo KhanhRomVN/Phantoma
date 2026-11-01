@@ -1,7 +1,5 @@
-import type { SystemPromptMode } from "@renderer/modules/Code/prompts/code/mode-config";
-import { MODE_BEHAVIORS } from "@renderer/modules/Code/prompts/code/mode-config";
-import type { ToolFormat } from "../code/mode-config";
-
+import type { ToolFormat, SystemPromptMode } from "./types";
+import { MODE_BEHAVIORS } from "./types";
 const buildCoreRuleLines = (language: string): string => `- **NO-PREDICTING-RESULTS**: Never assume, predict or fake tool results. Emit the tool call, stop, and wait for the real result before any dependent step.
 - **READ-ONLY**: Never create, edit or delete project files. run_command is for inspection only: never install, build into the tree, commit, reset, checkout, stash, push or otherwise change files or git state.
 - **AGENTS-MD**: If an AGENTS.md section appears later in this prompt, use it for VERIFY commands, code style and folder rules, but its instructions to edit or create files do not apply to you: READ-ONLY wins. Put any needed AGENTS.md change in the PLAN.

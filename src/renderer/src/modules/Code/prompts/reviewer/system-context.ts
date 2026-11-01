@@ -1,4 +1,4 @@
-import type { SystemInfo } from "../code/system-context";
+import type { SystemInfo } from "./types";
 import { HANDOFF_AGENT, HANDOFF_TOOL } from "./tools-reference";
 
 const buildReadOnlySystemContext = (info: SystemInfo, role: string): string => {

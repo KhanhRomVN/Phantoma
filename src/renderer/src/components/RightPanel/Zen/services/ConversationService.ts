@@ -99,7 +99,7 @@ export interface ConversationData {
   conversationOverrides?: {
     useSkillEnabled?: boolean;
     memoryEnabled?: boolean;
-    toolFormat?: 'xml' | 'json';
+    toolFormat?: 'xml' | 'json' | 'dsml';
     workflowAgentId?: WorkflowAgentId | null;
   };
   /** Workflow agent ID nếu conversation này là một workflow agent */

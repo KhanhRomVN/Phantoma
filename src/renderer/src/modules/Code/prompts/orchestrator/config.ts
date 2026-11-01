@@ -2,16 +2,14 @@ import type { ZenModuleCapabilities } from '@renderer/components/RightPanel/Zen/
 
 /**
  * Capabilities for the Orchestrator workflow agent.
- * Orchestrator coordinates sub-agents and has no file/skill/memory tools.
- * Supports prompt-length (short/medium/long) and tool-format (xml/json).
- * systemPromptMode is not user-selectable here; PromptBuilder passes its default
- * ('balanced') as `mode`, which still drives the ask policy and reply depth.
+ * No promptLength; styleCode has 3 options (affects sub-agent commands via send_message).
+ * skill and memory are false; no features.
  */
 export const CAPABILITIES: ZenModuleCapabilities = {
-  promptLength: true,
-  systemPromptMode: false,
+  promptLength: false,
+  styleCode: { options: ['fast', 'balanced', 'thorough'], default: 'balanced' },
   skill: false,
   memory: false,
-  toolFormat: true,
-  multiAgent: true,
+  toolFormats: ['xml', 'json'],
+  features: null,
 };

@@ -1,5 +1,5 @@
 import { CodeController } from '../CodeController';
-import { ReplaceInFileParams } from '../parsers/ReplaceInFileParser';
+import type { ReplaceInFileParams } from '../types/tool-params';
 
 export async function executeReplaceInFile(
   params: ReplaceInFileParams,

@@ -1,5 +1,5 @@
 import { CodeController } from '../CodeController';
-import { MoveFileParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+import type { MoveFileParams } from '../types/tool-params';
 
 export const executeMoveFile = async (params: MoveFileParams): Promise<string | null> => {
   const filePath = params.file_path;

@@ -1,5 +1,5 @@
 // src/webview-ui/src/features/chat/prompts/example.ts
-import type { ToolFormat } from "../code/mode-config";
+import type { ToolFormat } from "./types";
 
 const EXAMPLE_HEADER_AND_CORE = `# EXAMPLES
 This section shows how each tool is used correctly, and how several tools are combined into realistic multi-turn batches. Titles and descriptions are for your reference only — never output them to the user. Follow the XML tag format exactly as defined in TOOLS REFERENCE and TOOL VALIDATION.

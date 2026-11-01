@@ -1,4 +1,4 @@
-import type { ToolFormat } from "../code/mode-config";
+import type { ToolFormat } from "./types";
 import { HANDOFF_AGENT, HANDOFF_TOOL, tick } from "./tools-reference";
 
 export const buildReviewerCoreConstraints = (): string => `# CONSTRAINTS (CORE)

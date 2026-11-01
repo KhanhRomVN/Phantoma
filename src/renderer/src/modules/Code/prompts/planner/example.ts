@@ -1,4 +1,4 @@
-import type { ToolFormat } from "../code/mode-config";
+import type { ToolFormat } from "./types";
 import { fenceCall } from "./tools-reference";
 
 export const buildPlannerExample = (toolFormat: ToolFormat = "xml"): string => {

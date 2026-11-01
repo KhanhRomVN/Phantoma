@@ -30,7 +30,7 @@ import {
   finalizeAllRunCommands,
   finalizeRunCommand,
   sendRunCommandInput,
-} from '../feature/Chat/services/tool-executors/RunCommandExecutor';
+} from '@renderer/modules/Code/handler/tool/RunCommandExecutor';
 import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
 
 // ─── Renderer-only UI commands ────────────────────────────────────────

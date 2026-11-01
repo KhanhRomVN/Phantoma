@@ -89,9 +89,10 @@ const SkillIcon = Sparkles;
 const MemoryIcon = Brain;
 const FormatIcon = Code2;
 
-const getFormatColors = () => ({ json: $('--primary'), xml: $('--warn') }) as const;
+const getFormatColors = () =>
+  ({ json: $('--primary'), xml: $('--warn'), dsml: $('--purple') }) as const;
 
-const FormatText: React.FC<{ format: 'xml' | 'json' }> = ({ format }) => (
+const FormatText: React.FC<{ format: 'xml' | 'json' | 'dsml' }> = ({ format }) => (
   <span
     className="text-[9px] font-bold tracking-wider leading-none uppercase"
     style={{ color: getFormatColors()[format] }}
@@ -127,7 +128,7 @@ interface PromptSettingsDropdownProps {
   // Style Code
   systemPromptMode: SystemPromptMode;
   onSelectSystemPromptMode?: (mode: SystemPromptMode) => void;
-  isAntiInjection?: boolean;
+  systemPromptModes?: readonly string[];
 
   // Skill
   skillEnabled?: boolean;
@@ -138,8 +139,9 @@ interface PromptSettingsDropdownProps {
   onMemoryToggle?: () => void;
 
   // Tool Format (xml | json)
-  toolFormat?: 'xml' | 'json';
-  onToolFormatToggle?: () => void;
+  toolFormat?: 'xml' | 'json' | 'dsml';
+  toolFormats?: ('xml' | 'json' | 'dsml')[];
+  onToolFormatToggle?: (format?: 'xml' | 'json' | 'dsml') => void;
   formatOnly?: boolean;
 }
 
@@ -159,12 +161,13 @@ const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
 const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
   systemPromptMode,
   onSelectSystemPromptMode,
-  isAntiInjection = false,
+  systemPromptModes,
   skillEnabled = false,
   onSkillToggle,
   memoryEnabled = false,
   onMemoryToggle,
   toolFormat = 'xml',
+  toolFormats = ['xml', 'json'],
   onToolFormatToggle,
   formatOnly = false,
 }) => {
@@ -233,10 +236,8 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
     icons.push(
       <span
         key="style-code"
-        className={`inline-flex items-center ${
-          isAntiInjection ? 'text-text-secondary opacity-40' : ''
-        }`}
-        style={!isAntiInjection ? { color: styleCodeMeta.color } : undefined}
+        className="inline-flex items-center"
+        style={{ color: styleCodeMeta.color }}
       >
         <StyleCodeTriggerIcon mode={systemPromptMode} />
       </span>,
@@ -304,7 +305,7 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
         key="style-header"
         icon={<StyleCodeTriggerIcon mode={systemPromptMode} />}
         title={styleCodeMeta.label}
-        color={isAntiInjection ? 'text-text-secondary' : styleCodeMeta.color}
+        color={styleCodeMeta.color}
       />,
     );
     tooltipRows.push(<div key="style-divider" className="h-px bg-border/30" />);
@@ -342,7 +343,7 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
         key="format-row"
         icon={<FormatIcon size={13} />}
         label="Format"
-        value={toolFormat === 'json' ? 'JSON' : 'XML'}
+        value={toolFormat.toUpperCase()}
         color={FORMAT_COLORS[toolFormat]}
       />,
     );
@@ -367,39 +368,25 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
               <>
                 <SectionLabel label="Style Code" />
 
-                {isAntiInjection && (
-                  <div className="mx-3 mb-2 p-2 rounded-md bg-warn/10 border border-warn/20 flex items-start gap-2 text-[10.5px] text-warn">
-                    <Ban size={11} className="mt-0.5 flex-shrink-0" />
-                    <span>Provider injects its own system prompt — presets unavailable.</span>
-                  </div>
-                )}
 
-                {STYLE_CODE_MODE_META.map((meta) => {
+                {STYLE_CODE_MODE_META.filter((m) => !systemPromptModes || systemPromptModes.includes(m.key)).map((meta) => {
                   const isSelected = systemPromptMode === meta.key;
-                  const isDisabled = isAntiInjection;
                   return (
                     <button
                       key={meta.key}
-                      onClick={() => !isDisabled && onSelectSystemPromptMode(meta.key)}
-                  disabled={isDisabled}
-                  className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors ${
-                    isDisabled 
-                      ? 'cursor-not-allowed opacity-35' 
-                      : 'cursor-pointer hover:bg-sidebar-item-hover'
-                  } ${isSelected && !isDisabled ? 'bg-primary/10 border-l-2 border-l-primary' : 'border-l-2 border-l-transparent'}`}
+                      onClick={() => onSelectSystemPromptMode(meta.key)}
+                  className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors cursor-pointer hover:bg-sidebar-item-hover ${isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : 'border-l-2 border-l-transparent'}`}
                 >
                   <span
-                    className={`inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0 ${
-                      isDisabled ? 'bg-gray-500/10 text-text-secondary' : ''
-                    }`}
-                    style={!isDisabled ? { backgroundColor: tint(meta.color, 15), color: meta.color } : undefined}
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0"
+                    style={{ backgroundColor: tint(meta.color, 15), color: meta.color }}
                   >
                     {meta.icon}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[12.5px] font-semibold text-text-primary flex items-center gap-1.5">
                       {meta.label}
-                      {isSelected && !isDisabled && (
+                      {isSelected && (
                         <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: meta.color }} />
                       )}
                     </div>
@@ -487,14 +474,21 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
                     label: 'JSON tool calls',
                     desc: 'AI uses fenced JSON objects for tool calls',
                   },
-                ].map((opt) => {
+                  {
+                    key: 'dsml' as const,
+                    label: 'DSML tool calls',
+                    desc: 'AI uses a DSML calls block for tool calls',
+                  },
+                ]
+                  .filter((opt) => toolFormats.includes(opt.key))
+                  .map((opt) => {
                   const isSelected = toolFormat === opt.key;
               const color = FORMAT_COLORS[opt.key];
               return (
                 <button
                   key={opt.key}
                   onClick={() => {
-                    if (!isSelected) onToolFormatToggle?.();
+                    if (!isSelected) onToolFormatToggle?.(opt.key);
                   }}
                   className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors ${
                     isSelected 

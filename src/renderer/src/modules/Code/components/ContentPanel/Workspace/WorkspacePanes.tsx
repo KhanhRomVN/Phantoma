@@ -29,6 +29,7 @@ import {
 
   X,
   Circle,
+  Pin,
 } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { cn } from '@renderer/shared/utils/cn';
@@ -37,7 +38,13 @@ import { CodeBrowser } from './Browser';
 import { CodeFile } from './File';
 import { CodeAgent } from './Zen';
 
-import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+} from '@renderer/components/ui/Dropdown';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { useGitFileStatus } from '../../../hooks/useGitFileStatus';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
@@ -134,9 +141,17 @@ interface WorkspaceTabProps {
   onClose: () => void;
   /** Called on mousedown; the interactions hook decides when it becomes a drag. */
   onDragStart: (e: MouseEvent, id: string) => void;
+  onContextMenu: (e: MouseEvent, id: string) => void;
 }
 
-function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: WorkspaceTabProps) {
+function WorkspaceTab({
+  panel,
+  isActive,
+  onClick,
+  onClose,
+  onDragStart,
+  onContextMenu,
+}: WorkspaceTabProps) {
   const meta = getPanelMeta(panel.type);
   const isDirty = useCodeStore((s) => {
     if (panel.type !== 'file') return false;
@@ -173,9 +188,19 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
     <div
       data-tab-id={panel.id}
       // NO `draggable` here: native HTML5 drag would steal mousemove/mouseup from the window listeners.
-      onMouseDown={(e) => onDragStart(e, panel.id)}
+      onMouseDown={(e) => {
+        if (e.button !== 0) return;
+        onDragStart(e, panel.id);
+      }}
+      onContextMenu={(e) => onContextMenu(e, panel.id)}
       // The hook swallows the click that follows a drag, so this only fires on a real click.
       onClick={onClick}
+      onDoubleClick={() => {
+        if (panel.type !== 'file' || !panel.filePath) return;
+        window.dispatchEvent(
+          new CustomEvent('workspace:reveal-file', { detail: { path: panel.filePath } }),
+        );
+      }}
       className={cn(
         'group/tab h-9 px-3 flex items-center gap-2 shrink-0 transition-colors text-[13px] relative',
         'border-r border-divider',
@@ -244,6 +269,10 @@ function WorkspaceTab({ panel, isActive, onClick, onClose, onDragStart }: Worksp
         {showAgentBadge ? agentId : displayTitle}
       </span>
 
+      {panel.pinned && (
+        <Pin className="w-3 h-3 shrink-0 opacity-60" style={{ pointerEvents: 'none' }} />
+      )}
+
       {isDirty && (
         <Circle
           className="w-2.5 h-2.5 ml-auto shrink-0 fill-current group-hover/tab:hidden"
@@ -279,6 +308,9 @@ export interface TabBarProps {
   onCloseTab: (id: string) => void;
   onDragStart: (e: MouseEvent, id: string) => void;
   onAddPanel: (type: PanelType) => void;
+  onCloseTabs: (ids: string[]) => void;
+  onTogglePin: (id: string) => void;
+  onKeepOpen: (id: string) => void;
 }
 
 // ─── Overlay broadcast events ─────────────────────────────────────────
@@ -334,8 +366,45 @@ export function TabBar({
   onCloseTab,
   onDragStart,
   onAddPanel,
+  onCloseTabs,
+  onTogglePin,
+  onKeepOpen,
 }: TabBarProps) {
   const [menuOpen, handleMenuOpenChange] = useOverlayOpen();
+  const [ctxOpen, handleCtxOpenChange] = useOverlayOpen();
+  const [ctxTarget, setCtxTarget] = useState<{
+    id: string;
+    pos: { top: number; left: number };
+  } | null>(null);
+  const projectRoot = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === s.currentProjectId);
+    return project?.explorerRoot ?? project?.path;
+  });
+
+  const openContextMenu = useCallback(
+    (e: MouseEvent, id: string) => {
+      e.preventDefault();
+      setCtxTarget({ id, pos: { top: e.clientY, left: e.clientX } });
+      handleCtxOpenChange(true);
+    },
+    [handleCtxOpenChange],
+  );
+  const handleCtxChange = (next: boolean) => {
+    handleCtxOpenChange(next);
+    if (!next) setCtxTarget(null);
+  };
+  const ctxPanel = ctxTarget ? panels.find((p) => p.id === ctxTarget.id) : undefined;
+  const ctxIndex = ctxPanel ? panels.indexOf(ctxPanel) : -1;
+  const copyText = (text: string) => {
+    void navigator.clipboard.writeText(text);
+  };
+  const getRelativePath = (panel: WorkspacePanel) => {
+    const filePath = panel.filePath ?? '';
+    const root = (panel.cwd ?? projectRoot ?? '').replace(/[\\/]+$/, '');
+    return root && filePath.startsWith(root)
+      ? filePath.slice(root.length).replace(/^[\\/]+/, '')
+      : filePath;
+  };
   const [overflowOpen, handleOverflowOpenChange] = useOverlayOpen();
   const tabBarRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -400,9 +469,71 @@ export function TabBar({
             onClick={() => onSelectTab(panel.id)}
             onClose={() => onCloseTab(panel.id)}
             onDragStart={onDragStart}
+            onContextMenu={openContextMenu}
           />
         ))}
       </div>
+
+      {ctxTarget && ctxPanel && (
+        <Dropdown
+          open={ctxOpen}
+          onOpenChange={handleCtxChange}
+          strategy="fixed"
+          trigger="contextmenu"
+          position={ctxTarget.pos}
+        >
+          <DropdownTrigger asChild>
+            <span />
+          </DropdownTrigger>
+          <DropdownContent>
+            <DropdownItem onClick={() => onCloseTab(ctxPanel.id)}>Close</DropdownItem>
+            <DropdownItem
+              disabled={panels.length < 2}
+              onClick={() =>
+                onCloseTabs(panels.filter((p) => p.id !== ctxPanel.id).map((p) => p.id))
+              }
+            >
+              Close Others
+            </DropdownItem>
+            {/* ASSUMED: left/right options are hidden when there is nothing on that side (first/last tab) */}
+            {ctxIndex > 0 && (
+              <DropdownItem
+                onClick={() => onCloseTabs(panels.slice(0, ctxIndex).map((p) => p.id))}
+              >
+                Close to the Left
+              </DropdownItem>
+            )}
+            {ctxIndex < panels.length - 1 && (
+              <DropdownItem
+                onClick={() => onCloseTabs(panels.slice(ctxIndex + 1).map((p) => p.id))}
+              >
+                Close to the Right
+              </DropdownItem>
+            )}
+            <DropdownItem onClick={() => onCloseTabs(panels.map((p) => p.id))}>
+              Close All
+            </DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem onClick={() => onTogglePin(ctxPanel.id)}>
+              {ctxPanel.pinned ? 'Unpin' : 'Pin'}
+            </DropdownItem>
+            {ctxPanel.type === 'file' && ctxPanel.filePath && (
+              <>
+                {ctxPanel.preview && (
+                  <DropdownItem onClick={() => onKeepOpen(ctxPanel.id)}>Keep Open</DropdownItem>
+                )}
+                <DropdownSeparator />
+                <DropdownItem onClick={() => copyText(ctxPanel.filePath as string)}>
+                  Copy Path
+                </DropdownItem>
+                <DropdownItem onClick={() => copyText(getRelativePath(ctxPanel))}>
+                  Copy Relative Path
+                </DropdownItem>
+              </>
+            )}
+          </DropdownContent>
+        </Dropdown>
+      )}
 
       {overflowPanels.length > 0 && (
         <Dropdown
@@ -808,7 +939,7 @@ export const WorkspacePanes = memo(function WorkspacePanes({
       {/* Drop preview: where the dragged tab will land */}
       {isDragging && dropPreview && (
         <div
-          className="absolute pointer-events-none z-[150] bg-primary/10 border-2 border-primary transition-all duration-150"
+          className="absolute pointer-events-none z-[150] bg-primary/10 border-2 border-dashed border-primary transition-all duration-150"
           style={frameStyle(dropPreview)}
         />
       )}

@@ -91,6 +91,8 @@ interface CodeBlockProps {
   revealPosition?: { line: number; column?: number; nonce: number } | null;
   /** Gọi sau khi đã nhảy tới revealPosition */
   onRevealed?: () => void;
+  /** Ẩn toàn bộ gạch chân lỗi (markers) của model. Mặc định: false */
+  hideDiagnostics?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -290,6 +292,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
     enableLSP = false,
     revealPosition,
     onRevealed,
+    hideDiagnostics = false,
   } = props;
 
   // ── Store ──
@@ -507,6 +510,22 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           lineNumbers: showLineNumbers ? 'on' : 'off',
           ...editorOptions,
         });
+
+        if (hideDiagnostics && modelRef.current) {
+          const monaco = window.monaco;
+          const model = modelRef.current;
+          const clearMarkers = () => {
+            const owners = new Set<string>(
+              monaco.editor.getModelMarkers({ resource: model.uri }).map((m: any) => m.owner),
+            );
+            owners.forEach((owner) => monaco.editor.setModelMarkers(model, owner, []));
+          };
+          clearMarkers();
+          const markersSub = monaco.editor.onDidChangeMarkers((uris: any[]) => {
+            if (uris.some((u) => u.toString() === model.uri.toString())) clearMarkers();
+          });
+          editorInstance.current.onDidDispose(() => markersSub.dispose());
+        }
 
         // Add Ctrl+S / Cmd+S handler for Save
         editorInstance.current.addCommand(

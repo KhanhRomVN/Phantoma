@@ -10,7 +10,6 @@ import React, { useState, useEffect } from 'react';
  * Main features:
  * - Xử lý error tool actions với ErrorBlock + ActionBar
  * - Render 28 standard tools qua allToolRenderers map
- * - Xử lý 7 tool phức tạp với logic riêng (write, replace, run_command...)
  * - Git diff và git status rendering
  * ------------------------------------------------------------------
  */
@@ -32,15 +31,13 @@ import {
 } from '../../../constants/tag-registry';
 
 // ── Types ──
-import { ToolAction } from '../../../services/ResponseParser';
-import { Message } from '../../../types/message';
-import { GroupType } from '../../../types/renderer-types';
+import { ToolAction } from '../../../services/responseParser';
+import type { GroupType } from '../../../types/renderer-types';
+import { formatActionForDisplay } from '../../../utils/action-display-formatter';
+import type { Message } from '../../../types/message';
 
-// ── Utils ──
-import { formatActionForDisplay } from '../../../services/ResponseParser';
-
-// ── Components ──
-import { getModuleRenderers, getModuleRenderer } from '../../../services/ModuleRegistry';
+import { getModuleRenderers, getModuleRenderer } from '../../../services/moduleRegistry';
+import { shouldToolBeCollapsed } from '../../../utils/tool-behavior-registry';
 import { ErrorRenderer } from './renderers/ErrorRenderer';
 import { MarkdownRenderer } from './renderers/MarkdownRenderer';
 import { QuestionRenderer } from './renderers/QuestionRenderer';
@@ -271,7 +268,10 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
     const initialCollapsed = new Set<string>();
     toolGroup.forEach((_item, index) => {
       const actionId = `${messageId}-action-${index}`;
-      if (_item.action.type !== 'run_command') {
+      // Check via registry instead of hardcoded type
+      if (!shouldToolBeCollapsed(_item.action)) {
+        // Tool should be expanded by default
+      } else {
         initialCollapsed.add(actionId);
       }
     });
@@ -512,7 +512,7 @@ const TagRouterInternal: React.FC<TagRouterProps> = ({
             }}
           >
             <span className="text-[13px] text-text-primary font-semibold flex-1">
-              {formatActionForDisplay(action)}
+              {formatActionForDisplay(action, feature ?? undefined)}
             </span>
             {isToolClickable(action.type) && (
               <svg

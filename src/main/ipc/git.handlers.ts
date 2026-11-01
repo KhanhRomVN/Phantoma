@@ -61,11 +61,77 @@ function runGit(
   });
 }
 
-/** Copy a file/folder with native `cp -a --reflink=auto` (fast, CoW when supported). Resolves false on any failure so callers can fall back. */
-function copyFast(src: string, dest: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    execFile('cp', ['-a', '--reflink=auto', '--', src, dest], (err) => resolve(!err));
-  });
+interface CopyPlan {
+  dirs: string[];
+  files: { from: string; to: string; size: number; root: string }[];
+  links: { from: string; to: string }[];
+  bytes: number;
+  onTick?: () => void;
+}
+
+async function planCopy(from: string, to: string, plan: CopyPlan, root: string): Promise<void> {
+  const st = await fs.lstat(from).catch(() => null);
+  if (!st) return;
+  if (st.isDirectory()) {
+    plan.dirs.push(to);
+    const names = await fs.readdir(from).catch(() => [] as string[]);
+    await Promise.all(names.map((n) => planCopy(join(from, n), join(to, n), plan, root)));
+  } else if (st.isSymbolicLink()) {
+    plan.links.push({ from, to });
+  } else if (st.isFile()) {
+    plan.files.push({ from, to, size: st.size, root });
+    plan.bytes += st.size;
+    plan.onTick?.();
+  }
+}
+
+/** Copy the planned files with CoW clone when supported (COPYFILE_FICLONE), reporting real bytes copied. */
+async function runCopyPlan(
+  plan: CopyPlan,
+  onProgress: (p: {
+    current: number;
+    total: number;
+    bytesDone: number;
+    bytesTotal: number;
+    label: string;
+  }) => void,
+): Promise<void> {
+  for (const dir of plan.dirs) await fs.mkdir(dir, { recursive: true });
+  let bytesDone = 0;
+  let filesDone = 0;
+  let next = 0;
+  let failure: unknown = null;
+  let lastReport = 0;
+  const emit = (label: string, force = false) => {
+    const now = Date.now();
+    if (!force && now - lastReport < 100) return;
+    lastReport = now;
+    onProgress({
+      current: filesDone,
+      total: plan.files.length,
+      bytesDone,
+      bytesTotal: plan.bytes,
+      label,
+    });
+  };
+  const worker = async () => {
+    while (!failure && next < plan.files.length) {
+      const f = plan.files[next++];
+      try {
+        await fs.copyFile(f.from, f.to, fs.constants.COPYFILE_FICLONE);
+      } catch (e) {
+        failure = e;
+        return;
+      }
+      bytesDone += f.size;
+      filesDone++;
+      emit(f.root);
+    }
+  };
+  await Promise.all(Array.from({ length: 16 }, worker));
+  if (failure) throw failure;
+  for (const l of plan.links) await fs.symlink(await fs.readlink(l.from), l.to);
+  emit('', true);
 }
 
 export function setupGitHandlers(): void {
@@ -274,6 +340,53 @@ export function setupGitHandlers(): void {
       return { branches, worktreePaths };
     } catch (e: any) {
       logger.error('[git:list-branches] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Prune orphan branches (local, no worktree, fully merged into default branch) ──
+  ipcMain.handle('git:prune-orphan-branches', async (_event, projectPath: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      await runGit(['worktree', 'prune'], cwd);
+
+      const originHead = await runGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd);
+      let defaultBranch = originHead.error ? '' : originHead.stdout.trim().replace(/^origin\//, '');
+      if (!defaultBranch) {
+        for (const c of ['main', 'master']) {
+          const ok = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${c}`], cwd);
+          if (!ok.error) {
+            defaultBranch = c;
+            break;
+          }
+        }
+      }
+      if (!defaultBranch) return { pruned: [], skipped: 'no default branch' };
+
+      const merged = await runGit(
+        ['branch', '--merged', defaultBranch, '--format=%(refname:short)'],
+        cwd,
+      );
+      if (merged.error) return { error: merged.stderr || merged.error.message };
+
+      const protectedNames = new Set<string>([defaultBranch, 'main', 'master']);
+      const current = await runGit(['branch', '--show-current'], cwd);
+      if (current.stdout.trim()) protectedNames.add(current.stdout.trim());
+      const wtList = await runGit(['worktree', 'list', '--porcelain'], cwd);
+      for (const line of wtList.stdout.split('\n')) {
+        if (line.startsWith('branch ')) protectedNames.add(line.slice(7).trim().replace(/^refs\/heads\//, ''));
+      }
+
+      const pruned: string[] = [];
+      for (const name of merged.stdout.split('\n').map((l) => l.trim()).filter(Boolean)) {
+        if (protectedNames.has(name)) continue;
+        const del = await runGit(['branch', '-d', name], cwd);
+        if (!del.error) pruned.push(name);
+      }
+      logger.info?.('[DEBUG][git:prune-orphan-branches]', { defaultBranch, pruned });
+      return { pruned };
+    } catch (e: any) {
+      logger.error('[git:prune-orphan-branches] Error:', e);
       return { error: e.message || String(e) };
     }
   });
@@ -796,6 +909,8 @@ export function setupGitHandlers(): void {
           step: 'worktree' | 'local' | 'copy';
           current?: number;
           total?: number;
+          bytesDone?: number;
+          bytesTotal?: number;
           label?: string;
         }) => _event.sender.send('git:create-branch-progress', p);
         report({ step: 'worktree' });
@@ -903,26 +1018,34 @@ export function setupGitHandlers(): void {
           }
         }
 
-        for (const [i, raw] of copyPaths.entries()) {
-          report({ step: 'copy', current: i + 1, total: copyPaths.length, label: raw });
-          const rel = raw.replace(/\/+$/, '');
-          if (!rel || rel.startsWith('/') || rel.split('/').includes('..')) continue;
-          const src = join(cwd, rel);
-          const dest = join(targetPath, rel);
-          const stat = await fs.stat(src).catch(() => null);
-          if (!stat || (await fs.lstat(dest).catch(() => null))) continue;
-          await fs.mkdir(dirname(dest), { recursive: true });
-          if (await copyFast(src, dest)) continue;
-          if (stat.isDirectory()) {
-            // Electron's fs treats *.asar as archives (e.g. electron/dist/resources/default_app.asar) and cp fails on them
-            const prevNoAsar = process.noAsar;
-            process.noAsar = true;
-            try {
-              await fs.cp(src, dest, { recursive: true });
-            } finally {
-              process.noAsar = prevNoAsar;
+        if (copyPaths.length > 0) {
+          report({ step: 'copy' });
+          const plan: CopyPlan = { dirs: [], files: [], links: [], bytes: 0 };
+          let lastTick = 0;
+          plan.onTick = () => {
+            const now = Date.now();
+            if (now - lastTick < 100) return;
+            lastTick = now;
+            report({ step: 'copy', current: plan.files.length, bytesTotal: plan.bytes });
+          };
+          // Electron's fs treats *.asar as archives (e.g. electron/dist/resources/default_app.asar) and copy fails on them
+          const prevNoAsar = process.noAsar;
+          process.noAsar = true;
+          try {
+            for (const raw of copyPaths) {
+              const rel = raw.replace(/\/+$/, '');
+              if (!rel || rel.startsWith('/') || rel.split('/').includes('..')) continue;
+              const src = join(cwd, rel);
+              const dest = join(targetPath, rel);
+              if (!(await fs.lstat(src).catch(() => null))) continue;
+              if (await fs.lstat(dest).catch(() => null)) continue;
+              await fs.mkdir(dirname(dest), { recursive: true });
+              await planCopy(src, dest, plan, raw);
             }
-          } else await fs.copyFile(src, dest);
+            await runCopyPlan(plan, (p) => report({ step: 'copy', ...p }));
+          } finally {
+            process.noAsar = prevNoAsar;
+          }
         }
 
         return { branch: name, path: targetPath };
@@ -996,8 +1119,8 @@ export function setupGitHandlers(): void {
       sameCommit: headSha.stdout?.trim() === refSha.stdout?.trim(),
     });
     const [names, nums] = await Promise.all([
-      runGit(['diff', '-R', '--no-renames', '--name-status', '-z', ref, 'HEAD'], cwd),
-      runGit(['diff', '-R', '--no-renames', '--numstat', '-z', ref, 'HEAD'], cwd),
+      runGit(['diff', '-R', '--no-renames', '--name-status', '-z', ref], cwd),
+      runGit(['diff', '-R', '--no-renames', '--numstat', '-z', ref], cwd),
     ]);
     if (names.error) return { error: names.stderr || names.error.message };
     const stats = new Map<string, { added: number; deleted: number }>();
@@ -1019,6 +1142,51 @@ export function setupGitHandlers(): void {
       const st = stats.get(parts[i + 1]) ?? { added: 0, deleted: 0 };
       files.push({ path: parts[i + 1], status, added: st.added, deleted: st.deleted });
     }
+    const known = new Set(files.map((f) => f.path));
+    const untracked = await runGit(['ls-files', '--others', '--exclude-standard', '-z'], cwd);
+    const untrackedPaths = untracked.stdout.split('\0').filter(Boolean);
+    const untrackedOnly: string[] = [];
+    const wtList = await runGit(['worktree', 'list', '--porcelain'], cwd);
+    let srcWt = '';
+    for (const block of wtList.stdout.split(/\n\s*\n/)) {
+      const ls = block.split('\n').map((l) => l.trim());
+      if (!ls.includes(`branch refs/heads/${ref}`)) continue;
+      srcWt = ls.find((l) => l.startsWith('worktree '))?.slice(9) ?? '';
+      break;
+    }
+    logger.info?.('[DEBUG][readBranchDiff] source worktree', { ref, srcWt });
+    for (const p of untrackedPaths) {
+      if (known.has(p)) continue;
+      const inRef = await runGit(['cat-file', '-e', `${ref}:${p}`], cwd);
+      if (!inRef.error) continue;
+      if (srcWt) {
+        try {
+          const [a, b] = await Promise.all([
+            fs.readFile(resolve(srcWt, p)),
+            fs.readFile(resolve(cwd, p)),
+          ]);
+          if (a.equals(b)) continue;
+        } catch {
+          /* not present in source worktree — treat as missing */
+        }
+      }
+      let lines = 0;
+      try {
+        const buf = await fs.readFile(resolve(cwd, p), 'utf8');
+        lines = buf.length ? buf.split('\n').length - (buf.endsWith('\n') ? 1 : 0) : 0;
+      } catch {
+        /* unreadable file — count stays 0 */
+      }
+      files.push({ path: p, status: 'deleted', added: 0, deleted: lines });
+      untrackedOnly.push(p);
+    }
+    logger.info?.('[DEBUG][readBranchDiff] result', {
+      ref,
+      nameStatusRaw: names.stdout.split('\0').filter(Boolean),
+      untrackedPaths,
+      untrackedMissingInRef: untrackedOnly,
+      totalFiles: files.length,
+    });
     const ignored = new Set<string>();
     for (let i = 0; i < files.length; i += 200) {
       const chunk = files.slice(i, i + 200).map((f) => f.path);

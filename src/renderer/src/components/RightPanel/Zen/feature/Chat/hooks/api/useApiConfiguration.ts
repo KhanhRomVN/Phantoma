@@ -17,6 +17,8 @@
 // ── React ──
 import { useState, useEffect } from 'react';
 
+const DEFAULT_API_URL = 'http://localhost:8888';
+
 // ── Utils ──
 
 // ── Services ──
@@ -24,7 +26,7 @@ import { extensionService } from '../../../../services/ExtensionService';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 export const useApiConfiguration = () => {
-  const [apiUrl, setApiUrl] = useState('http://localhost:8888');
+  const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
   const [isApiUrlReady, setIsApiUrlReady] = useState(false);
   const [providers, setProviders] = useState<any[]>([]);
 

@@ -17,6 +17,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 import type { WorkflowAgentId } from './types/workflow-agents';
+import type { ToolFormatId } from './services/tool-formats/types';
 // Core chat hooks
 import { useChatLLM } from './hooks/llm/useChatLLM';
 import { useToolExecution } from './hooks/tools/useToolExecution';
@@ -46,15 +47,96 @@ import { useSessionCleanup } from './hooks/llm/useSessionCleanup';
 import { ChatSession } from './types/chat';
 
 // ── Utils ──
-import {
-  messagesToMarkdown,
-  messagesToJson,
-  downloadJson,
-  copyToClipboard,
-} from './utils/conversationExport';
+// ── Conversation Export Utils ──
+export const messagesToMarkdown = (input: {
+  messages: any[];
+  conversationId?: string | null;
+  title?: string;
+}): string => {
+  const { messages, conversationId, title } = input;
+  const lines: string[] = [];
+  lines.push(`# ${title || 'Conversation'}`);
+  if (conversationId) lines.push(`\n> ID: \`${conversationId}\``);
+  lines.push(`\n> Exported at: ${new Date().toISOString()}\n`);
+  lines.push('---\n');
+  for (const msg of messages) {
+    if (msg.uiHidden) continue;
+    const roleLabel =
+      msg.role === 'user'
+        ? '👤 User'
+        : msg.role === 'assistant'
+          ? '🤖 Assistant'
+          : `⚙️ ${msg.role}`;
+    lines.push(`## ${roleLabel}\n`);
+    lines.push(msg.content || '');
+    lines.push('\n---\n');
+  }
+  return lines.join('\n');
+};
+
+export const messagesToJson = (input: {
+  messages: any[];
+  conversationId?: string | null;
+  title?: string;
+}): string => {
+  const { messages, conversationId, title } = input;
+  const payload = {
+    title: title || 'Conversation',
+    conversationId: conversationId || null,
+    exportedAt: new Date().toISOString(),
+    messages: messages
+      .filter((m) => !m.uiHidden)
+      .map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp,
+        token_usage: m.token_usage,
+        usage: m.usage,
+        providerId: m.providerId,
+        modelId: m.modelId,
+      })),
+  };
+  return JSON.stringify(payload, null, 2);
+};
+
+export const downloadJson = (content: string, filename: string): void => {
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+export const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+};
 
 // ── Services ──
-import { deleteConversation } from './services/ConversationService';
+import { deleteConversation } from './services/conversationService';
+import { DEFAULT_TOOL_FORMAT } from './services/tool-formats';
 
 // ── Components ──
 import ChatHeader from './components/ChatHeader';
@@ -79,7 +161,7 @@ interface ChatPanelProps {
     conversationOverrides?: {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
-      toolFormat?: 'xml' | 'json';
+      toolFormat?: ToolFormatId;
       workflowAgentId?: WorkflowAgentId | null;
     };
   } | null;
@@ -245,7 +327,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     | {
         useSkillEnabled?: boolean;
         memoryEnabled?: boolean;
-        toolFormat?: 'xml' | 'json';
+        toolFormat?: ToolFormatId;
         workflowAgentId?: WorkflowAgentId | null;
       }
     | undefined
@@ -459,7 +541,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     conversationIdRef: currentConversationIdRef,
     messagesRef: messagesRef,
     isStoppedRef: isStoppedRef,
-    toolFormat: restoredConversationOverrides?.toolFormat ?? 'xml',
+    toolFormat: restoredConversationOverrides?.toolFormat ?? DEFAULT_TOOL_FORMAT,
     workflowAgentId: workflowSync?.agentId ?? null,
     sessionId: currentChat?.sessionId,
     folderPath: currentChat?.folderPath ?? null,
@@ -522,7 +604,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     messages,
     isStreaming,
     feature,
-    restoredConversationOverrides?.toolFormat ?? 'xml',
+    restoredConversationOverrides?.toolFormat ?? DEFAULT_TOOL_FORMAT,
   );
 
   // --- Context Usage ---
@@ -720,7 +802,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [initialMessageData, sendMessage, onClearInitialData, isApiUrlReady]);
 
-  // Deliver send_message items queued for this workflow agent, one at a time when idle
   const inboxHead = workflowSync?.inbox?.[0];
   const inboxBusyRef = useRef(false);
   const inboxStampRef = useRef(0);
@@ -894,7 +975,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         onBackToHome={handleBackToHome}
         isLoadingConversation={isLoadingConversation}
         feature={feature}
-        toolFormat={restoredConversationOverrides?.toolFormat ?? 'xml'}
+        toolFormat={restoredConversationOverrides?.toolFormat ?? DEFAULT_TOOL_FORMAT}
       />
       {/* ─── ChatFooter ─── */}
       <ChatFooter

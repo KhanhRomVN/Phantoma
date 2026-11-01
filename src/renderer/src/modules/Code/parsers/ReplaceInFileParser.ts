@@ -1,10 +1,5 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
-
-export interface ReplaceInFileParams {
-  file_path: string;
-  old_content: string;
-  new_content: string;
-}
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
+import type { ReplaceInFileParams } from '../types/tool-params';
 
 export const parseReplaceInFile = (innerContent: string): ReplaceInFileParams => {
   // Parse according to tools-reference.ts schema: file_path only

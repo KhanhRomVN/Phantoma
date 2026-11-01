@@ -8,7 +8,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 
 // ── Context ──

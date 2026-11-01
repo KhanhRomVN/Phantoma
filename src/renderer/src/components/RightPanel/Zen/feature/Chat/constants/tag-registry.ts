@@ -15,13 +15,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import type {
-  TagCategory,
-  TagDefinition,
-  ToolType,
-  UITagType,
-  TagType,
-} from '../types/tag-types';
+import type { TagCategory, TagDefinition, ToolType, UITagType, TagType } from '../types/tag-types';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────
 export type { TagCategory, TagDefinition, ToolType, UITagType, TagType };
@@ -84,8 +78,9 @@ export const TERMINAL_STATUS = {
 export type TerminalStatus = (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS];
 
 // ===== UI CONSTANTS =====
-/** Chiều cao mặc định cho khung hiển thị streaming output */
-export const STREAM_BOX_HEIGHT = 154;
+// Moved to constants/ui.ts
+import { STREAM_BOX_HEIGHT } from './ui';
+export { STREAM_BOX_HEIGHT };
 
 // ===== SHARED TAG REGISTRY (UI tags only) =====
 export const SHARED_TAG_REGISTRY: Record<string, TagDefinition> = {
@@ -129,14 +124,6 @@ export const CORE_TOOL_REGISTRY: Record<string, TagDefinition> = {
 let _moduleRegistries: Record<string, TagDefinition> = {};
 let _perModuleRegistries: Record<string, Record<string, TagDefinition>> = {};
 
-/**
- * Inject module tag registries from ModuleRegistry.
- * Called by ModuleRegistry after all modules are registered.
- *
- * @param registries  Registry hợp nhất (fallback toàn cục, module sau đè module trước)
- * @param perModule   Registry RIÊNG theo từng module — dùng để tránh trường hợp các module
- *                    trùng tên tool (read_file, list_files, ...) đè label của nhau.
- */
 export const injectModuleRegistries = (
   registries: Record<string, TagDefinition>,
   perModule?: Record<string, Record<string, TagDefinition>>,
@@ -145,40 +132,37 @@ export const injectModuleRegistries = (
   if (perModule) _perModuleRegistries = perModule;
 };
 
-export const TAG_REGISTRY = new Proxy(
-  {} as Record<string, TagDefinition>,
-  {
-    get(_target, prop: string) {
-      if (prop in SHARED_TAG_REGISTRY) {
-        return SHARED_TAG_REGISTRY[prop];
-      }
-      if (prop in CORE_TOOL_REGISTRY) {
-        return CORE_TOOL_REGISTRY[prop];
-      }
-      return _moduleRegistries[prop];
-    },
-    has(_target, prop: string) {
-      return prop in SHARED_TAG_REGISTRY || prop in CORE_TOOL_REGISTRY || prop in _moduleRegistries;
-    },
-    ownKeys(_target) {
-      const keys = new Set([
-        ...Object.keys(SHARED_TAG_REGISTRY),
-        ...Object.keys(CORE_TOOL_REGISTRY),
-        ...Object.keys(_moduleRegistries),
-      ]);
-      return Array.from(keys);
-    },
-    getOwnPropertyDescriptor(_target, prop: string) {
-      if (prop in SHARED_TAG_REGISTRY || prop in CORE_TOOL_REGISTRY || prop in _moduleRegistries) {
-        return {
-          enumerable: true,
-          configurable: true,
-        };
-      }
-      return undefined;
-    },
+export const TAG_REGISTRY = new Proxy({} as Record<string, TagDefinition>, {
+  get(_target, prop: string) {
+    if (prop in SHARED_TAG_REGISTRY) {
+      return SHARED_TAG_REGISTRY[prop];
+    }
+    if (prop in CORE_TOOL_REGISTRY) {
+      return CORE_TOOL_REGISTRY[prop];
+    }
+    return _moduleRegistries[prop];
   },
-);
+  has(_target, prop: string) {
+    return prop in SHARED_TAG_REGISTRY || prop in CORE_TOOL_REGISTRY || prop in _moduleRegistries;
+  },
+  ownKeys(_target) {
+    const keys = new Set([
+      ...Object.keys(SHARED_TAG_REGISTRY),
+      ...Object.keys(CORE_TOOL_REGISTRY),
+      ...Object.keys(_moduleRegistries),
+    ]);
+    return Array.from(keys);
+  },
+  getOwnPropertyDescriptor(_target, prop: string) {
+    if (prop in SHARED_TAG_REGISTRY || prop in CORE_TOOL_REGISTRY || prop in _moduleRegistries) {
+      return {
+        enumerable: true,
+        configurable: true,
+      };
+    }
+    return undefined;
+  },
+});
 
 // ============= HELPER FUNCTIONS =============
 
@@ -250,7 +234,7 @@ export const isToolClickable = (type: string): boolean => {
  * Get the display label for a tool type.
  *
  * Nếu truyền `moduleId`, ưu tiên label khai báo trong registry của ĐÚNG module đó —
- * tránh việc module khác (vd: Recon) ghi đè label của tool trùng tên (vd: read_file).
+ * tránh việc module khác (vd: Recon) ghi đè label của tool trùng tên)
  */
 export const getToolLabel = (toolType: string, moduleId?: string | null): string => {
   if (moduleId) {

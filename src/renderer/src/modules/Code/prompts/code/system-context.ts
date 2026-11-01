@@ -1,5 +1,10 @@
-import type { SystemPromptMode } from "./mode-config";
-import { MODE_BEHAVIORS, MAX_READ_LINES_PER_TURN } from "./mode-config";
+/** System context: OS / shell / cwd and path & batch limits (most volatile → placed last). */
+
+import {
+  type SystemPromptMode,
+  MODE_BEHAVIORS,
+  MAX_READ_LINES_PER_TURN,
+} from "./config";
 
 export interface SystemInfo {
   os: string;
@@ -7,23 +12,6 @@ export interface SystemInfo {
   homeDir: string;
   cwd: string;
   language: string;
-  /**
-   * Optional AUTHORING target — distinct from the actual execution host.
-   * Use this only when the user wants OS-specific syntax/conventions for a
-   * DIFFERENT OS than the one this session is actually running on (e.g.
-   * "write me a .ps1 for our Windows build box" while this session itself
-   * runs on Linux). It never changes what `run_command` actually executes
-   * on — see the "Authoring Target Differs From Execution Host" block below,
-   * which only appears when there is a real mismatch to warn about.
-   *
-   * `maxFilesPerSession` used to live here as a second, independent source
-   * for MAX-FILES-PER-REQUEST. It has been removed: writing's limit is now
-   * derived from the current mode's `maxBatchSize` (see mode-config.ts), the
-   * same number WRITE-BATCH-LIMIT in constraints.ts uses, so the two rules
-   * can never disagree for the same mode again. Reading no longer has a
-   * file-count field at all — see MAX_READ_LINES_PER_TURN in mode-config.ts,
-   * a flat, exact-line-count cap shared by every mode.
-   */
   targetOS?: "auto" | "windows" | "linux";
 }
 

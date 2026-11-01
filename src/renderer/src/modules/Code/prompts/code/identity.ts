@@ -1,41 +1,49 @@
-// src/webview-ui/src/features/chat/prompts/identity.ts
-import type { SystemPromptMode } from "./mode-config";
+import { type SystemPromptMode } from './config';
+import { type ToolFormat, DEFAULT_TOOL_FORMAT, jsonCall, tick } from './tool-format';
 
-/**
- * Mode-dependent behavior text (ask-confirmation style, comment style, test
- * behavior, explanation depth) used to be duplicated here AND in
- * constraints.ts, hand-written twice with different wording for the same
- * ModeBehaviorConfig switch. That duplication is exactly how the
- * RESPONSE-LANGUAGE hardcode bug happened (this file drifted to a hardcoded
- * "Vietnamese" while constraints.ts correctly used `${language}`). All of
- * that mode-behavior text now lives ONCE, in constraints.ts — this file only
- * carries identity-level rules that don't vary by mode, plus a pointer.
- *
- * toolFormat matters here for exactly one line: conversation_title. In XML
- * mode it is emitted as a <conversation_title>...</conversation_title> tag;
- * in JSON mode it is an ordinary JSON tool call
- * ({"tool":"conversation_title","params":{"title":"..."}}). Note the
- * contrast with <markdown>, which stays XML-shaped in BOTH modes because it
- * is a UI/render tag, not a tool.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// XML
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TITLE_INSTRUCTION_XML = `Every first response in a conversation MUST include a <conversation_title>Short title</conversation_title> tag once, written in the user's language. Refresh it whenever the task changes.`;
+
+const MARKDOWN_LANGUAGE_NOTE_XML = (language: string): string =>
+  `All <markdown> prose must be written in ${language}; code, identifiers, and error messages stay as-is. (<markdown> is a UI tag, not a tool call — it keeps this XML form in every tool format.)`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// JSON
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TITLE_INSTRUCTION_JSON = `Every first response in a conversation MUST include a conversation title tool call once, written in the user's language: ${tick(jsonCall('conversation_title', { title: 'Short title' }))}. Refresh it whenever the task changes.`;
+
+const MARKDOWN_LANGUAGE_NOTE_JSON = (language: string): string =>
+  `All prose in {"type":"markdown"} objects must be written in ${language}; code, identifiers, and error messages stay as-is.`;
+
+const TITLE_INSTRUCTION: Record<ToolFormat, string> = {
+  xml: TITLE_INSTRUCTION_XML,
+  json: TITLE_INSTRUCTION_JSON,
+  dsml: TITLE_INSTRUCTION_XML,
+};
+
+const MARKDOWN_LANGUAGE_NOTE: Record<ToolFormat, (language: string) => string> = {
+  xml: MARKDOWN_LANGUAGE_NOTE_XML,
+  json: MARKDOWN_LANGUAGE_NOTE_JSON,
+  dsml: MARKDOWN_LANGUAGE_NOTE_XML,
+};
+
 export const buildIdentityPrompt = (
   language: string,
-  mode: SystemPromptMode = "balanced",
-  toolFormat: "xml" | "json" = "xml",
-) => {
-  const titleInstruction =
-    toolFormat === "json"
-      ? `- Every first response in a conversation MUST include a conversation title tool call once, written in the user's language: \`{"tool":"conversation_title","params":{"title":"Short title"}}\`. Refresh it whenever the task changes.`
-      : `- Every first response in a conversation MUST include a <conversation_title>Short title</conversation_title> tag once, written in the user's language. Refresh it whenever the task changes.`;
-
+  mode: SystemPromptMode = 'balanced',
+  toolFormat: ToolFormat = DEFAULT_TOOL_FORMAT,
+): string => {
   return `You are an expert AI coding assistant. Language: ${language}.
-${titleInstruction}
+- ${TITLE_INSTRUCTION[toolFormat]}
 - No filler ("Sure!", "Certainly!", "Great question!") — respond directly.
 - No play-by-play narration ("Now I will read...") — just act.
 - Never say "I cannot run commands" — use run_command or offer it. Exception: in read-only permission mode, state plainly that run_command is blocked and offer to help switch permission modes.
 - Read files before editing them. Never chain dependent tool calls or predict tool outputs in a single turn.
 - Batch all independent operations in one message, respecting the per-type tool call caps.
-- All <markdown> prose must be written in ${language}; code, identifiers, and error messages stay as-is. (<markdown> is a UI tag, not a tool call — it keeps this XML form in every tool format.)
+- ${MARKDOWN_LANGUAGE_NOTE[toolFormat](language)}
 - Assumption/confirmation behavior, comment style, test behavior, and explanation depth for the current "${mode}" mode are defined once, in the CONSTRAINTS section below — follow those; there is no separate restatement of them here.
 - Output is always shaped for a reader with ADHD, in every response for the whole session, whatever the topic: lead with the next action, command, path, or result; prose after, if at all.
 - Multi-step work: numbered list, one bounded action per step, fewest steps that work. Restate state each turn ("Step 3 of 5 done: <what>. Next: <what>.").

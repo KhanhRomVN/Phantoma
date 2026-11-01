@@ -4,13 +4,11 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  Cloud,
   Download,
   FileDiff,
   FileMinus2,
   FilePlus2,
   GitBranch,
-  HardDrive,
   Loader2,
   Minus,
 } from 'lucide-react';
@@ -27,7 +25,12 @@ import {
 import { Button } from '@renderer/components/ui/Button/Button';
 
 type FileStatus = 'added' | 'modified' | 'deleted';
-type SourceMode = 'local' | 'remote';
+type SourceKind = 'local' | 'remote';
+
+interface SourceOption {
+  name: string;
+  kind: SourceKind;
+}
 
 interface SyncFile {
   path: string;
@@ -67,6 +70,17 @@ const STATUS_META: Record<FileStatus, { icon: typeof FileDiff; cls: string; labe
 };
 
 const stripOrigin = (n: string) => n.replace(/^origin\//, '');
+
+const refOf = (o: SourceOption | null) =>
+  !o ? '' : o.kind === 'remote' ? `origin/${o.name}` : o.name;
+
+function RemoteBadge() {
+  return (
+    <span className="shrink-0 rounded bg-primary/15 px-1.5 py-[3px] text-[10px] font-semibold leading-none tracking-wide text-primary">
+      REMOTE
+    </span>
+  );
+}
 
 function buildTree(files: SyncFile[]): TreeNode[] {
   const root: TreeNode = {
@@ -171,9 +185,7 @@ export function SyncBranchModal({
   branches,
   onApplied,
 }: SyncBranchModalProps) {
-  const [source, setSource] = useState('');
-  const [mode, setMode] = useState<SourceMode>('local');
-  const [remotePick, setRemotePick] = useState('');
+  const [picked, setPicked] = useState<SourceOption | null>(null);
   const [rawBranches, setRawBranches] = useState<string[] | null>(null);
   const [fetchingRemote, setFetchingRemote] = useState(false);
   const [files, setFiles] = useState<SyncFile[] | null>(null);
@@ -183,45 +195,32 @@ export function SyncBranchModal({
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const candidates = useMemo(
-    () =>
-      Array.from(new Set(branches.map(stripOrigin))).filter(
-        (b) => b && b !== 'HEAD' && b !== currentBranch,
+  const options = useMemo<SourceOption[]>(() => {
+    const all = rawBranches ?? branches;
+    const local = Array.from(
+      new Set(all.filter((n) => !n.startsWith('origin/') && n !== 'origin' && n !== 'HEAD')),
+    ).filter((n) => n && n !== currentBranch);
+    const remote = Array.from(
+      new Set(
+        all
+          .filter((n) => n.startsWith('origin/'))
+          .map(stripOrigin)
+          .filter((n) => n && n !== 'HEAD'),
       ),
-    [branches, currentBranch],
-  );
+    );
+    return [
+      ...local.map((name) => ({ name, kind: 'local' as const })),
+      ...remote.map((name) => ({ name, kind: 'remote' as const })),
+    ];
+  }, [rawBranches, branches, currentBranch]);
 
-  const rawLocal = useMemo(
-    () => (rawBranches ?? []).filter((n) => !n.startsWith('origin/') && n !== 'origin'),
-    [rawBranches],
-  );
-  const remoteNames = useMemo(
-    () =>
-      (rawBranches ?? [])
-        .filter((n) => n.startsWith('origin/'))
-        .map(stripOrigin)
-        .filter((n) => n && n !== 'HEAD'),
-    [rawBranches],
-  );
-
-  const hasLocal = rawLocal.includes(source);
-  const hasRemote = remoteNames.includes(source);
-  const effectiveMode: SourceMode =
-    hasLocal && hasRemote ? mode : hasLocal ? 'local' : 'remote';
-  const remoteBranch = remotePick || (hasRemote ? source : (remoteNames[0] ?? ''));
-  const ref = !source
-    ? ''
-    : effectiveMode === 'remote'
-      ? remoteBranch
-        ? `origin/${remoteBranch}`
-        : ''
-      : source;
+  const selected = picked ?? options[0] ?? null;
+  const ref = refOf(selected);
+  const isRemote = selected?.kind === 'remote';
 
   useEffect(() => {
     if (!isOpen) return;
-    setSource(candidates[0] ?? '');
-    setMode('local');
-    setRemotePick('');
+    setPicked(null);
     setFiles(null);
     setError('');
     setExcluded(new Set());
@@ -229,9 +228,20 @@ export function SyncBranchModal({
     setApplying(false);
     setRawBranches(null);
     (window as any).api
-      .invoke('git:list-branches', targetPath)
-      .then((res: any) => setRawBranches(res?.branches ?? []))
-      .catch(() => setRawBranches([]));
+      .invoke('git:prune-orphan-branches', targetPath)
+      .catch(() => null)
+      .then((pruned: any) => {
+        console.log('[DEBUG][SyncBranchModal] prune-orphan-branches', pruned);
+        return (window as any).api.invoke('git:list-branches', targetPath);
+      })
+      .then((res: any) => {
+        console.log('[DEBUG][SyncBranchModal] list-branches', res);
+        setRawBranches(res?.branches ?? []);
+      })
+      .catch((e: any) => {
+        console.log('[DEBUG][SyncBranchModal] list-branches failed', e);
+        setRawBranches([]);
+      });
   }, [isOpen]);
 
   useEffect(() => {
@@ -244,12 +254,13 @@ export function SyncBranchModal({
     setError('');
     setFiles(null);
     const run = async () => {
-      if (effectiveMode === 'remote') {
+      if (isRemote) {
         setFetchingRemote(true);
         try {
-          await (window as any).api.invoke('git:fetch', targetPath);
-        } catch {
-          /* ignore fetch failure — still diff against last known origin ref */
+          const fetchRes = await (window as any).api.invoke('git:fetch', targetPath);
+          console.log('[DEBUG][SyncBranchModal] git:fetch', fetchRes);
+        } catch (e) {
+          console.log('[DEBUG][SyncBranchModal] git:fetch failed (diff against last known origin ref)', e);
         } finally {
           setFetchingRemote(false);
         }
@@ -260,6 +271,13 @@ export function SyncBranchModal({
     run()
       .then((res: any) => {
         if (cancelled) return;
+        console.log('[DEBUG][SyncBranchModal] preview', {
+          ref,
+          kind: selected?.kind,
+          currentBranch,
+          error: res?.error,
+          files: res?.files,
+        });
         if (res?.error) {
           setError(res.error);
           setFiles([]);
@@ -271,6 +289,7 @@ export function SyncBranchModal({
       })
       .catch((e: any) => {
         if (cancelled) return;
+        console.log('[DEBUG][SyncBranchModal] preview failed', e);
         setError(e?.message || String(e));
         setFiles([]);
       })
@@ -365,7 +384,7 @@ export function SyncBranchModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      className="w-[46vw] min-w-[520px] max-w-[860px] max-h-[88vh]"
+      className="w-[46vw] min-w-[520px] max-w-[860px] h-[70vh] max-h-[70vh]"
     >
       <ModalHeader
         title="Pull from branch"
@@ -374,12 +393,11 @@ export function SyncBranchModal({
         className="px-6 py-4"
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
         <div className="mb-1.5 text-[12px] text-text-secondary">Source</div>
-        <div className="flex items-center gap-2">
-          <div className="grid min-w-0 flex-1 grid-cols-2 gap-3">
-            <div className="min-w-0">
-              <Dropdown align="start" sideOffset={4} className="w-full">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0">
+            <Dropdown align="start" sideOffset={4} className="w-full" searchable>
               <DropdownTrigger>
                 <button
                   type="button"
@@ -387,84 +405,46 @@ export function SyncBranchModal({
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <GitBranch className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
-                    <span className="truncate">{source || 'Select branch'}</span>
+                    <span className="truncate">{selected?.name || 'Select branch'}</span>
+                    {isRemote && <RemoteBadge />}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
                 </button>
               </DropdownTrigger>
               <DropdownContent className="max-h-[220px] overflow-y-auto">
-                {candidates.map((b) => (
-                  <DropdownItem
-                    key={b}
-                    icon={
-                      <Check className={cn('h-3.5 w-3.5 text-primary', b !== source && 'invisible')} />
-                    }
-                    onClick={() => {
-                      setSource(b);
-                      setRemotePick('');
-                    }}
-                  >
-                    <span className="truncate">{b}</span>
-                  </DropdownItem>
-                ))}
+                {options.map((o) => {
+                  const active = selected?.name === o.name && selected?.kind === o.kind;
+                  return (
+                    <DropdownItem
+                      key={`${o.kind}:${o.name}`}
+                      icon={
+                        <Check className={cn('h-3.5 w-3.5 text-primary', !active && 'invisible')} />
+                      }
+                      onClick={() => setPicked(o)}
+                    >
+                      <span className="truncate">{o.name}</span>
+                      {o.kind === 'remote' && <RemoteBadge />}
+                    </DropdownItem>
+                  );
+                })}
               </DropdownContent>
-              </Dropdown>
-            </div>
+            </Dropdown>
+          </div>
 
-            <div className="flex min-w-0 items-center gap-2 rounded-md bg-input-background px-3">
-              <GitBranch className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="truncate font-mono text-[13px] text-text-primary">
-                {currentBranch || '—'}
-              </span>
-            </div>
+          <div className="flex h-9 min-w-0 items-center gap-2 rounded-md bg-input-background px-3">
+            <GitBranch className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="truncate font-mono text-[13px] text-text-primary">
+              {currentBranch || '—'}
+            </span>
           </div>
         </div>
 
-        {source && rawBranches !== null && (hasLocal || hasRemote) && (
-          <div className="mt-4 flex items-center gap-2">
-            {hasLocal && hasRemote ? (
-              <div className="flex h-9 shrink-0 items-center gap-1 rounded-md bg-input-background p-1">
-                {(['local', 'remote'] as SourceMode[]).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMode(m)}
-                    className={cn(
-                      'flex h-7 items-center gap-1.5 rounded px-3 text-[12.5px] font-medium outline-none transition-colors',
-                      effectiveMode === m
-                        ? 'bg-button-soft-background text-primary'
-                        : 'text-text-secondary hover:text-text-primary',
-                    )}
-                  >
-                    {m === 'local' ? (
-                      <HardDrive className="h-3.5 w-3.5" />
-                    ) : (
-                      <Cloud className="h-3.5 w-3.5" />
-                    )}
-                    {m === 'local' ? 'Local' : 'Remote'}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-input-background px-3 text-[12.5px] text-text-secondary">
-                {effectiveMode === 'local' ? (
-                  <HardDrive className="h-3.5 w-3.5" />
-                ) : (
-                  <Cloud className="h-3.5 w-3.5" />
-                )}
-                {effectiveMode === 'local' ? 'Local only' : 'Remote only'}
-              </div>
-            )}
-            <span className="flex-1 truncate font-mono text-[12.5px] text-text-secondary">
-              {effectiveMode === 'remote' ? `origin/${remoteBranch || '…'}` : source}
-            </span>
-            {fetchingRemote && <Loader2 className="h-3.5 w-3.5 animate-spin text-text-secondary" />}
-          </div>
-        )}
-
-        <div className="mt-5">
+        <div className="mt-5 flex min-h-0 flex-1 flex-col">
           <div className="mb-1.5 flex items-center justify-between gap-3">
-            <span className="text-[12px] text-text-secondary">Changes</span>
+            <span className="flex items-center gap-2 text-[12px] text-text-secondary">
+              Changes
+              {fetchingRemote && <Loader2 className="h-3 w-3 animate-spin" />}
+            </span>
             {files && files.length > 0 && (
               <span className="flex items-center gap-3 text-[11.5px] text-text-secondary">
                 {(Object.keys(STATUS_META) as FileStatus[]).map((s) => {
@@ -480,7 +460,7 @@ export function SyncBranchModal({
             )}
           </div>
 
-          <div className="overflow-hidden rounded-md border border-divider bg-input-background/40">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-divider bg-input-background/40">
             {files && files.length > 0 && (
               <div className="flex h-9 items-center gap-2 border-b border-divider px-3">
                 <Checkbox state={allState} onClick={() => selectAll(allState !== 'all')} />
@@ -505,18 +485,40 @@ export function SyncBranchModal({
               </div>
             )}
 
-            <div className="max-h-[340px] overflow-y-auto p-1.5">
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5">
               {(loading || (files === null && !error)) && (
-                <div className="flex h-24 items-center justify-center gap-2 text-[13px] text-text-secondary">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Scanning changes…
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                  <span className="grid h-9 w-9 place-items-center rounded-md bg-text-secondary/10">
+                    <Loader2 className="h-4 w-4 animate-spin text-text-secondary" />
+                  </span>
+                  <span className="text-[13px] font-medium text-text-primary">
+                    {fetchingRemote ? 'Fetching remote' : 'Scanning changes'}
+                  </span>
+                  <span className="text-[12.5px] leading-relaxed text-text-secondary">
+                    {fetchingRemote ? (
+                      <>
+                        Syncing <span className="font-mono">origin</span> to get the latest commits.
+                      </>
+                    ) : (
+                      <>
+                        Comparing <span className="font-mono">{currentBranch || projectName}</span> with{' '}
+                        <span className="font-mono">{ref || 'the source'}</span>.
+                      </>
+                    )}
+                  </span>
                 </div>
               )}
 
               {!loading && files !== null && files.length === 0 && !error && (
-                <div className="flex h-24 flex-col items-center justify-center gap-1 text-[13px] text-text-secondary">
-                  <Check className="h-4 w-4 text-success" />
-                  Already in sync with {ref || 'the source'}
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                  <span className="grid h-9 w-9 place-items-center rounded-md bg-text-secondary/10">
+                    <Check className="h-4.5 w-4.5 text-text-secondary" />
+                  </span>
+                  <span className="text-[13px] font-medium text-text-primary">Already up to date</span>
+                  <span className="text-[12.5px] leading-relaxed text-text-secondary">
+                    <span className="font-mono">{currentBranch || projectName}</span> has no differences
+                    from <span className="font-mono">{ref || 'the source'}</span>.
+                  </span>
                 </div>
               )}
 
@@ -524,11 +526,11 @@ export function SyncBranchModal({
                 rows.map(({ node, depth }) => {
                   const st = stateOf(node);
                   const isOpenDir = node.isDir && !collapsed.has(node.path);
-                  const meta = node.file ? STATUS_META[node.file.status] : null;
+
                   const iconSrc = node.isDir
                     ? getFolderIconPath(node.name, isOpenDir)
                     : getFileIconPath(node.name);
-                  const StatusIcon = meta?.icon;
+
                   const dim = st === 'none';
                   return (
                     <div
@@ -560,9 +562,7 @@ export function SyncBranchModal({
                         alt=""
                         className={cn('h-3.5 w-3.5 shrink-0', dim && 'opacity-40')}
                       />
-                      {!node.isDir && StatusIcon && (
-                        <StatusIcon className={cn('h-3 w-3 shrink-0', meta!.cls, dim && 'opacity-40')} />
-                      )}
+
                       <span
                         className={cn(
                           'min-w-0 flex-1 truncate font-mono text-[12.5px]',

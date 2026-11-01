@@ -15,7 +15,7 @@ import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/ser
 import { GitStatusItem } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
 
 // ── Utils ──
-import { parseGitStatusOutput } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/gitUtils';
+import { parseGitStatusOutput } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/git-status-parser';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──

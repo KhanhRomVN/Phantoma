@@ -12,7 +12,7 @@ import { extensionService } from '@renderer/components/RightPanel/Zen/services/E
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
@@ -20,6 +20,8 @@ import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+
+// ── Types ──
 import { MergedRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
 
 export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
@@ -91,10 +93,13 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span className="font-semibold opacity-80 cursor-pointer" onClick={(e) => {
-              e.stopPropagation();
-              handleOpenPreview();
-            }}>
+            <span
+              className="font-semibold opacity-80 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenPreview();
+              }}
+            >
               {getToolLabel('write_to_file')}
             </span>
             <span

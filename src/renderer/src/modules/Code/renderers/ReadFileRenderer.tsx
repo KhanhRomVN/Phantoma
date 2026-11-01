@@ -11,7 +11,7 @@ import { extensionService } from '@renderer/components/RightPanel/Zen/services/E
 import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 

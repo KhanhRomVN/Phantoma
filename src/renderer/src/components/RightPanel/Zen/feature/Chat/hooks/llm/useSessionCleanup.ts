@@ -2,15 +2,14 @@
  * ------------------------------------------------------------------
  * useSessionCleanup
  * ------------------------------------------------------------------
- * Health-check định kỳ để xóa toàn bộ conversation (chat session) phía
- * provider khi account không còn ở chat view.
+ * Periodic health-check to clean up all conversations (chat sessions)
+ * on provider side when account is no longer in chat view.
  *
- * Cơ chế:
- * - Khi `isInChatView = true` + `supportsSessionCleanup = true`:
- *   Hook KHÔNG làm gì.
- * - Khi `isInChatView = false` (unmount / đổi view):
- *   Gọi `POST /v1/accounts/:id/session-cleanup` 1 lần để dọn sạch.
- * ------------------------------------------------------------------
+ * Mechanism:
+ * - When `isInChatView = true` (in chat view):
+ *   Hook does NOTHING.
+ * - When `isInChatView = false` (unmount / switch view):
+ *   Call `POST /v1/accounts/:id/session-cleanup` once to clean up.
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────

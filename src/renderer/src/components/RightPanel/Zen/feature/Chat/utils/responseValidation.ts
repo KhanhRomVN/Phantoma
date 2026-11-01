@@ -1,5 +1,5 @@
 import { TAG_REGISTRY } from "../constants/tag-registry";
-import type { ParsedResponse } from "../services/ResponseParser";
+import type { ParsedResponse } from "../services/responseParser";
 
 const THINKING_REGEX = /<thinking>[\s\S]*?(?:<\/thinking>|$)/gi;
 

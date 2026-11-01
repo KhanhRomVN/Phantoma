@@ -1,4 +1,4 @@
-import type { ToolFormat } from "../code/mode-config";
+import type { ToolFormat } from "./types";
 import { HANDOFF_AGENT, fenceCall } from "./tools-reference";
 
 const handoff = (message: string, format: ToolFormat): string =>

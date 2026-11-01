@@ -5,15 +5,52 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Types ──
-import {
-  getDisplayPath,
-  collectConvFilePaths,
-  getNextUserMessage,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
+
+const getDisplayPath = (fullPath: string, allPaths: string[]): string => {
+  const sep = /[\/\\]/;
+  const parts = fullPath.split(sep).filter(Boolean);
+  if (parts.length === 0) return fullPath;
+  for (let depth = 1; depth <= parts.length; depth++) {
+    const candidate = parts.slice(-depth).join('/');
+    const conflicts = allPaths.filter((p) => {
+      const ps = p.split(sep).filter(Boolean);
+      return ps.slice(-depth).join('/') === candidate && p !== fullPath;
+    });
+    if (conflicts.length === 0) return candidate;
+  }
+  return parts.join('/');
+};
+
+const collectConvFilePaths = (allMessages: any[]): string[] => {
+  const paths: string[] = [];
+  const filePathRegex = /<file_path>([\s\S]*?)<\/file_path>/g;
+  for (const msg of allMessages) {
+    if (msg.role !== 'assistant') continue;
+    let m: RegExpExecArray | null;
+    while ((m = filePathRegex.exec(msg.content)) !== null) {
+      if (m[1].trim()) paths.push(m[1].trim());
+    }
+    filePathRegex.lastIndex = 0;
+  }
+  return paths;
+};
+
+const getFilename = (action: any): string => {
+  if (action.type === 'run_command') {
+    const id = action.params.terminal_id || '';
+    const cmd = action.params.command || action.params.text || '';
+    if (id && cmd) return `${id}: ${cmd.substring(0, 30)}${cmd.length > 30 ? '...' : ''}`;
+    if (id) return id;
+    return cmd.length > 50 ? cmd.substring(0, 50) + '...' : cmd;
+  }
+  const path = action.params.file_path || action.params.folder_path || action.params.path || '';
+  return path.split('/').pop() || path || '';
+};
+
 import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
 
 // ── Utils ──
-import { getFilename } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolUtils';
 
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
@@ -63,7 +100,9 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary">
-            <span className="font-semibold opacity-80">{getToolLabel('delete_file', moduleId)}</span>
+            <span className="font-semibold opacity-80">
+              {getToolLabel('delete_file', moduleId)}
+            </span>
             <img src={getFileIconPath(rawPath)} alt="" style={{ width: '14px', height: '14px' }} />
             <span className="font-medium opacity-80 font-mono text-[11px]">
               {getDisplayPath(rawPath, allPaths) || '...'}

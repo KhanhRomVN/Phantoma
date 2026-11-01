@@ -8,10 +8,7 @@ import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/c
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
 // ── Utils ──
-import {
-  getNextUserMessage,
-  buildTreeFromPaths,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
@@ -19,6 +16,7 @@ import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/C
 import { getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 import TreeBlock from '@renderer/components/common/TreeBlock';
+import { buildTreeFromPaths } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/tree-builder';
 
 export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   action,

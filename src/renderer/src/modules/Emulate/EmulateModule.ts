@@ -1,5 +1,5 @@
-import type { ZenModule } from '@renderer/components/RightPanel/Zen/feature/Chat/services/ModuleRegistry';
-import { rendererMapFromGlob } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/zenModuleUtils';
+import type { ZenModule } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
+import { rendererMapFromGlob } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-helpers';
 import { EMULATE_TAG_REGISTRY } from './constants/tag-registry';
 import { EmulateController } from './EmulateController';
 import { CAPABILITIES as EMULATE_CAPABILITIES } from './prompts/emulate/config';

@@ -1,6 +1,45 @@
-// src/webview-ui/src/features/chat/prompts/tools-reference.ts
+/**
+ * Tool reference — the "# TOOLS" section.
+ *
+ * Cùng khung với example.ts / tool-validation.ts: mỗi format (xml · json) có một
+ * bộ mảnh cùng tên, rồi ghép theo format ở cuối file.
+ *
+ *   INTRO       tiêu đề + cú pháp gọi tool của format
+ *   LINE_BUDGET metadata số dòng + READ-LINE-BUDGET            (dùng chung)
+ *   TOOLS       mô tả từng tool kèm ví dụ theo format
+ *   UI          tài liệu UI render (<markdown> / <question> hoặc UI object)
+ *   ENCODING    quy tắc escape riêng của format                 (chỉ json)
+ *   HONESTY     STRICT HONESTY RULES                            (dùng chung)
+ *
+ * Muốn sửa một format → nhảy tới banner của nó.
+ */
 
-export const TOOLS_REFERENCE = `# TOOLS
+import { MAX_READ_LINES_PER_TURN } from "./config";
+import {
+  type CallParams,
+  type ToolFormat,
+} from "./tool-format";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED — không phụ thuộc format
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REFERENCE_LINE_BUDGET = `## File Line-Count Metadata & READ-LINE-BUDGET
+\`list_files\`, \`find_files\`, and \`grep\` results now include, for every file they return, its exact line count (e.g. \`(340 lines)\`). read_file itself has NO cap on the number of files per turn — instead, before batching read_file calls, sum this line count across every file you intend to read this turn and keep the total at or under ${MAX_READ_LINES_PER_TURN} lines (see READ-LINE-BUDGET in CONSTRAINTS). This is a precise sum, not an estimate. Do not guess a file's line count — if you are about to read a file whose line count you don't already know from a prior list_files/find_files/grep result, call one of those first. For any single file that alone would exceed the remaining budget, read only the relevant slice with \`start_line\`/\`end_line\` (the matching line numbers grep already reports are a good starting point for choosing the range) instead of the whole file.`;
+
+const REFERENCE_HONESTY = `# STRICT HONESTY RULES
+**Never fabricate tool results.** If a tool call was made but no result was returned in the conversation, you have NO data. In that case:
+- State plainly: "The tool returned no result." or "I did not receive output from the tool."
+- Do NOT invent file names, line counts, match counts, or any data.
+- Do NOT pretend the tool succeeded.
+**Never hallucinate.** Only report what is explicitly present in the tool output. If the result is empty or absent, say so directly.
+**Be direct, not pleasing.** Do not frame failures as successes. Do not add "✅" or "completed successfully" when you have no evidence the operation worked.`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// XML
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REFERENCE_INTRO_XML = `# TOOLS
 Use XML tags for all tool calls:
 <read_file><file_path>path/to/file</file_path></read_file>
 <read_file><file_path>path/to/file</file_path><start_line>1</start_line><end_line>50</end_line></read_file>
@@ -24,12 +63,9 @@ Use XML tags for all tool calls:
 <run_command><command>your command here</command><folder_path>path/to/folder</folder_path></run_command>
 <read_skill>skill_id</read_skill>
 <read_memory />
-<update_memory><old_content>exact original</old_content><new_content>replacement</new_content></update_memory>
+<update_memory><old_content>exact original</old_content><new_content>replacement</new_content></update_memory>`;
 
-## File Line-Count Metadata & READ-LINE-BUDGET
-\`list_files\`, \`find_files\`, and \`grep\` results now include, for every file they return, its exact line count (e.g. \`(340 lines)\`). read_file itself has NO cap on the number of files per turn — instead, before batching read_file calls, sum this line count across every file you intend to read this turn and keep the total at or under 1500 lines (see READ-LINE-BUDGET in CONSTRAINTS). This is a precise sum, not an estimate. Do not guess a file's line count — if you are about to read a file whose line count you don't already know from a prior list_files/find_files/grep result, call one of those first. For any single file that alone would exceed the remaining budget, read only the relevant slice with \`start_line\`/\`end_line\` (the matching line numbers grep already reports are a good starting point for choosing the range) instead of the whole file.
-
-**conversation_title**: Set or update the title of the current conversation. This is a UI tag (like thinking/markdown) — not an executable tool. Call it whenever you want to set or refresh the conversation title, including on your first response. You MUST call it again whenever the current task or goal changes from the existing title. Do NOT treat this as a one-time action — if the user switches to a new task, refresh the title immediately.
+const REFERENCE_TOOLS_XML = `**conversation_title**: Set or update the title of the current conversation. This is a UI tag (like thinking/markdown) — not an executable tool. Call it whenever you want to set or refresh the conversation title, including on your first response. You MUST call it again whenever the current task or goal changes from the existing title. Do NOT treat this as a one-time action — if the user switches to a new task, refresh the title immediately.
 - Text content: The title (required). Keep it short and specific (max ~80 characters), written in the user's language.
 - Examples:
   - \`<conversation_title>Fix login bug</conversation_title>\` — first response to a bug-fix request
@@ -85,8 +121,9 @@ Examples:
 On the very first write into an empty/non-existent memory file, \`old_content\` must be \`""\` and \`new_content\` holds the initial content (may also be empty to just initialize the file). Once the file has content, \`old_content\` must be a non-empty exact snippet that currently exists in it. Only available when Memory is enabled for the conversation.
 - \`old_content\`: Exact original snippet to replace (must match byte-for-byte; use "" only for the very first initialization write)
 - \`new_content\`: Replacement text (may be empty to delete the matched snippet)
-- ⚠ TAG-CLOSE-VERIFY: closing tag must be \`</new_content>\`, not \`</old_content>\`.
-<markdown>prose, tables, explanations — written in the response language configured in CONSTRAINTS (RESPONSE-LANGUAGE); follows RESPONSE-STRUCTURE and NO-FULL-FILE-BY-DEFAULT for code changes</markdown>
+- ⚠ TAG-CLOSE-VERIFY: closing tag must be \`</new_content>\`, not \`</old_content>\`.`;
+
+const REFERENCE_UI_XML = `<markdown>prose, tables, explanations — written in the response language configured in CONSTRAINTS (RESPONSE-LANGUAGE); follows RESPONSE-STRUCTURE and NO-FULL-FILE-BY-DEFAULT for code changes</markdown>
 <code language="ts">read-only display</code>
 ## <question> — Multi-Question Block
 Use <question> to ask the user one or more questions at once. Each question is a <q> element.
@@ -169,25 +206,19 @@ The default mode of asking must be **confirmation**, not "here are N unranked ch
   <q id="2" type="confirm" label="Should I also update existing files that use the old pattern?" />
 </question>
 \`\`\`
-Tool-call turns follow MINIMAL-MARKDOWN and READ-BEFORE-EDIT (see CONSTRAINTS) — do not restate those rules here.
-# STRICT HONESTY RULES
-**Never fabricate tool results.** If a tool call was made but no result was returned in the conversation, you have NO data. In that case:
-- State plainly: "The tool returned no result." or "I did not receive output from the tool."
-- Do NOT invent file names, line counts, match counts, or any data.
-- Do NOT pretend the tool succeeded.
-**Never hallucinate.** Only report what is explicitly present in the tool output. If the result is empty or absent, say so directly.
-**Be direct, not pleasing.** Do not frame failures as successes. Do not add "✅" or "completed successfully" when you have no evidence the operation worked.`;
+Tool-call turns follow MINIMAL-MARKDOWN and READ-BEFORE-EDIT (see CONSTRAINTS) — do not restate those rules here.`;
 
-/**
- * JSON variant of the tools reference.
- * Used when toolFormat === 'json'. EVERYTHING — tool calls AND UI/render
- * content — is emitted as a single JSON object inside its own fenced block.
- * There are two legal object shapes, distinguished by their top-level key:
- *   - Tool call:    { "tool": "<tool_name>", "params": { ... } }
- *   - UI object:    { "type": "markdown" | "code" | "question", ... }
- * No XML is used anywhere in JSON mode.
- */
-export const TOOLS_REFERENCE_JSON = `# TOOLS (JSON FORMAT)
+// ─────────────────────────────────────────────────────────────────────────────
+// JSON
+//
+//  * Used when toolFormat === 'json'. EVERYTHING — tool calls AND UI/render
+//  * content — is emitted as a single JSON object inside its own fenced block.
+//  * There are two legal object shapes, distinguished by their top-level key:
+//  *   - Tool call:    { "tool": "<tool_name>", "params": { ... } }
+//  *   - UI object:    { "type": "markdown" | "code" | "question", ... }
+// ─────────────────────────────────────────────────────────────────────────────
+
+const REFERENCE_INTRO_JSON = `# TOOLS (JSON FORMAT)
 Use JSON objects inside fenced code blocks for ALL output — both tool calls AND UI content. Each object MUST be in its own fenced block, one object per block, no arrays. There are TWO legal shapes, distinguished by the top-level key:
 
 **Shape 1 — Tool call (has a \`"tool"\` key):**
@@ -250,7 +281,6 @@ Use JSON objects inside fenced code blocks for ALL output — both tool calls AN
 \`\`\`
 
 **Shape 2 — UI/render object (has a \`"type"\` key, NO \`"tool"\` key):**
-These replace the XML UI tags \`<markdown>\`, \`<code>\`, and \`<question>\` from XML mode. They are NOT executable tools — the renderer consumes them.
 
 \`\`\`json
 {"type":"markdown","content":"prose, tables, explanations — written in the response language configured in CONSTRAINTS (RESPONSE-LANGUAGE); follows RESPONSE-STRUCTURE and NO-FULL-FILE-BY-DEFAULT for code changes"}
@@ -260,9 +290,69 @@ These replace the XML UI tags \`<markdown>\`, \`<code>\`, and \`<question>\` fro
 \`\`\`
 \`\`\`json
 {"type":"question","questions":[{"id":"1","type":"single","label":"Question text here?","options":["Option A","Option B","Option C"]},{"id":"2","type":"multi","label":"Which features should be included?","options":["Auth","Logging","Cache","Rate limiting"]},{"id":"3","type":"text","label":"What should the new module be named?"},{"id":"4","type":"confirm","label":"This will modify 4 files. Proceed?"}]}
-\`\`\`
+\`\`\``;
 
-## question object schema
+const REFERENCE_TOOLS_JSON = `## Tool Descriptions
+**conversation_title**: Set or update the title of the current conversation. Call it whenever you want to set or refresh the conversation title, including on your first response. You MUST call it again whenever the current task or goal changes from the existing title. Do NOT treat this as a one-time action — if the user switches to a new task, refresh the title immediately.
+- \`title\`: The title text (required). Keep it short and specific (max ~80 characters), written in the user's language.
+- Examples:
+  - \`{"tool":"conversation_title","params":{"title":"Fix login bug"}}\` — first response to a bug-fix request
+  - \`{"tool":"conversation_title","params":{"title":"Add slugify utility"}}\` — when starting a concrete task
+
+**list_files**: List files and folders under a path (respects .gitignore). Each file entry includes its exact line count (see File Line-Count Metadata & READ-LINE-BUDGET above) so a read batch can be sized before any read_file call is made.
+- \`folder_path\`: The folder to list (required)
+- \`depth\`: (optional) How many levels deep to list. Omit for a shallow (1-level) listing, or pass a number, or the string \`"max"\` for the full subtree.
+- Examples:
+  - \`{"tool":"list_files","params":{"folder_path":"src/features/chat"}}\` — shallow listing
+  - \`{"tool":"list_files","params":{"folder_path":"src/features/chat","depth":"max"}}\` — full subtree
+**find_files**: Search for files by name (respects .gitignore). Each match includes its exact line count (see File Line-Count Metadata & READ-LINE-BUDGET above).
+- \`file_name\`: The file name or pattern to search for (required, only one file name per call)
+- \`folder_path\`: (optional) The folder path to search within. If provided, searches only in that folder and its subfolders. If omitted, searches the entire workspace.
+- Returns: A list of all matching file paths found, each with its line count.
+- Examples:
+  - \`{"tool":"find_files","params":{"file_name":"config.json"}}\` — finds all files named "config.json" in the entire workspace
+  - \`{"tool":"find_files","params":{"file_name":"*.test.ts","folder_path":"src/components"}}\` — finds test files only in src/components folder
+  - \`{"tool":"find_files","params":{"file_name":"utils.ts","folder_path":"src"}}\` — finds utils.ts only in src folder
+**run_command**: Execute a shell command in the workspace. By default, runs in the workspace root folder.
+- \`command\`: The shell command to execute
+- \`folder_path\`: (optional) The folder path where the command should be executed. Can be:
+  - Relative path (e.g., "src/components") — relative to workspace root
+  - Absolute system path (e.g., "/home/user/projects/other") — any location on the system
+  - If omitted, the command runs in the workspace root folder
+- Examples:
+  - \`{"tool":"run_command","params":{"command":"npm install"}}\` — runs in workspace root
+  - \`{"tool":"run_command","params":{"command":"npm test","folder_path":"src"}}\` — runs in workspace_root/src
+  - \`{"tool":"run_command","params":{"command":"ls -la","folder_path":"/tmp"}}\` — runs in /tmp (system path)
+  - \`{"tool":"run_command","params":{"command":"pwd","folder_path":"src/components"}}\` — runs in workspace_root/src/components
+**run_command stdin/prompt rules**: stdin is a pipe (not a TTY). "read -p" suppresses its prompt when stdin is not a TTY. To show a prompt to the user, use "printf ... >&2" before "read":
+  - broken: read -p "Enter value: " x
+  - correct: printf "Enter value: " >&2; read x
+**run_command exit codes**: A non-zero exit code means the command failed. If the output contains "Error - Exit code N", treat the command as failed and diagnose before continuing.
+**grep**: Search for a string across files using **regular expressions** (not a plain literal string). Each matching file's entry includes its exact line count (see File Line-Count Metadata & READ-LINE-BUDGET above), so matches in large files can be read as a slice via start_line/end_line instead of whole.
+- \`search_term\`: The regex pattern to search for (case-insensitive).
+  - Supports full JavaScript regex syntax: \`.*\`, \`[A-Z]\`, \`\\d+\`, \`(foo|bar)\`, etc.
+  - The regex is applied to each line of text files.
+  - Invalid regex patterns will throw an error.
+  - ⚠ In JSON mode, backslashes in the regex MUST be JSON-escaped. A literal backslash \`\\\` in the regex must appear in the JSON string as \`\\\\\` (four characters in the source text). E.g. the regex \`\\d+\` is written in JSON as \`"\\\\d+"\`, and \`console\\.(log|error|warn)\` is written as \`"console\\\\.(log|error|warn)"\`.
+- Provide EITHER \`file_path\` (single file) OR \`folder_path\` (recursively search all files in folder and subfolders).
+- Returns: For each matching file, its line count plus a list of matching lines with their line numbers.
+Examples:
+- \`{"tool":"grep","params":{"search_term":"import.*ContextMenu","folder_path":"src/renderer/src"}}\` — finds lines containing "import" followed by "ContextMenu"
+- \`{"tool":"grep","params":{"search_term":"^function\\\\s+\\\\w+","folder_path":"src"}}\` — finds function declarations
+- \`{"tool":"grep","params":{"search_term":"console\\\\.(log|error|warn)","file_path":"src/main.ts"}}\` — finds console methods in a single file
+**read_skill**: Read the full detail and markdown content of one skill by its id (fetched from mcp.directory). Use this to see a skill's full instructions before following it.
+- \`skill_id\`: The skill's id (required)
+- Example: \`{"tool":"read_skill","params":{"skill_id":"pptx-pro"}}\`
+**read_memory**: Read the full content of the global memory file (\`~/.khanhromvn-zen/memory.md\`, shared across all projects). Takes no parameters — pass an empty object. Only available when Memory is enabled for the conversation.
+- Example: \`{"tool":"read_memory","params":{}}\`
+**update_memory**: Replace text inside the project-level memory file using exact-match semantics, identical to \`replace_in_file\` but always targeting \`memory.md\` (no \`file_path\` needed). Content should be written in Markdown format (headings, lists, bold, etc.).
+⚠️ **IMPORTANT**: You MUST call \`read_memory\` immediately before \`update_memory\` to ensure your \`old_content\` matches the current file exactly. Stale guesses will fail.
+On the very first write into an empty/non-existent memory file, \`old_content\` must be \`""\` and \`new_content\` holds the initial content (may also be empty to just initialize the file). Once the file has content, \`old_content\` must be a non-empty exact snippet that currently exists in it. Only available when Memory is enabled for the conversation.
+- \`old_content\`: Exact original snippet to replace (must match byte-for-byte; use \`""\` only for the very first initialization write)
+- \`new_content\`: Replacement text (may be empty to delete the matched snippet)
+- ⚠ JSON-STRINGS: Both \`old_content\` and \`new_content\` are multi-line strings — every newline must be escaped as \\n and every double-quote as \\" for the block to remain valid JSON.`;
+
+const REFERENCE_UI_JSON = `## question object schema
 A \`question\` UI object wraps one or more inner questions under the \`questions\` array. Each inner question is:
 - \`id\` (string, required) — used to reference answers.
 - \`type\` (string, required) — one of \`single\` | \`multi\` | \`text\` | \`confirm\`.
@@ -320,84 +410,138 @@ The default mode of asking must be **confirmation**, not "here are N unranked ch
 **Example — Ambiguous approach:**
 \`\`\`json
 {"type":"question","questions":[{"id":"1","type":"single","label":"Two valid patterns exist in this codebase. Which should I follow?","options":["Pattern A: class-based service with dependency injection, used in auth/ (recommended — this is the newer, more consistently applied pattern across the codebase)","Pattern B: functional module with explicit imports, used in utils/ (older pattern, kept mostly for legacy utility files)"]},{"id":"2","type":"confirm","label":"Should I also update existing files that use the old pattern?"}]}
-\`\`\`
+\`\`\``;
 
-## File Line-Count Metadata & READ-LINE-BUDGET
-Same rule as XML mode: \`list_files\`, \`find_files\`, and \`grep\` results include, for every file they return, its exact line count (e.g. \`(340 lines)\`). \`read_file\` itself has NO cap on the number of files per turn — instead, before batching \`read_file\` calls, sum this line count across every file you intend to read this turn and keep the total at or under 1500 lines (see READ-LINE-BUDGET in CONSTRAINTS). This is a precise sum, not an estimate. Do not guess a file's line count — if you are about to read a file whose line count you don't already know from a prior \`list_files\`/\`find_files\`/\`grep\` result, call one of those first. For any single file that alone would exceed the remaining budget, read only the relevant slice with \`start_line\`/\`end_line\` (the matching line numbers \`grep\` already reports are a good starting point for choosing the range) instead of the whole file.
-
-## Tool Descriptions
-**conversation_title**: Set or update the title of the current conversation. In JSON mode this is emitted as a JSON tool call (schema above), NOT as an XML tag. Call it whenever you want to set or refresh the conversation title, including on your first response. You MUST call it again whenever the current task or goal changes from the existing title. Do NOT treat this as a one-time action — if the user switches to a new task, refresh the title immediately.
-- \`title\`: The title text (required). Keep it short and specific (max ~80 characters), written in the user's language.
-- Examples:
-  - \`{"tool":"conversation_title","params":{"title":"Fix login bug"}}\` — first response to a bug-fix request
-  - \`{"tool":"conversation_title","params":{"title":"Add slugify utility"}}\` — when starting a concrete task
-
-**list_files**: List files and folders under a path (respects .gitignore). Each file entry includes its exact line count (see File Line-Count Metadata & READ-LINE-BUDGET above) so a read batch can be sized before any read_file call is made.
-- \`folder_path\`: The folder to list (required)
-- \`depth\`: (optional) How many levels deep to list. Omit for a shallow (1-level) listing, or pass a number, or the string \`"max"\` for the full subtree.
-- Examples:
-  - \`{"tool":"list_files","params":{"folder_path":"src/features/chat"}}\` — shallow listing
-  - \`{"tool":"list_files","params":{"folder_path":"src/features/chat","depth":"max"}}\` — full subtree
-**find_files**: Search for files by name (respects .gitignore). Each match includes its exact line count (see File Line-Count Metadata & READ-LINE-BUDGET above).
-- \`file_name\`: The file name or pattern to search for (required, only one file name per call)
-- \`folder_path\`: (optional) The folder path to search within. If provided, searches only in that folder and its subfolders. If omitted, searches the entire workspace.
-- Returns: A list of all matching file paths found, each with its line count.
-- Examples:
-  - \`{"tool":"find_files","params":{"file_name":"config.json"}}\` — finds all files named "config.json" in the entire workspace
-  - \`{"tool":"find_files","params":{"file_name":"*.test.ts","folder_path":"src/components"}}\` — finds test files only in src/components folder
-  - \`{"tool":"find_files","params":{"file_name":"utils.ts","folder_path":"src"}}\` — finds utils.ts only in src folder
-**run_command**: Execute a shell command in the workspace. By default, runs in the workspace root folder.
-- \`command\`: The shell command to execute
-- \`folder_path\`: (optional) The folder path where the command should be executed. Can be:
-  - Relative path (e.g., "src/components") — relative to workspace root
-  - Absolute system path (e.g., "/home/user/projects/other") — any location on the system
-  - If omitted, the command runs in the workspace root folder
-- Examples:
-  - \`{"tool":"run_command","params":{"command":"npm install"}}\` — runs in workspace root
-  - \`{"tool":"run_command","params":{"command":"npm test","folder_path":"src"}}\` — runs in workspace_root/src
-  - \`{"tool":"run_command","params":{"command":"ls -la","folder_path":"/tmp"}}\` — runs in /tmp (system path)
-  - \`{"tool":"run_command","params":{"command":"pwd","folder_path":"src/components"}}\` — runs in workspace_root/src/components
-**run_command stdin/prompt rules**: stdin is a pipe (not a TTY). "read -p" suppresses its prompt when stdin is not a TTY. To show a prompt to the user, use "printf ... >&2" before "read":
-  - broken: read -p "Enter value: " x
-  - correct: printf "Enter value: " >&2; read x
-**run_command exit codes**: A non-zero exit code means the command failed. If the output contains "Error - Exit code N", treat the command as failed and diagnose before continuing.
-**grep**: Search for a string across files using **regular expressions** (not a plain literal string). Each matching file's entry includes its exact line count (see File Line-Count Metadata & READ-LINE-BUDGET above), so matches in large files can be read as a slice via start_line/end_line instead of whole.
-- \`search_term\`: The regex pattern to search for (case-insensitive).
-  - Supports full JavaScript regex syntax: \`.*\`, \`[A-Z]\`, \`\\d+\`, \`(foo|bar)\`, etc.
-  - The regex is applied to each line of text files.
-  - Invalid regex patterns will throw an error.
-  - ⚠ In JSON mode, backslashes in the regex MUST be JSON-escaped. A literal backslash \`\\\` in the regex must appear in the JSON string as \`\\\\\` (four characters in the source text). E.g. the regex \`\\d+\` is written in JSON as \`"\\\\d+"\`, and \`console\\.(log|error|warn)\` is written as \`"console\\\\.(log|error|warn)"\`.
-- Provide EITHER \`file_path\` (single file) OR \`folder_path\` (recursively search all files in folder and subfolders).
-- Returns: For each matching file, its line count plus a list of matching lines with their line numbers.
-Examples:
-- \`{"tool":"grep","params":{"search_term":"import.*ContextMenu","folder_path":"src/renderer/src"}}\` — finds lines containing "import" followed by "ContextMenu"
-- \`{"tool":"grep","params":{"search_term":"^function\\\\s+\\\\w+","folder_path":"src"}}\` — finds function declarations
-- \`{"tool":"grep","params":{"search_term":"console\\\\.(log|error|warn)","file_path":"src/main.ts"}}\` — finds console methods in a single file
-**read_skill**: Read the full detail and markdown content of one skill by its id (fetched from mcp.directory). Use this to see a skill's full instructions before following it.
-- \`skill_id\`: The skill's id (required)
-- Example: \`{"tool":"read_skill","params":{"skill_id":"pptx-pro"}}\`
-**read_memory**: Read the full content of the global memory file (\`~/.khanhromvn-zen/memory.md\`, shared across all projects). Takes no parameters — pass an empty object. Only available when Memory is enabled for the conversation.
-- Example: \`{"tool":"read_memory","params":{}}\`
-**update_memory**: Replace text inside the project-level memory file using exact-match semantics, identical to \`replace_in_file\` but always targeting \`memory.md\` (no \`file_path\` needed). Content should be written in Markdown format (headings, lists, bold, etc.).
-⚠️ **IMPORTANT**: You MUST call \`read_memory\` immediately before \`update_memory\` to ensure your \`old_content\` matches the current file exactly. Stale guesses will fail.
-On the very first write into an empty/non-existent memory file, \`old_content\` must be \`""\` and \`new_content\` holds the initial content (may also be empty to just initialize the file). Once the file has content, \`old_content\` must be a non-empty exact snippet that currently exists in it. Only available when Memory is enabled for the conversation.
-- \`old_content\`: Exact original snippet to replace (must match byte-for-byte; use \`""\` only for the very first initialization write)
-- \`new_content\`: Replacement text (may be empty to delete the matched snippet)
-- ⚠ JSON-STRINGS: Both \`old_content\` and \`new_content\` are multi-line strings — every newline must be escaped as \\n and every double-quote as \\" for the block to remain valid JSON.
-
-## JSON Encoding Rules
+const REFERENCE_ENCODING_JSON = `## JSON Encoding Rules
 - All string values must use valid JSON escaping: \\n (newline), \\\\ (backslash), \\" (quote), \\t (tab).
-- Do NOT use HTML entities (&lt; &gt; &amp; &quot;) inside JSON string values — write raw code characters directly.
+- Do NOT use HTML entities (< > & ") inside JSON string values — write raw code characters directly.
 - Each fenced \`\`\`json block must contain EXACTLY ONE object. Do NOT split one object across multiple blocks, and do NOT put multiple objects in one block.
 - For tool calls, the parameter object is always under the key \`params\`. Do NOT use \`arguments\`, \`args\`, \`parameters\`, \`input\`, or \`payload\`.
 - UI objects use a \`type\` key (\`markdown\` | \`code\` | \`question\`), NOT a \`tool\` key.
-- NO XML ANYWHERE. Do not emit \`<markdown>\`, \`<code>\`, \`<question>\`, \`<read_file>\`, or any other \`<...>\` tag — everything is JSON.
-- Each fenced block must be valid JSON parseable by JSON.parse() — no trailing commas, no unescaped newlines or quotes.
+- Each fenced block must be valid JSON parseable by JSON.parse() — no trailing commas, no unescaped newlines or quotes.`;
+// ─────────────────────────────────────────────────────────────────────────────
+// TOOL DOCS
+// TOOL_DOCS là nguồn dữ liệu cho danh sách tool hợp lệ (TOOL_NAMES) dùng trong
+// tool-validation.ts.
+// ─────────────────────────────────────────────────────────────────────────────
 
-# STRICT HONESTY RULES
-**Never fabricate tool results.** If a tool call was made but no result was returned in the conversation, you have NO data. In that case:
-- State plainly: "The tool returned no result." or "I did not receive output from the tool."
-- Do NOT invent file names, line counts, match counts, or any data.
-- Do NOT pretend the tool succeeded.
-**Never hallucinate.** Only report what is explicitly present in the tool output. If the result is empty or absent, say so directly.
-**Be direct, not pleasing.** Do not frame failures as successes. Do not add "✅" or "completed successfully" when you have no evidence the operation worked.`;
+/** Single source of truth for tool docs: [tool, description, example params]. */
+export const TOOL_DOCS: [
+  tool: string,
+  description: string,
+  examples: CallParams[],
+][] = [
+  [
+    "read_file",
+    "Read a file. Optional start_line/end_line read only a slice.",
+    [
+      { file_path: "path/to/file" },
+      { file_path: "path/to/file", start_line: 1, end_line: 50 },
+    ],
+  ],
+  [
+    "write_to_file",
+    "Create a NEW file with its full content. Never use it to modify an existing file.",
+    [{ file_path: "path/to/file", content: "full file content" }],
+  ],
+  [
+    "replace_in_file",
+    "Replace an exact snippet of an existing file. old_content must match byte-for-byte (indentation and spacing included) and be as small as possible.",
+    [
+      {
+        file_path: "path/to/file",
+        old_content: "exact original",
+        new_content: "replacement",
+      },
+    ],
+  ],
+  [
+    "list_files",
+    "List files and folders under a path (respects .gitignore); every file shows its exact line count. Omit depth for one level, or pass a number or max.",
+    [
+      { folder_path: "path/to/folder" },
+      { folder_path: "path/to/folder", depth: "max" },
+    ],
+  ],
+  [
+    "find_files",
+    "Find files by name or pattern (one name per call, respects .gitignore); every match shows its line count.",
+    [
+      { file_name: "filename.ts" },
+      { file_name: "*.test.ts", folder_path: "src/components" },
+    ],
+  ],
+  [
+    "grep",
+    "Case-insensitive JavaScript regex search inside files. Provide file_path OR folder_path. Results include line numbers and each file's line count.",
+    [
+      { search_term: "import.*ContextMenu", folder_path: "src" },
+      { search_term: "export function", file_path: "path/to/file" },
+    ],
+  ],
+  ["delete_file", "Delete a file.", [{ file_path: "path/to/file" }]],
+  [
+    "run_command",
+    "Execute a shell command in the workspace root (or in folder_path). stdin is a pipe, not a TTY. A non-zero exit code means failure: analyze stderr before continuing.",
+    [
+      { command: "npm install date-fns" },
+      { command: "npx tsc --noEmit", folder_path: "src" },
+    ],
+  ],
+  [
+    "read_skill",
+    "Read the full instructions of one skill by its id before following it.",
+    [{ skill_id: "skill_id" }],
+  ],
+  [
+    "read_memory",
+    "Read the full global memory file. Takes no parameters. Only available when Memory is enabled.",
+    [{}],
+  ],
+  [
+    "update_memory",
+    "Replace text inside the memory file with exact-match semantics. Call read_memory immediately before. For the very first write use an empty old_content.",
+    [{ old_content: "exact original", new_content: "replacement" }],
+  ],
+  [
+    "conversation_title",
+    "Set or refresh the conversation title (short, in the user's language). Call it on the first response and whenever the task changes.",
+    [{ title: "Fix login bug" }],
+  ],
+];
+
+export const TOOL_NAMES = TOOL_DOCS.map(([tool]) => tool);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOOKUP BY FORMAT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Ghép các mảnh theo thứ tự cố định; mảnh rỗng bị bỏ qua. */
+const assemble = (...parts: string[]): string =>
+  parts.filter((part) => part.length > 0).join("\n\n");
+
+export const TOOLS_REFERENCE_XML = assemble(
+  REFERENCE_INTRO_XML,
+  REFERENCE_LINE_BUDGET,
+  REFERENCE_TOOLS_XML,
+  REFERENCE_UI_XML,
+  REFERENCE_HONESTY,
+);
+
+export const TOOLS_REFERENCE_JSON = assemble(
+  REFERENCE_INTRO_JSON,
+  REFERENCE_LINE_BUDGET,
+  REFERENCE_TOOLS_JSON,
+  REFERENCE_UI_JSON,
+  REFERENCE_ENCODING_JSON,
+  REFERENCE_HONESTY,
+);
+
+const REFERENCES: Record<ToolFormat, string> = {
+  xml: TOOLS_REFERENCE_XML,
+  json: TOOLS_REFERENCE_JSON,
+  dsml: TOOLS_REFERENCE_XML,
+};
+
+export const getToolReference = (format: ToolFormat): string =>
+  REFERENCES[format];

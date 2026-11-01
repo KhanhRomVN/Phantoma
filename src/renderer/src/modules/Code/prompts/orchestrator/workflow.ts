@@ -1,5 +1,5 @@
-import type { SystemPromptMode } from "@renderer/modules/Code/prompts/code/mode-config";
-import { MODE_BEHAVIORS } from "@renderer/modules/Code/prompts/code/mode-config";
+import type { SystemPromptMode } from "./types";
+import { MODE_BEHAVIORS } from "./types";
 
 export const MAX_REWORK_ROUNDS = 3;
 

@@ -30,6 +30,8 @@ export interface BranchProgress {
   step: 'worktree' | 'local' | 'copy';
   current?: number;
   total?: number;
+  bytesDone?: number;
+  bytesTotal?: number;
   label?: string;
 }
 
@@ -132,13 +134,17 @@ function ProgressView({
 }) {
   const active = Math.max(0, steps.indexOf(progress?.step ?? 'worktree'));
   const total = progress?.total ?? 0;
-  const current = progress?.current ?? 1;
+  const current = progress?.current ?? 0;
+  const bytesDone = progress?.bytesDone ?? 0;
+  const bytesTotal = progress?.bytesTotal ?? 0;
+  const pct = total > 0 && bytesTotal > 0 ? Math.min(100, (bytesDone / bytesTotal) * 100) : 0;
 
   return (
     <ul className="flex flex-col gap-4 py-2">
       {steps.map((s, i) => {
         const state = i < active ? 'done' : i === active ? 'active' : 'pending';
-        const copying = s === 'copy' && state === 'active' && total > 0;
+        const copyActive = s === 'copy' && state === 'active';
+        const copying = copyActive && total > 0;
         return (
           <li key={s} className="flex items-start gap-3">
             <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
@@ -159,16 +165,23 @@ function ProgressView({
               >
                 {STEP_LABEL[s]}
               </div>
-              {copying && (
+              {copyActive && (
                 <div className="mt-2">
-                  <div className="h-1 overflow-hidden rounded-full bg-border">
-                    <div
-                      className="h-full rounded-full bg-primary transition-[width] duration-300"
-                      style={{ width: `${((current - 1) / total) * 100}%` }}
-                    />
-                  </div>
-                  <p className="mt-1.5 truncate font-mono text-[12px] text-text-secondary">
-                    {current}/{total} · {progress?.label}
+                  {copying && (
+                    <div className="h-1 overflow-hidden rounded-full bg-border">
+                      <div
+                        className="h-full rounded-full bg-primary transition-[width] duration-300"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
+                  <p className="mt-1.5 font-mono text-[12px] tabular-nums text-text-secondary">
+                    {copying
+                      ? `${formatSize(bytesDone)} / ${formatSize(bytesTotal)} · ${Math.floor(pct)}% · ${current.toLocaleString()}/${total.toLocaleString()} files`
+                      : `Preparing · ${current.toLocaleString()} files found`}
+                  </p>
+                  <p className="mt-0.5 truncate font-mono text-[12px] text-text-secondary/70">
+                    {progress?.label}
                   </p>
                 </div>
               )}
@@ -189,7 +202,6 @@ function ScanView({
 }) {
   const total = progress?.total ?? 0;
   const done = progress?.done ?? 0;
-  const pct = total > 0 ? (done / total) * 100 : 0;
 
   return (
     <section className="rounded-lg bg-input-background px-4 py-3.5">
@@ -213,14 +225,7 @@ function ScanView({
         )}
       </div>
 
-      <div className="mt-3 h-1 overflow-hidden rounded-full bg-border">
-        <div
-          className="h-full min-w-[8%] animate-pulse rounded-full bg-primary transition-[width] duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-
-      <p className="mt-2 flex items-center gap-1.5 font-mono text-[12px] tabular-nums text-text-secondary">
+      <p className="mt-3 flex items-center gap-1.5 font-mono text-[12px] tabular-nums text-text-secondary">
         <span>
           {done}/{total} folders
         </span>

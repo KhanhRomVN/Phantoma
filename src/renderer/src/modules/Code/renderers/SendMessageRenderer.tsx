@@ -7,7 +7,7 @@ import { cn } from '@renderer/shared/utils/cn';
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
@@ -40,8 +40,11 @@ const SendMessageRenderer: React.FC<BaseRendererProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = React.useState(true);
 
-  const { agent_id: agentId = '', message = '', _validationError: validationError } =
-    action.params || {};
+  const {
+    agent_id: agentId = '',
+    message = '',
+    _validationError: validationError,
+  } = action.params || {};
 
   const actionId = `${messageId}-action-${actionIndex}`;
   const outputEntry = toolOutputs?.[actionId];
@@ -78,7 +81,9 @@ const SendMessageRenderer: React.FC<BaseRendererProps> = ({
             )}
             onClick={hasMessage && !isError ? () => setIsCollapsed((v) => !v) : undefined}
           >
-            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('send_message', moduleId)}</span>
+            <span className="font-semibold opacity-80 shrink-0">
+              {getToolLabel('send_message', moduleId)}
+            </span>
             <span className="opacity-40 shrink-0">·</span>
             <span className="font-semibold shrink-0" style={{ color: sender?.color }}>
               {senderName}

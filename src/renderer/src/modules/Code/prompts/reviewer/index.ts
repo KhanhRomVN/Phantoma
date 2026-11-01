@@ -1,5 +1,5 @@
-import type { WorkflowAgentPromptConfig } from "../code/mode-config";
-import { joinSections } from "../code/mode-config";
+import type { WorkflowAgentPromptConfig } from "./types";
+import { joinSections } from "./types";
 import { buildReviewerToolValidation } from "./tool-validation";
 import { buildReviewerToolsReference } from "./tools-reference";
 import { buildReviewerExample } from "./example";
@@ -45,36 +45,36 @@ export const buildReviewerPrompt = (
   const context = buildReviewerSystemContext(systemInfo);
 
   if (promptLengthMode === "short") {
-    return joinSections([
+    return joinSections(
       tools,
       identity,
       workflow,
       buildReviewerCoreConstraints(),
-      context,
-    ]);
+      context
+    );
   }
 
   const validation = buildReviewerToolValidation(toolFormat);
   const constraints = buildReviewerConstraints(toolFormat);
 
   if (promptLengthMode === "medium") {
-    return joinSections([
+    return joinSections(
       validation,
       tools,
       identity,
       workflow,
       constraints,
-      context,
-    ]);
+      context
+    );
   }
 
-  return joinSections([
+  return joinSections(
     validation,
     tools,
     buildReviewerExample(toolFormat),
     identity,
     workflow,
     constraints,
-    context,
-  ]);
+    context
+  );
 };

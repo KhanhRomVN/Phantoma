@@ -3,7 +3,9 @@
  * useFileStats
  * ------------------------------------------------------------------
  * Hook tính toán thống kê file hội thoại với tính toán tăng dần.
- * Scan write_to_file và str_replace để tính additions/deletions.
+ *
+ * NOTE: Delegates to module-specific raw content diff extractors for incremental computation.
+ * This is UI-specific optimization code. Parsed actions not available during streaming.
  *
  * Main returns:
  * - totalFiles     : Tổng số file bị thay đổi
@@ -18,6 +20,9 @@ import { useMemo, useRef } from 'react';
 
 // ── Types ──
 import { Message } from '../../types/message';
+
+// ── Utils ──
+import { extractRawContentDiff, hasMutationTools } from '../../utils/tool-mutation-registry';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface FileStats {
@@ -42,14 +47,11 @@ export const useFileStats = (
 
   const conversationFileStats = useMemo(() => {
     // If we have loaded stats from history and no new messages, use loaded stats
-    if (
-      loadedConversationFileStats &&
-      messages.length > 0 &&
-      messages.every(
-        (m) => !m.content?.includes('<write_to_file>') && !m.content?.includes('<str_replace>'),
-      )
-    ) {
-      return loadedConversationFileStats;
+    if (loadedConversationFileStats && messages.length > 0) {
+      const hasNewMutations = messages.some((m) => m.content && hasMutationTools(m.content));
+      if (!hasNewMutations) {
+        return loadedConversationFileStats;
+      }
     }
 
     // PERF OPTIMIZATION: Incremental computation - only scan new messages
@@ -104,49 +106,15 @@ function scanMessagesForFileChanges(
 ) {
   messagesToScan.forEach((msg) => {
     if (msg.role === 'assistant' && msg.content) {
-      // Match write_to_file
-      const writeMatches = msg.content.matchAll(
-        /<write_to_file>\s*<file_path>([^<]+)<\/file_path>\s*<content>([\s\S]*?)<\/content>\s*<\/write_to_file>/g,
-      );
-
-      for (const match of writeMatches) {
-        const filePath = match[1];
-        const content = match[2];
-
-        if (filePath) {
-          if (!fileChanges.has(filePath)) {
-            fileChanges.set(filePath, { additions: 0, deletions: 0 });
-          }
-
-          const stats = fileChanges.get(filePath)!;
-          const lines = content.split('\n').length;
-          stats.additions += lines;
+      const extracted = extractRawContentDiff(msg.content);
+      extracted.forEach((stats: { additions: number; deletions: number }, filePath: string) => {
+        if (!fileChanges.has(filePath)) {
+          fileChanges.set(filePath, { additions: 0, deletions: 0 });
         }
-      }
-
-      // Match str_replace
-      const replaceMatches = msg.content.matchAll(
-        /<str_replace>\s*<file_path>([^<]+)<\/file_path>\s*<old_str>([\s\S]*?)<\/old_str>\s*<new_str>([\s\S]*?)<\/new_str>\s*<\/str_replace>/g,
-      );
-
-      for (const match of replaceMatches) {
-        const filePath = match[1];
-        const oldStr = match[2];
-        const newStr = match[3];
-
-        if (filePath) {
-          if (!fileChanges.has(filePath)) {
-            fileChanges.set(filePath, { additions: 0, deletions: 0 });
-          }
-
-          const stats = fileChanges.get(filePath)!;
-          const oldLines = oldStr.split('\n').length;
-          const newLines = newStr.split('\n').length;
-
-          stats.deletions += oldLines;
-          stats.additions += newLines;
-        }
-      }
+        const existing = fileChanges.get(filePath)!;
+        existing.additions += stats.additions;
+        existing.deletions += stats.deletions;
+      });
     }
   });
 }

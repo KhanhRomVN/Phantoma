@@ -1,4 +1,4 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
 import type { CreateReportParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
 
 /**

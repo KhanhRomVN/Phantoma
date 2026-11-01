@@ -9,7 +9,7 @@ import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/c
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 import { $ } from '@renderer/utils/color';
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 
@@ -354,7 +354,6 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
   const [isGrepCollapsed, setIsGrepCollapsed] = React.useState(true);
 
   const actionId = `${messageId}-action-${actionIndex}`;
-
 
   const nextUserMessage = getNextUserMessage(allMessages || [], messageId);
 

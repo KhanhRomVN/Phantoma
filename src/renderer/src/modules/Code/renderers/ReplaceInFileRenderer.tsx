@@ -16,9 +16,9 @@ import React from 'react';
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-utils';
-import { getPermissionDecision } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/permissionUtils';
 import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Zen/utils/diffUtils';
+import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
 // ── Hooks ──
 
@@ -37,7 +37,6 @@ import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/componen
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
 
 // ─── Helper ─────────────────────────────────────────────────────────────
 const getLanguageFromPath = (filePath: string): string | undefined => {
@@ -161,15 +160,14 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
   // Check if action has been rejected (to hide error UI after rejection)
   const isRejected = rejectedActions?.has(actionId);
 
-  // Debug logs
-  const permissionDecision = getPermissionDecision();
+  // Permission decision: always 'allow' (no permission gating for replace_in_file)
+  const permissionDecision = 'allow';
 
   // Fetch full file content (dùng cho preview đầy đủ khi cần)
   const [fullFileContent] = React.useState<string | null>(null);
 
   // Build diff preview data
   const approvalDiffData = React.useMemo(() => {
-    if (permissionDecision === 'reject') return null;
 
     const oldContent = action.params.old_content || action.params.old_str;
     const newContent = action.params.new_content || action.params.new_str;
@@ -366,7 +364,7 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
         />
       )}
 
-      {!shouldHideContent && !isCompleted && !isPartial && permissionDecision === 'allow' && (
+      {!shouldHideContent && !isCompleted && !isPartial && (
         <ActionBar
           action={action}
           messageId={messageId}

@@ -80,7 +80,7 @@ function AgentView({
     conversationOverrides?: {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
-      toolFormat?: 'xml' | 'json';
+      toolFormat?: 'xml' | 'json' | 'dsml';
     };
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
@@ -132,7 +132,7 @@ function AgentView({
       conversationOverrides?: {
         useSkillEnabled?: boolean;
         memoryEnabled?: boolean;
-        toolFormat?: 'xml' | 'json';
+        toolFormat?: 'xml' | 'json' | 'dsml';
         workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
       },
     ) => {

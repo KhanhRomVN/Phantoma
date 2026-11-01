@@ -21,7 +21,12 @@ import { useAgentFeature } from '@renderer/components/RightPanel/Zen/context/Fea
 import { useProject } from '../../context/ProjectContext';
 import { combinePromptsForMode } from '@renderer/modules/Code/prompts/code';
 import type { SystemInfo } from '@renderer/modules/Code/prompts/code';
-import { getPromptCapabilities } from '../../feature/Chat/services/ModuleRegistry';
+import {
+  getPromptCapabilities,
+  resolvePromptLength,
+  resolveStyleCode,
+  resolveToolFormats,
+} from '../../feature/Chat/services/moduleRegistry';
 // Use existing Phantoma drawer component
 import SelectModelAccountModal from './SelectModelAccountModal';
 import { cacheGet, cacheSet, providersKey } from './providerModelCache';
@@ -30,34 +35,25 @@ import PromptLengthDropdown, {
   PromptLengthTriggerIcon,
   PROMPT_LENGTH_MODE_META,
 } from './PromptLengthDropdown';
-import PromptSettingsDropdown from './PromptSettingsDropdown'; // New component to replace StyleCodeDropdown logic
+import PromptSettingsDropdown from './PromptSettingsDropdown';
 import ActionDropdown from './ActionDropdown';
 import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
 import { getClientId } from '@renderer/utils/clientId';
 import { countTokens } from '@renderer/utils/tokenizer';
-import { buildAcceptString } from '../../feature/Chat/utils/fileUtils';
 import type { MessageInputProps, UploadedFile, ToggleButtonProps } from './types';
-
-// Fallback for missing modules in Phantoma to allow compilation
-// TODO: Implement actual time-block logic and claude prompt builder in Phantoma backend/services
 
 const isDeepSeekProvider = (id?: string) => id?.toLowerCase() === 'deepseek';
 const isBlockedNow = (_ranges: any) => false;
 const getBlockedRangeLabel = (_ranges: any) => '';
 const getBlockedHoursDescription = (_ranges: any) => '';
 
-import { useWorkspaceZipSize } from './hooks/useWorkspaceZipSize';
 import { useAccountStats } from '../../feature/Chat/hooks/api/useAccountStats';
-import { ClaudeZipBadge } from './ClaudeZipBadge';
 import { useAccountAgents, useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 import { useMultiAgentControl } from '../../context/MultiAgentContext';
 import { Workflow as WorkflowIcon } from 'lucide-react';
 import { ZenCliHintBar } from './ZenCliHintBar';
 import { SimpleTooltip, TooltipRow, TooltipCard } from './SimpleTooltip';
-
-// Stub for buildClaudePrompt if not available
-const buildClaudePrompt = ({ language }: { language: string }) =>
-  `System prompt for Claude (${language})`;
+import { buildAcceptString } from '../../feature/Chat/utils/file-operations';
 
 export type { UploadedFile };
 
@@ -573,11 +569,19 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       const caps = getPromptCapabilities(activeFeature ?? 'code', promptId);
       return caps;
     }, [activeFeature, promptId]);
-    const supportsPromptLength = capabilities.promptLength ?? false;
-    const supportsSystemPromptMode = capabilities.systemPromptMode ?? false;
+    const promptLengthResolved = resolvePromptLength(capabilities, promptLengthMode);
+    const styleResolved = resolveStyleCode(capabilities, systemPromptMode);
+    const supportsPromptLength = promptLengthResolved.selectable;
+    const supportsSystemPromptMode = styleResolved.selectable;
     const supportsSkill = capabilities.skill ?? false;
     const supportsMemory = capabilities.memory ?? false;
-    const supportsToolFormat = capabilities.toolFormat ?? false;
+    const toolFormatOptions = resolveToolFormats(capabilities);
+    const supportsToolFormat = toolFormatOptions.length > 1;
+    React.useEffect(() => {
+      const current = conversationToolFormat ?? 'xml';
+      if (!toolFormatOptions.includes(current))
+        onConversationToolFormatToggle?.(toolFormatOptions[0]);
+    }, [conversationToolFormat, toolFormatOptions, onConversationToolFormatToggle]);
     const supportsMultiAgent = capabilities.multiAgent ?? false;
     const multiAgent = useMultiAgentControl();
 
@@ -644,10 +648,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       providers,
     );
 
-    // ─── Anti-System-Prompt-Injection detection ──────────────────────
-    // Cờ này lấy từ backend constant. Nếu true, toàn bộ cơ chế đặc thù (zip badge, ẩn dropdown, prompt riêng) sẽ bật.
-    const isAntiInjectionProvider = !!(currentProviderConfig as any)?.anti_system_prompt_injection;
-
     // ─── Effort info (dropdown tren toolbar) ────────────────────────
     const effortInfo = React.useMemo(
       () => getModelEffortInfo(providers, currentModel?.providerId, currentModel?.id),
@@ -681,6 +681,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 
     // ─── Mention editor (contenteditable thay textarea) ─────────────
     const editorRef = React.useRef<HTMLDivElement>(null);
+    const [isDropActive, setIsDropActive] = React.useState(false);
     const syncEditorToMessage = React.useCallback(() => {
       const editor = editorRef.current;
       const hidden = textareaRef.current;
@@ -712,14 +713,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     } = useGitRepoScanner();
 
     // ─── Workspace zip-size badge ────────────────────────────────────
-    // Chỉ kích hoạt khi provider có anti-injection flag = true.
     const { rootPath } = useProject();
-    // triggerKey: đổi khi rootPath hoặc model đổi → invalidate cache, chạy lại
-    const zipTriggerKey = React.useMemo(() => {
-      if (!isAntiInjectionProvider || !rootPath) return null;
-      return `${rootPath}::${currentModel?.id ?? ''}`;
-    }, [isAntiInjectionProvider, rootPath, currentModel?.id]);
-    const zipSizeState = useWorkspaceZipSize(isAntiInjectionProvider, zipTriggerKey);
 
     // ─── Time-block detection ────────────────────────────────────────
     const [timeBlockTick, setTimeBlockTick] = React.useState(0);
@@ -825,29 +819,21 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       // Add system prompt tokens (only for first message in conversation)
       if (!isConversationStarted) {
         try {
-          let systemPrompt: string;
-
-          if (isAntiInjectionProvider) {
-            // Anti-injection provider dùng prompt riêng — không phụ thuộc promptLengthMode/systemPromptMode
-            systemPrompt = buildClaudePrompt({ language: preferredLanguage });
-          } else {
-            // Generic providers: build theo mode + length
-            systemPrompt = combinePromptsForMode(
-              {
+          const systemPrompt = combinePromptsForMode(
+            {
+              language: preferredLanguage,
+              systemInfo: {
+                os: 'Unknown OS',
+                ide: 'Zen IDE',
+                shell: 'unknown',
+                homeDir: '~',
+                cwd: folderPath || '.',
                 language: preferredLanguage,
-                systemInfo: {
-                  os: 'Unknown OS',
-                  ide: 'Zen IDE',
-                  shell: 'unknown',
-                  homeDir: '~',
-                  cwd: folderPath || '.',
-                  language: preferredLanguage,
-                } as SystemInfo,
-                promptLengthMode,
-              } as any,
-              systemPromptMode as any,
-            );
-          }
+              } as SystemInfo,
+              promptLengthMode: promptLengthResolved.value,
+            } as any,
+            styleResolved.value as any,
+          );
 
           const systemPromptTokens = countTokens(systemPrompt);
           totalTokens += systemPromptTokens;
@@ -861,8 +847,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       message,
       isConversationStarted,
       preferredLanguage,
-      promptLengthMode,
-      systemPromptMode,
+      promptLengthResolved.value,
+      styleResolved.value,
       folderPath,
       currentModel?.providerId,
       JSON.stringify(
@@ -1053,29 +1039,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       setIsSearch,
     ]);
 
-    // Auto-fix promptLengthMode & systemPromptMode khi provider có anti_system_prompt_injection
-    React.useEffect(() => {
-      if (!currentProviderConfig) return;
-      if (!(currentProviderConfig as any).anti_system_prompt_injection) return;
-
-      // Cast to string for comparison to avoid TS enum mismatch errors during migration
-      const plModeStr = String(promptLengthMode);
-      const spModeStr = String(systemPromptMode);
-
-      if (plModeStr !== 'none') {
-        setPromptLengthMode('none' as any);
-      }
-      if (spModeStr !== 'none') {
-        setSystemPromptMode('none' as any);
-      }
-    }, [
-      currentProviderConfig,
-      promptLengthMode,
-      systemPromptMode,
-      setPromptLengthMode,
-      setSystemPromptMode,
-    ]);
-
     // Handle auto-selection of account from cache once providers are loaded
     React.useEffect(() => {
       if (
@@ -1109,6 +1072,24 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 
     return (
       <div
+        data-zen-message-input=""
+        onDragEnter={(e) => {
+          if (e.dataTransfer.types.includes('application/x-phantoma-mention'))
+            setIsDropActive(true);
+        }}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('application/x-phantoma-mention')) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          setIsDropActive(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDropActive(false);
+        }}
+        onDropCapture={() => setIsDropActive(false)}
+        onDrop={(e) => {
+          mention.handleDropMention(e);
+        }}
         style={{
           padding: '12px 16px',
           position: 'relative',
@@ -1129,17 +1110,38 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               flexDirection: 'column',
               position: 'relative',
               borderRadius: '6px',
-              border: !isConnected
-                ? `1px dashed ${$('--error')}`
-                : isTimeBlocked
-                  ? `1px dashed ${$('--warn')}`
-                  : isTokenLimitExceeded
-                    ? `2px dashed ${$('--error')}`
-                    : `1px solid ${$('--border')}`,
+              border: isDropActive
+                ? `1px dashed ${$('--text-secondary')}`
+                : !isConnected
+                  ? `1px dashed ${$('--error')}`
+                  : isTimeBlocked
+                    ? `1px dashed ${$('--warn')}`
+                    : isTokenLimitExceeded
+                      ? `2px dashed ${$('--error')}`
+                      : `1px solid ${$('--border')}`,
               transition: 'border 0.3s ease',
               backgroundColor: $('--input-background'),
             }}
           >
+            {isDropActive && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 30,
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  backgroundColor: $('--input-background'),
+                  color: $('--text-primary'),
+                  fontSize: '13px',
+                }}
+              >
+                Drop here to add to message
+              </div>
+            )}
             {mention.isOpen && (
               <MentionPopup
                 items={mention.items}
@@ -1148,7 +1150,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               />
             )}
             {/* HOME PANEL BADGE (Stuck to Border) - Only when !isConversationStarted */}
-            {!isConversationStarted && !mention.isOpen && (
+            {!isConversationStarted && !mention.isOpen && !isDropActive && (
               <div
                 onClick={() => {
                   setShowModelDrawer((v) => !v);
@@ -1803,6 +1805,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                 }}
                 onDragOver={handleDragOver}
                 onDrop={(e) => {
+                  if (mention.handleDropMention(e)) return;
                   if (!supportsUpload) {
                     e.preventDefault();
                     return;
@@ -1989,21 +1992,15 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     supportsSkill ||
                     supportsMemory ||
                     supportsToolFormat) &&
-                  (!supportsPromptLength || promptLengthMode !== 'none') && (
+                  (!promptLengthResolved.enabled || promptLengthResolved.value !== 'none') && (
                     <>
                       <PromptSettingsDropdown
-                        systemPromptMode={systemPromptMode}
+                        systemPromptMode={styleResolved.value as any}
+                        systemPromptModes={styleResolved.options}
                         onSelectSystemPromptMode={
                           supportsSystemPromptMode
-                            ? (mode) => {
-                                if (!!(currentProviderConfig as any)?.anti_system_prompt_injection)
-                                  return;
-                                setSystemPromptMode(mode as any);
-                              }
+                            ? (mode) => setSystemPromptMode(mode as any)
                             : undefined
-                        }
-                        isAntiInjection={
-                          !!(currentProviderConfig as any)?.anti_system_prompt_injection
                         }
                         skillEnabled={supportsSkill ? !!conversationUseSkillEnabled : undefined}
                         onSkillToggle={supportsSkill ? onConversationUseSkillToggle : undefined}
@@ -2012,10 +2009,11 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         toolFormat={
                           supportsToolFormat ? (conversationToolFormat ?? 'xml') : undefined
                         }
+                        toolFormats={toolFormatOptions}
                         onToolFormatToggle={
                           supportsToolFormat
-                            ? () => {
-                                onConversationToolFormatToggle?.();
+                            ? (format) => {
+                                onConversationToolFormatToggle?.(format);
                               }
                             : undefined
                         }
@@ -2023,17 +2021,15 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     </>
                   )}
 
-                {/* Prompt Length Selector - Home only, hidden when anti-injection is active */}
-                {!isConversationStarted && supportsPromptLength && !isAntiInjectionProvider && (
+                {/* Prompt Length Selector - Home only */}
+                {!isConversationStarted && supportsPromptLength && (
                   <PromptLengthDropdown
-                    currentMode={promptLengthMode as any}
-                    onSelect={(mode: any) => {
-                      if (isAntiInjectionProvider && mode !== 'none') return;
-                      setPromptLengthMode(mode);
-                    }}
+                    currentMode={promptLengthResolved.value as any}
+                    availableModes={promptLengthResolved.options}
+                    onSelect={(mode: any) => setPromptLengthMode(mode)}
                     triggerButton={(() => {
                       const meta =
-                        PROMPT_LENGTH_MODE_META.find((m) => m.key === promptLengthMode) ??
+                        PROMPT_LENGTH_MODE_META.find((m) => m.key === promptLengthResolved.value) ??
                         PROMPT_LENGTH_MODE_META[3];
                       return (
                         <SimpleTooltip
@@ -2068,7 +2064,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                               padding: 0,
                             }}
                           >
-                            <PromptLengthTriggerIcon mode={promptLengthMode} />
+                            <PromptLengthTriggerIcon mode={promptLengthResolved.value as any} />
                           </button>
                         </SimpleTooltip>
                       );
@@ -2085,9 +2081,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   alignItems: 'center',
                 }}
               >
-                {/* Workspace zip-size badge — chỉ hiện khi provider có anti-injection flag = true */}
-                {isAntiInjectionProvider && <ClaudeZipBadge state={zipSizeState} />}
-
                 {/* Token Count Badge / Stop Button */}
                 {isConnected && (
                   <div
@@ -2222,7 +2215,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             }}
           />
 
-          {!isConversationStarted && <ZenCliHintBar isClaudeProvider={isAntiInjectionProvider} />}
+          {!isConversationStarted && <ZenCliHintBar />}
         </div>
       </div>
     );

@@ -106,6 +106,7 @@ export function useWorkspaceInteractions({ contentRef, getPaneAt, onMove, onResi
         window.removeEventListener('mousemove', onMouseMove, true);
         window.removeEventListener('mouseup', onMouseUp, true);
         window.removeEventListener('keydown', onKeyDown, true);
+        window.removeEventListener('mousedown', onMouseDown, true);
         window.removeEventListener('blur', cleanup);
         ghost?.remove();
         ghost = null;
@@ -135,6 +136,7 @@ export function useWorkspaceInteractions({ contentRef, getPaneAt, onMove, onResi
       }
 
       function onMouseUp(ev: globalThis.MouseEvent) {
+        if (ev.button !== 0) return;
         if (started) {
           const target = paneFromPoint(ev.clientX, ev.clientY);
           if (target) onMoveRef.current(id, target);
@@ -155,10 +157,40 @@ export function useWorkspaceInteractions({ contentRef, getPaneAt, onMove, onResi
         if (ev.key === 'Escape') cleanup(); // Esc cancels the drag
       }
 
+      function onMouseDown(ev: globalThis.MouseEvent) {
+        if (ev.button !== 2) return; // right click cancels the drag
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        // Keep the context menu from opening (fires on mousedown or mouseup depending on OS)
+        const blockMenu = (c: Event) => {
+          c.preventDefault();
+          c.stopPropagation();
+        };
+        window.addEventListener('contextmenu', blockMenu, true);
+        setTimeout(() => window.removeEventListener('contextmenu', blockMenu, true), 300);
+
+        // The left button is still held: swallow the click its release will produce
+        if (started) {
+          const swallow = (c: globalThis.MouseEvent) => {
+            c.stopPropagation();
+            c.preventDefault();
+          };
+          window.addEventListener('click', swallow, { capture: true, once: true });
+          window.addEventListener(
+            'mouseup',
+            () => setTimeout(() => window.removeEventListener('click', swallow, true), 0),
+            { capture: true, once: true },
+          );
+        }
+        cleanup();
+      }
+
       cancelRef.current = cleanup;
       window.addEventListener('mousemove', onMouseMove, true);
       window.addEventListener('mouseup', onMouseUp, true);
       window.addEventListener('keydown', onKeyDown, true);
+      window.addEventListener('mousedown', onMouseDown, true);
       window.addEventListener('blur', cleanup);
     },
     [paneFromPoint],

@@ -16,20 +16,28 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 // ─── Imports ────────────────────────────────────────────────────────────────
 // ── Types ──
 import { Message } from '../../types/message';
-import { parseAIResponse } from '../../services/ResponseParser';
+import { parseAIResponse } from '../../services/responseParser';
+import type { ToolFormatId } from '../../services/tool-formats/types';
 
 import type { ExecutorContext } from '../../types/executor-types';
+import { DISPLAY_ONLY_RESULT } from '../../types/executor-types';
 
 // ── Context ──
 
 import { useAgentFeature } from '../../../../context/FeatureContext';
 
 // ── Services ──
-import { getModuleIdFromContext } from '../../services/ConversationService';
-// ── Utils ──
+import { getModuleIdFromContext } from '../../services/conversationService';
 
+// ── Utils ──
+import { needsSingleLineReview, extractFilePath } from '../../utils/tool-mutation-registry';
+import { checkToolDanger, transformToolOutput } from '../../utils/tool-behavior-registry';
+
+// ── Utils ──
 import { detectDangerousCommand } from '../../utils/dangerousCommandDetector';
 import { buildUnparsedSegmentsWarning } from '../../utils/responseValidation';
+import { formatToolOutput } from '../../utils/tool-output-registry';
+import { isStreamingTool } from '../../utils/tool-streaming-registry';
 
 // ── Constants ──
 import {
@@ -44,7 +52,7 @@ import {
   extensionService,
   messageDispatcher,
 } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
-import { getExecutor } from '../../services/ModuleRegistry';
+import { getExecutor } from '../../services/moduleRegistry';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface UseToolExecutionProps {
@@ -61,7 +69,7 @@ interface UseToolExecutionProps {
   messagesRef?: React.MutableRefObject<Message[]>;
   /** When true, all pending auto-flush sends are suppressed (set by stop button) */
   isStoppedRef?: React.MutableRefObject<boolean>;
-  toolFormat?: 'xml' | 'json';
+  toolFormat?: ToolFormatId;
   /** Session ID for computing moduleId (required for conversation_title) */
   workflowAgentId?: string | null;
   sessionId?: number;
@@ -122,6 +130,7 @@ export const useToolExecution = ({
   }>({});
 
   const terminalToActionMap = useRef<Map<string, string>>(new Map());
+  const actionToToolTypeMap = useRef<Map<string, string>>(new Map());
   const flushedMessageIdsRef = useRef<Set<string>>(new Set());
   const partialFlushedKeysRef = useRef<Set<string>>(new Set());
 
@@ -168,9 +177,14 @@ export const useToolExecution = ({
             commandStartTimes.current.delete(message.actionId);
             const cmdText = message.commandText || message.commandTextRaw || 'command';
             const outputContent = (message.output || '').trim();
-            const resultMsg = message.error
-              ? `Output: [run_command for '${cmdText}'] Error - ${message.error}\n\`\`\`\n${outputContent}\n\`\`\``
-              : `Output: [run_command for '${cmdText}']\n\`\`\`\n${outputContent}\n\`\`\``;
+            const toolType = actionToToolTypeMap.current.get(message.actionId) || 'unknown';
+            const resultMsg = formatToolOutput({
+              toolType,
+              commandText: cmdText,
+              output: outputContent,
+              error: message.error,
+            });
+            actionToToolTypeMap.current.delete(message.actionId);
             resolver(resultMsg);
             pendingToolResolvers.current.delete(message.actionId);
           } else {
@@ -270,11 +284,6 @@ export const useToolExecution = ({
 
   const executeSingleAction = useCallback(
     async (action: any, bypassIgnore: boolean = false): Promise<string | null> => {
-      // Display-only tools
-      if (action.type === 'git_status' || action.type === 'commit_message') {
-        return '__DISPLAY_ONLY__';
-      }
-
       const executor = getExecutor(action.type);
       if (!executor) {
         console.warn(`[Zen][tool] No executor for type: "${action.type}"`);
@@ -327,41 +336,37 @@ export const useToolExecution = ({
         setClickedActions(new Set(clickedActionsRef.current));
 
         // SINGLE-LINE REVIEW CHECK
-        if (action.type === 'write_to_file') {
-          const content = action.params.content || '';
-          const isSingleLine = !content.includes('\n') && content.length > 100;
-          if (isSingleLine) {
-            wasInterruptedByManual = true;
-            setSingleLineReviewActions((prev) => ({
-              ...prev,
-              [actionId]: {
-                action: { ...action, actionId },
-                actionId,
-                messageId: message.id,
-                messageObj: message,
-              },
-            }));
-            setExecutionState({
-              total: actions.length,
-              completed: index,
-              status: EXECUTION_STATUS.IDLE,
-            });
-            clickedActionsRef.current.delete(actionId);
-            setClickedActions(new Set(clickedActionsRef.current));
-            break;
-          }
+        if (needsSingleLineReview(action)) {
+          wasInterruptedByManual = true;
+          setSingleLineReviewActions((prev) => ({
+            ...prev,
+            [actionId]: {
+              action: { ...action, actionId },
+              actionId,
+              messageId: message.id,
+              messageObj: message,
+            },
+          }));
+          setExecutionState({
+            total: actions.length,
+            completed: index,
+            status: EXECUTION_STATUS.IDLE,
+          });
+          clickedActionsRef.current.delete(actionId);
+          setClickedActions(new Set(clickedActionsRef.current));
+          break;
         }
 
-        // Dangerous command guard: chặn auto-execute nếu command nguy hiểm và chưa được user accept.
+        // Dangerous action guard: chặn auto-execute nếu action nguy hiểm và chưa được user accept.
         // Chỉ áp dụng cho auto-trigger (LLM tự đề xuất); user click thủ công bỏ qua guard.
+        // Delegate sang module-specific danger checker via registry.
         if (
           isAutoTrigger &&
           actionType !== TOOL_ACTION_TYPES.ACCEPT &&
-          action.type === 'run_command' &&
           !approvedDangerousRef.current.has(actionId)
         ) {
-          const commandText = action.params?.command;
-          if (typeof commandText === 'string' && detectDangerousCommand(commandText)) {
+          const dangerResult = checkToolDanger(action);
+          if (dangerResult.dangerous) {
             wasInterruptedByManual = true;
             setExecutionState({
               total: actions.length,
@@ -372,6 +377,9 @@ export const useToolExecution = ({
           }
         }
 
+        // Store actionId → toolType mapping for IPC result lookup
+        actionToToolTypeMap.current.set(actionId, action.type);
+
         let result: string | null = null;
         if (actionType === TOOL_ACTION_TYPES.REJECT) {
           result = `Output: [${action.type}] Tool execution rejected by user.`;
@@ -380,15 +388,14 @@ export const useToolExecution = ({
             return next;
           });
           window.postMessage({ command: 'markActionRejected', actionId }, '*');
+          actionToToolTypeMap.current.delete(actionId); // cleanup on reject
         } else {
           result = await executeSingleAction({ ...action, actionId }, true);
         }
 
         if (result !== null) {
-          const isDisplayOnly = result === '__DISPLAY_ONLY__';
-          const isMetadataOnly =
-            action.type === 'conversation_title' ||
-            (action.type === 'send_message' && !result.includes('Result: Error'));
+          const isDisplayOnly = result === DISPLAY_ONLY_RESULT;
+          const isMetadataOnly = action.type === 'conversation_title';
 
           if (!isDisplayOnly && !isMetadataOnly) {
             validResults.push(result);
@@ -408,28 +415,11 @@ export const useToolExecution = ({
               result.includes('Tool execution blocked') ||
               result.includes('Tool execution rejected');
 
-            if (action.type !== 'run_command') {
-              const storedOutput: any = (() => {
-                if (action.type === 'view_replace_history' && !isError) {
-                  const versions = Array.from(
-                    cleanOutput.matchAll(
-                      /\*\*Version (\d+)\*\*\n- Errors: (\d+), Warnings: (\d+)/g,
-                    ),
-                  ).map((m) => ({
-                    version: Number(m[1]),
-                    errorCount: Number(m[2]),
-                    warningCount: Number(m[3]),
-                  }));
-                  return versions.length > 0 ? JSON.stringify(versions) : 'No history';
-                }
-                if (action.type !== 'list_files' || isError) return cleanOutput;
-                try {
-                  const parsedTree = JSON.parse(cleanOutput);
-                  return Array.isArray(parsedTree) ? parsedTree : cleanOutput;
-                } catch {
-                  return cleanOutput;
-                }
-              })();
+            // Streaming tools handle output via IPC, skip direct storage
+            if (!isStreamingTool(action.type)) {
+              // Delegate to module-specific output transformer
+              const transformed = transformToolOutput({ action, cleanOutput, isError });
+              const storedOutput = transformed !== null ? transformed : cleanOutput;
               setToolOutputs((prev) => ({
                 ...prev,
                 [actionId]: {
@@ -685,8 +675,8 @@ export const useToolExecution = ({
       setRejectedActions((prev) => new Set(prev).add(actionId));
       window.postMessage({ command: 'markActionRejected', actionId }, '*');
 
-      const filePath = action.params.file_path || action.params.path || 'unknown';
-      const errorResult = `[write_to_file for '${filePath}'] Result: Error - Nội dung file bị dồn vào 1 dòng duy nhất (${action.params.content?.length || 0} ký tự). Vui lòng chia lại thành nhiều dòng với ngắt dòng (\\n) thực sự trước khi thực hiện write_to_file.`;
+      const filePath = extractFilePath(action) || 'unknown';
+      const errorResult = `[${action.type} for '${filePath}'] Result: Error - Nội dung file bị dồn vào 1 dòng duy nhất (${action.params.content?.length || 0} ký tự). Vui lòng chia lại thành nhiều dòng với ngắt dòng (\\n) thực sự trước khi thực hiện ${action.type}.`;
 
       setAvailableToolResultsBuffer((prev) => {
         const newBuffer = [...(prev[messageObj.id] || []), errorResult];

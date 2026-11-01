@@ -468,11 +468,26 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     [addPanel],
   );
 
+  const [fileDropPane, setFileDropPane] = useState<PaneId | null>(null);
+  const fileDropRect = fileDropPane ? rects[fileDropPane] : null;
+
+  useEffect(() => {
+    if (!fileDropPane) return;
+    const reset = () => setFileDropPane(null);
+    document.addEventListener('dragend', reset);
+    document.addEventListener('drop', reset);
+    return () => {
+      document.removeEventListener('dragend', reset);
+      document.removeEventListener('drop', reset);
+    };
+  }, [fileDropPane]);
+
   // ── NEW: Handle Drop from History Panel ──
   const handleDropHistory = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
+      if ((e.target as Element).closest?.('[data-zen-drop-root]')) return;
 
       try {
         const dataStr = e.dataTransfer.getData('application/json');
@@ -679,6 +694,34 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     await Promise.all(detail.pending);
     closePanel(pendingCloseId);
   }, [pendingCloseId, closePanel]);
+  const requestClosePanels = useCallback(
+    (ids: string[]) => {
+      const state = useCodeStore.getState();
+      const unsaved = state.projects.find((p) => p.id === state.currentProjectId)?.unsavedFiles;
+      ids.forEach((id) => {
+        const panel = panelsRef.current.find((p) => p.id === id);
+        if (!panel || panel.pinned) return;
+        // ASSUMED: bulk close skips tabs that need a confirm dialog (unsaved file, orchestrator with linked agents)
+        if (panel.type === 'file' && unsaved?.has(id)) return;
+        if (
+          panel.type === 'agent' &&
+          panel.workflowAgentId === 'orchestrator' &&
+          linkedAgentPanels.length > 0
+        )
+          return;
+        closePanel(id);
+      });
+    },
+    [closePanel, linkedAgentPanels],
+  );
+  const togglePinPanel = useCallback((id: string) => {
+    const target = panelsRef.current.find((p) => p.id === id);
+    if (target) dispatch({ type: 'pin', id, pinned: !target.pinned });
+  }, []);
+  const keepOpenPanel = useCallback(
+    (id: string) => dispatch({ type: 'updatePanel', id, patch: { preview: false } }),
+    [],
+  );
   const selectTab = useCallback(
     (pane: PaneId, id: string) => dispatch({ type: 'select', pane, id }),
     [],
@@ -936,6 +979,9 @@ export const WorkspaceViews = memo(function WorkspaceViews({
                   activeId={paneActive[pane]}
                   onSelectTab={(id) => selectTab(pane, id)}
                   onCloseTab={requestClosePanel}
+                  onCloseTabs={requestClosePanels}
+                  onTogglePin={togglePinPanel}
+                  onKeepOpen={keepOpenPanel}
                   onDragStart={dnd.startTabDrag}
                   onAddPanel={(type) => requestAddPanel(type, pane)}
                 />
@@ -952,6 +998,22 @@ export const WorkspaceViews = memo(function WorkspaceViews({
             // Prevent default to allow dropping
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
+            if (
+              !e.dataTransfer.types.includes('application/x-phantoma-open-file') ||
+              (e.target as Element).closest?.('[data-zen-drop-root]')
+            ) {
+              setFileDropPane((prev) => (prev === null ? prev : null));
+              return;
+            }
+            const box = contentRef.current?.getBoundingClientRect();
+            if (!box || box.width <= 0 || box.height <= 0) return;
+            const px = ((e.clientX - box.left) / box.width) * 100;
+            const py = ((e.clientY - box.top) / box.height) * 100;
+            const pane = getPaneAtPoint(px, py, occupied, sizes) ?? null;
+            setFileDropPane((prev) => (prev === pane ? prev : pane));
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFileDropPane(null);
           }}
         >
           {panels.length === 0 ? (
@@ -980,6 +1042,17 @@ export const WorkspaceViews = memo(function WorkspaceViews({
                 onBindConversation={handleBindConversation}
                 onResetConversation={handleResetConversation}
               />
+              {fileDropRect && (
+                <div
+                  className="absolute pointer-events-none z-[150] bg-primary/10 border-2 border-dashed border-primary"
+                  style={{
+                    left: `${fileDropRect.left}%`,
+                    top: `${fileDropRect.top}%`,
+                    width: `${fileDropRect.width}%`,
+                    height: `${fileDropRect.height}%`,
+                  }}
+                />
+              )}
             </>
           )}
         </div>
