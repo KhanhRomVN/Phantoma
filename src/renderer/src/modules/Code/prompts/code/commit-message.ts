@@ -61,6 +61,7 @@ const COMMIT_EXAMPLE_JSON = `\`\`\`json
 
 const COMMIT_OUTPUT_RULE_JSON = `- **CRITICAL — Output format**: The commit message must be emitted as a single \`commit_message\` JSON object inside its own fenced \`\`\`json block. The \`message\` value must be a valid JSON string (newlines written as \\n). Do NOT emit any XML tag. Output that block directly, with nothing before or after it except the \`git_diff\` requests (if needed in STEP 1).`;
 
+
 // ── LOOKUP BY FORMAT ──
 interface CommitFormatParts {
   diffRef: string;
@@ -85,13 +86,7 @@ const COMMIT_PARTS: Record<ToolFormat, CommitFormatParts> = {
     example: COMMIT_EXAMPLE_JSON,
     outputRule: COMMIT_OUTPUT_RULE_JSON,
   },
-  dsml: {
-    diffRef: COMMIT_DIFF_REF_XML,
-    toolUsage: COMMIT_TOOL_USAGE_XML,
-    structure: COMMIT_STRUCTURE_XML,
-    example: COMMIT_EXAMPLE_XML,
-    outputRule: COMMIT_OUTPUT_RULE_XML,
-  },
+
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

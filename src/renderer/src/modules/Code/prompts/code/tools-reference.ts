@@ -419,6 +419,7 @@ const REFERENCE_ENCODING_JSON = `## JSON Encoding Rules
 - For tool calls, the parameter object is always under the key \`params\`. Do NOT use \`arguments\`, \`args\`, \`parameters\`, \`input\`, or \`payload\`.
 - UI objects use a \`type\` key (\`markdown\` | \`code\` | \`question\`), NOT a \`tool\` key.
 - Each fenced block must be valid JSON parseable by JSON.parse() — no trailing commas, no unescaped newlines or quotes.`;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TOOL DOCS
 // TOOL_DOCS là nguồn dữ liệu cho danh sách tool hợp lệ (TOOL_NAMES) dùng trong
@@ -540,7 +541,6 @@ export const TOOLS_REFERENCE_JSON = assemble(
 const REFERENCES: Record<ToolFormat, string> = {
   xml: TOOLS_REFERENCE_XML,
   json: TOOLS_REFERENCE_JSON,
-  dsml: TOOLS_REFERENCE_XML,
 };
 
 export const getToolReference = (format: ToolFormat): string =>

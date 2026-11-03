@@ -23,6 +23,7 @@ import {
   Search as SearchIcon,
   Palette,
   Users,
+  Bug,
 } from 'lucide-react';
 
 // ── Hooks ─
@@ -34,6 +35,7 @@ import { ActivityBar } from './ActivityBar';
 import { FileExplore } from './FileExplore';
 import { Search } from './Search';
 import { Design } from './Design';
+import { Debug } from './Debug';
 import { Account } from './Account';
 
 // ── Utils ──
@@ -48,6 +50,7 @@ const TABS = [
     icon: <Palette className="w-4 h-4" />,
     label: 'Design',
   },
+  { id: 'debug', icon: <Bug className="w-4 h-4" />, label: 'Run & Debug' },
   { id: 'account', icon: <Users className="w-4 h-4" />, label: 'Accounts' },
 ];
 
@@ -136,6 +139,8 @@ export function ActivityPanel() {
         return <Search />;
       case 'design':
         return null;
+      case 'debug':
+        return <Debug />;
       case 'account':
         return <Account />;
 

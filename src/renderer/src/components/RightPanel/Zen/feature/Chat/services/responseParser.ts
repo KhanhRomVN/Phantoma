@@ -16,8 +16,8 @@
 // ─── Imports ───────────────────────────────────────────────────────────
 import { TagType } from '../types/tag-types';
 import type { ContentBlock } from '../types/renderer-types';
-import { getToolFormat, DEFAULT_TOOL_FORMAT, FALLBACK_PARSER_FORMAT } from './tool-formats';
-import type { ToolFormatId } from './tool-formats/types';
+import { getToolFormat, DEFAULT_TOOL_FORMAT, FALLBACK_PARSER_FORMAT } from './tool-format-parsers';
+import type { ToolFormatId } from './tool-format-parsers/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface ParsedResponse {
@@ -84,5 +84,3 @@ export const parseAIResponse = (
 
   return result;
 };
-
-

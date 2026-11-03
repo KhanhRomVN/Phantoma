@@ -20,11 +20,11 @@ import {
   resolveStyleCode,
 } from './moduleRegistry';
 import type { WorkflowAgentId } from '../types/workflow-agents';
-import type { ToolFormatId } from './tool-formats/types';
+import type { ToolFormatId } from './tool-format-parsers/types';
 
 // ── Services ──
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
-import { DEFAULT_TOOL_FORMAT } from './tool-formats';
+import { DEFAULT_TOOL_FORMAT } from './tool-format-parsers';
 
 // NOTE: skillInstall.service is not yet available in Phantoma renderer context.
 // Skills injection is disabled until Marketplace integration is complete.

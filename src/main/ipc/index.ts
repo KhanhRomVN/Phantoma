@@ -30,3 +30,4 @@ export { setupTitleHandlers } from './title.handlers';
 export { setupWorkspaceDataHandlers } from './workspace.handlers';
 export { setupDesignHandlers } from './design.handlers';
 export { setupRuntimeHandlers } from './runtime.handlers';
+export { setupDebugHandlers } from './debug.handlers';

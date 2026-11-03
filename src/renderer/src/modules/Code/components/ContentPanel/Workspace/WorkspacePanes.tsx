@@ -26,7 +26,6 @@ import {
   Globe,
   FileText,
   MonitorPlay,
-
   X,
   Circle,
   Pin,
@@ -497,9 +496,7 @@ export function TabBar({
             </DropdownItem>
             {/* ASSUMED: left/right options are hidden when there is nothing on that side (first/last tab) */}
             {ctxIndex > 0 && (
-              <DropdownItem
-                onClick={() => onCloseTabs(panels.slice(0, ctxIndex).map((p) => p.id))}
-              >
+              <DropdownItem onClick={() => onCloseTabs(panels.slice(0, ctxIndex).map((p) => p.id))}>
                 Close to the Left
               </DropdownItem>
             )}
@@ -709,13 +706,14 @@ const PanelBody = memo(function PanelBody({
       // Use the panel's stored CWD if available, otherwise fallback to the current workspace path.
       // This ensures existing terminals stay in their original directory when switching sessions.
       const effectiveCwd = panel.cwd ?? cwd;
-      
+
       return (
         <CodeTerminal
           cwd={effectiveCwd}
           panelId={panel.id}
           onProviderChange={handleProvider}
-          initialCommand={buildZenCliCommand(panel)}
+          initialCommand={buildZenCliCommand(panel) ?? panel.initialCommand ?? null}
+          runNonce={panel.runNonce}
           onProcessExit={handleExit}
           onBindConversation={handleBind}
           onResetConversation={handleReset}

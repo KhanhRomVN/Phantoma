@@ -53,6 +53,14 @@
 - `electron-builder.yml` extraResources copy `server/{dist,package.json,node_modules}`, `emulate/{dist,package.json,node_modules}`, và `images/` vào `resources/`. `server-spawner.ts` fork `resources/<name>/dist/index.js`. Window icon = `images/phantoma-logo.png` (dev: `app.getAppPath()`, build: `process.resourcesPath`).
 - Settings General KHÔNG còn URL input / Database Path — chỉ hiển thị read-only port (server + emulate). Endpoint `/api/v1/database/path` đã bị xóa khỏi emulate; `services/database.service.ts` đã bị xóa.
 
+## Run & Debug (js-debug)
+
+- Store: `modules/Code/stores/useDebugStore.ts` (Zustand, DAP client). IPC main: `src/main/ipc/debug.handlers.ts` (`debug:run-task`, `debug:spawn`, `debug:launch-adapter`...).
+- Mọi config gửi cho js-debug phải kèm `__workspaceFolder` (= project root), nếu không js-debug báo "Unable to resolve ${workspaceFolder}" và Extension Host bị `--inspect-brk-extensions` giữ lại.
+- `launchVSCode` (extensionHost) spawn ngầm qua `debug:spawn`, KHÔNG mở terminal; js-debug tự attach qua reverse request `startDebugging`.
+- `preLaunchTask` chạy ở main (`debug:run-task`, đọc `.vscode/tasks.json` hoặc tự nhận `npm: <script>`), output tee ra `/tmp/phantoma-task-*.log` và hiển thị bằng terminal tab `tail -f`.
+- Env của task/Host phải bỏ `ELECTRON_*`, `VSCODE_*`, `NODE_ENV`, `NODE_OPTIONS` (rò từ Electron dev làm webpack build bản development).
+
 ## Test bản packaged (không cần nén AppImage)
 
 - `npm run test:build` — build nhanh (server + emulate `npm run build` → `electron-vite build` → `electron-builder --linux dir`) rồi chạy binary từ `release-build/v<latest>/linux-unpacked/phantoma`. Dùng khi cần xác nhận spawn server / port random / logo.
@@ -62,8 +70,12 @@
 
 ## Dev environment tips
 
+- Mọi lệnh git ở main (`runGit` trong `src/main/ipc/git.handlers.ts`, `runGitArgs` trong `src/main/ipc/workspace.handlers.ts`) phải set env `GIT_CEILING_DIRECTORIES` = thư mục cha của cwd, nếu không project con nằm trong repo khác (vd `temp/HelloWorld` trong Phantoma) sẽ bị git tự tìm `.git` của repo cha.
+- Main type-check: `npx tsc --noEmit -p tsconfig.node.json --composite false`.
 - Renderer type-check: `npx tsc --noEmit -p tsconfig.web.json` (a pre-existing error in `RunCommandExecutor.ts` — unused `spawnResult` — is unrelated).
 - `tsconfig.web.json` không kế thừa `tsconfig.base.json`: phải tự khai báo path `@app/*` → `src/shared/*` và include `src/shared/**/*`.
 - AgentWorkflow agents keep model + account in `modules/Code/hooks/useWorkflowStore.ts`; a Zen tab with `workflowAgentId` syncs to it through `WorkflowAgentContext` (read by `useModelAccount`).
 - Zen `TagRouter` must not import module renderers directly: renderers come from `ModuleRegistry` (`getModuleRenderers()`, declared in each module's module file (e.g. `CodeModule.ts`) via `renderers`). TagRouter passes the same full props set to every renderer; each renderer picks what it needs.
 - Unsaved changes are app-scoped: a module registers a provider via `registerUnsavedProvider` (`shared/unsaved/unsavedRegistry.ts`, e.g. `modules/Code/services/unsaved.service.ts`); `shared/unsaved/UnsavedGuard.tsx` (mounted in `App.tsx`) owns the reload shortcut/beforeunload guard and renders `components/UnsavedChangesModal.tsx`. Do not add per-module reload modals.
+- `fs:watch-dir` / `fs:unwatch-dir` (`src/main/ipc/fs.handlers.ts`) dùng ref-count theo `projectPath`: mỗi `watch-dir` phải có đúng 1 `unwatch-dir` ở cleanup (FileExplore, Debug...), watcher chỉ đóng khi về 0.
+- Mở terminal tab từ ngoài Workspace: `window.dispatchEvent(new CustomEvent('phantoma:open-terminal-panel', { detail: { sessionId, title, cwd, command } }))` (listener ở `ContentPanel/Workspace/index.tsx`, lệnh chạy qua `WorkspacePanel.initialCommand`). Debug dùng nó cho DAP `runInTerminal`.

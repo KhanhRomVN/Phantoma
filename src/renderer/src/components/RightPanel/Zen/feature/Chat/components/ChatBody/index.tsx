@@ -25,8 +25,8 @@ import { Message } from '../../types/message';
 
 // ── Constants ──
 import { EXECUTION_STATUS, TOOL_ACTION_TYPES, TERMINAL_STATUS } from '../../constants/tag-registry';
-import { DEFAULT_TOOL_FORMAT } from '../../services/tool-formats';
-import type { ToolFormatId } from '../../services/tool-formats/types';
+import { DEFAULT_TOOL_FORMAT } from '../../services/tool-format-parsers';
+import type { ToolFormatId } from '../../services/tool-format-parsers/types';
 
 // ── Hooks ──
 import { useCollapseSections } from '../../hooks/ui/useCollapseSections';

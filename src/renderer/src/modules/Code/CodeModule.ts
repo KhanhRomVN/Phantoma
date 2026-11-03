@@ -1,11 +1,11 @@
 import type { ZenModule } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
 import { CODE_TAG_REGISTRY } from './constants/tag-registry';
 import { CAPABILITIES as CODE_CAPABILITIES } from './prompts/code/config';
-// import { CAPABILITIES as ORCHESTRATOR_CAPABILITIES } from './prompts/orchestrator/config';
-// import { CAPABILITIES as PLANNER_CAPABILITIES } from './prompts/planner/config';
-// import { CAPABILITIES as EXECUTOR_CAPABILITIES } from './prompts/executor/config';
-// import { CAPABILITIES as REVIEWER_CAPABILITIES } from './prompts/reviewer/config';
-// import { CAPABILITIES as TESTER_CAPABILITIES } from './prompts/tester/config';
+import { CAPABILITIES as ORCHESTRATOR_CAPABILITIES } from './prompts/multi-agent/orchestrator/config';
+import { CAPABILITIES as PLANNER_CAPABILITIES } from './prompts/multi-agent/planner/config';
+import { CAPABILITIES as EXECUTOR_CAPABILITIES } from './prompts/multi-agent/executor/config';
+import { CAPABILITIES as REVIEWER_CAPABILITIES } from './prompts/multi-agent/reviewer/config';
+import { CAPABILITIES as TESTER_CAPABILITIES } from './prompts/multi-agent/tester/config';
 import type { ExecutorOptions } from '@renderer/components/RightPanel/Zen/feature/Chat/types/executor-types';
 import { CommitMessageRenderer } from './renderers/CommitMessageRenderer';
 import { DeleteFileRenderer } from './renderers/DeleteFileRenderer';
@@ -63,7 +63,11 @@ import { parseListAgents } from './parsers/ListAgentsParser';
 import { parseCreateAgent } from './parsers/CreateAgentParser';
 import { parseSendMessage } from './parsers/SendMessageParser';
 import { parseDeleteAgent } from './parsers/DeleteAgentParser';
-import { buildPromptForMode as buildCodePrompt } from './prompts/code';
+import {
+  buildPromptForMode as buildCodePrompt,
+  buildToolFormatReminder as buildCodeToolFormatReminder,
+  type ToolFormat as CodeToolFormat,
+} from './prompts/code';
 import { formatCodeAction, formatCodeCompletedTooltip } from './services/tool-display-formatters';
 import { registerActionDisplayFormatter } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/action-display-formatter';
 import { registerCompletedTooltipFormatter as registerTooltipFormatter } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/status-tooltip-builder';
@@ -98,11 +102,11 @@ import {
   calculateCodeDiff,
 } from './services/tool-mutations';
 import { extractCodeRawContentDiff } from './services/raw-content-diff';
-// import { buildOrchestratorPrompt } from './prompts/orchestrator';
-// import { buildPlannerPrompt } from './prompts/planner';
-// import { buildExecutorPrompt } from './prompts/executor';
-// import { buildReviewerPrompt } from './prompts/reviewer';
-// import { buildTesterPrompt } from './prompts/tester';
+import { buildOrchestratorPrompt } from './prompts/multi-agent/orchestrator';
+import { buildPlannerPrompt } from './prompts/multi-agent/planner';
+import { buildExecutorPrompt } from './prompts/multi-agent/executor';
+import { buildReviewerPrompt } from './prompts/multi-agent/reviewer';
+import { buildTesterPrompt } from './prompts/multi-agent/tester';
 
 const bypass = (o?: ExecutorOptions) => o?.bypassIgnore ?? false;
 
@@ -136,6 +140,9 @@ export const codeModule: ZenModule = {
   tagRegistry: CODE_TAG_REGISTRY,
   id: 'code',
   services: {},
+  capabilities: {
+    multiAgent: true,
+  },
   executors: {
     read_file: async (a, c, o) =>
       (await executeReadFile(a.params, bypass(o), c.folderPath))?.output || null,
@@ -214,43 +221,55 @@ export const codeModule: ZenModule = {
         {
           getCapabilities: () => CODE_CAPABILITIES,
           buildPrompt: (config: any) => buildCodePrompt(config, config.mode ?? 'balanced'),
+          buildToolFormatReminder: (format) =>
+            buildCodeToolFormatReminder(format as CodeToolFormat),
         },
       ],
-      // [
-      //   'orchestrator',
-      //   {
-      //     getCapabilities: () => ORCHESTRATOR_CAPABILITIES,
-      //     buildPrompt: buildOrchestratorPrompt,
-      //   },
-      // ],
-      // [
-      //   'planner',
-      //   {
-      //     getCapabilities: () => PLANNER_CAPABILITIES,
-      //     buildPrompt: buildPlannerPrompt,
-      //   },
-      // ],
-      // [
-      //   'executor',
-      //   {
-      //     getCapabilities: () => EXECUTOR_CAPABILITIES,
-      //     buildPrompt: buildExecutorPrompt,
-      //   },
-      // ],
-      // [
-      //   'reviewer',
-      //   {
-      //     getCapabilities: () => REVIEWER_CAPABILITIES,
-      //     buildPrompt: buildReviewerPrompt,
-      //   },
-      // ],
-      // [
-      //   'tester',
-      //   {
-      //     getCapabilities: () => TESTER_CAPABILITIES,
-      //     buildPrompt: buildTesterPrompt,
-      //   },
-      // ],
+      [
+        'orchestrator',
+        {
+          getCapabilities: () => ORCHESTRATOR_CAPABILITIES,
+          buildPrompt: buildOrchestratorPrompt,
+          buildToolFormatReminder: (format) =>
+            buildCodeToolFormatReminder(format as CodeToolFormat),
+        },
+      ],
+      [
+        'planner',
+        {
+          getCapabilities: () => PLANNER_CAPABILITIES,
+          buildPrompt: buildPlannerPrompt,
+          buildToolFormatReminder: (format) =>
+            buildCodeToolFormatReminder(format as CodeToolFormat),
+        },
+      ],
+      [
+        'executor',
+        {
+          getCapabilities: () => EXECUTOR_CAPABILITIES,
+          buildPrompt: buildExecutorPrompt,
+          buildToolFormatReminder: (format) =>
+            buildCodeToolFormatReminder(format as CodeToolFormat),
+        },
+      ],
+      [
+        'reviewer',
+        {
+          getCapabilities: () => REVIEWER_CAPABILITIES,
+          buildPrompt: buildReviewerPrompt,
+          buildToolFormatReminder: (format) =>
+            buildCodeToolFormatReminder(format as CodeToolFormat),
+        },
+      ],
+      [
+        'tester',
+        {
+          getCapabilities: () => TESTER_CAPABILITIES,
+          buildPrompt: buildTesterPrompt,
+          buildToolFormatReminder: (format) =>
+            buildCodeToolFormatReminder(format as CodeToolFormat),
+        },
+      ],
     ]),
   },
 };

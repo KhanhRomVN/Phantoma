@@ -169,7 +169,6 @@ export const TOOL_VALIDATION_JSON = assemble(
 const VALIDATIONS: Record<ToolFormat, string> = {
   xml: TOOL_VALIDATION_XML,
   json: TOOL_VALIDATION_JSON,
-  dsml: TOOL_VALIDATION_XML,
 };
 
 export const getToolValidation = (format: ToolFormat): string =>

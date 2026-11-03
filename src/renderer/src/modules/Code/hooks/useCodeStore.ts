@@ -92,7 +92,15 @@ export interface Project {
   isBottomPanelOpen: boolean;
   // ── Activity panel per-project ──
   activityPanelTab:
-    'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp' | 'account';
+    | 'explore'
+    | 'search'
+    | 'source'
+    | 'agents'
+    | 'design'
+    | 'extension'
+    | 'lsp'
+    | 'account'
+    | 'debug';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -217,7 +225,16 @@ interface CodeState {
   setBottomPanelTab: (tab: 'output' | 'terminal' | 'port' | 'performance' | 'problems') => void;
   toggleBottomPanel: () => void;
   setActivityPanelTab: (
-    tab: 'explore' | 'search' | 'source' | 'agents' | 'design' | 'extension' | 'lsp' | 'account',
+    tab:
+      | 'explore'
+      | 'search'
+      | 'source'
+      | 'agents'
+      | 'design'
+      | 'extension'
+      | 'lsp'
+      | 'account'
+      | 'debug',
   ) => void;
   setProjectManagerOpen: (open: boolean) => void;
   setNewProjectOpen: (open: boolean) => void;
@@ -278,6 +295,25 @@ interface CodeState {
   clearOpenFileRequest: () => void;
   fileReveal?: { filePath: string; line: number; column?: number; nonce: number } | null;
   clearFileReveal: () => void;
+  openTerminalRequest?: {
+    sessionId: string;
+    title: string;
+    command: string;
+    cwd?: string;
+    reuseKey?: string;
+    nonce: number;
+  } | null;
+  requestOpenTerminal: (
+    sessionId: string,
+    title: string,
+    command: string,
+    cwd?: string,
+    reuseKey?: string,
+  ) => void;
+  clearOpenTerminalRequest: () => void;
+  closeTerminalRequest?: { sessionId: string; reuseKeys: string[]; nonce: number } | null;
+  requestCloseTerminals: (sessionId: string, reuseKeys: string[]) => void;
+  clearCloseTerminalRequest: () => void;
   setSessionProcs: (
     projectId: string,
     sessionId: string,
@@ -1169,7 +1205,21 @@ export const useCodeStore = create<CodeState>()(
           }),
         clearOpenFileRequest: () => set({ openFileRequest: null }),
         clearFileReveal: () => set({ fileReveal: null }),
+        requestOpenTerminal: (sessionId, title, command, cwd, reuseKey) =>
+          set({
+            openTerminalRequest: { sessionId, title, command, cwd, reuseKey, nonce: Date.now() },
+          }),
+        clearOpenTerminalRequest: () => set({ openTerminalRequest: null }),
+        requestCloseTerminals: (sessionId, reuseKeys) =>
+          set({ closeTerminalRequest: { sessionId, reuseKeys, nonce: Date.now() } }),
+        clearCloseTerminalRequest: () => set({ closeTerminalRequest: null }),
         setSessionProcs: (projectId, sessionId, procs) => {
+          // Debug log - có thể xóa sau khi fix
+          console.log('[DEBUG] setSessionProcs:', {
+            sessionId,
+            procs: procs.map((p) => ({ cmd: p.cmd, panelId: p.panelId, status: p.status })),
+            caller: new Error().stack?.split('\n').slice(2, 4),
+          });
           set((state) => ({
             projects: state.projects.map((p) =>
               p.id !== projectId

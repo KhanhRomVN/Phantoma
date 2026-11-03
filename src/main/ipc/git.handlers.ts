@@ -48,11 +48,16 @@ function runGit(
   args: string[],
   cwd: string,
 ): Promise<{ stdout: string; stderr: string; error?: any }> {
+  const ceiling = dirname(resolve(cwd));
   return new Promise((resolve) => {
     execFile(
       'git',
       args,
-      { cwd, maxBuffer: 10 * 1024 * 1024 },
+      {
+        cwd,
+        maxBuffer: 10 * 1024 * 1024,
+        env: { ...process.env, GIT_CEILING_DIRECTORIES: ceiling },
+      },
       (err: any, stdout: string, stderr: string) => {
         if (err) resolve({ stdout: '', stderr, error: err });
         else resolve({ stdout, stderr });
@@ -788,6 +793,13 @@ export function setupGitHandlers(): void {
     const cwd = projectPath || process.cwd();
     const common = await runGit(['rev-parse', '--path-format=absolute', '--git-common-dir'], cwd);
     if (common.error) return null;
+    const top = await runGit(['rev-parse', '--show-toplevel'], cwd);
+    if (top.error) return null;
+    const [realTop, realCwd] = await Promise.all([
+      fs.realpath(top.stdout.trim()).catch(() => resolve(top.stdout.trim())),
+      fs.realpath(cwd).catch(() => resolve(cwd)),
+    ]);
+    if (realTop !== realCwd) return null;
     const [remote, branch] = await Promise.all([
       runGit(['config', '--get', 'remote.origin.url'], cwd),
       runGit(['branch', '--show-current'], cwd),

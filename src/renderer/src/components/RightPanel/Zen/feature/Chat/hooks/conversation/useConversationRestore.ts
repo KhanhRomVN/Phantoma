@@ -21,7 +21,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 // ── Types ──
 import { Message } from '../../types/message';
 import { ChatSession } from '../../types/chat';
-import type { ToolFormatId } from '../../services/tool-formats/types';
+import type { ToolFormatId } from '../../services/tool-format-parsers/types';
 
 // ── Services ──
 import { ConversationCache } from '../../services/conversationCache';

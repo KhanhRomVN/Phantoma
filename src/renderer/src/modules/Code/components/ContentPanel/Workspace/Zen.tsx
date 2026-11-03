@@ -171,7 +171,6 @@ export const CodeAgent = memo(function CodeAgent({
       data-zen-drop-root=""
       className="relative flex-1 h-full min-h-0 overflow-hidden"
       onDragEnter={(e) => {
-        console.log('[DEBUG] Zen dragenter types:', Array.from(e.dataTransfer.types));
         if (e.dataTransfer.types.includes(MENTION_DRAG_TYPE)) setIsDropActive(true);
       }}
       onDragOver={(e) => {
@@ -185,7 +184,6 @@ export const CodeAgent = memo(function CodeAgent({
       }}
       onDropCapture={() => setIsDropActive(false)}
       onDrop={(e) => {
-        console.log('[DEBUG] Zen drop types:', Array.from(e.dataTransfer.types));
         if (!e.dataTransfer.types.includes(MENTION_DRAG_TYPE)) return;
         e.preventDefault();
         e.stopPropagation();

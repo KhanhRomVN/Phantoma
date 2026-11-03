@@ -593,6 +593,7 @@ export const ProjectCard = memo(function ProjectCard({
   onDrop,
 }: ProjectCardProps) {
   const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === project.id)?.path ?? '');
+
   const projectTasks = useSessionTasks((s) => s.byPath[projectPath]);
   const loadTasks = useSessionTasks((s) => s.load);
   useEffect(() => {
@@ -674,14 +675,7 @@ export const ProjectCard = memo(function ProjectCard({
                 hidden
               </span>
             )}
-            {hasGit === false && (
-              <span
-                className="text-[9.5px] text-text-secondary/50 border border-border rounded px-[5px] whitespace-nowrap"
-                title="This folder is not a git repository — Code module still works, but git features are disabled"
-              >
-                no git
-              </span>
-            )}
+
             <KebabButton onClick={openMenuAt} />
             <button
               onClick={(e) => {
@@ -763,17 +757,10 @@ export const ProjectCard = memo(function ProjectCard({
 
       {/* ── CONTENT AREA: Hidden via CSS during drag to preserve DOM structure ── */}
       <div className={cn(isGlobalDragging && "hidden")}>
-        {/* No git repo: don't show branch/session tree (branches are git-based). */}
-        {hasGit === false && (
-          <div className={cn(
-            "pl-3 pr-2 text-[11px] text-text-secondary/50",
-            isSelected ? "pb-3 pt-0.5" : "pb-2.5",
-          )}>
-            No git repository — Code module still works in file mode.
-          </div>
-        )}
 
-        {hasGit !== false && !isSelected && (
+
+
+        {!isSelected && (
           <div className="flex flex-col gap-px pl-3 pr-2 pb-2.5 transition-opacity duration-150">
             <CollapsedTree
               project={project}
@@ -793,7 +780,7 @@ export const ProjectCard = memo(function ProjectCard({
           </div>
         )}
 
-        {hasGit !== false && isSelected && (
+        {isSelected && (
           <div className="px-3 pt-0.5 pb-3 flex flex-col gap-3.5 relative animate-in fade-in slide-in-from-top-1 duration-150">
             {visBranches.length > 0 ? (
               visBranches.map((branch) => (

@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 import type { WorkflowAgentId } from './types/workflow-agents';
-import type { ToolFormatId } from './services/tool-formats/types';
+import type { ToolFormatId } from './services/tool-format-parsers/types';
 // Core chat hooks
 import { useChatLLM } from './hooks/llm/useChatLLM';
 import { useToolExecution } from './hooks/tools/useToolExecution';
@@ -136,7 +136,7 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
 
 // ── Services ──
 import { deleteConversation } from './services/conversationService';
-import { DEFAULT_TOOL_FORMAT } from './services/tool-formats';
+import { DEFAULT_TOOL_FORMAT } from './services/tool-format-parsers';
 
 // ── Components ──
 import ChatHeader from './components/ChatHeader';

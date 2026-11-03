@@ -21,6 +21,7 @@
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../hooks/useCodeStore';
 import { useWorkflowStore } from '../../../hooks/useWorkflowStore';
+import { useDebugStore } from '../../../stores/useDebugStore';
 import {
   attachAgentToProject,
   removeAgentFromProject,
@@ -61,6 +62,8 @@ interface WorkspaceViewsProps {
 
 // Stable reference so the zustand selectors below don't return a fresh [] every call
 const NO_PANELS: StoredWorkspacePanel[] = [];
+const withoutDebugTerminals = <T extends object>(list: T[]): T[] =>
+  list.filter((p) => !(p as { reuseKey?: string | null }).reuseKey?.startsWith('debug:'));
 const NO_LAYOUTS: Record<string, WorkspaceLayoutSnapshot> = {};
 
 const EMPTY_ACTION_TO_PANEL_TYPE: Record<EmptyWorkspaceAction, PanelType> = {
@@ -139,7 +142,9 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
   // Panels + layout live in a single reducer so they can never drift apart
   const [state, dispatch] = useReducer(workspaceReducer, undefined, () => {
-    const sourcePanels = storedPanels.length > 0 ? storedPanels : initialPanels;
+    const sourcePanels = withoutDebugTerminals(
+      storedPanels.length > 0 ? storedPanels : initialPanels,
+    );
     const { panels: normalized } = normalizePanelsCwd(
       sourcePanels as WorkspacePanel[],
       currentProjectPath || '',
@@ -166,7 +171,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
     // Normalize stored panels before resetting state to prevent missing CWD issues
     const { panels: normalizedStored, changed } = normalizePanelsCwd(
-      storedPanels as WorkspacePanel[],
+      withoutDebugTerminals(storedPanels) as WorkspacePanel[],
       currentProjectPath || '',
     );
 
@@ -351,6 +356,56 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     return () => window.removeEventListener('phantoma:open-agent-panel', onOpenAgent);
   }, [sessionId, panels, currentProjectPath]);
 
+  const openTerminalRequest = useCodeStore((s) => s.openTerminalRequest);
+  const clearOpenTerminalRequest = useCodeStore((s) => s.clearOpenTerminalRequest);
+
+  useEffect(() => {
+    if (!openTerminalRequest || openTerminalRequest.sessionId !== sessionId) return;
+    const existing = openTerminalRequest.reuseKey
+      ? panels.find((p) => p.type === 'terminal' && p.reuseKey === openTerminalRequest.reuseKey)
+      : undefined;
+    if (existing) {
+      dispatch({
+        type: 'updatePanel',
+        id: existing.id,
+        patch: {
+          title: openTerminalRequest.title,
+          cwd: openTerminalRequest.cwd ?? existing.cwd,
+          initialCommand: openTerminalRequest.command,
+          runNonce: openTerminalRequest.nonce,
+        },
+      });
+    } else {
+      dispatch({
+        type: 'add',
+        pane: resolvePaneForType('terminal'),
+        panel: {
+          id: createPanelId('terminal'),
+          type: 'terminal',
+          title: openTerminalRequest.title,
+          providerId: null,
+          cwd: openTerminalRequest.cwd ?? currentProjectPath,
+          initialCommand: openTerminalRequest.command,
+          reuseKey: openTerminalRequest.reuseKey ?? null,
+        },
+      });
+    }
+    clearOpenTerminalRequest();
+  }, [openTerminalRequest, sessionId, currentProjectPath, clearOpenTerminalRequest, panels]);
+
+  const closeTerminalRequest = useCodeStore((s) => s.closeTerminalRequest);
+  const clearCloseTerminalRequest = useCodeStore((s) => s.clearCloseTerminalRequest);
+
+  useEffect(() => {
+    if (!closeTerminalRequest || closeTerminalRequest.sessionId !== sessionId) return;
+    panels.forEach((p) => {
+      if (p.type === 'terminal' && p.reuseKey && closeTerminalRequest.reuseKeys.includes(p.reuseKey)) {
+        dispatch({ type: 'close', id: p.id });
+      }
+    });
+    clearCloseTerminalRequest();
+  }, [closeTerminalRequest, sessionId, panels, clearCloseTerminalRequest]);
+
   const unsavedFileIds = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.unsavedFiles,
   );
@@ -385,11 +440,23 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       },
     ) => {
       const { panelId } = payload;
-      if (!panelId || !panelsRef.current.some((p) => p.id === panelId)) return;
+      const panel = panelsRef.current.find((p) => p.id === panelId);
+      // Debug log - có thể xóa sau khi fix
+      console.log('[DEBUG] onProcessInfo:', {
+        sessionId,
+        panelId,
+        panelFound: !!panel,
+        reuseKey: panel?.reuseKey,
+        command: payload.command,
+        alive: payload.alive,
+        ports: payload.ports,
+      });
+      if (!panelId || !panel) return;
 
       if (payload.alive && payload.command) {
         terminalProcsRef.current.set(panelId, {
-          command: payload.displayCommand || payload.command,
+          command:
+            panel.reuseKey === 'debug:task' ? panel.title : payload.displayCommand || payload.command,
           port: payload.ports[0],
           terminalId: payload.terminalId,
         });
@@ -404,9 +471,13 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         id: panelId,
         patch: {
           terminalRunning: !!payload.alive,
-          terminalProcess: payload.alive ? processName : null,
+          terminalProcess:
+            payload.alive && panel.reuseKey !== 'debug:task' ? processName : null,
         },
       });
+      if (!payload.alive && panel.reuseKey === 'debug:task') {
+        dispatch({ type: 'close', id: panelId });
+      }
 
       const procs = panelsRef.current.flatMap((p) => {
         const info = terminalProcsRef.current.get(p.id);
@@ -430,6 +501,39 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       window.api.off('terminal:process-info', onProcessInfo);
     };
   }, [currentProjectId, sessionId, setSessionProcs]);
+
+  useEffect(() => {
+    if (!currentProjectId) return;
+    const alivePanelIds = new Set(panels.map((p) => p.id));
+    let pruned = false;
+    for (const panelId of [...terminalProcsRef.current.keys()]) {
+      if (!alivePanelIds.has(panelId)) {
+        terminalProcsRef.current.delete(panelId);
+        pruned = true;
+      }
+    }
+    // Debug log - có thể xóa sau khi fix
+    console.log('[DEBUG] prune procs on panels change:', {
+      pruned,
+      remaining: [...terminalProcsRef.current.keys()],
+    });
+    if (!pruned) return;
+    const procs = panels.flatMap((p) => {
+      const info = terminalProcsRef.current.get(p.id);
+      return info
+        ? [
+            {
+              cmd: info.command,
+              status: 'live' as const,
+              port: info.port,
+              terminalId: info.terminalId,
+              panelId: p.id,
+            },
+          ]
+        : [];
+    });
+    setSessionProcs(currentProjectId, sessionId, procs);
+  }, [panels, currentProjectId, sessionId, setSessionProcs]);
 
   const occupied = useMemo(() => getOccupiedPanes(paneTabs), [paneTabs]);
   const rects = useMemo(() => computeRects(occupied, sizes), [occupied, sizes]);
@@ -568,6 +672,20 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       window.api?.send('terminal:history-delete', id);
       useCodeStore.getState().discardFileState(id);
       const closing = panelsRef.current.find((p) => p.id === id);
+      // Debug log - có thể xóa sau khi fix
+      console.log('[DEBUG] closePanel called:', {
+        id,
+        type: closing?.type,
+        reuseKey: (closing as { reuseKey?: string | null } | undefined)?.reuseKey,
+        debugStatus: useDebugStore.getState().status,
+      });
+      if (
+        closing?.type === 'terminal' &&
+        (closing.reuseKey === 'debug:launch' || closing.reuseKey === 'debug:task')
+      ) {
+        console.log('[DEBUG] closePanel -> calling useDebugStore.stop()');
+        void useDebugStore.getState().stop();
+      }
       if (closing?.type === 'agent' && closing.workflowAgentId) {
         const store = useWorkflowStore.getState();
         const agentId = closing.workflowAgentId;

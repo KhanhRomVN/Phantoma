@@ -914,7 +914,6 @@ type ExampleBuilder = (includeConfirmationBatches: boolean) => string;
 const EXAMPLES: Record<ToolFormat, ExampleBuilder> = {
   xml: buildXmlExample,
   json: buildJsonExample,
-  dsml: buildXmlExample,
 };
 
 /**

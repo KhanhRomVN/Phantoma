@@ -105,15 +105,15 @@ export interface MessageInputProps {
   conversationUseSkillEnabled?: boolean;
   /** Per-conversation override: memory enabled (chỉ hiển thị ở Home panel) */
   conversationMemoryEnabled?: boolean;
-  /** Per-conversation override: tool format 'xml' | 'json' | 'dsml' */
-  conversationToolFormat?: 'xml' | 'json' | 'dsml';
+  /** Per-conversation override: tool format 'xml' | 'json' */
+  conversationToolFormat?: 'xml' | 'json';
 
   /** Callback khi toggle skill thay đổi */
   onConversationUseSkillToggle?: () => void;
   /** Callback khi toggle memory thay đổi */
   onConversationMemoryToggle?: () => void;
   /** Callback khi toggle tool format thay đổi */
-  onConversationToolFormatToggle?: (format?: 'xml' | 'json' | 'dsml') => void;
+  onConversationToolFormatToggle?: (format?: 'xml' | 'json') => void;
 
   /** Workflow agent ID nếu conversation này là một workflow agent (orchestrator/planner/executor/reviewer) */
   workflowAgentId?: WorkflowAgentId | null;

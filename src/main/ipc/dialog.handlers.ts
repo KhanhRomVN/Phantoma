@@ -178,7 +178,14 @@ export function setupDialogHandlers(): void {
   // ── Select files / folders ──
   ipcMain.handle(
     'dialog:select-paths',
-    async (_event, options: { kind: 'file' | 'folder'; multiple?: boolean }) => {
+    async (
+      _event,
+      options: {
+        kind: 'file' | 'folder';
+        multiple?: boolean;
+        filters?: { name: string; extensions: string[] }[];
+      },
+    ) => {
       try {
         const win = getMainWindow();
         if (!win) return { success: false, canceled: true, error: 'No window' };
@@ -187,7 +194,7 @@ export function setupDialogHandlers(): void {
           options.kind === 'folder' ? ['openDirectory'] : ['openFile'];
         if (options.multiple) properties.push('multiSelections');
 
-        const result = await dialog.showOpenDialog(win, { properties });
+        const result = await dialog.showOpenDialog(win, { properties, filters: options.filters });
 
         if (result.canceled) return { success: false, canceled: true, paths: [] };
         return { success: true, paths: result.filePaths };

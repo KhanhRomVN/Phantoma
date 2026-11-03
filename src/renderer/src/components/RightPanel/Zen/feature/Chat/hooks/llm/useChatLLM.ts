@@ -23,8 +23,8 @@ import type { ChatSession } from '../../types/chat';
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
 import { getModuleService } from '../../services/moduleRegistry';
 import type { WorkflowAgentId } from '../../types/workflow-agents';
-import type { ToolFormatId } from '../../services/tool-formats/types';
-import { DEFAULT_TOOL_FORMAT } from '../../services/tool-formats';
+import type { ToolFormatId } from '../../services/tool-format-parsers/types';
+import { DEFAULT_TOOL_FORMAT } from '../../services/tool-format-parsers';
 import type { AgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
 import {
   calculateTokens,
@@ -35,10 +35,13 @@ import {
 import { PromptBuilder } from '../../services/promptBuilder';
 import { StreamingService } from '../../services/streamingService';
 import { cleanClaudeSandboxTools } from '../../services/claudeSandboxToolCleaner';
-import { buildToolFormatReminder } from '@renderer/modules/Code/prompts/code/tool-format-reminder';
-import { DEEPSEEK_DSML_REMINDER } from '../../prompts/deepseek-dsml-reminder';
+
+import {
+  hasDeepseekDSML,
+  processDeepseekContent,
+} from '../../services/DSMLConvertOtherToolFormat';
 import { TOOL_ACTION_TYPES } from '../../constants/tag-registry';
-import { convertForeignToolCalls } from '../../services/tool-formats';
+
 import { useStreamingState } from './useStreamingState';
 import { useConversationRefs } from './useConversationRefs';
 import { useMessageHandlers } from './useMessageHandlers';
@@ -76,11 +79,8 @@ interface UseChatLLMProps {
   apiUrl: string;
   selectedTab: ChatSession | null;
   feature?: string | null;
-  /** Per-conversation feature overrides from Home panel */
   conversationOverrides?: ConversationOverrides;
-  /** Blocked time ranges from provider config — synced with deepseek.constant.ts via API */
   providerBlockedRanges?: Array<{ startTime: number; endTime: number }> | null;
-  /** Workflow agent ID for specialized prompts (orchestrator/planner/executor/reviewer) */
   workflowAgentId?: WorkflowAgentId | null;
   onConversationIdChange?: (id: string) => void;
   onToolRequest?: (
@@ -164,7 +164,7 @@ export const useChatLLM = ({
   const conversationOverridesRef = useRef<ConversationOverrides | undefined>(conversationOverrides);
   const prevSelectedTabIdRef = useRef<string | number | undefined>(selectedTab?.sessionId);
   const onTurnCompleteRef = useRef(onTurnComplete);
-  const dsmlReminderPendingRef = useRef(false);
+  const dsmlUnconvertedRef = useRef(false);
   useEffect(() => {
     const currentTabId = selectedTab?.sessionId;
     const tabChanged = currentTabId !== prevSelectedTabIdRef.current;
@@ -515,15 +515,7 @@ export const useChatLLM = ({
         workflowAgentId,
       });
 
-      const reminderPrefix = dsmlReminderPendingRef.current
-        ? `${DEEPSEEK_DSML_REMINDER}\n\n${buildToolFormatReminder(
-            conversationOverridesRef.current?.toolFormat ?? DEFAULT_TOOL_FORMAT,
-          )}\n\n`
-        : '';
-      if (dsmlReminderPendingRef.current) {
-        dsmlReminderPendingRef.current = false;
-      }
-      const promptPayload = `${reminderPrefix}${builtPayload}`;
+      const promptPayload = builtPayload;
 
       const userMessage: Message = {
         id: `msg-${Date.now()}-${skipFirstRequestLogic ? 'tool' : 'user'}`,
@@ -763,28 +755,26 @@ export const useChatLLM = ({
                 const streamToolFormat =
                   conversationOverridesRef.current?.toolFormat ?? DEFAULT_TOOL_FORMAT;
 
-                // Convert foreign tool formats (DSML from any provider) to target format
-                const converted = convertForeignToolCalls(rawContent, streamToolFormat);
-                if (converted.convertedToolCount > 0) {
-                  content = converted.content;
-                  // Trigger reminder if DSML was detected from Deepseek in non-DSML mode
-                  if (
-                    (finalModel?.providerId ?? '').toLowerCase() === 'deepseek' &&
-                    streamToolFormat !== 'dsml' &&
-                    converted.detected.some((d) => d.id === 'dsml')
-                  ) {
-                    dsmlReminderPendingRef.current = true;
-                  }
-                }
-
                 if ((finalModel?.providerId ?? '').toLowerCase() === 'claude') {
                   content = cleanClaudeSandboxTools(content);
+                } else if ((finalModel?.providerId ?? '').toLowerCase() === 'deepseek') {
+                  const processed = processDeepseekContent(rawContent, streamToolFormat);
+                  dsmlUnconvertedRef.current = hasDeepseekDSML(processed.content);
+                  if (processed.convertedToolCount > 0) {
+                    content = processed.content;
+                  }
                 }
                 parsedContentRef.value = content;
                 // Update UI with parsed content (called ONCE at the end with full content)
                 setMessages((prev) => {
                   const targetIndex = prev.findIndex((m) => m.id === assistantMessageId);
-                  if (targetIndex === -1) return prev;
+                  if (targetIndex === -1) {
+                    console.warn('[useChatLLM] setMessages: assistantMessageId not found', {
+                      assistantMessageId,
+                      messageIds: prev.map((m) => m.id),
+                    });
+                    return prev;
+                  }
 
                   const currentMessage = prev[targetIndex];
 
@@ -1005,37 +995,38 @@ export const useChatLLM = ({
         }
 
         // ─── NO-TAG RETRY ────────────────────────────────────────────────────
-        // If the response contains no known TAG_REGISTRY tag at all, the model
-        // likely failed to use any tool format. Retry up to MAX_NO_TAG_RETRY.
+        // If no tool tags detected: keep the response visible as markdown, but still
+        // send a next request to retry with format reminder.
         if (!hasParsingError && parsed) {
           const { hasRegisteredTag } = await import('../../utils/responseValidation');
           const rawForCheck = assistantMessage.rawResponse || assistantMessage.content;
           const tagMatched = hasRegisteredTag(rawForCheck);
-          if (tagMatched) {
+          const dsmlUnconverted = dsmlUnconvertedRef.current;
+          dsmlUnconvertedRef.current = false;
+          if (tagMatched && !dsmlUnconverted) {
             noTagRetryCountRef.current = 0;
           } else if (noTagRetryCountRef.current < MAX_NO_TAG_RETRY) {
             noTagRetryCountRef.current += 1;
             console.warn(
-              `[DEBUG][NoTagRetry] No TAG_REGISTRY match → retry ${noTagRetryCountRef.current}/${MAX_NO_TAG_RETRY}`,
+              `[DEBUG][NoTagRetry] No TAG_REGISTRY match → keeping response visible, sending retry ${noTagRetryCountRef.current}/${MAX_NO_TAG_RETRY}`,
             );
-            if (!skipFirstRequestLogic) userRequestCountRef.current -= 1;
-            const messagesBeforeRetry = updatedMessages.slice(0, -1);
-            messagesRef.current = messagesBeforeRetry;
-            setMessages(messagesBeforeRetry);
+            // Keep the failed response visible (don't slice it out)
+            // messagesRef and setMessages already have updatedMessages with the assistant response
+            // Just send the retry without removing the previous response
             return sendMessage(
               content,
               files,
               finalModel,
               finalAccount,
-              skipFirstRequestLogic,
+              true, // skipFirstRequestLogic: true to avoid counting as new user request
               actionIds,
-              uiHidden,
-              parentMessageId,
+              true, // uiHidden: true to hide the retry request/response pair
+              assistantMessageId, // parentMessageId: link retry to the failed response
               extraOptions,
             );
           } else {
             console.warn(
-              `[DEBUG][NoTagRetry] Retry limit reached (${MAX_NO_TAG_RETRY}) → giving up, keeping response as-is`,
+              `[DEBUG][NoTagRetry] Retry limit reached (${MAX_NO_TAG_RETRY}) → giving up`,
             );
             noTagRetryCountRef.current = 0;
             notifyDesktop(

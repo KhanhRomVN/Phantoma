@@ -23,7 +23,6 @@ import AccountPanel from './feature/Account';
 import HistoryPanel from './feature/History';
 import MarketplacePanel from './feature/Marketplace';
 import SettingsPanel from './feature/Setting';
-import ChatRoomPanel from './feature/ChatRoom';
 
 // CONTEXT
 import { ProjectProvider } from './context/ProjectContext';
@@ -80,12 +79,11 @@ function AgentView({
     conversationOverrides?: {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
-      toolFormat?: 'xml' | 'json' | 'dsml';
+      toolFormat?: 'xml' | 'json';
     };
   } | null>(null);
   const [homeInitialValue, setHomeInitialValue] = useState('');
   const [subView, setSubView] = useState<SubView>(null);
-  const [showChatRoom, setShowChatRoom] = useState(false);
 
   const onConversationChangeRef = useRef(onConversationChange);
   onConversationChangeRef.current = onConversationChange;
@@ -132,7 +130,7 @@ function AgentView({
       conversationOverrides?: {
         useSkillEnabled?: boolean;
         memoryEnabled?: boolean;
-        toolFormat?: 'xml' | 'json' | 'dsml';
+        toolFormat?: 'xml' | 'json';
         workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
       },
     ) => {
@@ -225,14 +223,7 @@ function AgentView({
     };
   }, [isVisible, handleBack]);
 
-  // Mở chatroom khi OnlineBadge phát sự kiện 'zen:open-chatroom'
-  useEffect(() => {
-    const handleOpenChatRoom = () => {
-      if (isVisible) setShowChatRoom(true);
-    };
-    window.addEventListener('zen:open-chatroom', handleOpenChatRoom);
-    return () => window.removeEventListener('zen:open-chatroom', handleOpenChatRoom);
-  }, [isVisible]);
+
 
   return (
     <div
@@ -282,11 +273,7 @@ function AgentView({
         {subView === 'setting' && (
           <SettingsPanel isOpen={true} onClose={() => setSubView(null)} onNavigate={setSubView} />
         )}
-        {showChatRoom && (
-          <div className="absolute inset-0 z-[1000] flex flex-col bg-background">
-            <ChatRoomPanel onClose={() => setShowChatRoom(false)} />
-          </div>
-        )}
+
       </div>
     </div>
   );

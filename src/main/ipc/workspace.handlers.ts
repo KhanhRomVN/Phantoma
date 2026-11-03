@@ -22,7 +22,7 @@ import { ipcMain, shell, BrowserWindow } from 'electron';
 // ── Node.js ──
 import { promises as fsPromises, existsSync, mkdirSync } from 'fs';
 import { execFile } from 'child_process';
-import { join, relative, sep } from 'path';
+import { dirname, join, relative, resolve as resolvePath, sep } from 'path';
 import { tmpdir } from 'os';
 
 // ── Internal ──
@@ -114,11 +114,16 @@ async function walkDir(
 
 /** Spawn git CLI, resolve output; lỗi trả về chuỗi rỗng. */
 function runGitArgs(args: string[], cwd: string): Promise<string> {
+  const ceiling = dirname(resolvePath(cwd));
   return new Promise((resolve) => {
     execFile(
       'git',
       args,
-      { cwd, maxBuffer: 10 * 1024 * 1024 },
+      {
+        cwd,
+        maxBuffer: 10 * 1024 * 1024,
+        env: { ...process.env, GIT_CEILING_DIRECTORIES: ceiling },
+      },
       (err: any, stdout: string) => {
         resolve(err ? '' : stdout);
       },

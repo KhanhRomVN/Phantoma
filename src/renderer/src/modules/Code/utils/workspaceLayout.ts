@@ -59,6 +59,12 @@ export interface WorkspacePanel {
   terminalRunning?: boolean;
   /** Tên tiến trình đang chạy trong terminal (runtime-only). */
   terminalProcess?: string | null;
+  /** Lệnh chạy tự động khi terminal mở (vd. terminal của phiên debug). */
+  initialCommand?: string | null;
+  /** Khoá tái sử dụng terminal (vd. 'debug:launch'): request cùng khoá sẽ chạy lại lệnh trong terminal này thay vì tạo tab mới. */
+  reuseKey?: string | null;
+  /** Tăng mỗi khi cần chạy lại initialCommand trong terminal đang mở (runtime-only). */
+  runNonce?: number;
   /** Title trang web hiện tại của Browser panel (runtime-only). */
   browserTitle?: string | null;
   /** Favicon URL của trang web hiện tại của Browser panel (runtime-only). */

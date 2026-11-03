@@ -21,6 +21,7 @@ const CODEBLOCK_NOTE_JSON = `Never wrap plain prose/status messages in code fenc
 
 const MARKDOWN_NOTE_JSON = `In JSON mode this prose is emitted as a {"type":"markdown","content":"..."} UI object.`;
 
+
 // ── LOOKUP BY FORMAT ──
 interface FormatRules {
   encoding: string;
@@ -39,11 +40,7 @@ const FORMAT_RULES: Record<ToolFormat, FormatRules> = {
     codeblock: CODEBLOCK_NOTE_JSON,
     markdown: MARKDOWN_NOTE_JSON,
   },
-  dsml: {
-    encoding: ENCODING_RULES_XML,
-    codeblock: CODEBLOCK_NOTE_XML,
-    markdown: MARKDOWN_NOTE_XML,
-  },
+
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

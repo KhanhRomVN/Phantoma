@@ -25,7 +25,7 @@ import { extensionService } from '../../../services/ExtensionService';
 // ── Types ──
 import { Message } from '../types/message';
 import type { WorkflowAgentId } from '../types/workflow-agents';
-import type { ToolFormatId } from './tool-formats/types';
+import type { ToolFormatId } from './tool-format-parsers/types';
 
 // ── Local ──
 import { ConversationCache } from './conversationCache';

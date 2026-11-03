@@ -47,6 +47,8 @@ import {
   Download as DownloadIcon,
 } from 'lucide-react';
 import { SyncBranchModal } from '../modal/SyncBranchModal';
+import { ProjectSettingsModal } from '../modal/ProjectSettingsModal';
+import { Settings as SettingsIcon } from 'lucide-react';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
@@ -846,8 +848,43 @@ export const ProjectPanel = memo(function ProjectPanel() {
       setActiveGitProjectId(null);
       setActiveTaskManagerProjectId(null);
       setCurrentProject(projectId);
+
+      // ASSUMED: project không có git không có branch/session → tự tạo 1 session mặc định để mở Workspace (empty state tạo tab)
+      const proj = projects.find((p) => p.id === projectId);
+      if (!proj || gitRepoByProject[projectId] !== false) return;
+      let sessionId = proj.branches.flatMap((b) => b.sessions)[0]?.id;
+      if (!sessionId) {
+        const fresh: SessionInfo = {
+          id: `n${Date.now()}`,
+          title: 'Workspace',
+          status: 'idle',
+          time: 'now',
+          task: undefined,
+          agents: [],
+          procs: [],
+          summary: mkSum(0, 0, 0, 0, 0, '—'),
+        };
+        sessionId = fresh.id;
+        const newBranches: BranchInfo[] = [
+          { name: 'no-branch', visible: true, sessions: [fresh], path: proj.path },
+        ];
+        setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, branches: newBranches } : p)));
+        updateProject(projectId, { branches: newBranches });
+      }
+      setSelectedSessionId(sessionId);
+      setExplorerRoot(projectId, proj.path ?? null);
+      setActiveWorkspaceSessionId(sessionId);
+      setContentViewMode('workspace');
     },
-    [setCurrentProject],
+    [
+      projects,
+      gitRepoByProject,
+      updateProject,
+      setCurrentProject,
+      setExplorerRoot,
+      setActiveWorkspaceSessionId,
+      setContentViewMode,
+    ],
   );
 
   const handleSelectSession = useCallback(
@@ -1264,6 +1301,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const handleKillProcess = useCallback(
     (sessionId: string, index: number) => {
       const target = findProcess(sessionId, index);
+      // Debug log - có thể xóa sau khi fix
+      console.log('[DEBUG] handleKillProcess:', { sessionId, index, target });
       if (target?.terminalId && target.status !== 'crashed') {
         window.api.invoke('terminal:kill-foreground', target.terminalId).catch(() => {});
       }
@@ -1659,15 +1698,37 @@ export const ProjectPanel = memo(function ProjectPanel() {
   // (previously only the active project was checked, leaving other cards unknown).
   useEffect(() => {
     let cancelled = false;
+    const seedNoGit = (p: ProjectExtended) => {
+      if (p.branches.some((b) => b.sessions.length > 0)) return;
+      const fresh: SessionInfo = {
+        id: `n${Date.now()}-${p.id}`,
+        title: 'Workspace',
+        status: 'idle',
+        time: 'now',
+        task: undefined,
+        agents: [],
+        procs: [],
+        summary: mkSum(0, 0, 0, 0, 0, '—'),
+      };
+      const newBranches: BranchInfo[] = [
+        { name: 'no-branch', visible: true, sessions: [fresh], path: p.path },
+      ];
+      setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, branches: newBranches } : x)));
+      updateProject(p.id, { branches: newBranches });
+    };
     for (const p of projects) {
       if (!p.path || gitRepoByProject[p.id] !== undefined) continue;
       (window as any).api
         .invoke('git:is-repo', p.path)
         .then((ok: boolean) => {
-          if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [p.id]: !!ok }));
+          if (cancelled) return;
+          setGitRepoByProject((prev) => ({ ...prev, [p.id]: !!ok }));
+          if (!ok) seedNoGit(p);
         })
         .catch(() => {
-          if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [p.id]: false }));
+          if (cancelled) return;
+          setGitRepoByProject((prev) => ({ ...prev, [p.id]: false }));
+          seedNoGit(p);
         });
     }
     return () => {

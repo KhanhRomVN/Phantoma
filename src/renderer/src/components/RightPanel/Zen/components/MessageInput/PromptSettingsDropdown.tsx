@@ -90,9 +90,9 @@ const MemoryIcon = Brain;
 const FormatIcon = Code2;
 
 const getFormatColors = () =>
-  ({ json: $('--primary'), xml: $('--warn'), dsml: $('--purple') }) as const;
+  ({ json: $('--primary'), xml: $('--warn') }) as const;
 
-const FormatText: React.FC<{ format: 'xml' | 'json' | 'dsml' }> = ({ format }) => (
+const FormatText: React.FC<{ format: 'xml' | 'json' }> = ({ format }) => (
   <span
     className="text-[9px] font-bold tracking-wider leading-none uppercase"
     style={{ color: getFormatColors()[format] }}
@@ -139,9 +139,9 @@ interface PromptSettingsDropdownProps {
   onMemoryToggle?: () => void;
 
   // Tool Format (xml | json)
-  toolFormat?: 'xml' | 'json' | 'dsml';
-  toolFormats?: ('xml' | 'json' | 'dsml')[];
-  onToolFormatToggle?: (format?: 'xml' | 'json' | 'dsml') => void;
+  toolFormat?: 'xml' | 'json';
+  toolFormats?: ('xml' | 'json')[];
+  onToolFormatToggle?: (format?: 'xml' | 'json') => void;
   formatOnly?: boolean;
 }
 
@@ -474,11 +474,7 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
                     label: 'JSON tool calls',
                     desc: 'AI uses fenced JSON objects for tool calls',
                   },
-                  {
-                    key: 'dsml' as const,
-                    label: 'DSML tool calls',
-                    desc: 'AI uses a DSML calls block for tool calls',
-                  },
+
                 ]
                   .filter((opt) => toolFormats.includes(opt.key))
                   .map((opt) => {

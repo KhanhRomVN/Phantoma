@@ -78,7 +78,7 @@ interface HomePanelProps {
     conversationOverrides?: {
       useSkillEnabled?: boolean;
       memoryEnabled?: boolean;
-      toolFormat?: 'xml' | 'json' | 'dsml';
+      toolFormat?: 'xml' | 'json';
       workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
     },
   ) => void;

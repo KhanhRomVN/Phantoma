@@ -17,8 +17,8 @@ import { Message } from '../../types/message';
 
 // ── Services ──
 import { parseAIResponse } from '../../services/responseParser';
-import { DEFAULT_TOOL_FORMAT } from '../../services/tool-formats';
-import type { ToolFormatId } from '../../services/tool-formats/types';
+import { DEFAULT_TOOL_FORMAT } from '../../services/tool-format-parsers';
+import type { ToolFormatId } from '../../services/tool-format-parsers/types';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 export const useMessageParsing = (

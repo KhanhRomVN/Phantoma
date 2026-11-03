@@ -230,16 +230,13 @@ export function SyncBranchModal({
     (window as any).api
       .invoke('git:prune-orphan-branches', targetPath)
       .catch(() => null)
-      .then((pruned: any) => {
-        console.log('[DEBUG][SyncBranchModal] prune-orphan-branches', pruned);
+      .then(() => {
         return (window as any).api.invoke('git:list-branches', targetPath);
       })
       .then((res: any) => {
-        console.log('[DEBUG][SyncBranchModal] list-branches', res);
         setRawBranches(res?.branches ?? []);
       })
-      .catch((e: any) => {
-        console.log('[DEBUG][SyncBranchModal] list-branches failed', e);
+      .catch(() => {
         setRawBranches([]);
       });
   }, [isOpen]);
@@ -257,10 +254,7 @@ export function SyncBranchModal({
       if (isRemote) {
         setFetchingRemote(true);
         try {
-          const fetchRes = await (window as any).api.invoke('git:fetch', targetPath);
-          console.log('[DEBUG][SyncBranchModal] git:fetch', fetchRes);
         } catch (e) {
-          console.log('[DEBUG][SyncBranchModal] git:fetch failed (diff against last known origin ref)', e);
         } finally {
           setFetchingRemote(false);
         }
@@ -271,13 +265,6 @@ export function SyncBranchModal({
     run()
       .then((res: any) => {
         if (cancelled) return;
-        console.log('[DEBUG][SyncBranchModal] preview', {
-          ref,
-          kind: selected?.kind,
-          currentBranch,
-          error: res?.error,
-          files: res?.files,
-        });
         if (res?.error) {
           setError(res.error);
           setFiles([]);
@@ -289,7 +276,6 @@ export function SyncBranchModal({
       })
       .catch((e: any) => {
         if (cancelled) return;
-        console.log('[DEBUG][SyncBranchModal] preview failed', e);
         setError(e?.message || String(e));
         setFiles([]);
       })
@@ -378,7 +364,13 @@ export function SyncBranchModal({
     if (!applying) onClose();
   };
 
-  const allState = !files?.length ? 'none' : chosen.length === files.length ? 'all' : chosen.length === 0 ? 'none' : 'some';
+  const allState = !files?.length
+    ? 'none'
+    : chosen.length === files.length
+      ? 'all'
+      : chosen.length === 0
+        ? 'none'
+        : 'some';
 
   return (
     <Modal
@@ -475,7 +467,11 @@ export function SyncBranchModal({
                     setCollapsed(
                       collapsed.size > 0
                         ? new Set()
-                        : new Set(flatten(tree, new Set()).filter((r) => r.node.isDir).map((r) => r.node.path)),
+                        : new Set(
+                            flatten(tree, new Set())
+                              .filter((r) => r.node.isDir)
+                              .map((r) => r.node.path),
+                          ),
                     )
                   }
                   className="text-[12px] text-text-secondary outline-none transition-colors hover:text-text-primary"
@@ -501,8 +497,8 @@ export function SyncBranchModal({
                       </>
                     ) : (
                       <>
-                        Comparing <span className="font-mono">{currentBranch || projectName}</span> with{' '}
-                        <span className="font-mono">{ref || 'the source'}</span>.
+                        Comparing <span className="font-mono">{currentBranch || projectName}</span>{' '}
+                        with <span className="font-mono">{ref || 'the source'}</span>.
                       </>
                     )}
                   </span>
@@ -514,10 +510,12 @@ export function SyncBranchModal({
                   <span className="grid h-9 w-9 place-items-center rounded-md bg-text-secondary/10">
                     <Check className="h-4.5 w-4.5 text-text-secondary" />
                   </span>
-                  <span className="text-[13px] font-medium text-text-primary">Already up to date</span>
+                  <span className="text-[13px] font-medium text-text-primary">
+                    Already up to date
+                  </span>
                   <span className="text-[12.5px] leading-relaxed text-text-secondary">
-                    <span className="font-mono">{currentBranch || projectName}</span> has no differences
-                    from <span className="font-mono">{ref || 'the source'}</span>.
+                    <span className="font-mono">{currentBranch || projectName}</span> has no
+                    differences from <span className="font-mono">{ref || 'the source'}</span>.
                   </span>
                 </div>
               )}
@@ -595,8 +593,8 @@ export function SyncBranchModal({
         {chosen.length > 0 && (
           <p className="mt-3 text-[12.5px] leading-relaxed text-text-secondary">
             Selected files are overwritten in the working tree of {currentBranch || projectName}
-            {statusCount.deleted > 0 ? ` and ${statusCount.deleted} will be deleted` : ''}. Nothing is
-            committed.
+            {statusCount.deleted > 0 ? ` and ${statusCount.deleted} will be deleted` : ''}. Nothing
+            is committed.
           </p>
         )}
       </div>

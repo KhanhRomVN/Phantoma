@@ -17,7 +17,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 // ── Types ──
 import { Message } from '../../types/message';
 import { parseAIResponse } from '../../services/responseParser';
-import type { ToolFormatId } from '../../services/tool-formats/types';
+import type { ToolFormatId } from '../../services/tool-format-parsers/types';
 
 import type { ExecutorContext } from '../../types/executor-types';
 import { DISPLAY_ONLY_RESULT } from '../../types/executor-types';

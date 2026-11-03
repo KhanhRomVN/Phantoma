@@ -15,7 +15,7 @@
 // ─── Imports ───────────────────────────────────────────────────────────
 import React, { useEffect, useState } from 'react';
 import { $ } from '@renderer/utils/color';
-import OnlineBadge from '../../ChatRoom/components/OnlineBadge';
+import OnlineUserBadge from '../../../components/OnlineUserBadge/OnlineUserBadge';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 const SLOGANS = [
@@ -67,7 +67,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ imagesUri }) => {
   return (
     <div className="zen-home-header-inner relative">
       <div className="absolute top-0 right-0 z-10">
-        <OnlineBadge />
+        <OnlineUserBadge />
       </div>
       <style>{`
         .zen-home-header-inner { 

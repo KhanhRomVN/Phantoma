@@ -23,14 +23,16 @@ import { executeConversationTitle } from './tool-executors/ConversationTitleExec
 import { codeModule } from '@renderer/modules/Code/CodeModule';
 import { emulateModule } from '@renderer/modules/Emulate/EmulateModule';
 import { reconModule } from '@renderer/modules/Recon/ReconModule';
-import type { ToolFormatId } from './tool-formats/types';
-import { DEFAULT_SUPPORTED_FORMATS } from './tool-formats';
+import type { ToolFormatId } from './tool-format-parsers/types';
+import { DEFAULT_SUPPORTED_FORMATS } from './tool-format-parsers';
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface SystemPromptDescriptor {
   /** Get capabilities for this prompt */
   getCapabilities: () => ZenModuleCapabilities;
   /** Build the full system prompt */
   buildPrompt: (config: any) => string;
+  /** Build tool format reminder for DSML fallback (optional) */
+  buildToolFormatReminder?: (toolFormat: ToolFormatId) => string;
 }
 
 export interface ZenModulePrompts {
@@ -184,19 +186,20 @@ export const getPromptCapabilities = (
   promptId?: string,
 ): ZenModuleCapabilities => {
   const mod = getZenModule(moduleId);
+  const moduleCapabilities = mod?.capabilities ?? {};
+  
   if (!mod?.prompts?.systemPrompts) {
-    return mod?.capabilities ?? {};
+    return moduleCapabilities;
   }
 
   // Use promptId if provided, otherwise default to moduleId (main prompt)
   const key = promptId ?? moduleId;
   const descriptor = mod.prompts.systemPrompts.get(key);
-  if (descriptor) {
-    return descriptor.getCapabilities();
-  }
-
-  // Fallback to module-level capabilities
-  return mod?.capabilities ?? {};
+  
+  // Merge module-level and prompt-level capabilities
+  // Module-level capabilities (like multiAgent) are inherited by all prompts
+  const promptCapabilities = descriptor?.getCapabilities() ?? {};
+  return { ...moduleCapabilities, ...promptCapabilities };
 };
 
 const DEFAULT_PROMPT_LENGTH: SelectableCapability = {
@@ -258,6 +261,25 @@ export const buildSystemPrompt = (
 
   const result = descriptor.buildPrompt(config);
   return result;
+};
+
+export const getToolFormatReminder = (
+  moduleId: string,
+  promptId: string,
+  toolFormat: ToolFormatId,
+): string => {
+  const mod = getZenModule(moduleId);
+  if (!mod?.prompts?.systemPrompts) {
+    return '';
+  }
+
+  const key = promptId ?? moduleId;
+  const descriptor = mod.prompts.systemPrompts.get(key);
+  if (!descriptor?.buildToolFormatReminder) {
+    return '';
+  }
+
+  return descriptor.buildToolFormatReminder(toolFormat);
 };
 
 [codeModule, emulateModule, reconModule].forEach(registerZenModule);

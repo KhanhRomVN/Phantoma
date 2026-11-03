@@ -22,13 +22,11 @@ const MARKDOWN_LANGUAGE_NOTE_JSON = (language: string): string =>
 const TITLE_INSTRUCTION: Record<ToolFormat, string> = {
   xml: TITLE_INSTRUCTION_XML,
   json: TITLE_INSTRUCTION_JSON,
-  dsml: TITLE_INSTRUCTION_XML,
 };
 
 const MARKDOWN_LANGUAGE_NOTE: Record<ToolFormat, (language: string) => string> = {
   xml: MARKDOWN_LANGUAGE_NOTE_XML,
   json: MARKDOWN_LANGUAGE_NOTE_JSON,
-  dsml: MARKDOWN_LANGUAGE_NOTE_XML,
 };
 
 export const buildIdentityPrompt = (

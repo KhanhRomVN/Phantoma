@@ -38,6 +38,8 @@ interface CodeTerminalProps {
   // ── NEW: ZenCLI Auto-Resume Support ──
   /** Lệnh shell để tự động gõ ngay sau khi PTY spawn xong. Dùng cho auto-resume ZenCLI. */
   initialCommand?: string | null;
+  /** Thay đổi giá trị này để chạy lại initialCommand trong terminal đang mở (Ctrl+C rồi gõ lệnh mới). */
+  runNonce?: number;
   /** Callback khi user thoát process (exit event từ main process). */
   onProcessExit?: () => void;
   /** Callback khi phát hiện [PHANTOMA_BIND] signal từ stdout/stderr của ZenCLI. */
@@ -51,6 +53,7 @@ export const CodeTerminal = ({
   cwd,
   onProviderChange,
   initialCommand,
+  runNonce,
   onProcessExit,
   onBindConversation,
   onResetConversation,
@@ -85,6 +88,19 @@ export const CodeTerminal = ({
   useEffect(() => {
     onProviderChangeRef.current = onProviderChange;
   }, [onProviderChange]);
+
+  const lastRunNonceRef = useRef(runNonce);
+  useEffect(() => {
+    if (runNonce === undefined || runNonce === lastRunNonceRef.current) return;
+    lastRunNonceRef.current = runNonce;
+    if (!initialCommand) return;
+    const terminalId = terminalIdRef.current;
+    window.api?.send('terminal:write', { terminalId, data: '\x03' });
+    const timer = setTimeout(() => {
+      window.api?.send('terminal:write', { terminalId, data: initialCommand + '\n' });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [runNonce, initialCommand]);
 
   // Notify parent when provider changes
   // REMOVED: We no longer auto-notify on detectedAgent change.
@@ -380,6 +396,12 @@ export const CodeTerminal = ({
 
                 // ── NEW: Inject initial command nếu có (cho ZenCLI auto-resume) ──
                 if (initialCommand && window.api?.send) {
+                  // Debug log - có thể xóa sau khi fix
+                  console.log('[DEBUG] Terminal spawn -> inject initialCommand:', {
+                    panelId: panelIdRef.current,
+                    terminalId: terminalIdRef.current,
+                    initialCommand,
+                  });
                   // Delay thêm 300ms để shell kịp init prompt và sẵn sàng nhận input
                   setTimeout(() => {
                     if (isMounted && term) {

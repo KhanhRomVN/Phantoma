@@ -16,6 +16,7 @@ export { MODE_BEHAVIORS } from './config';
 export type { ModeBehaviorConfig } from './config';
 export { DEFAULT_TOOL_FORMAT } from './tool-format';
 export type { ToolFormat } from "./tool-format";
+export { buildToolFormatReminder } from './tool-format-reminder';
 // ── Sections ─────────────────────────────────────────────────────────────────
 export { buildIdentityPrompt } from './identity';
 export { buildWorkflow } from './workflow';

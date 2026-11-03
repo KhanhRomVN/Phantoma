@@ -623,202 +623,201 @@ const TreeNode = memo(function TreeNode({
           onDone={() => setRenamingId(null)}
         />
       ) : (
-      <Dropdown
-        open={contextMenuOpen}
-        onOpenChange={setContextMenuOpen}
-        trigger="contextmenu"
-        className="w-full"
-      >
-        <DropdownTrigger asChild>
-          <button
-            data-node-id={node.id}
-            onClick={handleClick}
-            onDoubleClick={handleDoubleClick}
-            draggable={!!node.path}
-            onDragStart={(e) => {
-              if (!node.path) return;
-              installRightClickDragCancel();
-              e.dataTransfer.effectAllowed = 'copy';
-              e.dataTransfer.setData('application/x-phantoma-mention', '1');
-              console.log('[DEBUG] FileExplore dragstart types:', Array.from(e.dataTransfer.types));
-              const batch =
-                selectedNodeIds.has(node.id) && selectedNodeIds.size > 1
-                  ? Array.from(selectedNodeIds)
-                      .map((id) => nodeMetaRef.current.get(id))
-                      .filter((m): m is NodeMeta => !!m)
-                  : [];
-              const isBatch = batch.length > 1;
-              const label = isBatch ? `${batch.length} items` : node.name;
-              if (!isBatch && !isFolder) {
-                e.dataTransfer.setData('application/x-phantoma-open-file', '1');
-              }
-              e.dataTransfer.setData(
-                'application/json',
-                JSON.stringify(
-                  isBatch
-                    ? {
-                        type: 'phantoma-batch',
-                        items: batch.map((m) => ({ filePath: m.path, isFolder: m.isFolder })),
-                      }
-                    : {
-                        type: isFolder ? 'phantoma-folder' : 'phantoma-file',
-                        filePath: node.path,
-                        name: node.name,
-                      },
-                ),
-              );
-              const ghost = document.createElement('div');
-              ghost.style.cssText =
-                'position:fixed;top:0;left:0;z-index:2147483647;pointer-events:none;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;height:28px;padding:0 12px 0 8px;line-height:20px;font-size:13px;white-space:nowrap;width:max-content;background:#1f1f1f;color:#e5e5e5;';
-              const ghostIcon = document.createElement('img');
-              ghostIcon.src = iconSrc;
-              ghostIcon.style.cssText = 'width:16px;height:16px;';
-              const ghostLabel = document.createElement('span');
-              ghostLabel.textContent = label;
-              ghost.append(ghostIcon, ghostLabel);
-              document.body.appendChild(ghost);
-              e.dataTransfer.setDragImage(ghost, 0, 0);
-              setTimeout(() => ghost.remove(), 0);
-            }}
-            className={cn(
-              'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group outline-none focus:outline-none focus-visible:outline-none',
-              isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
-              gitStatus[node.path ?? ''] === 'added'
-                ? 'text-emerald-500'
-                : gitStatus[node.path ?? ''] === 'modified'
-                  ? 'text-orange-400'
-                  : isActive
-                    ? 'text-text-primary'
-                    : 'text-text-secondary hover:text-text-primary',
-            )}
-            style={{ paddingLeft: `${8 + depth * 12}px` }}
-          >
-            {selectMode && (
-              <span
-                className={cn(
-                  'w-3.5 h-3.5 shrink-0 rounded-[3px] border grid place-items-center text-[10px] leading-none',
-                  isActive
-                    ? 'bg-primary border-primary text-white'
-                    : 'border-text-secondary',
-                )}
-              >
-                {isActive ? '✓' : ''}
-              </span>
-            )}
-            {isFolder ? (
-              loading ? (
-                <Loader
-                  className="w-3.5 h-3.5 shrink-0 text-text-secondary animate-spin"
-                  strokeWidth={1.5}
-                />
-              ) : (
-                <ChevronRight
-                  className={cn(
-                    'w-3.5 h-3.5 shrink-0 transition-transform text-text-secondary',
-                    expanded && 'rotate-90',
-                    !canExpand && 'invisible',
-                  )}
-                  strokeWidth={1.5}
-                  onClick={
-                    selectMode
-                      ? (e) => {
-                          e.stopPropagation();
-                          toggleFolderExpand(projectId, node.id);
-                        }
-                      : undefined
-                  }
-                />
-              )
-            ) : (
-              <span className="w-3.5 h-3.5 shrink-0" />
-            )}
-
-            <img
-              src={iconSrc}
-              alt=""
-              className="w-4 h-4 shrink-0"
-              onError={(e) => {
-                const img = e.target as HTMLImageElement;
-                // Debug log - có thể xóa sau khi fix
-                if (img.src === fallbackIcon) {
-                  img.style.display = 'none';
-                } else {
-                  img.src = fallbackIcon;
+        <Dropdown
+          open={contextMenuOpen}
+          onOpenChange={setContextMenuOpen}
+          trigger="contextmenu"
+          className="w-full"
+        >
+          <DropdownTrigger asChild>
+            <button
+              data-node-id={node.id}
+              onClick={handleClick}
+              onDoubleClick={handleDoubleClick}
+              draggable={!!node.path}
+              onDragStart={(e) => {
+                if (!node.path) return;
+                installRightClickDragCancel();
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('application/x-phantoma-mention', '1');
+                const batch =
+                  selectedNodeIds.has(node.id) && selectedNodeIds.size > 1
+                    ? Array.from(selectedNodeIds)
+                        .map((id) => nodeMetaRef.current.get(id))
+                        .filter((m): m is NodeMeta => !!m)
+                    : [];
+                const isBatch = batch.length > 1;
+                const label = isBatch ? `${batch.length} items` : node.name;
+                if (!isBatch && !isFolder) {
+                  e.dataTransfer.setData('application/x-phantoma-open-file', '1');
                 }
+                e.dataTransfer.setData(
+                  'application/json',
+                  JSON.stringify(
+                    isBatch
+                      ? {
+                          type: 'phantoma-batch',
+                          items: batch.map((m) => ({ filePath: m.path, isFolder: m.isFolder })),
+                        }
+                      : {
+                          type: isFolder ? 'phantoma-folder' : 'phantoma-file',
+                          filePath: node.path,
+                          name: node.name,
+                        },
+                  ),
+                );
+                const ghost = document.createElement('div');
+                ghost.style.cssText =
+                  'position:fixed;top:0;left:0;z-index:2147483647;pointer-events:none;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;height:28px;padding:0 12px 0 8px;line-height:20px;font-size:13px;white-space:nowrap;width:max-content;background:#1f1f1f;color:#e5e5e5;';
+                const ghostIcon = document.createElement('img');
+                ghostIcon.src = iconSrc;
+                ghostIcon.style.cssText = 'width:16px;height:16px;';
+                const ghostLabel = document.createElement('span');
+                ghostLabel.textContent = label;
+                ghost.append(ghostIcon, ghostLabel);
+                document.body.appendChild(ghost);
+                e.dataTransfer.setDragImage(ghost, 0, 0);
+                setTimeout(() => ghost.remove(), 0);
               }}
-            />
+              className={cn(
+                'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group outline-none focus:outline-none focus-visible:outline-none',
+                isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
+                gitStatus[node.path ?? ''] === 'added'
+                  ? 'text-emerald-500'
+                  : gitStatus[node.path ?? ''] === 'modified'
+                    ? 'text-orange-400'
+                    : isActive
+                      ? 'text-text-primary'
+                      : 'text-text-secondary hover:text-text-primary',
+              )}
+              style={{ paddingLeft: `${8 + depth * 12}px` }}
+            >
+              {selectMode && (
+                <span
+                  className={cn(
+                    'w-3.5 h-3.5 shrink-0 rounded-[3px] border grid place-items-center text-[10px] leading-none',
+                    isActive ? 'bg-primary border-primary text-white' : 'border-text-secondary',
+                  )}
+                >
+                  {isActive ? '✓' : ''}
+                </span>
+              )}
+              {isFolder ? (
+                loading ? (
+                  <Loader
+                    className="w-3.5 h-3.5 shrink-0 text-text-secondary animate-spin"
+                    strokeWidth={1.5}
+                  />
+                ) : (
+                  <ChevronRight
+                    className={cn(
+                      'w-3.5 h-3.5 shrink-0 transition-transform text-text-secondary',
+                      expanded && 'rotate-90',
+                      !canExpand && 'invisible',
+                    )}
+                    strokeWidth={1.5}
+                    onClick={
+                      selectMode
+                        ? (e) => {
+                            e.stopPropagation();
+                            toggleFolderExpand(projectId, node.id);
+                          }
+                        : undefined
+                    }
+                  />
+                )
+              ) : (
+                <span className="w-3.5 h-3.5 shrink-0" />
+              )}
 
-            <span className="truncate text-[13px]">{node.name}</span>
-          </button>
-        </DropdownTrigger>
-        <DropdownContent className="min-w-[200px]" size="sm">
-          {isFolder && (
-            <>
-              <DropdownItem onClick={() => handleCreateFromContext('file')}>New File</DropdownItem>
-              <DropdownItem onClick={() => handleCreateFromContext('folder')}>
-                New Folder
-              </DropdownItem>
-              <DropdownItem onClick={handleOpenFolder}>Open Folder</DropdownItem>
-              <DropdownSeparator />
-            </>
-          )}
-          <DropdownItem
-            onClick={() => {
-              setSelectMode(true);
-              if (!selectedNodeIds.has(node.id)) onNodeClick(node.id, true, false);
-            }}
-          >
-            Select
-          </DropdownItem>
-          <DropdownSeparator />
-          <DropdownItem onClick={handleCutLocal}>
-            <span className="flex items-center justify-between w-full">
-              <span>Cut</span>
-              <Kbd>Ctrl+X</Kbd>
-            </span>
-          </DropdownItem>
-          <DropdownItem onClick={handleCopyLocal}>
-            <span className="flex items-center justify-between w-full">
-              <span>Copy</span>
-              <Kbd>Ctrl+C</Kbd>
-            </span>
-          </DropdownItem>
-          {clipboard && (
-            <DropdownItem onClick={handlePasteLocal}>
+              <img
+                src={iconSrc}
+                alt=""
+                className="w-4 h-4 shrink-0"
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  // Debug log - có thể xóa sau khi fix
+                  if (img.src === fallbackIcon) {
+                    img.style.display = 'none';
+                  } else {
+                    img.src = fallbackIcon;
+                  }
+                }}
+              />
+
+              <span className="truncate text-[13px]">{node.name}</span>
+            </button>
+          </DropdownTrigger>
+          <DropdownContent className="min-w-[200px]" size="sm">
+            {isFolder && (
+              <>
+                <DropdownItem onClick={() => handleCreateFromContext('file')}>
+                  New File
+                </DropdownItem>
+                <DropdownItem onClick={() => handleCreateFromContext('folder')}>
+                  New Folder
+                </DropdownItem>
+                <DropdownItem onClick={handleOpenFolder}>Open Folder</DropdownItem>
+                <DropdownSeparator />
+              </>
+            )}
+            <DropdownItem
+              onClick={() => {
+                setSelectMode(true);
+                if (!selectedNodeIds.has(node.id)) onNodeClick(node.id, true, false);
+              }}
+            >
+              Select
+            </DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem onClick={handleCutLocal}>
               <span className="flex items-center justify-between w-full">
-                <span>Paste</span>
-                <Kbd>Ctrl+V</Kbd>
+                <span>Cut</span>
+                <Kbd>Ctrl+X</Kbd>
               </span>
             </DropdownItem>
-          )}
-          <DropdownSeparator />
-          <DropdownItem onClick={handleCopyPath}>
-            <span className="flex items-center justify-between w-full gap-4">
-              <span>Copy Path</span>
-              <Kbd>Ctrl+Alt+C</Kbd>
-            </span>
-          </DropdownItem>
-          <DropdownItem onClick={handleCopyRelativePathLocal}>
-            <span className="flex items-center justify-between w-full gap-4">
-              <span>Copy Relative Path</span>
-              <Kbd>C+C</Kbd>
-            </span>
-          </DropdownItem>
-          <DropdownSeparator />
-          <DropdownItem onClick={handleRename}>
-            <span className="flex items-center justify-between w-full">
-              <span>Rename</span>
-              <Kbd>F2</Kbd>
-            </span>
-          </DropdownItem>
-          <DropdownItem onClick={handleDelete} variant="error">
-            <span className="flex items-center justify-between w-full">
-              <span>Delete</span>
-              <Kbd>Del</Kbd>
-            </span>
-          </DropdownItem>
-        </DropdownContent>
-      </Dropdown>
+            <DropdownItem onClick={handleCopyLocal}>
+              <span className="flex items-center justify-between w-full">
+                <span>Copy</span>
+                <Kbd>Ctrl+C</Kbd>
+              </span>
+            </DropdownItem>
+            {clipboard && (
+              <DropdownItem onClick={handlePasteLocal}>
+                <span className="flex items-center justify-between w-full">
+                  <span>Paste</span>
+                  <Kbd>Ctrl+V</Kbd>
+                </span>
+              </DropdownItem>
+            )}
+            <DropdownSeparator />
+            <DropdownItem onClick={handleCopyPath}>
+              <span className="flex items-center justify-between w-full gap-4">
+                <span>Copy Path</span>
+                <Kbd>Ctrl+Alt+C</Kbd>
+              </span>
+            </DropdownItem>
+            <DropdownItem onClick={handleCopyRelativePathLocal}>
+              <span className="flex items-center justify-between w-full gap-4">
+                <span>Copy Relative Path</span>
+                <Kbd>C+C</Kbd>
+              </span>
+            </DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem onClick={handleRename}>
+              <span className="flex items-center justify-between w-full">
+                <span>Rename</span>
+                <Kbd>F2</Kbd>
+              </span>
+            </DropdownItem>
+            <DropdownItem onClick={handleDelete} variant="error">
+              <span className="flex items-center justify-between w-full">
+                <span>Delete</span>
+                <Kbd>Del</Kbd>
+              </span>
+            </DropdownItem>
+          </DropdownContent>
+        </Dropdown>
       )}
 
       {/* Inline create input */}
@@ -1368,7 +1367,10 @@ export function FileExplore() {
 
     const folderIds: string[] = [];
     let acc = base;
-    for (const seg of activeFilePath.slice(base.length + 1).split('/').slice(0, -1)) {
+    for (const seg of activeFilePath
+      .slice(base.length + 1)
+      .split('/')
+      .slice(0, -1)) {
       acc = `${acc}/${seg}`;
       folderIds.push(`fs_${acc}`);
     }

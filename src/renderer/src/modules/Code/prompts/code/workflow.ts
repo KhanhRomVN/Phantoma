@@ -17,11 +17,12 @@ const MEMORY_RULES_JSON = `- **CRITICAL**: Always call \`read_memory\` FIRST (em
 - Append/update via \`{"tool":"update_memory","params":{"old_content":"...","new_content":"..."}}\` with exact-match semantics (identical to replace_in_file, but always targets memory.md — no file_path). First write into an empty/non-existent file uses \`"old_content": ""\`.
 - ⚠ JSON-STRINGS: Both \`old_content\` and \`new_content\` are multi-line strings — every newline must be escaped as \\n and every double-quote as \\" for the block to remain valid JSON.`;
 
+
 // ── LOOKUP BY FORMAT ──
 const MEMORY_RULES: Record<ToolFormat, string> = {
   xml: MEMORY_RULES_XML,
   json: MEMORY_RULES_JSON,
-  dsml: MEMORY_RULES_XML,
+
 };
 
 const buildMemorySection = (toolFormat: ToolFormat): string =>

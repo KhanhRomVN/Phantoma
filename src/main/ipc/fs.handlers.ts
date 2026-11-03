@@ -47,11 +47,12 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Electron ──
-import { ipcMain } from 'electron';
+import { ipcMain, app } from 'electron';
 
 // ── Node.js ──
 import * as fs from 'fs';
 import * as path from 'path';
+import { createHash } from 'crypto';
 import { exec as execCallback, spawn, ChildProcess } from 'child_process';
 
 // ── External ──
@@ -156,6 +157,7 @@ function buildRgArgs(query: string, options: RgSearchOptions, searchPath: string
 // ─── Watcher Manager ─────────────────────────────────────────────────────────
 
 const watchers = new Map<string, FSWatcher>();
+const watcherRefs = new Map<string, number>();
 
 function startWatching(projectPath: string, sender: Electron.WebContents): void {
   if (watchers.has(projectPath)) return;
@@ -595,10 +597,17 @@ export function setupFSHandlers() {
   // File watcher
   ipcMain.handle('fs:watch-dir', async (event, projectPath: string) => {
     startWatching(projectPath, event.sender);
+    watcherRefs.set(projectPath, (watcherRefs.get(projectPath) ?? 0) + 1);
     return true;
   });
 
   ipcMain.handle('fs:unwatch-dir', async (_, projectPath: string) => {
+    const left = (watcherRefs.get(projectPath) ?? 1) - 1;
+    if (left > 0) {
+      watcherRefs.set(projectPath, left);
+      return true;
+    }
+    watcherRefs.delete(projectPath);
     stopWatching(projectPath);
     return true;
   });
@@ -646,5 +655,35 @@ export function setupFSHandlers() {
 
   ipcMain.handle('fs:read-image-data-url', async (_, filePath: string, maxSide?: number) => {
     return readImageDataUrl(filePath, maxSide);
+  });
+
+  ipcMain.handle('fs:download-project-logo', async (_, url: string) => {
+    const extByMime: Record<string, string> = {
+      'image/png': '.png',
+      'image/jpeg': '.jpg',
+      'image/webp': '.webp',
+      'image/svg+xml': '.svg',
+    };
+    try {
+      if (!/^https?:\/\//i.test(url)) {
+        return { success: false, error: 'URL must start with http:// or https://' };
+      }
+      const res = await fetch(url);
+      if (!res.ok) return { success: false, error: `HTTP ${res.status}` };
+      const type = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+      const ext = extByMime[type];
+      if (!ext) return { success: false, error: 'Unsupported image type (png, jpg, webp, svg)' };
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length > 5 * 1024 * 1024) return { success: false, error: 'Image is larger than 5 MB' };
+      const dir = path.join(app.getPath('userData'), 'project-logos');
+      await fs.promises.mkdir(dir, { recursive: true });
+      const hash = createHash('sha1').update(url).digest('hex').slice(0, 16);
+      const file = path.join(dir, `${hash}${ext}`);
+      await fs.promises.writeFile(file, buf);
+      return { success: true, path: file };
+    } catch (err: any) {
+      logger.warn('[fs] download-project-logo failed:', err);
+      return { success: false, error: err?.message ?? 'Download failed' };
+    }
   });
 }
