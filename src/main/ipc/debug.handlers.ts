@@ -301,13 +301,14 @@ function runTask(
     proc.stderr?.on('data', forward);
     if (spec.ready) sender.once('destroyed', () => proc.kill());
     proc.on('error', (err) => finish({ ok: false, error: err.message }));
-    proc.on('close', (code) =>
+    proc.on('close', (code) => {
+      log('\n *  Terminal will be reused by tasks, press any key to close it.\n\n');
       finish(
         code === 0
           ? { ok: true }
           : { ok: false, error: `Task "${label}" exited with code ${code}` },
-      ),
-    );
+      );
+    });
   });
 }
 
@@ -376,6 +377,7 @@ function readLaunchConfigurations(projectPath: string): {
   ok: boolean;
   exists: boolean;
   configurations: Record<string, unknown>[];
+  version?: string;
   error?: string;
 } {
   const file = path.join(projectPath, '.vscode', 'launch.json');
@@ -391,7 +393,8 @@ function readLaunchConfigurations(projectPath: string): {
         const merged = { ...rest, ...(override && typeof override === 'object' ? override : {}) };
         return resolveVariables(merged, projectPath) as Record<string, unknown>;
       });
-    return { ok: true, exists: true, configurations };
+    const version = typeof parsed?.version === 'string' ? parsed.version : undefined;
+    return { ok: true, exists: true, configurations, version };
   } catch (err: any) {
     return {
       ok: false,
@@ -442,9 +445,7 @@ export function setupDebugHandlers(): void {
           stdio: ['ignore', 'pipe', 'pipe'],
         });
         trackChild(child);
-        child.stdout?.on('data', (d) => console.log('[DEBUG] spawn stdout:', d.toString()));
-        child.stderr?.on('data', (d) => console.log('[DEBUG] spawn stderr:', d.toString()));
-        child.once('exit', (code, signal) => console.log('[DEBUG] spawn exit:', { code, signal }));
+
         child.once('error', (err) => resolve({ ok: false, error: err.message }));
         child.once('spawn', () => {
           child.unref();

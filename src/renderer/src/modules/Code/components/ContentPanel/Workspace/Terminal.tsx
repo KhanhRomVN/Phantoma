@@ -394,15 +394,7 @@ export const CodeTerminal = ({
               if (isMounted && isOpened) {
                 safeFit();
 
-                // ── NEW: Inject initial command nếu có (cho ZenCLI auto-resume) ──
                 if (initialCommand && window.api?.send) {
-                  // Debug log - có thể xóa sau khi fix
-                  console.log('[DEBUG] Terminal spawn -> inject initialCommand:', {
-                    panelId: panelIdRef.current,
-                    terminalId: terminalIdRef.current,
-                    initialCommand,
-                  });
-                  // Delay thêm 300ms để shell kịp init prompt và sẵn sàng nhận input
                   setTimeout(() => {
                     if (isMounted && term) {
                       window.api.send('terminal:write', {
@@ -565,7 +557,10 @@ export const CodeTerminal = ({
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div
+      className="relative w-full h-full px-3"
+      style={{ backgroundColor: 'rgb(var(--sidebar-background))' }}
+    >
       <div ref={termRef} className="w-full h-full" onContextMenu={handleContextMenu} />
 
       {contextMenuPos && (

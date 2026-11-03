@@ -155,6 +155,24 @@ export function setupGitHandlers(): void {
     }
   });
 
+  // ── Local diff (branch vs origin/branch) ──
+  ipcMain.handle('git:local-diff', async (_event, projectPath: string, branch: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      const headRes = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
+      const isCurrent = headRes.stdout.trim() === branch;
+      const result = await runGit(
+        ['diff', '--no-color', '-M', `origin/${branch}`, ...(isCurrent ? [] : [branch])],
+        cwd,
+      );
+      if (result.error) return { error: result.stderr || result.error.message };
+      return { diff: result.stdout };
+    } catch (e: any) {
+      logger.error('[git:local-diff] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
   // ── Clone ──
   ipcMain.handle(
     'git:clone',
@@ -174,7 +192,10 @@ export function setupGitHandlers(): void {
       let args = ['checkout', branch];
       if (branch.startsWith('origin/')) {
         const localName = branch.slice('origin/'.length);
-        const exists = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${localName}`], cwd);
+        const exists = await runGit(
+          ['show-ref', '--verify', '--quiet', `refs/heads/${localName}`],
+          cwd,
+        );
         args = exists.error ? ['checkout', '--track', branch] : ['checkout', localName];
       }
       const result = await runGit(args, cwd);
@@ -206,7 +227,10 @@ export function setupGitHandlers(): void {
   // ── Resolve Ref ──
   ipcMain.handle('git:resolve-ref', async (_event, projectPath: string, ref: string) => {
     try {
-      const result = await runGit(['rev-parse', '--verify', `${ref}^{commit}`], projectPath || process.cwd());
+      const result = await runGit(
+        ['rev-parse', '--verify', `${ref}^{commit}`],
+        projectPath || process.cwd(),
+      );
       if (result.error) return { error: result.stderr || result.error.message };
       return { hash: result.stdout.trim() };
     } catch (e: any) {
@@ -228,7 +252,10 @@ export function setupGitHandlers(): void {
 
       const [behind, ahead] = countRes.error
         ? [0, 0]
-        : countRes.stdout.trim().split(/\s+/).map((n) => parseInt(n, 10) || 0);
+        : countRes.stdout
+            .trim()
+            .split(/\s+/)
+            .map((n) => parseInt(n, 10) || 0);
       const lines = statusRes.stdout.split('\n').filter((l) => l.length > 0);
       const staged = lines.filter((l) => l[0] !== ' ' && l[0] !== '?').length;
 
@@ -243,6 +270,83 @@ export function setupGitHandlers(): void {
       };
     } catch (e: any) {
       logger.error('[git:sync-info] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Local changes vs remote (virtual rows in graph) ──
+  ipcMain.handle('git:local-changes', async (_event, projectPath: string) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      const [refsRes, headRes] = await Promise.all([
+        runGit(
+          ['for-each-ref', '--format=%(refname:short)', 'refs/heads', 'refs/remotes/origin'],
+          cwd,
+        ),
+        runGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd),
+      ]);
+      if (refsRes.error) return { error: refsRes.stderr || refsRes.error.message };
+
+      const refs = new Set(
+        refsRes.stdout
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean),
+      );
+      const current = headRes.stdout.trim();
+      const locals = [...refs].filter(
+        (r) => r !== 'origin' && !r.startsWith('origin/') && refs.has(`origin/${r}`),
+      );
+
+      const parseNumstat = (out: string) =>
+        out
+          .split('\n')
+          .filter((l) => l.trim().length > 0)
+          .map((line) => {
+            const p = line.split('\t');
+            return {
+              added: parseInt(p[0], 10) || 0,
+              deleted: parseInt(p[1], 10) || 0,
+              path: p.slice(2).join('\t'),
+            };
+          });
+
+      const branches = await Promise.all(
+        locals.map(async (name) => {
+          const diff = await runGit(
+            ['diff', '--numstat', `origin/${name}`, ...(name === current ? [] : [name])],
+            cwd,
+          );
+          const files: { added: number; deleted: number; path: string }[] = diff.error
+            ? []
+            : parseNumstat(diff.stdout);
+          if (name === current) {
+            const status = await runGit(['status', '--porcelain', '--untracked-files=all'], cwd);
+            status.stdout
+              .split('\n')
+              .filter((l) => l.length > 3)
+              .forEach((l) => {
+                const untracked = l[0] === '?';
+                const staged = !untracked && l[0] !== ' ';
+                const unstaged = untracked || l[1] !== ' ';
+                let path = l.slice(3).trim();
+                if (path.includes(' -> ')) path = path.split(' -> ')[1];
+                if (!path) return;
+                let file = files.find((f) => f.path === path);
+                if (!file) {
+                  file = { added: 0, deleted: 0, path };
+                  files.push(file);
+                }
+                Object.assign(file, { staged, unstaged, untracked });
+              });
+          }
+          return { name, files };
+        }),
+      );
+
+      return { branches: branches.filter((b) => b.files.length > 0) };
+    } catch (e: any) {
+      logger.error('[git:local-changes] Error:', e);
       return { error: e.message || String(e) };
     }
   });
@@ -281,6 +385,21 @@ export function setupGitHandlers(): void {
       return { commits };
     } catch (e: any) {
       logger.error('[git:log] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Commit full message ──
+  ipcMain.handle('git:commit-body', async (_event, projectPath: string, hash: string) => {
+    try {
+      const result = await runGit(
+        ['show', '-s', '--format=%B', hash],
+        projectPath || process.cwd(),
+      );
+      if (result.error) return { error: result.stderr || result.error.message };
+      return { message: result.stdout.trim() };
+    } catch (e: any) {
+      logger.error('[git:commit-body] Error:', e);
       return { error: e.message || String(e) };
     }
   });
@@ -335,8 +454,14 @@ export function setupGitHandlers(): void {
         const mainRoot = resolve(cwd);
         for (const block of wtList.stdout.split(/\n\s*\n/)) {
           const lines = block.split('\n');
-          const wtPath = lines.find((l) => l.startsWith('worktree '))?.slice(9).trim();
-          const ref = lines.find((l) => l.startsWith('branch '))?.slice(7).trim();
+          const wtPath = lines
+            .find((l) => l.startsWith('worktree '))
+            ?.slice(9)
+            .trim();
+          const ref = lines
+            .find((l) => l.startsWith('branch '))
+            ?.slice(7)
+            .trim();
           if (!wtPath || !ref || resolve(wtPath) === mainRoot) continue;
           worktreePaths[ref.replace(/^refs\/heads\//, '')] = wtPath;
         }
@@ -345,6 +470,37 @@ export function setupGitHandlers(): void {
       return { branches, worktreePaths };
     } catch (e: any) {
       logger.error('[git:list-branches] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── Remote URL ──
+  ipcMain.handle('git:remote-url', async (_event, projectPath: string) => {
+    try {
+      const result = await runGit(['remote', 'get-url', 'origin'], projectPath || process.cwd());
+      if (result.error) return { error: result.stderr || result.error.message };
+      return { url: result.stdout.trim() };
+    } catch (e: any) {
+      logger.error('[git:remote-url] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  // ── List Tags ──
+  ipcMain.handle('git:list-tags', async (_event, projectPath: string) => {
+    try {
+      const result = await runGit(
+        ['tag', '--list', '--sort=-creatordate'],
+        projectPath || process.cwd(),
+      );
+      if (result.error) return { error: result.stderr || result.error.message };
+      const tags = result.stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      return { tags };
+    } catch (e: any) {
+      logger.error('[git:list-tags] Error:', e);
       return { error: e.message || String(e) };
     }
   });
@@ -379,21 +535,43 @@ export function setupGitHandlers(): void {
       if (current.stdout.trim()) protectedNames.add(current.stdout.trim());
       const wtList = await runGit(['worktree', 'list', '--porcelain'], cwd);
       for (const line of wtList.stdout.split('\n')) {
-        if (line.startsWith('branch ')) protectedNames.add(line.slice(7).trim().replace(/^refs\/heads\//, ''));
+        if (line.startsWith('branch '))
+          protectedNames.add(
+            line
+              .slice(7)
+              .trim()
+              .replace(/^refs\/heads\//, ''),
+          );
       }
 
       const pruned: string[] = [];
-      for (const name of merged.stdout.split('\n').map((l) => l.trim()).filter(Boolean)) {
+      for (const name of merged.stdout
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)) {
         if (protectedNames.has(name)) continue;
         const del = await runGit(['branch', '-d', name], cwd);
         if (!del.error) pruned.push(name);
       }
-      logger.info?.('[DEBUG][git:prune-orphan-branches]', { defaultBranch, pruned });
       return { pruned };
     } catch (e: any) {
       logger.error('[git:prune-orphan-branches] Error:', e);
       return { error: e.message || String(e) };
     }
+  });
+
+  ipcMain.handle('git:ignored-paths', async (_event, projectPath?: string) => {
+    const cwd = projectPath || process.cwd();
+    const res = await runGit(
+      ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
+      cwd,
+    );
+    if (res.error) return [] as string[];
+    const base = cwd.replace(/\/+$/, '');
+    return res.stdout
+      .split('\0')
+      .filter((p) => p.length > 0)
+      .map((p) => `${base}/${p.replace(/\/$/, '')}`);
   });
 
   // ── Status ──
@@ -787,7 +965,6 @@ export function setupGitHandlers(): void {
     }
   });
 
-
   // ── Repo identity (so sánh 2 project có cùng repo không) ──
   ipcMain.handle('git:repo-identity', async (_event, projectPath: string) => {
     const cwd = projectPath || process.cwd();
@@ -827,75 +1004,75 @@ export function setupGitHandlers(): void {
   ipcMain.handle(
     'git:worktree-preview',
     async (_event, projectPath: string, requestId?: string, withSizes = true) => {
-    const cwd = projectPath || process.cwd();
-    const content = await fs.readFile(join(cwd, '.gitignore'), 'utf8').catch(() => null);
-    const status = await runGit(['status', '--porcelain'], cwd);
-    const changedFiles = status.error
-      ? 0
-      : status.stdout.split('\n').filter((l) => l.trim()).length;
-    if (!withSizes) {
-      return { ignoredPaths: [] as string[], hasGitignore: content !== null, changedFiles };
-    }
-    const ignored = await runGit(
-      ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
-      cwd,
-    );
-    const ignoredPaths = ignored.error
-      ? []
-      : ignored.stdout.split('\0').filter((p) => p.length > 0);
-    const isCancelled = () => !!requestId && previewCancels.has(requestId);
-    let scanned = 0;
-    let doneCount = 0;
-    let lastReport = 0;
-    const report = (label: string, force = false) => {
-      if (!requestId) return;
-      const now = Date.now();
-      if (!force && now - lastReport < 100) return;
-      lastReport = now;
-      _event.sender.send('git:worktree-preview-progress', {
-        requestId,
-        done: doneCount,
-        total: ignoredPaths.length,
-        scanned,
-        label,
-      });
-    };
-    const sizeOf = async (root: string, label: string): Promise<number> => {
-      let total = 0;
-      const stack = [root];
-      while (stack.length) {
-        if (isCancelled()) break;
-        const cur = stack.pop() as string;
-        scanned++;
-        report(label);
-        const st = await fs.lstat(cur).catch(() => null);
-        if (!st) continue;
-        if (st.isDirectory()) {
-          const entries = await fs.readdir(cur).catch(() => [] as string[]);
-          for (const e of entries) stack.push(join(cur, e));
-        } else {
-          total += st.size;
-        }
+      const cwd = projectPath || process.cwd();
+      const content = await fs.readFile(join(cwd, '.gitignore'), 'utf8').catch(() => null);
+      const status = await runGit(['status', '--porcelain'], cwd);
+      const changedFiles = status.error
+        ? 0
+        : status.stdout.split('\n').filter((l) => l.trim()).length;
+      if (!withSizes) {
+        return { ignoredPaths: [] as string[], hasGitignore: content !== null, changedFiles };
       }
-      return total;
-    };
-    const sizes: Record<string, number> = {};
-    await Promise.all(
-      ignoredPaths.map(async (p) => {
-        const size = await sizeOf(join(cwd, p), p);
-        if (!isCancelled()) sizes[p] = size;
-        doneCount++;
-        report(p, true);
-      }),
-    );
-    const cancelled = isCancelled();
-    if (requestId) previewCancels.delete(requestId);
-    return {
-      ignoredPaths,
-      hasGitignore: content !== null,
-      changedFiles,
-      ...(cancelled ? { cancelled: true } : { sizes }),
-    };
+      const ignored = await runGit(
+        ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
+        cwd,
+      );
+      const ignoredPaths = ignored.error
+        ? []
+        : ignored.stdout.split('\0').filter((p) => p.length > 0);
+      const isCancelled = () => !!requestId && previewCancels.has(requestId);
+      let scanned = 0;
+      let doneCount = 0;
+      let lastReport = 0;
+      const report = (label: string, force = false) => {
+        if (!requestId) return;
+        const now = Date.now();
+        if (!force && now - lastReport < 100) return;
+        lastReport = now;
+        _event.sender.send('git:worktree-preview-progress', {
+          requestId,
+          done: doneCount,
+          total: ignoredPaths.length,
+          scanned,
+          label,
+        });
+      };
+      const sizeOf = async (root: string, label: string): Promise<number> => {
+        let total = 0;
+        const stack = [root];
+        while (stack.length) {
+          if (isCancelled()) break;
+          const cur = stack.pop() as string;
+          scanned++;
+          report(label);
+          const st = await fs.lstat(cur).catch(() => null);
+          if (!st) continue;
+          if (st.isDirectory()) {
+            const entries = await fs.readdir(cur).catch(() => [] as string[]);
+            for (const e of entries) stack.push(join(cur, e));
+          } else {
+            total += st.size;
+          }
+        }
+        return total;
+      };
+      const sizes: Record<string, number> = {};
+      await Promise.all(
+        ignoredPaths.map(async (p) => {
+          const size = await sizeOf(join(cwd, p), p);
+          if (!isCancelled()) sizes[p] = size;
+          doneCount++;
+          report(p, true);
+        }),
+      );
+      const cancelled = isCancelled();
+      if (requestId) previewCancels.delete(requestId);
+      return {
+        ignoredPaths,
+        hasGitignore: content !== null,
+        changedFiles,
+        ...(cancelled ? { cancelled: true } : { sizes }),
+      };
     },
   );
 
@@ -933,7 +1110,10 @@ export function setupGitHandlers(): void {
         const formatCheck = await runGit(['check-ref-format', '--branch', name], cwd);
         if (formatCheck.error) return { error: `Tên branch không hợp lệ: ${name}` };
 
-        const existing = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`], cwd);
+        const existing = await runGit(
+          ['show-ref', '--verify', '--quiet', `refs/heads/${name}`],
+          cwd,
+        );
         let remoteRef: string | null = null;
         if (useExisting) {
           if (existing.error) {
@@ -1016,7 +1196,8 @@ export function setupGitHandlers(): void {
             const stat = await fs.stat(patchFile).catch(() => null);
             if (stat && stat.size > 0) {
               const apply = await runGit(['apply', '--whitespace=nowarn', patchFile], targetPath);
-              if (apply.error) logger.error('[git:create-branch-worktree] apply failed:', apply.stderr);
+              if (apply.error)
+                logger.error('[git:create-branch-worktree] apply failed:', apply.stderr);
             }
             await fs.rm(patchFile, { force: true });
           }
@@ -1087,7 +1268,9 @@ export function setupGitHandlers(): void {
       }
 
       const originHead = await runGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd);
-      const defaultBranch = originHead.error ? '' : originHead.stdout.trim().replace(/^origin\//, '');
+      const defaultBranch = originHead.error
+        ? ''
+        : originHead.stdout.trim().replace(/^origin\//, '');
       if (name === defaultBranch || (!defaultBranch && (name === 'main' || name === 'master'))) {
         return { error: `Không thể xóa branch mặc định "${name}"` };
       }
@@ -1122,14 +1305,7 @@ export function setupGitHandlers(): void {
     const headSha = await runGit(['rev-parse', 'HEAD'], cwd);
     const refSha = await runGit(['rev-parse', `${ref}^{commit}`], cwd);
     const curBranch = await runGit(['branch', '--show-current'], cwd);
-    logger.info?.('[DEBUG][readBranchDiff]', {
-      cwd,
-      ref,
-      currentBranch: curBranch.stdout?.trim(),
-      headSha: headSha.stdout?.trim(),
-      refSha: refSha.stdout?.trim(),
-      sameCommit: headSha.stdout?.trim() === refSha.stdout?.trim(),
-    });
+
     const [names, nums] = await Promise.all([
       runGit(['diff', '-R', '--no-renames', '--name-status', '-z', ref], cwd),
       runGit(['diff', '-R', '--no-renames', '--numstat', '-z', ref], cwd),
@@ -1166,7 +1342,6 @@ export function setupGitHandlers(): void {
       srcWt = ls.find((l) => l.startsWith('worktree '))?.slice(9) ?? '';
       break;
     }
-    logger.info?.('[DEBUG][readBranchDiff] source worktree', { ref, srcWt });
     for (const p of untrackedPaths) {
       if (known.has(p)) continue;
       const inRef = await runGit(['cat-file', '-e', `${ref}:${p}`], cwd);
@@ -1192,13 +1367,7 @@ export function setupGitHandlers(): void {
       files.push({ path: p, status: 'deleted', added: 0, deleted: lines });
       untrackedOnly.push(p);
     }
-    logger.info?.('[DEBUG][readBranchDiff] result', {
-      ref,
-      nameStatusRaw: names.stdout.split('\0').filter(Boolean),
-      untrackedPaths,
-      untrackedMissingInRef: untrackedOnly,
-      totalFiles: files.length,
-    });
+
     const ignored = new Set<string>();
     for (let i = 0; i < files.length; i += 200) {
       const chunk = files.slice(i, i + 200).map((f) => f.path);

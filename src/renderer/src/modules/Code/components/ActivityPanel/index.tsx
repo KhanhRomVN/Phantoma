@@ -29,6 +29,7 @@ import {
 // ── Hooks ─
 import { useCodeStore, type ContentViewMode } from '../../hooks/useCodeStore';
 import { useDesignStore } from '../../hooks/useDesignStore';
+import { useDebugStore } from '../../stores/useDebugStore';
 
 // ── Components ─
 import { ActivityBar } from './ActivityBar';
@@ -73,6 +74,7 @@ export function ActivityPanel() {
   const contentViewMode = useCodeStore((s) => s.contentViewMode);
   const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
   const hasActiveDesign = useDesignStore((s) => s.activeDesignId !== null);
+  const debugBusy = useDebugStore((s) => s.status !== 'idle');
 
   // ── State ──
   const [isResizing, setIsResizing] = useState(false);
@@ -166,7 +168,8 @@ export function ActivityPanel() {
       />
 
       {/* Topbar: height matches panel width */}
-      <ActivityBar activeTab={activityPanelTab} onTabChange={handleTabChange} tabs={TABS} />
+      <ActivityBar activeTab={activityPanelTab} onTabChange={handleTabChange} tabs={TABS.map((t) => (t.id === 'debug' ? { ...t, busy: debugBusy } : t))}
+      />
 
       {/* Content area below topbar */}
       <div className="flex-1 overflow-hidden flex flex-col min-w-0">

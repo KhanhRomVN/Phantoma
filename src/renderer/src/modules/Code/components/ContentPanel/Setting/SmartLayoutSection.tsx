@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Sparkles, RotateCcw, Check, Eye } from 'lucide-react';
+import { Check, Eye } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 import {
   computeRects,
@@ -244,7 +244,7 @@ export const SmartLayoutSection = memo(function SmartLayoutSection() {
   const setRule = useWorkspaceSettings((s) => s.setRule);
   const applyPreset = useWorkspaceSettings((s) => s.applyPreset);
   const setReusePreviewTab = useWorkspaceSettings((s) => s.setReusePreviewTab);
-  const reset = useWorkspaceSettings((s) => s.reset);
+
 
   const activePreset = LAYOUT_PRESETS.find((p) =>
     PANEL_TYPES.every((t) => p.rules[t] === rules[t]),
@@ -252,13 +252,10 @@ export const SmartLayoutSection = memo(function SmartLayoutSection() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4 p-4 rounded-xl border border-primary/25 bg-gradient-to-br from-primary/15 via-violet-500/10 to-sky-500/10">
-        <span className="w-10 h-10 rounded-xl grid place-items-center shrink-0 text-white bg-gradient-to-br from-primary to-violet-500 shadow-lg shadow-primary/20">
-          <Sparkles className="w-5 h-5" />
-        </span>
+      <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-card-background">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-text-primary">Smart layout</p>
-          <p className="text-xs text-text-secondary mt-0.5">
+          <p className="text-xs font-medium text-text-primary">Enable smart layout</p>
+          <p className="text-[10px] text-text-secondary mt-0.5">
             New tabs open in the pane you choose for their type, so your workspace stays organized
             without dragging.
           </p>
@@ -360,16 +357,7 @@ export const SmartLayoutSection = memo(function SmartLayoutSection() {
         </div>
       </section>
 
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={reset}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-text-secondary border border-border hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Reset to defaults
-        </button>
-      </div>
+
     </div>
   );
 });

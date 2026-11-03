@@ -135,7 +135,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
   const Shell: React.ElementType = embedded ? EmbeddedShell : Drawer;
   const shellProps = embedded
     ? {}
-    : { isOpen, onClose, height: '100%', strategy: 'absolute' as const };
+    : { isOpen, onClose, height: '100%', strategy: 'absolute' as const, showHandle: false };
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<FlatAccount | null>(null);
   const { apiUrl } = useSettings();
@@ -379,6 +379,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
         <NavPanelHeader
           title="Accounts"
           description="Manage your API accounts"
+          maxWidth={680}
           current="account"
           onNavigate={onNavigate}
           onClose={onClose}
@@ -386,9 +387,9 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
       )}
 
       {/* Action Bar */}
-      <div className="px-4 pt-3 pb-2 shrink-0 flex gap-2 items-center bg-background">
+      <div className="w-full max-w-[680px] mx-auto px-4 pt-3 pb-2 shrink-0 flex gap-2 items-center bg-background box-border">
         {/* Search Input */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
             <Input
               type="text"
               placeholder="Search by email, provider ID or provider name..."
@@ -545,6 +546,9 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
             alignItems: 'center',
             gap: '4px',
             zIndex: 200,
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            boxSizing: 'border-box',
             boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
             animation: 'overlaySlideUp 0.2s ease',
             backdropFilter: 'blur(8px)',
@@ -618,7 +622,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
       )}
 
       {/* Header: label + period tab bar */}
-      <div className="px-4 mt-2 shrink-0 flex items-center justify-between">
+      <div className="w-full max-w-[680px] mx-auto px-4 mt-2 shrink-0 flex items-center justify-between box-border">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-semibold text-text-primary">List Account</span>
           <span
@@ -632,7 +636,7 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
       </div>
 
       {/* Account List */}
-      <DrawerBody className="p-3 flex flex-col gap-2.5">
+      <DrawerBody className="py-3 px-[max(12px,calc((100%-680px)/2+16px))] flex flex-col gap-2.5">
         {loading && accounts.length === 0 ? (
           <AccountListSkeleton count={5} />
         ) : accounts.length === 0 ? (

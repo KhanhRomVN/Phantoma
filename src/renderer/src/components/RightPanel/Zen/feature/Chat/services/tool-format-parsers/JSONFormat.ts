@@ -124,7 +124,18 @@ const parseJson = (
   };
 
   const pushJsonCode = (body: string) => {
-    result.contentBlocks.push({ type: 'code', content: body, language: 'json' });
+    const m = /^\{\s*"type"\s*:\s*"markdown"\s*,\s*"content"\s*:\s*"([\s\S]*?)"?\s*\}?\s*$/.exec(body.trim());
+    if (m) {
+      let text = m[1];
+      try {
+        text = JSON.parse('"' + text + '"');
+      } catch {
+        text = text.replace(/\\n/g, '\n').replace(/\\"/g, '"');
+      }
+      pushMarkdown(text);
+      return;
+    }
+    pushMarkdown(body);
   };
 
   const findNextJsonFence = (
@@ -285,7 +296,14 @@ const parseJson = (
     result.actions.push(action);
   }
 
-  pushMarkdown(scanStr.slice(lastIndex));
+  const tail = scanStr.slice(lastIndex);
+  const unclosedFenceAt = tail.indexOf('```json');
+  if (unclosedFenceAt !== -1) {
+    pushMarkdown(tail.slice(0, unclosedFenceAt));
+    pushJsonCode(tail.slice(unclosedFenceAt + 7).replace(/^\s*\n/, '').replace(/```\s*$/, ''));
+  } else {
+    pushMarkdown(tail);
+  }
 
   const placeholderRegex = /__THINKING_(\d+)__/g;
   const expandedBlocks: ContentBlock[] = [];

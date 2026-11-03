@@ -28,7 +28,7 @@ import { $ } from '@renderer/utils/color';
 // ── Components ──
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import CodeBlock from '@renderer/components/common/CodeBlock';
-import { formatToolForMarkdown } from '../../../../utils/tool-behavior-registry';
+
 
 // Path utils inlined
 const isLikelyFolder = (token: string): boolean => {
@@ -44,13 +44,7 @@ const isFilePath = (text: string): boolean => {
   return (text.includes('/') || text.includes('\\')) && /\.[a-zA-Z0-9]{1,10}$/.test(text);
 };
 
-const getFilename = (action: any): string => {
-  // Check module-specific markdown formatter
-  const formatted = formatToolForMarkdown(action);
-  if (formatted !== null) return formatted;
-  const path = action.params.file_path || action.params.folder_path || action.params.path || '';
-  return path.split('/').pop() || path || '';
-};
+const getFilename = (path: string): string => path.split(/[\/\\]/).pop() || path;
 
 const shortenPath = (fullPath: string, maxLength: number = 60): string => {
   if (fullPath.length <= maxLength) return fullPath;

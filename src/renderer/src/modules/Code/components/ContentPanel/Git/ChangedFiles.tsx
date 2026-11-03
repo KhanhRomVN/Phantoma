@@ -9,8 +9,8 @@
  * ------------------------------------------------------------------
  */
 
-import { memo, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { createContext, memo, useContext, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, Minus, Plus, Undo2 } from 'lucide-react';
 
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
@@ -87,15 +87,56 @@ interface FileRowProps {
   onSelect?: (path: string) => void;
 }
 
+export interface FileActions {
+  onStage?: (file: CommitFile) => void;
+  onUnstage?: (file: CommitFile) => void;
+  onDiscard?: (file: CommitFile) => void;
+}
+
+const ActionsContext = createContext<FileActions>({});
+
+function ActionButton({
+  title,
+  onClick,
+  danger = false,
+  children,
+}: {
+  title: string;
+  onClick: () => void;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        'w-5 h-5 rounded flex items-center justify-center text-text-secondary transition-colors cursor-pointer',
+        danger ? 'hover:bg-red/15 hover:text-red' : 'hover:bg-card-background hover:text-text-primary',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function FileRow({ file, depth, showDir, selected, onSelect }: FileRowProps) {
   const { name, dir } = splitPath(file.path);
+  const actions = useContext(ActionsContext);
+  const canStage = !!actions.onStage && !!file.unstaged;
+  const canUnstage = !!actions.onUnstage && !!file.staged;
+  const canDiscard = !!actions.onDiscard && (!!file.unstaged || !!file.staged);
+  const hasActions = canStage || canUnstage || canDiscard;
   return (
     <div
       title={file.path}
       onClick={() => onSelect?.(file.path)}
       style={{ paddingLeft: 12 + depth * 14 }}
       className={cn(
-        'flex items-center gap-2 pr-4 h-[28px] transition-colors',
+        'group flex items-center gap-2 pr-4 h-[28px] transition-colors',
         onSelect && 'cursor-pointer',
         selected ? 'bg-primary/15' : 'hover:bg-card-hover',
       )}
@@ -107,7 +148,33 @@ function FileRow({ file, depth, showDir, selected, onSelect }: FileRowProps) {
       ) : (
         <span className={'flex-1'} />
       )}
-      <Counts added={file.added} deleted={file.deleted} />
+      {file.staged && (
+        <span title={'Staged'} className={'shrink-0 text-[9px] font-semibold px-1 rounded bg-green/15 text-green'}>
+          S
+        </span>
+      )}
+      <span className={cn('flex', hasActions && 'group-hover:hidden')}>
+        <Counts added={file.added} deleted={file.deleted} />
+      </span>
+      {hasActions && (
+        <span className={'hidden group-hover:flex items-center gap-0.5 shrink-0'}>
+          {canDiscard && (
+            <ActionButton title={'Discard changes'} danger onClick={() => actions.onDiscard?.(file)}>
+              <Undo2 className={'w-3 h-3'} />
+            </ActionButton>
+          )}
+          {canUnstage && (
+            <ActionButton title={'Unstage change'} onClick={() => actions.onUnstage?.(file)}>
+              <Minus className={'w-3 h-3'} />
+            </ActionButton>
+          )}
+          {canStage && (
+            <ActionButton title={'Stage change'} onClick={() => actions.onStage?.(file)}>
+              <Plus className={'w-3 h-3'} />
+            </ActionButton>
+          )}
+        </span>
+      )}
     </div>
   );
 }
@@ -177,14 +244,23 @@ interface ChangedFilesProps {
   view: FilesView;
   selectedPath?: string | null;
   onSelect?: (path: string) => void;
+  actions?: FileActions;
 }
 
-export const ChangedFiles = memo(function ChangedFiles({
+export const ChangedFiles = memo(function ChangedFiles({ actions = {}, ...rest }: ChangedFilesProps) {
+  return (
+    <ActionsContext.Provider value={actions}>
+      <ChangedFilesBody {...rest} />
+    </ActionsContext.Provider>
+  );
+});
+
+const ChangedFilesBody = memo(function ChangedFilesBody({
   files,
   view,
   selectedPath = null,
   onSelect,
-}: ChangedFilesProps) {
+}: Omit<ChangedFilesProps, 'actions'>) {
   const [closed, setClosed] = useState<Set<string>>(new Set());
   const root = useMemo(() => buildTree(files), [files]);
 

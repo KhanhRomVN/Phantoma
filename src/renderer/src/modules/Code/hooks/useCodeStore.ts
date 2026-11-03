@@ -1214,12 +1214,6 @@ export const useCodeStore = create<CodeState>()(
           set({ closeTerminalRequest: { sessionId, reuseKeys, nonce: Date.now() } }),
         clearCloseTerminalRequest: () => set({ closeTerminalRequest: null }),
         setSessionProcs: (projectId, sessionId, procs) => {
-          // Debug log - có thể xóa sau khi fix
-          console.log('[DEBUG] setSessionProcs:', {
-            sessionId,
-            procs: procs.map((p) => ({ cmd: p.cmd, panelId: p.panelId, status: p.status })),
-            caller: new Error().stack?.split('\n').slice(2, 4),
-          });
           set((state) => ({
             projects: state.projects.map((p) =>
               p.id !== projectId

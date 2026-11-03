@@ -205,7 +205,7 @@ function configureTypeScriptDefaults() {
  * @param fallbackLanguage - Fallback language if detection fails
  * @returns Correct language ID for Monaco and LSP
  */
-function detectLanguageId(
+export function detectLanguageId(
   filePath: string | undefined,
   fallbackLanguage: string = 'plaintext',
 ): string {

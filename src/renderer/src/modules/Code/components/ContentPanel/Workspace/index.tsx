@@ -399,7 +399,11 @@ export const WorkspaceViews = memo(function WorkspaceViews({
   useEffect(() => {
     if (!closeTerminalRequest || closeTerminalRequest.sessionId !== sessionId) return;
     panels.forEach((p) => {
-      if (p.type === 'terminal' && p.reuseKey && closeTerminalRequest.reuseKeys.includes(p.reuseKey)) {
+      if (
+        p.type === 'terminal' &&
+        p.reuseKey &&
+        closeTerminalRequest.reuseKeys.includes(p.reuseKey)
+      ) {
         dispatch({ type: 'close', id: p.id });
       }
     });
@@ -441,22 +445,13 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     ) => {
       const { panelId } = payload;
       const panel = panelsRef.current.find((p) => p.id === panelId);
-      // Debug log - có thể xóa sau khi fix
-      console.log('[DEBUG] onProcessInfo:', {
-        sessionId,
-        panelId,
-        panelFound: !!panel,
-        reuseKey: panel?.reuseKey,
-        command: payload.command,
-        alive: payload.alive,
-        ports: payload.ports,
-      });
       if (!panelId || !panel) return;
-
       if (payload.alive && payload.command) {
         terminalProcsRef.current.set(panelId, {
           command:
-            panel.reuseKey === 'debug:task' ? panel.title : payload.displayCommand || payload.command,
+            panel.reuseKey === 'debug:task'
+              ? panel.title
+              : payload.displayCommand || payload.command,
           port: payload.ports[0],
           terminalId: payload.terminalId,
         });
@@ -471,8 +466,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         id: panelId,
         patch: {
           terminalRunning: !!payload.alive,
-          terminalProcess:
-            payload.alive && panel.reuseKey !== 'debug:task' ? processName : null,
+          terminalProcess: payload.alive && panel.reuseKey !== 'debug:task' ? processName : null,
         },
       });
       if (!payload.alive && panel.reuseKey === 'debug:task') {
@@ -512,11 +506,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         pruned = true;
       }
     }
-    // Debug log - có thể xóa sau khi fix
-    console.log('[DEBUG] prune procs on panels change:', {
-      pruned,
-      remaining: [...terminalProcsRef.current.keys()],
-    });
+
     if (!pruned) return;
     const procs = panels.flatMap((p) => {
       const info = terminalProcsRef.current.get(p.id);
@@ -672,18 +662,10 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       window.api?.send('terminal:history-delete', id);
       useCodeStore.getState().discardFileState(id);
       const closing = panelsRef.current.find((p) => p.id === id);
-      // Debug log - có thể xóa sau khi fix
-      console.log('[DEBUG] closePanel called:', {
-        id,
-        type: closing?.type,
-        reuseKey: (closing as { reuseKey?: string | null } | undefined)?.reuseKey,
-        debugStatus: useDebugStore.getState().status,
-      });
       if (
         closing?.type === 'terminal' &&
         (closing.reuseKey === 'debug:launch' || closing.reuseKey === 'debug:task')
       ) {
-        console.log('[DEBUG] closePanel -> calling useDebugStore.stop()');
         void useDebugStore.getState().stop();
       }
       if (closing?.type === 'agent' && closing.workflowAgentId) {

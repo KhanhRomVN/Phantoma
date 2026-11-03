@@ -438,7 +438,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
+                    gap: '2px 10px',
+                    flexWrap: 'wrap',
                     marginTop: '2px',
                     overflow: 'hidden',
                     minWidth: 0,

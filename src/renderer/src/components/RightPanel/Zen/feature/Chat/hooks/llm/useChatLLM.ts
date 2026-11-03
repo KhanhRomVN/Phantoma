@@ -181,8 +181,8 @@ export const useChatLLM = ({
     onTurnCompleteRef.current = onTurnComplete;
   }, [onTurnComplete]);
 
-  const MAX_NO_TAG_RETRY = 5;
-  const noTagRetryCountRef = useRef(0);
+  const MAX_NO_TAG_FOLLOWUP = 5;
+  const noTagFollowUpCountRef = useRef(0);
   const MAX_MOCK_REQUESTS = 2;
   const mockRequestCountRef = useRef(0);
 
@@ -494,6 +494,9 @@ export const useChatLLM = ({
       // Build prompt using PromptBuilder with per-conversation overrides applied
       const promptProviderId = finalModel?.providerId ?? lastUsedModelRef.current?.providerId;
 
+      console.warn(
+        `[DEBUG][BuildPrompt] isReq1=${isReq1} skipFirstRequestLogic=${!!skipFirstRequestLogic} isNewSession=${isNewSession} filteredMessagesLen=${filteredMessages.length} uiHidden=${!!uiHidden} contentLen=${content.length}`,
+      );
       const builtPayload = await PromptBuilder.buildPrompt({
         content,
         isReq1,
@@ -760,6 +763,11 @@ export const useChatLLM = ({
                 } else if ((finalModel?.providerId ?? '').toLowerCase() === 'deepseek') {
                   const processed = processDeepseekContent(rawContent, streamToolFormat);
                   dsmlUnconvertedRef.current = hasDeepseekDSML(processed.content);
+                  if (dsmlUnconvertedRef.current) {
+                    console.warn(
+                      `[DEBUG][DSML] Unconverted DSML remains (converted=${processed.convertedToolCount}, format=${streamToolFormat}) → will trigger follow-up request`,
+                    );
+                  }
                   if (processed.convertedToolCount > 0) {
                     content = processed.content;
                   }
@@ -994,9 +1002,9 @@ export const useChatLLM = ({
           return;
         }
 
-        // ─── NO-TAG RETRY ────────────────────────────────────────────────────
+        // ─── NO-TAG FOLLOW-UP ────────────────────────────────────────────────
         // If no tool tags detected: keep the response visible as markdown, but still
-        // send a next request to retry with format reminder.
+        // send a next (follow-up) request with format reminder. The failed response is NOT re-sent.
         if (!hasParsingError && parsed) {
           const { hasRegisteredTag } = await import('../../utils/responseValidation');
           const rawForCheck = assistantMessage.rawResponse || assistantMessage.content;
@@ -1004,15 +1012,43 @@ export const useChatLLM = ({
           const dsmlUnconverted = dsmlUnconvertedRef.current;
           dsmlUnconvertedRef.current = false;
           if (tagMatched && !dsmlUnconverted) {
-            noTagRetryCountRef.current = 0;
-          } else if (noTagRetryCountRef.current < MAX_NO_TAG_RETRY) {
-            noTagRetryCountRef.current += 1;
+            noTagFollowUpCountRef.current = 0;
+          } else if (noTagFollowUpCountRef.current < MAX_NO_TAG_FOLLOWUP) {
+            noTagFollowUpCountRef.current += 1;
             console.warn(
-              `[DEBUG][NoTagRetry] No TAG_REGISTRY match → keeping response visible, sending retry ${noTagRetryCountRef.current}/${MAX_NO_TAG_RETRY}`,
+              `[DEBUG][NoTagFollowUp] Reason: tagMatched=${tagMatched} dsmlUnconverted=${dsmlUnconverted} → keeping response visible, sending follow-up request ${noTagFollowUpCountRef.current}/${MAX_NO_TAG_FOLLOWUP}`,
+            );
+            console.warn(
+              `[DEBUG][NoTagFollowUp][State] isReq1=${isReq1} skipFirstRequestLogic=${!!skipFirstRequestLogic} uiHidden=${!!uiHidden} filteredMessagesLen=${filteredMessages.length} messagesRefLen=${messagesRef.current.length} userRequestCount=${userRequestCountRef.current} assistantMessageId=${assistantMessageId} parentMessageId=${parentMessageId ?? 'none'} contentLen=${content.length} filesCount=${files?.length ?? 0} followUpWillBeReq1=false (hardcoded skipFirstRequestLogic=true -> isReq1=false)`,
+            );
+            console.warn(
+              `[DEBUG][NoTagFollowUp] Retrying same request (isReq1=${isReq1} skipFirstRequestLogic=${!!skipFirstRequestLogic} isNewSession=${isNewSession}) with original payload, dropping failed response`,
+            );
+            if (!skipFirstRequestLogic) {
+              userRequestCountRef.current = Math.max(0, userRequestCountRef.current - 1);
+            }
+            messagesRef.current = filteredMessages;
+            setMessages(filteredMessages);
+            if (isNewSession) {
+              currentConversationIdRef.current = '';
+              setCurrentConversationId('');
+              backendConversationIdRef.current = '';
+              qwenParentIdRef.current = undefined;
+            }
+            return sendMessage(
+              content,
+              files,
+              finalModel,
+              finalAccount,
+              skipFirstRequestLogic,
+              actionIds,
+              uiHidden,
+              parentMessageId,
+              extraOptions,
             );
             // Keep the failed response visible (don't slice it out)
             // messagesRef and setMessages already have updatedMessages with the assistant response
-            // Just send the retry without removing the previous response
+            // Just send the follow-up request without removing the previous response
             return sendMessage(
               content,
               files,
@@ -1020,18 +1056,18 @@ export const useChatLLM = ({
               finalAccount,
               true, // skipFirstRequestLogic: true to avoid counting as new user request
               actionIds,
-              true, // uiHidden: true to hide the retry request/response pair
-              assistantMessageId, // parentMessageId: link retry to the failed response
+              true, // uiHidden: true to hide the follow-up request/response pair
+              assistantMessageId, // parentMessageId: link follow-up to the failed response
               extraOptions,
             );
           } else {
             console.warn(
-              `[DEBUG][NoTagRetry] Retry limit reached (${MAX_NO_TAG_RETRY}) → giving up`,
+              `[DEBUG][NoTagFollowUp] Follow-up limit reached (${MAX_NO_TAG_FOLLOWUP}) → giving up`,
             );
-            noTagRetryCountRef.current = 0;
+            noTagFollowUpCountRef.current = 0;
             notifyDesktop(
               'Phantoma',
-              'AI failed to use correct tool format after multiple retries.',
+              'AI failed to use correct tool format after multiple follow-up requests.',
             );
           }
         }
@@ -1072,7 +1108,7 @@ export const useChatLLM = ({
       } catch (error) {
         dispatchStreaming({ type: 'RESET_STREAMING' });
         abortControllerRef.current = null;
-        noTagRetryCountRef.current = 0;
+        noTagFollowUpCountRef.current = 0;
 
         if (error instanceof Error && error.name === 'AbortError') {
           setIsProcessingSync(false);

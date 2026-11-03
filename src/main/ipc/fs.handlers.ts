@@ -60,6 +60,9 @@ import chokidar, { FSWatcher } from 'chokidar';
 import debounce from 'lodash.debounce';
 
 // ── Internal ──
+import { writeLogFromRenderer } from '../utils/logger';
+
+// ── Internal ──
 import { logger } from '../utils/logger';
 import { scanSquareImages, readImageDataUrl } from '../utils/image-scan';
 
@@ -291,6 +294,12 @@ export function setupFSHandlers() {
   ipcMain.handle('fs:write-file', async (_, filePath: string, content: string) => {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, content, 'utf-8');
+    return true;
+  });
+
+  ipcMain.handle('chat-log:append', async (_, level: string, message: string) => {
+    if (app.isPackaged) return false;
+    writeLogFromRenderer(level, [message]);
     return true;
   });
 
@@ -592,6 +601,13 @@ export function setupFSHandlers() {
     const { shell } = await import('electron');
     const result = await shell.openPath(targetPath);
     return result;
+  });
+
+  ipcMain.handle('shell:open-external', async (_, url: string) => {
+    if (!/^https?:\/\//i.test(url)) return { error: 'Only http(s) URLs are allowed' };
+    const { shell } = await import('electron');
+    await shell.openExternal(url);
+    return { ok: true };
   });
 
   // File watcher

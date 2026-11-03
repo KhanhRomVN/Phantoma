@@ -33,6 +33,7 @@ interface DebugState {
   configurations: DebugConfiguration[];
   selectedName: string | null;
   launchExists: boolean;
+  launchVersion: string | null;
   loadError: string | null;
   status: DebugStatus;
   error: string | null;
@@ -109,6 +110,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
   configurations: [],
   selectedName: null,
   launchExists: false,
+  launchVersion: null,
   loadError: null,
   status: 'idle',
   error: null,
@@ -116,7 +118,13 @@ export const useDebugStore = create<DebugState>((set, get) => ({
 
   loadConfigurations: async (projectPath) => {
     if (!projectPath) {
-      set({ configurations: [], selectedName: null, launchExists: false, loadError: null });
+      set({
+        configurations: [],
+        selectedName: null,
+        launchExists: false,
+        launchVersion: null,
+        loadError: null,
+      });
       return;
     }
     projectRoot = projectPath;
@@ -126,6 +134,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     set({
       configurations,
       launchExists: !!res?.exists,
+      launchVersion: typeof res?.version === 'string' ? res.version : null,
       loadError: res?.ok ? null : (res?.error ?? 'Cannot read launch.json'),
       selectedName: keep ? get().selectedName : (configurations[0]?.name ?? null),
     });
@@ -166,9 +175,11 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     const token = ++startToken;
 
     if (typeof config.preLaunchTask === 'string' && projectRoot) {
-      const logFile = `/tmp/phantoma-task-${Date.now()}.log`;
+      const reuse = reuseTaskLog && taskLogFile !== null;
+      const logFile = reuse ? (taskLogFile as string) : `/tmp/phantoma-task-${Date.now()}.log`;
+      taskLogFile = logFile;
       const terminalSession = resolveWorkspaceSessionId();
-      if (terminalSession) {
+      if (terminalSession && !reuse) {
         useCodeStore
           .getState()
           .requestOpenTerminal(
@@ -223,8 +234,6 @@ export const useDebugStore = create<DebugState>((set, get) => ({
   },
 
   stop: async () => {
-    // Debug log - có thể xóa sau khi fix
-    console.log('[DEBUG] stop() called:', { status: get().status, sessions: [...sessions.keys()] });
     if (get().status === 'idle') return;
     startToken++;
     const root = [...sessions.values()].find((s) => s.root) ?? [...sessions.values()][0];
@@ -244,7 +253,12 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     } finally {
       keepTerminals = false;
     }
-    await get().start();
+    reuseTaskLog = true;
+    try {
+      await get().start();
+    } finally {
+      reuseTaskLog = false;
+    }
   },
 
   resume: () => void sendThreadCommand('continue'),
@@ -316,14 +330,10 @@ function closeSession(session: Session): void {
 }
 
 let keepTerminals = false;
+let reuseTaskLog = false;
+let taskLogFile: string | null = null;
 
 function endAll(): void {
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG] endAll() called:', {
-    keepTerminals,
-    status: useDebugStore.getState().status,
-    sessions: [...sessions.keys()],
-  });
   if (!keepTerminals && useDebugStore.getState().status !== 'idle') {
     const terminalSession = resolveWorkspaceSessionId();
     if (terminalSession) {
@@ -354,10 +364,6 @@ function attachListeners(): void {
   unsubscribers = [
     api.on('debug:message', (_e: unknown, p: any) => handleMessage(p.sessionId, p.message)),
     api.on('debug:exit', (_e: unknown, p: any) => handleSocketClosed(p.sessionId)),
-    // Debug log - có thể xóa sau khi fix
-    api.on('debug:output', (_e: unknown, p: any) =>
-      console.log(`[DEBUG] ${p.sessionId} output:`, p.text),
-    ),
   ];
 }
 
@@ -368,8 +374,6 @@ function handleSocketClosed(sessionId: string): void {
 }
 
 function finishSession(session: Session): void {
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG] finishSession:', { id: session.id, root: session.root, total: sessions.size });
   closeSession(session);
   const hasChild = [...sessions.values()].some((s) => !s.root);
   if (sessions.size === 0 || (!session.root && !hasChild)) endAll();
@@ -423,8 +427,6 @@ function handleMessage(sessionId: string, m: any): void {
 }
 
 function handleReverseRequest(session: Session, m: any): void {
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG] reverse request:', m.command, JSON.stringify(m.arguments));
   if (m.command === 'startDebugging') {
     respond(session, m, true);
     const { request: kind, configuration } = m.arguments ?? {};
@@ -453,7 +455,6 @@ function handleReverseRequest(session: Session, m: any): void {
         // ASSUMED: cửa sổ VS Code mới chỉ broadcast attach về VS Code gốc, không về Phantoma → tự attach vào port --inspect-brk-extensions
         const port = Number(vscodeArgs.join(' ').match(/--inspect-brk-extensions=(\d+)/)?.[1]);
         if (!port) return;
-        console.log('[DEBUG] attach extension host:', { port });
         void openSession(
           {
             name: 'Extension Host',
@@ -482,7 +483,6 @@ function handleReverseRequest(session: Session, m: any): void {
     const { args, cwd, env, title } = m.arguments ?? {};
     const sessionId = resolveWorkspaceSessionId();
     if (!sessionId || !Array.isArray(args) || args.length === 0) {
-      console.log('[DEBUG] runInTerminal failed:', { sessionId, args });
       respond(session, m, false, 'Cannot open terminal: no workspace tab');
       useDebugStore.setState({ error: 'Cannot open debug terminal: no active workspace tab' });
       return;
@@ -508,8 +508,6 @@ function handleReverseRequest(session: Session, m: any): void {
 }
 
 function handleEvent(session: Session, m: any): void {
-  // Debug log - có thể xóa sau khi fix
-  console.log('[DEBUG] event:', m.event, m.event === 'output' ? m.body?.output : '');
   switch (m.event) {
     case 'initialized':
       void syncBreakpoints(session)
@@ -525,7 +523,6 @@ function handleEvent(session: Session, m: any): void {
       useDebugStore.setState({ status: 'running' });
       break;
     case 'terminated':
-      console.log('[DEBUG] terminated:', { sessionId: session.id, root: session.root });
       finishSession(session);
       break;
   }

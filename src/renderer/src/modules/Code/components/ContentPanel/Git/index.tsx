@@ -16,18 +16,25 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, GitBranch, GitCommit, Loader2, RefreshCw, Search, X } from 'lucide-react';
+import { AlertCircle, GitCommit, Search, X } from 'lucide-react';
 
 import { cn } from '@renderer/shared/utils/cn';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { BranchSidebar } from './BranchSidebar';
+import { CommitContextMenu } from './CommitContextMenu';
+import { SyncBranchModal } from '../../modal/SyncBranchModal';
 import { CommitDetail } from './CommitDetail';
 import { DiffView } from './DiffView';
+import {
+  ConfirmFileChangeModal,
+  type FileChangeAction,
+} from '../../modal/ConfirmFileChangeModal';
 import { GraphCell, RefPill } from './GraphCell';
 import {
   ROW_HEIGHT,
   LANE_WIDTH,
   buildGraph,
+  laneX,
   formatRelative,
   laneColor,
   parseRefs,
@@ -35,6 +42,79 @@ import {
   type CommitFile,
   type GraphRow,
 } from './graph';
+
+// ─── Virtual Row (local changes not on remote) ──────────────────────────
+interface LocalChange {
+  name: string;
+  files: CommitFile[];
+}
+
+const VIRTUAL_PREFIX = 'virtual:';
+
+interface VirtualRowProps {
+  branch: string;
+  fileCount: number;
+  col: number;
+  lines: number[];
+  graphWidth: number;
+  selected: boolean;
+  dimmed: boolean;
+  onSelect: (key: string) => void;
+}
+
+const VirtualRow = memo(function VirtualRow({
+  branch,
+  fileCount,
+  col,
+  lines,
+  graphWidth,
+  selected,
+  dimmed,
+  onSelect,
+}: VirtualRowProps) {
+  const color = laneColor(col);
+  const x = laneX(col);
+  const mid = ROW_HEIGHT / 2;
+  const key = VIRTUAL_PREFIX + branch;
+
+  return (
+    <div
+      id={`git-row-${key}`}
+      onClick={() => onSelect(key)}
+      style={{
+        height: ROW_HEIGHT,
+        background: selected
+          ? `color-mix(in srgb, ${color} 20%, transparent)`
+          : `linear-gradient(90deg, color-mix(in srgb, ${color} 7%, transparent), transparent 55%)`,
+      }}
+      className={cn(
+        'flex items-center shrink-0 cursor-pointer transition-colors hover:brightness-125',
+        dimmed && 'opacity-30',
+      )}
+    >
+      <div className={'w-[200px] shrink-0 flex items-center justify-end gap-1 pl-3 pr-2 overflow-hidden'}>
+        <RefPill chip={{ label: branch, kind: 'local' }} />
+      </div>
+
+      <div style={{ width: graphWidth }} className={'shrink-0 overflow-hidden'}>
+        <svg width={graphWidth} height={ROW_HEIGHT}>
+          {lines
+            .filter((l) => l !== col)
+            .map((l) => (
+              <line key={l} x1={laneX(l)} x2={laneX(l)} y1={0} y2={ROW_HEIGHT} stroke={laneColor(l)} strokeWidth={2} />
+            ))}
+          <line x1={x} x2={x} y1={mid} y2={ROW_HEIGHT} stroke={color} strokeWidth={2} strokeDasharray={'3 3'} />
+          <circle cx={x} cy={mid} r={7} fill={'none'} stroke={color} strokeWidth={2} strokeDasharray={'3 3'} />
+        </svg>
+      </div>
+
+      <span className={'flex-1 min-w-0 truncate pl-2 text-[12.5px] italic text-text-secondary'}>
+        {`Local changes not on remote · ${fileCount} files`}
+      </span>
+      <span className={'w-[268px] shrink-0'} />
+    </div>
+  );
+});
 
 // ─── Commit Row ─────────────────────────────────────────────────────────
 interface CommitRowProps {
@@ -45,6 +125,7 @@ interface CommitRowProps {
   selected: boolean;
   dimmed: boolean;
   onSelect: (hash: string) => void;
+  onContextMenu: (e: React.MouseEvent, commit: Commit) => void;
 }
 
 const CommitRow = memo(function CommitRow({
@@ -55,6 +136,7 @@ const CommitRow = memo(function CommitRow({
   selected,
   dimmed,
   onSelect,
+  onContextMenu,
 }: CommitRowProps) {
   const color = laneColor(row.col);
   const chips = parseRefs(commit.refs);
@@ -67,6 +149,7 @@ const CommitRow = memo(function CommitRow({
     <div
       id={`git-row-${commit.hash}`}
       onClick={() => onSelect(commit.hash)}
+      onContextMenu={(e) => onContextMenu(e, commit)}
       style={{
         height: ROW_HEIGHT,
         background: selected
@@ -80,7 +163,7 @@ const CommitRow = memo(function CommitRow({
     >
       <div className={'w-[200px] shrink-0 flex items-center justify-end gap-1 pl-3 pr-2 overflow-hidden'}>
         {shown.map((c) => (
-          <RefPill key={c.kind + c.label} chip={c} />
+          <RefPill key={c.kind + c.label} chip={c} color={color} />
         ))}
         {extra > 0 && (
           <span className={'font-mono text-[10px] text-text-secondary/60 shrink-0'}>{`+${extra}`}</span>
@@ -133,6 +216,10 @@ export const GitView = memo(function GitView() {
 
   const [commits, setCommits] = useState<Commit[]>([]);
   const [branches, setBranches] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [worktreePaths, setWorktreePaths] = useState<Record<string, string>>({});
+  const [syncCommit, setSyncCommit] = useState<Commit | null>(null);
+  const [localChanges, setLocalChanges] = useState<LocalChange[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
@@ -143,6 +230,7 @@ export const GitView = memo(function GitView() {
   const [busyBranch, setBusyBranch] = useState<string | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
   const [activeFile, setActiveFile] = useState<string | null>(null);
+  const [activeBranch, setActiveBranch] = useState<string | null>(null);
 
   useEffect(() => {
     setActiveFile(null);
@@ -161,10 +249,14 @@ export const GitView = memo(function GitView() {
     setLoading(true);
     setError(null);
     try {
-      const [logRes, branchRes] = await Promise.all([
+      const [logRes, branchRes, changeRes, tagRes] = await Promise.all([
         window.api.invoke('git:log', projectPath, 300),
         window.api.invoke('git:list-branches', projectPath),
+        window.api.invoke('git:local-changes', projectPath),
+        window.api.invoke('git:list-tags', projectPath),
       ]);
+      setLocalChanges(changeRes?.branches ?? []);
+      setTags(tagRes?.tags ?? []);
       if (logRes?.error) {
         setError(logRes.error);
         setCommits([]);
@@ -174,6 +266,7 @@ export const GitView = memo(function GitView() {
         setSelectedHash((prev) => prev ?? list[0]?.hash ?? null);
       }
       setBranches(branchRes?.branches ?? []);
+      setWorktreePaths(branchRes?.worktreePaths ?? {});
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally {
@@ -193,7 +286,7 @@ export const GitView = memo(function GitView() {
   }, [refresh]);
 
   useEffect(() => {
-    if (!selectedHash || !projectPath) {
+    if (!selectedHash || !projectPath || selectedHash.startsWith(VIRTUAL_PREFIX)) {
       setFiles([]);
       return;
     }
@@ -218,6 +311,39 @@ export const GitView = memo(function GitView() {
   const { rows, laneCount } = useMemo(() => buildGraph(commits), [commits]);
   const graphWidth = Math.min(Math.max(laneCount * LANE_WIDTH + 16, 72), 260);
   const selected = commits.find((c) => c.hash === selectedHash) ?? null;
+  const selectedVirtual = localChanges.find((lc) => VIRTUAL_PREFIX + lc.name === selectedHash) ?? null;
+
+  const virtualByHash = useMemo(() => {
+    const map = new Map<string, LocalChange[]>();
+    localChanges.forEach((lc) => {
+      const tip = commits.find((c) => c.refs.some((r) => r === lc.name || r === `HEAD -> ${lc.name}`));
+      if (!tip) return;
+      map.set(tip.hash, [...(map.get(tip.hash) ?? []), lc]);
+    });
+    return map;
+  }, [commits, localChanges]);
+
+  const items = useMemo(() => {
+    const list: (
+      | { kind: 'commit'; commit: Commit; row: GraphRow }
+      | { kind: 'virtual'; change: LocalChange; row: GraphRow }
+    )[] = [];
+    commits.forEach((c, idx) => {
+      (virtualByHash.get(c.hash) ?? []).forEach((change) =>
+        list.push({ kind: 'virtual', change, row: rows[idx] }),
+      );
+      list.push({ kind: 'commit', commit: c, row: rows[idx] });
+    });
+    return list;
+  }, [commits, rows, virtualByHash]);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    const keyOf = (it: (typeof items)[number]) =>
+      it.kind === 'commit' ? it.commit.hash : VIRTUAL_PREFIX + it.change.name;
+    if (selectedHash && items.some((it) => keyOf(it) === selectedHash)) return;
+    setSelectedHash(keyOf(items[0]));
+  }, [items, selectedHash]);
 
   const currentBranch = useMemo(() => {
     for (const c of commits) {
@@ -233,6 +359,25 @@ export const GitView = memo(function GitView() {
   );
   const localBranches = useMemo(() => validBranches.filter((b) => !b.startsWith('origin/')), [validBranches]);
   const remoteBranches = useMemo(() => validBranches.filter((b) => b.startsWith('origin/')), [validBranches]);
+
+  const syncSourceLabel = useCallback(
+    (commit: Commit) => {
+      const chips = parseRefs(commit.refs);
+      const remote = chips.find((c) => c.kind === 'remote');
+      const local = chips.find((c) => c.kind === 'head' || c.kind === 'local');
+      const branch = remote
+        ? remote.label
+        : `origin/${local?.label ?? activeBranch ?? currentBranch ?? 'HEAD'}`;
+      return `${branch} - ${commit.hash.slice(0, 7)}`;
+    },
+    [activeBranch, currentBranch],
+  );
+
+  const syncTargets = useMemo(() => {
+    const list = currentBranch ? [{ name: currentBranch, path: projectPath }] : [];
+    Object.entries(worktreePaths).forEach(([name, path]) => list.push({ name, path }));
+    return list;
+  }, [currentBranch, projectPath, worktreePaths]);
 
   const matchSet = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -253,6 +398,7 @@ export const GitView = memo(function GitView() {
 
   const selectHash = useCallback((hash: string, block: ScrollLogicalPosition = 'nearest') => {
     setSelectedHash(hash);
+    setActiveBranch(null);
     document.getElementById(`git-row-${hash}`)?.scrollIntoView({ block });
   }, []);
 
@@ -263,6 +409,11 @@ export const GitView = memo(function GitView() {
 
   const jumpToBranch = useCallback(
     async (name: string) => {
+      if (localChanges.some((lc) => lc.name === name)) {
+        selectHash(VIRTUAL_PREFIX + name, 'center');
+        setActiveBranch(name);
+        return;
+      }
       setBusyBranch(name);
       try {
         const res = await window.api.invoke('git:resolve-ref', projectPath, name);
@@ -272,6 +423,7 @@ export const GitView = memo(function GitView() {
         }
         if (commits.some((c) => c.hash === res.hash)) {
           selectHash(res.hash, 'center');
+          setActiveBranch(name);
         } else {
           showNotice(`Tip of "${name}" (${res.hash.slice(0, 7)}) is outside the loaded 300 commits`);
         }
@@ -279,7 +431,7 @@ export const GitView = memo(function GitView() {
         setBusyBranch(null);
       }
     },
-    [commits, projectPath, selectHash, showNotice],
+    [commits, localChanges, projectPath, selectHash, showNotice],
   );
 
   const handleCheckout = useCallback(
@@ -300,12 +452,67 @@ export const GitView = memo(function GitView() {
     [projectPath, refresh, showNotice],
   );
 
+  const runFileOp = useCallback(
+    async (channel: string, payload: unknown, okMsg: string, opts?: unknown) => {
+      const res = await window.api.invoke(
+        channel,
+        projectPath,
+        payload,
+        ...(opts === undefined ? [] : [opts]),
+      );
+      showNotice(res?.error ? String(res.error).split('\n')[0] : okMsg);
+      await refresh();
+    },
+    [projectPath, refresh, showNotice],
+  );
+
+  const [pendingOp, setPendingOp] = useState<{ action: FileChangeAction; file: CommitFile } | null>(
+    null,
+  );
+
+  const fileActions = useMemo(
+    () =>
+      selectedVirtual
+        ? {
+            onStage: (f: CommitFile) => setPendingOp({ action: 'stage', file: f }),
+            onUnstage: (f: CommitFile) => setPendingOp({ action: 'unstage', file: f }),
+            onDiscard: (f: CommitFile) => setPendingOp({ action: 'discard', file: f }),
+          }
+        : undefined,
+    [selectedVirtual],
+  );
+
+  const confirmPendingOp = useCallback(() => {
+    if (!pendingOp) return;
+    const { action, file: f } = pendingOp;
+    if (action === 'stage') void runFileOp('git:stage', [f.path], `Staged ${f.path}`);
+    else if (action === 'unstage') void runFileOp('git:unstage', [f.path], `Unstaged ${f.path}`);
+    else
+      void runFileOp('git:discard', [f.path], `Discarded ${f.path}`, {
+        untracked: !!f.untracked,
+        staged: !f.untracked && !!f.staged,
+      });
+  }, [pendingOp, runFileOp]);
+
+  const [commitMenu, setCommitMenu] = useState<{
+    commit: Commit;
+    pos: { top: number; left: number };
+  } | null>(null);
+
+  const openCommitMenu = useCallback((e: React.MouseEvent, commit: Commit) => {
+    e.preventDefault();
+    setSelectedHash(commit.hash);
+    setCommitMenu({ commit, pos: { top: e.clientY, left: e.clientX } });
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
-    const idx = commits.findIndex((c) => c.hash === selectedHash);
-    const next = commits[e.key === 'ArrowDown' ? idx + 1 : idx - 1];
-    if (next) selectHash(next.hash);
+    const keyOf = (it: (typeof items)[number]) =>
+      it.kind === 'commit' ? it.commit.hash : VIRTUAL_PREFIX + it.change.name;
+    const idx = items.findIndex((it) => keyOf(it) === selectedHash);
+    const next = items[e.key === 'ArrowDown' ? idx + 1 : idx - 1];
+    if (next) selectHash(keyOf(next));
   };
 
   if (!projectPath) {
@@ -319,19 +526,23 @@ export const GitView = memo(function GitView() {
   return (
     <div className={'relative flex-1 flex min-h-0 bg-background'}>
       <BranchSidebar
+        title={projectName}
         local={localBranches}
         remote={remoteBranches}
+        tags={tags}
         current={currentBranch}
+        selected={activeBranch ?? currentBranch}
         busy={busyBranch}
         onJump={(n) => void jumpToBranch(n)}
         onCheckout={(n) => void handleCheckout(n)}
       />
 
-      {diffOpen && selected ? (
+      {diffOpen && (selected || selectedVirtual) ? (
         <DiffView
           projectPath={projectPath}
-          hash={selected.hash}
-          subject={selected.subject}
+          hash={selected?.hash}
+          localBranch={selectedVirtual?.name ?? null}
+          subject={selected?.subject ?? 'Local changes not on remote'}
           activePath={activeFile}
           onClose={closeDiff}
         />
@@ -339,14 +550,7 @@ export const GitView = memo(function GitView() {
       <section className={'flex-1 min-w-0 flex flex-col'}>
         {/* ── Toolbar ── */}
         <div className={'h-11 shrink-0 px-4 flex items-center gap-3 border-b border-border'}>
-          <GitCommit className={'w-4 h-4 text-text-secondary'} />
-          <span className={'text-[13px] font-semibold text-text-primary truncate'}>{projectName}</span>
-          {currentBranch && (
-            <span className={'inline-flex items-center gap-1 h-[22px] px-2 rounded-md bg-card-background text-text-secondary border border-border font-mono text-[11px]'}>
-              <GitBranch className={'w-3 h-3'} />
-              {currentBranch}
-            </span>
-          )}
+
 
           <div className={'relative ml-auto w-[260px]'}>
             <Search className={'absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary/60 pointer-events-none'} />
@@ -366,20 +570,7 @@ export const GitView = memo(function GitView() {
             )}
           </div>
 
-          <span className={'font-mono text-[11px] text-text-secondary/60 shrink-0'}>
-            {matchSet ? `${matchSet.size} / ${commits.length}` : `${commits.length} commits`}
-          </span>
-          <button
-            onClick={() => void refresh()}
-            title={'Refresh'}
-            className={'w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer'}
-          >
-            {loading ? (
-              <Loader2 className={'w-3.5 h-3.5 animate-spin'} />
-            ) : (
-              <RefreshCw className={'w-3.5 h-3.5'} />
-            )}
-          </button>
+
         </div>
 
         {/* ── Column header ── */}
@@ -405,18 +596,33 @@ export const GitView = memo(function GitView() {
           </div>
         ) : (
           <div tabIndex={0} onKeyDown={handleKeyDown} className={'flex-1 overflow-y-auto outline-none'}>
-            {commits.map((c, idx) => (
-              <CommitRow
-                key={c.hash}
-                commit={c}
-                row={rows[idx]}
-                laneCount={laneCount}
-                graphWidth={graphWidth}
-                selected={c.hash === selectedHash}
-                dimmed={matchSet !== null && !matchSet.has(c.hash)}
-                onSelect={selectHash}
-              />
-            ))}
+            {items.map((it) =>
+              it.kind === 'commit' ? (
+                <CommitRow
+                  key={it.commit.hash}
+                  commit={it.commit}
+                  row={it.row}
+                  laneCount={laneCount}
+                  graphWidth={graphWidth}
+                  selected={it.commit.hash === selectedHash}
+                  dimmed={matchSet !== null && !matchSet.has(it.commit.hash)}
+                  onSelect={selectHash}
+                  onContextMenu={openCommitMenu}
+                />
+              ) : (
+                <VirtualRow
+                  key={VIRTUAL_PREFIX + it.change.name}
+                  branch={it.change.name}
+                  fileCount={it.change.files.length}
+                  col={it.row.col}
+                  lines={[...it.row.incoming, ...it.row.passThrough]}
+                  graphWidth={graphWidth}
+                  selected={VIRTUAL_PREFIX + it.change.name === selectedHash}
+                  dimmed={matchSet !== null && !it.change.name.toLowerCase().includes(query.trim().toLowerCase())}
+                  onSelect={selectHash}
+                />
+              ),
+            )}
           </div>
         )}
       </section>
@@ -428,12 +634,51 @@ export const GitView = memo(function GitView() {
         </div>
       )}
 
+      {commitMenu && (
+        <CommitContextMenu
+          key={commitMenu.commit.hash}
+          commit={commitMenu.commit}
+          projectPath={projectPath}
+          position={commitMenu.pos}
+          onClose={() => setCommitMenu(null)}
+          onNotice={showNotice}
+          onApplyToBranch={setSyncCommit}
+        />
+      )}
+
+      <SyncBranchModal
+        isOpen={!!syncCommit}
+        onClose={() => setSyncCommit(null)}
+        targetPath={projectPath}
+        projectName={projectName}
+        currentBranch={currentBranch ?? ''}
+        branches={localBranches}
+        fixedSource={
+          syncCommit ? { ref: syncCommit.hash, label: syncSourceLabel(syncCommit) } : undefined
+        }
+        targets={syncTargets}
+        onApplied={(count, source) => {
+          showNotice(`Applied ${count} file${count === 1 ? '' : 's'} from ${source}`);
+          void refresh();
+        }}
+      />
+
+      <ConfirmFileChangeModal
+        isOpen={!!pendingOp}
+        action={pendingOp?.action ?? 'discard'}
+        fileName={pendingOp?.file.path ?? ''}
+        onClose={() => setPendingOp(null)}
+        onConfirm={confirmPendingOp}
+      />
+
       <CommitDetail
         commit={selected}
-        files={files}
-        loading={filesLoading}
+        files={selectedVirtual ? selectedVirtual.files : files}
+        loading={selectedVirtual ? false : filesLoading}
+        localBranch={selectedVirtual?.name ?? null}
         selectedFile={diffOpen ? activeFile : null}
-        onSelectHash={(h) => selectHash(h, 'center')}
+        projectPath={projectPath}
+        fileActions={fileActions}
         onSelectFile={openDiff}
       />
     </div>

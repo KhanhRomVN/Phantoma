@@ -284,12 +284,12 @@ export function SkillGroupDrawer({
           className="px-4 py-3 border-b flex items-center justify-between shrink-0"
           style={{ borderColor }}
         >
-          <div>
+          <div className="min-w-0">
             <div className="text-base font-bold" style={{ color: textPrimary }}>
               {skill ? "Install Skill" : "Manage Groups"}
             </div>
             <div
-              className="text-xs opacity-70 mt-0.5 truncate max-w-[240px]"
+              className="text-xs opacity-70 mt-0.5 truncate max-w-[min(240px,60vw)]"
               style={{ color: textSecondary }}
             >
               {skill ? skill.name : "Create and organize skill groups"}

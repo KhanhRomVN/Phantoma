@@ -325,11 +325,11 @@ const MarketplacePanel: React.FC<MarketplacePanelProps> = ({
     >
       {/* Header */}
       <div
-        className="px-4 pt-4 pb-2 shrink-0"
+        className="w-full max-w-[680px] mx-auto box-border px-4 pt-4 pb-2 shrink-0"
       >
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="min-w-0">
               <div className="mb-1">
                 <span
                   className="font-bold text-base tracking-wide"
@@ -367,7 +367,7 @@ const MarketplacePanel: React.FC<MarketplacePanelProps> = ({
 
       {/* Tabbar */}
       <div
-        className="flex items-center gap-1 px-4 border-b shrink-0"
+        className="flex items-center gap-1 px-[max(16px,calc((100%-680px)/2+16px))] border-b shrink-0"
         style={{ borderBottomColor: borderColor }}
       >
         {["SKILL", "MCP"].map((tab) => (
@@ -387,7 +387,7 @@ const MarketplacePanel: React.FC<MarketplacePanelProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 w-full max-w-[680px] mx-auto overflow-hidden flex flex-col">
         {activeTab === "SKILL" && <SkillPanel />}
         {activeTab === "MCP" && <MCPPanel />}
       </div>

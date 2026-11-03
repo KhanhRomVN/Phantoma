@@ -10,6 +10,7 @@ export interface DrawerProps {
   width?: string;
   strategy?: 'fixed' | 'absolute';
   position?: 'right' | 'left' | 'bottom';
+  showHandle?: boolean;
 }
 
 export interface DrawerHeaderProps {

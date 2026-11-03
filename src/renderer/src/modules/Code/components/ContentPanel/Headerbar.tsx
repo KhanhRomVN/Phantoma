@@ -8,16 +8,11 @@
  * ------------------------------------------------------------------
  */
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ContentViewMode } from '../../hooks/useCodeStore';
 import {
   Workflow,
-  ArrowDown,
-  ArrowUp,
-  Download,
-  Layers,
   Loader2,
-  Pencil,
   RefreshCw,
   GitBranch,
   Bell,
@@ -184,56 +179,6 @@ export function ContentHeaderBar() {
     window.dispatchEvent(new CustomEvent('phantoma:new-task'));
   };
 
-  // Git view state
-  const [gitSync, setGitSync] = useState<{
-    branch: string;
-    hasUpstream: boolean;
-    ahead: number;
-    behind: number;
-    changed: number;
-    staged: number;
-    stashes: number;
-  } | null>(null);
-  const [gitBusy, setGitBusy] = useState<'fetch' | 'pull' | 'push' | null>(null);
-  const [gitMsg, setGitMsg] = useState<{ text: string; ok: boolean } | null>(null);
-
-  const loadGitSync = useCallback(async () => {
-    if (!projectPath) return;
-    try {
-      const res = await window.api.invoke('git:sync-info', projectPath);
-      setGitSync(res?.error ? null : res);
-    } catch {
-      setGitSync(null);
-    }
-  }, [projectPath]);
-
-  useEffect(() => {
-    if (contentViewMode !== 'git' || !projectPath) return;
-    void loadGitSync();
-    const timer = setInterval(() => void loadGitSync(), 15000);
-    return () => clearInterval(timer);
-  }, [contentViewMode, projectPath, loadGitSync]);
-
-  const runGitOp = async (op: 'fetch' | 'pull' | 'push') => {
-    if (!projectPath || gitBusy) return;
-    setGitBusy(op);
-    try {
-      const res = await window.api.invoke(`git:${op}`, projectPath);
-      const ok = !res?.error;
-      setGitMsg({
-        ok,
-        text: ok ? `${op[0].toUpperCase()}${op.slice(1)} completed` : String(res.error).split('\n')[0],
-      });
-      window.dispatchEvent(new CustomEvent('phantoma:git-refresh'));
-      await loadGitSync();
-    } catch (e: any) {
-      setGitMsg({ ok: false, text: e?.message ?? String(e) });
-    } finally {
-      setGitBusy(null);
-      setTimeout(() => setGitMsg(null), 3500);
-    }
-  };
-
   return (
     <>
       <div
@@ -260,65 +205,7 @@ export function ContentHeaderBar() {
           )}
 
           {contentViewMode === 'git' && (
-            <>
-              <span
-                className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0"
-                style={{
-                  color: identity.color,
-                  backgroundColor: `color-mix(in srgb, ${identity.color} 15%, transparent)`,
-                }}
-              >
-                <identity.Icon className="w-3.5 h-3.5" />
-              </span>
-              <span className="text-sm font-semibold text-text-primary truncate">{projectName}</span>
-              {gitSync && (
-                <>
-                  <span className="flex items-center gap-1.5 text-[11px] font-mono px-1.5 py-0.5 rounded border border-border bg-card-background text-text-secondary shrink-0">
-                    <GitBranch className="w-3 h-3" strokeWidth={1.5} />
-                    {gitSync.branch}
-                  </span>
-                  <span
-                    title={
-                      gitSync.hasUpstream
-                        ? `${gitSync.ahead} ahead, ${gitSync.behind} behind upstream`
-                        : 'No upstream configured'
-                    }
-                    className="flex items-center gap-1.5 font-mono text-[11px] text-text-secondary shrink-0"
-                  >
-                    <span className={gitSync.ahead ? 'text-green' : ''}>
-                      <ArrowUp className="inline w-3 h-3" />
-                      {gitSync.ahead}
-                    </span>
-                    <span className={gitSync.behind ? 'text-orange-400' : ''}>
-                      <ArrowDown className="inline w-3 h-3" />
-                      {gitSync.behind}
-                    </span>
-                  </span>
-                  <span
-                    title={`${gitSync.changed} changed, ${gitSync.staged} staged`}
-                    className="flex items-center gap-1 text-[11px] text-text-secondary shrink-0"
-                  >
-                    <Pencil className="w-3 h-3" />
-                    <span className="font-mono">{gitSync.changed}</span>
-                  </span>
-                  <span
-                    title={`${gitSync.stashes} stashes`}
-                    className="flex items-center gap-1 text-[11px] text-text-secondary shrink-0"
-                  >
-                    <Layers className="w-3 h-3" />
-                    <span className="font-mono">{gitSync.stashes}</span>
-                  </span>
-                </>
-              )}
-              {gitMsg && (
-                <span
-                  className={`text-[11px] truncate ${gitMsg.ok ? 'text-green' : 'text-red'}`}
-                  title={gitMsg.text}
-                >
-                  {gitMsg.text}
-                </span>
-              )}
-            </>
+            <span className="text-sm font-semibold text-text-primary truncate">{projectName}</span>
           )}
 
           {contentViewMode === 'design' && (
@@ -491,42 +378,6 @@ export function ContentHeaderBar() {
             </>
           )}
 
-          {contentViewMode === 'git' && (
-            <div className="h-[28px] p-0.5 rounded-md border border-border bg-card-hover flex items-center gap-0.5">
-              {(
-                [
-                  ['fetch', Download, 'Fetch all remotes'],
-                  ['pull', ArrowDown, 'Pull'],
-                  ['push', ArrowUp, 'Push'],
-                ] as const
-              ).map(([op, Icon, label]) => (
-                <button
-                  key={op}
-                  onClick={() => void runGitOp(op)}
-                  disabled={gitBusy !== null}
-                  title={label}
-                  className="h-full px-2 rounded flex items-center gap-1 text-[11px] font-medium text-text-primary hover:bg-card-background transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {gitBusy === op ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Icon className="w-3.5 h-3.5" />
-                  )}
-                  <span className="capitalize">{op}</span>
-                </button>
-              ))}
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('phantoma:git-refresh'));
-                  void loadGitSync();
-                }}
-                title="Refresh"
-                className="w-[24px] h-full rounded flex items-center justify-center text-text-primary hover:bg-card-background transition-colors cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
 
           {contentViewMode === 'design' && (
             <button

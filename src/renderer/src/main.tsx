@@ -30,8 +30,11 @@ if (import.meta.env.PROD) {
   });
 }
 
+import { installChatConsoleCapture } from './components/RightPanel/Zen/feature/Chat/utils/consoleLogCapture';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { FontProvider } from './fonts/FontProvider';
+
+installChatConsoleCapture();
 
 const queryClient = new QueryClient();
 

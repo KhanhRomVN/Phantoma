@@ -627,7 +627,7 @@ export const ProjectCard = memo(function ProjectCard({
         'relative shrink-0 border-y border-divider overflow-hidden transition-colors',
         project.hidden && 'opacity-50',
         // Selected project indicator — subtle accent strip + tinted background
-        isProjectSelected && 'bg-[rgba(255,106,31,0.04)]',
+        isProjectSelected && 'bg-primary/[0.04]',
       )}
       data-project-selected={isProjectSelected ? 'true' : undefined}
       draggable={draggable}
@@ -643,7 +643,7 @@ export const ProjectCard = memo(function ProjectCard({
         className={cn(
           "group/top relative flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none transition-colors",
           !isGlobalDragging && "hover:bg-white/[0.02]",
-          isProjectSelected && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-[#ff6a1f]",
+          isProjectSelected && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-primary",
         )}
         onClick={() => {
           if (isGlobalDragging) return;
@@ -685,7 +685,7 @@ export const ProjectCard = memo(function ProjectCard({
               className={cn(
                 'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors cursor-pointer',
                 isTaskManagerActive
-                  ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
+                  ? 'text-primary bg-primary/10'
                   : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
               )}
               title={isTaskManagerActive ? 'Close Task Manager' : 'Open Task Manager'}
@@ -705,7 +705,7 @@ export const ProjectCard = memo(function ProjectCard({
                   ? 'text-text-secondary/30 cursor-not-allowed'
                   : 'cursor-pointer ' +
                       (isGitActive
-                        ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
+                        ? 'text-primary bg-primary/10'
                         : 'text-text-secondary hover:bg-card-hover hover:text-text-primary'),
               )}
               title={

@@ -26,12 +26,14 @@ import { cn } from '@renderer/shared/utils/cn';
 
 // ── Hooks ──
 import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useDebugStore } from '../../stores/useDebugStore';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface TabItem {
   id: string;
   icon: ReactNode;
   label: string;
+  busy?: boolean;
 }
 
 /** Height matches ProjectPanel header (h-[44px]) */
@@ -84,6 +86,7 @@ const getTabColor = (tabId: string) => {
 export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) {
   // ── Store ──
   const { accentColors, UNIFIED_ACCENT } = useAccentColors();
+  const debugBusy = useDebugStore((s) => s.status !== 'idle');
 
   if (typeof accentColors !== 'undefined' && accentColors.length > 0) {
     setAccentColorsForActivityBar(accentColors, UNIFIED_ACCENT);
@@ -99,6 +102,7 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
         {tabs.map((tab) => {
           const tabColor = getTabColor(tab.id);
           const isActive = activeTab === tab.id;
+          const busy = !!tab.busy || (tab.id === 'debug' && debugBusy);
 
           return (
             <button
@@ -107,19 +111,44 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
               className={cn(
                 'relative p-1.5 rounded-md flex items-center justify-center gap-1.5 shrink-0 border-0 outline-none focus:outline-none focus-visible:outline-none transition-all duration-200',
                 !isActive &&
+                  !busy &&
                   'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
                 isActive && 'px-2.5 text-[--tab-color] bg-[--tab-color-bg]',
               )}
               style={
-                isActive
+                isActive || busy
                   ? ({
                       '--tab-color': tabColor?.base || $('--text-primary'),
                       '--tab-color-bg': tabColor?.bg || 'rgba(54,134,255,0.1)',
+                      ...(busy ? { color: '#34d399' } : {}),
                     } as React.CSSProperties)
                   : undefined
               }
               title={tab.label}
             >
+              {busy && !isActive && (
+                <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+                  <rect
+                    x="0.75"
+                    y="0.75"
+                    rx="6"
+                    ry="6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 3"
+                    style={{ width: 'calc(100% - 1.5px)', height: 'calc(100% - 1.5px)' }}
+                  >
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      from="0"
+                      to="-14"
+                      dur="0.8s"
+                      repeatCount="indefinite"
+                    />
+                  </rect>
+                </svg>
+              )}
               <div className="flex items-center justify-center shrink-0 w-3.5 h-3.5">
                 {tab.icon}
               </div>

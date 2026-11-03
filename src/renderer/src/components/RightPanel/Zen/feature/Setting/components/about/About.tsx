@@ -155,7 +155,7 @@ const LinkCard: React.FC<{
       rel="noopener noreferrer"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="flex-1 min-w-0 flex items-center gap-2.5 p-2.5 rounded-lg no-underline box-border transition-colors duration-140 ease-linear"
+      className="flex-1 min-w-[150px] flex items-center gap-2.5 p-2.5 rounded-lg no-underline box-border transition-colors duration-140 ease-linear"
       style={{
         backgroundColor: hovered
           ? 'color-mix(in srgb, var(--primary-text) 8%, var(--input-bg))'
@@ -202,7 +202,7 @@ const AboutSettings: React.FC = () => {
       </div>
 
       {/* Links: mã nguồn mở + issues (đặt ngay dưới hero để dễ thấy) */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <LinkCard
           href={REPO_URL}
           icon={<Folder size={16} />}

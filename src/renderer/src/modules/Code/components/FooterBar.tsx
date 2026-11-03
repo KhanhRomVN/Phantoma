@@ -26,9 +26,12 @@ import {
   Loader2,
   RefreshCw,
   Save,
+  Bug,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
 import { useCodeStore } from '../hooks/useCodeStore';
+import { useDebugStore } from '../stores/useDebugStore';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface FooterBarProps {
@@ -82,6 +85,8 @@ export function FooterBar({ className }: FooterBarProps) {
   );
   const viewMode = useCodeStore((s) => s.contentViewMode);
   const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
+  const projectCount = useCodeStore((s) => s.projects.length);
+  const debugStatus = useDebugStore((s) => s.status);
 
   const [git, setGit] = useState<GitInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -193,9 +198,32 @@ export function FooterBar({ className }: FooterBarProps) {
             )}
           </span>
         )}
+
+        {debugStatus !== 'idle' && (
+          <>
+            <Sep />
+            <span
+              className={cn(item, 'text-emerald-400', clickable)}
+              onClick={() => useCodeStore.getState().setActivityPanelTab('debug' as any)}
+              title="Run & Debug is active"
+            >
+              <Bug className="w-3 h-3 animate-pulse" />
+              {debugStatus === 'starting'
+                ? 'Starting'
+                : debugStatus === 'stopped'
+                  ? 'Paused'
+                  : 'Debugging'}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
+        <span className={cn(item, 'text-violet-400')} title="Projects">
+          <Layers className="w-3 h-3" />
+          {projectCount} projects
+        </span>
+        <Sep />
         {unsavedCount > 0 && (
           <>
             <span className={cn(item, 'text-rose-400')} title="Files with unsaved changes">

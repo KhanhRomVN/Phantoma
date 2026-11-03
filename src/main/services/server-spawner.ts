@@ -73,7 +73,6 @@ async function waitHealthy(baseUrl: string, timeoutMs = 15000): Promise<void> {
 /** Spawn shell server ngay khi app ready (packaged only). */
 export async function startShellServer(): Promise<RuntimePorts> {
   if (!app.isPackaged) {
-    logger.info('[ServerSpawner] dev mode — skip shell spawn, using DEV_PORTS');
     return currentPorts;
   }
   if (serverProc) return currentPorts;
@@ -82,10 +81,8 @@ export async function startShellServer(): Promise<RuntimePorts> {
   currentPorts = { ...currentPorts, server: serverPort };
 
   const serverEntry = resolveServerEntry(path.join(resourcesRoot(), 'server'));
-  logger.info(`[ServerSpawner] starting shell server:${serverPort}`);
   serverProc = fork(serverEntry, { PORT: String(serverPort), ENV: 'production' }, 'server');
   await waitHealthy(`http://127.0.0.1:${serverPort}`);
-  logger.info('[ServerSpawner] shell server healthy');
   return currentPorts;
 }
 
@@ -100,10 +97,12 @@ export function startEmulateServer(): Promise<RuntimePorts> {
     currentPorts = { ...currentPorts, emulate: emulatePort };
 
     const emulateEntry = resolveServerEntry(path.join(resourcesRoot(), 'emulate'));
-    logger.info(`[ServerSpawner] starting emulate server:${emulatePort}`);
-    emulateProc = fork(emulateEntry, { EMULATE_PORT: String(emulatePort), ENV: 'production' }, 'emulate');
+    emulateProc = fork(
+      emulateEntry,
+      { EMULATE_PORT: String(emulatePort), ENV: 'production' },
+      'emulate',
+    );
     await waitHealthy(`http://127.0.0.1:${emulatePort}`);
-    logger.info('[ServerSpawner] emulate server healthy');
     return currentPorts;
   })();
 

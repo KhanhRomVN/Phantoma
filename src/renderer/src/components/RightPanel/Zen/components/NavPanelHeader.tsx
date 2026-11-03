@@ -17,6 +17,7 @@ interface NavPanelHeaderProps {
   current: NavTarget;
   onNavigate: (target: NavTarget) => void;
   onClose: () => void;
+  maxWidth?: number;
 }
 
 const NavPanelHeader: React.FC<NavPanelHeaderProps> = ({
@@ -25,8 +26,12 @@ const NavPanelHeader: React.FC<NavPanelHeaderProps> = ({
   current,
   onNavigate,
   onClose,
+  maxWidth,
 }) => (
-  <div className="px-4 pt-3 pb-2.5 shrink-0 flex flex-col gap-2">
+  <div
+    className="px-4 pt-3 pb-2.5 shrink-0 flex flex-col gap-2"
+    style={maxWidth ? { width: '100%', maxWidth, marginInline: 'auto', boxSizing: 'border-box' } : undefined}
+  >
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
         <h3 className="m-0 text-base font-bold tracking-wide text-text-primary">{title}</h3>
@@ -34,7 +39,7 @@ const NavPanelHeader: React.FC<NavPanelHeaderProps> = ({
       </div>
       <button
         onClick={onClose}
-        className="p-1.5 rounded-lg border border-border bg-transparent cursor-pointer text-text-secondary hover:border-error hover:text-error hover:bg-error/10 transition-all shrink-0"
+        className="p-1.5 rounded-lg border-none bg-text-primary/10 cursor-pointer text-text-secondary hover:bg-error/15 hover:text-error transition-all shrink-0"
         title={`Close ${title}`}
       >
         <X className="w-4 h-4" />

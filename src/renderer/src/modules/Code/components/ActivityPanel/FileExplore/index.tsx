@@ -202,6 +202,7 @@ interface FileExploreContextValue {
   onCopyFile: (paths?: string[]) => void;
   onPasteFile: () => void;
   gitStatus: Record<string, 'added' | 'modified'>;
+  ignoredPaths: string[];
   renamingId: string | null;
   setRenamingId: (id: string | null) => void;
 }
@@ -211,6 +212,7 @@ const FileExploreContext = createContext<FileExploreContextValue>({
   setSelectMode: () => {},
   nodeMetaRef: { current: new Map() },
   gitStatus: {},
+  ignoredPaths: [],
   creating: null,
   setCreating: () => {},
   clipboard: null,
@@ -437,6 +439,7 @@ const TreeNode = memo(function TreeNode({
     onCopyFile,
     onPasteFile,
     gitStatus,
+    ignoredPaths,
     renamingId,
     setRenamingId,
     selectMode,
@@ -745,7 +748,16 @@ const TreeNode = memo(function TreeNode({
                 }}
               />
 
-              <span className="truncate text-[13px]">{node.name}</span>
+              <span
+                className={cn(
+                  'truncate text-[13px]',
+                  node.path &&
+                    ignoredPaths.some((p) => node.path === p || node.path!.startsWith(p + '/')) &&
+                    'opacity-50',
+                )}
+              >
+                {node.name}
+              </span>
             </button>
           </DropdownTrigger>
           <DropdownContent className="min-w-[200px]" size="sm">
@@ -1295,6 +1307,29 @@ export function FileExplore() {
   // ── Toolbar actions ───────────────────────────────────────────────────────
   const gitRoot = project?.explorerRoot ?? project?.path;
   const [gitStatus, setGitStatus] = useState<Record<string, 'added' | 'modified'>>({});
+  const [ignoredPaths, setIgnoredPaths] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!gitRoot) {
+      setIgnoredPaths([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res: string[] = await window.api.invoke('git:ignored-paths', gitRoot);
+        if (!cancelled) setIgnoredPaths(Array.isArray(res) ? res : []);
+      } catch {
+        if (!cancelled) setIgnoredPaths([]);
+      }
+    };
+    void load();
+    const t = setInterval(() => void load(), 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [gitRoot]);
 
   useEffect(() => {
     if (!gitRoot) {
@@ -1503,6 +1538,7 @@ export function FileExplore() {
       onCopyFile: handleCopyFile,
       onPasteFile: handlePasteFile,
       gitStatus,
+      ignoredPaths,
       renamingId,
       setRenamingId,
       selectMode,
@@ -1512,6 +1548,7 @@ export function FileExplore() {
     [
       selectMode,
       gitStatus,
+      ignoredPaths,
       renamingId,
       creating,
       clipboard,

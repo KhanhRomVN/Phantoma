@@ -27,10 +27,10 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '8px 12px',
   fontSize: '13px',
-  backgroundColor: $('--input-background') || 'transparent',
-  border: `1px solid ${$('--border') || 'rgba(128,128,128,0.2)'}`,
+  backgroundColor: 'rgb(var(--input-background))',
+  border: '1px solid rgb(var(--border))',
   borderRadius: '8px',
-  color: $('--text-primary'),
+  color: 'rgb(var(--text-primary))',
   outline: 'none',
   boxSizing: 'border-box',
   height: '34px',
@@ -341,7 +341,7 @@ const GeneralSettings: React.FC = () => {
                 </svg>
               </button>
             </DropdownTrigger>
-            <DropdownContent className="language-dropdown-content">
+            <DropdownContent className="max-h-[220px] overflow-y-auto bg-dropdown-background rounded-lg">
               {LANGUAGES.map((lang) => (
                 <DropdownItem
                   key={lang.code}
@@ -392,7 +392,7 @@ const GeneralSettings: React.FC = () => {
                 </svg>
               </button>
             </DropdownTrigger>
-            <DropdownContent className="language-dropdown-content">
+            <DropdownContent className="max-h-[220px] overflow-y-auto bg-dropdown-background rounded-lg">
               {LANGUAGES.map((lang) => (
                 <DropdownItem
                   key={lang.code}
@@ -411,9 +411,6 @@ const GeneralSettings: React.FC = () => {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
-        .language-dropdown-content > div {
-          max-height: 180px !important;
         }
         .dropdown-searchbar {
           width: 100%;

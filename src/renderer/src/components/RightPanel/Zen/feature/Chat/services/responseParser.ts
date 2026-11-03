@@ -68,8 +68,18 @@ export const parseAIResponse = (
 
   // Delegate to format-specific parser
   if (format.parse) {
-    const parsed = format.parse(normalizedContent, result, feature);
-    return parsed ?? result;
+    const parsed = format.parse(normalizedContent, result, feature) ?? result;
+    const isPartialTag = /^<[/]?[a-zA-Z0-9_]*$/.test(content.trim());
+    if (
+      parsed.contentBlocks.length === 0 &&
+      parsed.actions.length === 0 &&
+      content.trim().length > 0 &&
+      !isPartialTag
+    ) {
+      parsed.contentBlocks.push({ type: 'markdown', content: content.trim() });
+      parsed.displayText = content.trim();
+    }
+    return parsed;
   }
 
   // Fallback: if format has no parser, use fallback parser format (most backward-compatible)

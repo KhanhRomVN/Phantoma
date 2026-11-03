@@ -58,6 +58,8 @@ interface SyncBranchModalProps {
   currentBranch: string;
   branches: string[];
   onApplied: (count: number, source: string) => void;
+  fixedSource?: { ref: string; label: string };
+  targets?: { name: string; path: string }[];
 }
 
 const FIELD =
@@ -179,12 +181,18 @@ function Counts({ added, deleted }: { added: number; deleted: number }) {
 export function SyncBranchModal({
   isOpen,
   onClose,
-  targetPath,
+  targetPath: baseTargetPath,
   projectName,
-  currentBranch,
+  currentBranch: baseBranch,
   branches,
   onApplied,
+  fixedSource,
+  targets,
 }: SyncBranchModalProps) {
+  const [pickedTarget, setPickedTarget] = useState<string | null>(null);
+  const activeTarget = targets?.find((t) => t.path === pickedTarget) ?? targets?.[0] ?? null;
+  const targetPath = activeTarget?.path ?? baseTargetPath;
+  const currentBranch = activeTarget?.name ?? baseBranch;
   const [picked, setPicked] = useState<SourceOption | null>(null);
   const [rawBranches, setRawBranches] = useState<string[] | null>(null);
   const [fetchingRemote, setFetchingRemote] = useState(false);
@@ -215,8 +223,8 @@ export function SyncBranchModal({
   }, [rawBranches, branches, currentBranch]);
 
   const selected = picked ?? options[0] ?? null;
-  const ref = refOf(selected);
-  const isRemote = selected?.kind === 'remote';
+  const ref = fixedSource?.ref ?? refOf(selected);
+  const isRemote = !fixedSource && selected?.kind === 'remote';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -226,6 +234,11 @@ export function SyncBranchModal({
     setExcluded(new Set());
     setCollapsed(new Set());
     setApplying(false);
+    setPickedTarget(null);
+    if (fixedSource) {
+      setRawBranches([]);
+      return;
+    }
     setRawBranches(null);
     (window as any).api
       .invoke('git:prune-orphan-branches', targetPath)
@@ -285,7 +298,7 @@ export function SyncBranchModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, ref, rawBranches === null]);
+  }, [isOpen, ref, targetPath, rawBranches === null]);
 
   const tree = useMemo(() => buildTree(files ?? []), [files]);
   const rows = useMemo(() => flatten(tree, collapsed), [tree, collapsed]);
@@ -379,8 +392,12 @@ export function SyncBranchModal({
       className="w-[46vw] min-w-[520px] max-w-[860px] h-[70vh] max-h-[70vh]"
     >
       <ModalHeader
-        title="Pull from branch"
-        description={`Bring files from another branch into ${currentBranch || projectName}. Gitignored paths are skipped.`}
+        title={fixedSource ? 'Apply commit to branch' : 'Pull from branch'}
+        description={
+          fixedSource
+            ? `Bring files from ${fixedSource.label} into the selected local branch. Gitignored paths are skipped.`
+            : `Bring files from another branch into ${currentBranch || projectName}. Gitignored paths are skipped.`
+        }
         onClose={handleClose}
         className="px-6 py-4"
       />
@@ -388,6 +405,14 @@ export function SyncBranchModal({
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
         <div className="mb-1.5 text-[12px] text-text-secondary">Source</div>
         <div className="grid grid-cols-2 gap-3">
+          {fixedSource ? (
+            <div className="flex h-9 min-w-0 items-center gap-2 rounded-md bg-input-background px-3">
+              <GitBranch className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
+              <span className="truncate font-mono text-[13px] text-text-primary">
+                {fixedSource.label}
+              </span>
+            </div>
+          ) : (
           <div className="min-w-0">
             <Dropdown align="start" sideOffset={4} className="w-full" searchable>
               <DropdownTrigger>
@@ -422,13 +447,51 @@ export function SyncBranchModal({
               </DropdownContent>
             </Dropdown>
           </div>
+          )}
 
-          <div className="flex h-9 min-w-0 items-center gap-2 rounded-md bg-input-background px-3">
-            <GitBranch className="h-3.5 w-3.5 shrink-0 text-primary" />
-            <span className="truncate font-mono text-[13px] text-text-primary">
-              {currentBranch || '—'}
-            </span>
-          </div>
+          {targets && targets.length > 0 ? (
+            <div className="min-w-0">
+              <Dropdown align="start" sideOffset={4} className="w-full" searchable>
+                <DropdownTrigger>
+                  <button
+                    type="button"
+                    className={cn(FIELD, 'flex items-center justify-between gap-2 px-3 text-left')}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <GitBranch className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span className="truncate">{currentBranch || 'Select branch'}</span>
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
+                  </button>
+                </DropdownTrigger>
+                <DropdownContent className="max-h-[220px] overflow-y-auto">
+                  {targets.map((t) => (
+                    <DropdownItem
+                      key={t.path}
+                      icon={
+                        <Check
+                          className={cn(
+                            'h-3.5 w-3.5 text-primary',
+                            activeTarget?.path !== t.path && 'invisible',
+                          )}
+                        />
+                      }
+                      onClick={() => setPickedTarget(t.path)}
+                    >
+                      <span className="truncate">{t.name}</span>
+                    </DropdownItem>
+                  ))}
+                </DropdownContent>
+              </Dropdown>
+            </div>
+          ) : (
+            <div className="flex h-9 min-w-0 items-center gap-2 rounded-md bg-input-background px-3">
+              <GitBranch className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="truncate font-mono text-[13px] text-text-primary">
+                {currentBranch || '—'}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="mt-5 flex min-h-0 flex-1 flex-col">

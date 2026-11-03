@@ -10,11 +10,20 @@
  */
 
 import { memo, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
-import { AlertCircle, ArrowLeft, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  GitBranch,
+  Loader2,
+} from 'lucide-react';
 
 import { cn } from '@renderer/shared/utils/cn';
 import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { detectLanguageId } from '@renderer/components/common/CodeBlock';
 import { splitPath } from './graph';
+import { useDiffHighlight } from './diffHighlight';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface DiffLine {
@@ -137,8 +146,75 @@ const ROW_STYLE: Record<DiffLine['type'], string> = {
   meta: 'text-text-secondary/50 italic',
 };
 
+interface SplitRow {
+  left: DiffLine | null;
+  right: DiffLine | null;
+}
+
+function toSplitRows(lines: DiffLine[]): SplitRow[] {
+  const rows: SplitRow[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const ln = lines[i];
+    if (ln.type === 'ctx') {
+      rows.push({ left: ln, right: ln });
+      i++;
+      continue;
+    }
+    if (ln.type === 'meta') {
+      rows.push({ left: ln, right: null });
+      i++;
+      continue;
+    }
+    const dels: DiffLine[] = [];
+    const adds: DiffLine[] = [];
+    while (i < lines.length && lines[i].type === 'del') dels.push(lines[i++]);
+    while (i < lines.length && lines[i].type === 'add') adds.push(lines[i++]);
+    const n = Math.max(dels.length, adds.length);
+    for (let k = 0; k < n; k++) rows.push({ left: dels[k] ?? null, right: adds[k] ?? null });
+  }
+  return rows;
+}
+
+function DiffCell({
+  line,
+  side,
+  html,
+}: {
+  line: DiffLine | null;
+  side: 'old' | 'new';
+  html?: string;
+}) {
+  const no = line ? (side === 'old' ? line.oldNo : line.newNo) : null;
+  const textClass = 'flex-1 min-w-0 whitespace-pre-wrap break-all pl-2 pr-3 text-text-primary';
+  return (
+    <div
+      className={cn(
+        'flex min-w-0',
+        side === 'new' && 'border-l border-border',
+        line ? ROW_STYLE[line.type] : 'bg-card-background/40',
+      )}
+    >
+      <span className={'w-10 shrink-0 pr-2 text-right select-none text-text-secondary/40'}>
+        {no ?? ''}
+      </span>
+      {html !== undefined ? (
+        <span className={textClass} dangerouslySetInnerHTML={{ __html: html }} />
+      ) : (
+        <span className={textClass}>{line?.text ?? ''}</span>
+      )}
+    </div>
+  );
+}
+
 const FileSection = memo(function FileSection({ file, collapsed, onToggle }: FileSectionProps) {
   const { name, dir } = splitPath(file.path);
+  const languageId = useMemo(() => detectLanguageId(file.path), [file.path]);
+  const highlighted = useDiffHighlight(
+    file.hunks,
+    languageId,
+    !collapsed && !file.binary && file.lineCount <= LARGE_DIFF_LINES,
+  );
 
   let body: ReactElement;
   if (file.binary) {
@@ -153,43 +229,19 @@ const FileSection = memo(function FileSection({ file, collapsed, onToggle }: Fil
     body = (
       <div>
         {file.hunks.map((h, hi) => (
-          <div key={hi}>
-            <div
-              className={
-                'flex items-center px-3 h-6 bg-primary/10 text-primary/80 font-mono text-[11px] truncate'
-              }
-            >
-              {h.header}
-            </div>
-            {h.lines.map((ln, li) => (
-              <div
-                key={li}
-                className={cn('flex font-mono text-[12px] leading-[20px]', ROW_STYLE[ln.type])}
-              >
-                <span
-                  className={'w-12 shrink-0 pr-2 text-right select-none text-text-secondary/40'}
-                >
-                  {ln.oldNo ?? ''}
-                </span>
-                <span
-                  className={'w-12 shrink-0 pr-2 text-right select-none text-text-secondary/40'}
-                >
-                  {ln.newNo ?? ''}
-                </span>
-                <span
-                  className={cn(
-                    'w-4 shrink-0 text-center select-none',
-                    ln.type === 'add' && 'text-green',
-                    ln.type === 'del' && 'text-red',
-                  )}
-                >
-                  {ln.type === 'add' ? '+' : ln.type === 'del' ? '-' : ''}
-                </span>
-                <span
-                  className={'flex-1 min-w-0 whitespace-pre-wrap break-all pr-4 text-text-primary'}
-                >
-                  {ln.text}
-                </span>
+          <div key={hi} className={cn(hi > 0 && 'border-t border-border')}>
+            {toSplitRows(h.lines).map((r, ri) => (
+              <div key={ri} className={'grid grid-cols-2 font-mono text-[12px] leading-[20px]'}>
+                <DiffCell
+                  line={r.left}
+                  side={'old'}
+                  html={r.left ? highlighted.get(r.left) : undefined}
+                />
+                <DiffCell
+                  line={r.right}
+                  side={'new'}
+                  html={r.right ? highlighted.get(r.right) : undefined}
+                />
               </div>
             ))}
           </div>
@@ -244,7 +296,8 @@ const FileSection = memo(function FileSection({ file, collapsed, onToggle }: Fil
 // ─── Diff View ──────────────────────────────────────────────────────────
 interface DiffViewProps {
   projectPath: string;
-  hash: string;
+  hash?: string;
+  localBranch?: string | null;
   subject: string;
   activePath: string | null;
   onClose: () => void;
@@ -253,6 +306,7 @@ interface DiffViewProps {
 export const DiffView = memo(function DiffView({
   projectPath,
   hash,
+  localBranch = null,
   subject,
   activePath,
   onClose,
@@ -260,7 +314,7 @@ export const DiffView = memo(function DiffView({
   const [files, setFiles] = useState<FileDiff[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -268,7 +322,7 @@ export const DiffView = memo(function DiffView({
     setLoading(true);
     setError(null);
     window.api
-      .invoke('git:commit-diff', projectPath, hash)
+      .invoke(localBranch ? 'git:local-diff' : 'git:commit-diff', projectPath, localBranch ?? hash)
       .then((res: { diff?: string; error?: string }) => {
         if (cancelled) return;
         if (res?.error) {
@@ -276,15 +330,7 @@ export const DiffView = memo(function DiffView({
           setFiles([]);
           return;
         }
-        const parsed = parseDiff(res?.diff ?? '');
-        setFiles(parsed);
-        setCollapsed(
-          new Set(
-            parsed
-              .filter((f) => f.lineCount > LARGE_DIFF_LINES && f.path !== activePath)
-              .map((f) => f.path),
-          ),
-        );
+        setFiles(parseDiff(res?.diff ?? ''));
       })
       .catch((e: any) => {
         if (!cancelled) setError(e?.message ?? String(e));
@@ -295,23 +341,7 @@ export const DiffView = memo(function DiffView({
     return () => {
       cancelled = true;
     };
-  }, [projectPath, hash]);
-
-  useEffect(() => {
-    if (!activePath || loading) return;
-    setCollapsed((prev) => {
-      if (!prev.has(activePath)) return prev;
-      const next = new Set(prev);
-      next.delete(activePath);
-      return next;
-    });
-    const id = requestAnimationFrame(() => {
-      const nodes = Array.from(rootRef.current?.querySelectorAll('[data-diff-path]') ?? []);
-      const el = nodes.find((n) => n.getAttribute('data-diff-path') === activePath);
-      el?.scrollIntoView({ block: 'start' });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [activePath, loading, files]);
+  }, [projectPath, hash, localBranch]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -330,14 +360,6 @@ export const DiffView = memo(function DiffView({
     [files],
   );
 
-  const toggle = (path: string) =>
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-
   return (
     <section className={'flex-1 min-w-0 flex flex-col min-h-0'}>
       <div className={'h-11 shrink-0 px-3 flex items-center gap-3 border-b border-border'}>
@@ -345,43 +367,28 @@ export const DiffView = memo(function DiffView({
           onClick={onClose}
           title={'Back to graph (Esc)'}
           className={
-            'h-7 px-2 rounded-md flex items-center gap-1.5 text-[11.5px] text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer'
+            'w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer'
           }
         >
           <ArrowLeft className={'w-3.5 h-3.5'} />
-          Graph
         </button>
-        <span
-          className={
-            'font-mono text-[11px] px-1.5 py-0.5 rounded bg-card-background border border-divider text-text-secondary'
-          }
-        >
-          {hash.slice(0, 7)}
-        </span>
-        <span className={'flex-1 min-w-0 truncate text-[12.5px] font-semibold text-text-primary'}>
+        <span className={'min-w-0 truncate text-[12.5px] font-semibold text-text-primary'}>
           {subject}
         </span>
+        <span
+          className={
+            'shrink-0 inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-card-background border border-divider text-text-secondary'
+          }
+        >
+          {localBranch && <GitBranch className={'w-3 h-3'} />}
+          {localBranch ?? (hash ?? '').slice(0, 7)}
+        </span>
+        <span className={'flex-1'} />
         <span
           className={'text-[11.5px] text-text-secondary shrink-0'}
         >{`${files.length} files`}</span>
         <span className={'font-mono text-[11.5px] text-green shrink-0'}>{`+${totals.added}`}</span>
         <span className={'font-mono text-[11.5px] text-red shrink-0'}>{`-${totals.deleted}`}</span>
-        <button
-          onClick={() => setCollapsed(new Set())}
-          className={
-            'h-7 px-2 rounded-md text-[11px] text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer'
-          }
-        >
-          Expand all
-        </button>
-        <button
-          onClick={() => setCollapsed(new Set(files.map((f) => f.path)))}
-          className={
-            'h-7 px-2 rounded-md text-[11px] text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer'
-          }
-        >
-          Collapse all
-        </button>
       </div>
 
       {loading ? (
@@ -403,14 +410,11 @@ export const DiffView = memo(function DiffView({
         </div>
       ) : (
         <div ref={rootRef} className={'flex-1 overflow-y-auto'}>
-          {files.map((f) => (
-            <FileSection
-              key={f.path}
-              file={f}
-              collapsed={collapsed.has(f.path)}
-              onToggle={toggle}
-            />
-          ))}
+          {files
+            .filter((f) => f.path === (activePath ?? files[0]?.path))
+            .map((f) => (
+              <FileSection key={f.path} file={f} collapsed={false} onToggle={() => undefined} />
+            ))}
         </div>
       )}
     </section>

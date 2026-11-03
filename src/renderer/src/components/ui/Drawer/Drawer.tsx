@@ -12,6 +12,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   width = '500px',
   strategy = 'fixed',
   position = 'bottom',
+  showHandle = true,
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -66,7 +67,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         style={isSide ? { width } : { height }}
       >
         {/* Drag handle (bottom sheet only) */}
-        {!isSide && (
+        {!isSide && showHandle && (
           <div className="flex justify-center pt-2.5 pb-1.5 shrink-0">
             <div className="w-8 h-[3px] rounded-[2px] bg-border" />
           </div>

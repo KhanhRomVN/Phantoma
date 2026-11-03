@@ -11,6 +11,7 @@ import { memo } from 'react';
 import { GitBranch, Cloud, Tag } from 'lucide-react';
 
 import { cn } from '@renderer/shared/utils/cn';
+import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
 import { Avatar } from './Avatar';
 import {
   ROW_HEIGHT,
@@ -30,14 +31,28 @@ const KIND_STYLE: Record<RefKind, string> = {
   tag: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
 };
 
-export const RefPill = memo(function RefPill({ chip }: { chip: RefChip }) {
+export const RefPill = memo(function RefPill({ chip, color }: { chip: RefChip; color?: string }) {
+  const { accentColors, toRgba } = useAccentColors();
   const Icon = chip.kind === 'tag' ? Tag : chip.kind === 'remote' ? Cloud : GitBranch;
+  let accent: string | null = null;
+  if (chip.kind === 'remote' && color) {
+    accent = color;
+  } else if (chip.kind === 'remote') {
+    let h = 0;
+    for (let i = 0; i < chip.label.length; i++) h = (h << 5) - h + chip.label.charCodeAt(i);
+    accent = accentColors[Math.abs(h) % accentColors.length];
+  }
   return (
     <span
       title={chip.label}
+      style={
+        accent
+          ? { color: accent, backgroundColor: toRgba(accent, 0.1), borderColor: toRgba(accent, 0.45) }
+          : undefined
+      }
       className={cn(
         'inline-flex items-center gap-1 h-[20px] px-1.5 rounded-md border font-mono text-[10.5px] max-w-[120px] shrink-0',
-        KIND_STYLE[chip.kind],
+        accent ? 'border-dashed' : KIND_STYLE[chip.kind],
       )}
     >
       <Icon className={'w-2.5 h-2.5 shrink-0'} />

@@ -78,7 +78,7 @@ export function IconPicker({ value, color, onChange }: IconPickerProps) {
             className="fixed inset-0 z-[10002]"
           />
           <div
-            className="absolute top-full left-0 w-[260px] z-[10003] mt-1 rounded-lg shadow-lg flex flex-col overflow-hidden"
+            className="absolute top-full left-0 w-[260px] max-w-[calc(100vw-32px)] z-[10003] mt-1 rounded-lg shadow-lg flex flex-col overflow-hidden"
             style={{
               backgroundColor: $('--dropdown-background'),
               border: `1px solid ${$('--border')}`,

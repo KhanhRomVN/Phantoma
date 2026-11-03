@@ -53,7 +53,7 @@ export function DropdownItem({
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
       className={cn(
-        'w-full flex items-center gap-2 text-[13px] leading-none transition-colors cursor-pointer whitespace-nowrap relative rounded-md',
+        'w-full shrink-0 flex items-center gap-2 text-[13px] leading-none transition-colors cursor-pointer whitespace-nowrap relative rounded-md',
         noPadding ? 'min-h-[30px]' : 'h-[30px] px-3',
         variant === 'error'
           ? 'text-error hover:bg-error/10'

@@ -39,10 +39,9 @@ import { cn } from '@renderer/shared/utils/cn';
 type DebugActions = ReturnType<typeof useDebugStore.getState>;
 
 const STATUS_BADGE: Record<
-  Exclude<DebugStatus, 'idle'>,
+  Exclude<DebugStatus, 'idle' | 'starting'>,
   { label: string; dot: string; text: string }
 > = {
-  starting: { label: 'Starting', dot: 'bg-amber-400 animate-pulse', text: 'text-amber-400' },
   running: { label: 'Running', dot: 'bg-emerald-400 animate-pulse', text: 'text-emerald-400' },
   stopped: { label: 'Paused', dot: 'bg-amber-400', text: 'text-amber-400' },
 };
@@ -95,7 +94,7 @@ function IconButton({
   );
 }
 
-function StatusBadge({ status }: { status: Exclude<DebugStatus, 'idle'> }) {
+function StatusBadge({ status }: { status: Exclude<DebugStatus, 'idle' | 'starting'> }) {
   const badge = STATUS_BADGE[status];
   return (
     <span
@@ -168,13 +167,41 @@ function ConfigCard({
   return (
     <div
       className={cn(
-        'group flex items-center gap-3 border-l-[3px] border-l-transparent bg-card-background px-3 py-2.5 transition-colors',
-        active ? 'rounded-l-[4px] rounded-r-xl' : 'rounded-xl',
+        'group relative flex items-center gap-3 border-l-[3px] border-l-transparent bg-card-background px-3 py-2.5 transition-colors',
+        active && status !== 'starting' ? 'rounded-l-none rounded-r-xl' : 'rounded-xl',
         locked && 'opacity-50',
       )}
-      style={active ? { borderLeftColor: accent } : undefined}
+      style={
+        {
+          '--accent': accent,
+          ...(active && status !== 'starting' ? { borderLeftColor: accent } : {}),
+        } as React.CSSProperties
+      }
       title={detail || undefined}
     >
+      {status === 'starting' && (
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+          <rect
+            x="1"
+            y="1"
+            rx="11"
+            ry="11"
+            fill="none"
+            stroke={accent}
+            strokeWidth="1.5"
+            strokeDasharray="6 4"
+            style={{ width: 'calc(100% - 2px)', height: 'calc(100% - 2px)' }}
+          >
+            <animate
+              attributeName="stroke-dashoffset"
+              from="0"
+              to="-20"
+              dur="0.8s"
+              repeatCount="indefinite"
+            />
+          </rect>
+        </svg>
+      )}
       <span
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-background text-text-secondary transition-colors"
         style={active ? { backgroundColor: `${accent}26`, color: accent } : undefined}
@@ -191,14 +218,16 @@ function ConfigCard({
       </span>
       {active ? (
         <div className="flex shrink-0 items-center gap-0.5">
-          {status !== 'running' && <StatusBadge status={status} />}
-          <IconButton title="Restart" onClick={() => void actions.restart()}>
-            <RotateCcw className="h-3.5 w-3.5" />
-          </IconButton>
+          {status === 'stopped' && <StatusBadge status={status} />}
+          {status !== 'starting' && (
+            <IconButton title="Restart" onClick={() => void actions.restart()}>
+              <RotateCcw className="h-3.5 w-3.5" />
+            </IconButton>
+          )}
           <IconButton
             title="Stop"
             onClick={() => void actions.stop()}
-            className="hover:text-red-400"
+            className="!bg-error/10 !text-error hover:!bg-error/20 hover:!text-error"
           >
             <Square className="h-3.5 w-3.5" />
           </IconButton>
@@ -208,7 +237,7 @@ function ConfigCard({
           <IconButton
             title="Start Debugging"
             onClick={handleStart}
-            className="text-emerald-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-emerald-400 focus-visible:opacity-100"
+            className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--accent)] focus-visible:opacity-100"
           >
             <Play className="h-3.5 w-3.5" />
           </IconButton>
@@ -228,6 +257,7 @@ export function Debug() {
   const configurations = useDebugStore((s) => s.configurations);
   const selectedName = useDebugStore((s) => s.selectedName);
   const launchExists = useDebugStore((s) => s.launchExists);
+  const launchVersion = useDebugStore((s) => s.launchVersion);
   const loadError = useDebugStore((s) => s.loadError);
   const status = useDebugStore((s) => s.status);
   const error = useDebugStore((s) => s.error);
@@ -293,9 +323,19 @@ export function Debug() {
   return (
     <div className="flex min-h-0 flex-1 flex-col text-xs text-text-primary">
       <div className="flex h-9 shrink-0 items-center justify-between border-b border-border px-3">
-        <span className="text-[11px] font-semibold tracking-wide text-text-secondary uppercase">
-          Run and Debug
-        </span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-[11px] font-semibold tracking-wide text-text-secondary uppercase">
+            Run and Debug
+          </span>
+          {launchExists && launchVersion && (
+            <span
+              title="launch.json version"
+              className="shrink-0 rounded-full bg-sidebar-background px-2 py-0.5 text-[10px] font-medium text-text-secondary"
+            >
+              v{launchVersion}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-0.5">
           <IconButton
             title={launchExists ? 'Edit launch.json' : 'Create launch.json'}
