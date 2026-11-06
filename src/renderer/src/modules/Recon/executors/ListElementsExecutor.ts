@@ -1,28 +1,30 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { ListElementsHandler } from '../handler/ListElementsHandler';
 import type { ListElementsParams } from '../parsers/ListElementsParser';
+
+const handler = new ListElementsHandler();
 
 export async function executeListElements(
   params: ListElementsParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('list_elements', {
+    const result = await handler.handle(
       targetId,
-      elementType: params.elementType,
-      labelContains: params.labelContains,
-      visibleOnly: params.visibleOnly,
-      limit: params.limit,
-      offset: params.offset,
-    });
+      undefined,
+      params.elementType,
+      params.labelContains,
+      params.visibleOnly,
+      params.limit,
+      params.offset,
+    );
 
     if (result.success) {
       return {

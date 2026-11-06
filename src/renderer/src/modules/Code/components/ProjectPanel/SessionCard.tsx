@@ -19,12 +19,13 @@ import type { CSSProperties, MouseEvent } from 'react';
 import { Terminal, Loader2, AlertTriangle } from 'lucide-react';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { cn } from '@renderer/utils/cn';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 
 // ── Task link ──
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
+import { useWorkflowSubTasks } from '../../hooks/useWorkflowSubTasks';
 import type { StoredTask } from '../../services/task.service';
 import { TASK_DRAG_TYPE } from '../ContentPanel/TaskManager/kanban/TaskDropZones';
 
@@ -504,6 +505,8 @@ export const SessionCard = memo(function SessionCard({
   const st = session.status;
   const isSelected = selectedSessionId === session.id;
   const task = useSessionTasks((s) => s.bySession[session.id]);
+  const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === projectId)?.path);
+  const subTasks = useWorkflowSubTasks(projectPath, task?.id, task?.workflowId);
   const displayName = task?.title ?? getTempSessionName(session.id, projectName, branchName);
   const [dropOver, setDropOver] = useState(false);
   const zenChatCount = useCodeStore(
@@ -522,12 +525,12 @@ export const SessionCard = memo(function SessionCard({
   return (
     <div
       className={cn(
-        'bg-card-background border rounded-lg px-2 py-[7px] flex flex-col gap-[3px] cursor-pointer transition-colors hover:border-[rgba(255,106,31,0.3)]',
+        'bg-card-background border rounded-lg px-3 py-2.5 flex flex-col gap-[3px] cursor-pointer transition-colors',
         st === 'blocked' ? 'border-[rgba(255,71,87,0.35)]' : 'border-divider',
-        // Subtle dashed border for selected state
-        isSelected && 'border-[1.5px] border-dashed border-[#ff6a1f]/70',
+        isSelected ? 'relative border-transparent' : 'hover:border-primary/50',
         dropOver && 'border-primary bg-primary/10',
       )}
+      data-session-id={session.id}
       draggable={draggable}
       onDragOver={(e) => {
         if (!onDropTask || task || !e.dataTransfer.types.includes(TASK_DRAG_TYPE)) return;
@@ -546,6 +549,7 @@ export const SessionCard = memo(function SessionCard({
       onClick={() => onSelect(session.id)}
       onContextMenu={handleContextMenu}
     >
+      {isSelected && <SelectedDashedFrame />}
       {/* Title row */}
       <div className="flex items-center gap-[6px] text-[12.5px] font-semibold leading-none h-[16px]">
         {task && (
@@ -555,6 +559,31 @@ export const SessionCard = memo(function SessionCard({
           {displayName}
         </span>
       </div>
+
+      {subTasks.length > 0 && (
+        <div className="flex flex-col gap-[2px] pl-[2px]">
+          {subTasks.slice(0, 6).map((sub, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-[6px] text-[11px] leading-tight text-text-secondary"
+              title={sub.text}
+            >
+              <span
+                className={cn(
+                  'w-[5px] h-[5px] rounded-full shrink-0',
+                  sub.done ? 'bg-success' : 'bg-text-secondary/50',
+                )}
+              />
+              <span className={cn('truncate', sub.done && 'line-through opacity-70')}>{sub.text}</span>
+            </div>
+          ))}
+          {subTasks.length > 6 && (
+            <span className="text-[10px] text-text-secondary/70 pl-[11px]">
+              +{subTasks.length - 6} more
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Agents - Only if exists */}
       {(session.agents.length > 0 || zenChatCount > 0) && (
@@ -580,3 +609,20 @@ export const SessionCard = memo(function SessionCard({
     </div>
   );
 });
+
+function SelectedDashedFrame() {
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none text-primary overflow-visible">
+      <rect
+        x="1"
+        y="1"
+        rx="8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeDasharray="8 5"
+        style={{ width: "calc(100% - 2px)", height: "calc(100% - 2px)" }}
+      />
+    </svg>
+  );
+}

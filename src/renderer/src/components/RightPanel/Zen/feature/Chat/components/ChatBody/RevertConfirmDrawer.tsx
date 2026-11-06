@@ -15,8 +15,8 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { RotateCcw, Loader2 } from 'lucide-react';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { cn } from '@renderer/shared/utils/cn';
+import { getFileIconPath } from '@renderer/utils/file-icon';
+import { cn } from '@renderer/utils/cn';
 
 import type { RevertFileEntry, RevertGroupKey } from '../../types/revert';
 import { classifyFile } from '../../utils/revertPreviewBuilder';

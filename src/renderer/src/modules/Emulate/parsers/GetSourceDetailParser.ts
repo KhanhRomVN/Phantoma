@@ -1,5 +1,7 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { GetSourceDetailParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface GetSourceDetailParams {
+  filepath: string;
+}
 
 /**
  * Parse get_source_detail tag from AI response.

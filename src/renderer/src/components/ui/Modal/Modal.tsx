@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { ModalProps } from './type';
 
 export const Modal: React.FC<ModalProps> = ({

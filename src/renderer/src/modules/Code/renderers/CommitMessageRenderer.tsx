@@ -1,14 +1,12 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import {
-  TOOL_ACTION_TYPES,
-  getToolLabel,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { TOOL_ACTION_TYPES } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
+import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/ResponseParser';
+import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/responseParser';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';

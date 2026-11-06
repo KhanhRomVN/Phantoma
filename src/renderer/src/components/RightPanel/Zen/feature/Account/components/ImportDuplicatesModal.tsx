@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Loader2, CheckSquare, Square, Check, X, Search } from 'lucide-react';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 import { $ } from '@renderer/utils/color';
 import ReactDOM from 'react-dom';
 import { AccountModalKeyframes, overlayStyle, useAccountModalLayout } from './accountModalLayout';

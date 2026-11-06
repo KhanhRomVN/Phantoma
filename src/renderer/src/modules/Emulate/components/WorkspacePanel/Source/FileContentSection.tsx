@@ -21,7 +21,7 @@ import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 // ── Utils ──
 
 import { prettifyCode, isMinified } from '../../../utils/prettify';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface SelectedSourceContent {

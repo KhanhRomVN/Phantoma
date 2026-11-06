@@ -18,7 +18,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, GitCommit, Search, X } from 'lucide-react';
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { BranchSidebar } from './BranchSidebar';
 import { CommitContextMenu } from './CommitContextMenu';

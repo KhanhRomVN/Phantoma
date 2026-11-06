@@ -1,4 +1,4 @@
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { ButtonProps, ButtonVariant, ButtonSize } from './type';
 
 const variantClasses: Record<ButtonVariant, string> = {

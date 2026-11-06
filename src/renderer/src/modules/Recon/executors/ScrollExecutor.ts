@@ -1,25 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { ScrollHandler } from '../handler/ScrollHandler';
 import type { ScrollParams } from '../parsers/ScrollParser';
+
+const handler = new ScrollHandler();
 
 export async function executeScroll(
   params: ScrollParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('scroll', {
-      targetId,
-      direction: params.direction,
-      amount: params.amount,
-    });
+    const result = await handler.handle(targetId, params.direction, params.amount);
 
     if (result.success) {
       return {

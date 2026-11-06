@@ -1,5 +1,5 @@
 import type { MapLocation, MapRegion } from '../types';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { getMarkerColor } from './markerColor';
 import {
   Dropdown,

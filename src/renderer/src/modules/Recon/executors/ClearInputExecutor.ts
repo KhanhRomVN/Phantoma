@@ -1,24 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { ClearInputHandler } from '../handler/ClearInputHandler';
 import type { ClearInputParams } from '../parsers/ClearInputParser';
+
+const handler = new ClearInputHandler();
 
 export async function executeClearInput(
   params: ClearInputParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('clear_input', {
-      targetId,
-      ref: params.ref,
-    });
+    const result = await handler.handle(targetId, params.ref);
 
     if (result.success) {
       return {

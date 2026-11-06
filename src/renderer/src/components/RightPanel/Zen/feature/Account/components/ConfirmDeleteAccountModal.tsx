@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Loader2, Trash2 } from 'lucide-react';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 import { $ } from '@renderer/utils/color';
 import { AccountModalKeyframes, overlayStyle, useAccountModalLayout } from './accountModalLayout';
 

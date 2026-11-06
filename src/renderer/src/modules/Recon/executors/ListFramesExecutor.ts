@@ -1,23 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { ListFramesHandler } from '../handler/ListFramesHandler';
 import type { ListFramesParams } from '../parsers/ListFramesParser';
+
+const handler = new ListFramesHandler();
 
 export async function executeListFrames(
   _params: ListFramesParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('list_frames', {
-      targetId,
-    });
+    const result = await handler.handle(targetId);
 
     if (result.success) {
       return {

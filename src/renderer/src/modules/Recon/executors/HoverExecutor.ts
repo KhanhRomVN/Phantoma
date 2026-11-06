@@ -1,24 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { HoverHandler } from '../handler/HoverHandler';
 import type { HoverParams } from '../parsers/HoverParser';
+
+const handler = new HoverHandler();
 
 export async function executeHover(
   params: HoverParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('hover', {
-      targetId,
-      ref: params.ref,
-    });
+    const result = await handler.handle(targetId, params.ref);
 
     if (result.success) {
       return {

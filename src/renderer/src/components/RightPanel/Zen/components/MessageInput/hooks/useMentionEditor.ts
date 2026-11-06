@@ -7,6 +7,7 @@ import {
   placeCaretAtEnd,
   readDraggedItems,
   ZEN_MENTION_DROP_EVENT,
+  ZEN_INSERT_TEXT_EVENT,
   removeMentionBadge,
 } from '../mentionEditor';
 import type { MentionContext, MentionItem } from '../mentionEditor';
@@ -59,9 +60,7 @@ export const useMentionEditor = (
     };
     const onKeyDown = (event: KeyboardEvent) => {
       const isUndo =
-        (event.ctrlKey || event.metaKey) &&
-        !event.shiftKey &&
-        event.key.toLowerCase() === 'z';
+        (event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z';
       if (!isUndo) return;
       const last = undoStackRef.current.pop();
       if (!last) return;
@@ -115,7 +114,6 @@ export const useMentionEditor = (
     [editorRef, addItems],
   );
 
-
   React.useEffect(() => {
     const root = editorRef.current;
     if (!root) return;
@@ -127,6 +125,23 @@ export const useMentionEditor = (
     root.addEventListener(ZEN_MENTION_DROP_EVENT, handler);
     return () => root.removeEventListener(ZEN_MENTION_DROP_EVENT, handler);
   }, [editorRef, addItems]);
+
+  React.useEffect(() => {
+    const root = editorRef.current;
+    if (!root) return;
+    const handler = (event: Event) => {
+      const text = (event as CustomEvent<string>).detail;
+      if (!text) return;
+      root.focus();
+      placeCaretAtEnd(root);
+      const inserted =
+        document.activeElement === root && document.execCommand('insertText', false, text);
+      if (!inserted) root.appendChild(document.createTextNode(text));
+      onContentChange();
+    };
+    root.addEventListener(ZEN_INSERT_TEXT_EVENT, handler);
+    return () => root.removeEventListener(ZEN_INSERT_TEXT_EVENT, handler);
+  }, [editorRef, onContentChange]);
 
   React.useEffect(() => {
     fetchedRef.current = false;

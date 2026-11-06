@@ -8,7 +8,7 @@ import type { HistoryEntry, PayloadItem } from '../../../../../../types/repeater
 import { getStatusColor, getStatusBgColor } from '../../../../../../constants/status';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface HistoryTabProps {
   entries: HistoryEntry[];

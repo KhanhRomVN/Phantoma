@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
 
 // ── Hooks ──
@@ -14,7 +14,7 @@ import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/c
 // ── Utils ──
 import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';

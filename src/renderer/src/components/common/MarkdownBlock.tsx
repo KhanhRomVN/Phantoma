@@ -26,7 +26,7 @@ import ReadOnlyCodeBlock from '@renderer/components/common/ReadOnlyCodeBlock';
 
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
 const ABSOLUTE_PATH_REGEX = /^(\/[^\s<>"'`]+|[A-Za-z]:\\[^\s<>"'`]+)/;
 const RELATIVE_PATH_WITH_FOLDERS_REGEX = /^[^\s<>"'`|*?:]+[/\\][^\s<>"'`|*?:]+\.[a-zA-Z0-9]{1,10}$/;

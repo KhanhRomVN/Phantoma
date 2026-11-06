@@ -30,7 +30,7 @@ import { useRepeaterPersistence } from '../../../../../hooks/useRepeaterPersiste
 import { emulateApi } from '../../../../../services/emulate-api.service';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // Services
 

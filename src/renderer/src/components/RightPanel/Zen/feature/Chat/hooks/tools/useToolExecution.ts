@@ -206,12 +206,11 @@ export const useToolExecution = ({
             };
           });
         }
-      } else if (message.command === 'terminalStatusChanged') {
-        setTerminalStatus((prev) => ({
-          ...prev,
-          [message.terminalId]:
-            message.status as (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS],
-        }));
+      } else if (message.command === 'terminalFinished') {
+        setTerminalStatus((prev) => {
+          const { [message.terminalId]: _finished, ...rest } = prev;
+          return rest;
+        });
       } else if (message.command === 'restoreSingleLineReviewActions') {
         if (message.actions && Object.keys(message.actions).length > 0) {
           setSingleLineReviewActions(message.actions);
@@ -228,7 +227,7 @@ export const useToolExecution = ({
           }));
           setTerminalStatus((prev) => ({
             ...prev,
-            [message.terminalId]: TERMINAL_STATUS.BUSY,
+            [message.terminalId]: TERMINAL_STATUS.RUNNING,
           }));
         }
       } else if (message.command === 'gitStatusResult') {

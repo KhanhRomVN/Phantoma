@@ -1,5 +1,7 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { SendToRepeaterParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface SendToRepeaterParams {
+  index: number;
+}
 
 /**
  * Parse send_to_repeater tag from AI response.

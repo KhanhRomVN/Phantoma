@@ -14,7 +14,7 @@
 
 import React from 'react';
 import { Home } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import {
   Dropdown,
   DropdownTrigger,
@@ -55,6 +55,8 @@ interface ChatHeaderProps {
   onOpenSubView?: (target: NavTarget) => void;
   /** Optional: quay về màn hình Home. */
   onGoHome?: () => void;
+  /** Optional: remount ChatBody để hiển thị lại UI khi bị ẩn do lỗi render. */
+  onRefreshChatBody?: () => void;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────
@@ -66,7 +68,7 @@ const fmt = (num: number): string => {
 
 import { extractFirstUserMessage } from '../utils/message-filters';
 
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 
 // ─── Sub-components ─────────────────────────────────────────────────────
 const SqButton: React.FC<{
@@ -351,6 +353,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   onTitleChange,
   onOpenSubView,
   onGoHome,
+  onRefreshChatBody,
 }) => {
   const websiteUrl = displayedModel?.website_url;
   const faviconUrl = getFaviconUrl(websiteUrl, displayedModel?.favicon);
@@ -407,6 +410,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
           <SqButton title="Home" onClick={handleGoHome}>
             <Home size={15} />
+          </SqButton>
+
+          <SqButton title="Reload chat UI" onClick={() => onRefreshChatBody?.()}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M8 16H3v5" />
+            </svg>
           </SqButton>
 
           <SqButton

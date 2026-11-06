@@ -1,25 +1,23 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { CaptureScreenshotHandler } from '../handler/CaptureScreenshotHandler';
 import type { CaptureScreenshotParams } from '../parsers/CaptureScreenshotParser';
 import { setLastScreenshotFileId } from './screenshotState';
+
+const handler = new CaptureScreenshotHandler();
 
 export async function executeCaptureScreenshot(
   params: CaptureScreenshotParams,
 ): Promise<{ success: boolean; output?: string; error?: string; data?: any }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('capture_screenshot', {
-      targetId,
-      fullPage: params.fullPage,
-    });
+    const result = await handler.handle(targetId, params.fullPage);
 
     if (result.success) {
       const imageBase64 = result.data?.imageBase64;

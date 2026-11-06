@@ -41,3 +41,5 @@ export class FileLockManager {
     return release!;
   }
 }
+
+export const fileLockManager = new FileLockManager();

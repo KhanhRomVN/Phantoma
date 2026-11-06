@@ -18,17 +18,17 @@ import React, { useState, useEffect } from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { TOOL_ACTION_TYPES } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/ResponseParser';
+import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/responseParser';
 
 // ── Components ──
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 
 // ─── GitDiffBlock ───────────────────────────────────────────────────────

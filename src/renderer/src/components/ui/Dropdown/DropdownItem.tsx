@@ -1,7 +1,7 @@
 import React from 'react';
 import { DropdownItemProps, DropdownSeparatorProps } from './type';
 import { useDropdownContext } from './Dropdown';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 function extractText(node: React.ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node);

@@ -24,8 +24,8 @@ import { RESOURCE_TYPES } from '../../../constants/resource';
 import { ResourceItem, ResourceType } from '../../../types/resource.types';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface ResourceListProps {

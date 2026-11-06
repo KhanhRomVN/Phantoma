@@ -22,10 +22,10 @@ import { ReactNode } from 'react';
 
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Hooks ──
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 import { useDebugStore } from '../../stores/useDebugStore';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────

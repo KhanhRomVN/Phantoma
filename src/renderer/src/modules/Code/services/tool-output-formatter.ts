@@ -6,7 +6,7 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolOutputFormatter } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-output';
+import type { ToolOutputFormatter } from '@renderer/components/RightPanel/Zen/shared/tool-output';
 
 /**
  * Format run_command output message.

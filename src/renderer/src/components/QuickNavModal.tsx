@@ -25,7 +25,7 @@ import { Search, ArrowUp, ArrowDown, CornerDownLeft, Circle } from 'lucide-react
 import { useRunningTargets } from '@renderer/hooks/useRunningTargets';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Components ──
 import { Modal, ModalBody, ModalFooter } from './ui/Modal';

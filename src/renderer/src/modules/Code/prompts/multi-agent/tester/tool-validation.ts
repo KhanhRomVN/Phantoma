@@ -23,7 +23,7 @@ export const buildTesterToolValidation = (
       : "# TOOL VALIDATION & ERROR PREVENTION",
     `Valid tools for the tester (case-sensitive, lowercase with underscores): ${nameList(TESTER_TOOLS)}.`,
     shapeRules,
-    "delete_file, revert_file, git tools, memory tools and invented names such as search_files, edit_file, create_file or get_file are not available: use a real tool from the valid list.",
+    "delete_file, git tools, memory tools and invented names such as search_files, edit_file, create_file or get_file are not available: use a real tool from the valid list.",
     "## Self-Check Before Sending Response\n- [ ] Every tool name is in the valid list for this role\n- [ ] Every tool has its required parameters\n- [ ] The block syntax matches the tool format exactly\n- [ ] write_to_file / replace_in_file target test files only\n- [ ] The report is sent with the handoff tool as the last call",
     "If you notice an invalid call: stop, pick the correct tool from the valid list, rewrite it, and re-check every other call in the response.",
   ].join("\n\n");

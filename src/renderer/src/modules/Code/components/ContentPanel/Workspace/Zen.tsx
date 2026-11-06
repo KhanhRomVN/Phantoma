@@ -9,7 +9,7 @@ import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../hooks/useWorkflow
 import { USER_ID } from '../../../types/agents';
 import AgentMessageBox from '../../../renderers/AgentMessageBox';
 import { parseAgentMessage } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
-import { DRAG_CANCEL_EVENT } from '@renderer/shared/utils/dragCancel';
+import { DRAG_CANCEL_EVENT } from '@renderer/utils/drag-cancel';
 import {
   MENTION_DRAG_TYPE,
   ZEN_MENTION_DROP_EVENT,

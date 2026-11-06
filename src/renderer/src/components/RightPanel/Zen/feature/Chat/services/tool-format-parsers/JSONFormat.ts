@@ -222,7 +222,7 @@ const parseJson = (
     if (typeof parsed?.type === 'string' && typeof parsed?.tool === 'undefined') {
       const uiType = parsed.type as string;
 
-      if (getAllToolTypes().includes(uiType)) {
+      if (uiType !== 'markdown' && uiType !== 'question' && getAllToolTypes().includes(uiType)) {
         const action = jsonToolToAction(uiType, parsed.params || {}, rawJson);
         if (action) {
           result.contentBlocks.push({

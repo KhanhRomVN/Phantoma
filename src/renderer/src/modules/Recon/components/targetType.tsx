@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 export type TargetType = 'person' | 'website' | 'domain' | 'phone' | 'company' | 'other';
 

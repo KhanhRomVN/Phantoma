@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import type { KvItem } from '../types';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface Props {
   items: KvItem[];

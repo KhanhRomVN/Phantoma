@@ -42,6 +42,17 @@
 
 - Nội dung các panel Zen (Home, Chat, Account) giới hạn `maxWidth: 680px` và căn giữa (`margin: 0 auto`). Account áp dụng cho action bar, tiêu đề danh sách, `DrawerBody` và header qua prop `maxWidth` của `NavPanelHeader`. Panel mới nên dùng cùng giá trị 680.
 
+## Task & Workflow
+
+- Task lưu ở `~/.phantoma/code:{slug}/tasks.json` (`src/main/storage/TaskStorage.ts`); workflow của task là file `workflows/workflow_{taskId}.md` (`src/main/storage/WorkflowStorage.ts`, IPC `workflow:get|create|update` ở `src/main/ipc/workflow.handlers.ts`), field `workflowId` trên task.
+- Orchestrator có 8 tool task/workflow (`list_tasks`, `get_task`, `create_task`, `update_task`, `assign_task`, `create_workflow`, `get_workflow`, `update_workflow`): mỗi tool có đủ 1 parser (`parsers/<Name>Parser.ts`), 1 executor (`executors/<Name>Executor.ts`), 1 renderer (`renderers/<Name>Renderer.tsx`) — dùng chung `parsers/TaskToolParserUtils.ts`, `executors/TaskToolUtils.ts`, `renderers/TaskToolRendererBase.tsx`; đăng ký ở `CodeModule.ts` và `constants/tag-registry.ts`; prompt ở `prompts/multi-agent/orchestrator/tools-reference.ts`.
+- UI Workflow nằm ở `components/ContentPanel/Workflow` (đã chuyển khỏi `Workspace/Workflow`).
+
+## Multi-window & target lock
+
+- `src/main/core/window/WindowManager.ts` tạo nhiều BrowserWindow (Ctrl/Cmd+Shift+N). `src/main/ipc/target-lock.handlers.ts` giữ claims (windowId → module → targetId), IPC `target:claim` / `target:get-state` / `target:force-release`, broadcast `target:claims-changed`.
+- Renderer dùng `shared/target-lock/useTargetLock.ts`: `useTargetLock(module, targetId, onForceRelease)`, `useBusyTargetIds(module)`, `forceReleaseTarget(module, targetId)`. Module Code dùng module key `'code'`, target = branch của project chứa session đang active, id `${projectId}::${branchName}` (helper `toBranchTargetId` / `fromBranchTargetId` export từ `ProjectConflictModal.tsx`); xung đột hiển thị qua `ProjectConflictModal` (không đóng được, UI tiếng Anh, 3 view: main → danh sách project → danh sách branch) và badge `busyElsewhere` (cấp project) trên `ProjectCard`.
+
 ## Runtime servers & ports
 
 - 2 server con: `server/` (shell backend, chỉ `/health`) và `emulate/` (Emulate service).
@@ -65,6 +76,12 @@
 - `preLaunchTask` chạy ở main (`debug:run-task`, đọc `.vscode/tasks.json` hoặc tự nhận `npm: <script>`), output tee ra `/tmp/phantoma-task-*.log` và hiển thị bằng terminal tab `tail -f`.
 - Env của task/Host phải bỏ `ELECTRON_*`, `VSCODE_*`, `NODE_ENV`, `NODE_OPTIONS` (rò từ Electron dev làm webpack build bản development).
 
+## Ctrl+Click Go to Definition (không dùng LSP)
+
+- `components/common/definition-navigation.ts`: `registerDefinitionProvider` (ts/js) tự phân tích `import/export ... from` trong model, resolve đường dẫn tương đối + alias từ `paths` của tsconfig (đọc qua `fs:read-dir`, KHÔNG dùng `fs:stat` để dò file vì main log lỗi khi file không tồn tại), tìm khai báo symbol bằng regex và đi theo re-export.
+- `CodeBlock.tsx` gọi `registerModelFile(model, filePath)` (model không có URI file, nên cần map `model.uri → filePath`) và `setupDefinitionNavigation()` khi tạo editor.
+- Monaco ưu tiên kết quả TS worker (trỏ về dòng import cùng model), nên `registerEditorOpener` thay bằng kết quả provider rồi mở tab qua `useCodeStore.requestOpenFile(..., { line, column })`.
+
 ## Test bản packaged (không cần nén AppImage)
 
 - `npm run test:build` — build nhanh (server + emulate `npm run build` → `electron-vite build` → `electron-builder --linux dir`) rồi chạy binary từ `release-build/v<latest>/linux-unpacked/phantoma`. Dùng khi cần xác nhận spawn server / port random / logo.
@@ -83,3 +100,4 @@
 - Unsaved changes are app-scoped: a module registers a provider via `registerUnsavedProvider` (`shared/unsaved/unsavedRegistry.ts`, e.g. `modules/Code/services/unsaved.service.ts`); `shared/unsaved/UnsavedGuard.tsx` (mounted in `App.tsx`) owns the reload shortcut/beforeunload guard and renders `components/UnsavedChangesModal.tsx`. Do not add per-module reload modals.
 - `fs:watch-dir` / `fs:unwatch-dir` (`src/main/ipc/fs.handlers.ts`) dùng ref-count theo `projectPath`: mỗi `watch-dir` phải có đúng 1 `unwatch-dir` ở cleanup (FileExplore, Debug...), watcher chỉ đóng khi về 0.
 - Mở terminal tab từ ngoài Workspace: `window.dispatchEvent(new CustomEvent('phantoma:open-terminal-panel', { detail: { sessionId, title, cwd, command } }))` (listener ở `ContentPanel/Workspace/index.tsx`, lệnh chạy qua `WorkspacePanel.initialCommand`). Debug dùng nó cho DAP `runInTerminal`.
+- Module Code: chỉ `modules/Code/handler/**` được gọi IPC (`window.api`). `executors/` không đụng `window.api` trực tiếp mà gọi qua handler (vd `TerminalIpc` trong `handler/terminal/TerminalHandlers.ts`, `MoveFileHandler` trong `handler/tool`).

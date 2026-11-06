@@ -22,7 +22,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { formatResponseSize } from './utils/network-event-parser.util';
 
 // ── Hooks ──
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 import useTargetData from './hooks/useTargetData';
 import { useRequestFilter } from './hooks/useRequestFilter';
 import useNetworkEvents from './hooks/useNetworkEvents';
@@ -34,7 +34,7 @@ import { emulateApi } from './services/emulate-api.service';
 import { runtimeApi } from './services/runtime-api.service';
 import { installRuntimeWsBridge, wsBus } from './services/runtime-ws-bridge';
 import { refreshEmulateBaseFromIpc } from './services/emulate-base-url';
-import { EmulateController } from './EmulateController';
+import { useFilterStore } from './stores/filterStore';
 
 // ── UI ──
 import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
@@ -311,29 +311,6 @@ export default React.memo(function Emulate({
     return () => clearTimeout(timer);
   }, [activeTargetId, setState]);
 
-  // Sync requests to EmulateController (subscription để cập nhật real-time)
-  useEffect(() => {
-    const sync = () => {
-      const requests = useNetworkStore.getState().requests;
-      EmulateController.getInstance().setRequests(requests);
-    };
-
-    sync();
-
-    const unsubscribe = useNetworkStore.subscribe((state, prevState) => {
-      if (state.requests !== prevState.requests) {
-        sync();
-      }
-    });
-
-    return unsubscribe;
-  }, [activeTargetId]);
-
-  // Sync targetId to EmulateController
-  useEffect(() => {
-    EmulateController.getInstance().setTargetId(activeTargetId);
-  }, [activeTargetId]);
-
   // Update timer badge every second for running targets
   const updateTimerFn = useTimerStore((s) => s.updateTimer);
   const clearTimerFn = useTimerStore((s) => s.clearTimer);
@@ -391,9 +368,9 @@ export default React.memo(function Emulate({
     loadFilterFromAPI();
   }, [activeTargetId]); // Only run when activeTargetId changes
 
-  // Sync filter to EmulateController
+  // Sync filter to filter store
   useEffect(() => {
-    EmulateController.getInstance().setFilter(filter);
+    useFilterStore.getState().setFilter(filter);
   }, [filter]);
 
   // Derived state

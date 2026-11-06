@@ -1,4 +1,4 @@
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { BadgeProps } from './type';
 
 export function Badge({ count, className, max = 99 }: BadgeProps) {

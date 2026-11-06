@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Loader2, Trash2 } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import {
   Dropdown,
   DropdownContent,

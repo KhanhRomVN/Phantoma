@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 export interface CalendarProps {
   /** Selected date, format yyyy-MM-dd */

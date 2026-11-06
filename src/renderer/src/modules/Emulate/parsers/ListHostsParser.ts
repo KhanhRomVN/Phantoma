@@ -1,4 +1,4 @@
-import type { ListHostsParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export type ListHostsParams = Record<string, never>;
 
 /**
  * Parse list_hosts tag from AI response.

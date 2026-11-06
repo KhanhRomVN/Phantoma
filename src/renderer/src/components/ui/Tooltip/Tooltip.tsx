@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { createPortal } from 'react-dom';
+import { cn } from '@renderer/utils/cn';
 import { TooltipProps } from './type';
 import { $ } from '@renderer/utils/color';
 
@@ -11,6 +12,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   sideOffset = 8,
   alignOffset = 0,
   className,
+  contentClassName,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -112,10 +114,15 @@ export const Tooltip: React.FC<TooltipProps> = ({
       onMouseLeave={() => setIsVisible(false)}
     >
       <div ref={triggerRef}>{children}</div>
-      {isVisible && content && (
+      {isVisible &&
+        content &&
+        createPortal(
         <div
           ref={tooltipRef}
-          className="fixed z-[9999] max-w-[280px] pointer-events-none whitespace-normal font-inherit bg-tooltip-background text-text-primary text-[11px] px-3 py-1.5 rounded shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-border"
+          className={cn(
+            'fixed z-[9999] max-w-[280px] pointer-events-none whitespace-normal font-inherit bg-tooltip-background text-text-primary text-[11px] px-3 py-1.5 rounded shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-border',
+            contentClassName,
+          )}
           style={
             {
               top: position.y,
@@ -164,7 +171,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
             }}
           />
           {content}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

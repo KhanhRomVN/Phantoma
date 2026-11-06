@@ -1,26 +1,28 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { NavigateHandler } from '../handler/NavigateHandler';
 import type { NavigateParams } from '../parsers/NavigateParser';
+
+const handler = new NavigateHandler();
 
 export async function executeNavigate(
   params: NavigateParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('navigate', {
+    const result = await handler.handle(
       targetId,
-      url: params.url,
-      waitUntil: params.waitUntil,
-      timeoutMs: params.timeoutMs,
-    });
+      params.url,
+      undefined,
+      params.waitUntil,
+      params.timeoutMs,
+    );
 
     if (result.success) {
       return {

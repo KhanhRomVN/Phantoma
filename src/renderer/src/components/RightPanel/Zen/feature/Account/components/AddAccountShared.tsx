@@ -7,7 +7,7 @@ import {
 } from "./accountModalLayout";
 
 import { Key } from "lucide-react";
-import { getFaviconUrl } from "@renderer/shared/utils/faviconUtils";
+import { getFaviconUrl } from "@renderer/utils/favicon";
 import {
   Banner,
   bannerStyles,

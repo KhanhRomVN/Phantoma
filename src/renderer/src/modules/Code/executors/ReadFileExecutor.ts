@@ -1,8 +1,10 @@
-import { CodeController } from '../CodeController';
+import { ReadFileHandler } from '../handler/tool/ReadFileHandler';
 import type { ReadFileParams } from '../types/tool-params';
 
+const readFileHandler = new ReadFileHandler();
+
 /**
- * Execute read_file tool — gọi CodeController.executeTool().
+ * Execute read_file tool — gọi trực tiếp ReadFileHandler.
  */
 export async function executeReadFile(
   params: ReadFileParams,
@@ -10,18 +12,17 @@ export async function executeReadFile(
   basePath?: string | null,
 ): Promise<{ output: string } | null> {
   const filePath = (params as any).path || params.file_path || '';
-  const result = await CodeController.executeTool('read_file', {
+  const data = await readFileHandler.handle({
     path: filePath,
     basePath: basePath || undefined,
     start_line: params.start_line,
     end_line: params.end_line,
-  });
+  } as any);
 
-  if (!result.success) {
-    return { output: "[read_file for '" + filePath + "'] Result: Error - " + (result.error || '') };
+  if (data.error) {
+    return { output: "[read_file for '" + filePath + "'] Result: Error - " + data.error };
   }
 
-  const data = result.data || {};
   const content = data.content || '';
   let output = "[read_file for '" + filePath + "'] Result:\n```\n" + content;
 

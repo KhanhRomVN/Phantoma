@@ -12,8 +12,8 @@
 import { createContext, memo, useContext, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Minus, Plus, Undo2 } from 'lucide-react';
 
-import { cn } from '@renderer/shared/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { splitPath, type CommitFile } from './graph';
 
 export type FilesView = 'path' | 'tree';

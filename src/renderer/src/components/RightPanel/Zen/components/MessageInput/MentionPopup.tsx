@@ -8,7 +8,7 @@
 
 import * as React from 'react';
 import { $ } from '@renderer/utils/color';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { buildMatcher } from './mentionEditor';
 import type { MentionItem } from './mentionEditor';
 

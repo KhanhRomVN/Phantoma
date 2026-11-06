@@ -92,6 +92,8 @@ interface ChatFooterProps {
   ) => void;
   onRevertConversation?: (messageId: string, timestamp: number) => void;
   workflowAgentId?: WorkflowAgentId | null;
+  autoScrollPaused?: boolean;
+  scrollToBottom?: () => void;
 }
 
 const ChatFooter: React.FC<ChatFooterProps> = ({
@@ -143,6 +145,8 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
   onModelSwitch,
   onRevertConversation,
   workflowAgentId,
+  autoScrollPaused,
+  scrollToBottom,
 }) => {
   // Calculate response range - count all assistant responses in the conversation
   const responseRange = React.useMemo(() => {
@@ -344,6 +348,8 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
           onRevertConversation={onRevertConversation}
           onModelSwitch={onModelSwitch}
           workflowAgentId={workflowAgentId}
+          autoScrollPaused={autoScrollPaused}
+          scrollToBottom={scrollToBottom}
         />
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { useTruncatedText } from './truncateText';
 
 interface CopyableTextProps {

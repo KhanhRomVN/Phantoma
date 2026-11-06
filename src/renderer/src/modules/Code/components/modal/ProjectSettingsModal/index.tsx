@@ -1,7 +1,7 @@
 import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { Image as ImageIcon, Info, SlidersHorizontal, X } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { OverviewTab } from './tabs/OverviewTab';
 import { GeneralTab } from './tabs/GeneralTab';
 import { LogoTab } from './tabs/LogoTab';

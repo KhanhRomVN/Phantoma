@@ -24,7 +24,7 @@ import { useWebSocketStore } from '../../../stores/websocketStore';
 import type { WebSocketConnection, WebSocketFrame } from '../../../types/inspector';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 const OPCODE_CONFIG: Record<WebSocketFrame['opcode'], { label: string; colorClass: string }> = {

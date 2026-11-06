@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { DropdownItemProps } from './type';
 import { ChevronRight } from 'lucide-react';
 import { useDropdownSubContext } from './DropdownSub';

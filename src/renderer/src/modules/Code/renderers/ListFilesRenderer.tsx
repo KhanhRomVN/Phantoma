@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
@@ -13,10 +13,10 @@ import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
-import { getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFolderIconPath } from '@renderer/utils/file-icon';
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 import TreeBlock from '@renderer/components/common/TreeBlock';
-import { buildTreeFromPaths } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/tree-builder';
+import { buildTreeFromPaths } from '../utils/tree-builder';
 
 export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   action,

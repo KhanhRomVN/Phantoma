@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { MarkdownRenderer } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import {

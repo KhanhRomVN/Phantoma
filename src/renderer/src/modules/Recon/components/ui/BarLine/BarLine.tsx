@@ -1,5 +1,5 @@
 import type { BarLineItem } from '../types';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { resolveColor } from '../../../constants/colors';
 import { withAlpha } from '../../targetType';
 

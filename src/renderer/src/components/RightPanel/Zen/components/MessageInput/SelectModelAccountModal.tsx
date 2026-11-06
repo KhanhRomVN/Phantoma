@@ -24,8 +24,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
-import { formatRelativeTime } from '@renderer/utils/relativeTime';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { formatRelativeTime } from '@renderer/utils/time';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 import { DEFAULT_EFFORT, EFFORT_LABEL, EFFORT_LEVELS, splitModelAndEffort } from './EffortDropdown';
 import type { EffortLevel } from './EffortDropdown';
 import { accountsKey, cacheGet, cacheSet } from './providerModelCache';

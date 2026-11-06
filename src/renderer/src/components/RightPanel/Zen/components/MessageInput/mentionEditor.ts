@@ -14,7 +14,7 @@
  * ------------------------------------------------------------------
  */
 
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
 export interface MentionItem {
   path: string;
@@ -320,6 +320,8 @@ export const insertBadgeAt = (
 
 export const MENTION_DRAG_TYPE = 'application/x-phantoma-mention';
 export const ZEN_MENTION_DROP_EVENT = 'zen-mention-drop';
+import { ZEN_INSERT_TEXT_EVENT } from '@renderer/components/RightPanel/Zen/shared/events';
+export { ZEN_INSERT_TEXT_EVENT };
 
 export const readDraggedItems = (dataTransfer: DataTransfer): MentionItem[] => {
   try {

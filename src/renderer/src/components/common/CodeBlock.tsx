@@ -19,6 +19,11 @@
 // ── React ──
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
+// ── UI ──
+import { Dropdown } from '@renderer/components/ui/Dropdown/Dropdown';
+import DropdownContent from '@renderer/components/ui/Dropdown/DropdownContent';
+import { DropdownItem, DropdownSeparator } from '@renderer/components/ui/Dropdown/DropdownItem';
+
 // ── Services ──
 import { fileWatcherService } from '../../modules/Code/services/file-watcher.service';
 
@@ -28,7 +33,14 @@ import { useCodeStore } from '../../modules/Code/hooks/useCodeStore';
 // ── Theme ──
 import { useTheme } from '../../theme/ThemeProvider';
 
+const markersStash = new Map<string, Map<string, any[]>>();
+
+export const getStashedMarkers = (uri: string): any[] =>
+  Array.from(markersStash.get(uri)?.values() ?? []).flat();
+
 // ─── Global Declarations ────────────────────────────────────────────────
+import { registerModelFile, setupDefinitionNavigation } from './definition-navigation';
+
 // Khai báo interface Window để hỗ trợ AMD loader cho Monaco
 declare global {
   interface Window {
@@ -314,6 +326,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
   // ── State ──
   const [isEditorReady, setIsEditorReady] = React.useState(false);
+  const [contextMenu, setContextMenu] = React.useState<{ top: number; left: number } | null>(null);
 
   // ── Derived ──
   // Memoize themeConfig để tránh re-render không cần thiết
@@ -493,6 +506,9 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           }
         }
 
+        if (modelRef.current && filePath) registerModelFile(modelRef.current, filePath);
+        setupDefinitionNavigation();
+
         // Create editor instance with the model
         editorInstance.current = window.monaco.editor.create(editorRef.current, {
           model: modelRef.current || undefined,
@@ -508,17 +524,36 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
           padding: { top: 16, bottom: 16 },
           wordWrap: wordWrap,
           lineNumbers: showLineNumbers ? 'on' : 'off',
+          contextmenu: false,
+          gotoLocation: { multipleDefinitions: 'goto' },
           ...editorOptions,
+        });
+
+        editorInstance.current.onContextMenu((e: any) => {
+          const be = e.event.browserEvent as MouseEvent;
+          setContextMenu({ top: be.clientY, left: be.clientX });
         });
 
         if (hideDiagnostics && modelRef.current) {
           const monaco = window.monaco;
           const model = modelRef.current;
+          const uriKey = model.uri.toString();
+          let selfPending = false;
           const clearMarkers = () => {
-            const owners = new Set<string>(
-              monaco.editor.getModelMarkers({ resource: model.uri }).map((m: any) => m.owner),
-            );
-            owners.forEach((owner) => monaco.editor.setModelMarkers(model, owner, []));
+            const current: any[] = monaco.editor.getModelMarkers({ resource: model.uri });
+            if (current.length === 0) {
+              // ASSUMED: event rỗng không do mình gây ra = worker đã xoá hết lỗi — upgrade path: theo dõi theo từng owner
+              if (selfPending) selfPending = false;
+              else markersStash.delete(uriKey);
+              return;
+            }
+            const byOwner = new Map<string, any[]>();
+            current.forEach((m) => byOwner.set(m.owner, [...(byOwner.get(m.owner) ?? []), m]));
+            const stashed = markersStash.get(uriKey) ?? new Map<string, any[]>();
+            byOwner.forEach((list, owner) => stashed.set(owner, list));
+            markersStash.set(uriKey, stashed);
+            selfPending = true;
+            byOwner.forEach((_, owner) => monaco.editor.setModelMarkers(model, owner, []));
           };
           clearMarkers();
           const markersSub = monaco.editor.onDidChangeMarkers((uris: any[]) => {
@@ -972,7 +1007,63 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
   }, [isEditorReady, revealPosition?.nonce]);
 
   // ── Render ──
-  return <div ref={editorRef} className={`w-full h-full min-h-[200px] ${className || ''}`} />;
+  const runAction = (id: string) => {
+    editorInstance.current?.focus();
+    editorInstance.current?.getAction(id)?.run();
+  };
+
+  return (
+    <>
+      <div ref={editorRef} className={`w-full h-full min-h-[200px] ${className || ''}`} />
+      {contextMenu && (
+        <div className="absolute w-0 h-0 overflow-hidden">
+          <Dropdown
+            open
+            onOpenChange={(v) => {
+              if (!v) setContextMenu(null);
+            }}
+            position={contextMenu}
+            align="start"
+          >
+            <DropdownContent>
+              <DropdownItem onClick={() => runAction('editor.action.revealDefinition')}>
+                Go to Definition
+              </DropdownItem>
+              <DropdownItem onClick={() => runAction('editor.action.goToReferences')}>
+                Go to References
+              </DropdownItem>
+              <DropdownItem onClick={() => runAction('editor.action.quickOutline')}>
+                Go to Symbol...
+              </DropdownItem>
+              <DropdownItem onClick={() => runAction('editor.action.peekDefinition')}>
+                Peek Definition
+              </DropdownItem>
+              <DropdownSeparator />
+              <DropdownItem onClick={() => runAction('editor.action.rename')}>
+                Rename Symbol
+              </DropdownItem>
+              <DropdownItem onClick={() => runAction('editor.action.changeAll')}>
+                Change All Occurrences
+              </DropdownItem>
+              <DropdownItem onClick={() => runAction('editor.action.formatDocument')}>
+                Format Document
+              </DropdownItem>
+              <DropdownSeparator />
+              <DropdownItem onClick={() => runAction('editor.action.clipboardCutAction')}>
+                Cut
+              </DropdownItem>
+              <DropdownItem onClick={() => runAction('editor.action.clipboardCopyAction')}>
+                Copy
+              </DropdownItem>
+              <DropdownItem onClick={() => runAction('editor.action.clipboardPasteAction')}>
+                Paste
+              </DropdownItem>
+            </DropdownContent>
+          </Dropdown>
+        </div>
+      )}
+    </>
+  );
 });
 
 CodeBlock.displayName = 'CodeBlock';

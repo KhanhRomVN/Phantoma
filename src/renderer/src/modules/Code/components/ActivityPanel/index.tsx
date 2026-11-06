@@ -30,6 +30,7 @@ import {
 import { useCodeStore, type ContentViewMode } from '../../hooks/useCodeStore';
 import { useDesignStore } from '../../hooks/useDesignStore';
 import { useDebugStore } from '../../stores/useDebugStore';
+import { useActivityPanelStore, useCurrentBranchKey } from '../../stores/useActivityPanelStore';
 
 // ── Components ─
 import { ActivityBar } from './ActivityBar';
@@ -40,7 +41,7 @@ import { Debug } from './Debug';
 import { Account } from './Account';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 const TABS = [
@@ -63,12 +64,11 @@ export function ActivityPanel() {
   // ── Store — select riêng activityPanelTab thay vì toàn bộ project ──
   const isAccountPanelOpen = useCodeStore((s) => s.isAccountPanelOpen);
   const setAccountPanelOpen = useCodeStore((s) => s.setAccountPanelOpen);
-  const projectTab = useCodeStore((s) => {
-    const p = s.projects.find((p) => p.id === s.currentProjectId);
-    return p?.activityPanelTab ?? 'explore';
-  });
-  const activityPanelTab = isAccountPanelOpen ? 'account' : projectTab;
-  const setActivityPanelTab = useCodeStore((s) => s.setActivityPanelTab);
+  const branchKey = useCurrentBranchKey();
+  const branchTab =
+    useActivityPanelStore((s) => (branchKey ? s.tabs[branchKey] : undefined)) ?? 'explore';
+  const setBranchTab = useActivityPanelStore((s) => s.setTab);
+  const activityPanelTab = isAccountPanelOpen ? 'account' : branchTab;
   const activityPanelWidth = useCodeStore((s) => s.activityPanelWidth);
   const setActivityPanelWidth = useCodeStore((s) => s.setActivityPanelWidth);
   const contentViewMode = useCodeStore((s) => s.contentViewMode);
@@ -93,6 +93,12 @@ export function ActivityPanel() {
     if (contentViewMode !== 'design') lastViewModeRef.current = contentViewMode;
   }, [contentViewMode]);
 
+  useEffect(() => {
+    if (branchTab !== 'design' && useCodeStore.getState().contentViewMode === 'design') {
+      setContentViewMode(lastViewModeRef.current);
+    }
+  }, [branchKey]);
+
   // ── Handlers ──
   const handleTabChange = (tab: string) => {
     if (tab === 'account') {
@@ -106,7 +112,7 @@ export function ActivityPanel() {
     } else if (contentViewMode === 'design') {
       setContentViewMode(lastViewModeRef.current);
     }
-    setActivityPanelTab(tab as any);
+    if (branchKey) setBranchTab(branchKey, tab as any);
   };
 
   // Resize from LEFT edge: dragging left increases width, dragging right decreases

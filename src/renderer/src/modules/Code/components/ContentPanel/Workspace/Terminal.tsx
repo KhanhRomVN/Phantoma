@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Terminal as XTerm } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import { SerializeAddon } from 'xterm-addon-serialize';
-import 'xterm/css/xterm.css';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { SerializeAddon } from '@xterm/addon-serialize';
+import '@xterm/xterm/css/xterm.css';
 import {
   detectAgentFromCommandLine,
   detectAgentFromTitle,
@@ -158,6 +158,10 @@ export const CodeTerminal = ({
         disableStdin: false,
       });
 
+      term.attachCustomKeyEventHandler(
+        (e: KeyboardEvent) => !(e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p'),
+      );
+
       fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
 
@@ -284,7 +288,7 @@ export const CodeTerminal = ({
       // Buffer to capture typed commands before Enter is pressed
       let inputBuffer = '';
 
-      const inputDisposable = term.onData((data) => {
+      const inputDisposable = term.onData((data: string | number) => {
         if (window.api?.send) {
           window.api.send('terminal:write', {
             terminalId: terminalIdRef.current,

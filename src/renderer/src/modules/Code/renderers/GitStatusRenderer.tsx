@@ -1,26 +1,24 @@
 import React, { useMemo } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── UI ──
 import { Check, X } from 'lucide-react';
 
 // ── Constants ──
-import {
-  TOOL_ACTION_TYPES,
-  getToolLabel,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { TOOL_ACTION_TYPES } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
+import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/ResponseParser';
-import { GitStatusItem } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/responseParser';
+import { GitStatusItem } from '../types/tool-params';
 
 // ── Utils ──
-import { parseGitStatusOutput } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/git-status-parser';
+import { parseGitStatusOutput } from '@renderer/components/RightPanel/Zen/shared/git-status-parser';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 
 interface GitStatusBlockItem {
   status: string;

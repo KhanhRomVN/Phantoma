@@ -40,7 +40,7 @@ import { useToolFormatSettings } from '../../hooks/useToolFormatSettings';
 import { useZenUpdate } from './hooks/useZenUpdate';
 import ConversationService from '../../services/ConversationService';
 import { useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 import { AccountStat } from './utils/format';
 import {
   useStatsPeriod,

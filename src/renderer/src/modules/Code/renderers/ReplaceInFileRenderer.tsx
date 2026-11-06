@@ -15,9 +15,9 @@ import React from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
-import { parseDiff, DiffHighlight } from '@renderer/components/RightPanel/Zen/utils/diffUtils';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/utils/cn';
+import { parseDiff, DiffHighlight } from '../utils/diffUtils';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
 // ── Hooks ──

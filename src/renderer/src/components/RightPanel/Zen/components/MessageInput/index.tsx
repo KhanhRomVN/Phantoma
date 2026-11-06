@@ -37,9 +37,9 @@ import PromptLengthDropdown, {
 } from './PromptLengthDropdown';
 import PromptSettingsDropdown from './PromptSettingsDropdown';
 import ActionDropdown from './ActionDropdown';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
-import { getClientId } from '@renderer/utils/clientId';
-import { countTokens } from '@renderer/utils/tokenizer';
+import { getFaviconUrl } from '@renderer/utils/favicon';
+
+import { countTokens } from '@renderer/components/RightPanel/Zen/utils/tokenizer';
 import type { MessageInputProps, UploadedFile, ToggleButtonProps } from './types';
 
 const isDeepSeekProvider = (id?: string) => id?.toLowerCase() === 'deepseek';
@@ -56,6 +56,25 @@ import { SimpleTooltip, TooltipRow, TooltipCard } from './SimpleTooltip';
 import { buildAcceptString } from '../../feature/Chat/utils/file-operations';
 
 export type { UploadedFile };
+
+const CLIENT_ID_STORAGE_KEY = 'zen-client-id';
+
+// ID ổn định cho mỗi cửa sổ app (sessionStorage), để backend phân biệt cửa sổ nào đang active account nào
+const getClientId = (): string => {
+  try {
+    let id = sessionStorage.getItem(CLIENT_ID_STORAGE_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `zen-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(CLIENT_ID_STORAGE_KEY, id);
+    }
+    return id;
+  } catch {
+    return `zen-fallback-${Date.now()}`;
+  }
+};
 
 // ============================================================================
 // ICONS
@@ -495,6 +514,8 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     message,
     setMessage,
     isHistoryMode = false,
+    autoScrollPaused = false,
+    scrollToBottom,
     uploadedFiles,
     attachedItems = [],
     textareaRef,
@@ -1649,6 +1670,42 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               </div>
             )}
 
+            {autoScrollPaused && scrollToBottom && (
+              <div
+                ref={(el) => {
+                  if (el) {
+                  }
+                }}
+                onClick={scrollToBottom}
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  right: '8px',
+                  marginBottom: '4px',
+                  padding: '2px 8px',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  zIndex: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: $('--text-secondary'),
+                  backgroundColor: $('--input-background'),
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = $('--primary');
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = $('--text-secondary');
+                }}
+              >
+                <span className="codicon codicon-arrow-down" style={{ fontSize: '12px' }} />
+                Scroll to bottom
+              </div>
+            )}
+
             {/* Browser session warning */}
             {showBrowserWarning && currentModel?.providerId === 'zai-browser' && (
               <div
@@ -2237,8 +2294,10 @@ export default React.memo(MessageInput, (prevProps, nextProps) => {
     prevProps.conversationUseSkillEnabled === nextProps.conversationUseSkillEnabled;
   const memorySame = prevProps.conversationMemoryEnabled === nextProps.conversationMemoryEnabled;
   const toolFormatSame = prevProps.conversationToolFormat === nextProps.conversationToolFormat;
+  const autoScrollPausedSame = prevProps.autoScrollPaused === nextProps.autoScrollPaused;
 
   const shouldSkip =
+    autoScrollPausedSame &&
     messageSame &&
     isProcessingSame &&
     isStreamingSame &&

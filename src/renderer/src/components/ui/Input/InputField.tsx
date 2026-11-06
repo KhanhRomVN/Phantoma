@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { InputFieldProps } from './type';
 
 export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(

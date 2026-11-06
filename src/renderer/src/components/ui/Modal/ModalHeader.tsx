@@ -1,10 +1,10 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface ModalHeaderProps {
-  title?: string;
-  description?: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
   onClose?: () => void;
   showCloseButton?: boolean;
   className?: string;

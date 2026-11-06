@@ -8,8 +8,8 @@ import {
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
 import { Kbd } from '@renderer/components/ui/Kbd';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { cn } from '@renderer/shared/utils/cn';
+import { getFileIconPath } from '@renderer/utils/file-icon';
+import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import type { FileResult } from './useSearch';
 

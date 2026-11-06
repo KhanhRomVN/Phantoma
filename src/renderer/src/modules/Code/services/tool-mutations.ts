@@ -11,7 +11,7 @@ import type {
   FilePathExtractor,
   SingleLineReviewChecker,
   DiffCalculator,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-mutation';
+} from '@renderer/components/RightPanel/Zen/shared/tool-mutation';
 
 const countLines = (text: string | undefined): number => {
   if (!text) return 0;
@@ -42,9 +42,7 @@ export const extractCodeFilePath: FilePathExtractor = (action) => {
     action.type === 'write_to_file' ||
     action.type === 'replace_in_file' ||
     action.type === 'delete_file' ||
-    action.type === 'read_file' ||
-    action.type === 'revert_file' ||
-    action.type === 'view_replace_history'
+    action.type === 'read_file'
   ) {
     return action.params?.file_path || action.params?.path || null;
   }

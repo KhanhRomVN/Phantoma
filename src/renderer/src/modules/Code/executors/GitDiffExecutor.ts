@@ -1,13 +1,14 @@
-import { CodeController } from '../CodeController';
+import { GitDiffHandler } from '../handler/tool/GitHandlers';
+
+const gitDiffHandler = new GitDiffHandler();
 
 export async function executeGitDiff(filePath: string, _requestId: string): Promise<string | null> {
-  const result = await CodeController.executeTool('git_diff', { filePath });
+  const data = await gitDiffHandler.handle({ filePath });
 
-  if (!result.success) {
-    return "[git_diff for '" + filePath + "'] Result: Error - " + (result.error || '');
+  if (data.error) {
+    return "[git_diff for '" + filePath + "'] Result: Error - " + data.error;
   }
 
-  const data = result.data || {};
   const diffContent = data.output || data.diff || '';
 
   // Clean metadata lines

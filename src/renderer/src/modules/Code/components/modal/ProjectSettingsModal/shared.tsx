@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Check, Copy } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { ProjectLogoImage } from '../../ProjectLogo';
 
 export type ProjectSettingsTabId = 'overview' | 'general' | 'logo';

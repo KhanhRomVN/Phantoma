@@ -5,7 +5,7 @@ import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@rende
 import { Tooltip } from '@renderer/components/ui/Tooltip';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface RequestBarProps {
   method: string;

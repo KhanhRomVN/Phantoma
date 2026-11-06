@@ -34,7 +34,7 @@ import { AppPlatform, PLATFORMS } from '../../constants/platforms';
 import { TargetTab } from '../../types/target.types';
 import { emulateApi } from '../../services/emulate-api.service';
 import { secureStorage } from '../../services/secure-storage.service';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { getTargetFavicon } from '.';
 import { PLATFORM_STYLES } from './TargetCard';
 import { ProfileSelect } from './TargetModal';

@@ -1,34 +1,19 @@
 import { getExt, kindOf } from './fileTypes';
 import type { FileFilter, FileNode, FileSort, FolderNode, FsNode } from './fileTypes';
 
-// Auto-loads every file in mock/<mockFolder>/files: adding/removing files needs no import changes.
-// Text is loaded with ?raw (preview + downloadable); media is loaded with ?url.
-const RAW_MODULES = import.meta.glob('../../../mock/**/files/**/*.{md,js,ts,json,txt,csv,html,css}', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
-
-const URL_MODULES = import.meta.glob(
-  '../../../mock/**/files/**/*.{png,jpg,jpeg,gif,webp,svg,mp4,webm,mp3,wav,pdf}',
-  { query: '?url', import: 'default', eager: true }
-) as Record<string, string>;
-
-// Glob has no real mtime so the module load time is used — upgrade path: read mtime over IPC when a real store exists.
-const LOADED_AT = new Date().toISOString();
-
 export interface FileSystem {
   nodes: FsNode[];
   byPath: Map<string, FsNode>;
 }
 
-const cache = new Map<string, FileSystem>();
-
-/** Strips the leading '.../mock/<mockFolder>/files/' part and returns the path relative to the store. */
-function relativePath(modulePath: string, mockFolder: string): string | null {
-  const marker = `/mock/${mockFolder}/files/`;
-  const idx = modulePath.indexOf(marker);
-  return idx === -1 ? null : modulePath.slice(idx + marker.length);
+/** Một file đọc từ thư mục `files/` của target (text hoặc binary base64). */
+export interface RawFsEntry {
+  path: string;
+  size: number;
+  modified: string;
+  content?: string;
+  base64?: string;
+  mime?: string;
 }
 
 function parentOf(path: string): string {
@@ -40,11 +25,8 @@ function nameOf(path: string): string {
   return path.slice(path.lastIndexOf('/') + 1);
 }
 
-/** Builds the virtual (read-only) file store from mock/<mockFolder>/files; the result is cached per mockFolder. */
-export function getFileSystem(mockFolder = 'mock1'): FileSystem {
-  const hit = cache.get(mockFolder);
-  if (hit) return hit;
-
+/** Dựng FileSystem (read-only) từ danh sách file thật của target. */
+export function buildFileSystem(entries: RawFsEntry[]): FileSystem {
   const byPath = new Map<string, FsNode>();
 
   const ensureFolder = (path: string) => {
@@ -61,13 +43,17 @@ export function getFileSystem(mockFolder = 'mock1'): FileSystem {
     }
   };
 
-  const addFile = (modulePath: string, content?: string, url?: string) => {
-    const rel = relativePath(modulePath, mockFolder);
-    if (!rel) return;
+  for (const entry of entries) {
+    const rel = entry.path;
+    if (!rel) continue;
     const parentPath = parentOf(rel);
     ensureFolder(parentPath);
     const name = nameOf(rel);
     const ext = getExt(name);
+    const url =
+      entry.base64 && entry.mime
+        ? `data:${entry.mime};base64,${entry.base64}`
+        : undefined;
     const file: FileNode = {
       type: 'file',
       id: rel,
@@ -76,20 +62,15 @@ export function getFileSystem(mockFolder = 'mock1'): FileSystem {
       parentPath,
       ext,
       kind: kindOf(ext),
-      size: content !== undefined ? new TextEncoder().encode(content).length : undefined,
-      modified: LOADED_AT,
-      content,
+      size: entry.size,
+      modified: entry.modified,
+      content: entry.content,
       url,
     };
     byPath.set(rel, file);
-  };
+  }
 
-  Object.entries(RAW_MODULES).forEach(([p, content]) => addFile(p, content));
-  Object.entries(URL_MODULES).forEach(([p, url]) => addFile(p, undefined, url));
-
-  const fs: FileSystem = { nodes: [...byPath.values()], byPath };
-  cache.set(mockFolder, fs);
-  return fs;
+  return { nodes: [...byPath.values()], byPath };
 }
 
 /** Direct children of a folder ('' = root). */

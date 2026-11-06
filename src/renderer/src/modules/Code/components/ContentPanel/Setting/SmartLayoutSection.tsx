@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Check, Eye } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import {
   computeRects,
   DEFAULT_SIZES,
@@ -56,6 +56,7 @@ const TYPE_STYLE: Record<PanelType, { label: string; hint: string; solid: string
     solid: 'bg-pink-500',
     soft: 'bg-pink-500/15 text-pink-300 border-pink-500/30',
   },
+
 };
 
 function layoutOf(rules: PanelRules) {

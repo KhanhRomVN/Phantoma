@@ -15,7 +15,7 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 import { buildStatusTooltip } from '../../../utils/status-tooltip-builder';
 

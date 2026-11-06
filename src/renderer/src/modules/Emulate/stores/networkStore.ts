@@ -34,7 +34,7 @@ import { create } from 'zustand';
 import { detectResourceType } from '../constants/resource';
 
 // ── Types ─
-import type { NetworkRequest, CdpScriptUnpackedData } from '@renderer/shared/types/network';
+import type { NetworkRequest, CdpScriptUnpackedData } from '../types/network';
 
 export type { NetworkRequest, CdpScriptUnpackedData };
 

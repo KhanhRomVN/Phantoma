@@ -22,7 +22,7 @@ import {
   getFileIconPath,
   getFolderIconPath,
   getIconBaseUri,
-} from '@renderer/shared/utils/fileIconMapper';
+} from '@renderer/utils/file-icon';
 
 // ── Components ──
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';

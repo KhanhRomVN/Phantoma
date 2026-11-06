@@ -14,7 +14,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
-import type { NetworkRequest } from '@renderer/shared/types/network';
+import type { NetworkRequest } from './network';
 
 export type { NetworkRequest };
 

@@ -22,7 +22,7 @@ import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // ── Utils ──
 import hljs from 'highlight.js';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { NetworkRequest } from '../FilterPanel';
 
 // ─── Types ──────────────────────────────────────────────────────────────

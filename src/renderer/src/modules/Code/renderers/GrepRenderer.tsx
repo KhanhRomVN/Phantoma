@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
@@ -11,7 +11,7 @@ import { extensionService } from '@renderer/components/RightPanel/Zen/services/E
 // ── Utils ──
 import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 import { $ } from '@renderer/utils/color';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';

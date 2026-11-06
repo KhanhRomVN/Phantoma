@@ -9,9 +9,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { Modal, ModalHeader, ModalBody } from '@renderer/components/ui/Modal';
-import { countTokens, formatTokenCount } from '@renderer/utils/tokenizer';
+import { countTokens, formatTokenCount } from '@renderer/components/RightPanel/Zen/utils/tokenizer';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

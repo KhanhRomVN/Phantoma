@@ -6,8 +6,14 @@
  * ------------------------------------------------------------------
  */
 
-import { BaseResult } from './FileHandlerTypes';
 import { resolveWorkspacePath } from '../../utils/pathResolver';
+
+interface BaseResult {
+  command: string;
+  requestId?: string;
+  error?: string;
+  [key: string]: any;
+}
 
 export class DeleteFileHandler {
   public async handle(message: any): Promise<BaseResult> {

@@ -35,6 +35,7 @@ import {
 // ── UI ──
 import {
   ChevronsDownUp,
+  Crosshair,
   FolderPlus,
   FilePlus,
   RefreshCw,
@@ -42,6 +43,7 @@ import {
   Loader,
   File,
   Folder,
+  Info,
 } from 'lucide-react';
 import { Kbd } from '@renderer/components/ui/Kbd';
 import {
@@ -54,6 +56,7 @@ import {
 
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../../hooks/useCodeStore';
+import { useBranchScope, isInScope } from '../../../stores/useBranchScopeStore';
 
 const nameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -96,12 +99,14 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
 }
 
 // ── Utils ──
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { installRightClickDragCancel } from '@renderer/shared/utils/dragCancel';
-import { cn } from '@renderer/shared/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+import { installRightClickDragCancel } from '@renderer/utils/drag-cancel';
+import { cn } from '@renderer/utils/cn';
 
 // ── Components ──
 import { ConfirmDeleteFileModal } from './ConfirmDeleteFileModal';
+import { RemoteDiffModal } from './RemoteDiffModal';
+import { Tooltip } from '@renderer/components/ui/Tooltip/Tooltip';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -138,10 +143,37 @@ const fetchDirChildren = async (dirPath: string): Promise<FileNode[]> => {
   }
 };
 
+const gitStatusCache = new Map<string, Record<string, 'added' | 'modified'>>();
+const ignoredPathsCache = new Map<string, string[]>();
+
+let scanCount = 0;
+const scanListeners = new Set<() => void>();
+const emitScan = () => scanListeners.forEach((l) => l());
+
+function useTreeScanning(): boolean {
+  const [scanning, setScanning] = useState(scanCount > 0);
+  useEffect(() => {
+    const l = () => setScanning(scanCount > 0);
+    scanListeners.add(l);
+    l();
+    return () => {
+      scanListeners.delete(l);
+    };
+  }, []);
+  return scanning;
+}
+
 async function refreshProjectTree(projectId: string, projectPath: string) {
   const { setProjectFiles } = useCodeStore.getState();
-  const files = await scanDirectory(projectPath);
-  setProjectFiles(projectId, files);
+  scanCount++;
+  emitScan();
+  try {
+    const files = await scanDirectory(projectPath);
+    setProjectFiles(projectId, files);
+  } finally {
+    scanCount--;
+    emitScan();
+  }
 }
 
 /** Tìm node theo id trong cây đệ quy */
@@ -205,6 +237,8 @@ interface FileExploreContextValue {
   ignoredPaths: string[];
   renamingId: string | null;
   setRenamingId: (id: string | null) => void;
+  errorPaths: Set<string>;
+  onViewRemoteDiff: (path: string) => void;
 }
 
 const FileExploreContext = createContext<FileExploreContextValue>({
@@ -223,6 +257,8 @@ const FileExploreContext = createContext<FileExploreContextValue>({
   onCopyFile: () => {},
   onPasteFile: () => {},
   renamingId: null,
+  errorPaths: new Set<string>(),
+  onViewRemoteDiff: () => {},
   setRenamingId: () => {},
 });
 
@@ -425,6 +461,7 @@ const TreeNode = memo(function TreeNode({
     return state.projects.find((p) => p.id === state.currentProjectId);
   };
 
+  const scopesBelow = useScopesBelow(projectId, node.path, isFolder);
   const [lazyChildren, setLazyChildren] = useState<FileNode[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
@@ -445,6 +482,8 @@ const TreeNode = memo(function TreeNode({
     selectMode,
     setSelectMode,
     nodeMetaRef,
+    errorPaths,
+    onViewRemoteDiff,
   } = useContext(FileExploreContext);
 
   const isActive = selectedNodeIds.has(node.id);
@@ -682,6 +721,8 @@ const TreeNode = memo(function TreeNode({
                 e.dataTransfer.setDragImage(ghost, 0, 0);
                 setTimeout(() => ghost.remove(), 0);
               }}
+              data-node-path={node.path}
+              data-node-folder={isFolder ? '1' : '0'}
               className={cn(
                 'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group outline-none focus:outline-none focus-visible:outline-none',
                 isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
@@ -758,6 +799,26 @@ const TreeNode = memo(function TreeNode({
               >
                 {node.name}
               </span>
+              {scopesBelow.length > 0 && !expanded && (
+                <span
+                  className="ml-auto flex items-center gap-0.5 shrink-0"
+                  title={`Scope bên trong: ${scopesBelow.join(', ')}`}
+                >
+                  {scopesBelow.slice(0, 3).map((n) => (
+                    <span
+                      key={n}
+                      className="px-1.5 min-w-4 h-4 rounded-tr-md rounded-bl-md bg-primary text-white text-[10px] leading-4 text-center"
+                    >
+                      {n}
+                    </span>
+                  ))}
+                  {scopesBelow.length > 3 && (
+                    <span className="text-[10px] leading-4 font-medium text-primary">
+                      +{scopesBelow.length - 3}
+                    </span>
+                  )}
+                </span>
+              )}
             </button>
           </DropdownTrigger>
           <DropdownContent className="min-w-[200px]" size="sm">
@@ -816,6 +877,14 @@ const TreeNode = memo(function TreeNode({
               </span>
             </DropdownItem>
             <DropdownSeparator />
+            {!isFolder && !!node.path && errorPaths.has(node.path) && (
+              <>
+                <DropdownItem onClick={() => onViewRemoteDiff(node.path as string)}>
+                  Compare with default branch
+                </DropdownItem>
+                <DropdownSeparator />
+              </>
+            )}
             <DropdownItem onClick={handleRename}>
               <span className="flex items-center justify-between w-full">
                 <span>Rename</span>
@@ -873,6 +942,237 @@ const TreeNode = memo(function TreeNode({
 });
 
 // ─── FileExplore ────────────────────────────────────────────────────────────
+interface ScopeLayout {
+  blocks: { key: string; index: number; top: number; height: number }[];
+  bad: { top: number; height: number; level: 'warn' | 'error' }[];
+}
+
+// key: `${root}\n${remoteHash}` — đổi khi default branch có commit mới
+const remoteDiffCache = new Map<string, Set<string>>();
+const remoteHashByRoot = new Map<string, string>();
+
+interface BorderRun {
+  top: number;
+  height: number;
+  level?: 'warn' | 'error';
+}
+
+// Gộp các border liền kề cùng màu thành 1; inset 1px mỗi đầu để khác màu có gap 2px
+function mergeRuns<T extends BorderRun>(items: T[]): T[] {
+  const sorted = [...items].sort((a, b) => a.top - b.top);
+  const out: T[] = [];
+  for (const it of sorted) {
+    const prev = out[out.length - 1];
+    if (prev && prev.level === it.level && it.top <= prev.top + prev.height + 1) {
+      const bottom = Math.max(prev.top + prev.height, it.top + it.height);
+      prev.height = bottom - prev.top;
+    } else {
+      out.push({ ...it });
+    }
+  }
+  return out.map((r) => ({ ...r, top: r.top + 1, height: Math.max(r.height - 2, 1) }));
+}
+
+function useActiveBranchName(projectId: string): string {
+  return useCodeStore((s) => {
+    const p = s.projects.find((x) => x.id === projectId);
+    return (
+      p?.branches?.find((b) => b.sessions.some((ss) => ss.id === s.activeWorkspaceSessionId))
+        ?.name ?? ''
+    );
+  });
+}
+
+const NO_SCOPES: number[] = [];
+
+function useScopesBelow(
+  projectId: string,
+  nodePath: string | undefined,
+  isFolder: boolean,
+): number[] {
+  const branchName = useActiveBranchName(projectId);
+  const scope = useBranchScope(projectId, branchName);
+  const root = useCodeStore((s) => {
+    const p = s.projects.find((x) => x.id === projectId);
+    return (p?.explorerRoot ?? p?.path ?? '').replace(/\/+$/, '');
+  });
+  return useMemo(() => {
+    if (!isFolder || !nodePath || !root || !nodePath.startsWith(`${root}/`)) return NO_SCOPES;
+    const rel = nodePath.slice(root.length + 1);
+    if (isInScope(rel, scope)) return NO_SCOPES;
+    return scope.flatMap((p, i) => (p.startsWith(`${rel}/`) ? [i + 1] : []));
+  }, [isFolder, nodePath, root, scope]);
+}
+
+function ScopeBlocks({
+  containerRef,
+  projectId,
+  root,
+  gitStatus,
+  onErrorPaths,
+}: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  projectId: string;
+  root: string;
+  gitStatus: Record<string, 'added' | 'modified'>;
+  onErrorPaths: (paths: Set<string>) => void;
+}) {
+  const branchName = useActiveBranchName(projectId);
+  const scope = useBranchScope(projectId, branchName);
+  // ASSUMED: remoteDiff = null (không có remote/main|master hoặc lỗi) → giữ hành vi cũ (error)
+  const [remoteDiff, setRemoteDiff] = useState<Set<string> | null>(() => {
+    const h = remoteHashByRoot.get(root);
+    return h ? (remoteDiffCache.get(`${root}\n${h}`) ?? null) : null;
+  });
+  const lastErrRef = useRef('');
+  const lastDiffKeyRef = useRef('');
+  const candidatesKey = useMemo(() => {
+    const base = root.replace(/\/+$/, '');
+    return Object.keys(gitStatus)
+      .filter(
+        (p) => p.startsWith(`${base}/`) && !isInScope(p.slice(base.length + 1), scope),
+      )
+      .sort()
+      .join('\n');
+  }, [gitStatus, root, scope]);
+
+  useEffect(() => {
+    if (!root || !branchName || scope.length === 0) {
+      setRemoteDiff(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await window.api.invoke(
+          'git:diff-vs-remote',
+          root,
+          candidatesKey ? candidatesKey.split('\n') : [],
+        );
+        if (cancelled) return;
+        const ok = res && Array.isArray(res.files);
+        const next = ok ? new Set<string>(res.files) : null;
+        if (ok && res.remoteHash) {
+          remoteHashByRoot.set(root, res.remoteHash);
+          remoteDiffCache.set(`${root}\n${res.remoteHash}`, next as Set<string>);
+        }
+        const key = ok ? [...res.files].sort().join('\n') : '\0null';
+        if (key === lastDiffKeyRef.current) return;
+        lastDiffKeyRef.current = key;
+        setRemoteDiff(next);
+      } catch {
+        if (!cancelled) setRemoteDiff(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, branchName, scope, candidatesKey]);
+  const [layout, setLayout] = useState<ScopeLayout>({ blocks: [], bad: [] });
+  const lastJsonRef = useRef('');
+
+  useEffect(() => {
+    const el = containerRef.current;
+    const apply = (next: ScopeLayout) => {
+      const json = JSON.stringify(next);
+      if (json === lastJsonRef.current) return;
+      lastJsonRef.current = json;
+      setLayout(next);
+    };
+    if (!el || !branchName || scope.length === 0 || !root) {
+      apply({ blocks: [], bad: [] });
+      return;
+    }
+    const base = root.replace(/\/+$/, '');
+    const compute = () => {
+      const box = el.getBoundingClientRect();
+      const rects = Array.from(el.querySelectorAll<HTMLElement>('[data-node-path]')).map((r) => {
+        const b = r.getBoundingClientRect();
+        return {
+          path: r.dataset.nodePath ?? '',
+          folder: r.dataset.nodeFolder === '1',
+          top: Math.round(b.top - box.top + el.scrollTop),
+          bottom: Math.round(b.bottom - box.top + el.scrollTop),
+        };
+      });
+      const blocks = scope.flatMap((p, i) => {
+        const abs = `${base}/${p}`;
+        const hit = rects.filter((r) => r.path === abs || r.path.startsWith(`${abs}/`));
+        if (hit.length === 0) return [];
+        const top = Math.min(...hit.map((h) => h.top));
+        const bottom = Math.max(...hit.map((h) => h.bottom));
+        return [{ key: p, index: i + 1, top, height: bottom - top }];
+      });
+      const bad = rects
+        .filter(
+          (r) =>
+            !r.folder &&
+            !!gitStatus[r.path] &&
+            r.path.startsWith(`${base}/`) &&
+            !isInScope(r.path.slice(base.length + 1), scope),
+        )
+        .map((r) => ({
+          path: r.path,
+          top: r.top,
+          height: r.bottom - r.top,
+          level: (remoteDiff === null || remoteDiff.has(r.path) ? 'error' : 'warn') as
+            | 'warn'
+            | 'error',
+        }));
+      const errKey = bad
+        .filter((b) => b.level === 'error')
+        .map((b) => b.path)
+        .sort()
+        .join('\n');
+      if (errKey !== lastErrRef.current) {
+        lastErrRef.current = errKey;
+        onErrorPaths(new Set(errKey ? errKey.split('\n') : []));
+      }
+      apply({
+        blocks: mergeRuns(blocks),
+        bad: mergeRuns(bad.map(({ top, height, level }) => ({ top, height, level }))),
+      });
+    };
+    let frame = 0;
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(compute);
+    };
+    schedule();
+    const mo = new MutationObserver(schedule);
+    mo.observe(el, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      mo.disconnect();
+    };
+  }, [containerRef, branchName, scope, root, gitStatus, remoteDiff]);
+
+  return (
+    <div className="absolute left-0 right-0 top-0 z-10 h-0 pointer-events-none">
+      {layout.blocks.map((b) => (
+        <div
+          key={b.key}
+          className="absolute left-1 right-1 rounded-md border border-dashed border-primary"
+          style={{ top: b.top, height: b.height }}
+        >
+          <span className="absolute -right-px -top-px px-1.5 min-w-4 h-4 rounded-tr-md rounded-bl-md bg-primary text-white text-[10px] leading-4 text-center">
+            {b.index}
+          </span>
+        </div>
+      ))}
+      {layout.bad.map((b, i) => (
+        <div
+          key={i}
+          className={`absolute left-1 right-1 rounded-md border border-dashed ${
+            b.level === 'warn' ? 'border-warn' : 'border-error'
+          }`}
+          style={{ top: b.top, height: b.height }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function FileExplore() {
   const { projects, currentProjectId, collapseAllFolders } = useCodeStore();
   const project = projects.find((p) => p.id === currentProjectId);
@@ -892,6 +1192,9 @@ export function FileExplore() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [errorPaths, setErrorPaths] = useState<Set<string>>(new Set());
+  const [remoteDiffTarget, setRemoteDiffTarget] = useState<string | null>(null);
+  const handleViewRemoteDiff = useCallback((p: string) => setRemoteDiffTarget(p), []);
 
   // Clipboard nội bộ cho cut/copy/paste file
   const [clipboard, setClipboard] = useState<{ paths: string[]; operation: 'copy' | 'cut' } | null>(
@@ -1306,8 +1609,12 @@ export function FileExplore() {
 
   // ── Toolbar actions ───────────────────────────────────────────────────────
   const gitRoot = project?.explorerRoot ?? project?.path;
-  const [gitStatus, setGitStatus] = useState<Record<string, 'added' | 'modified'>>({});
-  const [ignoredPaths, setIgnoredPaths] = useState<string[]>([]);
+  const [gitStatus, setGitStatus] = useState<Record<string, 'added' | 'modified'>>(
+    () => (gitRoot ? gitStatusCache.get(gitRoot) : undefined) ?? {},
+  );
+  const [ignoredPaths, setIgnoredPaths] = useState<string[]>(
+    () => (gitRoot ? ignoredPathsCache.get(gitRoot) : undefined) ?? [],
+  );
 
   useEffect(() => {
     if (!gitRoot) {
@@ -1318,7 +1625,9 @@ export function FileExplore() {
     const load = async () => {
       try {
         const res: string[] = await window.api.invoke('git:ignored-paths', gitRoot);
-        if (!cancelled) setIgnoredPaths(Array.isArray(res) ? res : []);
+        const next = Array.isArray(res) ? res : [];
+        ignoredPathsCache.set(gitRoot, next);
+        if (!cancelled) setIgnoredPaths(next);
       } catch {
         if (!cancelled) setIgnoredPaths([]);
       }
@@ -1366,6 +1675,7 @@ export function FileExplore() {
             idx = abs.lastIndexOf('/');
           }
         }
+        gitStatusCache.set(gitRoot, map);
         setGitStatus(map);
       } catch {
         if (!cancelled) setGitStatus({});
@@ -1382,7 +1692,11 @@ export function FileExplore() {
   // ── Auto-reveal file đang active ở Workspace (giống VSCode) ───────────────
   const activeFilePath = useCodeStore((s) => {
     const p = s.projects.find((x) => x.id === s.currentProjectId);
-    const panel = p?.workspacePanels?.find((w) => w.id === p.activeWorkspacePanelId);
+    const activeId =
+      (s.activeWorkspaceSessionId
+        ? p?.activeWorkspacePanelIds?.[s.activeWorkspaceSessionId]
+        : undefined) ?? p?.activeWorkspacePanelId;
+    const panel = p?.workspacePanels?.find((w) => w.id === activeId);
     return panel?.type === 'file' ? (panel.filePath ?? null) : null;
   });
   const treeScrollRef = useRef<HTMLDivElement>(null);
@@ -1439,6 +1753,41 @@ export function FileExplore() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFilePath, revealTick, project?.id, project?.explorerRoot, project?.path]);
 
+  const scopeBranch = useActiveBranchName(project?.id ?? '');
+  const scopeList = useBranchScope(project?.id ?? '', scopeBranch);
+
+  const handleRevealScopes = useCallback(() => {
+    const root = (project?.explorerRoot ?? project?.path)?.replace(/\/+$/, '');
+    if (!project || !root || scopeList.length === 0) return;
+    const ids = new Set<string>();
+    for (const p of scopeList) {
+      let acc = root;
+      for (const seg of p.split('/').slice(0, -1)) {
+        acc = `${acc}/${seg}`;
+        ids.add(`fs_${acc}`);
+      }
+    }
+    const state = useCodeStore.getState();
+    const expanded = state.projects.find((x) => x.id === project.id)?.expandedFolderIds ?? [];
+    const missing = [...ids].filter((id) => !expanded.includes(id));
+    if (missing.length > 0) {
+      state.updateProject(project.id, { expandedFolderIds: [...expanded, ...missing] });
+    }
+    const targetId = `fs_${root}/${scopeList[0]}`;
+    let tries = 0;
+    const scrollToScope = () => {
+      const el = treeScrollRef.current?.querySelector<HTMLElement>(
+        `[data-node-id="${CSS.escape(targetId)}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ block: 'center' });
+        return;
+      }
+      if (++tries < 40) setTimeout(scrollToScope, 50);
+    };
+    scrollToScope();
+  }, [project, scopeList]);
+
   const handleCollapseAll = useCallback(() => {
     if (currentProjectId) {
       collapseAllFolders(currentProjectId);
@@ -1493,6 +1842,35 @@ export function FileExplore() {
         {project?.name || 'No project'}
       </span>
       <div className="flex items-center gap-0.5 flex-shrink-0">
+        <Tooltip
+          side="bottom"
+          align="end"
+          sideOffset={6}
+          contentClassName="max-w-[420px] text-[13px] px-3.5 py-2.5"
+          content={
+            <div className="flex flex-col gap-2 leading-snug w-[340px]">
+              <div className="flex items-start gap-2.5">
+                <span className="mt-[3px] w-5 h-3.5 shrink-0 rounded-sm border border-dashed border-primary" />
+                <span>File or folder inside the branch scope</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="mt-[3px] w-5 h-3.5 shrink-0 rounded-sm border border-dashed border-warn" />
+                <span>Changed outside the scope, but identical to the remote default branch</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="mt-[3px] w-5 h-3.5 shrink-0 rounded-sm border border-dashed border-error" />
+                <span>
+                  Changed outside the scope and different from the remote default branch (or the remote
+                  could not be determined)
+                </span>
+              </div>
+            </div>
+          }
+        >
+          <span className="p-1 inline-flex rounded text-text-secondary hover:text-text-primary cursor-help">
+            <Info className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </span>
+        </Tooltip>
         <button
           onClick={handleRefresh}
           className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
@@ -1513,6 +1891,14 @@ export function FileExplore() {
           title="File mới"
         >
           <FilePlus className="w-3.5 h-3.5" strokeWidth={1.5} />
+        </button>
+        <button
+          onClick={handleRevealScopes}
+          disabled={scopeList.length === 0}
+          className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+          title="Đến scope 1"
+        >
+          <Crosshair className="w-3.5 h-3.5" strokeWidth={1.5} />
         </button>
         <button
           onClick={handleCollapseAll}
@@ -1544,8 +1930,12 @@ export function FileExplore() {
       selectMode,
       setSelectMode,
       nodeMetaRef,
+      errorPaths,
+      onViewRemoteDiff: handleViewRemoteDiff,
     }),
     [
+      errorPaths,
+      handleViewRemoteDiff,
       selectMode,
       gitStatus,
       ignoredPaths,
@@ -1559,6 +1949,28 @@ export function FileExplore() {
       handlePasteFile,
     ],
   );
+
+  const scanning = useTreeScanning();
+
+  // ── Loading state (chưa có dữ liệu cache, đang quét cây thư mục) ──────────
+  if (project && project.files.length === 0 && scanning) {
+    return (
+      <div className="flex-1 flex flex-col min-h-0">
+        {toolbar}
+        <div className="flex-1 overflow-hidden py-2 px-2 flex flex-col gap-1.5">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2 animate-pulse">
+              <span className="w-3.5 h-3.5 rounded bg-card-hover shrink-0" />
+              <span
+                className="h-3 rounded bg-card-hover"
+                style={{ width: `${40 + ((i * 37) % 45)}%`, marginLeft: (i % 3) * 12 }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // ── Empty state ────────────────────────────────────────────────────────────
   if (!project || project.files.length === 0) {
@@ -1625,7 +2037,14 @@ export function FileExplore() {
         )}
 
         {/* File tree */}
-        <div ref={treeScrollRef} className="flex-1 overflow-y-auto py-1">
+        <div ref={treeScrollRef} className="flex-1 overflow-y-auto py-1 relative">
+          <ScopeBlocks
+            containerRef={treeScrollRef}
+            projectId={project.id}
+            root={gitRoot ?? ''}
+            gitStatus={gitStatus}
+            onErrorPaths={setErrorPaths}
+          />
           {project.files.map((node) => (
             <TreeNode
               key={node.id}
@@ -1647,6 +2066,13 @@ export function FileExplore() {
           onClose={handleDeleteCancel}
           onConfirm={handleDeleteConfirm}
           items={deleteItems}
+        />
+
+        <RemoteDiffModal
+          isOpen={remoteDiffTarget !== null}
+          onClose={() => setRemoteDiffTarget(null)}
+          projectPath={gitRoot ?? ''}
+          filePath={remoteDiffTarget}
         />
       </div>
     </FileExploreContext.Provider>

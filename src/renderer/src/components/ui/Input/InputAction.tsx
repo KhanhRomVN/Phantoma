@@ -1,4 +1,4 @@
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { InputActionProps } from './type';
 
 export function InputAction({ children, onClick, className, disabled }: InputActionProps) {

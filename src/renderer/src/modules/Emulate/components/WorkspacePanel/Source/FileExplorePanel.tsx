@@ -28,9 +28,9 @@ import type { SourceNode, SourceTreeData } from '../../../utils/source-tree.util
 
 // ── Utils ──
 import { formatSize } from '../../../utils/source-tree.util';
-import { cn } from '@renderer/shared/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { Favicon } from '@renderer/shared/utils/faviconUtils';
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+import { Favicon } from '@renderer/utils/favicon';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface FileExplorePanelProps {

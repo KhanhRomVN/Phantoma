@@ -16,7 +16,7 @@ import React, { useState, useEffect } from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 // ── Constants ──
@@ -45,7 +45,7 @@ import { WarningRenderer } from './renderers/WarningRenderer';
 import ErrorBlock from './ErrorBlock';
 import ActionBar from './ActionBar';
 import { ThinkingBlock } from './ThinkingBlock';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
 interface TagRouterProps {

@@ -1,6 +1,6 @@
 import { useState, useMemo, memo } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Folder, Search, X } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
 import { Input } from '@renderer/components/ui/Input';

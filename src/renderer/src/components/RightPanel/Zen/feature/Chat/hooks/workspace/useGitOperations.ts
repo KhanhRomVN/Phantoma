@@ -14,7 +14,7 @@ import { useState, useMemo } from 'react';
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
 
-import { parseGitStatusOutput } from '../../utils/git-status-parser';
+import { parseGitStatusOutput } from '@renderer/components/RightPanel/Zen/shared/git-status-parser';
 
 // ── React ──
 import { useCallback } from 'react';

@@ -1,6 +1,6 @@
 // src/webview-ui/src/features/chat/prompts/tool-validation.ts
 
-export const EXECUTOR_TOOL_VALIDATION = `# TOOL VALIDATION & ERROR PREVENTION
+export const EXECUTOR_TOOL_VALIDATION_XML = `# TOOL VALIDATION & ERROR PREVENTION
 
 ## Valid Tool Tags (CRITICAL — MUST MATCH EXACTLY)
 Only these tags are valid. Full parameters and usage syntax for each are documented in the TOOLS section above — this list exists purely to catch invented tool names, not to re-document usage:

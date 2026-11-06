@@ -1,5 +1,7 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { GetHttpsDetailParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface GetHttpsDetailParams {
+  index: number;
+}
 
 /**
  * Parse get_https_detail tag from AI response.

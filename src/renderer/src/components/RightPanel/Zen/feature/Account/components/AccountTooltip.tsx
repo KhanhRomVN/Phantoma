@@ -6,7 +6,7 @@ import {
   parseIsoSafe,
   getUserTimezone,
   computeNextResetVN,
-} from '@renderer/utils/timezone';
+} from '@renderer/utils/time';
 import {
   extractAccessToken,
   formatJwtExpiry,
@@ -14,7 +14,7 @@ import {
   extractCookieSessionExpiry,
   formatExpiryMs,
 } from '@renderer/utils/jwt';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 import { $ } from '@renderer/utils/color';
 
 // ─── Helpers ────────────────────────────────────────────────────────────

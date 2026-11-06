@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { ChevronRight, Download, FolderTree, LayoutGrid, Search, X } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
 import {
   DEFAULT_FEATURES,
@@ -9,7 +9,8 @@ import {
   KIND_ORDER,
 } from './fileTypes';
 import type { FileFilter, FileKind, FileManagerConfig, FileNode, FileSort, FileView, FsNode, SortKey } from './fileTypes';
-import { applyFilter, applySort, downloadFile, getBreadcrumbs, getFileSystem, listChildren, listDescendantFiles } from './fileStore';
+import { applyFilter, applySort, buildFileSystem, downloadFile, getBreadcrumbs, listChildren, listDescendantFiles } from './fileStore';
+import { useReconFs } from './ReconFsContext';
 import GridView from './GridView';
 import TreeView, { buildTreeRows } from './TreeView';
 import FileViewer from './FileViewer';
@@ -38,7 +39,8 @@ const ICON_BTN =
 
 export default function FileManager({ config, className }: FileManagerProps) {
   const features = useMemo(() => ({ ...DEFAULT_FEATURES, ...config?.features }), [config?.features]);
-  const fs = useMemo(() => getFileSystem(config?.mockFolder ?? 'mock1'), [config?.mockFolder]);
+  const reconFs = useReconFs();
+  const fs = useMemo(() => reconFs ?? buildFileSystem([]), [reconFs]);
   const root = config?.root ?? '';
 
   const [path, setPath] = useState(root);

@@ -13,4 +13,5 @@ export interface TooltipProps {
   sideOffset?: number;
   alignOffset?: number;
   className?: string;
+  contentClassName?: string;
 }

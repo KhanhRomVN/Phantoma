@@ -1,5 +1,10 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { UpdateRepeaterContentParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface UpdateRepeaterContentParams {
+  repeater_id: string;
+  target: 'params' | 'headers' | 'body';
+  old_content: string;
+  new_content: string;
+}
 
 /**
  * Parse update_repeater_content tag from AI response.

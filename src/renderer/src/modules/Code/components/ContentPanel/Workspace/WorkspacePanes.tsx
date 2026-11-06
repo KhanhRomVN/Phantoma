@@ -31,9 +31,10 @@ import {
   Pin,
 } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { CodeTerminal } from './Terminal';
 import { CodeBrowser } from './Browser';
+
 import { CodeFile } from './File';
 import { CodeAgent } from './Zen';
 
@@ -44,7 +45,7 @@ import {
   DropdownItem,
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 import { useGitFileStatus } from '../../../hooks/useGitFileStatus';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
 import type { SessionStatus } from '../../ProjectPanel/SessionCard';
@@ -112,6 +113,7 @@ export function getPanelMeta(
         icon: <MonitorPlay className={cn(iconClass, 'text-pink-400')} />,
         label: 'Emulator',
       };
+
     default:
       return { icon: null, label: 'Unknown' };
   }
@@ -741,6 +743,7 @@ const PanelBody = memo(function PanelBody({
           multiAgent={multiAgent}
         />
       );
+
     case 'emulator':
       return (
         <div className="flex-1 h-full flex items-center justify-center bg-black text-gray-500">

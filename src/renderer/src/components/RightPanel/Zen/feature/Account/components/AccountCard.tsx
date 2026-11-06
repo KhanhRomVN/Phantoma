@@ -19,7 +19,7 @@ import {
 import { FlatAccount } from '../types';
 import { CopyableText } from '../utils';
 import { ICON_METHODS, authIconFile, splitAuthMethod } from './addAccount.utils';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 import {
   Dropdown,
   DropdownTrigger,
@@ -39,7 +39,7 @@ import {
   parseIsoSafe,
   getUserTimezone,
   computeNextResetVN,
-} from '@renderer/utils/timezone';
+} from '@renderer/utils/time';
 import AccountTooltip from './AccountTooltip';
 import { $ } from '@renderer/utils/color';
 

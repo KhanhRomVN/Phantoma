@@ -18,7 +18,7 @@ import {
   Heart,
   Rocket,
 } from "lucide-react";
-import { getFaviconUrl } from "@renderer/shared/utils/faviconUtils";
+import { getFaviconUrl } from "@renderer/utils/favicon";
 import {
   AuthGlyph,
   MergedAuthNotice,

@@ -26,7 +26,7 @@ import { extensionService } from '@renderer/components/RightPanel/Zen/services/E
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
 

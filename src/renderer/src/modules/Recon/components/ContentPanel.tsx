@@ -36,26 +36,10 @@ import type { ReconTab, ReconTask } from './ui/types';
 import BoxGrid from './ui/BoxGrid';
 import { ReconGraphContext } from './ui/Graph/ReconGraphContext';
 import { applyRects } from './ui/layout';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '@renderer/components/ui/Dropdown';
 import { TYPE_META, resolveType, withAlpha, TypeIcon, TypeBadgeIcon } from './targetType';
 import { useReconSettings } from './Settings';
-
-// Tự nạp mọi file _*.recon trong thư mục mock: thêm/xoá file mock không cần sửa import.
-const MOCK_MODULES = import.meta.glob('../mock/**/_*.recon', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
-
-/** Bộ mock đang dùng (tên thư mục con của mock/). */
-const MOCK_FOLDER = 'mock1';
-
-const MOCK_FILES: Record<string, string> = Object.fromEntries(
-  Object.entries(MOCK_MODULES)
-    .filter(([path]) => path.includes(`/mock/${MOCK_FOLDER}/`))
-    .map(([path, content]) => [path.split('/').pop() as string, content])
-);
 
 /** Các tag đầu tiên mỗi tag một màu accent; các tag phía sau dùng chung một màu trung tính. */
 const TAG_ACCENTS = ['#3686ff', '#a855f7', '#22c55e', '#f97316'];
@@ -366,12 +350,12 @@ function TabBar({ tabs, activeIndex, onSelect, stuck }: TabBarProps) {
 }
 
 export interface ContentPanelProps {
-  /** Optional: pass a custom set of files instead of the default mock1 */
-  files?: Record<string, string>;
+  /** Bộ file `.recon` của target đang chọn: map { fileName: content }. */
+  files: Record<string, string>;
   onOpenSettings?: () => void;
 }
 
-export default function ContentPanel({ files: sourceFiles = MOCK_FILES, onOpenSettings }: ContentPanelProps) {
+export default function ContentPanel({ files: sourceFiles, onOpenSettings }: ContentPanelProps) {
   // Chế độ chỉnh bố cục + nội dung file đã chỉnh (ghi đè lên file gốc, chỉ giữ trong bộ nhớ)
   const [editing, setEditing] = useState(false);
   const [edited, setEdited] = useState<Record<string, string>>({});

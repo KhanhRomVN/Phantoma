@@ -3,7 +3,7 @@
  * Workspace Path Resolver
  * ------------------------------------------------------------------
  * Resolve relative paths against the active Code-module project root.
- * All file handlers (read/write/replace/delete/find/revert/stat/history)
+ * All file handlers (read/write/replace/delete/find/stat)
  * MUST use this so relative paths hit the same place regardless of the
  * Electron main process CWD.
  * ------------------------------------------------------------------

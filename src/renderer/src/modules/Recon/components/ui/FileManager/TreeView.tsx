@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import type { FileSystem } from './fileStore';
 import { applyFilter, applySort, listChildren, listDescendantFiles } from './fileStore';
 import { KIND_LABEL, formatDate, formatSize } from './fileTypes';

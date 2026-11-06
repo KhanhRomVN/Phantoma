@@ -38,9 +38,11 @@ import {
   setupFSHandlers,
   setupDialogHandlers,
   setupWindowHandlers,
+  setupTargetLockHandlers,
   setupTerminalHandlers,
   setupGitHandlers,
   setupTaskHandlers,
+  setupWorkflowHandlers,
   setupLoggerHandlers,
   registerWorkspaceHandlers,
   setupReconHandlers,
@@ -73,9 +75,11 @@ app.whenReady().then(() => {
   setupFSHandlers();
   setupDialogHandlers();
   setupWindowHandlers();
+  setupTargetLockHandlers();
   setupTerminalHandlers();
   setupGitHandlers();
   setupTaskHandlers();
+  setupWorkflowHandlers();
   registerWorkspaceHandlers();
   setupReconHandlers(); // Browser automation via recon server
   setupMemoryHandlers();

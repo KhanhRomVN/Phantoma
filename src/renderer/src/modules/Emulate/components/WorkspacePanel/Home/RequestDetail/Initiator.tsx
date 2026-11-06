@@ -19,7 +19,7 @@ import { GitBranch, FileCode } from 'lucide-react';
 import { NetworkRequest } from '../../../../types/inspector';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface InitiatorDetailsProps {

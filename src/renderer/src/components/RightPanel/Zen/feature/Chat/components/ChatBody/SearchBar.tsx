@@ -15,7 +15,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface SearchBarProps {

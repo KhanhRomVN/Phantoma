@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { ArrowLeft, PanelLeft, PanelTop, RotateCcw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { Button } from '@renderer/components/ui/Button';
 import { useReconSettings } from '../Settings';
 import LeftSidebarPanel from './LeftSidebarPanel';

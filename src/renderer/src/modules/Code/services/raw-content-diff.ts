@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-import type { RawContentDiffExtractor } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-mutation';
+import type { RawContentDiffExtractor } from '@renderer/components/RightPanel/Zen/shared/tool-mutation';
 
 const countLines = (text: string | undefined): number => {
   if (!text) return 0;
@@ -16,7 +16,7 @@ const countLines = (text: string | undefined): number => {
 
 /**
  * Extract diff stats from raw XML content for Code module.
- * Handles write_to_file, replace_in_file, and revert_file.
+ * Handles write_to_file and replace_in_file.
  */
 export const extractCodeRawContentDiff: RawContentDiffExtractor = (content: string) => {
   const fileChanges = new Map<string, { additions: number; deletions: number }>();
@@ -52,19 +52,6 @@ export const extractCodeRawContentDiff: RawContentDiffExtractor = (content: stri
       const stats = fileChanges.get(filePath)!;
       stats.deletions += countLines(oldContent);
       stats.additions += countLines(newContent);
-    }
-  }
-
-  // Match revert_file and SUBTRACT
-  const revertMatches = content.matchAll(
-    /<revert_file[^>]*?>[\s\S]*?<file_path[^>]*?>(.*?)<\/file_path>[\s\S]*?<\/revert_file>/gi,
-  );
-  for (const match of revertMatches) {
-    const filePath = match[1]?.trim();
-    if (filePath && fileChanges.has(filePath)) {
-      const stats = fileChanges.get(filePath)!;
-      stats.additions = 0;
-      stats.deletions = 0;
     }
   }
 

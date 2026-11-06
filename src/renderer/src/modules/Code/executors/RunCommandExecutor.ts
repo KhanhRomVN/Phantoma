@@ -1,22 +1,190 @@
-import { CodeController } from '../CodeController';
-import type { RunCommandParams } from '../types/tool-params';
+/**
+ * ------------------------------------------------------------------
+ * RunCommandExecutor (core, dùng chung cho mọi module)
+ * ------------------------------------------------------------------
+ * Chạy shell command trong một PTY riêng (IPC terminal:* nằm ở
+ * handler/terminal/TerminalHandlers.ts), stream output về UI và chỉ
+ * trả kết quả khi lệnh kết thúc hoặc bị finalize.
+ *
+ * Main exports:
+ * - executeRunCommand      : Executor cho tool run_command
+ * - finalizeRunCommand     : Kết thúc sớm một lệnh đang chạy (nút Finalize)
+ * - sendRunCommandInput    : Gửi input vào terminal của lệnh đang chạy
+ * - setRunCommandValidator : Module đăng ký hàm kiểm tra command an toàn
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+import {
+  ExecutorContext,
+  ExecutorOptions,
+} from '@renderer/components/RightPanel/Zen/feature/Chat/types/executor-types';
+import {
+  TerminalIpc,
+  TerminalDataPayload,
+  TerminalExitPayload,
+} from '../handler/terminal/TerminalHandlers';
+
+// ─── Types ──────────────────────────────────────────────────────────────
+type CommandValidator = (command: string) => { safe: boolean; reason?: string };
+
+interface RunSession {
+  actionId: string;
+  terminalId: string;
+  finish: (exitCode: number | null, error?: string) => void;
+}
+
+// ─── State ──────────────────────────────────────────────────────────────
+const sessions = new Map<string, RunSession>();
+const terminalIpc = new TerminalIpc();
+let commandValidator: CommandValidator | null = null;
+
+const FENCE = '```';
+const ANSI_REGEX = /\u001B\[[0-9;?]*[ -/]*[@-~]|\u001B\][^\u0007]*\u0007/g;
+
+// ─── Helpers ────────────────────────────────────────────────────────────
+const post = (message: Record<string, any>): void => {
+  window.postMessage(message, '*');
+};
+
+const clean = (text: string): string => text.replace(ANSI_REGEX, '').replace(/\r/g, '');
+
+const resolveCwd = (folder: string | undefined, base: string | null | undefined) => {
+  if (!folder) return base ?? undefined;
+  if (!base || folder.startsWith('/') || /^[A-Za-z]:/.test(folder)) return folder;
+  return `${base.replace(/\/$/, '')}/${folder}`;
+};
+
+const formatResult = (commandText: string, output: string, error?: string): string => {
+  const head = error
+    ? `Output: [run_command for '${commandText}'] Error - ${error}`
+    : `Output: [run_command for '${commandText}']`;
+  return [head, FENCE, output, FENCE].join('\n');
+};
+
+// ─── Public API ─────────────────────────────────────────────────────────
+export const setRunCommandValidator = (fn: CommandValidator | null): void => {
+  commandValidator = fn;
+};
+
+export const finalizeRunCommand = (target: { actionId?: string; terminalId?: string }): boolean => {
+  for (const session of sessions.values()) {
+    if (session.actionId === target.actionId || session.terminalId === target.terminalId) {
+      session.finish(null);
+      return true;
+    }
+  }
+  return false;
+};
+
+export const finalizeAllRunCommands = (): void => {
+  Array.from(sessions.values()).forEach((session) => session.finish(null));
+};
+
+export const sendRunCommandInput = (terminalId: string, data: string): void => {
+  terminalIpc.write(terminalId, data);
+};
 
 export const executeRunCommand = async (
-  params: RunCommandParams,
-  actionId: string,
+  action: any,
+  ctx: ExecutorContext,
+  _options?: ExecutorOptions,
 ): Promise<string | null> => {
-  const result = await CodeController.executeTool(
-    'run_command',
-    {
-      commandText: params.command,
-      folderPath: (params as any).folder_path || (params as any).folderPath,
-    },
-    { actionId },
-  );
+  const actionId: string = action.actionId || `cmd-${Date.now()}`;
+  const commandText: string = action.params?.command || '';
+  if (!commandText.trim()) return '[run_command] Result: Error - command is required';
 
-  if (!result.success) {
-    return '[run_command] Result: Error - ' + (result.error || '');
+  const verdict = commandValidator?.(commandText);
+  if (verdict && !verdict.safe) {
+    return `[run_command] Result: Error - ${verdict.reason || 'Command validation failed'}`;
   }
-  // run_command là fire-and-forget, kết quả đến qua listener
-  return '[run_command] Result: Command sent to terminal';
+
+  if (!terminalIpc.isAvailable())
+    return '[run_command] Result: Error - Terminal IPC is not available';
+
+  const uid = Math.random().toString(36).slice(2, 10);
+  const terminalId = `chat-cmd-${Date.now()}-${uid}`;
+  const startMarker = `__PHM_START_${uid}`;
+  const doneMarker = `__PHM_DONE_${uid}_`;
+  const startRegex = new RegExp(`^${startMarker}$`, 'm');
+  const doneRegex = new RegExp(`${doneMarker}([0-9]+)`);
+  const cwd = resolveCwd(action.params?.folder_path || action.params?.cwd, ctx.folderPath);
+
+  const stripEcho = (body: string): string => {
+    const doneEcho = `echo "${doneMarker}$?"`;
+    const echoAt = body.lastIndexOf(doneEcho);
+    const trimmed = echoAt >= 0 ? body.slice(0, body.lastIndexOf('\n', echoAt) + 1) : body;
+    const skip = commandText.split('\n').length;
+    const lines = trimmed.split('\n');
+    return lines.length > skip ? lines.slice(skip).join('\n') : '';
+  };
+
+  const readVisible = (
+    raw: string,
+  ): { output: string; exitCode: number | null; done: boolean } | null => {
+    const text = clean(raw);
+    const start = startRegex.exec(text);
+    if (!start) return null;
+    const visible = text.slice(start.index + start[0].length).replace(/^\n/, '');
+    const done = doneRegex.exec(visible);
+    if (!done) return { output: stripEcho(visible), exitCode: null, done: false };
+    return {
+      output: stripEcho(visible.slice(0, done.index)),
+      exitCode: Number(done[1]),
+      done: true,
+    };
+  };
+
+  return new Promise<string | null>((resolve) => {
+    let raw = '';
+    let emitted = 0;
+    let finished = false;
+
+    const finish = (exitCode: number | null, error?: string): void => {
+      if (finished) return;
+      finished = true;
+      offData();
+      offExit();
+      sessions.delete(actionId);
+      const output = (readVisible(raw)?.output ?? '').trim();
+      const failure = error ?? (exitCode ? `Exit code ${exitCode}` : undefined);
+      post({ command: 'terminalFinished', terminalId });
+      terminalIpc.kill(terminalId);
+      resolve(formatResult(commandText, output, failure));
+    };
+
+    const onData = (payload: TerminalDataPayload) => {
+      if (finished || payload?.terminalId !== terminalId) return;
+      raw += payload.data;
+      const state = readVisible(raw);
+      if (!state) return;
+      const upTo = state.done ? state.output.length : state.output.lastIndexOf('\n') + 1;
+      if (upTo > emitted) {
+        post({ command: 'terminalOutput', terminalId, data: state.output.slice(emitted, upTo) });
+        emitted = upTo;
+      }
+      if (state.done) finish(state.exitCode);
+    };
+
+    const onExit = (payload: TerminalExitPayload) => {
+      if (payload?.terminalId !== terminalId) return;
+      finish(payload.exitCode ?? null);
+    };
+
+    const offData = terminalIpc.onData(onData);
+    const offExit = terminalIpc.onExit(onExit);
+
+    sessions.set(actionId, { actionId, terminalId, finish });
+
+    terminalIpc
+      .spawn(terminalId, cwd)
+      .then(() => {
+        post({ command: 'runCommandResult', actionId, terminalId });
+        terminalIpc.write(
+          terminalId,
+          `echo ${startMarker}\r${commandText}\recho "${doneMarker}$?"\r`,
+        );
+      })
+      .catch((err: unknown) => finish(null, err instanceof Error ? err.message : String(err)));
+  });
 };

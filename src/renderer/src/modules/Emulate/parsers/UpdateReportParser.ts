@@ -1,5 +1,9 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { UpdateReportParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface UpdateReportParams {
+  report_ref: string;
+  old_content: string;
+  new_content: string;
+}
 
 /**
  * Parse update_report tag from AI response.

@@ -9,7 +9,6 @@ import {
   Plus,
   Terminal as TerminalIcon,
   Globe,
-
   FolderOpen,
   GitBranch,
   Bot,
@@ -169,7 +168,10 @@ export const EmptyState = memo(function EmptyState() {
 
       {/* Project Modals */}
       <OpenProjectModal isOpen={openModalVisible} onClose={() => setOpenModalVisible(false)} />
-      <CreateProjectModal isOpen={createModalVisible} onClose={() => setCreateModalVisible(false)} />
+      <CreateProjectModal
+        isOpen={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+      />
     </EmptyStateShell>
   );
 });
@@ -201,7 +203,8 @@ export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
 
       <h1 className="text-[17px] font-semibold text-text-primary mb-1.5">Workspace is empty</h1>
       <p className="text-sub text-[12.5px] max-w-[420px] text-text-secondary leading-relaxed">
-        Open browser, terminal, agent, or markdown and drag tabs to split the workspace into up to 4 panes.
+        Open browser, terminal, agent, or markdown and drag tabs to split the workspace into up to 4
+        panes.
       </p>
 
       <div className="grid grid-cols-2 gap-2.5 mt-6 w-full">
@@ -226,7 +229,6 @@ export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
           subtitle="Assign task to agent"
           onClick={() => handleAction('agent')}
         />
-
       </div>
 
       <Hints

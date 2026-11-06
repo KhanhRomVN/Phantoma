@@ -3,7 +3,7 @@ import Map, { Marker, NavigationControl, type MapRef } from 'react-map-gl/maplib
 import { setWorkerUrl, type MapLayerMouseEvent } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { MapLocation, MapRegion } from '../types';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import LocationPicker from './LocationPicker';
 import RegionLayers, { fetchBoundary, getBounds } from './RegionLayers';
 import {

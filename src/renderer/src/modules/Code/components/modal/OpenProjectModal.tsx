@@ -17,15 +17,15 @@ import {
   X,
   AlertCircle,
 } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
-import { Favicon, getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/utils/cn';
+import { Favicon, getFaviconUrl } from '@renderer/utils/favicon';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 import {
   detectProjectStack,
   detectRemoteLogos,
   detectRemoteStack,
   type StackInfo,
-} from '@renderer/utils/detectStack';
+} from '../../utils/detectStack';
 import { ProjectLogoImage } from '../ProjectLogo';
 import { DuplicateRepoModal, type DuplicateRepoKind } from './DuplicateRepoModal';
 

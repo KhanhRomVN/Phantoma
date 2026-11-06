@@ -1,7 +1,7 @@
 import { AlertCircle, Check, GitBranch, Loader2, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';

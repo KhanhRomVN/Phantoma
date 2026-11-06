@@ -1,4 +1,4 @@
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { KIND_LABEL, formatSize } from './fileTypes';
 import type { FileNode, FsNode } from './fileTypes';
 import { CheckBox, NodeIcon } from './shared';

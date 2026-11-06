@@ -2,7 +2,7 @@ import { AlertTriangle, Minus, Plus, Trash2, type LucideIcon } from 'lucide-reac
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 export type FileChangeAction = 'discard' | 'stage' | 'unstage';
 

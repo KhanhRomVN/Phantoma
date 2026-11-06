@@ -20,7 +20,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { X, Globe } from 'lucide-react';
 
 // ── Hooks ──
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 import { useNetworkStore } from '../../../stores/networkStore';
 
 // ── Services ──
@@ -31,7 +31,7 @@ import { NetworkRequest } from '../../../types/inspector';
 
 // ── Utils ──
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { getRequestCategory } from '../../../utils/request-classifier.util';
 
 // ─── Functions ──────────────────────────────────────────────────────────

@@ -23,7 +23,7 @@ const VALIDATION_TITLE_XML = `# TOOL VALIDATION & ERROR PREVENTION`;
 
 const VALIDATION_VALID_XML = `## Valid Tool Tags (CRITICAL — MUST MATCH EXACTLY)
 Only these tags are valid. Full parameters and usage syntax for each are documented in the TOOLS section above — this list exists purely to catch invented tool names, not to re-document usage:
-\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`read_skill\`, \`read_memory\`, \`update_memory\`.
+\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`read_skill\`, \`read_memory\`, \`update_memory\`, \`list_tasks\`, \`get_task\`, \`create_task\`, \`update_task\`, \`assign_task\`, \`create_workflow\`, \`get_workflow\`, \`update_workflow\`.
 Response-only tags (not tools): \`conversation_title\`, \`markdown\`, \`code\`, \`question\`.`;
 
 const VALIDATION_INVENTED_XML = `## Common Invented-Tool Mistakes to AVOID
@@ -74,7 +74,7 @@ Every emitted block is a single JSON object inside its own fenced \`\`\`json blo
 {"tool":"<tool_name>","params":{ ... }}
 \`\`\`
 Valid \`tool\` values (full parameters in TOOLS section above):
-\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`read_skill\`, \`read_memory\`, \`update_memory\`, \`conversation_title\`.
+\`read_file\`, \`write_to_file\`, \`replace_in_file\`, \`list_files\`, \`find_files\`, \`grep\`, \`delete_file\`, \`run_command\`, \`read_skill\`, \`read_memory\`, \`update_memory\`, \`list_tasks\`, \`get_task\`, \`create_task\`, \`update_task\`, \`assign_task\`, \`create_workflow\`, \`get_workflow\`, \`update_workflow\`, \`conversation_title\`.
 
 **Shape 2 — UI/render object (has a \`"type"\` key, NO \`"tool"\` key):**
 \`\`\`json

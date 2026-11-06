@@ -13,6 +13,14 @@
 - `read_skill`
 - `read_memory`
 - `update_memory`
+- `list_tasks`
+- `get_task`
+- `create_task`
+- `update_task`
+- `assign_task`
+- `create_workflow`
+- `get_workflow`
+- `update_workflow`
 - `conversation_title`
 - UI: `markdown`, `code`, `question`
 
@@ -23,6 +31,14 @@
 - `create_agent`
 - `delete_agent`
 - `send_message`
+- `list_tasks`
+- `get_task`
+- `create_task`
+- `update_task`
+- `assign_task`
+- `create_workflow`
+- `get_workflow`
+- `update_workflow`
 - UI: `markdown`, `question`
 
 ## planner

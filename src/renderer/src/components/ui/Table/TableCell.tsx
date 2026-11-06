@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { TableCellProps } from './type';
 
 export const TableCell: React.FC<TableCellProps> = ({

@@ -89,9 +89,12 @@ export const WorkspaceViews = memo(function WorkspaceViews({
   const allStoredPanels = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.workspacePanels ?? NO_PANELS,
   );
-  const storedActiveId = useCodeStore(
-    (s) => s.projects.find((p) => p.id === s.currentProjectId)?.activeWorkspacePanelId ?? null,
-  );
+  const storedActiveId = useCodeStore((s) => {
+    const p = s.projects.find((x) => x.id === s.currentProjectId);
+    const perSession = p?.activeWorkspacePanelIds?.[sessionId];
+    if (perSession !== undefined) return perSession;
+    return s.activeWorkspaceSessionId === sessionId ? (p?.activeWorkspacePanelId ?? null) : null;
+  });
   const storedLayouts = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.workspaceLayouts ?? NO_LAYOUTS,
   );
@@ -239,13 +242,22 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       return;
     }
     const panelsChanged = JSON.stringify(storedPanels) !== JSON.stringify(tagPanels(panels));
-    const activeChanged = isActive && storedActiveId !== focusedActiveId;
+    const activeChanged = storedActiveId !== focusedActiveId;
     const layout: WorkspaceLayoutSnapshot = { paneTabs, paneActive, focusedPane, sizes };
     const layoutChanged = JSON.stringify(storedLayout ?? null) !== JSON.stringify(layout);
     if (panelsChanged || activeChanged || layoutChanged) {
       updateProject(currentProjectId, {
-        workspacePanels: mergeSessionPanels(panels),
-        workspaceLayouts: { ...storedLayouts, [sessionId]: layout },
+        ...(panelsChanged ? { workspacePanels: mergeSessionPanels(panels) } : {}),
+        ...(layoutChanged ? { workspaceLayouts: { ...storedLayouts, [sessionId]: layout } } : {}),
+        ...(activeChanged
+          ? {
+              activeWorkspacePanelIds: {
+                ...useCodeStore.getState().projects.find((p) => p.id === currentProjectId)
+                  ?.activeWorkspacePanelIds,
+                [sessionId]: focusedActiveId,
+              },
+            }
+          : {}),
         ...(isActive ? { activeWorkspacePanelId: focusedActiveId } : {}),
       });
     }

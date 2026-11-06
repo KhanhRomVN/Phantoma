@@ -17,7 +17,7 @@
 import React, { useState } from 'react';
 import { Clock, Settings, Store, User } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 export type NavTarget = 'account' | 'history' | 'marketplace' | 'setting';
 

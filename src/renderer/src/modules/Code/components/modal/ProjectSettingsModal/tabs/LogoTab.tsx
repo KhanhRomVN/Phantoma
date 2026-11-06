@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, FolderOpen, Link2, Loader2, Trash2 } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { ProjectLogoImage } from '../../../ProjectLogo';
 import {
   Panel,

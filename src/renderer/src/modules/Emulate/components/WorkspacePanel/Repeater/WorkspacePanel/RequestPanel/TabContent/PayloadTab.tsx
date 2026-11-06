@@ -8,7 +8,7 @@ import { PayloadValueModal } from '../modal/PayloadValueModal';
 import type { PayloadItem } from '../../../../../../types/repeater.types';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface PayloadTabProps {
   payloads: PayloadItem[];

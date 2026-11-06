@@ -55,6 +55,7 @@ function normalizeTask(t: any): StoredTask {
     endDate: t.endDate ?? dueDate ?? null,
     endTime: t.endTime ?? null,
     dependsOn: t.dependsOn ?? [],
+    workflowId: t.workflowId ?? null,
   };
 }
 
@@ -72,6 +73,7 @@ export interface StoredTask extends TaskExtras {
   endTime: string | null;
   dependsOn: string[];
   archived: boolean;
+  workflowId: string | null;
   order?: number;
   createdAt: number;
   updatedAt: number;
@@ -93,6 +95,7 @@ export interface CreateTaskInput extends Partial<TaskExtras> {
 
 export interface UpdateTaskInput extends Partial<TaskExtras> {
   archived?: boolean;
+  workflowId?: string | null;
   order?: number;
   title?: string;
   description?: string;
@@ -109,7 +112,7 @@ export interface UpdateTaskInput extends Partial<TaskExtras> {
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
-function getProjectSlug(projectPath: string): string {
+export function getProjectSlug(projectPath: string): string {
   return Buffer.from(path.resolve(projectPath)).toString('base64url');
 }
 
@@ -184,6 +187,7 @@ class TaskStorageService {
       checklist: input.checklist ?? [],
       attachments: input.attachments ?? [],
       archived: false,
+      workflowId: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };

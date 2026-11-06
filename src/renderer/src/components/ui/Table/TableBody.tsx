@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { TableBodyProps } from './type';
 
 export const TableBody: React.FC<TableBodyProps> = ({ children, className, ...props }) => {

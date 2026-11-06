@@ -1,5 +1,7 @@
-import { CodeController } from '../CodeController';
+import { ListFilesHandler } from '../handler/tool/ListFilesHandler';
 import { ListFilesParams } from '../parsers/ListFilesParser';
+
+const listFilesHandler = new ListFilesHandler();
 
 export async function executeListFiles(
   params: ListFilesParams,
@@ -7,18 +9,17 @@ export async function executeListFiles(
   basePath?: string | null,
 ): Promise<string | null> {
   const folderPath = (params as any).path || params.folder_path || '';
-  const result = await CodeController.executeTool('list_files', {
+  const data = await listFilesHandler.handle({
     path: folderPath,
     basePath: basePath || undefined,
     depth: params.depth,
     recursive: (params as any).recursive,
-  });
+  } as any);
 
-  if (!result.success) {
-    return "[list_files for '" + folderPath + "'] Result: Error - " + (result.error || '');
+  if (data.error) {
+    return "[list_files for '" + folderPath + "'] Result: Error - " + data.error;
   }
 
-  const data = result.data || {};
   const files = data.files || [];
   return JSON.stringify(files, null, 2);
 }

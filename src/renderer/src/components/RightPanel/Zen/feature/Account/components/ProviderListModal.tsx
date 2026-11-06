@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { $ } from '@renderer/utils/color';
 import { Loader2, X, AlertCircle, Search, Globe, Key } from "lucide-react";
-import { getFaviconUrl } from "@renderer/shared/utils/faviconUtils";
+import { getFaviconUrl } from "@renderer/utils/favicon";
 import { sharedBackdrop, sharedSheet } from "./AddAccountShared";
 import {
   AUTH_LABELS,

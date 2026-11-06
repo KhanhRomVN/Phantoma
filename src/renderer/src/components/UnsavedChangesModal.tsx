@@ -3,7 +3,7 @@ import { RefreshCw, Save } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
-import type { UnsavedGroup } from '@renderer/shared/unsaved/unsavedRegistry';
+import type { UnsavedGroup } from '@renderer/providers/UnsavedProvider';
 
 interface UnsavedChangesModalProps {
   isOpen: boolean;

@@ -1,24 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { SwitchTabHandler } from '../handler/SwitchTabHandler';
 import type { SwitchTabParams } from '../parsers/SwitchTabParser';
+
+const handler = new SwitchTabHandler();
 
 export async function executeSwitchTab(
   params: SwitchTabParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('switch_tab', {
-      targetId,
-      tabId: params.tabId,
-    });
+    const result = await handler.handle(targetId, params.tabId);
 
     if (result.success) {
       return {

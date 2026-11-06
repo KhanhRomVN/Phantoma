@@ -3,18 +3,18 @@
  * ProjectContext
  * ------------------------------------------------------------------
  * Cung cấp thông tin workspace (rootPath, homedir, workspace, treeView)
- * trực tiếp từ CodeController (Renderer-side singleton) thay vì qua IPC.
+ * trực tiếp từ useCodeStore thay vì qua IPC.
  *
  * Main features:
- * - ProjectProvider : Provider lấy project context qua CodeController
+ * - ProjectProvider : Provider lấy project context từ useCodeStore
  * - useProject()    : Hook trả về thông tin workspace
  * ------------------------------------------------------------------
  */
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
-// Controller
-import { CodeController } from '@renderer/modules/Code/CodeController';
+// Store
+import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
 
 interface ProjectContextType {
   rootPath: string;
@@ -26,27 +26,11 @@ interface ProjectContextType {
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [rootPath, setRootPath] = useState('');
-  const [homedir] = useState(''); // Not available from local controller yet
-  const [workspace, setWorkspace] = useState('');
-  const [treeView] = useState(''); // Not available from local controller yet
-
-  useEffect(() => {
-    // Subscribe to results from CodeController
-    const unsubscribe = CodeController.getInstance().onResult((result) => {
-      if (result.command === 'projectContext') {
-        const projectData = result.project;
-        if (projectData) {
-          setRootPath(projectData.path || '');
-          setWorkspace(projectData.name || '');
-        }
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  const [homedir] = useState('');
+  const [treeView] = useState('');
+  const project = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId));
+  const rootPath = project?.path || '';
+  const workspace = project?.name || '';
 
   return (
     <ProjectContext.Provider value={{ rootPath, homedir, workspace, treeView }}>

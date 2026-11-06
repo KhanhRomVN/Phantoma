@@ -58,8 +58,10 @@ const notifyDesktop = (title: string, body: string): void => {
   }
 };
 
-// ── Controllers ──
-const EmulateController = getModuleService('emulate', 'EmulateController');
+// ── Services ──
+const getTrafficSummary = getModuleService('emulate', 'getTrafficSummary');
+const getCurrentFilter = getModuleService('emulate', 'getCurrentFilter');
+const getFilterText = getModuleService('emulate', 'getFilterText');
 
 // ── Prompts ──
 const buildTrafficContext = getModuleService('emulate', 'buildTrafficContext');
@@ -391,7 +393,7 @@ export const useChatLLM = ({
       let trafficContext: string | undefined;
       if (feature === 'emulate') {
         try {
-          const summary = EmulateController.getInstance().getTrafficSummary();
+          const summary = getTrafficSummary();
           const isEmpty =
             summary.hosts.length === 0 &&
             summary.methods.length === 0 &&
@@ -408,10 +410,9 @@ export const useChatLLM = ({
       let filterContext: string | undefined;
       if (feature === 'emulate') {
         try {
-          const ctrl = EmulateController.getInstance();
-          const filter = ctrl.getFilter();
+          const filter = getCurrentFilter();
           if (filter) {
-            filterContext = buildFilterContext(ctrl.getFilterText());
+            filterContext = buildFilterContext(getFilterText());
           } else {
             filterContext = buildEmptyFilterContext();
           }

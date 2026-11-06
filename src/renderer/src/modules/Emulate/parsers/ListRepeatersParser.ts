@@ -1,4 +1,4 @@
-import type { ListRepeatersParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export type ListRepeatersParams = Record<string, never>;
 
 /**
  * Parse list_repeaters tag from AI response.

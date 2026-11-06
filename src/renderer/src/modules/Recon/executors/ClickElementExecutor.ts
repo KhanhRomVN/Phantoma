@@ -1,25 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { ClickElementHandler } from '../handler/ClickElementHandler';
 import type { ClickElementParams } from '../parsers/ClickElementParser';
+
+const handler = new ClickElementHandler();
 
 export async function executeClickElement(
   params: ClickElementParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('click_element', {
-      targetId,
-      ref: params.ref,
-      clickType: params.clickType,
-    });
+    const result = await handler.handle(targetId, params.ref, undefined, params.clickType);
 
     if (result.success) {
       return {

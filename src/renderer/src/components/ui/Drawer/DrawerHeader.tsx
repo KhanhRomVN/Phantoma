@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { DrawerHeaderProps } from './type';
 
 export const DrawerHeader: React.FC<DrawerHeaderProps> = ({

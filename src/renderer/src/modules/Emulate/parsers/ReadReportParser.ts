@@ -1,5 +1,9 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { ReadReportParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface ReadReportParams {
+  report_id: string;
+  start_line?: number;
+  end_line?: number;
+}
 
 /**
  * Parse read_report tag from AI response.

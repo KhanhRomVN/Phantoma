@@ -11,7 +11,7 @@
 import { memo, useEffect, useMemo, useState } from 'react';
 import { FolderTree, GitCommit, List, Loader2, Search } from 'lucide-react';
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { Avatar } from './Avatar';
 import { ChangedFiles, type FileActions, type FilesView } from './ChangedFiles';
 import { RefPill } from './GraphCell';

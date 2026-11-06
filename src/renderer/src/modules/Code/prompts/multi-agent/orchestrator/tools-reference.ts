@@ -5,7 +5,15 @@ export type OrchestratorToolName =
   | "list_agents"
   | "create_agent"
   | "delete_agent"
-  | "send_message";
+  | "send_message"
+  | "list_tasks"
+  | "get_task"
+  | "create_task"
+  | "update_task"
+  | "assign_task"
+  | "create_workflow"
+  | "get_workflow"
+  | "update_workflow";
 export type ToolParams = Record<string, string | number>;
 
 export const ORCHESTRATOR_TOOLS: OrchestratorToolName[] = [
@@ -14,6 +22,14 @@ export const ORCHESTRATOR_TOOLS: OrchestratorToolName[] = [
   "create_agent",
   "delete_agent",
   "send_message",
+  "list_tasks",
+  "get_task",
+  "create_task",
+  "update_task",
+  "assign_task",
+  "create_workflow",
+  "get_workflow",
+  "update_workflow",
 ];
 
 export const SUB_AGENT_IDS = ["planner", "executor", "reviewer"] as const;
@@ -157,6 +173,96 @@ const TOOL_DEFS: Record<OrchestratorToolName, ToolDef> = {
       },
     ],
   },
+  list_tasks: {
+    description:
+      "List the tasks of the current project (archived tasks excluded) with id, title, status (todo|progress|review|done), priority (low|medium|high), due_date (YYYY-MM-DD or null), session_id and workflow_id (null = the task has no workflow yet). Optional: status filter.",
+    examples: [
+      { params: {}, note: "list every task" },
+      { params: { status: "todo" }, note: "list only tasks with status todo" },
+    ],
+  },
+  get_task: {
+    description:
+      "Get the full detail of one task: the list_tasks fields plus description, branch_name, start_date, depends_on, tags, checklist, attachments, archived, created_at and updated_at. Required: task_id.",
+    examples: [
+      {
+        params: { task_id: "task_1730000000000_ab12cd34e" },
+        note: "get the detail of one task",
+      },
+    ],
+  },
+  create_task: {
+    description:
+      "Create a task in the current project. Required: title. Optional: description, priority (low|medium|high, default medium), due_date (YYYY-MM-DD). The task starts as todo and has no workflow; the result returns its task_id.",
+    examples: [
+      {
+        params: {
+          title: "Add slugify utility",
+          description: "Add a slugify helper to src/utils and use it in the post title field.",
+          priority: "medium",
+        },
+        note: "create a medium-priority task",
+      },
+    ],
+  },
+  update_task: {
+    description:
+      "Update an existing task. Required: task_id plus at least one of title, description, status (todo|progress|review|done), priority (low|medium|high), due_date (YYYY-MM-DD).",
+    examples: [
+      {
+        params: { task_id: "task_1730000000000_ab12cd34e", status: "progress" },
+        note: "move a task to progress",
+      },
+    ],
+  },
+  assign_task: {
+    description:
+      "Assign an existing task to yourself, the orchestrator of the current workspace session. Required: task_id.",
+    examples: [
+      {
+        params: { task_id: "task_1730000000000_ab12cd34e" },
+        note: "assign the task to yourself",
+      },
+    ],
+  },
+  create_workflow: {
+    description:
+      "Create the workflow document (Markdown) of an EXISTING task and attach it to that task in the same step. Required: task_id and content (the complete workflow). A task has at most one workflow: the call fails if the task does not exist or already has a workflow; change an existing workflow with update_workflow.",
+    examples: [
+      {
+        params: {
+          task_id: "task_1730000000000_ab12cd34e",
+          content:
+            "# Workflow\n\n1. planner: plan the change\n2. executor: implement the plan\n3. reviewer: verify against ACCEPTANCE",
+        },
+        note: "create and attach a workflow to the task",
+      },
+    ],
+  },
+  get_workflow: {
+    description:
+      "Return the complete content of a task's workflow file. Required: task_id. Call it before update_workflow so old_content can be copied exactly.",
+    examples: [
+      {
+        params: { task_id: "task_1730000000000_ab12cd34e" },
+        note: "read the whole workflow of the task",
+      },
+    ],
+  },
+  update_workflow: {
+    description:
+      "Edit a task's workflow by exact text replacement. Required: task_id, old_content (must match the current content byte for byte and occur exactly once) and new_content (may be empty to delete the matched text).",
+    examples: [
+      {
+        params: {
+          task_id: "task_1730000000000_ab12cd34e",
+          old_content: "3. reviewer: verify against ACCEPTANCE",
+          new_content: "3. reviewer: verify against ACCEPTANCE\n4. report to the user",
+        },
+        note: "replace one part of the workflow",
+      },
+    ],
+  },
 };
 
 const renderToolDocs = (format: ToolFormat): string =>
@@ -236,7 +342,7 @@ export const buildOrchestratorToolsReference = (
         ".";
   return [
     toolFormat === "json" ? "# TOOLS (JSON FORMAT)" : "# TOOLS",
-    "The orchestrator is the coordinating brain of the workflow. It has NO file, command, git, skill or memory tools and cannot read or change the codebase. It sets the conversation title, manages agents, sends messages to them and asks the user through the question UI.",
+    "The orchestrator is the coordinating brain of the workflow. It has NO file, command, git, skill or memory tools and cannot read or change the codebase. It sets the conversation title, manages agents, sends messages to them, manages the project's tasks and their workflow documents, and asks the user through the question UI.",
     how,
     toolFormat === "json" ? jsonNote : "",
     renderToolDocs(toolFormat),

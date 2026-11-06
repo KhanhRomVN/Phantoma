@@ -109,6 +109,7 @@ export interface Project {
   // ── Workspace Panels Persistence ──
   workspacePanels: StoredWorkspacePanel[];
   activeWorkspacePanelId: string | null;
+  activeWorkspacePanelIds?: Record<string, string | null>;
   workspaceLayouts?: Record<string, import('../utils/workspaceLayout').WorkspaceLayoutSnapshot>;
 }
 

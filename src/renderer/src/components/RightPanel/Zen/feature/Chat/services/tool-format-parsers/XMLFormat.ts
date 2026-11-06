@@ -77,10 +77,7 @@ const parseXml = (
   const toolPatterns = [
     ...getAllToolTypes().filter((t) => t !== 'thinking'),
     'file',
-    'markdown',
     'code',
-    'question',
-    'conversation_title',
   ];
 
   const toolNamesPattern = toolPatterns.join('|');

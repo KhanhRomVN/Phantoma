@@ -1,11 +1,18 @@
-import { EmulateController } from '../EmulateController';
+import { useNetworkStore } from '../stores/networkStore';
+import { runTool } from '../utils/tool-result.util';
 
-/** Execute list_hosts tool — gọi EmulateController.executeTool() */
+/** Execute list_hosts tool — đọc trực tiếp network store */
 export async function executeListHosts(): Promise<string | null> {
-  const result = await EmulateController.executeTool('list_hosts');
+  return runTool('list_hosts', () => {
+    const hostMap = new Map<string, number>();
+    for (const r of useNetworkStore.getState().requests) {
+      const host = r.host || '(unknown)';
+      hostMap.set(host, (hostMap.get(host) || 0) + 1);
+    }
 
-  if (!result.success) {
-    return '[list_hosts] Result: Error - ' + (result.error || '');
-  }
-  return (result.data as any)?.output || null;
+    const sorted = [...hostMap.entries()].sort((a, b) => b[1] - a[1]);
+    const rows = sorted.map(([host, count]) => `- ${host.substring(0, 50)} (${count})`);
+
+    return [`[list_hosts] Total unique hosts: ${sorted.length}`, ...rows].join('\n');
+  });
 }

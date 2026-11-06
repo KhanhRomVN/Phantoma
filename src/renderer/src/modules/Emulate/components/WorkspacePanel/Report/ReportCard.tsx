@@ -33,7 +33,7 @@ import {
 import type { Report } from '../../../stores/reportStore';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ReportCardProps {

@@ -23,7 +23,7 @@ import { useMemo } from 'react';
 import { Activity, Shield, Clock, Database, Wifi } from 'lucide-react';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Types ──
 import type { TargetState } from '../types/target.types';

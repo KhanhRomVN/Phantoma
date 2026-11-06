@@ -15,10 +15,10 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import type { TagCategory, TagDefinition, ToolType, UITagType, TagType } from '../types/tag-types';
+import type { TagDefinition, ToolType, TagType } from '../types/tag-types';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────
-export type { TagCategory, TagDefinition, ToolType, UITagType, TagType };
+export type { TagDefinition, ToolType, TagType };
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -56,10 +56,7 @@ export const ALLOWED_FILE_EXTENSIONS = [
 ];
 
 // ===== TOOL ACTION TYPES =====
-export const TOOL_ACTION_TYPES = {
-  ACCEPT: 'accept',
-  REJECT: 'reject',
-} as const;
+export { TOOL_ACTION_TYPES } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
 
 // ===== EXECUTION STATUS =====
 export const EXECUTION_STATUS = {
@@ -70,57 +67,40 @@ export const EXECUTION_STATUS = {
 } as const;
 
 // ===== TERMINAL STATUS =====
-export const TERMINAL_STATUS = {
-  BUSY: 'busy',
-  FREE: 'free',
-} as const;
-
-export type TerminalStatus = (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS];
+export { TERMINAL_STATUS } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
+export type { TerminalStatus } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
 
 // ===== UI CONSTANTS =====
 // Moved to constants/ui.ts
 import { STREAM_BOX_HEIGHT } from './ui';
 export { STREAM_BOX_HEIGHT };
 
-// ===== SHARED TAG REGISTRY (UI tags only) =====
-export const SHARED_TAG_REGISTRY: Record<string, TagDefinition> = {
+// ===== CORE TAG REGISTRY (cross-module tool calls) =====
+/**
+ * Tool call dùng chung cho mọi module (markdown, thinking, question, conversation_title) —
+ * tự động được phép, không cần xác nhận. Mỗi tool call tự quyết định cách xử lý của nó.
+ */
+export const CORE_TAG_REGISTRY: Record<string, TagDefinition> = {
   markdown: {
     id: 'markdown',
-    category: 'ui',
+    features: { clickable: false },
   },
   thinking: {
     id: 'thinking',
-    category: 'ui',
+    features: { clickable: false },
   },
   question: {
     id: 'question',
-    category: 'ui',
+    features: { clickable: false },
   },
-};
-
-// ===== CORE TOOL REGISTRY (cross-module tools) =====
-/**
- * Tools that are not specific to any module but are shared across all features.
- * These tools are automatically allowed and don't require user confirmation.
- */
-export const CORE_TOOL_REGISTRY: Record<string, TagDefinition> = {
   conversation_title: {
     id: 'conversation_title',
-    category: 'ui',
     title: 'Set Conversation Title',
+    features: { clickable: false },
   },
 };
 
 // ============= AGGREGATED TAG REGISTRY =============
-/**
- * TAG_REGISTRY tổng hợp từ:
- * - SHARED_TAG_REGISTRY: UI tags (markdown, thinking, question)
- * - CORE_TOOL_REGISTRY: Cross-module tools (conversation_title, etc.)
- * - Module tag registries: Được inject từ ModuleRegistry sau khi modules được register
- *
- * Note: To avoid circular dependency, module registries are injected via injectModuleRegistries()
- * after modules are registered in ModuleRegistry.
- */
 let _moduleRegistries: Record<string, TagDefinition> = {};
 let _perModuleRegistries: Record<string, Record<string, TagDefinition>> = {};
 
@@ -134,27 +114,20 @@ export const injectModuleRegistries = (
 
 export const TAG_REGISTRY = new Proxy({} as Record<string, TagDefinition>, {
   get(_target, prop: string) {
-    if (prop in SHARED_TAG_REGISTRY) {
-      return SHARED_TAG_REGISTRY[prop];
-    }
-    if (prop in CORE_TOOL_REGISTRY) {
-      return CORE_TOOL_REGISTRY[prop];
+    if (prop in CORE_TAG_REGISTRY) {
+      return CORE_TAG_REGISTRY[prop];
     }
     return _moduleRegistries[prop];
   },
   has(_target, prop: string) {
-    return prop in SHARED_TAG_REGISTRY || prop in CORE_TOOL_REGISTRY || prop in _moduleRegistries;
+    return prop in CORE_TAG_REGISTRY || prop in _moduleRegistries;
   },
   ownKeys(_target) {
-    const keys = new Set([
-      ...Object.keys(SHARED_TAG_REGISTRY),
-      ...Object.keys(CORE_TOOL_REGISTRY),
-      ...Object.keys(_moduleRegistries),
-    ]);
+    const keys = new Set([...Object.keys(CORE_TAG_REGISTRY), ...Object.keys(_moduleRegistries)]);
     return Array.from(keys);
   },
   getOwnPropertyDescriptor(_target, prop: string) {
-    if (prop in SHARED_TAG_REGISTRY || prop in CORE_TOOL_REGISTRY || prop in _moduleRegistries) {
+    if (prop in CORE_TAG_REGISTRY || prop in _moduleRegistries) {
       return {
         enumerable: true,
         configurable: true,
@@ -166,35 +139,14 @@ export const TAG_REGISTRY = new Proxy({} as Record<string, TagDefinition>, {
 
 // ============= HELPER FUNCTIONS =============
 
-/**
- * Lấy tag definition từ TAG_REGISTRY
- */
 export const getTagDef = (type: string): TagDefinition | undefined => {
   return TAG_REGISTRY[type];
 };
 
 /**
- * Lấy tất cả tool types từ TAG_REGISTRY
+ * Lấy tất cả tool call types từ TAG_REGISTRY
  */
 export const getAllToolTypes = (): string[] => {
-  return Object.entries(TAG_REGISTRY)
-    .filter(([_, def]) => def.category === 'tool')
-    .map(([key]) => key);
-};
-
-/**
- * Lấy tất cả UI tag types từ TAG_REGISTRY
- */
-export const getAllUITagTypes = (): string[] => {
-  return Object.entries(TAG_REGISTRY)
-    .filter(([_, def]) => def.category === 'ui')
-    .map(([key]) => key);
-};
-
-/**
- * Lấy tất cả tag types từ TAG_REGISTRY
- */
-export const getAllTagTypes = (): string[] => {
   return Object.keys(TAG_REGISTRY);
 };
 
@@ -202,32 +154,29 @@ export const getAllTagTypes = (): string[] => {
  * Check if a tool should show file stats after execution
  */
 export const shouldShowFileStats = (toolType: string): boolean => {
-  const tag = TAG_REGISTRY[toolType];
-  return tag?.category === 'tool' ? (tag.features?.showFileStats ?? false) : false;
+  return TAG_REGISTRY[toolType]?.features?.showFileStats ?? false;
 };
 
 /**
  * Check if a tool should validate fuzzy match before execution
  */
 export const shouldValidateFuzzyMatch = (toolType: string): boolean => {
-  const tag = TAG_REGISTRY[toolType];
-  return tag?.category === 'tool' ? (tag.features?.validateFuzzyMatch ?? false) : false;
+  return TAG_REGISTRY[toolType]?.features?.validateFuzzyMatch ?? false;
 };
 
 /**
  * Get timeout (ms) for a tool. Default: 60000ms (60s)
  */
 export const getToolTimeout = (toolType: string): number => {
-  const tag = TAG_REGISTRY[toolType];
-  return tag?.category === 'tool' ? (tag.timeout ?? 60000) : 60000;
+  return TAG_REGISTRY[toolType]?.timeout ?? 60000;
 };
 
 /**
- * Check if a tool type is clickable (i.e., it's a tool, not a UI tag)
+ * Check if a tool call is clickable. Default: true unless `features.clickable === false`
  */
 export const isToolClickable = (type: string): boolean => {
   const tag = TAG_REGISTRY[type];
-  return tag?.category === 'tool';
+  return !!tag && tag.features?.clickable !== false;
 };
 
 /**

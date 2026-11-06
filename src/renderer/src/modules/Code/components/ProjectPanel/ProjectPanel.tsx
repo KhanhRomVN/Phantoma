@@ -63,9 +63,22 @@ import {
   type StoredTask,
 } from '../../services/task.service';
 import { ConfirmForceStartTaskModal } from '../ContentPanel/TaskManager/ConfirmForceStartTaskModal';
+import {
+  ProjectConflictModal,
+  fromBranchTargetId,
+  toBranchTargetId,
+  type ConflictProjectOption,
+} from './ProjectConflictModal';
+import {
+  useTargetLock,
+  useBusyTargetIds,
+  useIsLateClaimant,
+  forceReleaseTarget,
+  focusTargetOwner,
+} from '@renderer/hooks/useTargetLock';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Shared UI components ──
 import {
@@ -135,6 +148,7 @@ import {
   getProjectTokens,
   type ProjectExtended as CardProject,
 } from './ProjectCard';
+import { ScrollToSessionButton } from './ScrollToSessionButton';
 
 // ─── Local Types ────────────────────────────────────────────────────────
 
@@ -565,6 +579,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [treeOpen, setTreeOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('manual');
   const [filterStatus, setFilterStatus] = useState<'all' | SessionStatus>('all');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [dropdownTarget, setDropdownTarget] = useState<DropdownTarget | null>(null);
   const isSettingsOpen = useCodeStore((s) => s.contentViewMode === 'settings');
@@ -898,8 +913,14 @@ export const ProjectPanel = memo(function ProjectPanel() {
     ],
   );
 
+  const busyTargetIds = useBusyTargetIds('code');
+  const [blockedTarget, setBlockedTarget] = useState<{
+    projectId: string;
+    branchName: string;
+  } | null>(null);
+
   const handleSelectSession = useCallback(
-    (sessionId: string) => {
+    (sessionId: string, force = false) => {
       if (!sessionId) {
         // Deselect logic triggered by clicking an already-selected branch row
         setSelectedSessionId(null);
@@ -916,6 +937,30 @@ export const ProjectPanel = memo(function ProjectPanel() {
         console.warn('[DEBUG_SELECT_SESSION] Session not found in any project', { sessionId });
         return;
       }
+
+      // ASSUMED: branch đang mở ở cửa sổ khác thì không select, chỉ hiện modal xung đột
+      const targetBranch = parentProject.branches.find((b) =>
+        b.sessions.some((s) => s.id === sessionId),
+      );
+      if (
+        !force &&
+        targetBranch &&
+        busyTargetIds.has(toBranchTargetId(parentProject.id, targetBranch.name))
+      ) {
+        setBlockedTarget({ projectId: parentProject.id, branchName: targetBranch.name });
+        return;
+      }
+
+      const switchT0 = performance.now();
+      console.log('[DEBUG] switch session: start', { sessionId });
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() =>
+          console.log('[DEBUG] switch session: painted', {
+            sessionId,
+            totalMs: Number((performance.now() - switchT0).toFixed(1)),
+          }),
+        ),
+      );
 
       // Highlight the card in ProjectPanel
       setSelectedSessionId(sessionId);
@@ -936,8 +981,14 @@ export const ProjectPanel = memo(function ProjectPanel() {
       }
 
       // Switch ContentPanel to Workspace view for this session
+      const setsT0 = performance.now();
       setActiveWorkspaceSessionId(sessionId);
       setContentViewMode('workspace');
+      console.log('[DEBUG] switch session: store sets done', {
+        sessionId,
+        setsMs: Number((performance.now() - setsT0).toFixed(1)),
+        sinceStartMs: Number((performance.now() - switchT0).toFixed(1)),
+      });
     },
     [
       projects,
@@ -947,6 +998,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       setContentViewMode,
       activeTaskManagerProjectId,
       activeGitProjectId,
+      busyTargetIds,
     ],
   );
 
@@ -1750,6 +1802,164 @@ export const ProjectPanel = memo(function ProjectPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects.map((p) => p.id + ':' + p.path).join('|')]);
 
+  // ── Target lock (multi-window) ──
+  // ASSUMED: target = branch of the project that owns the active workspace session (id: `${projectId}::${branchName}`)
+  const activeWorkspaceSessionId = useCodeStore((s) => s.activeWorkspaceSessionId);
+
+  const currentBranchName = useMemo(() => {
+    if (!currentProjectId || !activeWorkspaceSessionId) return null;
+    const owner = projects
+      .find((p) => p.id === currentProjectId)
+      ?.branches.find((b) => b.sessions.some((s) => s.id === activeWorkspaceSessionId));
+    return owner?.name ?? null;
+  }, [projects, currentProjectId, activeWorkspaceSessionId]);
+
+  const currentTargetId =
+    currentProjectId && currentBranchName
+      ? toBranchTargetId(currentProjectId, currentBranchName)
+      : null;
+
+  const handleUnselectProject = useCallback(() => {
+    setSelectedSessionId(null);
+    setActiveGitProjectId(null);
+    setActiveTaskManagerProjectId(null);
+    setCurrentProject(undefined as unknown as string);
+    setActiveWorkspaceSessionId(null);
+    setContentViewMode('files');
+  }, [setCurrentProject, setActiveWorkspaceSessionId, setContentViewMode]);
+
+  const [conflictOpen, setConflictOpen] = useState(false);
+  // ASSUMED: cửa sổ đang hiện modal xung đột chưa thực sự giữ target nên không được claim
+  useTargetLock('code', conflictOpen ? null : currentTargetId, handleUnselectProject);
+
+  const busyBranchesByProject = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    busyTargetIds.forEach((id) => {
+      const { projectId, branchName } = fromBranchTargetId(id);
+      const set = map.get(projectId) ?? new Set<string>();
+      set.add(branchName);
+      map.set(projectId, set);
+    });
+    return map;
+  }, [busyTargetIds]);
+
+  const handleReleaseElsewhere = useCallback((projectId: string, branchName: string) => {
+    forceReleaseTarget('code', toBranchTargetId(projectId, branchName));
+  }, []);
+
+  const handleFocusElsewhere = useCallback((projectId: string, branchName: string) => {
+    focusTargetOwner('code', toBranchTargetId(projectId, branchName));
+  }, []);
+
+  const isLateClaimant = useIsLateClaimant('code', currentTargetId);
+  const conflictTriggered =
+    !!currentTargetId && isLateClaimant && busyTargetIds.has(currentTargetId);
+  useEffect(() => {
+    if (conflictOpen && currentTargetId && !busyTargetIds.has(currentTargetId)) {
+      setConflictOpen(false);
+    }
+  }, [conflictOpen, currentTargetId, busyTargetIds]);
+
+  useEffect(() => {
+    setConflictOpen(conflictTriggered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTargetId]);
+
+  useEffect(() => {
+    if (conflictTriggered) setConflictOpen(true);
+  }, [conflictTriggered]);
+
+  const conflictProject =
+    conflictOpen && currentTargetId
+      ? (projects.find((p) => p.id === currentProjectId) ?? null)
+      : null;
+
+  const conflictOptions = useMemo<ConflictProjectOption[]>(
+    () =>
+      projects
+        .filter((p) => !p.hidden)
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          path: rawProjects.find((r) => r.id === p.id)?.path ?? '',
+          logoPath: p.logoPath,
+          branches: p.branches
+            .filter((b) => b.visible)
+            .map((b) => ({
+              name: b.name,
+              busy: busyTargetIds.has(toBranchTargetId(p.id, b.name)),
+            })),
+        })),
+    [projects, rawProjects, busyTargetIds],
+  );
+
+  const handleSwitchBranch = useCallback(
+    (projectId: string, branchName: string, force = false) => {
+      const branch = projects
+        .find((p) => p.id === projectId)
+        ?.branches.find((b) => b.name === branchName);
+      if (!branch) return;
+      if (!force && busyTargetIds.has(toBranchTargetId(projectId, branchName))) {
+        setBlockedTarget({ projectId, branchName });
+        return;
+      }
+      const sessionId = branch.sessions[0]?.id;
+      if (sessionId) handleSelectSession(sessionId, force);
+      else {
+        setCurrentProject(projectId);
+        handleNewSession(projectId, branchName);
+      }
+    },
+    [projects, busyTargetIds, handleSelectSession, handleNewSession, setCurrentProject],
+  );
+
+  const handleConflictSelectProject = useCallback(
+    (projectId: string) => {
+      const visible =
+        projects.find((p) => p.id === projectId)?.branches.filter((b) => b.visible) ?? [];
+      if (visible.length === 1) {
+        handleSwitchBranch(projectId, visible[0].name);
+        return;
+      }
+      setActiveWorkspaceSessionId(null);
+      handleSelectProject(projectId);
+      setContentViewMode('workspace');
+    },
+    [
+      projects,
+      handleSwitchBranch,
+      handleSelectProject,
+      setActiveWorkspaceSessionId,
+      setContentViewMode,
+    ],
+  );
+
+  // ASSUMED: expand project đang collapse → tự chọn branch rảnh đầu tiên (từ trên xuống); không có thì giữ hành vi cũ
+  const handleCardSelectProject = useCallback(
+    (projectId: string) => {
+      if (expandedIds.has(projectId) || gitRepoByProject[projectId] === false) {
+        handleSelectProject(projectId);
+        return;
+      }
+      const freeBranch = projects
+        .find((p) => p.id === projectId)
+        ?.branches.find((b) => b.visible && !busyTargetIds.has(toBranchTargetId(projectId, b.name)));
+      if (freeBranch) handleSwitchBranch(projectId, freeBranch.name);
+      else handleSelectProject(projectId);
+    },
+    [expandedIds, gitRepoByProject, projects, busyTargetIds, handleSelectProject, handleSwitchBranch],
+  );
+
+  useEffect(() => {
+    const onSelectBranch = (e: Event) => {
+      const { projectId, branchName, sessionId } = (e as CustomEvent).detail ?? {};
+      if (sessionId) handleSelectSession(sessionId);
+      else if (projectId && branchName) handleSwitchBranch(projectId, branchName);
+    };
+    window.addEventListener('phantoma:select-branch', onSelectBranch);
+    return () => window.removeEventListener('phantoma:select-branch', onSelectBranch);
+  }, [handleSelectSession, handleSwitchBranch]);
+
   // ── Render helpers ──
   const renderCard = (project: ProjectExtended) => (
     <ProjectCard
@@ -1757,7 +1967,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
       project={project}
       isSelected={expandedIds.has(project.id)}
       isProjectSelected={currentProjectId === project.id}
-      onSelectProject={handleSelectProject}
+      busyBranchNames={busyBranchesByProject.get(project.id)}
+      onReleaseElsewhere={handleReleaseElsewhere}
+      onFocusElsewhere={handleFocusElsewhere}
+      onSelectProject={handleCardSelectProject}
       selectedSessionId={selectedSessionId}
       isTaskManagerActive={activeTaskManagerProjectId === project.id}
       isGitActive={activeGitProjectId === project.id}
@@ -1965,7 +2178,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
       </div>
 
       {/* Project list */}
-      <div className="flex-1 min-h-0 overflow-y-auto select-none flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto select-none flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm"
+      >
         {/* Group Creation Form */}
         {groupFormOpen && (
           <NewGroupModal
@@ -2179,8 +2395,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
                         closeDropdown();
                       }}
                     >
-                      <span className={cn('truncate', !b.visible && 'text-text-secondary/60')}>
-                        {b.name}
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className={cn('truncate', !b.visible && 'text-text-secondary/60')}>
+                          {b.name}
+                        </span>
+                        {b.name === activeProject.defaultBranch && (
+                          <span className="inline-flex items-center h-[16px] px-1.5 rounded-[5px] shrink-0 text-[9.5px] font-medium text-primary bg-primary/10">
+                            default
+                          </span>
+                        )}
                       </span>
                     </DropdownItem>
                   );
@@ -2361,7 +2584,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     closeDropdown();
                   }}
                 >
-                  Pull from branch...
+                  Sync from...
                 </DropdownItem>
 
                 <DropdownSeparator />
@@ -2843,6 +3066,49 @@ export const ProjectPanel = memo(function ProjectPanel() {
         branchPath={confirmUnlinkBranchTarget?.branchPath ?? ''}
       />
 
+      {conflictProject && (
+        <ProjectConflictModal
+          project={{ id: conflictProject.id, name: conflictProject.name }}
+          branchName={currentBranchName ?? ''}
+          projects={conflictOptions}
+          onSelectProject={handleConflictSelectProject}
+          onUnselect={handleUnselectProject}
+          onTakeOver={() => {
+            if (currentTargetId) forceReleaseTarget('code', currentTargetId);
+            setConflictOpen(false);
+          }}
+          onFocusOther={() => currentTargetId && focusTargetOwner('code', currentTargetId)}
+        />
+      )}
+
+      {blockedTarget && !conflictProject && (
+        <ProjectConflictModal
+          project={{
+            id: blockedTarget.projectId,
+            name: projects.find((p) => p.id === blockedTarget.projectId)?.name ?? '',
+          }}
+          branchName={blockedTarget.branchName}
+          projects={conflictOptions}
+          onSelectProject={(projectId) => {
+            setBlockedTarget(null);
+            handleConflictSelectProject(projectId);
+          }}
+          onUnselect={() => setBlockedTarget(null)}
+          onTakeOver={() => {
+            const { projectId, branchName } = blockedTarget;
+            forceReleaseTarget('code', toBranchTargetId(projectId, branchName));
+            setBlockedTarget(null);
+            handleSwitchBranch(projectId, branchName, true);
+          }}
+          onFocusOther={() =>
+            focusTargetOwner(
+              'code',
+              toBranchTargetId(blockedTarget.projectId, blockedTarget.branchName),
+            )
+          }
+        />
+      )}
+
       <ConfirmForceStartTaskModal
         isOpen={!!forceStart}
         taskTitle={forceStart?.title ?? ''}
@@ -2862,6 +3128,12 @@ export const ProjectPanel = memo(function ProjectPanel() {
             }
           })();
         }}
+      />
+
+      {/* Scroll to selected session button */}
+      <ScrollToSessionButton
+        selectedSessionId={selectedSessionId}
+        scrollContainerRef={scrollContainerRef}
       />
     </div>
   );

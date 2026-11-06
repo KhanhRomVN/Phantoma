@@ -41,14 +41,14 @@ import { RequestTable } from './RequestTable';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 
 // ── Hooks ──
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 import { useNetworkStore } from '../../../stores/networkStore';
 
 // ── Types ──
 import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './FilterPanel';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 // ─── Components ─────────────────────────────────────────────────────────

@@ -40,7 +40,7 @@ import { logcatService } from '../../../services/logcat.service';
 
 // ── Utils ──
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface LogEntry {

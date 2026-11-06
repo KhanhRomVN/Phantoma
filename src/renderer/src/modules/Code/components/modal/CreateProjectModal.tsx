@@ -14,8 +14,8 @@ import {
   Shield,
   Bot,
 } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
 
 import { useCodeStore } from '../../hooks/useCodeStore';

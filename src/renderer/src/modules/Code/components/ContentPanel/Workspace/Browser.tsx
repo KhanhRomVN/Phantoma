@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, RotateCw, Home, ExternalLink, Smartphone } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface CodeBrowserProps {
   initialUrl?: string;

@@ -40,8 +40,8 @@ import type { TargetTab } from '../../types/target.types';
 
 // ── Utils ──
 
-import { cn } from '@renderer/shared/utils/cn';
-import { getFaviconUrl } from '../../../../shared/utils/faviconUtils';
+import { cn } from '@renderer/utils/cn';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 

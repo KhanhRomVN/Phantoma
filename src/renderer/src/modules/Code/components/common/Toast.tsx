@@ -28,7 +28,7 @@ import type { ToastItem } from '../../services/toast.service';
 
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Variant Config ─────────────────────────────────────────────────────
 

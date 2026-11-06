@@ -1,8 +1,8 @@
 import { memo, useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Loader } from 'lucide-react';
 import { Dropdown, DropdownTrigger, DropdownContent } from '@renderer/components/ui/Dropdown';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
-import { cn } from '@renderer/shared/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 
 interface DirEntry {

@@ -1,23 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { ReloadHandler } from '../handler/ReloadHandler';
 import type { ReloadParams } from '../parsers/ReloadParser';
+
+const handler = new ReloadHandler();
 
 export async function executeReload(
   _params: ReloadParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('reload', {
-      targetId,
-    });
+    const result = await handler.handle(targetId);
 
     if (result.success) {
       return {

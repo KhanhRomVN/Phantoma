@@ -1,4 +1,4 @@
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import React, { useState, useEffect, useRef } from 'react';
 import { $ } from '@renderer/utils/color';
 

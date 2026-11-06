@@ -24,8 +24,8 @@ import { Button } from '@renderer/components/ui/Button';
 import { Search, Smartphone, Monitor, Loader2, RefreshCw, Check, Bug, Folder } from 'lucide-react';
 import type { AppPlatform, AppMode, DiscoveredApp } from '../../types/apps';
 import { PLATFORMS } from '../../constants/platforms';
-import { cn } from '@renderer/shared/utils/cn';
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { cn } from '@renderer/utils/cn';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 import { runtimeApi } from '../../services/runtime-api.service';
 import { User } from 'lucide-react';
 import {

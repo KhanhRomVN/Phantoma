@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolStatusChecker } from '../types/tool-status';
+import type { ToolStatusChecker } from '@renderer/components/RightPanel/Zen/shared/tool-status';
 
 // Module-specific status checkers registry
 const statusCheckers: ToolStatusChecker[] = [];

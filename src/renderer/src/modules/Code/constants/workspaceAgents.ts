@@ -6,7 +6,7 @@
 
 import { useCodeStore } from '../hooks/useCodeStore';
 import type { SessionStatus } from '../components/ProjectPanel/SessionCard';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 
 // Map AI agent IDs to their official domains for favicon fetching
 const AGENT_DOMAIN_MAP: Record<string, string> = {

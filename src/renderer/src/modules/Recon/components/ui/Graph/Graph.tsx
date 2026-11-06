@@ -3,7 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { GraphEdge, GraphNode } from '../types';
 import { ReconGraphContext } from './ReconGraphContext';
 import { buildGraph } from './graphBuilder';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 
 interface Props {
   nodes: GraphNode[];

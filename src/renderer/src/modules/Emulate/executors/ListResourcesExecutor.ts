@@ -1,17 +1,28 @@
-import { EmulateController } from '../EmulateController';
+import { useNetworkStore } from '../stores/networkStore';
+import { buildResourceItems } from '../utils/resource-items.util';
+import { runTool } from '../utils/tool-result.util';
 
 export interface ListResourcesParams {
   filter?: { type?: string };
 }
 
-/** Execute list_resources tool — gọi EmulateController.executeTool() */
+/** Execute list_resources tool — đọc trực tiếp network store */
 export async function executeListResources(params: ListResourcesParams): Promise<string | null> {
-  const result = await EmulateController.executeTool('list_resources', {
-    filter: params.filter || {},
-  });
+  return runTool('list_resources', () => {
+    const items = buildResourceItems(useNetworkStore.getState().requests);
+    const filterType = params.filter?.type?.toLowerCase();
+    const filtered = filterType
+      ? items.filter((item) => item.type.toLowerCase() === filterType)
+      : items;
 
-  if (!result.success) {
-    return '[list_resources] Result: Error - ' + (result.error || '');
-  }
-  return (result.data as any)?.output || null;
+    const lines = filtered.map(
+      (item) => `- ${item.filename} (${item.type}, ${item.size}, ${item.contentType})`,
+    );
+
+    return [
+      `[list_resources] Total: ${items.length}, Filtered: ${filtered.length}`,
+      '',
+      ...lines,
+    ].join('\n');
+  });
 }

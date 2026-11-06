@@ -1,5 +1,9 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { ListResourcesParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface ListResourcesParams {
+  filter?: {
+    type?: string;
+  };
+}
 
 /**
  * Parse list_resources tag from AI response.

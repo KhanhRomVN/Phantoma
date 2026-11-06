@@ -15,7 +15,7 @@ import rust from 'highlight.js/lib/languages/rust';
 import java from 'highlight.js/lib/languages/java';
 import cpp from 'highlight.js/lib/languages/cpp';
 import { Modal, ModalBody } from '@renderer/components/ui/Modal';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 import { X } from 'lucide-react';
 
 hljs.registerLanguage('javascript', javascript);

@@ -1,0 +1,1 @@
+export const ZEN_INSERT_TEXT_EVENT = 'zen-insert-text';

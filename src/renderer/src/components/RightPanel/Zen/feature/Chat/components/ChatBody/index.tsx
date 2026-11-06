@@ -17,7 +17,7 @@ import React, { useRef, useEffect, useMemo } from 'react';
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Types ──
 import { parseAIResponse, ParsedResponse, ToolAction } from '../../services/responseParser';
@@ -214,7 +214,7 @@ interface MessageBoxProps {
   isLastMessage?: boolean;
   hasNextAssistantMessage?: boolean;
   toolOutputs?: Record<string, { output: string; isError: boolean }>;
-  terminalStatus?: Record<string, 'busy' | 'free'>;
+  terminalStatus?: Record<string, (typeof TERMINAL_STATUS)[keyof typeof TERMINAL_STATUS]>;
   nextUserMessage?: Message;
   allMessages?: Message[];
   activeTerminalIds?: Set<string>;
@@ -719,7 +719,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
           <div ref={messagesEndRef} />
           <style>{`
         .chat-body-scroll::-webkit-scrollbar {
-          width: 4px;
+          width: 13px;
           height: 4px;
         }
         .chat-body-scroll::-webkit-scrollbar-track {
@@ -728,12 +728,10 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
         .chat-body-scroll::-webkit-scrollbar-thumb {
           background: rgb(106, 122, 154, 0.4);
           border-radius: 4px;
+          min-height: 48px;
         }
         .chat-body-scroll::-webkit-scrollbar-thumb:hover {
           background: rgb(106, 122, 154, 0.6);
-        }
-        .chat-body-scroll {
-          scrollbar-width: thin;
         }
       `}</style>
         </>

@@ -1,24 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { CreateTabHandler } from '../handler/CreateTabHandler';
 import type { CreateTabParams } from '../parsers/CreateTabParser';
+
+const handler = new CreateTabHandler();
 
 export async function executeCreateTab(
   params: CreateTabParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('create_tab', {
-      targetId,
-      url: params.url,
-    });
+    const result = await handler.handle(targetId, params.url);
 
     if (result.success) {
       return {

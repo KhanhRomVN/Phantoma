@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 import { Message } from '../../../types/message';
 import type { RevertFileEntry, RevertGroupKey } from '../../../types/revert';

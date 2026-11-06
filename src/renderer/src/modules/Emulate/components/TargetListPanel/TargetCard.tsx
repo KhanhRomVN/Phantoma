@@ -35,7 +35,7 @@ import type { TargetTab } from '../../types/target.types';
 import { useTimerStore } from '../../stores/timerStore';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 export const PLATFORM_STYLES: Record<AppPlatform, { text: string; chip: string }> = {

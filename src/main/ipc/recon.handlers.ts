@@ -4,6 +4,7 @@
  */
 import { ipcMain } from 'electron';
 import axios from 'axios';
+import { reconStorage } from '../storage/ReconStorage';
 
 const RECON_SERVER_URL = process.env.RECON_SERVER_URL || 'http://localhost:3003';
 
@@ -31,6 +32,61 @@ async function callReconApi(endpoint: string, method: 'GET' | 'POST' | 'DELETE',
 }
 
 export function setupReconHandlers(): void {
+  // ── Target storage (local filesystem) ───────────────────────────
+
+  ipcMain.handle('recon:targets:list', async () => {
+    try {
+      return { success: true, data: reconStorage.listTargets() };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to list targets' };
+    }
+  });
+
+  ipcMain.handle('recon:targets:create', async () => {
+    try {
+      return { success: true, data: reconStorage.createTarget() };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to create target' };
+    }
+  });
+
+  ipcMain.handle('recon:targets:readFiles', async (_, targetId: string) => {
+    try {
+      return { success: true, data: reconStorage.readTargetFiles(targetId) };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to read target files' };
+    }
+  });
+
+  ipcMain.handle(
+    'recon:targets:writeFile',
+    async (_, options: { targetId: string; fileName: string; content: string }) => {
+      try {
+        reconStorage.writeTargetFile(options.targetId, options.fileName, options.content);
+        return { success: true };
+      } catch (error: any) {
+        return { success: false, error: error.message || 'Failed to write target file' };
+      }
+    },
+  );
+
+  ipcMain.handle('recon:targets:readFs', async (_, targetId: string) => {
+    try {
+      return { success: true, data: reconStorage.readTargetFs(targetId) };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to read target files folder' };
+    }
+  });
+
+  ipcMain.handle('recon:targets:delete', async (_, targetId: string) => {
+    try {
+      reconStorage.deleteTarget(targetId);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to delete target' };
+    }
+  });
+
   /**
    * Launch browser
    */

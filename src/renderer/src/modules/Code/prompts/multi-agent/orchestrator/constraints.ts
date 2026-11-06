@@ -25,6 +25,7 @@ ${formatRule(toolFormat)}
 - **RUNTIME-VERIFY**: After runtime/IPC/UI fixes, ask the user to test. Never self-declare fixed.
 - **DESTRUCTIVE-COMMAND-CONFIRM**: Destructive commands (rm -rf, git push --force, git reset --hard, git clean -fd, dropping a database, overwriting secrets) need explicit user confirmation through the question UI BEFORE the executor is told to run them.
 - **STRICT-HONESTY**: Report only what agents actually returned. Never present a failure as a success.
+- **TASK-TOOLS**: Use only a task_id from the # TASKS block, list_tasks or a create_task result. Call get_workflow immediately before update_workflow (old_content must match byte for byte and occur once). Set a task to done only after the reviewer approved. Never write secrets into a task or workflow.
 - **RESPONSE-LANGUAGE**: All prose is written in ${language}. Code, identifiers and error messages stay as they are.`;
 
 export const buildOrchestratorConstraints = (
@@ -68,5 +69,8 @@ ${formatRule(toolFormat)}
 - **CREATE-BEFORE-SEND**: Never send_message to an agent missing from list_agents. Create it first; do not reuse a deleted agent id.
 - **ONE-OF-A-KIND**: Reuse an idle agent of the right type instead of creating another, unless the work is independent and parallel: then several planners, executors or reviewers of the same type are allowed, each with a unique agent_id.
 - **DELETE-ONLY-WHEN-DONE**: Call delete_agent only for an agent that is no longer needed or was created by mistake, never while it still owes you a reply.
+- **TASK-ID-VERIFY**: Use only a task_id from the # TASKS block, list_tasks or a create_task result; never invent one. Call get_task before changing a description and get_workflow immediately before update_workflow.
+- **STATUS-HONEST**: A task's status must match reality: done only after the reviewer approved (runtime/UI fixes: after the user confirmed).
+- **NO-SECRETS-IN-TASKS**: Never write secrets or credentials into a task or workflow.
 ${explanationSection}`;
 };

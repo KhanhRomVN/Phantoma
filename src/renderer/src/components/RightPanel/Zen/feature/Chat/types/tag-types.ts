@@ -15,16 +15,14 @@
 // ─── Types ──────────────────────────────────────────────────────────────
 // ============= TAG TYPES =============
 
-export type TagCategory = "tool" | "ui";
-
 export interface TagDefinition {
   id: string;
   title?: string | null;
-  category: TagCategory;
-
   timeout?: number;
 
   features?: {
+    /** `false` = click vào tool call không kích hoạt gì. Mặc định (bỏ trống) = clickable. */
+    clickable?: boolean;
     showFileStats?: boolean;
     validateFuzzyMatch?: boolean;
     isFileMutation?: boolean;
@@ -43,13 +41,7 @@ export interface TagDefinition {
 export type ToolType = string;
 
 /**
- * Type-safe UI tag type union (only ui tags)
- * This type is computed from TAG_REGISTRY at runtime
- */
-export type UITagType = string;
-
-/**
- * Type-safe unified tag type union (all tags)
+ * Type-safe unified tag type union (all tool calls)
  * This type is computed from TAG_REGISTRY at runtime
  */
 export type TagType = string;

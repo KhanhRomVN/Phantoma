@@ -1,5 +1,8 @@
-import { CodeController } from '../CodeController';
+import { WriteToFileHandler } from '../handler/tool/WriteToFileHandler';
+import { fileLockManager } from '../managers/FileLockManager';
 import type { WriteToFileParams } from '../types/tool-params';
+
+const writeToFileHandler = new WriteToFileHandler(fileLockManager);
 
 export async function executeWriteToFile(
   params: WriteToFileParams,
@@ -16,18 +19,16 @@ export async function executeWriteToFile(
   const project = state.projects.find((p) => p.id === state.currentProjectId);
   const basePath = project?.explorerRoot ?? project?.path;
 
-  const result = await CodeController.executeTool(
-    'write_to_file',
-    {
-      path: filePath,
-      content: params.content || '',
-      basePath,
-    },
-    { conversationId, actionId },
-  );
+  const result = await writeToFileHandler.handle({
+    path: filePath,
+    content: params.content || '',
+    basePath,
+    conversationId,
+    actionId,
+  } as any);
 
-  if (!result.success) {
-    return "[write_to_file for '" + filePath + "'] Result: Error - " + (result.error || '');
+  if (result.error) {
+    return "[write_to_file for '" + filePath + "'] Result: Error - " + result.error;
   }
   return "[write_to_file for '" + filePath + "'] Result: File written successfully";
 }

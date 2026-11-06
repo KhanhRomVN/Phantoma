@@ -137,6 +137,10 @@ export const useScrollBehavior = (
         setAutoScrollPaused(false);
       }
 
+      if (atBottom && isProgrammaticScrollRef.current) {
+        setAutoScrollPaused(false);
+      }
+
       lastScrollTop = scrollTop;
     };
 

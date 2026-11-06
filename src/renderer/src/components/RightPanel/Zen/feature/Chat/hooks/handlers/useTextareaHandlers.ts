@@ -15,7 +15,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import { useCallback, useRef, useEffect } from 'react';
-import { IPC_COMMANDS } from '../../constants/commands';
+
 // ─── Types ──────────────────────────────────────────────────────────────
 interface UseTextareaHandlersProps {
   setMessage: (value: string) => void;
@@ -108,7 +108,7 @@ export const useTextareaHandlers = ({
     const vscodeApi = (window as any).vscodeApi;
     if (vscodeApi) {
       vscodeApi.postMessage({
-          command: IPC_COMMANDS.OPEN_TEMP_IMAGE,
+          command: 'openTempImage',
         content: file.content,
         filename: file.name,
       });

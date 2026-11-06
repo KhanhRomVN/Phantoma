@@ -29,7 +29,7 @@ import type { SubTarget } from '../../types/phantom-target';
 import { Dropdown, DropdownTrigger, DropdownContent, DropdownItem } from '../ui/Dropdown';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import {
   ChevronDown,
   BarChart3,

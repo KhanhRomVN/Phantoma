@@ -1,5 +1,7 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { RunRepeaterParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface RunRepeaterParams {
+  repeater_id: string;
+}
 
 /**
  * Parse run_repeater tag from AI response.

@@ -1,19 +1,23 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import {
   AlertCircle,
+  ArrowRight,
   Check,
   ChevronDown,
   ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
   Download,
   FileDiff,
   FileMinus2,
   FilePlus2,
   GitBranch,
+  GitCommit,
   Loader2,
   Minus,
 } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import {
@@ -37,6 +41,13 @@ interface SyncFile {
   status: FileStatus;
   added: number;
   deleted: number;
+}
+
+interface RemoteCommit {
+  hash: string;
+  subject: string;
+  author: string;
+  date: number;
 }
 
 interface TreeNode {
@@ -63,7 +74,7 @@ interface SyncBranchModalProps {
 }
 
 const FIELD =
-  'w-full h-9 rounded-md bg-input-background border border-border text-[13px] text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 focus:border-primary';
+  'w-full h-9 rounded-md bg-transparent border border-text-secondary/20 text-[14px] text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 hover:border-text-secondary/40 focus:border-primary';
 
 const STATUS_META: Record<FileStatus, { icon: typeof FileDiff; cls: string; label: string }> = {
   added: { icon: FilePlus2, cls: 'text-success', label: 'Added' },
@@ -78,7 +89,7 @@ const refOf = (o: SourceOption | null) =>
 
 function RemoteBadge() {
   return (
-    <span className="shrink-0 rounded bg-primary/15 px-1.5 py-[3px] text-[10px] font-semibold leading-none tracking-wide text-primary">
+    <span className="shrink-0 rounded bg-primary/15 px-1.5 py-[3px] text-[10.5px] font-semibold leading-none tracking-wide text-primary">
       REMOTE
     </span>
   );
@@ -154,16 +165,18 @@ function Checkbox({
   return (
     <button
       type="button"
+      role="checkbox"
+      aria-checked={state === 'some' ? 'mixed' : state === 'all'}
       onClick={onClick}
       className={cn(
-        'grid h-4 w-4 shrink-0 place-items-center rounded border outline-none transition-colors',
+        'grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded-[4px] border outline-none transition-all duration-100 active:scale-90',
         state === 'none'
-          ? 'border-border bg-input-background hover:border-primary'
-          : 'border-primary bg-primary text-button-solid-text',
+          ? 'border-text-secondary/40 bg-transparent hover:border-primary'
+          : 'border-primary bg-primary text-white',
       )}
     >
-      {state === 'all' && <Check className="h-3 w-3" strokeWidth={3} />}
-      {state === 'some' && <Minus className="h-3 w-3" strokeWidth={3} />}
+      {state === 'all' && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+      {state === 'some' && <Minus className="h-2.5 w-2.5" strokeWidth={3} />}
     </button>
   );
 }
@@ -171,7 +184,7 @@ function Checkbox({
 function Counts({ added, deleted }: { added: number; deleted: number }) {
   if (!added && !deleted) return null;
   return (
-    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[11.5px]">
+    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[12px]">
       {added > 0 && <span className="text-success">+{added}</span>}
       {deleted > 0 && <span className="text-error">-{deleted}</span>}
     </span>
@@ -197,6 +210,8 @@ export function SyncBranchModal({
   const [rawBranches, setRawBranches] = useState<string[] | null>(null);
   const [fetchingRemote, setFetchingRemote] = useState(false);
   const [files, setFiles] = useState<SyncFile[] | null>(null);
+  const [commits, setCommits] = useState<RemoteCommit[] | null>(null);
+  const [pickedCommit, setPickedCommit] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
@@ -223,8 +238,12 @@ export function SyncBranchModal({
   }, [rawBranches, branches, currentBranch]);
 
   const selected = picked ?? options[0] ?? null;
-  const ref = fixedSource?.ref ?? refOf(selected);
   const isRemote = !fixedSource && selected?.kind === 'remote';
+  const branchRef = fixedSource?.ref ?? refOf(selected);
+  const ref = isRemote && pickedCommit ? pickedCommit : branchRef;
+  const refLabel =
+    isRemote && pickedCommit ? `${branchRef}@${pickedCommit.slice(0, 7)}` : branchRef;
+  const pickedCommitInfo = commits?.find((c) => c.hash === pickedCommit) ?? null;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -235,6 +254,8 @@ export function SyncBranchModal({
     setCollapsed(new Set());
     setApplying(false);
     setPickedTarget(null);
+    setCommits(null);
+    setPickedCommit(null);
     if (fixedSource) {
       setRawBranches([]);
       return;
@@ -253,6 +274,23 @@ export function SyncBranchModal({
         setRawBranches([]);
       });
   }, [isOpen]);
+
+  useEffect(() => {
+    setCommits(null);
+    if (!isOpen || !isRemote || !branchRef) return;
+    let cancelled = false;
+    (window as any).api
+      .invoke('git:log', targetPath, 100, branchRef)
+      .then((res: any) => {
+        if (!cancelled) setCommits(res?.commits ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setCommits([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isRemote, branchRef, targetPath]);
 
   useEffect(() => {
     if (!isOpen || rawBranches === null || !ref) {
@@ -360,11 +398,12 @@ export function SyncBranchModal({
         ref,
         chosen.map((f) => f.path),
       );
+
       if (res?.error) {
         setError(res.error);
         return;
       }
-      onApplied(res?.applied ?? chosen.length, ref);
+      onApplied(res?.applied ?? chosen.length, refLabel);
       onClose();
     } catch (e: any) {
       setError(e?.message || String(e));
@@ -389,73 +428,79 @@ export function SyncBranchModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      className="w-[46vw] min-w-[520px] max-w-[860px] h-[70vh] max-h-[70vh]"
+      className="w-[680px] max-w-[calc(100vw-2rem)] min-h-[50vh] max-h-[70vh]"
     >
       <ModalHeader
-        title={fixedSource ? 'Apply commit to branch' : 'Pull from branch'}
+        title={fixedSource ? 'Apply commit to branch' : 'Sync From Branch'}
         description={
           fixedSource
             ? `Bring files from ${fixedSource.label} into the selected local branch. Gitignored paths are skipped.`
             : `Bring files from another branch into ${currentBranch || projectName}. Gitignored paths are skipped.`
         }
         onClose={handleClose}
-        className="px-6 py-4"
+        className="px-5 py-4"
       />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
-        <div className="mb-1.5 text-[12px] text-text-secondary">Source</div>
-        <div className="grid grid-cols-2 gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-1 pt-4">
+        <div className="flex shrink-0 items-center gap-2">
           {fixedSource ? (
-            <div className="flex h-9 min-w-0 items-center gap-2 rounded-md bg-input-background px-3">
+            <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-text-secondary/20 px-3">
               <GitBranch className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
-              <span className="truncate font-mono text-[13px] text-text-primary">
+              <span className="truncate font-mono text-[14px] text-text-primary">
                 {fixedSource.label}
               </span>
             </div>
           ) : (
-          <div className="min-w-0">
-            <Dropdown align="start" sideOffset={4} className="w-full" searchable>
-              <DropdownTrigger>
-                <button
-                  type="button"
-                  className={cn(FIELD, 'flex items-center justify-between gap-2 px-3 text-left')}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <GitBranch className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
-                    <span className="truncate">{selected?.name || 'Select branch'}</span>
-                    {isRemote && <RemoteBadge />}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
-                </button>
-              </DropdownTrigger>
-              <DropdownContent className="max-h-[220px] overflow-y-auto">
-                {options.map((o) => {
-                  const active = selected?.name === o.name && selected?.kind === o.kind;
-                  return (
-                    <DropdownItem
-                      key={`${o.kind}:${o.name}`}
-                      icon={
-                        <Check className={cn('h-3.5 w-3.5 text-primary', !active && 'invisible')} />
-                      }
-                      onClick={() => setPicked(o)}
-                    >
-                      <span className="truncate">{o.name}</span>
-                      {o.kind === 'remote' && <RemoteBadge />}
-                    </DropdownItem>
-                  );
-                })}
-              </DropdownContent>
-            </Dropdown>
-          </div>
-          )}
-
-          {targets && targets.length > 0 ? (
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <Dropdown align="start" sideOffset={4} className="w-full" searchable>
                 <DropdownTrigger>
                   <button
                     type="button"
-                    className={cn(FIELD, 'flex items-center justify-between gap-2 px-3 text-left')}
+                    className={cn(FIELD, 'flex cursor-pointer items-center justify-between gap-2 px-3 text-left')}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <GitBranch className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
+                      <span className="truncate">{selected?.name || 'Select branch'}</span>
+                      {isRemote && <RemoteBadge />}
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
+                  </button>
+                </DropdownTrigger>
+                <DropdownContent className="max-h-[220px] overflow-y-auto">
+                  {options.map((o) => {
+                    const active = selected?.name === o.name && selected?.kind === o.kind;
+                    return (
+                      <DropdownItem
+                        key={`${o.kind}:${o.name}`}
+                        icon={
+                          <Check
+                            className={cn('h-3.5 w-3.5 text-primary', !active && 'invisible')}
+                          />
+                        }
+                        onClick={() => {
+                          setPicked(o);
+                          setPickedCommit(null);
+                        }}
+                      >
+                        <span className="truncate">{o.name}</span>
+                        {o.kind === 'remote' && <RemoteBadge />}
+                      </DropdownItem>
+                    );
+                  })}
+                </DropdownContent>
+              </Dropdown>
+            </div>
+          )}
+
+          <ArrowRight className="h-4 w-4 shrink-0 text-text-secondary" />
+
+          {targets && targets.length > 0 ? (
+            <div className="min-w-0 flex-1">
+              <Dropdown align="start" sideOffset={4} className="w-full" searchable>
+                <DropdownTrigger>
+                  <button
+                    type="button"
+                    className={cn(FIELD, 'flex cursor-pointer items-center justify-between gap-2 px-3 text-left')}
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <GitBranch className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -485,42 +530,91 @@ export function SyncBranchModal({
               </Dropdown>
             </div>
           ) : (
-            <div className="flex h-9 min-w-0 items-center gap-2 rounded-md bg-input-background px-3">
+            <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-text-secondary/20 px-3">
               <GitBranch className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="truncate font-mono text-[13px] text-text-primary">
+              <span className="truncate font-mono text-[14px] text-text-primary">
                 {currentBranch || '—'}
               </span>
             </div>
           )}
         </div>
 
-        <div className="mt-5 flex min-h-0 flex-1 flex-col">
-          <div className="mb-1.5 flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 text-[12px] text-text-secondary">
-              Changes
-              {fetchingRemote && <Loader2 className="h-3 w-3 animate-spin" />}
-            </span>
-            {files && files.length > 0 && (
-              <span className="flex items-center gap-3 text-[11.5px] text-text-secondary">
-                {(Object.keys(STATUS_META) as FileStatus[]).map((s) => {
-                  const M = STATUS_META[s];
-                  return (
-                    <span key={s} className="flex items-center gap-1">
-                      <M.icon className={cn('h-3 w-3', M.cls)} />
-                      {statusCount[s]}
-                    </span>
-                  );
-                })}
-              </span>
-            )}
-          </div>
+        {isRemote && (
+          <Dropdown align="start" sideOffset={4} className="w-full" searchable>
+            <DropdownTrigger>
+              <button
+                type="button"
+                className={cn(FIELD, 'flex shrink-0 cursor-pointer items-center justify-between gap-2 px-3 text-left')}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <GitCommit className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
+                  {pickedCommitInfo ? (
+                    <>
+                      <span className="shrink-0 font-mono text-primary">
+                        {pickedCommitInfo.hash.slice(0, 7)}
+                      </span>
+                      <span className="truncate">{pickedCommitInfo.subject}</span>
+                    </>
+                  ) : (
+                    <span className="truncate">Latest commit</span>
+                  )}
+                </span>
+                {commits === null ? (
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-text-secondary" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
+                )}
+              </button>
+            </DropdownTrigger>
+            <DropdownContent className="max-h-[220px] overflow-y-auto">
+              <DropdownItem
+                icon={
+                  <Check className={cn('h-3.5 w-3.5 text-primary', pickedCommit && 'invisible')} />
+                }
+                onClick={() => setPickedCommit(null)}
+              >
+                <span className="truncate">Latest commit</span>
+              </DropdownItem>
+              {(commits ?? []).map((c) => (
+                <DropdownItem
+                  key={c.hash}
+                  icon={
+                    <Check
+                      className={cn(
+                        'h-3.5 w-3.5 text-primary',
+                        pickedCommit !== c.hash && 'invisible',
+                      )}
+                    />
+                  }
+                  onClick={() => setPickedCommit(c.hash)}
+                >
+                  <span className="shrink-0 font-mono text-primary">{c.hash.slice(0, 7)}</span>
+                  <span className="truncate">{c.subject}</span>
+                </DropdownItem>
+              ))}
+            </DropdownContent>
+          </Dropdown>
+        )}
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-divider bg-input-background/40">
-            {files && files.length > 0 && (
-              <div className="flex h-9 items-center gap-2 border-b border-divider px-3">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-text-secondary/20">
+          <div className="flex h-10 shrink-0 items-center gap-2.5 border-b border-text-secondary/20 px-3">
+            {files && files.length > 0 ? (
+              <>
                 <Checkbox state={allState} onClick={() => selectAll(allState !== 'all')} />
-                <span className="text-[12.5px] text-text-secondary">
-                  {chosen.length} of {files.length} selected
+                <span className="text-[13.5px] font-medium text-text-primary">
+                  {chosen.length}
+                  <span className="font-normal text-text-secondary"> / {files.length} files</span>
+                </span>
+                <span className="flex items-center gap-2.5 text-[12px] text-text-secondary">
+                  {(Object.keys(STATUS_META) as FileStatus[]).map((s) => {
+                    const M = STATUS_META[s];
+                    return (
+                      <span key={s} title={M.label} className="flex items-center gap-1">
+                        <M.icon className={cn('h-3 w-3', M.cls)} />
+                        {statusCount[s]}
+                      </span>
+                    );
+                  })}
                 </span>
                 <span className="flex-1" />
                 <Counts added={totals.added} deleted={totals.deleted} />
@@ -537,154 +631,157 @@ export function SyncBranchModal({
                           ),
                     )
                   }
-                  className="text-[12px] text-text-secondary outline-none transition-colors hover:text-text-primary"
+                  title={collapsed.size > 0 ? 'Expand all' : 'Collapse all'}
+                  className="grid h-6 w-6 shrink-0 cursor-pointer place-items-center rounded-md text-text-secondary outline-none transition-colors hover:bg-card-hover hover:text-text-primary"
                 >
-                  {collapsed.size > 0 ? 'Expand all' : 'Collapse all'}
+                  {collapsed.size > 0 ? (
+                    <ChevronsUpDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronsDownUp className="h-3.5 w-3.5" />
+                  )}
                 </button>
+              </>
+            ) : (
+              <span className="flex items-center gap-2 text-[13.5px] text-text-secondary">
+                Changes
+                {fetchingRemote && <Loader2 className="h-3 w-3 animate-spin" />}
+              </span>
+            )}
+          </div>
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5">
+            {(loading || (files === null && !error)) && (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                <Loader2 className="h-5 w-5 animate-spin text-text-secondary" />
+                <span className="text-[14px] font-medium text-text-primary">
+                  {fetchingRemote ? 'Fetching remote' : 'Scanning changes'}
+                </span>
+                <span className="text-[13.5px] leading-relaxed text-text-secondary">
+                  {fetchingRemote ? (
+                    <>
+                      Syncing <span className="font-mono">origin</span> to get the latest commits.
+                    </>
+                  ) : (
+                    <>
+                      Comparing <span className="font-mono">{currentBranch || projectName}</span>{' '}
+                      with <span className="font-mono">{refLabel || 'the source'}</span>.
+                    </>
+                  )}
+                </span>
               </div>
             )}
 
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5">
-              {(loading || (files === null && !error)) && (
-                <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-                  <span className="grid h-9 w-9 place-items-center rounded-md bg-text-secondary/10">
-                    <Loader2 className="h-4 w-4 animate-spin text-text-secondary" />
-                  </span>
-                  <span className="text-[13px] font-medium text-text-primary">
-                    {fetchingRemote ? 'Fetching remote' : 'Scanning changes'}
-                  </span>
-                  <span className="text-[12.5px] leading-relaxed text-text-secondary">
-                    {fetchingRemote ? (
-                      <>
-                        Syncing <span className="font-mono">origin</span> to get the latest commits.
-                      </>
-                    ) : (
-                      <>
-                        Comparing <span className="font-mono">{currentBranch || projectName}</span>{' '}
-                        with <span className="font-mono">{ref || 'the source'}</span>.
-                      </>
-                    )}
-                  </span>
-                </div>
-              )}
+            {!loading && files !== null && files.length === 0 && !error && (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                <Check className="h-5 w-5 text-success" />
+                <span className="text-[14px] font-medium text-text-primary">Already up to date</span>
+                <span className="text-[13.5px] leading-relaxed text-text-secondary">
+                  <span className="font-mono">{currentBranch || projectName}</span> has no differences
+                  from <span className="font-mono">{refLabel || 'the source'}</span>.
+                </span>
+              </div>
+            )}
 
-              {!loading && files !== null && files.length === 0 && !error && (
-                <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-                  <span className="grid h-9 w-9 place-items-center rounded-md bg-text-secondary/10">
-                    <Check className="h-4.5 w-4.5 text-text-secondary" />
-                  </span>
-                  <span className="text-[13px] font-medium text-text-primary">
-                    Already up to date
-                  </span>
-                  <span className="text-[12.5px] leading-relaxed text-text-secondary">
-                    <span className="font-mono">{currentBranch || projectName}</span> has no
-                    differences from <span className="font-mono">{ref || 'the source'}</span>.
-                  </span>
-                </div>
-              )}
-
-              {!loading &&
-                rows.map(({ node, depth }) => {
-                  const st = stateOf(node);
-                  const isOpenDir = node.isDir && !collapsed.has(node.path);
-
-                  const iconSrc = node.isDir
-                    ? getFolderIconPath(node.name, isOpenDir)
-                    : getFileIconPath(node.name);
-
-                  const dim = st === 'none';
-                  return (
-                    <div
-                      key={node.path}
-                      onClick={() => (node.isDir ? toggleCollapse(node.path) : toggleNode(node))}
-                      className="flex h-7 cursor-pointer items-center gap-1.5 rounded-md pr-2 transition-colors hover:bg-white/[0.05]"
-                      style={{ paddingLeft: 6 + depth * 16 }}
-                      title={node.path}
+            {!loading &&
+              rows.map(({ node, depth }) => {
+                const st = stateOf(node);
+                const isOpenDir = node.isDir && !collapsed.has(node.path);
+                const iconSrc = node.isDir
+                  ? getFolderIconPath(node.name, isOpenDir)
+                  : getFileIconPath(node.name);
+                const dim = st === 'none';
+                const meta = node.file ? STATUS_META[node.file.status] : null;
+                return (
+                  <div
+                    key={node.path}
+                    onClick={() => (node.isDir ? toggleCollapse(node.path) : toggleNode(node))}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleNode(node);
+                    }}
+                    className="flex cursor-pointer items-center gap-2 rounded-md py-1 pr-2 transition-colors hover:bg-card-hover"
+                    style={{ paddingLeft: 6 + depth * 16 }}
+                    title={node.path}
+                  >
+                    <ChevronRight
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0 text-text-secondary transition-transform',
+                        isOpenDir && 'rotate-90',
+                        !node.isDir && 'invisible',
+                      )}
+                    />
+                    <img
+                      src={iconSrc}
+                      alt=""
+                      draggable={false}
+                      className={cn('h-4 w-4 shrink-0', dim && 'opacity-40')}
+                    />
+                    <span
+                      className={cn(
+                        'min-w-0 truncate font-mono text-[13.5px]',
+                        dim ? 'text-text-secondary/50' : 'text-text-primary',
+                        node.file?.status === 'deleted' && 'text-error line-through',
+                      )}
                     >
-                      {node.isDir ? (
-                        <ChevronRight
-                          className={cn(
-                            'h-3.5 w-3.5 shrink-0 text-text-secondary transition-transform',
-                            isOpenDir && 'rotate-90',
-                          )}
-                        />
-                      ) : (
-                        <span className="h-3.5 w-3.5 shrink-0" />
-                      )}
-                      <Checkbox
-                        state={st}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleNode(node);
-                        }}
-                      />
-                      <img
-                        src={iconSrc}
-                        alt=""
-                        className={cn('h-3.5 w-3.5 shrink-0', dim && 'opacity-40')}
-                      />
-
+                      {node.name}
+                    </span>
+                    {meta && node.file && (
                       <span
-                        className={cn(
-                          'min-w-0 flex-1 truncate font-mono text-[12.5px]',
-                          dim ? 'text-text-secondary/50' : 'text-text-primary',
-                          node.file?.status === 'deleted' && 'text-error line-through',
-                        )}
+                        title={meta.label}
+                        className={cn('shrink-0 font-mono text-[13.5px] font-semibold', meta.cls)}
                       >
-                        {node.name}
+                        {node.file.status === 'added' ? '(+)' : node.file.status === 'deleted' ? '(-)' : '(~)'}
                       </span>
-                      {node.isDir && (
-                        <span className="shrink-0 text-[11px] text-text-secondary/70">
-                          {node.files.length}
-                        </span>
-                      )}
-                      <Counts added={node.added} deleted={node.deleted} />
-                    </div>
-                  );
-                })}
-            </div>
+                    )}
+                    <span className="flex-1" />
+                    <Counts added={node.added} deleted={node.deleted} />
+                    <Checkbox
+                      state={st}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleNode(node);
+                      }}
+                    />
+                  </div>
+                );
+              })}
           </div>
         </div>
 
         {error && (
-          <div className="mt-4 flex items-start gap-2 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-[13px] text-error">
+          <div className="flex shrink-0 items-start gap-2 rounded-md border border-error/30 px-3 py-2 text-[14px] text-error">
             <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
             <span className="break-words">{error}</span>
           </div>
         )}
-
-        {chosen.length > 0 && (
-          <p className="mt-3 text-[12.5px] leading-relaxed text-text-secondary">
-            Selected files are overwritten in the working tree of {currentBranch || projectName}
-            {statusCount.deleted > 0 ? ` and ${statusCount.deleted} will be deleted` : ''}. Nothing
-            is committed.
-          </p>
-        )}
       </div>
 
-      <div className="mt-5 flex items-center justify-end gap-2 border-t border-divider px-6 py-4">
-        <button
-          type="button"
-          onClick={handleClose}
-          disabled={applying}
-          className="h-8 rounded-lg bg-button-soft-background px-3 text-[13px] font-medium text-text-secondary outline-none transition-colors hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:opacity-50 disabled:hover:bg-button-soft-background"
-        >
-          Cancel
-        </button>
-        <Button
-          variant="soft"
-          size="sm"
-          className="h-8 gap-1.5 font-semibold"
-          onClick={handleApply}
-          disabled={chosen.length === 0 || loading || applying}
-        >
-          {applying ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Download className="h-3.5 w-3.5" />
-          )}
-          {applying ? 'Pulling…' : `Pull ${chosen.length} file${chosen.length === 1 ? '' : 's'}`}
-        </Button>
+      <div className="flex shrink-0 items-center justify-end gap-3 px-5 py-4">
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={applying}
+            className="h-8 cursor-pointer rounded-lg bg-button-soft-background px-3 text-[14px] font-medium text-text-secondary outline-none transition-colors hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:opacity-50 disabled:hover:bg-button-soft-background"
+          >
+            Cancel
+          </button>
+          <Button
+            variant="soft"
+            size="sm"
+            className="h-8 gap-1.5 font-semibold"
+            onClick={handleApply}
+            disabled={chosen.length === 0 || loading || applying}
+          >
+            {applying ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            {applying ? 'Pulling…' : `Pull ${chosen.length} file${chosen.length === 1 ? '' : 's'}`}
+          </Button>
+        </div>
       </div>
     </Modal>
   );

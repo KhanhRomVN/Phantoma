@@ -19,7 +19,7 @@ import { Question, QuestionAnswer, QuestionType } from '../../../../types/messag
 import { QUESTION_TRANSITION_DELAY } from '../../../../constants/ui';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──

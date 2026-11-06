@@ -58,7 +58,7 @@ import {
 
 // ── Hooks ──
 import { filterRequestsByConfig } from '../../../hooks/useRequestFilter';
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 
 // ── Stores ──
 import { useNetworkStore } from '../../../stores/networkStore';
@@ -68,7 +68,7 @@ import { InspectorFilter } from '../../../types/filter.types';
 import { NetworkRequest } from './FilterPanel';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { useDebounce } from 'use-debounce';
 
 interface RequestTableProps {

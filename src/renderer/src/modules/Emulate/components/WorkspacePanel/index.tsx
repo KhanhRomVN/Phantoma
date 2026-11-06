@@ -42,7 +42,7 @@ import { CdpScriptUnpackedData } from '../../hooks/useNetworkEvents';
 import { NetworkRequest } from '../../types/inspector';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Icons ──
 import { Trash2, Crosshair } from 'lucide-react';

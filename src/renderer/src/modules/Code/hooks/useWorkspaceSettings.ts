@@ -13,7 +13,13 @@ export interface LayoutPreset {
 
 const STORAGE_KEY = 'phantoma:workspace-settings';
 
-export const PANEL_TYPES: PanelType[] = ['agent', 'file', 'website', 'terminal', 'emulator'];
+export const PANEL_TYPES: PanelType[] = [
+  'agent',
+  'file',
+  'website',
+  'terminal',
+  'emulator',
+];
 
 export const DEFAULT_RULES: PanelRules = {
   agent: 'tl',
@@ -34,19 +40,37 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
     id: 'review',
     label: 'Review',
     description: 'Files left, agent right, terminal bottom-left',
-    rules: { agent: 'tr', file: 'tl', website: 'tr', terminal: 'bl', emulator: 'br' },
+    rules: {
+      agent: 'tr',
+      file: 'tl',
+      website: 'tr',
+      terminal: 'bl',
+      emulator: 'br',
+    },
   },
   {
     id: 'stacked',
     label: 'Stacked',
     description: 'Agent, files & browser on top, terminal below',
-    rules: { agent: 'tl', file: 'tl', website: 'tl', terminal: 'bl', emulator: 'bl' },
+    rules: {
+      agent: 'tl',
+      file: 'tl',
+      website: 'tl',
+      terminal: 'bl',
+      emulator: 'bl',
+    },
   },
   {
     id: 'focus',
     label: 'Focus',
     description: 'Everything in a single pane',
-    rules: { agent: 'tl', file: 'tl', website: 'tl', terminal: 'tl', emulator: 'tl' },
+    rules: {
+      agent: 'tl',
+      file: 'tl',
+      website: 'tl',
+      terminal: 'tl',
+      emulator: 'tl',
+    },
   },
 ];
 

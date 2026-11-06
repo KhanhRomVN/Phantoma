@@ -1,5 +1,7 @@
-import { CodeController } from '../CodeController';
+import { FindFilesHandler } from '../handler/tool/FindFilesHandler';
 import { FindFilesParams } from '../parsers/FindFilesParser';
+
+const findFilesHandler = new FindFilesHandler();
 
 export interface FindFilesResult {
   fileName: string;
@@ -18,16 +20,12 @@ export async function executeFindFiles(params: FindFilesParams): Promise<{
       : (params as any).fileName || (params as any).file_name || '';
   const folderPath = (params as any).folderPath || (params as any).folder_path;
 
-  const result = await CodeController.executeTool('find_files', {
-    fileName,
-    folderPath,
-  });
+  const data = await findFilesHandler.handle({ fileName, folderPath });
 
-  if (!result.success) {
-    return { output: '[find_files] Result: Error - ' + (result.error || '') };
+  if (data.error) {
+    return { output: '[find_files] Result: Error - ' + data.error };
   }
 
-  const data = result.data || {};
   const matches = data.matches || [];
   const totalMatches = data.totalMatches || matches.length;
 

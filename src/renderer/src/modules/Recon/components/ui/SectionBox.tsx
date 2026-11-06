@@ -21,7 +21,7 @@ import TagsView from './Tags/Tags';
 import PinView from './Pin/Pin';
 import HeatmapView from './Heatmap/Heatmap';
 import DiffView from './Diff/Diff';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { withAlpha } from '../targetType';
 
 interface Props {

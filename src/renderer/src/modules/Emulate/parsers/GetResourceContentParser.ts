@@ -1,5 +1,9 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { GetResourceContentParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface GetResourceContentParams {
+  filename: string;
+  start_line?: number;
+  end_line?: number;
+}
 
 /**
  * Parse get_resource_content tag from AI response.

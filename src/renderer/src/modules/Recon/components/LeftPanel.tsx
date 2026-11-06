@@ -1,16 +1,13 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { ReconTarget } from '../ReconController';
-import { cn } from '@renderer/shared/utils/cn';
+import type { ReconTarget } from '../stores/useReconStore';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
-import { parseReconFile } from './ui/parser';
 import { TYPE_META, TYPE_ORDER, resolveType, withAlpha, TypeIcon, TypeBadgeIcon } from './targetType';
 import type { TargetType } from './targetType';
-import mockIndexRaw from '../mock/mock1/_index.recon?raw';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { useReconSettings } from './Settings';
 
-const MOCK_ID = 'mock-report-nva';
 const FALLBACK_SUBTITLE = 'Chưa có mô tả'; // Tạm thời, chờ quyết định nội dung dòng 2
 
 interface LeftPanelProps {
@@ -19,9 +16,7 @@ interface LeftPanelProps {
   onTargetSelect: (targetId: string) => void;
   onLaunchBrowser: (targetId: string) => void;
   onCloseBrowser: (targetId: string) => void;
-  onSelectMock?: () => void;
-  onAddTargetClick?: () => void; // Callback to open modal
-  onEditTarget?: (targetId: string) => void;
+  onAddTargetClick?: () => void;
   onOpenSettings?: () => void;
 }
 
@@ -31,9 +26,7 @@ export default function LeftPanel({
   onTargetSelect,
   onLaunchBrowser,
   onCloseBrowser,
-  onSelectMock,
   onAddTargetClick,
-  onEditTarget,
   onOpenSettings,
 }: LeftPanelProps) {
   const { settings, updateLeftSidebar } = useReconSettings();
@@ -49,17 +42,11 @@ export default function LeftPanel({
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
 
-  // Title + type của hồ sơ mẫu lấy từ _index.recon
-  const mockMeta = useMemo(() => parseReconFile('_index.recon', mockIndexRaw).taskMeta ?? {}, []);
-  const mockType = resolveType(mockMeta.targetType);
-  const mockTitle = mockMeta.title || 'Hồ sơ mẫu';
-
   const matches = (title: string, type: TargetType) =>
     (!typeFilter || type === typeFilter) &&
     title.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const showMock = !!onSelectMock && matches(mockTitle, mockType);
-  const filteredTargets = targets.filter((t) => matches(t.email, resolveType(t.type)));
+  const filteredTargets = targets.filter((t) => matches(t.title, resolveType(t.type)));
 
   // Mouse handlers for resizing
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -175,7 +162,7 @@ export default function LeftPanel({
 
       {/* Target List */}
       <div className='flex-1 overflow-y-auto px-3 py-2 space-y-1.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'>
-        {!showMock && filteredTargets.length === 0 ? (
+        {filteredTargets.length === 0 ? (
           <div className='h-full flex flex-col items-center justify-center text-center p-4 opacity-50'>
             <svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1' strokeLinecap='round' strokeLinejoin='round' className='mb-2 text-text-secondary'>
               <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'></path>
@@ -185,25 +172,15 @@ export default function LeftPanel({
           </div>
         ) : (
           <>
-            {showMock && (
-              <TargetCard
-                title={mockTitle}
-                subtitle={FALLBACK_SUBTITLE}
-                type={mockType}
-                isSelected={activeTargetId === MOCK_ID}
-                onSelect={onSelectMock}
-              />
-            )}
             {filteredTargets.map((target) => (
               <TargetCard
                 key={target.id}
-                title={target.email}
+                title={target.title}
                 subtitle={FALLBACK_SUBTITLE}
                 type={resolveType(target.type)}
                 isSelected={target.id === activeTargetId}
                 isRunning={target.isActive}
                 onSelect={() => onTargetSelect(target.id)}
-                onEdit={onEditTarget ? () => onEditTarget(target.id) : undefined}
                 actions={
                   target.isActive ? (
                     <button
@@ -252,12 +229,11 @@ interface TargetCardProps {
   isSelected: boolean;
   isRunning?: boolean;
   onSelect?: () => void;
-  onEdit?: () => void;
   actions?: ReactNode;
 }
 
 /** Card: [badgeIcon] [title / subtitle]. Selected có outline + vạch accent bên trái (80% chiều cao, căn giữa). */
-function TargetCard({ title, subtitle, type, isSelected, isRunning, onSelect, onEdit, actions }: TargetCardProps) {
+function TargetCard({ title, subtitle, type, isSelected, isRunning, onSelect, actions }: TargetCardProps) {
   const { color } = TYPE_META[type];
   const compact = useReconSettings().settings.leftSidebar.density === 'compact';
 
@@ -289,17 +265,8 @@ function TargetCard({ title, subtitle, type, isSelected, isRunning, onSelect, on
         <div className='text-[11px] text-text-secondary truncate'>{subtitle}</div>
       </div>
 
-      {(actions || onEdit) && (
+      {actions && (
         <div className={cn('flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity', isSelected && 'opacity-100')}>
-          {onEdit && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className='p-1 rounded hover:bg-white/10 text-text-secondary hover:text-text-primary transition-colors'
-              title='Chỉnh sửa target'
-            >
-              <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M12 20h9'></path><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z'></path></svg>
-            </button>
-          )}
           {actions}
         </div>
       )}

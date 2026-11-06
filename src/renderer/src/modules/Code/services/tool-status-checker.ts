@@ -6,8 +6,8 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolStatusChecker } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-status';
-import { TERMINAL_STATUS } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import type { ToolStatusChecker } from '@renderer/components/RightPanel/Zen/shared/tool-status';
+import { TERMINAL_STATUS } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
 
 /**
  * Check if a Code tool is busy and should block interaction.
@@ -19,7 +19,7 @@ export const checkCodeToolStatus: ToolStatusChecker = (context) => {
   if (action.type === 'run_command' && !hasHistoryOutput) {
     const outputData = toolOutputs?.[actionId];
     const terminalId = (outputData as any)?.terminalId || action.params.terminal_id;
-    if (terminalId && terminalStatus?.[terminalId] === TERMINAL_STATUS.BUSY) {
+    if (terminalId && terminalStatus?.[terminalId] === TERMINAL_STATUS.RUNNING) {
       return true;
     }
   }

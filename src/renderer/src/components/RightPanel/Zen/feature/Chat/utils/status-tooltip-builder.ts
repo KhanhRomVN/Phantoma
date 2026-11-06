@@ -16,7 +16,7 @@ import type {
   CompletedTooltipFormatter,
   DiffStats,
   TooltipMeta,
-} from '../types/tool-display';
+} from '@renderer/components/RightPanel/Zen/shared/tool-display';
 
 // Module-specific completed tooltip formatters registry
 const completedTooltipFormatters: CompletedTooltipFormatter[] = [];

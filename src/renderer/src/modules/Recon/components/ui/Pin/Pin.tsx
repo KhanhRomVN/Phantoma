@@ -1,5 +1,5 @@
 import { KIND_LABEL, formatDate, formatSize } from '../FileManager/fileTypes';
-import { getFileSystem } from '../FileManager/fileStore';
+import { useReconFs } from '../FileManager/ReconFsContext';
 import { Body } from '../FileManager/FileViewer';
 import { NodeIcon } from '../FileManager/shared';
 
@@ -8,9 +8,10 @@ interface Props {
 }
 
 export default function Pin({ file }: Props) {
+  const fs = useReconFs();
   if (!file) return <div className="p-4 text-sm text-red-400">Thiếu tham số file=...</div>;
 
-  const node = getFileSystem().byPath.get(file);
+  const node = fs?.byPath.get(file);
   if (!node || node.type !== 'file') {
     return <div className="p-4 text-sm text-red-400">Không tìm thấy file: {file}</div>;
   }

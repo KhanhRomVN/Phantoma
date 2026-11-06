@@ -2,14 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { ChevronRight, ClipboardList, Cpu, Hammer, ScanSearch, UserRound } from 'lucide-react';
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Utils ──
 import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 
 // ── Context ──
 import { useAgentRoot } from '@renderer/components/RightPanel/Zen/context/AgentRootContext';

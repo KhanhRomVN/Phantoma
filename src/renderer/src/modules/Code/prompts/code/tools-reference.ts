@@ -121,7 +121,7 @@ Examples:
 On the very first write into an empty/non-existent memory file, \`old_content\` must be \`""\` and \`new_content\` holds the initial content (may also be empty to just initialize the file). Once the file has content, \`old_content\` must be a non-empty exact snippet that currently exists in it. Only available when Memory is enabled for the conversation.
 - \`old_content\`: Exact original snippet to replace (must match byte-for-byte; use "" only for the very first initialization write)
 - \`new_content\`: Replacement text (may be empty to delete the matched snippet)
-- ⚠ TAG-CLOSE-VERIFY: closing tag must be \`</new_content>\`, not \`</old_content>\`.`;
+- ⚠ TAG-CLOSE-VERIFY: closing tag must be \`</old_content>\`.`;
 
 const REFERENCE_UI_XML = `<markdown>prose, tables, explanations — written in the response language configured in CONSTRAINTS (RESPONSE-LANGUAGE); follows RESPONSE-STRUCTURE and NO-FULL-FILE-BY-DEFAULT for code changes</markdown>
 <code language="ts">read-only display</code>
@@ -350,7 +350,25 @@ Examples:
 On the very first write into an empty/non-existent memory file, \`old_content\` must be \`""\` and \`new_content\` holds the initial content (may also be empty to just initialize the file). Once the file has content, \`old_content\` must be a non-empty exact snippet that currently exists in it. Only available when Memory is enabled for the conversation.
 - \`old_content\`: Exact original snippet to replace (must match byte-for-byte; use \`""\` only for the very first initialization write)
 - \`new_content\`: Replacement text (may be empty to delete the matched snippet)
-- ⚠ JSON-STRINGS: Both \`old_content\` and \`new_content\` are multi-line strings — every newline must be escaped as \\n and every double-quote as \\" for the block to remain valid JSON.`;
+- ⚠ JSON-STRINGS: Both \`old_content\` and \`new_content\` are multi-line strings — every newline must be escaped as \\n and every double-quote as \\" for the block to remain valid JSON.
+**list_tasks**: List the tasks of the current project (archived tasks excluded) with id, title, status (todo|progress|review|done), priority (low|medium|high), due_date (YYYY-MM-DD or null), session_id and workflow_id (null = the task has no workflow yet). Optional: status filter.
+- Examples:
+  - \`{"tool":"list_tasks","params":{}}\` — list every task
+  - \`{"tool":"list_tasks","params":{"status":"todo"}}\` — list only tasks with status todo
+**get_task**: Get the full detail of one task: the list_tasks fields plus description, branch_name, start_date, depends_on, tags, checklist, attachments, archived, created_at and updated_at. Required: task_id.
+- Example: \`{"tool":"get_task","params":{"task_id":"task_1730000000000_ab12cd34e"}}\`
+**create_task**: Create a task in the current project. Required: title. Optional: description, priority (low|medium|high, default medium), due_date (YYYY-MM-DD). The task starts as todo and has no workflow; the result returns its task_id.
+- Example: \`{"tool":"create_task","params":{"title":"Add slugify utility","description":"Add a slugify helper to src/utils.","priority":"medium"}}\`
+**update_task**: Update an existing task. Required: task_id plus at least one of title, description, status (todo|progress|review|done), priority (low|medium|high), due_date (YYYY-MM-DD).
+- Example: \`{"tool":"update_task","params":{"task_id":"task_1730000000000_ab12cd34e","status":"progress"}}\`
+**assign_task**: Assign an existing task to the current workspace session. Required: task_id.
+- Example: \`{"tool":"assign_task","params":{"task_id":"task_1730000000000_ab12cd34e"}}\`
+**create_workflow**: Create the workflow document (Markdown) of an EXISTING task and attach it to that task in the same step. Required: task_id and content (the complete workflow). A task has at most one workflow: the call fails if the task does not exist or already has a workflow; change an existing workflow with update_workflow.
+- Example: \`{"tool":"create_workflow","params":{"task_id":"task_1730000000000_ab12cd34e","content":"# Workflow\\n\\n1. plan the change\\n2. implement it\\n3. verify"}}\`
+**get_workflow**: Return the complete content of a task's workflow file. Required: task_id. Call it before update_workflow so old_content can be copied exactly.
+- Example: \`{"tool":"get_workflow","params":{"task_id":"task_1730000000000_ab12cd34e"}}\`
+**update_workflow**: Edit a task's workflow by exact text replacement. Required: task_id, old_content (must match the current content byte for byte and occur exactly once) and new_content (may be empty to delete the matched text).
+- Example: \`{"tool":"update_workflow","params":{"task_id":"task_1730000000000_ab12cd34e","old_content":"3. verify","new_content":"3. verify\\n4. report"}}\``;
 
 const REFERENCE_UI_JSON = `## question object schema
 A \`question\` UI object wraps one or more inner questions under the \`questions\` array. Each inner question is:
@@ -503,6 +521,52 @@ export const TOOL_DOCS: [
     "update_memory",
     "Replace text inside the memory file with exact-match semantics. Call read_memory immediately before. For the very first write use an empty old_content.",
     [{ old_content: "exact original", new_content: "replacement" }],
+  ],
+  [
+    "list_tasks",
+    "List the tasks of the current project (archived excluded) with id, title, status, priority, due_date, session_id and workflow_id. Optional: status filter.",
+    [{}, { status: "todo" }],
+  ],
+  [
+    "get_task",
+    "Get the full detail of one task. Required: task_id.",
+    [{ task_id: "task_1730000000000_ab12cd34e" }],
+  ],
+  [
+    "create_task",
+    "Create a task. Required: title. Optional: description, priority (low|medium|high), due_date (YYYY-MM-DD).",
+    [{ title: "Add slugify utility", priority: "medium" }],
+  ],
+  [
+    "update_task",
+    "Update a task. Required: task_id plus at least one of title, description, status, priority, due_date.",
+    [{ task_id: "task_1730000000000_ab12cd34e", status: "progress" }],
+  ],
+  [
+    "assign_task",
+    "Assign an existing task to the current workspace session. Required: task_id.",
+    [{ task_id: "task_1730000000000_ab12cd34e" }],
+  ],
+  [
+    "create_workflow",
+    "Create the Markdown workflow of an existing task that has none and attach it. Required: task_id, content.",
+    [{ task_id: "task_1730000000000_ab12cd34e", content: "# Workflow" }],
+  ],
+  [
+    "get_workflow",
+    "Return the full content of a task's workflow. Required: task_id. Call before update_workflow.",
+    [{ task_id: "task_1730000000000_ab12cd34e" }],
+  ],
+  [
+    "update_workflow",
+    "Edit a task's workflow by exact text replacement. Required: task_id, old_content, new_content.",
+    [
+      {
+        task_id: "task_1730000000000_ab12cd34e",
+        old_content: "3. verify",
+        new_content: "3. verify\n4. report",
+      },
+    ],
   ],
   [
     "conversation_title",

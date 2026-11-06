@@ -12,7 +12,7 @@ import type {
   SingleLineReviewChecker,
   DiffCalculator,
   RawContentDiffExtractor,
-} from '../types/tool-mutation';
+} from '@renderer/components/RightPanel/Zen/shared/tool-mutation';
 import type { ToolAction } from '../services/responseParser';
 
 // ─── Registry State ─────────────────────────────────────────────────────

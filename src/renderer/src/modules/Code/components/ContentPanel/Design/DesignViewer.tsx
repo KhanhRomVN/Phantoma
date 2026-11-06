@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, RotateCw } from 'lucide-react';
 import { getDesignPageUrl } from './designUrl';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import type { DesignMeta, DesignNode } from '../../../hooks/useDesignStore';
 
 interface DesignViewerProps {

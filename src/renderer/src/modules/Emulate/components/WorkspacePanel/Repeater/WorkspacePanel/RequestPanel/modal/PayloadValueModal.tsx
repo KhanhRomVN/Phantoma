@@ -5,7 +5,7 @@ import { X, Plus, Play, Copy, FileText, Trash2, Pencil } from 'lucide-react';
 import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface PayloadValueModalProps {
   isOpen: boolean;

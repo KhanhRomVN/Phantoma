@@ -181,6 +181,12 @@ export class PromptBuilder {
             console.warn('[PromptBuilder] Failed to inject AGENTS.md:', e);
           }
         }
+
+        if (feature === 'code' && workflowAgentId === 'orchestrator') {
+          const { loadOrchestratorTaskContext } =
+            await import('@renderer/modules/Code/services/orchestrator-task-context');
+          systemPrompt += await loadOrchestratorTaskContext();
+        }
       }
 
       projectContextStr = this.buildProjectContext(treeView, workspace);

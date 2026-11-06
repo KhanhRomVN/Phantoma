@@ -1,24 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { EvaluateJsHandler } from '../handler/EvaluateJsHandler';
 import type { EvaluateJsParams } from '../parsers/EvaluateJsParser';
+
+const handler = new EvaluateJsHandler();
 
 export async function executeEvaluateJs(
   params: EvaluateJsParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('evaluate_js', {
-      targetId,
-      script: params.script,
-    });
+    const result = await handler.handle(targetId, params.script);
 
     if (result.success) {
       return {

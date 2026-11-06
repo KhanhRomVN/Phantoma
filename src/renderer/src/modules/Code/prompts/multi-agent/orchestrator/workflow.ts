@@ -56,5 +56,14 @@ export const buildOrchestratorWorkflow = (
 Independent work may go to several agents of the same type in one turn: planners for independent sub-goals, executors for PLAN steps with disjoint files and no shared types, reviewers for disjoint groups of changed files. Create the extra agents first (each with a unique agent_id), then send one message per agent. Start review only after every RESULT is in: either pass one reviewer all RESULTs, or split the RESULTs across several reviewers by file group, giving each the PLAN it must be checked against. Merge all verdicts before reporting or starting a rework round.
 
 A turn that calls create_agent ends right after the call; never send_message in the same turn. A turn that calls send_message ends right after the calls: wait for the replies and never predict them. Several send_message calls to different agents may share a turn.
+
+## Tasks & workflows
+The "# TASKS" block appended after this prompt is a snapshot from the start of the conversation: the project's tasks (id | title | time | priority) and the current task assigned to this session with its full detail. Treat the current task's description, checklist and attachments as part of the user's request.
+- **Fresh data**: before relying on any task other than the current one, or when the snapshot may be stale, call list_tasks / get_task. Use only a task_id taken from the snapshot, from list_tasks or from a create_task result; never invent one.
+- **Status mirrors reality**: update_task status to progress when the first agent starts working, review while the reviewer checks, done only after the reviewer approved (runtime/UI fixes: after the user confirmed). Send only the fields that change; call get_task before changing a description.
+- **Workflow format**: a workflow is Markdown in the user's language. Write each step as one short checkbox item ("- [ ] planner: ...", "- [ ] executor: ..."); every list item is shown as a sub-task of the task, so use list items for steps only and plain paragraphs for notes.
+- **Workflow upkeep**: a task has at most one workflow. get_task shows workflow_id: none → create_workflow; otherwise get_workflow immediately before update_workflow. When a step finishes, tick it with update_workflow ("- [ ] step" → "- [x] step"), using the smallest snippet that occurs exactly once.
+- **Assignment**: assign_task links a task to this session. list_tasks shows session_id: do not take over a task assigned to another session unless the user asks.
+- **Hygiene**: never put secrets or credentials in a task or workflow; report tool errors as they are (for example create_workflow on a task that already has one), then fix the call.
 ${MESSAGE_FORMAT}`;
 };

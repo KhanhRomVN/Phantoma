@@ -66,6 +66,26 @@ function runGit(
   });
 }
 
+/** Branch 'default' duy nhất của repo: origin/HEAD, fallback init.defaultBranch (phải tồn tại local). */
+async function resolveDefaultBranch(cwd: string): Promise<{ name: string; remoteRef: string }> {
+  const head = await runGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd);
+  let name = head.error ? '' : head.stdout.trim().replace(/^origin\//, '');
+  if (!name) {
+    const cfg = await runGit(['config', '--get', 'init.defaultBranch'], cwd);
+    const c = cfg.error ? '' : cfg.stdout.trim();
+    if (c) {
+      const ok = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${c}`], cwd);
+      if (!ok.error) name = c;
+    }
+  }
+  if (!name) return { name: '', remoteRef: '' };
+  const remote = await runGit(
+    ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`],
+    cwd,
+  );
+  return { name, remoteRef: remote.error ? '' : `origin/${name}` };
+}
+
 interface CopyPlan {
   dirs: string[];
   files: { from: string; to: string; size: number; root: string }[];
@@ -511,17 +531,7 @@ export function setupGitHandlers(): void {
       const cwd = projectPath || process.cwd();
       await runGit(['worktree', 'prune'], cwd);
 
-      const originHead = await runGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd);
-      let defaultBranch = originHead.error ? '' : originHead.stdout.trim().replace(/^origin\//, '');
-      if (!defaultBranch) {
-        for (const c of ['main', 'master']) {
-          const ok = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${c}`], cwd);
-          if (!ok.error) {
-            defaultBranch = c;
-            break;
-          }
-        }
-      }
+      const { name: defaultBranch } = await resolveDefaultBranch(cwd);
       if (!defaultBranch) return { pruned: [], skipped: 'no default branch' };
 
       const merged = await runGit(
@@ -530,7 +540,7 @@ export function setupGitHandlers(): void {
       );
       if (merged.error) return { error: merged.stderr || merged.error.message };
 
-      const protectedNames = new Set<string>([defaultBranch, 'main', 'master']);
+      const protectedNames = new Set<string>([defaultBranch]);
       const current = await runGit(['branch', '--show-current'], cwd);
       if (current.stdout.trim()) protectedNames.add(current.stdout.trim());
       const wtList = await runGit(['worktree', 'list', '--porcelain'], cwd);
@@ -626,6 +636,96 @@ export function setupGitHandlers(): void {
       return { error: e.message || String(e) };
     }
   });
+
+  // ── So sánh hash blob của các file được chỉ định với remote default branch ──
+  // Chỉ hash đúng các file cần kiểm tra (không diff toàn repo): chi phí theo số file, không theo kích thước repo.
+  ipcMain.handle(
+    'git:diff-vs-remote',
+    async (_event, projectPath?: string, absPaths: string[] = []) => {
+    try {
+      const cwd = projectPath || process.cwd();
+      const { remoteRef } = await resolveDefaultBranch(cwd);
+      if (!remoteRef) return { error: 'no remote default branch' };
+
+      const head = await runGit(['rev-parse', remoteRef], cwd);
+      if (head.error) return { error: head.stderr || head.error.message };
+      const remoteHash = head.stdout.trim();
+
+      const base = cwd.replace(/\/+$/, '');
+      const rels: string[] = [];
+      for (const abs of absPaths) {
+        if (!abs.startsWith(`${base}/`)) continue;
+        const st = await fs.stat(abs).catch(() => null);
+        if (st?.isFile()) rels.push(abs.slice(base.length + 1));
+      }
+
+      const differing: string[] = [];
+      const CHUNK = 200;
+      for (let i = 0; i < rels.length; i += CHUNK) {
+        const chunk = rels.slice(i, i + CHUNK);
+        const [local, remote] = await Promise.all([
+          runGit(['hash-object', '--', ...chunk], cwd),
+          runGit(['ls-tree', '-z', remoteRef, '--', ...chunk], cwd),
+        ]);
+        if (local.error) {
+          differing.push(...chunk);
+          continue;
+        }
+        const localHashes = local.stdout.split('\n').filter((l) => l.length > 0);
+        const remoteBlobs = new Map<string, string>();
+        for (const entry of remote.stdout.split('\0')) {
+          const m = entry.match(/^\d+ blob ([0-9a-f]+)\t(.+)$/);
+          if (m) remoteBlobs.set(m[2], m[1]);
+        }
+        chunk.forEach((rel, idx) => {
+          if (remoteBlobs.get(rel) !== localHashes[idx]) differing.push(rel);
+        });
+      }
+
+      return { remoteHash, files: differing.map((p) => `${base}/${p}`) };
+    } catch (e: any) {
+      logger.error('[git:diff-vs-remote] Error:', e);
+      return { error: e.message || String(e) };
+    }
+    },
+  );
+
+  // ── Diff của 1 file với remote default branch (origin/main|master) ──
+  ipcMain.handle(
+    'git:file-diff-vs-remote',
+    async (_event, projectPath: string, filePath: string) => {
+      try {
+        const cwd = projectPath || process.cwd();
+        const { remoteRef } = await resolveDefaultBranch(cwd);
+        if (!remoteRef) return { error: 'no remote default branch' };
+
+        const base = cwd.replace(/\/+$/, '');
+        const rel = filePath.startsWith(`${base}/`) ? filePath.slice(base.length + 1) : filePath;
+
+        const res = await runGit(['diff', '--no-color', remoteRef, '--', rel], cwd);
+        if (res.error) return { error: res.stderr || res.error.message };
+        if (res.stdout.trim()) return { diff: res.stdout, remoteRef };
+
+        const tracked = await runGit(['ls-files', '--error-unmatch', '--', rel], cwd);
+        if (!tracked.error) return { diff: '', remoteRef };
+
+        const { readFile } = await import('fs/promises');
+        const text = await readFile(filePath, 'utf8');
+        const lines = text.split('\n');
+        if (lines[lines.length - 1] === '') lines.pop();
+        const diff = [
+          `diff --git a/${rel} b/${rel}`,
+          'new file mode 100644',
+          `@@ -0,0 +1,${lines.length} @@`,
+          ...lines.map((l) => `+${l}`),
+        ].join('\n');
+        return { diff, remoteRef };
+      } catch (e: any) {
+        logger.error('[git:file-diff-vs-remote] Error:', e);
+        return { error: e.message || String(e) };
+      }
+    },
+  );
 
   // ── Diff ──
   ipcMain.handle(
@@ -1267,11 +1367,8 @@ export function setupGitHandlers(): void {
         return { error: `Không thể xóa branch "${name}" đang được checkout` };
       }
 
-      const originHead = await runGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd);
-      const defaultBranch = originHead.error
-        ? ''
-        : originHead.stdout.trim().replace(/^origin\//, '');
-      if (name === defaultBranch || (!defaultBranch && (name === 'main' || name === 'master'))) {
+      const { name: defaultBranch } = await resolveDefaultBranch(cwd);
+      if (name === defaultBranch) {
         return { error: `Không thể xóa branch mặc định "${name}"` };
       }
 
@@ -1298,6 +1395,109 @@ export function setupGitHandlers(): void {
   });
 
   // ── Branch Sync (pull changed files from another branch, skipping gitignored paths) ──
+  const findBranchWorktree = async (cwd: string, ref: string) => {
+    const wtList = await runGit(['worktree', 'list', '--porcelain'], cwd);
+    for (const block of wtList.stdout.split(/\n\s*\n/)) {
+      const ls = block.split('\n').map((l) => l.trim());
+      if (!ls.includes(`branch refs/heads/${ref}`)) continue;
+      return ls.find((l) => l.startsWith('worktree '))?.slice(9) ?? '';
+    }
+    return '';
+  };
+
+  const listWorktreeFiles = async (dir: string) => {
+    const [all, gone] = await Promise.all([
+      runGit(['ls-files', '-z', '--cached', '--others', '--exclude-standard'], dir),
+      runGit(['ls-files', '-z', '--deleted'], dir),
+    ]);
+    const removed = new Set(gone.stdout.split('\0').filter(Boolean));
+    return new Set(all.stdout.split('\0').filter((p) => p && !removed.has(p)));
+  };
+
+  const countLines = (buf: Buffer) => {
+    if (buf.length === 0) return 0;
+    let n = 0;
+    for (const b of buf) if (b === 10) n++;
+    return buf[buf.length - 1] === 10 ? n : n + 1;
+  };
+
+  const noIndexNumstat = (a: string, b: string) =>
+    new Promise<{ added: number; deleted: number }>((done) => {
+      execFile(
+        'git',
+        ['diff', '--no-index', '--numstat', '--', a, b],
+        { maxBuffer: 10 * 1024 * 1024 },
+        (_e: any, stdout: string) => {
+          const [x, y] = (stdout || '').split('\t');
+          done({ added: parseInt(x, 10) || 0, deleted: parseInt(y, 10) || 0 });
+        },
+      );
+    });
+
+  // Source branch is checked out in another worktree: compare real working trees (incl. uncommitted files)
+  const readWorktreeDiff = async (cwd: string, srcWt: string) => {
+    const [srcFiles, tgtFiles] = await Promise.all([
+      listWorktreeFiles(srcWt),
+      listWorktreeFiles(cwd),
+    ]);
+    const files: {
+      path: string;
+      status: 'added' | 'modified' | 'deleted';
+      added: number;
+      deleted: number;
+    }[] = [];
+    const both: string[] = [];
+    for (const p of srcFiles) {
+      if (tgtFiles.has(p)) {
+        both.push(p);
+        continue;
+      }
+      try {
+        const buf = await fs.readFile(resolve(srcWt, p));
+        files.push({ path: p, status: 'added', added: countLines(buf), deleted: 0 });
+      } catch {
+        /* unreadable in source — skip */
+      }
+    }
+    for (const p of tgtFiles) {
+      if (srcFiles.has(p)) continue;
+      let lines = 0;
+      try {
+        lines = countLines(await fs.readFile(resolve(cwd, p)));
+      } catch {
+        /* unreadable — count stays 0 */
+      }
+      files.push({ path: p, status: 'deleted', added: 0, deleted: lines });
+    }
+    const modified: string[] = [];
+    for (let i = 0; i < both.length; i += 16) {
+      await Promise.all(
+        both.slice(i, i + 16).map(async (p) => {
+          try {
+            const [a, b] = await Promise.all([
+              fs.readFile(resolve(cwd, p)),
+              fs.readFile(resolve(srcWt, p)),
+            ]);
+            if (!a.equals(b)) modified.push(p);
+          } catch {
+            /* unreadable — skip */
+          }
+        }),
+      );
+    }
+    for (let i = 0; i < modified.length; i += 8) {
+      await Promise.all(
+        modified.slice(i, i + 8).map(async (p) => {
+          const st = await noIndexNumstat(resolve(cwd, p), resolve(srcWt, p));
+          files.push({ path: p, status: 'modified', added: st.added, deleted: st.deleted });
+        }),
+      );
+    }
+    files.sort((a, b) => a.path.localeCompare(b.path));
+    // Debug log - có thể xóa sau khi fix
+    return { files, srcWt };
+  };
+
   const readBranchDiff = async (cwd: string, ref: string) => {
     if (!ref) return { error: 'Thiếu branch nguồn' };
     const verify = await runGit(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], cwd);
@@ -1305,6 +1505,10 @@ export function setupGitHandlers(): void {
     const headSha = await runGit(['rev-parse', 'HEAD'], cwd);
     const refSha = await runGit(['rev-parse', `${ref}^{commit}`], cwd);
     const curBranch = await runGit(['branch', '--show-current'], cwd);
+    const srcWorktree = await findBranchWorktree(cwd, ref);
+    if (srcWorktree && resolve(srcWorktree) !== resolve(cwd)) {
+      return await readWorktreeDiff(cwd, srcWorktree);
+    }
 
     const [names, nums] = await Promise.all([
       runGit(['diff', '-R', '--no-renames', '--name-status', '-z', ref], cwd),
@@ -1368,6 +1572,37 @@ export function setupGitHandlers(): void {
       untrackedOnly.push(p);
     }
 
+    const identical = new Set<string>();
+    const addedFiles = files.filter((f) => f.status === 'added');
+    if (addedFiles.length > 0) {
+      const tree = await runGit(['ls-tree', '-r', '-z', ref], cwd);
+      const refHash = new Map<string, string>();
+      if (!tree.error) {
+        for (const rec of tree.stdout.split('\0').filter(Boolean)) {
+          const tab = rec.indexOf('\t');
+          refHash.set(rec.slice(tab + 1), rec.slice(0, tab).split(' ')[2]);
+        }
+      }
+      for (let i = 0; i < addedFiles.length; i += 200) {
+        const present: string[] = [];
+        for (const f of addedFiles.slice(i, i + 200)) {
+          try {
+            await fs.access(resolve(cwd, f.path));
+            present.push(f.path);
+          } catch {
+            /* not in worktree — still a real difference */
+          }
+        }
+        if (present.length === 0) continue;
+        const hashes = await runGit(['hash-object', '--', ...present], cwd);
+        if (hashes.error) continue;
+        const wt = hashes.stdout.split('\n').filter(Boolean);
+        present.forEach((p, idx) => {
+          if (refHash.get(p) === wt[idx]) identical.add(p);
+        });
+      }
+    }
+
     const ignored = new Set<string>();
     for (let i = 0; i < files.length; i += 200) {
       const chunk = files.slice(i, i + 200).map((f) => f.path);
@@ -1377,7 +1612,9 @@ export function setupGitHandlers(): void {
         .filter(Boolean)
         .forEach((p) => ignored.add(p));
     }
-    return { files: files.filter((f) => !ignored.has(f.path)) };
+    // Debug log - có thể xóa sau khi fix
+    const finalFiles = files.filter((f) => !ignored.has(f.path) && !identical.has(f.path));
+    return { files: finalFiles };
   };
 
   ipcMain.handle(
@@ -1402,6 +1639,19 @@ export function setupGitHandlers(): void {
         if ('error' in diff) return diff;
         const wanted = new Set(paths ?? []);
         const targets = diff.files.filter((f) => wanted.has(f.path));
+        const fromWt = 'srcWt' in diff ? diff.srcWt : '';
+        if (fromWt) {
+          for (const f of targets) {
+            if (f.status === 'deleted') {
+              await fs.rm(resolve(cwd, f.path), { force: true });
+              continue;
+            }
+            await fs.mkdir(dirname(resolve(cwd, f.path)), { recursive: true });
+            await fs.copyFile(resolve(fromWt, f.path), resolve(cwd, f.path));
+          }
+
+          return { applied: targets.length };
+        }
         const restore = targets
           .filter((f) => f.status !== 'deleted')
           .map((f) => `:(literal)${f.path}`);

@@ -1,24 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { GetPageContentHandler } from '../handler/GetPageContentHandler';
 import type { GetPageContentParams } from '../parsers/GetPageContentParser';
+
+const handler = new GetPageContentHandler();
 
 export async function executeGetPageContent(
   params: GetPageContentParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('get_page_content', {
-      targetId,
-      maxChars: params.maxChars,
-    });
+    const result = await handler.handle(targetId, undefined, params.maxChars);
 
     if (result.success) {
       return {

@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import type { TableData } from '../types';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { withAlpha } from '../../targetType';
 import { resolveColor } from '../../../constants/colors';
 

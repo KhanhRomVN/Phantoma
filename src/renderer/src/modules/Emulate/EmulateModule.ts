@@ -1,7 +1,11 @@
 import type { ZenModule } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
 import { rendererMapFromGlob } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-helpers';
 import { EMULATE_TAG_REGISTRY } from './constants/tag-registry';
-import { EmulateController } from './EmulateController';
+import {
+  getTrafficSummary,
+  getCurrentFilter,
+  getFilterText,
+} from './services/emulate-context.service';
 import { CAPABILITIES as EMULATE_CAPABILITIES } from './prompts/emulate/config';
 import {
   buildPromptForMode as buildEmulatePrompt,
@@ -51,7 +55,9 @@ export const emulateModule: ZenModule = {
   tagRegistry: EMULATE_TAG_REGISTRY,
   id: 'emulate',
   services: {
-    EmulateController,
+    getTrafficSummary,
+    getCurrentFilter,
+    getFilterText,
     buildTrafficContext,
     buildEmptyTrafficContext,
     buildFilterContext,

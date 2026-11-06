@@ -29,7 +29,7 @@ import {
   Bug,
   Layers,
 } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../hooks/useCodeStore';
 import { useDebugStore } from '../stores/useDebugStore';
 

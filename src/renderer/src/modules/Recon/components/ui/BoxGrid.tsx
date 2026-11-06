@@ -5,7 +5,7 @@ import SectionBox from './SectionBox';
 import EditOverlay from './EditOverlay';
 import { GRID_COLS, GRID_GAP, applyDrag, bottomRow, collides, compact, resolveRects, stepX } from './layout';
 import type { DragMode, Rect } from './layout';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface Props {
   boxes: RenderedBox[];

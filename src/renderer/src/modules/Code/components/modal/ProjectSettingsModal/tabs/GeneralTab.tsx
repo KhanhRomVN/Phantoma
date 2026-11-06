@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, EyeOff } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import {
   Panel,
   Section,

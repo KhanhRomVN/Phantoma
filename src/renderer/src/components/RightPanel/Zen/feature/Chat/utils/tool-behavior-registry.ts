@@ -12,7 +12,7 @@ import type {
   ToolDangerChecker,
   ToolMarkdownFormatter,
   ToolOutputTransformer,
-} from '../types/tool-behaviors';
+} from '@renderer/components/RightPanel/Zen/shared/tool-behaviors';
 import type { ToolAction } from '../services/responseParser';
 
 // ─── Registry State ─────────────────────────────────────────────────────

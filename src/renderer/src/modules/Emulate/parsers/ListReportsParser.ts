@@ -1,4 +1,4 @@
-import type { ListReportsParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export type ListReportsParams = Record<string, never>;
 
 /**
  * Parse list_reports tag from AI response.

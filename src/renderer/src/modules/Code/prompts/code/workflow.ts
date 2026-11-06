@@ -105,6 +105,15 @@ ${pass2Section}
    - After EXECUTE: report results clearly, state what now works and how to try it, restate progress ("Step N of M done") and end with ONE concrete next action. Do not self-declare "fixed" for runtime bugs.
 ${verifySection}
 
+## Tasks & Workflows
+Tasks and their workflows are managed with list_tasks, get_task, create_task, update_task, assign_task, create_workflow, get_workflow and update_workflow.
+- **Task ids**: use only a task_id returned by list_tasks or create_task (or given by the user); never invent one. Call get_task before changing a task's description.
+- **Status mirrors reality**: progress when you start the work, review when it is done and waits for the user's check, done only after verification passed (runtime/UI fixes: after the user confirmed). Send only the fields that change.
+- **Workflow format**: Markdown in the user's language. Write each step as one short checkbox item ("- [ ] step"); every list item is shown as a sub-task of the task, so use list items for steps only and plain paragraphs for notes.
+- **Workflow upkeep**: a task has at most one workflow. get_task shows workflow_id: none → create_workflow; otherwise get_workflow immediately before update_workflow. Tick a finished step with update_workflow ("- [ ] step" → "- [x] step"), using the smallest snippet that occurs exactly once.
+- **Assignment**: assign_task links a task to this workspace session; list_tasks shows session_id: do not take over a task assigned to another session unless the user asks.
+- **Hygiene**: never put secrets or credentials in a task or workflow; report tool errors as they are, then fix the call.
+
 ${memorySection}
 `;
 };

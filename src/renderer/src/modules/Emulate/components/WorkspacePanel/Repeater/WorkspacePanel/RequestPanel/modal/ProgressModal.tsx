@@ -4,7 +4,7 @@ import { X, Square } from 'lucide-react';
 import type { RunResult } from '../../../../../../types/repeater.types';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface ProgressModalProps {
   isOpen: boolean;

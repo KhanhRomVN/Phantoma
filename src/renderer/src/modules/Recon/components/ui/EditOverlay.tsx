@@ -1,6 +1,6 @@
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { DragMode } from './layout';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface Props {
   /** Box này đang được kéo/đổi cỡ. */

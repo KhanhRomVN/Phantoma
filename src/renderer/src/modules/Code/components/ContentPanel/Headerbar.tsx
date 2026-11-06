@@ -36,7 +36,7 @@ import {
   DropdownContent,
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { getTempSessionName } from '../ProjectPanel/SessionCard';

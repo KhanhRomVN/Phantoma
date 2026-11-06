@@ -8,10 +8,10 @@ import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 import type { ParamItem, PayloadItem } from '../../../../../../types/repeater.types';
 
 // ── Hooks ──
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface ParamTabProps {
   params: ParamItem[];

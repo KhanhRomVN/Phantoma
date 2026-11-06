@@ -1,6 +1,6 @@
 import { memo, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowUpDown, Check, MoreHorizontal, Plus } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 import {
   Dropdown,

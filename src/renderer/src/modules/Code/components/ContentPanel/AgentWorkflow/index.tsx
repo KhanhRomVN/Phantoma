@@ -10,7 +10,7 @@ import {
   Workflow,
   type LucideIcon,
 } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { MarkdownRenderer } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
 import UserMessageBox from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/UserMessageBox';
 import type { Message } from '@renderer/components/RightPanel/Zen/feature/Chat/types/message';

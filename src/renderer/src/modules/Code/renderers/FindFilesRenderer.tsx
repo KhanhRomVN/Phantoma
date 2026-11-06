@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
@@ -14,13 +14,13 @@ import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/C
 // ── Utils ──
 import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
 
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import { TreeBlock } from '@renderer/components/common/TreeBlock';
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import { buildTreeFromPaths } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/tree-builder';
+import { buildTreeFromPaths } from '../utils/tree-builder';
 
 export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
   action,

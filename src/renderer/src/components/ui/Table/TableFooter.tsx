@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { TableFooterProps } from './type';
 
 export const TableFooter: React.FC<TableFooterProps> = ({ children, className, ...props }) => {

@@ -5,7 +5,7 @@
  * Replaces content in a file using old_str/new_str or SEARCH/REPLACE
  * diff format. Supports exact match with fuzzy fallback via FuzzyMatcher.
  * Serializes writes through a queue with file locking and security
- * validation. Saves versioned history when conversation context is available.
+ * validation.
  *
  * Main functions:
  * - handle()             : Replace content in file (exact → fuzzy fallback)
@@ -22,7 +22,6 @@ import { resolveWorkspacePath } from '../../utils/pathResolver';
 
 // ── Managers ──
 import { FileLockManager } from '../../managers/FileLockManager';
-import { ReplaceInFileHistoryManager } from '../../managers/ReplaceInFileHistoryManager';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 import type { ReplaceInFileParams } from '../../types/tool-params';
@@ -41,7 +40,6 @@ export interface ReplaceInFileResult {
     code?: string | number;
   }>;
   content?: string;
-  version?: number;
   error?: string;
 }
 
@@ -187,28 +185,6 @@ export class ReplaceInFileHandler {
       // TODO: Lấy diagnostics
       const diagnostics: any[] = [];
 
-      // Lưu history nếu có conversationId
-      let version: number | undefined;
-      if (message.conversationId) {
-        const historyManager = ReplaceInFileHistoryManager.getInstance();
-        historyManager.setActiveConversationId(message.conversationId);
-
-        const errorCount = diagnostics.filter((d: any) => d.severity === 'Error').length;
-        const warningCount = diagnostics.filter((d: any) => d.severity === 'Warning').length;
-
-        await historyManager.saveHistory(
-          pathValue,
-          newContent,
-          errorCount,
-          warningCount,
-          message.messageId,
-          message.messageTimestamp,
-          message.responseNumber,
-        );
-
-        version = await historyManager.getCurrentVersion(pathValue);
-      }
-
       return {
         command: 'replaceInFileResult',
         requestId: message.requestId,
@@ -216,7 +192,6 @@ export class ReplaceInFileHandler {
         success: true,
         diagnostics,
         content: newContent,
-        version,
       };
     } finally {
       release();

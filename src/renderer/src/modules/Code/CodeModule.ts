@@ -25,7 +25,7 @@ import { ReplaceInFileRenderer } from './renderers/ReplaceInFileRenderer';
 import { RunCommandRenderer } from './renderers/RunCommandRenderer';
 import { UpdateMemoryRenderer } from './renderers/UpdateMemoryRenderer';
 import { WriteToFileRenderer } from './renderers/WriteToFileRenderer';
-import { executeRunCommand, setRunCommandValidator } from './handler/tool/RunCommandExecutor';
+import { executeRunCommand, setRunCommandValidator } from './executors/RunCommandExecutor';
 import { executeReadFile } from './executors/ReadFileExecutor';
 import { executeWriteToFile } from './executors/WriteToFileExecutor';
 import { executeReplaceInFile } from './executors/ReplaceInFileExecutor';
@@ -63,6 +63,30 @@ import { parseListAgents } from './parsers/ListAgentsParser';
 import { parseCreateAgent } from './parsers/CreateAgentParser';
 import { parseSendMessage } from './parsers/SendMessageParser';
 import { parseDeleteAgent } from './parsers/DeleteAgentParser';
+import { executeListTasks } from './executors/ListTasksExecutor';
+import { executeGetTask } from './executors/GetTaskExecutor';
+import { executeCreateTask } from './executors/CreateTaskExecutor';
+import { executeUpdateTask } from './executors/UpdateTaskExecutor';
+import { executeAssignTask } from './executors/AssignTaskExecutor';
+import { executeCreateWorkflow } from './executors/CreateWorkflowExecutor';
+import { executeGetWorkflow } from './executors/GetWorkflowExecutor';
+import { executeUpdateWorkflow } from './executors/UpdateWorkflowExecutor';
+import { parseListTasks } from './parsers/ListTasksParser';
+import { parseGetTask } from './parsers/GetTaskParser';
+import { parseCreateTask } from './parsers/CreateTaskParser';
+import { parseUpdateTask } from './parsers/UpdateTaskParser';
+import { parseAssignTask } from './parsers/AssignTaskParser';
+import { parseCreateWorkflow } from './parsers/CreateWorkflowParser';
+import { parseGetWorkflow } from './parsers/GetWorkflowParser';
+import { parseUpdateWorkflow } from './parsers/UpdateWorkflowParser';
+import ListTasksRenderer from './renderers/ListTasksRenderer';
+import GetTaskRenderer from './renderers/GetTaskRenderer';
+import CreateTaskRenderer from './renderers/CreateTaskRenderer';
+import UpdateTaskRenderer from './renderers/UpdateTaskRenderer';
+import AssignTaskRenderer from './renderers/AssignTaskRenderer';
+import CreateWorkflowRenderer from './renderers/CreateWorkflowRenderer';
+import GetWorkflowRenderer from './renderers/GetWorkflowRenderer';
+import UpdateWorkflowRenderer from './renderers/UpdateWorkflowRenderer';
 import {
   buildPromptForMode as buildCodePrompt,
   buildToolFormatReminder as buildCodeToolFormatReminder,
@@ -171,6 +195,14 @@ export const codeModule: ZenModule = {
     create_agent: async (a) => executeCreateAgent(a.params),
     send_message: async (a, ctx) => executeSendMessage(a.params, ctx),
     delete_agent: async (a) => executeDeleteAgent(a.params),
+    list_tasks: async (a) => executeListTasks(a.params),
+    get_task: async (a) => executeGetTask(a.params),
+    create_task: async (a) => executeCreateTask(a.params),
+    update_task: async (a) => executeUpdateTask(a.params),
+    assign_task: async (a) => executeAssignTask(a.params),
+    create_workflow: async (a) => executeCreateWorkflow(a.params),
+    get_workflow: async (a) => executeGetWorkflow(a.params),
+    update_workflow: async (a) => executeUpdateWorkflow(a.params),
   },
   parsers: {
     read_file: parseReadFile,
@@ -191,6 +223,14 @@ export const codeModule: ZenModule = {
     create_agent: parseCreateAgent,
     send_message: parseSendMessage,
     delete_agent: parseDeleteAgent,
+    list_tasks: parseListTasks,
+    get_task: parseGetTask,
+    create_task: parseCreateTask,
+    update_task: parseUpdateTask,
+    assign_task: parseAssignTask,
+    create_workflow: parseCreateWorkflow,
+    get_workflow: parseGetWorkflow,
+    update_workflow: parseUpdateWorkflow,
   },
   renderers: {
     read_file: ReadFileRenderer,
@@ -213,6 +253,14 @@ export const codeModule: ZenModule = {
     create_agent: CreateAgentRenderer,
     send_message: SendMessageRenderer,
     delete_agent: DeleteAgentRenderer,
+    list_tasks: ListTasksRenderer,
+    get_task: GetTaskRenderer,
+    create_task: CreateTaskRenderer,
+    update_task: UpdateTaskRenderer,
+    assign_task: AssignTaskRenderer,
+    create_workflow: CreateWorkflowRenderer,
+    get_workflow: GetWorkflowRenderer,
+    update_workflow: UpdateWorkflowRenderer,
   },
   prompts: {
     systemPrompts: new Map([

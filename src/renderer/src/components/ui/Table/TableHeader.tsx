@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { TableHeaderProps } from './type';
 
 export const TableHeader: React.FC<TableHeaderProps> = ({ children, className, ...props }) => {

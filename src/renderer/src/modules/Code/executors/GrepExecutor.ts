@@ -1,5 +1,7 @@
-import { CodeController } from '../CodeController';
+import { GrepHandler } from '../handler/tool/GrepHandler';
 import { GrepParams } from '../parsers/GrepParser';
+
+const grepHandler = new GrepHandler('');
 
 const escapeAttr = (s: string): string => s.replace(/"/g, "'");
 
@@ -20,12 +22,11 @@ export async function executeGrep(params: GrepParams): Promise<string | null> {
     );
   }
 
-  const result = await CodeController.executeTool('grep', {
-    action: {
-      search_term: searchTerm,
-      file_path: filePath,
-      folder_path: folderPath,
-    },
+  const result = await grepHandler.handle({
+    search_term: searchTerm,
+    file_path: filePath,
+    folder_path: folderPath,
+    requestId: '',
   });
 
   if (!result.success) {
@@ -39,8 +40,7 @@ export async function executeGrep(params: GrepParams): Promise<string | null> {
     );
   }
 
-  const data = result.data || {};
-  const grepData = data.result?.data || data;
+  const grepData = result.data || {};
   const results = grepData.results || {};
   const totalMatches = grepData.totalMatches || 0;
   const totalFiles = grepData.totalFilesSearched || 0;

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, X, AlertCircle } from 'lucide-react';
 import { useDbFetch } from '../../../services/useDbFetch';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 import { $ } from '@renderer/utils/color';
 import { FlatAccount } from '../types';
 import ReactDOM from 'react-dom';

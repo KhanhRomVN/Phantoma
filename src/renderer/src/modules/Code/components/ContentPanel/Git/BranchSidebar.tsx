@@ -20,7 +20,7 @@ import {
   Tag,
 } from 'lucide-react';
 
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface BranchSidebarProps {
   local: string[];

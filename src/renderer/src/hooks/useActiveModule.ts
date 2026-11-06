@@ -6,10 +6,16 @@ interface ActiveModuleState {
   setActiveModule: (module: PhantomModule) => void
 }
 
+// ASSUMED: cửa sổ mới (Ctrl+Shift+N) truyền module khởi tạo qua hash `#module=<name>`
+const getInitialModule = (): PhantomModule => {
+  const match = window.location.hash.match(/module=(\w+)/);
+  return (match?.[1] as PhantomModule | undefined) ?? 'recon';
+};
+
 // Store dùng chung cho toàn bộ renderer — mọi component gọi useActiveModule
 // đều đọc/ghi cùng một state, tránh tình trạng mỗi component có state riêng.
 export const useActiveModuleStore = create<ActiveModuleState>()((set) => ({
-  activeModule: 'recon',
+  activeModule: getInitialModule(),
   setActiveModule: (module) => set({ activeModule: module }),
 }))
 

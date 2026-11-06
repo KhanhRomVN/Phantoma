@@ -1,5 +1,7 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { DeleteRepeaterParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface DeleteRepeaterParams {
+  repeater_id: string;
+}
 
 /**
  * Parse delete_repeater tag from AI response.

@@ -17,7 +17,7 @@ import React from 'react';
 import { Check, X } from 'lucide-react';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
 import { TOOL_ACTION_TYPES } from '../../../constants/tag-registry';

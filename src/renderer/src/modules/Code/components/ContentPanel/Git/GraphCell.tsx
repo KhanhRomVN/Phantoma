@@ -10,8 +10,8 @@
 import { memo } from 'react';
 import { GitBranch, Cloud, Tag } from 'lucide-react';
 
-import { cn } from '@renderer/shared/utils/cn';
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { cn } from '@renderer/utils/cn';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 import { Avatar } from './Avatar';
 import {
   ROW_HEIGHT,

@@ -1,5 +1,14 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { ListHttpsParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface ListHttpsParams {
+  limit?: number;
+  filter?: {
+    method?: string;
+    host?: string;
+    path?: string;
+    status?: number;
+    type?: string;
+  };
+}
 
 /**
  * Parse list_https tag from AI response.

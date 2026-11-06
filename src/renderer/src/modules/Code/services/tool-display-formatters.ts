@@ -9,9 +9,7 @@
 import type {
   ActionDisplayFormatter,
   CompletedTooltipFormatter,
-  DiffStats,
-  TooltipMeta,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-display';
+} from '@renderer/components/RightPanel/Zen/shared/tool-display';
 import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 /**
@@ -32,8 +30,6 @@ export const formatCodeAction: ActionDisplayFormatter = (action, moduleId) => {
     case 'write_to_file':
     case 'replace_in_file':
     case 'delete_file':
-    case 'revert_file':
-    case 'view_replace_history':
       return `${toolLabel}: ${action.params.file_path || 'unknown'}`;
 
     case 'run_command':
@@ -119,12 +115,6 @@ export const formatCodeCompletedTooltip: CompletedTooltipFormatter = (
       }
       return null;
 
-    case 'view_replace_history':
-      if (tooltipMeta?.fileCount) {
-        const count = tooltipMeta.fileCount;
-        return `✓ Found ${count} ${count === 1 ? 'version' : 'versions'}`;
-      }
-      return null;
 
     default:
       // Not a Code tool or no special formatting needed

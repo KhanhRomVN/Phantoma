@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ── Terminal ──
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import 'xterm/css/xterm.css';
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
 
 // ── Hooks ──
 import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
-import { useProject } from '@renderer/components/RightPanel/Zen/context/ProjectContext';
+import { useCodeStore } from '../hooks/useCodeStore';
 
 // Services
 import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
@@ -18,22 +18,22 @@ import {
   TOOL_ACTION_TYPES,
   TERMINAL_STATUS,
   type TerminalStatus,
-  getToolLabel,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+} from '@renderer/components/RightPanel/Zen/shared/tool-constants';
+import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/ResponseParser';
 import { Message } from '@renderer/components/RightPanel/Zen/feature/Chat/types/message';
 
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
 
-import { getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { getFolderIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
 import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/responseParser';
 
 interface TerminalBlockProps {
   logs: string;
@@ -523,7 +523,9 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isRejectedLocal, setIsRejectedLocal] = React.useState(false);
   const [storedOutput, setStoredOutput] = React.useState<string | null>(null);
-  const { rootPath } = useProject();
+  const rootPath = useCodeStore(
+      (s) => s.projects.find((p) => p.id === s.currentProjectId)?.path || ''
+    );
   useSettings();
   const actionId = `${messageId}-action-${actionIndex}`;
   const outputData = toolOutputs?.[actionId];
@@ -598,9 +600,9 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
   const isTerminalBusy =
     !isRejected &&
     (hasOutput
-      ? terminalStatus?.[terminalId] === TERMINAL_STATUS.BUSY
+      ? terminalStatus?.[terminalId] === TERMINAL_STATUS.RUNNING
       : terminalId
-        ? terminalStatus?.[terminalId] === TERMINAL_STATUS.BUSY ||
+        ? terminalStatus?.[terminalId] === TERMINAL_STATUS.RUNNING ||
           (isActionClicked && terminalStatus?.[terminalId] === undefined)
         : isActionClicked);
   const isLoading = isActionClicked && (!hasOutput || isTerminalBusy);
@@ -619,7 +621,9 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
       <TagHeader
         title={
           <div className="flex items-center gap-2 text-xs text-text-primary flex-1">
-            <span className="font-semibold opacity-80 shrink-0">{getToolLabel('run_command', moduleId)}</span>
+            <span className="font-semibold opacity-80 shrink-0">
+              {getToolLabel('run_command', moduleId)}
+            </span>
             {folderName && (
               <>
                 <img

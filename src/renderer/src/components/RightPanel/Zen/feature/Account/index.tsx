@@ -48,7 +48,7 @@ import { extensionService, messageDispatcher } from '../../services/ExtensionSer
 import { Drawer, DrawerBody } from '@renderer/components/ui/Drawer';
 import { Input } from '@renderer/components/ui/Input';
 import { $ } from '@renderer/utils/color';
-import { getFaviconUrl } from '@renderer/shared/utils/faviconUtils';
+import { getFaviconUrl } from '@renderer/utils/favicon';
 import { FlatAccount } from './types';
 import type { NavTarget } from '../../components/AgentNavBadge';
 import NavPanelHeader from '../../components/NavPanelHeader';

@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolOutputFormatter } from '../types/tool-output';
+import type { ToolOutputFormatter } from '@renderer/components/RightPanel/Zen/shared/tool-output';
 
 // ─── Registry State ─────────────────────────────────────────────────────
 const outputFormatters: ToolOutputFormatter[] = [];

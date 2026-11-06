@@ -12,7 +12,7 @@
 
 import { getToolLabel } from '../constants/tag-registry';
 import type { ToolAction } from '../services/responseParser';
-import type { ActionDisplayFormatter } from '../types/tool-display';
+import type { ActionDisplayFormatter } from '@renderer/components/RightPanel/Zen/shared/tool-display';
 
 // Module-specific formatters registry
 const moduleFormatters = new Map<string, ActionDisplayFormatter>();

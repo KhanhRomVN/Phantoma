@@ -33,7 +33,7 @@ import { useCodeStore } from '../../../hooks/useCodeStore';
 import { useDebugStore, type DebugConfiguration, type DebugStatus } from '../../../stores/useDebugStore';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 // ─── Types & Constants ──────────────────────────────────────────────────
 type DebugActions = ReturnType<typeof useDebugStore.getState>;

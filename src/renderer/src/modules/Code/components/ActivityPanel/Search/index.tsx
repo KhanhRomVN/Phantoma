@@ -34,9 +34,15 @@ import {
 } from 'lucide-react';
 
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 import { useCodeStore } from '../../../hooks/useCodeStore';
+import {
+  useActivityPanelStore,
+  useCurrentBranchKey,
+  DEFAULT_SEARCH_FORM,
+  type SearchFormState,
+} from '../../../stores/useActivityPanelStore';
 import { useSearch, type FileResult } from './useSearch';
 import { SearchResults, buildMatcher } from './SearchResults';
 import { SearchEmptyState, type EmptyVariant } from './SearchEmptyState';
@@ -168,17 +174,34 @@ export function Search() {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // ── State — query & options ──
-  const [query, setQuery] = useState('');
-  const [replaceQuery, setReplaceQuery] = useState('');
-  const [includePattern, setIncludePattern] = useState('');
-  const [excludePattern, setExcludePattern] = useState('');
-  const [showReplace, setShowReplace] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
-  const [matchCase, setMatchCase] = useState(false);
-  const [matchWholeWord, setMatchWholeWord] = useState(false);
-  const [useRegex, setUseRegex] = useState(false);
-  const [viewAsTree, setViewAsTree] = useState(false);
+  // ── State — query & options (độc lập + lưu theo từng branch của từng project) ──
+  const branchKey = useCurrentBranchKey();
+  const saved = useActivityPanelStore((s) => (branchKey ? s.search[branchKey] : undefined));
+  const form = useMemo<SearchFormState>(() => ({ ...DEFAULT_SEARCH_FORM, ...saved }), [saved]);
+  const { query, replaceQuery, includePattern, excludePattern } = form;
+  const { showReplace, showDetails, matchCase, matchWholeWord, useRegex, viewAsTree } = form;
+
+  const makeSetter = useCallback(
+    <K extends keyof SearchFormState>(key: K) =>
+      (v: SearchFormState[K] | ((prev: SearchFormState[K]) => SearchFormState[K])) => {
+        if (!branchKey) return;
+        const state = useActivityPanelStore.getState();
+        const prev = { ...DEFAULT_SEARCH_FORM, ...state.search[branchKey] }[key];
+        const next = typeof v === 'function' ? (v as (p: SearchFormState[K]) => SearchFormState[K])(prev) : v;
+        state.patchSearch(branchKey, { [key]: next } as Partial<SearchFormState>);
+      },
+    [branchKey],
+  );
+  const setQuery = useMemo(() => makeSetter('query'), [makeSetter]);
+  const setReplaceQuery = useMemo(() => makeSetter('replaceQuery'), [makeSetter]);
+  const setIncludePattern = useMemo(() => makeSetter('includePattern'), [makeSetter]);
+  const setExcludePattern = useMemo(() => makeSetter('excludePattern'), [makeSetter]);
+  const setShowReplace = useMemo(() => makeSetter('showReplace'), [makeSetter]);
+  const setShowDetails = useMemo(() => makeSetter('showDetails'), [makeSetter]);
+  const setMatchCase = useMemo(() => makeSetter('matchCase'), [makeSetter]);
+  const setMatchWholeWord = useMemo(() => makeSetter('matchWholeWord'), [makeSetter]);
+  const setUseRegex = useMemo(() => makeSetter('useRegex'), [makeSetter]);
+  const setViewAsTree = useMemo(() => makeSetter('viewAsTree'), [makeSetter]);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // ── State — result view ──

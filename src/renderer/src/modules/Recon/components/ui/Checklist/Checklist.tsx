@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, Minus } from 'lucide-react';
 import type { ChecklistItem } from '../types';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 interface Props {
   items: ChecklistItem[];

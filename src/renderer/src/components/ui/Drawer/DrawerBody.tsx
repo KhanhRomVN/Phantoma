@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { DrawerBodyProps } from './type';
 
 export const DrawerBody: React.FC<DrawerBodyProps> = ({ children, className }) => {

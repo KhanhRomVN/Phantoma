@@ -6,8 +6,18 @@
  * ------------------------------------------------------------------
  */
 
-import { BaseParams, BaseResult } from './FileHandlerTypes';
 import { resolveWorkspacePath } from '../../utils/pathResolver';
+
+interface BaseParams {
+  requestId?: string;
+}
+
+interface BaseResult {
+  command: string;
+  requestId?: string;
+  error?: string;
+  [key: string]: any;
+}
 
 interface FindFilesParams extends BaseParams {
   fileName?: string;

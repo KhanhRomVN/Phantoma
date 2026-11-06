@@ -19,8 +19,8 @@ import {
   Loader2,
 } from 'lucide-react';
 
-import { cn } from '@renderer/shared/utils/cn';
-import { getFileIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath } from '@renderer/utils/file-icon';
 import { detectLanguageId } from '@renderer/components/common/CodeBlock';
 import { splitPath } from './graph';
 import { useDiffHighlight } from './diffHighlight';
@@ -40,7 +40,7 @@ interface DiffHunk {
 
 type FileStatus = 'added' | 'deleted' | 'renamed' | 'modified';
 
-interface FileDiff {
+export interface FileDiff {
   path: string;
   oldPath: string | null;
   status: FileStatus;
@@ -68,7 +68,7 @@ const STATUS_STYLE: Record<FileStatus, string> = {
 };
 
 // ─── Parser ─────────────────────────────────────────────────────────────
-function parseDiff(raw: string): FileDiff[] {
+export function parseDiff(raw: string): FileDiff[] {
   const files: FileDiff[] = [];
   const blocks = raw.split(/^diff --git /m).slice(1);
 
@@ -137,6 +137,8 @@ interface FileSectionProps {
   file: FileDiff;
   collapsed: boolean;
   onToggle: (path: string) => void;
+  hideHeader?: boolean;
+  rowClassName?: string;
 }
 
 const ROW_STYLE: Record<DiffLine['type'], string> = {
@@ -207,7 +209,13 @@ function DiffCell({
   );
 }
 
-const FileSection = memo(function FileSection({ file, collapsed, onToggle }: FileSectionProps) {
+export const FileSection = memo(function FileSection({
+  file,
+  collapsed,
+  onToggle,
+  hideHeader = false,
+  rowClassName,
+}: FileSectionProps) {
   const { name, dir } = splitPath(file.path);
   const languageId = useMemo(() => detectLanguageId(file.path), [file.path]);
   const highlighted = useDiffHighlight(
@@ -231,7 +239,13 @@ const FileSection = memo(function FileSection({ file, collapsed, onToggle }: Fil
         {file.hunks.map((h, hi) => (
           <div key={hi} className={cn(hi > 0 && 'border-t border-border')}>
             {toSplitRows(h.lines).map((r, ri) => (
-              <div key={ri} className={'grid grid-cols-2 font-mono text-[12px] leading-[20px]'}>
+              <div
+                key={ri}
+                className={cn(
+                  'grid grid-cols-2 font-mono',
+                  rowClassName ?? 'text-[12px] leading-[20px]',
+                )}
+              >
                 <DiffCell
                   line={r.left}
                   side={'old'}
@@ -252,6 +266,7 @@ const FileSection = memo(function FileSection({ file, collapsed, onToggle }: Fil
 
   return (
     <div data-diff-path={file.path} className={'border-b border-border'}>
+      {!hideHeader && (
       <div
         onClick={() => onToggle(file.path)}
         className={
@@ -288,6 +303,7 @@ const FileSection = memo(function FileSection({ file, collapsed, onToggle }: Fil
         <span className={'font-mono text-[11px] text-green shrink-0'}>{`+${file.added}`}</span>
         <span className={'font-mono text-[11px] text-red shrink-0'}>{`-${file.deleted}`}</span>
       </div>
+      )}
       {!collapsed && body}
     </div>
   );

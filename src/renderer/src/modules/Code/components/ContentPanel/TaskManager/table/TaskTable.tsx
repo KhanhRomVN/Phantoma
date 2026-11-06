@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { CalendarDays, Paperclip } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 import type { StoredTask, TaskPriority, TaskStatus } from '../../../../services/task.service';
 import { TaskEmptyState } from '../TaskEmptyState';

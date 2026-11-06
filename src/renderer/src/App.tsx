@@ -3,7 +3,7 @@ import { ServerHealthProvider } from './providers/ServerHealthProvider';
 import WelcomeScreen from './components/WelcomeScreen';
 import MainLayout from './layouts/MainLayout';
 import ZoomOverlay from './components/ZoomOverlay';
-import UnsavedGuard from './shared/unsaved/UnsavedGuard';
+import UnsavedProvider from './providers/UnsavedProvider';
 
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -11,10 +11,11 @@ function App() {
 
   return (
     <ServerHealthProvider>
-      <MainLayout />
-      <ZoomOverlay />
-      <UnsavedGuard />
-      {showWelcome && <WelcomeScreen onDone={handleWelcomeDone} />}
+      <UnsavedProvider>
+        <MainLayout />
+        <ZoomOverlay />
+        {showWelcome && <WelcomeScreen onDone={handleWelcomeDone} />}
+      </UnsavedProvider>
     </ServerHealthProvider>
   );
 }

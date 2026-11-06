@@ -19,7 +19,7 @@ import ConfirmClearHistoryDrawer from './components/ConfirmClearHistoryDrawer';
 import { FolderOpen, Loader2, Search } from 'lucide-react';
 import { useConversationHistory } from './hooks/useConversationHistory';
 import { Drawer, DrawerBody } from '@renderer/components/ui/Drawer';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 import type { NavTarget } from '../../components/AgentNavBadge';
 import NavPanelHeader from '../../components/NavPanelHeader';

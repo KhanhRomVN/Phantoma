@@ -1,15 +1,60 @@
-import { EmulateController } from '../EmulateController';
+import { useNetworkStore } from '../stores/networkStore';
+import { runTool } from '../utils/tool-result.util';
 
 export interface GetHttpsDetailParams {
   index: number;
 }
 
-/** Execute get_https_detail tool — gọi EmulateController.executeTool() */
-export async function executeGetHttpsDetail(params: GetHttpsDetailParams): Promise<string | null> {
-  const result = await EmulateController.executeTool('get_https_detail', { index: params.index });
+const MAX_BODY_LENGTH = 50000;
 
-  if (!result.success) {
-    return '[get_https_detail] Result: Error - ' + (result.error || '');
+const stringify = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
   }
-  return (result.data as any)?.output || null;
+};
+
+/** Execute get_https_detail tool — đọc trực tiếp network store */
+export async function executeGetHttpsDetail(params: GetHttpsDetailParams): Promise<string | null> {
+  return runTool('get_https_detail', () => {
+    if (params.index === undefined) throw new Error('index is required');
+
+    const requests = useNetworkStore.getState().requests;
+    const arrayIndex = params.index - 1;
+
+    if (arrayIndex < 0 || arrayIndex >= requests.length) {
+      return `[get_https_detail] Error: index ${params.index} out of range (1-${requests.length})`;
+    }
+
+    const req = requests[arrayIndex];
+    const reqHeaders = req.requestHeaders ? stringify(req.requestHeaders) : 'N/A';
+    const reqBody = req.requestBody ? stringify(req.requestBody) : '(empty)';
+    const resHeaders = req.responseHeaders ? stringify(req.responseHeaders) : 'N/A';
+
+    let resBody = '(empty)';
+    if (req.responseBody) {
+      resBody = stringify(req.responseBody);
+      if (resBody.length > MAX_BODY_LENGTH) {
+        resBody = resBody.substring(0, MAX_BODY_LENGTH) + '\n... (truncated)';
+      }
+    }
+
+    return [
+      `[get_https_detail] Request #${params.index}`,
+      `--- Request ---`,
+      `Method:  ${req.method || 'UNKNOWN'}`,
+      `URL:     ${req.url || 'N/A'}`,
+      `Headers: ${reqHeaders}`,
+      ``,
+      `Body:    ${reqBody}`,
+      ``,
+      `--- Response ---`,
+      `Status:  ${req.status ? String(req.status) : 'N/A'}`,
+      `Headers: ${resHeaders}`,
+      ``,
+      `Body:    ${resBody}`,
+    ].join('\n');
+  });
 }

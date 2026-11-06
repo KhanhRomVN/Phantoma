@@ -301,6 +301,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   // --- Refs ---
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollToBottomRef = useRef<(() => void) | null>(null);
+  const [chatBodyKey, setChatBodyKey] = useState(0);
   const hasProcessedInitial = useRef(false);
   const isStoppedRef = useRef(false);
 
@@ -932,10 +933,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         onTitleChange={onTitleChange}
         onOpenSubView={onOpenSubView}
         onGoHome={() => onBack()}
+        onRefreshChatBody={() => setChatBodyKey((k) => k + 1)}
       />
 
       {/* ─── ChatBody ─── */}
       <ChatBody
+        key={chatBodyKey}
         messages={parsedMessages}
         isProcessing={isProcessing}
         isContinuing={isContinuing}
@@ -1026,6 +1029,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         loadedConversationFileStats={loadedConversationFileStats}
         footerPaddingBottom={footerPaddingBottom}
         workflowAgentId={workflowAgentId}
+        autoScrollPaused={autoScrollPaused}
+        scrollToBottom={() => {
+          scrollToBottomRef.current?.();
+        }}
       />
     </div>
   );

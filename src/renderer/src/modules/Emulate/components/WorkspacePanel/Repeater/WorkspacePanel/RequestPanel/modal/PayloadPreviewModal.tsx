@@ -8,10 +8,10 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components
 import type { PayloadItem, ParamItem } from '../../../../../../types/repeater.types';
 
 // ── Hooks ──
-import { useAccentColors } from '@renderer/shared/hooks/useAccentColors';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
 
 // ── Utils ──
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 
 export type PayloadMode = 'sequential' | 'cartesian' | 'permutation';
 

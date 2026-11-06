@@ -1,7 +1,7 @@
 import {
   registerUnsavedProvider,
   type UnsavedItem,
-} from '@renderer/shared/unsaved/unsavedRegistry';
+} from '@renderer/providers/UnsavedProvider';
 import { useCodeStore } from '../hooks/useCodeStore';
 
 const baseName = (p: string) => p.split('/').pop() || p;

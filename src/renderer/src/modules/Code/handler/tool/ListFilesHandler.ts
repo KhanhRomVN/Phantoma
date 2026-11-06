@@ -6,7 +6,16 @@
  * ------------------------------------------------------------------
  */
 
-import { BaseParams, BaseResult } from './FileHandlerTypes';
+interface BaseParams {
+  requestId?: string;
+}
+
+interface BaseResult {
+  command: string;
+  requestId?: string;
+  error?: string;
+  [key: string]: any;
+}
 
 interface ListFilesParams extends BaseParams {
   path?: string;

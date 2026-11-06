@@ -30,7 +30,7 @@ import {
   finalizeAllRunCommands,
   finalizeRunCommand,
   sendRunCommandInput,
-} from '@renderer/modules/Code/handler/tool/RunCommandExecutor';
+} from '@renderer/modules/Code/executors/RunCommandExecutor';
 import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
 
 // ─── Renderer-only UI commands ────────────────────────────────────────

@@ -40,7 +40,7 @@ import {
 import { SystemStatsModal } from './SystemStatsModal';
 
 // ── Utils ─
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface HeaderBarProps {
   isRightPanelOpen?: boolean;

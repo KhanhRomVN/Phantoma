@@ -1,5 +1,7 @@
 import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
-import type { GetRepeaterDetailParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+export interface GetRepeaterDetailParams {
+  repeater_id: string;
+}
 
 /**
  * Parse get_repeater_detail tag from AI response.

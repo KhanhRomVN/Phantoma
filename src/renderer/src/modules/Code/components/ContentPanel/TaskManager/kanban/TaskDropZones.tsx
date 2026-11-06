@@ -1,6 +1,6 @@
 import { memo, useState, type ReactNode } from 'react';
 import { Archive, Trash2 } from 'lucide-react';
-import { cn } from '@renderer/shared/utils/cn';
+import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 export const TASK_DRAG_TYPE = 'application/x-phantoma-task';

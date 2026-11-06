@@ -1,23 +1,22 @@
-import { ReconController } from '@renderer/modules/Recon/ReconController';
+import { useReconStore } from '../stores/useReconStore';
+import { ForwardHandler } from '../handler/ForwardHandler';
 import type { ForwardParams } from '../parsers/ForwardParser';
+
+const handler = new ForwardHandler();
 
 export async function executeForward(
   _params: ForwardParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const controller = ReconController.getInstance();
-    const activeTarget = controller.getActiveTarget();
-    if (!activeTarget) {
+    const targetId = useReconStore.getState().activeTargetId;
+    if (!targetId) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
-    const targetId = activeTarget.id;
 
-    const result = await ReconController.executeTool('forward', {
-      targetId,
-    });
+    const result = await handler.handle(targetId);
 
     if (result.success) {
       return {
