@@ -1,12 +1,6 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
 
-export interface GrepParams {
-  search_term: string;
-  file_path?: string;
-  folder_path?: string;
-  file_pattern?: string;
-  _validationError?: string; // Internal flag for invalid regex
-}
+import type { GrepParams } from '../types/tool-params';
 
 /**
  * Validate regex pattern using Rust regex syntax

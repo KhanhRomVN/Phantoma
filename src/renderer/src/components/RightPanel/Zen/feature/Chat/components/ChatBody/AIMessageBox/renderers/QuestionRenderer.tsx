@@ -16,6 +16,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
 import { Question, QuestionAnswer, QuestionType } from '../../../../types/message';
+import { QUESTION_TRANSITION_DELAY } from '../../../../constants/ui';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -197,7 +198,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
         setIsSummaryMode(true);
         onAllAnsweredProp?.(newAnswers);
       }
-    }, 300);
+    }, QUESTION_TRANSITION_DELAY);
   };
   const handleConfirm = (value: boolean) => {
     if (disabled || isAllAnswered || !isPaginated || !currentQuestion) return;

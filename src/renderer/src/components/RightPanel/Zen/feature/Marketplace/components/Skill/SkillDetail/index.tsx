@@ -26,7 +26,7 @@ export function SkillDetail({
   return (
     <div className="h-full flex flex-col">
       <SkillDetailBreadcrumb name={skill.name} onBack={onBack} />
-      <div className="flex-1 overflow-y-auto p-5">
+      <div className="flex-1 min-w-0 overflow-y-auto p-[clamp(12px,4vw,20px)]">
         <SkillDetailHero
           skill={skill}
           installed={installed}

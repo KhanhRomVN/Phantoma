@@ -29,23 +29,48 @@ import { $ } from '@renderer/utils/color';
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 
-// ─── Constants ──────────────────────────────────────────────────────────
-const ABSOLUTE_PATH_REGEX = /^(\/[^\s<>"'`]+|[A-Za-z]:\\[^\s<>"'`]+)/;
-const RELATIVE_PATH_WITH_FOLDERS_REGEX = /^[^\s<>"'`|*?:]+[/\\][^\s<>"'`|*?:]+\.[a-zA-Z0-9]{1,10}$/;
-const FILENAME_REGEX = /^[^\s/\\<>"'`]+\.[a-zA-Z0-9]{1,10}$/;
+
+// Path utils inlined
 const isLikelyFolder = (token: string): boolean => {
   if (token.endsWith('/') || token.endsWith('\\')) return true;
-  if (ABSOLUTE_PATH_REGEX.test(token)) {
-    const lastSegment =
-      token
-        .replace(/[/\\]$/, '')
-        .split(/[/\\]/)
-        .pop() || '';
+  if (/^([a-zA-Z]:|~|\/|\\\\)/.test(token)) {
+    const lastSegment = token.replace(/[\/\\]$/, '').split(/[\/\\]/).pop() || '';
     return !lastSegment.includes('.');
   }
   return false;
 };
 
+const isFilePath = (text: string): boolean => {
+  return (text.includes('/') || text.includes('\\')) && /\.[a-zA-Z0-9]{1,10}$/.test(text);
+};
+
+const getFilename = (path: string): string => path.split(/[\/\\]/).pop() || path;
+
+const shortenPath = (fullPath: string, maxLength: number = 60): string => {
+  if (fullPath.length <= maxLength) return fullPath;
+  const parts = fullPath.split(/[\/\\]/);
+  if (parts.length <= 2) return fullPath;
+  const filename = parts[parts.length - 1];
+  const firstFolder = parts[0];
+  const fixedLength = firstFolder.length + filename.length + 5;
+  if (fixedLength >= maxLength) return `${firstFolder}/../${filename}`;
+  const fullMiddle = parts.slice(1, -1).join('/');
+  if (firstFolder.length + fullMiddle.length + filename.length + 2 <= maxLength) return fullPath;
+  return `${firstFolder}/../${filename}`;
+};
+
+const isAbsolutePath = (text: string): boolean => {
+  return /^([a-zA-Z]:|~|\/|\\\\)/.test(text);
+};
+
+const isRelativePathWithFolders = (text: string): boolean => {
+  return /^(?:\.\.?\/|[^/]+\/)/.test(text);
+};
+
+const isFilename = (text: string): boolean => {
+  return /^[^/\\]+\.[a-zA-Z0-9]{1,10}$/.test(text);
+};
+import { PATH_CHIP_ICON_SIZE } from '../../../../constants/ui';
 interface PathChipProps {
   displayText: string;
   resolvedPath: string;
@@ -78,7 +103,7 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
       <img
         src={isFolder ? getFolderIconPath(resolvedPath) : getFileIconPath(resolvedPath)}
         alt=""
-        style={{ width: '12px', height: '12px', flexShrink: 0 }}
+        style={{ width: `${PATH_CHIP_ICON_SIZE}px`, height: `${PATH_CHIP_ICON_SIZE}px`, flexShrink: 0 }}
       />
       {displayText}
     </span>
@@ -86,54 +111,6 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
 };
 
 type ReactChild = React.ReactNode;
-
-// Helper to extract filename from path
-const getFilename = (path: string): string => {
-  return path.split(/[/\\]/).pop() || path;
-};
-
-// Helper to shorten path for display: folder/.../file
-const shortenPath = (fullPath: string, maxLength: number = 50): string => {
-  if (fullPath.length <= maxLength) {
-    return fullPath;
-  }
-
-  const parts = fullPath.split(/[/\\]/);
-  if (parts.length <= 2) {
-    return fullPath;
-  }
-
-  const filename = parts[parts.length - 1];
-  const firstFolder = parts[0];
-
-  // Calculate remaining space for middle part
-  const fixedLength = firstFolder.length + filename.length + 5; // +5 for "/../"
-
-  if (fixedLength >= maxLength) {
-    // If first folder + file is already too long, just show folder/../file
-    return `${firstFolder}/../${filename}`;
-  }
-
-  // Try to fit as many middle folders as possible
-  let result = `${firstFolder}`;
-  let remainingParts = parts.slice(1, -1);
-
-  // Check if we can fit all middle parts
-  const fullMiddle = remainingParts.join('/');
-  if (result.length + fullMiddle.length + filename.length + 2 <= maxLength) {
-    return fullPath;
-  }
-
-  // Otherwise, abbreviate
-  return `${firstFolder}/../${filename}`;
-};
-
-// Helper to check if text looks like a file path
-const isFilePath = (text: string): boolean => {
-  // Check for path patterns: contains / or \, and has file extension
-  return (text.includes('/') || text.includes('\\')) && /\.[a-zA-Z0-9]{1,10}$/.test(text);
-};
-
 const domNodeToReact = (
   node: Node,
   key: string | number,
@@ -168,17 +145,17 @@ const domNodeToReact = (
 
     if (text.length >= 2) {
       // Case 1: absolute path → always a PathChip
-      if (ABSOLUTE_PATH_REGEX.test(text)) {
+      if (isAbsolutePath(text)) {
         return <PathChip key={key} displayText={text} resolvedPath={text} />;
       }
 
       // Case 2: relative path containing folders → always a PathChip
-      if (RELATIVE_PATH_WITH_FOLDERS_REGEX.test(text)) {
+      if (isRelativePathWithFolders(text)) {
         return <PathChip key={key} displayText={text} resolvedPath={text} />;
       }
 
       // Case 3: basename-only with extension → only PathChip if found in history
-      if (FILENAME_REGEX.test(text)) {
+      if (isFilename(text)) {
         const resolvedPath = knownFilePaths.get(text);
         if (resolvedPath) {
           return <PathChip key={key} displayText={text} resolvedPath={resolvedPath} />;

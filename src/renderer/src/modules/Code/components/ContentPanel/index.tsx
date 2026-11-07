@@ -566,9 +566,10 @@ ContentPanelInner.displayName = 'ContentPanelInner';
 
 // ─── ContentPanel Wrapper ────────────────────────────────────────────────────
 export const ContentPanel = memo(function ContentPanel() {
+  const contentViewMode = useCodeStore((s) => s.contentViewMode);
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <ContentHeaderBar />
+      {contentViewMode !== 'git' && <ContentHeaderBar />}
       <ContentPanelInner />
     </div>
   );

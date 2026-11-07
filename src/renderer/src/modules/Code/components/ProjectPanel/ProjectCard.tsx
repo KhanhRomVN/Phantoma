@@ -25,6 +25,10 @@ import {
   Plus,
   Kanban,
   GitGraph,
+  MonitorUp,
+  PowerOff,
+  Unlink,
+  X,
   Circle,
   Square,
   Triangle,
@@ -48,6 +52,15 @@ import {
 
 // ── Utils ─
 import { cn } from '@renderer/shared/utils/cn';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+} from '@renderer/components/ui/Dropdown';
+import { closeTargetOwner } from '@renderer/shared/target-lock/useTargetLock';
+import { toBranchTargetId } from './ProjectConflictModal';
 
 // ── Types & Constants ──
 import {
@@ -89,6 +102,12 @@ interface ProjectCardProps {
   isSelected: boolean;
   /** Whether this project is the CURRENTLY ACTIVE project in the store */
   isProjectSelected?: boolean;
+  /** Tên các branch của project đang được một cửa sổ KHÁC thao tác */
+  busyBranchNames?: ReadonlySet<string>;
+  /** Yêu cầu cửa sổ khác bỏ chọn branch này */
+  onReleaseElsewhere?: (projectId: string, branchName: string) => void;
+  /** Chuyển focus sang cửa sổ đang giữ branch này */
+  onFocusElsewhere?: (projectId: string, branchName: string) => void;
   /** Select this project as active (without toggling expansion) */
   onSelectProject?: (projectId: string) => void;
   selectedSessionId: string | null;
@@ -286,6 +305,63 @@ export function ProjectIcon({
   );
 }
 
+/** Badge: branch đang được một cửa sổ KHÁC mở */
+const BusyBadge = memo(function BusyBadge({
+  projectId,
+  branchName,
+  onFocus,
+  onRelease,
+}: {
+  projectId: string;
+  branchName: string;
+  onFocus: () => void;
+  onRelease: () => void;
+}) {
+  return (
+    <div className="inline-flex items-center h-[18px] rounded-[5px] shrink-0 text-[9.5px] font-medium text-amber-500 bg-amber-500/10">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onFocus();
+        }}
+        className="inline-flex items-center gap-1 h-full pl-1.5 pr-1 cursor-pointer hover:bg-amber-500/20 transition-colors"
+        title="Open in another window — click to switch to it"
+      >
+        <MonitorUp className="w-3 h-3" />
+        Other window
+      </button>
+      <span onClick={(e) => e.stopPropagation()}>
+        <Dropdown strategy="fixed" side="bottom" align="end" sideOffset={4}>
+          <DropdownTrigger asChild>
+            <button
+              className="inline-flex items-center justify-center h-[18px] px-1 rounded-r-[5px] cursor-pointer hover:bg-amber-500/20 transition-colors"
+              title="More actions"
+            >
+              <MoreVertical className="w-3 h-3" />
+            </button>
+          </DropdownTrigger>
+          <DropdownContent>
+            <DropdownItem icon={<MonitorUp className="w-3.5 h-3.5" />} onClick={onFocus}>
+              Switch to that window
+            </DropdownItem>
+            <DropdownItem icon={<Unlink className="w-3.5 h-3.5" />} onClick={onRelease}>
+              Unselect branch in that window
+            </DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem
+              variant="error"
+              icon={<PowerOff className="w-3.5 h-3.5" />}
+              onClick={() => closeTargetOwner('code', toBranchTargetId(projectId, branchName))}
+            >
+              Close that window
+            </DropdownItem>
+          </DropdownContent>
+        </Dropdown>
+      </span>
+    </div>
+  );
+});
+
 /** Collapsed view: compact branch tree with inline session display */
 function CollapsedTree({
   project,
@@ -301,6 +377,9 @@ function CollapsedTree({
   onDragOver,
   onDrop,
   onExpandProject,
+  busyBranchNames,
+  onFocusElsewhere,
+  onReleaseElsewhere,
 }: {
   project: ProjectExtended;
   selectedSessionId: string | null;
@@ -315,6 +394,9 @@ function CollapsedTree({
   onDragOver: ProjectCardProps['onDragOver'];
   onDrop: ProjectCardProps['onDrop'];
   onExpandProject: () => void;
+  busyBranchNames?: ReadonlySet<string>;
+  onFocusElsewhere?: ProjectCardProps['onFocusElsewhere'];
+  onReleaseElsewhere?: ProjectCardProps['onReleaseElsewhere'];
 }) {
   const [expandedBranchName, setExpandedBranchName] = useState<string | null>(null);
   
@@ -371,6 +453,9 @@ function CollapsedTree({
                 onDragEnd={onDragEnd}
                 onDragOver={onDragOver}
                 onDrop={onDrop}
+                busyElsewhere={busyBranchNames?.has(b.name)}
+                onFocusElsewhere={onFocusElsewhere}
+                onReleaseElsewhere={onReleaseElsewhere}
               />
             </div>
           );
@@ -403,7 +488,23 @@ function CollapsedTree({
                   return;
                 }
 
-                // Priority 2: No session yet -> fallback to expansion logic
+                // Priority 2: If the project has exactly 2 visible branches and this branch has no session,
+                // select the FIRST idle branch that has a session instead of expanding.
+                if (vb.length === 2) {
+                  const firstIdleBranchWithSession = vb.find(
+                    (br) => br.name !== b.name && getNewestSession(br) !== null
+                  );
+                  if (firstIdleBranchWithSession) {
+                    const session = getNewestSession(firstIdleBranchWithSession);
+                    if (session) {
+                      onExpandProject();
+                      onSelectSession(session.id);
+                      return;
+                    }
+                  }
+                }
+
+                // Priority 3: No session yet -> fallback to expansion logic
                 // If the project has only ONE visible branch, expanding the whole card makes more sense
                 if (vb.length === 1) {
                   onExpandProject();
@@ -427,6 +528,14 @@ function CollapsedTree({
               >
                 {stripPrefix(b.name)}
               </span>
+              {busyBranchNames?.has(b.name) && (
+                <BusyBadge
+                  projectId={project.id}
+                  branchName={b.name}
+                  onFocus={() => onFocusElsewhere?.(project.id, b.name)}
+                  onRelease={() => onReleaseElsewhere?.(project.id, b.name)}
+                />
+              )}
               <span className="flex items-center gap-[5px] shrink-0">
                 {n &&
                   agents
@@ -450,7 +559,7 @@ function CollapsedTree({
   );
 }
 /** Branch block inside expanded project */
-const BranchBlock = memo(function BranchBlock({
+export const BranchBlock = memo(function BranchBlock({
   project,
   branch,
   selectedSessionId,
@@ -464,6 +573,9 @@ const BranchBlock = memo(function BranchBlock({
   onDragEnd,
   onDragOver,
   onDrop,
+  busyElsewhere = false,
+  onFocusElsewhere,
+  onReleaseElsewhere,
 }: {
   project: ProjectExtended;
   branch: BranchInfo;
@@ -478,6 +590,9 @@ const BranchBlock = memo(function BranchBlock({
   onDragEnd: ProjectCardProps['onDragEnd'];
   onDragOver: ProjectCardProps['onDragOver'];
   onDrop: ProjectCardProps['onDrop'];
+  busyElsewhere?: boolean;
+  onFocusElsewhere?: ProjectCardProps['onFocusElsewhere'];
+  onReleaseElsewhere?: ProjectCardProps['onReleaseElsewhere'];
 }) {
   const newest = getNewestSession(branch);
   const busy = !!newest && ['running', 'queued', 'blocked', 'review'].includes(newest.status);
@@ -506,6 +621,15 @@ const BranchBlock = memo(function BranchBlock({
       >
         <GitBranch className="w-[13px] h-[13px] shrink-0 text-text-secondary/70" />
         <span className="flex-1 min-w-0 truncate">{branch.name}</span>
+
+        {busyElsewhere && (
+          <BusyBadge
+            projectId={project.id}
+            branchName={branch.name}
+            onFocus={() => onFocusElsewhere?.(project.id, branch.name)}
+            onRelease={() => onReleaseElsewhere?.(project.id, branch.name)}
+          />
+        )}
 
         {/* New session button — hidden if there's already a session */}
         {!newest && (
@@ -571,6 +695,9 @@ export const ProjectCard = memo(function ProjectCard({
   project,
   isSelected,
   isProjectSelected = false,
+  busyBranchNames,
+  onReleaseElsewhere,
+  onFocusElsewhere,
   onSelectProject,
   selectedSessionId,
   isTaskManagerActive,
@@ -593,6 +720,7 @@ export const ProjectCard = memo(function ProjectCard({
   onDrop,
 }: ProjectCardProps) {
   const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === project.id)?.path ?? '');
+
   const projectTasks = useSessionTasks((s) => s.byPath[projectPath]);
   const loadTasks = useSessionTasks((s) => s.load);
   useEffect(() => {
@@ -626,7 +754,7 @@ export const ProjectCard = memo(function ProjectCard({
         'relative shrink-0 border-y border-divider overflow-hidden transition-colors',
         project.hidden && 'opacity-50',
         // Selected project indicator — subtle accent strip + tinted background
-        isProjectSelected && 'bg-[rgba(255,106,31,0.04)]',
+        isProjectSelected && 'bg-primary/[0.04]',
       )}
       data-project-selected={isProjectSelected ? 'true' : undefined}
       draggable={draggable}
@@ -642,7 +770,7 @@ export const ProjectCard = memo(function ProjectCard({
         className={cn(
           "group/top relative flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none transition-colors",
           !isGlobalDragging && "hover:bg-white/[0.02]",
-          isProjectSelected && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-[#ff6a1f]",
+          isProjectSelected && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-primary",
         )}
         onClick={() => {
           if (isGlobalDragging) return;
@@ -666,6 +794,8 @@ export const ProjectCard = memo(function ProjectCard({
           >
             {project.name}
           </span>
+
+
           
           {/* Elements hidden via CSS during drag to preserve DOM structure and prevent flickering/layout shifts */}
           <div data-drag-hide className={cn("contents", isGlobalDragging && "hidden")}>
@@ -674,14 +804,7 @@ export const ProjectCard = memo(function ProjectCard({
                 hidden
               </span>
             )}
-            {hasGit === false && (
-              <span
-                className="text-[9.5px] text-text-secondary/50 border border-border rounded px-[5px] whitespace-nowrap"
-                title="This folder is not a git repository — Code module still works, but git features are disabled"
-              >
-                no git
-              </span>
-            )}
+
             <KebabButton onClick={openMenuAt} />
             <button
               onClick={(e) => {
@@ -691,7 +814,7 @@ export const ProjectCard = memo(function ProjectCard({
               className={cn(
                 'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors cursor-pointer',
                 isTaskManagerActive
-                  ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
+                  ? 'text-primary bg-primary/10'
                   : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
               )}
               title={isTaskManagerActive ? 'Close Task Manager' : 'Open Task Manager'}
@@ -711,7 +834,7 @@ export const ProjectCard = memo(function ProjectCard({
                   ? 'text-text-secondary/30 cursor-not-allowed'
                   : 'cursor-pointer ' +
                       (isGitActive
-                        ? 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]'
+                        ? 'text-primary bg-primary/10'
                         : 'text-text-secondary hover:bg-card-hover hover:text-text-primary'),
               )}
               title={
@@ -763,17 +886,10 @@ export const ProjectCard = memo(function ProjectCard({
 
       {/* ── CONTENT AREA: Hidden via CSS during drag to preserve DOM structure ── */}
       <div className={cn(isGlobalDragging && "hidden")}>
-        {/* No git repo: don't show branch/session tree (branches are git-based). */}
-        {hasGit === false && (
-          <div className={cn(
-            "pl-3 pr-2 text-[11px] text-text-secondary/50",
-            isSelected ? "pb-3 pt-0.5" : "pb-2.5",
-          )}>
-            No git repository — Code module still works in file mode.
-          </div>
-        )}
 
-        {hasGit !== false && !isSelected && (
+
+
+        {!isSelected && (
           <div className="flex flex-col gap-px pl-3 pr-2 pb-2.5 transition-opacity duration-150">
             <CollapsedTree
               project={project}
@@ -789,11 +905,14 @@ export const ProjectCard = memo(function ProjectCard({
               onDragOver={onDragOver}
               onDrop={onDrop}
               onExpandProject={() => onToggleProject(project.id)}
+              busyBranchNames={busyBranchNames}
+              onFocusElsewhere={onFocusElsewhere}
+              onReleaseElsewhere={onReleaseElsewhere}
             />
           </div>
         )}
 
-        {hasGit !== false && isSelected && (
+        {isSelected && (
           <div className="px-3 pt-0.5 pb-3 flex flex-col gap-3.5 relative animate-in fade-in slide-in-from-top-1 duration-150">
             {visBranches.length > 0 ? (
               visBranches.map((branch) => (
@@ -812,6 +931,9 @@ export const ProjectCard = memo(function ProjectCard({
                   onDragEnd={onDragEnd}
                   onDragOver={onDragOver}
                   onDrop={onDrop}
+                  busyElsewhere={busyBranchNames?.has(branch.name)}
+                  onFocusElsewhere={onFocusElsewhere}
+                  onReleaseElsewhere={onReleaseElsewhere}
                 />
               ))
             ) : (

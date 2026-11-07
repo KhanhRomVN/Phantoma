@@ -16,14 +16,16 @@ import { useMemo, useRef } from 'react';
 import { Message } from '../../types/message';
 
 // ── Services ──
-import { parseAIResponse } from '../../services/ResponseParser';
+import { parseAIResponse } from '../../services/responseParser';
+import { DEFAULT_TOOL_FORMAT } from '../../services/tool-format-parsers';
+import type { ToolFormatId } from '../../services/tool-format-parsers/types';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 export const useMessageParsing = (
   messages: Message[],
   isStreaming: boolean,
   feature?: string | null,
-  toolFormat: 'xml' | 'json' = 'xml',
+  toolFormat: ToolFormatId = DEFAULT_TOOL_FORMAT,
 ) => {
   // Parse cache — reuse results across renders, avoiding redundant re-parses
   // when only unrelated state changes (same messages array, same content).

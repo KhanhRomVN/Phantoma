@@ -22,6 +22,9 @@ export interface CommitFile {
   path: string;
   added: number;
   deleted: number;
+  staged?: boolean;
+  unstaged?: boolean;
+  untracked?: boolean;
 }
 
 export interface GraphRow {

@@ -1,5 +1,5 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
-import { GitDiffParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
+import type { GitDiffParams } from '../types/tool-params';
 
 /**
  * Parse git_diff tag from AI response

@@ -29,6 +29,8 @@ setupLogger();
 // Import core modules
 import { windowManager } from './core/window/WindowManager';
 import { startShellServer, stopServers } from './services/server-spawner';
+import { killAllTerminals } from './ipc/terminal.handlers';
+import { stopAllDebug } from './ipc/debug.handlers';
 
 // Import IPC handlers
 import {
@@ -36,9 +38,11 @@ import {
   setupFSHandlers,
   setupDialogHandlers,
   setupWindowHandlers,
+  setupTargetLockHandlers,
   setupTerminalHandlers,
   setupGitHandlers,
   setupTaskHandlers,
+  setupWorkflowHandlers,
   setupLoggerHandlers,
   registerWorkspaceHandlers,
   setupReconHandlers,
@@ -49,6 +53,7 @@ import {
   setupDesignHandlers,
   setupConversationHandlers,
   setupRuntimeHandlers,
+  setupDebugHandlers,
 } from './ipc';
 
 // Ensure certificate directory exists for http-mitm-proxy
@@ -70,9 +75,11 @@ app.whenReady().then(() => {
   setupFSHandlers();
   setupDialogHandlers();
   setupWindowHandlers();
+  setupTargetLockHandlers();
   setupTerminalHandlers();
   setupGitHandlers();
   setupTaskHandlers();
+  setupWorkflowHandlers();
   registerWorkspaceHandlers();
   setupReconHandlers(); // Browser automation via recon server
   setupMemoryHandlers();
@@ -82,14 +89,23 @@ app.whenReady().then(() => {
   setupDesignHandlers();
   setupConversationHandlers();
   setupRuntimeHandlers();
+  setupDebugHandlers();
 
   // Packaged build: spawn shell server (emulate starts on-demand)
   startShellServer()
     .catch((err) => logger.error('[Main] startShellServer failed:', err))
     .finally(() => windowManager.createMainWindow());
 
-  app.on('before-quit', () => {
+  let cleanedUp = false;
+  app.on('before-quit', (event) => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    event.preventDefault();
+    stopAllDebug();
     stopServers();
+    killAllTerminals()
+      .catch((err) => logger.error('[Main] killAllTerminals failed:', err))
+      .finally(() => app.quit());
   });
 
   // Lifecycle: Quit behavior

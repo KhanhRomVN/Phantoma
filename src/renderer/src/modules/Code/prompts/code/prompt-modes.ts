@@ -1,91 +1,86 @@
-// src/webview-ui/src/features/chat/prompts/prompt-modes.ts
-import { buildIdentityPrompt } from "./identity";
-import { buildSystemContext, type SystemInfo } from "./system-context";
-import { buildWorkflow } from "./workflow";
-import { buildConstraints } from "./constraints";
-import { TOOL_VALIDATION, TOOL_VALIDATION_JSON } from "./tool-validation";
-import { TOOLS_REFERENCE, TOOLS_REFERENCE_JSON } from "./tools-reference";
-import { buildExample } from "./example";
-import type { SystemPromptMode, PromptLengthMode } from "./mode-config";
+import type { SystemPromptMode } from './config';
+import { DEFAULT_TOOL_FORMAT, type ToolFormat } from './tool-format';
+import type { SystemInfo } from './system-context';
+import { buildIdentityPrompt } from './identity';
+import { buildWorkflow } from './workflow';
+import { buildConstraints } from './constraints';
+import { buildExample } from './example';
+import { getToolReference } from './tools-reference';
+import { getToolValidation } from './tool-validation';
+import { buildSystemContext } from './system-context';
 
-export type { SystemPromptMode, PromptLengthMode } from "./mode-config";
+export type { SystemPromptMode } from './config';
+
+export type PromptLengthMode = 'short' | 'medium' | 'long' | 'none';
 
 export interface PromptModeConfig {
   language: string;
   systemInfo: SystemInfo;
   promptLengthMode?: PromptLengthMode;
-
-  /** Định dạng tool calls: 'xml' (mặc định) hoặc 'json' */
-  toolFormat?: "xml" | "json";
+  toolFormat?: ToolFormat;
 }
 
-/**
- * Section ordering rule (see note below on caching): content that is
- * 100% identical across every request — TOOL_VALIDATION, TOOLS_REFERENCE,
- * and the EXAMPLE block — none of these read `mode`, `language`, or
- * `systemInfo` beyond the small, enumerable mode switch in buildExample —
- * comes FIRST, forming a stable prefix that provider-side prompt caching
- * can reuse turn after turn and across users/modes. Content that varies by
- * mode/language (identity, workflow, constraints) comes next, and the most
- * volatile block — system info, which can change mid-session (cwd, shell) —
- * goes LAST, so its churn never invalidates the cache of everything before
- * it.
- */
-export function buildPromptForMode(
-  config: PromptModeConfig,
-  mode: SystemPromptMode,
-): string {
+// ─────────────────────────────────────────────────────────────────────────────
+// Sections
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Everything a section builder may need. */
+interface BuildContext {
+  mode: SystemPromptMode;
+  language: string;
+  systemInfo: SystemInfo;
+  toolFormat: ToolFormat;
+}
+
+type SectionKey =
+  | 'validation'
+  | 'reference'
+  | 'example'
+  | 'identity'
+  | 'workflow'
+  | 'constraints'
+  | 'systemContext';
+
+const SECTION_BUILDERS: Record<SectionKey, (ctx: BuildContext) => string> = {
+  validation: ({ toolFormat }) => getToolValidation(toolFormat),
+  reference: ({ toolFormat }) => getToolReference(toolFormat),
+  example: ({ mode, toolFormat }) => buildExample(mode, toolFormat),
+  identity: ({ language, mode, toolFormat }) => buildIdentityPrompt(language, mode, toolFormat),
+  workflow: ({ mode, toolFormat }) => buildWorkflow(mode, toolFormat),
+  constraints: ({ mode, language, toolFormat }) => buildConstraints(mode, language, toolFormat),
+  systemContext: ({ systemInfo, mode }) => buildSystemContext(systemInfo, mode),
+};
+
+const LENGTH_PLANS: Record<Exclude<PromptLengthMode, 'none'>, readonly SectionKey[]> = {
+  // Ultra compact: tool reference + minimal identity/workflow + system context.
+  short: ['reference', 'identity', 'workflow', 'systemContext'],
+  medium: ['validation', 'reference', 'identity', 'workflow', 'constraints', 'systemContext'],
+  // Full prompt, including EXAMPLES (trimmed per mode by buildExample).
+  long: [
+    'validation',
+    'reference',
+    'example',
+    'identity',
+    'workflow',
+    'constraints',
+    'systemContext',
+  ],
+};
+
+const SECTION_SEPARATOR = '\n\n---\n\n';
+
+export function buildPromptForMode(config: PromptModeConfig, mode: SystemPromptMode): string {
   const {
     language,
     systemInfo,
-    promptLengthMode = "long",
-
-    toolFormat = "xml",
+    promptLengthMode = 'long',
+    toolFormat = DEFAULT_TOOL_FORMAT,
   } = config;
 
-  const toolsRef =
-    toolFormat === "json" ? TOOLS_REFERENCE_JSON : TOOLS_REFERENCE;
-  const toolValidation =
-    toolFormat === "json" ? TOOL_VALIDATION_JSON : TOOL_VALIDATION;
+  if (promptLengthMode === 'none') return '';
 
-  // None — không gửi system prompt nào cả
-  if (promptLengthMode === "none") {
-    return "";
-  }
-
-  if (promptLengthMode === "short") {
-    // Short — Ultra compact: static tool reference + minimal identity/workflow + system context.
-    const sections = [
-      toolsRef,
-      buildIdentityPrompt(language, mode, toolFormat),
-      buildWorkflow(mode, toolFormat),
-      buildSystemContext(systemInfo, mode),
-    ];
-    return sections.join("\n\n---\n\n");
-  }
-
-  if (promptLengthMode === "medium") {
-    const sections = [
-      toolValidation,
-      toolsRef,
-      buildIdentityPrompt(language, mode, toolFormat),
-      buildWorkflow(mode, toolFormat),
-      buildConstraints(mode, language, toolFormat),
-      buildSystemContext(systemInfo, mode),
-    ];
-    return sections.join("\n\n---\n\n");
-  }
-
-  // Long — full prompt, including EXAMPLES (itself now trimmed per-mode,
-  // see buildExample in example.ts).
-  const sections = [
-    toolValidation,
-    toolsRef,
-    buildExample(mode, toolFormat),
-    buildIdentityPrompt(language, mode, toolFormat),
-    buildWorkflow(mode, toolFormat),
-    buildConstraints(mode, language, toolFormat),
-    buildSystemContext(systemInfo, mode),
-  ];
-  return sections.join("\n\n---\n\n");
+  const ctx: BuildContext = { mode, language, systemInfo, toolFormat };
+  return LENGTH_PLANS[promptLengthMode]
+    .map((key) => SECTION_BUILDERS[key](ctx))
+    .join(SECTION_SEPARATOR);
 }

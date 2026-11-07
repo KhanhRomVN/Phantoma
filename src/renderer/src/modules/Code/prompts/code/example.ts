@@ -1,8 +1,14 @@
-// src/webview-ui/src/features/chat/prompts/example.ts
-import type { SystemPromptMode } from "./mode-config";
-import { MODE_BEHAVIORS } from "./mode-config";
+import {
+  DEFAULT_TOOL_FORMAT,
+  type ToolFormat,
+} from "./tool-format";
+import { MODE_BEHAVIORS, type SystemPromptMode } from "./config";
 
-const EXAMPLE_HEADER_AND_CORE = `# EXAMPLES
+// ─────────────────────────────────────────────────────────────────────────────
+// XML
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EXAMPLE_HEADER_AND_CORE_XML = `# EXAMPLES
 This section shows how each tool is used correctly, and how several tools are combined into realistic multi-turn batches. Titles and descriptions are for your reference only — never output them to the user. Follow the XML tag format exactly as defined in TOOLS REFERENCE and TOOL VALIDATION.
 
 ## PART 1 — SINGLE-TOOL EXAMPLES
@@ -310,15 +316,7 @@ export function createWishlistStore() {
 \`\`\`
 `;
 
-/**
- * Only these two batches are gated by mode. Both demonstrate rules
- * (IMPACT-CONFIRM, RE-CLARIFY) that are THEMSELVES mode-dependent in
- * constraints.ts — e.g. "almost-never" mode explicitly says "IMPACT-CONFIRM:
- * Skip for normal changes" and "RE-CLARIFY: Not required". Feeding these
- * <question>-heavy worked examples into "fast"/"autopilot" contradicted
- * those modes' own "almost never ask" instructions.
- */
-const EXAMPLE_CONFIRMATION_BATCHES = `
+const EXAMPLE_CONFIRMATION_BATCHES_XML = `
 **Description**: A change touches a shared type used by multiple modules. Exploration and a Pass 3 impact list happen first; execution is held until the user confirms via <question>.
 \`\`\`xml
 <!-- Turn 1: explore how widely the shared type is used before proposing anything -->
@@ -345,7 +343,7 @@ const EXAMPLE_CONFIRMATION_BATCHES = `
 \`\`\`
 `;
 
-const EXAMPLE_CORE_TAIL = `
+const EXAMPLE_CORE_TAIL_XML = `
 ### Batch 7: Runtime bug fix — never self-declare "fixed"
 **Description**: RUNTIME-VERIFY: after touching IPC/UI/runtime logic, the assistant reports what changed and explicitly asks the user to test, rather than claiming success without evidence.
 \`\`\`xml
@@ -474,16 +472,19 @@ Commit messages must be written in English, even though chat replies are in Viet
 \`\`\`
 `;
 
-// ─── JSON FORMAT EXAMPLES ────────────────────────────────────────────────────
-// In JSON mode, EVERYTHING is a JSON object in its own fenced ```json block:
-//   - Tool call:  {"tool":"...","params":{...}}
-//   - UI object:  {"type":"markdown"|"code"|"question", ...}
-// No XML tags of any kind appear in this section.
+export const buildXmlExample = (includeConfirmationBatches = true): string =>
+  EXAMPLE_HEADER_AND_CORE_XML +
+  (includeConfirmationBatches ? EXAMPLE_CONFIRMATION_BATCHES_XML : '') +
+  EXAMPLE_CORE_TAIL_XML;
 
-const EXAMPLE_HEADER_AND_CORE_JSON = `# EXAMPLES (JSON FORMAT)
+// ─────────────────────────────────────────────────────────────────────────────
+// JSON
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EXAMPLE_HEADER_AND_CORE_JSON = `# EXAMPLES
 This section shows how each tool is used correctly in JSON format, and how tools are combined into realistic multi-turn batches. Titles and descriptions are for your reference only — never output them to the user. Each object is a single JSON value inside its own fenced \`\`\`json block, per the schema defined in TOOLS REFERENCE and TOOL VALIDATION.
 
-> **100% JSON**: In JSON mode there is NO XML — not tool tags, not UI tags. Everything is a JSON object. Two shapes exist, distinguished by their top-level key: tool calls have \`"tool"\`, UI objects have \`"type"\` (\`"markdown"\` | \`"code"\` | \`"question"\`). Never emit \`<markdown>\`, \`<code>\`, \`<question>\`, \`<read_file>\`, or any other \`<...>\` tag.
+> **JSON format**: Everything is a JSON object. Two shapes exist, distinguished by their top-level key: tool calls have \`"tool"\`, UI objects have \`"type"\` (\`"markdown"\` | \`"code"\` | \`"question"\`).
 
 ## PART 1 — SINGLE-TOOL EXAMPLES
 
@@ -621,13 +622,13 @@ This section shows how each tool is used correctly in JSON format, and how tools
 \`\`\`
 
 ### Example: markdown UI object
-**Description**: Prose, explanations, status messages — emitted as a \`markdown\` UI object instead of a \`<markdown>\` tag.
+**Description**: Prose, explanations, status messages.
 \`\`\`json
 {"type":"markdown","content":"Đã đọc xong 3 file. Chuẩn bị cập nhật logic tính tổng giỏ hàng."}
 \`\`\`
 
 ### Example: code UI object
-**Description**: A read-only code display block — emitted as a \`code\` UI object instead of a \`<code>\` tag.
+**Description**: A read-only code display block.
 \`\`\`json
 {"type":"code","language":"ts","content":"function getTotal(items: CartItem[]): number {\\n  return items.reduce((sum, i) => sum + i.price * i.quantity, 0);\\n}"}
 \`\`\`
@@ -899,6 +900,22 @@ Turn 2 — later, confirm what is currently stored before appending more:
 \`\`\`
 `;
 
+export const buildJsonExample = (includeConfirmationBatches = true): string =>
+  EXAMPLE_HEADER_AND_CORE_JSON +
+  (includeConfirmationBatches ? EXAMPLE_CONFIRMATION_BATCHES_JSON : '') +
+  EXAMPLE_CORE_TAIL_JSON;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PICK BY FORMAT + MODE
+// ─────────────────────────────────────────────────────────────────────────────
+
+type ExampleBuilder = (includeConfirmationBatches: boolean) => string;
+
+const EXAMPLES: Record<ToolFormat, ExampleBuilder> = {
+  xml: buildXmlExample,
+  json: buildJsonExample,
+};
+
 /**
  * Builds the EXAMPLES section for the given mode. Only the two batches that
  * demonstrate mode-gated rules are conditional; every other batch documents
@@ -906,24 +923,10 @@ Turn 2 — later, confirm what is currently stored before appending more:
  */
 export const buildExample = (
   mode: SystemPromptMode,
-  toolFormat: "xml" | "json" = "xml",
+  toolFormat: ToolFormat = DEFAULT_TOOL_FORMAT,
 ): string => {
-  const behavior = MODE_BEHAVIORS[mode];
+  const { askConfirmation } = MODE_BEHAVIORS[mode];
   const includeConfirmationBatches =
-    behavior.askConfirmation !== "minimal" &&
-    behavior.askConfirmation !== "almost-never";
-
-  if (toolFormat === "json") {
-    return (
-      EXAMPLE_HEADER_AND_CORE_JSON +
-      (includeConfirmationBatches ? EXAMPLE_CONFIRMATION_BATCHES_JSON : "") +
-      EXAMPLE_CORE_TAIL_JSON
-    );
-  }
-
-  return (
-    EXAMPLE_HEADER_AND_CORE +
-    (includeConfirmationBatches ? EXAMPLE_CONFIRMATION_BATCHES : "") +
-    EXAMPLE_CORE_TAIL
-  );
+    askConfirmation !== 'minimal' && askConfirmation !== 'almost-never';
+  return EXAMPLES[toolFormat](includeConfirmationBatches);
 };

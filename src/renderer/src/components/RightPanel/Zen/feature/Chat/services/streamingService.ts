@@ -1,0 +1,322 @@
+/**
+ * ------------------------------------------------------------------
+ * Streaming Service
+ * ------------------------------------------------------------------
+ * Xử lý SSE streaming từ LLM backend.
+ * Parse chunks, extract metadata/usage/content/thinking, và flush batch.
+ *
+ * Main functions:
+ * - streamChat() : Stream chat response từ API với SSE
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
+import { Message } from '../types/message';
+
+// ── Utils ──
+
+// ── Local ──
+import { calculateTokens } from './conversationService';
+import mockResponse from '../__mock__/mock-response.txt?raw';
+
+const MOCK_CHUNK_SIZE = 40;
+
+const createMockResponse = (text: string): Response => {
+  const encoder = new TextEncoder();
+  let offset = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (offset >= text.length) {
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+        return;
+      }
+      const content = text.slice(offset, offset + MOCK_CHUNK_SIZE);
+      offset += MOCK_CHUNK_SIZE;
+      controller.enqueue(
+        encoder.encode(`data: ${JSON.stringify({ content })}\n\n`),
+      );
+    },
+  });
+  return new Response(stream, { status: 200 });
+};
+
+// ─── Types ──────────────────────────────────────────────────────────────
+export interface StreamConfig {
+  apiUrl: string;
+  model: any;
+  account: any;
+  messages: Array<{ role: string; content: string }>;
+  conversationId?: string;
+  parentMessageId?: string;
+  refFileIds?: string[];
+  abortSignal: AbortSignal;
+  /** Pre-generated UUID for Qwen provider to track message identity for edit/regenerate */
+  messageFid?: string;
+  /** Action type: 'chat' | 'edit' | 'regenerate' */
+  userAction?: string;
+  /** ID of the message being edited (for edit flow) */
+  editMessageId?: string;
+}
+
+export interface StreamCallbacks {
+  onMetadata?: (meta: any) => void;
+  onContent?: (content: string) => void;
+  onThinking?: (thinking: string) => void;
+  onUsage?: (usage: any) => void;
+  onContinuing?: (isContinuing: boolean) => void;
+  onRawContent?: (content: string) => void; // Raw content without parsing (for ThinkingBlock display)
+}
+
+export class StreamingService {
+  static isMockActive(): boolean {
+    // A zero-byte mock file makes Vite return the module URL as the default
+    // export instead of an empty string. Treat path-like values as "no mock".
+    const text = (mockResponse || '').trim();
+    if (text.length === 0) return false;
+    if (text.startsWith('/') && text.includes('mock-response.txt')) return false;
+    return true;
+  }
+
+  static async streamChat(
+    config: StreamConfig,
+    callbacks: StreamCallbacks,
+  ): Promise<{ message: Message; backendConversationId: string }> {
+    const body = {
+      modelId: config.model?.id,
+      providerId: config.model?.providerId,
+      accountId: config.account?.id,
+      messages: config.messages,
+      stream: true,
+      ...(config.conversationId ? { conversationId: config.conversationId } : {}),
+      ...(config.parentMessageId ? { parent_message_id: config.parentMessageId } : {}),
+      is_thinking: localStorage.getItem('zen-thinking-enabled') === 'true',
+      is_search: localStorage.getItem('zen-search-enabled') === 'true',
+      thinking: localStorage.getItem('zen-thinking-enabled') === 'true',
+      search: localStorage.getItem('zen-search-enabled') === 'true',
+      ...(config.refFileIds && config.refFileIds.length > 0
+        ? { ref_file_ids: config.refFileIds }
+        : {}),
+      // Qwen Edit/Regenerate support fields
+      ...(config.messageFid ? { message_fid: config.messageFid } : {}),
+      ...(config.userAction ? { user_action: config.userAction } : {}),
+      ...(config.editMessageId ? { edit_message_id: config.editMessageId } : {}),
+    };
+
+    const response = StreamingService.isMockActive()
+      ? createMockResponse(mockResponse)
+      : await fetch(`${config.apiUrl}/v1/chat/accounts/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: config.abortSignal,
+        });
+
+    if (!response.ok) {
+      let errorDetail = `API Error: ${response.status}`;
+      try {
+        const errBody = await response.json();
+        const raw = errBody.error || errBody.message;
+        const msg = typeof raw === 'string' ? raw : JSON.stringify(raw);
+        errorDetail = msg || errorDetail;
+        if (errBody.error_code) errorDetail = `[${errBody.error_code}] ${errorDetail}`;
+      } catch {
+        console.warn('[StreamingService] Failed to parse error body');
+      }
+      throw new Error(errorDetail);
+    }
+
+    if (!response.body) throw new Error('No response body');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let assistantMessage: Message = {
+      id: `msg-${Date.now()}-assistant`,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    };
+
+    let backendConversationId = '';
+    let done = false;
+    let buffer = '';
+    let firstChunkReceived = false;
+
+    // Always use performance mode: stream content but don't parse until complete
+    // Batching - Optimized for smooth letter-by-letter streaming
+    let updateBatch = { content: '', thinking: '' };
+    let lastFlushTime = Date.now();
+    const FLUSH_INTERVAL_MS = 8; // ~120fps for smooth streaming without overwhelming React
+
+    // First-chunk timeout
+    const FIRST_CHUNK_TIMEOUT_MS = 305_000;
+    const firstChunkTimer = setTimeout(() => {
+      if (!firstChunkReceived) {
+        config.abortSignal.dispatchEvent(new Event('abort'));
+      }
+    }, FIRST_CHUNK_TIMEOUT_MS);
+
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      done = readerDone;
+
+      if (value) {
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          clearTimeout(firstChunkTimer);
+        }
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') continue;
+
+            // Handle UUID conversation_id
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dataStr)) {
+              backendConversationId = dataStr;
+              continue;
+            }
+
+            try {
+              const data = JSON.parse(dataStr);
+
+              // Handle stream error
+              if (data.error) {
+                const code = data.error_code ? `[${data.error_code}] ` : '';
+                const err = new Error(`${code}${data.error}`);
+                (err as any).isServerError = true;
+                throw err;
+              }
+
+              // Conversation ID
+              const recvConvId = data.meta?.conversation_id || data.conversation_id;
+              if (recvConvId) {
+                backendConversationId = recvConvId;
+                assistantMessage.conversationId = recvConvId;
+              }
+
+              // Metadata
+              const metaObj = data.meta || data.metadata;
+              if (metaObj) {
+                if (metaObj.providerId) assistantMessage.providerId = metaObj.providerId;
+                if (metaObj.modelId) assistantMessage.modelId = metaObj.modelId;
+                if (metaObj.accountId) assistantMessage.accountId = metaObj.accountId;
+                if (metaObj.websiteUrl) assistantMessage.websiteUrl = metaObj.websiteUrl;
+                if (metaObj.email) assistantMessage.email = metaObj.email;
+                if (metaObj.response_message_id)
+                  assistantMessage.response_message_id = metaObj.response_message_id;
+
+                callbacks.onMetadata?.(metaObj);
+
+                if (metaObj.continuing !== undefined) {
+                  callbacks.onContinuing?.(metaObj.continuing);
+                }
+              }
+
+              // Usage
+              if (data.usage) {
+                assistantMessage.usage = data.usage;
+                assistantMessage.token_usage = data.usage.total_tokens;
+                callbacks.onUsage?.(data.usage);
+              }
+
+              // Content
+              if (data.content) {
+                assistantMessage.content += data.content;
+                updateBatch.content += data.content;
+              }
+
+              if (data.thinking) {
+                assistantMessage.thinking = (assistantMessage.thinking || '') + data.thinking;
+                updateBatch.thinking += data.thinking;
+              }
+
+              // Flush batch
+              const now = Date.now();
+              const shouldFlush = now - lastFlushTime >= FLUSH_INTERVAL_MS || data.usage;
+
+              if (shouldFlush && (updateBatch.content || updateBatch.thinking || data.usage)) {
+                // Send raw content to onRawContent for ThinkingBlock display (no parsing)
+                if (updateBatch.content) {
+                  callbacks.onRawContent?.(updateBatch.content);
+                }
+
+                if (updateBatch.thinking) callbacks.onThinking?.(updateBatch.thinking);
+                updateBatch = { content: '', thinking: '' };
+                lastFlushTime = now;
+              }
+            } catch (e) {
+              if (e instanceof Error && (e as any).isServerError) throw e;
+            }
+          }
+        }
+      }
+    }
+
+    clearTimeout(firstChunkTimer);
+
+    // Flush remaining batch - parse everything once at the end
+    // Send all accumulated content for parsing NOW
+    if (assistantMessage.content) {
+      callbacks.onContent?.(assistantMessage.content);
+    }
+
+    if (updateBatch.thinking) callbacks.onThinking?.(updateBatch.thinking);
+
+    // Process remaining buffer
+    const remainingLines = buffer.split('\n').filter((l) => l.trim().startsWith('data: '));
+    for (const line of remainingLines) {
+      const dataStr = line.slice(6).trim();
+      if (dataStr === '[DONE]') continue;
+
+      try {
+        const data = JSON.parse(dataStr);
+        const metaObj = data.meta || data.metadata;
+
+        if (metaObj) {
+          if (metaObj.providerId) assistantMessage.providerId = metaObj.providerId;
+          if (metaObj.modelId) assistantMessage.modelId = metaObj.modelId;
+          if (metaObj.accountId) assistantMessage.accountId = metaObj.accountId;
+          if (metaObj.websiteUrl) assistantMessage.websiteUrl = metaObj.websiteUrl;
+          if (metaObj.email) assistantMessage.email = metaObj.email;
+          callbacks.onMetadata?.(metaObj);
+        }
+
+        if (data.usage) {
+          assistantMessage.usage = data.usage;
+          assistantMessage.token_usage = data.usage.total_tokens;
+        }
+
+        if (data.content) {
+          assistantMessage.content += data.content;
+        }
+
+        if (data.thinking) {
+          assistantMessage.thinking = (assistantMessage.thinking || '') + data.thinking;
+        }
+      } catch (e) {
+        console.warn('[StreamingService] Failed to parse stream data:', e);
+      }
+    }
+
+    // Fallback token calculation
+    if (!assistantMessage.token_usage && assistantMessage.content) {
+      assistantMessage.token_usage = calculateTokens(assistantMessage.content);
+    }
+
+    // 🔧 FIX: Combine thinking + content for rawResponse so parser can extract thinking blocks
+    // Backend already wraps thinking in <thinking> tags, so just concatenate directly
+    assistantMessage.rawResponse = assistantMessage.thinking
+      ? `${assistantMessage.thinking}\n\n${assistantMessage.content}`
+      : assistantMessage.content;
+
+    return { message: assistantMessage, backendConversationId };
+  }
+}

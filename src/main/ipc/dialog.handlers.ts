@@ -16,7 +16,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { ipcMain, BrowserWindow, dialog, shell } from 'electron';
+import { ipcMain, BrowserWindow, dialog, shell, Notification } from 'electron';
 import { spawn, execSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -178,7 +178,14 @@ export function setupDialogHandlers(): void {
   // ── Select files / folders ──
   ipcMain.handle(
     'dialog:select-paths',
-    async (_event, options: { kind: 'file' | 'folder'; multiple?: boolean }) => {
+    async (
+      _event,
+      options: {
+        kind: 'file' | 'folder';
+        multiple?: boolean;
+        filters?: { name: string; extensions: string[] }[];
+      },
+    ) => {
       try {
         const win = getMainWindow();
         if (!win) return { success: false, canceled: true, error: 'No window' };
@@ -187,7 +194,7 @@ export function setupDialogHandlers(): void {
           options.kind === 'folder' ? ['openDirectory'] : ['openFile'];
         if (options.multiple) properties.push('multiSelections');
 
-        const result = await dialog.showOpenDialog(win, { properties });
+        const result = await dialog.showOpenDialog(win, { properties, filters: options.filters });
 
         if (result.canceled) return { success: false, canceled: true, paths: [] };
         return { success: true, paths: result.filePaths };
@@ -315,6 +322,34 @@ export function setupDialogHandlers(): void {
       event.sender.send('messageResponse', { requestId, dirs: getChromeUserDataDirs() });
     }
   });
+
+  // ── Show native desktop notification (Windows / Linux / macOS) ──
+  ipcMain.handle(
+    'notification:show',
+    async (_event, options: { title?: string; body?: string }) => {
+      try {
+        if (!Notification.isSupported()) {
+          return { success: false, error: 'Notification not supported' };
+        }
+        const notification = new Notification({
+          title: options?.title || 'Phantoma',
+          body: options?.body || '',
+        });
+        notification.on('click', () => {
+          const win = getMainWindow();
+          if (!win) return;
+          if (win.isMinimized()) win.restore();
+          win.show();
+          win.focus();
+        });
+        notification.show();
+        return { success: true };
+      } catch (e: any) {
+        logger.error('[notification:show] Error:', e);
+        return { success: false, error: e.message };
+      }
+    },
+  );
 
   // ── Get System Info ──
   ipcMain.handle('system:get-info', async () => {

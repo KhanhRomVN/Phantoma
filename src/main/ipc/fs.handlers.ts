@@ -19,6 +19,7 @@
  * - fs:delete-file      : Xóa một file duy nhất
  * - fs:remove-dir       : Xóa thư mục và toàn bộ nội dung bên trong (rm -rf)
  * - fs:rename           : Đổi tên hoặc di chuyển file/thư mục
+ * - fs:copy             : Sao chép file/thư mục (tự đặt tên "<name> copy" nếu đích đã tồn tại)
  * - fs:find-files       : Tìm kiếm file theo tên/pattern trong cây thư mục
  * - fs:search           : Tìm kiếm nâng cao với option case/word/regex/include/exclude
  * - fs:replace-all      : Thay thế hàng loạt chuỗi khớp trong nhiều file
@@ -46,16 +47,20 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Electron ──
-import { ipcMain } from 'electron';
+import { ipcMain, app } from 'electron';
 
 // ── Node.js ──
 import * as fs from 'fs';
 import * as path from 'path';
+import { createHash } from 'crypto';
 import { exec as execCallback, spawn, ChildProcess } from 'child_process';
 
 // ── External ──
 import chokidar, { FSWatcher } from 'chokidar';
 import debounce from 'lodash.debounce';
+
+// ── Internal ──
+import { writeLogFromRenderer } from '../utils/logger';
 
 // ── Internal ──
 import { logger } from '../utils/logger';
@@ -155,6 +160,7 @@ function buildRgArgs(query: string, options: RgSearchOptions, searchPath: string
 // ─── Watcher Manager ─────────────────────────────────────────────────────────
 
 const watchers = new Map<string, FSWatcher>();
+const watcherRefs = new Map<string, number>();
 
 function startWatching(projectPath: string, sender: Electron.WebContents): void {
   if (watchers.has(projectPath)) return;
@@ -291,6 +297,12 @@ export function setupFSHandlers() {
     return true;
   });
 
+  ipcMain.handle('chat-log:append', async (_, level: string, message: string) => {
+    if (app.isPackaged) return false;
+    writeLogFromRenderer(level, [message]);
+    return true;
+  });
+
   // Directory listing (original)
   ipcMain.handle('fs:list-dir', async (_, dirPath: string) => {
     const files = fs.readdirSync(dirPath);
@@ -352,12 +364,42 @@ export function setupFSHandlers() {
     return true;
   });
 
-  // Rename file/folder
-  ipcMain.handle('fs:rename', async (_, oldPath: string, newPath: string) => {
-    if (!fs.existsSync(oldPath)) throw new Error('File not found: ' + oldPath);
-    fs.mkdirSync(path.dirname(newPath), { recursive: true });
-    fs.renameSync(oldPath, newPath);
-    return true;
+  // Rename file/folder (positional args or { oldPath, newPath })
+  ipcMain.handle(
+    'fs:rename',
+    async (_, a: string | { oldPath: string; newPath: string }, b?: string) => {
+      const oldPath = typeof a === 'string' ? a : a.oldPath;
+      const newPath = typeof a === 'string' ? (b as string) : a.newPath;
+      if (!fs.existsSync(oldPath)) throw new Error('File not found: ' + oldPath);
+      if (typeof a !== 'string') {
+        if (oldPath === newPath) return true;
+        if (fs.existsSync(newPath) && oldPath.toLowerCase() !== newPath.toLowerCase()) {
+          throw new Error('Already exists: ' + newPath);
+        }
+      }
+      fs.mkdirSync(path.dirname(newPath), { recursive: true });
+      fs.renameSync(oldPath, newPath);
+      return true;
+    },
+  );
+
+  // Copy file/folder; picks a unique "<name> copy" target when dest already exists
+  ipcMain.handle('fs:copy', async (_, { src, dest }: { src: string; dest: string }) => {
+    if (!fs.existsSync(src)) throw new Error('File not found: ' + src);
+    const isDir = fs.statSync(src).isDirectory();
+    const dir = path.dirname(dest);
+    const ext = isDir ? '' : path.extname(dest);
+    const base = path.basename(dest, ext);
+    let target = dest;
+    for (let i = 1; fs.existsSync(target); i++) {
+      target = path.join(dir, `${base} copy${i > 1 ? ` ${i}` : ''}${ext}`);
+    }
+    if (isDir && (target + path.sep).startsWith(src + path.sep)) {
+      throw new Error('Cannot copy a folder into itself: ' + src);
+    }
+    fs.mkdirSync(dir, { recursive: true });
+    fs.cpSync(src, target, { recursive: true, errorOnExist: true });
+    return target;
   });
 
   // Find files by pattern
@@ -561,13 +603,27 @@ export function setupFSHandlers() {
     return result;
   });
 
+  ipcMain.handle('shell:open-external', async (_, url: string) => {
+    if (!/^https?:\/\//i.test(url)) return { error: 'Only http(s) URLs are allowed' };
+    const { shell } = await import('electron');
+    await shell.openExternal(url);
+    return { ok: true };
+  });
+
   // File watcher
   ipcMain.handle('fs:watch-dir', async (event, projectPath: string) => {
     startWatching(projectPath, event.sender);
+    watcherRefs.set(projectPath, (watcherRefs.get(projectPath) ?? 0) + 1);
     return true;
   });
 
   ipcMain.handle('fs:unwatch-dir', async (_, projectPath: string) => {
+    const left = (watcherRefs.get(projectPath) ?? 1) - 1;
+    if (left > 0) {
+      watcherRefs.set(projectPath, left);
+      return true;
+    }
+    watcherRefs.delete(projectPath);
     stopWatching(projectPath);
     return true;
   });
@@ -615,5 +671,35 @@ export function setupFSHandlers() {
 
   ipcMain.handle('fs:read-image-data-url', async (_, filePath: string, maxSide?: number) => {
     return readImageDataUrl(filePath, maxSide);
+  });
+
+  ipcMain.handle('fs:download-project-logo', async (_, url: string) => {
+    const extByMime: Record<string, string> = {
+      'image/png': '.png',
+      'image/jpeg': '.jpg',
+      'image/webp': '.webp',
+      'image/svg+xml': '.svg',
+    };
+    try {
+      if (!/^https?:\/\//i.test(url)) {
+        return { success: false, error: 'URL must start with http:// or https://' };
+      }
+      const res = await fetch(url);
+      if (!res.ok) return { success: false, error: `HTTP ${res.status}` };
+      const type = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+      const ext = extByMime[type];
+      if (!ext) return { success: false, error: 'Unsupported image type (png, jpg, webp, svg)' };
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length > 5 * 1024 * 1024) return { success: false, error: 'Image is larger than 5 MB' };
+      const dir = path.join(app.getPath('userData'), 'project-logos');
+      await fs.promises.mkdir(dir, { recursive: true });
+      const hash = createHash('sha1').update(url).digest('hex').slice(0, 16);
+      const file = path.join(dir, `${hash}${ext}`);
+      await fs.promises.writeFile(file, buf);
+      return { success: true, path: file };
+    } catch (err: any) {
+      logger.warn('[fs] download-project-logo failed:', err);
+      return { success: false, error: err?.message ?? 'Download failed' };
+    }
   });
 }

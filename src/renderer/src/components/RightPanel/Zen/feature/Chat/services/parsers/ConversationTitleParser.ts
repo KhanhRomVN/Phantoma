@@ -7,10 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-// ─── Types ──────────────────────────────────────────────────────────────
-export interface ConversationTitleParams {
-  title: string;
-}
+import type { ConversationTitleParams } from '../../types/tool-types';
 
 // ─── Functions ──────────────────────────────────────────────────────────
 export const parseConversationTitle = (innerContent: string): ConversationTitleParams => {

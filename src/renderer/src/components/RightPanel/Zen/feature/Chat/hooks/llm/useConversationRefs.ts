@@ -2,11 +2,11 @@
  * ------------------------------------------------------------------
  * useConversationRefs
  * ------------------------------------------------------------------
- * Tập trung tất cả useRef dùng trong ChatLLM.
+ * Centralized useRef management for ChatLLM.
  *
- * Main returns:
- * - messagesRef               : Ref cho danh sách messages
- * - currentConversationIdRef  : Ref cho conversation ID hiện tại
+ * Main features:
+ * - messagesRef               : Ref for messages list
+ * - currentConversationIdRef  : Ref for current conversation ID
  * - backendConversationIdRef  : Ref cho backend conversation ID
  * - abortControllerRef        : Ref cho AbortController
  * ------------------------------------------------------------------

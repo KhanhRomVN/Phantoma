@@ -12,6 +12,9 @@
  * ------------------------------------------------------------------
  */
 
+// ── Utils ──
+import { checkToolDanger } from './tool-behavior-registry';
+
 export interface DangerousCommandInfo {
   actionId: string;
   commandText: string;
@@ -27,17 +30,26 @@ interface PatternRule {
 const RULES: PatternRule[] = [
   // Filesystem destructive
   { pattern: /\brm\s+(-[rRfF]+\s+)+/, reason: 'Xoá file/thư mục đệ quy (rm -rf)' },
-  { pattern: /\brm\s+(-[a-zA-Z]*[rR][a-zA-Z]*)\s+[\/]/, reason: 'Xoá thư mục gốc hoặc đường dẫn tuyệt đối' },
+  {
+    pattern: /\brm\s+(-[a-zA-Z]*[rR][a-zA-Z]*)\s+[\/]/,
+    reason: 'Xoá thư mục gốc hoặc đường dẫn tuyệt đối',
+  },
   { pattern: /\bdd\s+if=.*\bof=\/dev\//, reason: 'Ghi trực tiếp vào thiết bị block' },
   { pattern: /\bmkfs(\.[a-z0-9]+)?\b/, reason: 'Format ổ đĩa (mkfs)' },
   { pattern: /\b(shred|wipefs)\b/, reason: 'Ghi đè/Xoá vĩnh viễn dữ liệu ổ đĩa' },
 
   // Permission destructive
-  { pattern: /\bchmod\s+(-R\s+)?[0-7]*7[0-7]*7\s+\//, reason: 'Chmod 777 đệ quy trên đường dẫn hệ thống' },
+  {
+    pattern: /\bchmod\s+(-R\s+)?[0-7]*7[0-7]*7\s+\//,
+    reason: 'Chmod 777 đệ quy trên đường dẫn hệ thống',
+  },
   { pattern: /\bchown\s+(-R\s+)?\S+\s+\//, reason: 'Chown đệ quy trên đường dẫn hệ thống' },
 
   // Git destructive
-  { pattern: /\bgit\s+push\s+.*--force(-with-lease)?\b/, reason: 'Force push lên remote (git push --force)' },
+  {
+    pattern: /\bgit\s+push\s+.*--force(-with-lease)?\b/,
+    reason: 'Force push lên remote (git push --force)',
+  },
   { pattern: /\bgit\s+push\s+-f\b/, reason: 'Force push lên remote (git push -f)' },
   { pattern: /\bgit\s+reset\s+--hard\b/, reason: 'Reset cứng, mất mọi thay đổi chưa commit' },
   { pattern: /\bgit\s+clean\s+-[a-zA-Z]*[fdx]+/, reason: 'Xoá file untracked (git clean -fd)' },
@@ -69,26 +81,34 @@ export function detectDangerousCommand(commandText: string): string | null {
 
 /**
  * Duyệt danh sách tool actions và trả về map actionId → info cho
- * các run_command action nguy hiểm.
+ * các comamnd nguy hiểm.
  */
 export function buildDangerousCommandMap(
   messageId: string,
   actions: Array<{ type: string; params: Record<string, any> }>,
 ): Record<string, DangerousCommandInfo> {
   const result: Record<string, DangerousCommandInfo> = {};
+  
   actions.forEach((action, index) => {
-    if (action.type !== 'run_command') return;
-    const commandText = action.params?.command;
-    if (!commandText) return;
-    const reason = detectDangerousCommand(commandText);
-    if (!reason) return;
+    const dangerResult = checkToolDanger(action);
+    if (!dangerResult.dangerous) return;
+    
     const actionId = `${messageId}-action-${index}`;
     result[actionId] = {
       actionId,
-      commandText,
+      commandText: action.params?.command || '',
       folderPath: action.params?.folder_path,
-      reason,
+      reason: dangerResult.reason || 'Potentially dangerous command',
     };
   });
   return result;
+}
+
+export function isDangerousRunCommand(action: {
+  type: string;
+  params: Record<string, any>;
+}): boolean {
+  // Delegate to module-specific danger checker via registry
+  const result = checkToolDanger(action);
+  return result.dangerous;
 }

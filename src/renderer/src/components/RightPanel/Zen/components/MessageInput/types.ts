@@ -113,7 +113,7 @@ export interface MessageInputProps {
   /** Callback khi toggle memory thay đổi */
   onConversationMemoryToggle?: () => void;
   /** Callback khi toggle tool format thay đổi */
-  onConversationToolFormatToggle?: () => void;
+  onConversationToolFormatToggle?: (format?: 'xml' | 'json') => void;
 
   /** Workflow agent ID nếu conversation này là một workflow agent (orchestrator/planner/executor/reviewer) */
   workflowAgentId?: WorkflowAgentId | null;

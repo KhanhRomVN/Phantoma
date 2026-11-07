@@ -1,4 +1,4 @@
-import type { ZenModuleCapabilities } from '@renderer/components/RightPanel/Zen/feature/Chat/services/ModuleRegistry';
+import type { ZenModuleCapabilities } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
 
 /**
  * Capabilities for the Emulate system prompt.
@@ -7,8 +7,8 @@ import type { ZenModuleCapabilities } from '@renderer/components/RightPanel/Zen/
  */
 export const CAPABILITIES: ZenModuleCapabilities = {
   promptLength: true,
-  systemPromptMode: false,
+  styleCode: false,
   skill: false,
   memory: false,
-  toolFormat: true,
+  toolFormats: ['xml', 'json'],
 };

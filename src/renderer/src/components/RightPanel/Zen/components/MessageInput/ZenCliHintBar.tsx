@@ -13,12 +13,9 @@ const ZENCLI_URL = 'https://www.npmjs.com/package/@khanhromvn/zencli';
  *   (thông qua command `openExternalUrl` ở extension host).
  * - Màu: nhạt hơn (text-secondary), giảm fontSize xuống 10px.
  */
-export const ZenCliHintBar: React.FC<{ isClaudeProvider: boolean }> = ({ isClaudeProvider }) => {
-  const color = isClaudeProvider ? $('--error') : $('--text-secondary');
-
-  const title = isClaudeProvider
-    ? 'Use ZenCLI to avoid Claude path errors'
-    : 'Prefer terminal? Try ZenCLI';
+export const ZenCliHintBar: React.FC = () => {
+  const color = $('--text-secondary');
+  const title = 'Prefer terminal? Try ZenCLI';
 
   const handleClick = React.useCallback(() => {
     extensionService.postMessage({ command: 'openExternalUrl', url: ZENCLI_URL });

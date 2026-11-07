@@ -1,43 +1,25 @@
+/** Standalone prompt for generating commit messages (not part of the main system prompt). */
+
+import { type ToolFormat, DEFAULT_TOOL_FORMAT } from './tool-format';
+
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   vi: 'Vietnamese',
 };
 
-export function getCommitMessagePrompt(
-  language: string,
-  gitStatus: string,
-  fileContents?: Record<string, string>,
-  toolFormat: 'xml' | 'json' = 'xml',
-): string {
-  const languageName = LANGUAGE_NAMES[language] || language;
+// ── XML ──
+const COMMIT_DIFF_REF_XML = '`<git_diff>`';
 
-  const isJson = toolFormat === 'json';
-
-  const diffRef = isJson ? '`git_diff`' : '`<git_diff>`';
-
-  const toolUsageSection = isJson
-    ? `**Tool usage:**
-\`\`\`json
-{"tool":"git_diff","params":{"file_path":"path/to/file"}}
-\`\`\`
-- Call one ${diffRef} per file you need to inspect.
-- Batch all ${diffRef} calls in a single message (one message, one fenced \`\`\`json block per call, exactly one object per block).
-- STOP after calling the tools. Wait for the diff results before generating the commit message.
-- After receiving results, proceed to STEP 2.`
-    : `**Tool usage:**
+const COMMIT_TOOL_USAGE_XML = `**Tool usage:**
 \`\`\`xml
 <git_diff><file_path>path/to/file</file_path></git_diff>
 \`\`\`
-- Call one ${diffRef} per file you need to inspect.
-- Batch all ${diffRef} calls in a single message (one message, multiple tags).
+- Call one ${COMMIT_DIFF_REF_XML} per file you need to inspect.
+- Batch all ${COMMIT_DIFF_REF_XML} calls in a single message (one message, multiple tags).
 - STOP after calling the tools. Wait for the diff results before generating the commit message.
 - After receiving results, proceed to STEP 2.`;
 
-  const structureSection = isJson
-    ? `\`\`\`json
-{"tool":"commit_message","params":{"message":"<emoji> <type>(<scope>): <subject>\\n- <change 1>\\n- <change 2>\\n- <change n>"}}
-\`\`\``
-    : `\`\`\`
+const COMMIT_STRUCTURE_XML = `\`\`\`
 <commit_message>
 <emoji> <type>(<scope>): <subject>
 - <change 1>
@@ -46,11 +28,7 @@ export function getCommitMessagePrompt(
 </commit_message>
 \`\`\``;
 
-  const exampleOutput = isJson
-    ? `\`\`\`json
-{"tool":"commit_message","params":{"message":"✨ feat(auth): add login and registration flow\\n\\n- Implement JWT-based authentication for login endpoint\\n- Add user registration with email validation\\n- Hash passwords using bcrypt before storing\\n- Update auth documentation to reflect new flow"}}
-\`\`\``
-    : `<commit_message>
+const COMMIT_EXAMPLE_XML = `<commit_message>
 ✨ feat(auth): add login and registration flow
 
 - Implement JWT-based authentication for login endpoint
@@ -59,9 +37,71 @@ export function getCommitMessagePrompt(
 - Update auth documentation to reflect new flow
 </commit_message>`;
 
-  const outputFormatRule = isJson
-    ? `- **CRITICAL — Output format**: The commit message must be emitted as a single \`commit_message\` JSON object inside its own fenced \`\`\`json block. The \`message\` value must be a valid JSON string (newlines written as \\n). Do NOT emit any XML tag. Output that block directly, with nothing before or after it except the \`git_diff\` requests (if needed in STEP 1).`
-    : `- **CRITICAL — Output format**: The \`<commit_message>\` tag must be the outermost wrapper. Do NOT wrap it inside markdown code blocks (\`\`\`), \`\`\`markdown, or any other tag. Output the \`<commit_message>...</commit_message>\` block directly, with nothing before or after it except the request for file contents (if needed in STEP 1).`;
+const COMMIT_OUTPUT_RULE_XML = `- **CRITICAL — Output format**: The \`<commit_message>\` tag must be the outermost wrapper. Do NOT wrap it inside markdown code blocks (\`\`\`), \`\`\`markdown, or any other tag. Output the \`<commit_message>...</commit_message>\` block directly, with nothing before or after it except the request for file contents (if needed in STEP 1).`;
+
+// ── JSON ──
+const COMMIT_DIFF_REF_JSON = '`git_diff`';
+
+const COMMIT_TOOL_USAGE_JSON = `**Tool usage:**
+\`\`\`json
+{"tool":"git_diff","params":{"file_path":"path/to/file"}}
+\`\`\`
+- Call one ${COMMIT_DIFF_REF_JSON} per file you need to inspect.
+- Batch all ${COMMIT_DIFF_REF_JSON} calls in a single message (one message, one fenced \`\`\`json block per call, exactly one object per block).
+- STOP after calling the tools. Wait for the diff results before generating the commit message.
+- After receiving results, proceed to STEP 2.`;
+
+const COMMIT_STRUCTURE_JSON = `\`\`\`json
+{"tool":"commit_message","params":{"message":"<emoji> <type>(<scope>): <subject>\\n- <change 1>\\n- <change 2>\\n- <change n>"}}
+\`\`\``;
+
+const COMMIT_EXAMPLE_JSON = `\`\`\`json
+{"tool":"commit_message","params":{"message":"✨ feat(auth): add login and registration flow\\n\\n- Implement JWT-based authentication for login endpoint\\n- Add user registration with email validation\\n- Hash passwords using bcrypt before storing\\n- Update auth documentation to reflect new flow"}}
+\`\`\``;
+
+const COMMIT_OUTPUT_RULE_JSON = `- **CRITICAL — Output format**: The commit message must be emitted as a single \`commit_message\` JSON object inside its own fenced \`\`\`json block. The \`message\` value must be a valid JSON string (newlines written as \\n). Do NOT emit any XML tag. Output that block directly, with nothing before or after it except the \`git_diff\` requests (if needed in STEP 1).`;
+
+
+// ── LOOKUP BY FORMAT ──
+interface CommitFormatParts {
+  diffRef: string;
+  toolUsage: string;
+  structure: string;
+  example: string;
+  outputRule: string;
+}
+
+const COMMIT_PARTS: Record<ToolFormat, CommitFormatParts> = {
+  xml: {
+    diffRef: COMMIT_DIFF_REF_XML,
+    toolUsage: COMMIT_TOOL_USAGE_XML,
+    structure: COMMIT_STRUCTURE_XML,
+    example: COMMIT_EXAMPLE_XML,
+    outputRule: COMMIT_OUTPUT_RULE_XML,
+  },
+  json: {
+    diffRef: COMMIT_DIFF_REF_JSON,
+    toolUsage: COMMIT_TOOL_USAGE_JSON,
+    structure: COMMIT_STRUCTURE_JSON,
+    example: COMMIT_EXAMPLE_JSON,
+    outputRule: COMMIT_OUTPUT_RULE_JSON,
+  },
+
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Builder
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function getCommitMessagePrompt(
+  language: string,
+  gitStatus: string,
+  fileContents?: Record<string, string>,
+  toolFormat: ToolFormat = DEFAULT_TOOL_FORMAT,
+): string {
+  const languageName = LANGUAGE_NAMES[language] || language;
+
+  const { diffRef, toolUsage, structure, example, outputRule } = COMMIT_PARTS[toolFormat];
 
   const fileContentsSection =
     fileContents && Object.keys(fileContents).length > 0
@@ -93,7 +133,7 @@ Before generating a commit message, evaluate whether the git status alone provid
 - Mixed change types that are hard to group without seeing the actual code changes
 - There are more than 5 changed files and their purposes are not obvious from filenames alone
 
-${toolUsageSection}
+${toolUsage}
 
 **Proceed directly to STEP 2 WITHOUT calling ${diffRef} ONLY if:**
 - File names clearly indicate the purpose of changes (e.g., fix-login-bug.ts, add-user-avatar.tsx)
@@ -106,7 +146,7 @@ ${toolUsageSection}
 
 ### Required commit message structure:
 
-${structureSection}
+${structure}
 
 ### Rules:
 
@@ -154,7 +194,7 @@ M  docs/auth.md
 \`\`\`
 
 Output:
-${exampleOutput}
+${example}
 
 ---
 
@@ -165,7 +205,7 @@ ${exampleOutput}
 - **Write the entire commit message in ${languageName}**
 - Be specific — avoid generic descriptions that could apply to any commit
 - If a file is deleted, explicitly mention what was removed and why (if inferrable)
-${outputFormatRule}
+${outputRule}
 
 ---
 

@@ -97,6 +97,7 @@ Lưu trữ dữ liệu của module Code theo từng project. Đường dẫn `{
 
 ~/.phantoma/code:{system_path}/
 ├── tasks.json               ← Danh sách task của kanban board
+├── workflows/               ← Workflow của task (mỗi task tối đa 1 file `workflow_{taskId}.md`)
 ├── worktrees/               ← Git worktree của các branch (mỗi branch một thư mục `{branchSlug}`)
 └── conversations/           ← Hội thoại AI assistant
     └── {conversationId}.json
@@ -114,6 +115,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   status      TEXT CHECK(status IN ('todo','progress','review','done')) DEFAULT 'todo',
   priority    TEXT CHECK(priority IN ('low','medium','high')) DEFAULT 'medium',
   session_id  TEXT DEFAULT NULL,   -- FK mềm tới conversation/session id
+  workflow_id TEXT DEFAULT NULL,   -- `workflow_{taskId}`; NULL = task chưa có workflow
   branch_name TEXT DEFAULT NULL,   -- Tên git branch liên kết
   due_date    INTEGER DEFAULT NULL,-- Unix ms timestamp
   created_at  INTEGER NOT NULL,
@@ -124,6 +126,10 @@ CREATE INDEX idx_tasks_session ON tasks(session_id);
 
 
 Quản lý qua IPC channels `task:list`, `task:get`, `task:create`, `task:update`, `task:delete` (xem `src/main/ipc/task.handlers.ts`).
+
+#### Workflows
+
+Mỗi task có tối đa 1 workflow, lưu thành file Markdown `workflows/workflow_{taskId}.md`. Field `workflowId` của task (`workflow_{taskId}`, `null` nếu chưa có) cho biết task đã có workflow. Ghi atomic bởi `src/main/storage/WorkflowStorage.ts`; quản lý qua IPC `workflow:get`, `workflow:create` (tạo file và gán `workflowId` cho task), `workflow:update` (thay thế exact-match) trong `src/main/ipc/workflow.handlers.ts`; renderer gọi qua `services/workflow.service.ts`.
 ```
 
 ---

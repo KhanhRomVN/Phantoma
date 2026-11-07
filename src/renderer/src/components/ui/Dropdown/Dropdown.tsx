@@ -416,13 +416,13 @@ export const Dropdown = React.memo(function Dropdown({
                   }}
                 >
                   {searchable && (
-                    <div className="p-2 border-b border-border bg-background">
+                    <div className="border-b border-border bg-dropdown-background">
                       <input
                         type="text"
                         placeholder="Search actions..."
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
-                        className="w-full px-3 py-1.5 text-sm bg-input-background border border-border rounded-lg outline-none text-text-primary placeholder:text-text-tertiary"
+                        className="w-full px-3 py-1.5 text-sm bg-transparent border-none rounded-lg outline-none focus:outline-none focus:ring-0 text-text-primary placeholder:text-text-tertiary"
                         autoFocus
                         onClick={(e) => e.stopPropagation()}
                       />
@@ -446,13 +446,13 @@ export const Dropdown = React.memo(function Dropdown({
                 }}
               >
                 {searchable && (
-                  <div className="p-2 border-b border-border bg-background">
+                  <div className="border-b border-border bg-dropdown-background">
                     <input
                       type="text"
                       placeholder="Search actions..."
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm bg-input-background border border-border rounded-lg outline-none text-text-primary placeholder:text-text-tertiary"
+                      className="w-full px-3 py-1.5 text-sm bg-transparent border-none rounded-lg outline-none focus:outline-none focus:ring-0 text-text-primary placeholder:text-text-tertiary"
                       autoFocus
                       onClick={(e) => e.stopPropagation()}
                     />

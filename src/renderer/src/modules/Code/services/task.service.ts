@@ -56,6 +56,7 @@ export interface StoredTask extends TaskExtras {
   endTime: string | null;
   dependsOn: string[];
   archived: boolean;
+  workflowId: string | null;
   order?: number;
   createdAt: number;
   updatedAt: number;

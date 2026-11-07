@@ -9,6 +9,7 @@ export type WorkflowAgentId =
   | 'planner'
   | 'executor'
   | 'reviewer'
+  | 'tester'
   | 'recon_planner'
   | 'recon_web'
   | 'recon_local'
@@ -20,6 +21,7 @@ export const CODE_WORKFLOW_AGENT_IDS: WorkflowAgentId[] = [
   'planner',
   'executor',
   'reviewer',
+  'tester',
 ];
 
 export const RECON_WORKFLOW_AGENT_IDS: WorkflowAgentId[] = [

@@ -17,9 +17,11 @@ export * from './fs.handlers';
 export { setupDialogHandlers } from './dialog.handlers';
 export { setupConversationHandlers } from './conversation.handlers';
 export { setupWindowHandlers } from './window.handlers';
+export { setupTargetLockHandlers } from './target-lock.handlers';
 export { setupTerminalHandlers } from './terminal.handlers';
 export { setupGitHandlers } from './git.handlers';
 export { setupTaskHandlers } from './task.handlers';
+export { setupWorkflowHandlers } from './workflow.handlers';
 export { setupLoggerHandlers } from './logger.handlers';
 // export { setupBrowserHandlers } from './puppeteer.handlers'; // Deprecated - moved to recon server
 export { setupReconHandlers } from './recon.handlers';
@@ -30,3 +32,4 @@ export { setupTitleHandlers } from './title.handlers';
 export { setupWorkspaceDataHandlers } from './workspace.handlers';
 export { setupDesignHandlers } from './design.handlers';
 export { setupRuntimeHandlers } from './runtime.handlers';
+export { setupDebugHandlers } from './debug.handlers';

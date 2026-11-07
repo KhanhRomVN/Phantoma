@@ -267,6 +267,10 @@ async function killPtyTree(terminalId: string): Promise<void> {
   }
 }
 
+export async function killAllTerminals(): Promise<void> {
+  await Promise.all([...activePTYs.keys()].map((id) => killPtyTree(id)));
+}
+
 export function setupTerminalHandlers(): void {
   ipcMain.on('terminal:history-save', (_event, payload: { panelId: string; data: string }) => {
     if (!payload?.panelId || typeof payload.data !== 'string') return;

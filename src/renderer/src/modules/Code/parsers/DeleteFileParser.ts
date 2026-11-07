@@ -1,8 +1,6 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
 
-export interface DeleteFileParams {
-  file_path: string;
-}
+import type { DeleteFileParams } from '../types/tool-params';
 
 export const parseDeleteFile = (innerContent: string): DeleteFileParams => {
   // Parse according to tools-reference.ts schema: file_path only

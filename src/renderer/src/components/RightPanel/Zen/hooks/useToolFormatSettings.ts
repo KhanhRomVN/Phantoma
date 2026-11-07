@@ -24,7 +24,7 @@ const loadToolFormat = (providerId: string, modelId: string): 'xml' | 'json' => 
   try {
     const key = storageKey(providerId, modelId);
     const raw = localStorage.getItem(key);
-    const result: 'xml' | 'json' = raw === 'xml' ? 'xml' : 'json';
+    const result: 'xml' | 'json' = raw === 'xml' ? raw : 'json';
     return result;
   } catch (e) {
     console.warn('[ToolFormat] load failed:', e);
@@ -108,10 +108,12 @@ export function useToolFormatSettings(
   );
 
   // Toggle helper
-  const toggleToolFormat = useCallback(() => {
-    const next = toolFormat === 'xml' ? 'json' : 'xml';
-    setToolFormat(next);
-  }, [toolFormat, setToolFormat]);
+  const toggleToolFormat = useCallback(
+    (format?: 'xml' | 'json') => {
+      setToolFormat(format ?? (toolFormat === 'xml' ? 'json' : 'xml'));
+    },
+    [toolFormat, setToolFormat],
+  );
 
   return {
     toolFormat,

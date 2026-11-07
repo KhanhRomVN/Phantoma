@@ -43,15 +43,65 @@ import { SearchEmptyState, type EmptyVariant } from './SearchEmptyState';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 const INPUT_WRAP_CLASS =
-  'flex items-center gap-0.5 px-2 py-1 bg-input-background border border-border rounded-md ' +
-  'focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/30 ' +
+  'flex items-start gap-0.5 px-2 py-1.5 bg-input-background/60 rounded-md ' +
+  'hover:bg-input-background focus-within:bg-input-background ' +
   'transition-colors min-w-0';
 
 const INPUT_CLASS =
-  'flex-1 min-w-0 bg-transparent outline-none text-xs text-text-primary placeholder:text-text-secondary/40';
+  'flex-1 min-w-0 bg-transparent outline-none focus:outline-none text-xs text-text-primary placeholder:text-text-secondary/40';
+
+const MAX_INPUT_LINES = 7;
+
+// ─── AutoTextarea ───────────────────────────────────────────────────────
+interface AutoTextareaProps {
+  value: string;
+  placeholder?: string;
+  inputRef?: { current: HTMLTextAreaElement | null };
+  onChange: (value: string) => void;
+  onEnter?: () => void;
+  onEscape?: () => void;
+}
+
+function AutoTextarea({ value, placeholder, inputRef, onChange, onEnter, onEscape }: AutoTextareaProps) {
+  const localRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const setRefs = (el: HTMLTextAreaElement | null) => {
+    localRef.current = el;
+    if (inputRef) inputRef.current = el;
+  };
+
+  useEffect(() => {
+    const el = localRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 16;
+    const max = lineHeight * MAX_INPUT_LINES;
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+    el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
+  }, [value]);
+
+  return (
+    <textarea
+      ref={setRefs}
+      rows={1}
+      spellCheck={false}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value.replace(/\n/g, ''))}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onEnter?.();
+        }
+        if (e.key === 'Escape') onEscape?.();
+      }}
+      className={cn(INPUT_CLASS, 'block resize-none py-0.5 leading-4 [overflow-wrap:anywhere]')}
+    />
+  );
+}
 
 const ICON_BUTTON_CLASS =
-  'p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors';
+  'p-1 rounded text-text-secondary/80 hover:text-text-primary hover:bg-card-hover transition-colors outline-none focus:outline-none focus-visible:outline-none';
 
 // ─── IconToggle ─────────────────────────────────────────────────────────
 interface IconToggleProps {
@@ -68,10 +118,10 @@ function IconToggle({ active, title, onClick, children }: IconToggleProps) {
       title={title}
       aria-pressed={active}
       className={cn(
-        'p-0.5 rounded border transition-colors shrink-0',
+        'p-0.5 rounded transition-colors shrink-0 outline-none focus:outline-none focus-visible:outline-none',
         active
-          ? 'text-primary bg-primary/15 border-primary/40'
-          : 'text-text-secondary/70 border-transparent hover:text-text-primary hover:bg-card-hover',
+          ? 'text-primary bg-primary/10'
+          : 'text-text-secondary/60 hover:text-text-primary hover:bg-card-hover',
       )}
     >
       {children}
@@ -96,10 +146,10 @@ function ToolbarToggle({ active, label, title, dot, onClick, children }: Toolbar
       title={title}
       aria-pressed={active}
       className={cn(
-        'relative flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] shrink-0 transition-colors',
+        'relative flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] shrink-0 transition-colors outline-none focus:outline-none focus-visible:outline-none',
         active
-          ? 'text-primary bg-primary/10 border-primary/30'
-          : 'text-text-secondary border-transparent hover:text-text-primary hover:bg-card-hover',
+          ? 'text-text-primary bg-card-hover'
+          : 'text-text-secondary hover:text-text-primary hover:bg-card-hover',
       )}
     >
       {children}
@@ -116,7 +166,7 @@ export function Search() {
     return p?.explorerRoot ?? p?.path;
   });
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // ── State — query & options ──
   const [query, setQuery] = useState('');
@@ -335,7 +385,7 @@ export function Search() {
           </button>
           <button
             onClick={() => setViewAsTree((v) => !v)}
-            className={cn(ICON_BUTTON_CLASS, viewAsTree && 'text-primary bg-primary/10')}
+            className={cn(ICON_BUTTON_CLASS, viewAsTree && 'text-text-primary bg-card-hover')}
             title={viewAsTree ? 'View as List' : 'View as Tree'}
           >
             {viewAsTree ? (
@@ -353,17 +403,13 @@ export function Search() {
       {/* Search form — full width, no left gutter (panel lives on the right edge) */}
       <div className="shrink-0 p-2 space-y-1.5 border-b border-divider">
         <div className={INPUT_WRAP_CLASS}>
-          <input
-            ref={inputRef}
-            type="text"
+          <AutoTextarea
+            inputRef={inputRef}
             placeholder="Search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleRefresh();
-              if (e.key === 'Escape') handleClear();
-            }}
-            className={INPUT_CLASS}
+            onChange={setQuery}
+            onEnter={handleRefresh}
+            onEscape={handleClear}
           />
           <IconToggle active={matchCase} title="Match Case" onClick={() => setMatchCase((v) => !v)}>
             <CaseSensitive className="w-3.5 h-3.5" strokeWidth={1.5} />
@@ -419,12 +465,10 @@ export function Search() {
 
         {showReplace && (
           <div className={INPUT_WRAP_CLASS}>
-            <input
-              type="text"
+            <AutoTextarea
               placeholder="Replace"
               value={replaceQuery}
-              onChange={(e) => setReplaceQuery(e.target.value)}
-              className={INPUT_CLASS}
+              onChange={setReplaceQuery}
             />
             <button
               onClick={handleReplaceAllClick}
@@ -440,23 +484,23 @@ export function Search() {
         {showDetails && (
           <div className="space-y-1.5">
             <div className={INPUT_WRAP_CLASS}>
-              <span className="w-12 shrink-0 text-[10px] text-text-secondary/60">Include</span>
-              <input
-                type="text"
+              <span className="w-12 shrink-0 py-0.5 text-[10px] leading-4 text-text-secondary/60">
+                Include
+              </span>
+              <AutoTextarea
                 placeholder="*.ts, src/**"
                 value={includePattern}
-                onChange={(e) => setIncludePattern(e.target.value)}
-                className={INPUT_CLASS}
+                onChange={setIncludePattern}
               />
             </div>
             <div className={INPUT_WRAP_CLASS}>
-              <span className="w-12 shrink-0 text-[10px] text-text-secondary/60">Exclude</span>
-              <input
-                type="text"
+              <span className="w-12 shrink-0 py-0.5 text-[10px] leading-4 text-text-secondary/60">
+                Exclude
+              </span>
+              <AutoTextarea
                 placeholder="*.test.ts, dist/**"
                 value={excludePattern}
-                onChange={(e) => setExcludePattern(e.target.value)}
-                className={INPUT_CLASS}
+                onChange={setExcludePattern}
               />
             </div>
           </div>
@@ -521,7 +565,7 @@ export function Search() {
         <ModalFooter>
           <button
             onClick={() => setIsReplaceModalOpen(false)}
-            className="px-4 py-2 rounded-lg border border-border text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors text-[13px]"
+            className="px-4 py-2 rounded-lg bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary transition-colors text-[13px] outline-none"
           >
             Hủy
           </button>

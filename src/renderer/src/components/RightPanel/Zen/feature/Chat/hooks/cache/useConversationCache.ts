@@ -20,7 +20,7 @@ import { useEffect, useRef, useMemo, useState } from 'react';
 import { Message } from '../../types/message';
 
 // ── Services ──
-import { ConversationCache } from '../../services/ConversationCache';
+import { ConversationCache } from '../../services/conversationCache';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface UseConversationCacheProps {

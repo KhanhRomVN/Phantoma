@@ -64,7 +64,7 @@ export function SkillList({
         <div
           className="grid gap-3.5 px-4 pb-4"
           style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(260px, 100%), 1fr))",
           }}
         >
           {visibleSkills.map((skill) => (
@@ -112,7 +112,7 @@ export function SkillListSkeleton({ count = 6 }: { count?: number }) {
       <div
         className="grid gap-3.5 px-4 pb-4"
         style={{
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(min(260px, 100%), 1fr))",
         }}
       >
         {Array.from({ length: count }).map((_, i) => (

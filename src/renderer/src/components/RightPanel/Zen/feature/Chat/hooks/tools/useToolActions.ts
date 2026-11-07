@@ -15,7 +15,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Types ──
-import { ToolAction } from '../../services/ResponseParser';
+import { ToolAction } from '../../services/responseParser';
 import { Message } from '../../types/message';
 
 // ── Hooks ──

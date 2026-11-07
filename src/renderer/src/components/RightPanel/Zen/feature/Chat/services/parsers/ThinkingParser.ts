@@ -11,7 +11,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
-import { findClosingTagPosition } from '../../utils/TagClosingFinder';
+import { findClosingTagPosition } from '../../utils/tagClosingFinder';
 
 // ── Constants ──
 import { getAllToolTypes } from '../../constants/tag-registry';
@@ -23,29 +23,10 @@ export interface ThinkingExtractResult {
 }
 
 // ─── Functions ──────────────────────────────────────────────────────────
-/**
- * Pre-extract all <thinking> blocks from content before any tool scanning,
- * so that tool tags inside a thinking block are never mistaken for real calls.
- *
- * CRITICAL FIX: Only extract TOP-LEVEL <thinking> blocks (not nested inside tool tags).
- * This prevents false-positives when <thinking> appears as literal text inside
- * tool content (e.g., inside <content> of <write_to_file>).
- *
- * ADDITIONAL FIX: Skip <thinking> tags inside backticks (inline code or code blocks).
- *
- * Closed blocks are replaced with numbered placeholders __THINKING_N__ and
- * their content stored in thinkingBlocks[].
- *
- * NOTE: Since we no longer parse during streaming, unclosed thinking blocks
- * should not occur. All content is complete when this function is called.
- */
 export const parserThinking = (content: string): ThinkingExtractResult => {
   const thinkingBlocks: string[] = [];
   const CLOSE_THINKING = '<' + '/thinking>';
 
-  // Tool tags that should NOT have their content scanned for thinking blocks
-  // Use EXECUTABLE tools only (excludes UI category: markdown, question, code, thinking)
-  // These are real tool calls that might contain literal <thinking> in their content
   const toolTags = [
     ...getAllToolTypes().filter((t: string) => t !== 'thinking'),
     'file', // Special display tag not in registry

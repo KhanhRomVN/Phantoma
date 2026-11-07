@@ -97,6 +97,7 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
 
 // ── Utils ──
 import { getFileIconPath, getFolderIconPath } from '@renderer/shared/utils/fileIconMapper';
+import { installRightClickDragCancel } from '@renderer/shared/utils/dragCancel';
 import { cn } from '@renderer/shared/utils/cn';
 
 // ── Components ──
@@ -181,7 +182,16 @@ interface CreatingState {
   type: 'file' | 'folder';
 }
 
+interface NodeMeta {
+  path: string;
+  name: string;
+  isFolder: boolean;
+}
+
 interface FileExploreContextValue {
+  selectMode: boolean;
+  setSelectMode: (v: boolean) => void;
+  nodeMetaRef: React.MutableRefObject<Map<string, NodeMeta>>;
   creating: CreatingState | null;
   setCreating: (v: CreatingState | null) => void;
   clipboard: { paths: string[]; operation: 'copy' | 'cut' } | null;
@@ -192,10 +202,17 @@ interface FileExploreContextValue {
   onCopyFile: (paths?: string[]) => void;
   onPasteFile: () => void;
   gitStatus: Record<string, 'added' | 'modified'>;
+  ignoredPaths: string[];
+  renamingId: string | null;
+  setRenamingId: (id: string | null) => void;
 }
 
 const FileExploreContext = createContext<FileExploreContextValue>({
+  selectMode: false,
+  setSelectMode: () => {},
+  nodeMetaRef: { current: new Map() },
   gitStatus: {},
+  ignoredPaths: [],
   creating: null,
   setCreating: () => {},
   clipboard: null,
@@ -205,6 +222,8 @@ const FileExploreContext = createContext<FileExploreContextValue>({
   onCutFile: () => {},
   onCopyFile: () => {},
   onPasteFile: () => {},
+  renamingId: null,
+  setRenamingId: () => {},
 });
 
 // ─── InlineNewInput ─────────────────────────────────────────────────────────
@@ -263,6 +282,85 @@ function InlineNewInput({ type, parentPath, depth, onCreated, onCancel }: Inline
           if (e.key === 'Escape') onCancel();
         }}
         onBlur={handleSubmit}
+      />
+    </div>
+  );
+}
+
+// ─── InlineRenameInput ──────────────────────────────────────────────────────
+interface InlineRenameInputProps {
+  node: FileNode;
+  depth: number;
+  projectId: string;
+  onDone: () => void;
+}
+
+function InlineRenameInput({ node, depth, projectId, onDone }: InlineRenameInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const doneRef = useRef(false);
+  const isFolder = node.type === 'folder';
+  const iconSrc = isFolder ? getFolderIconPath(node.name, false) : getFileIconPath(node.name);
+  const fallbackIcon = isFolder ? '/images/icon/folder-base.svg' : '/images/icon/file.svg';
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    const dot = isFolder ? -1 : node.name.lastIndexOf('.');
+    el.setSelectionRange(0, dot > 0 ? dot : node.name.length);
+  }, [isFolder, node.name]);
+
+  const finish = async (commit: boolean) => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    const newName = inputRef.current?.value.trim();
+    if (commit && newName && newName !== node.name && node.path && !newName.includes('/')) {
+      try {
+        const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
+        await window.api.invoke('fs:rename', {
+          oldPath: node.path,
+          newPath: `${parentPath}/${newName}`,
+        });
+        const state = useCodeStore.getState();
+        state.invalidateDir(projectId, parentPath);
+        const p = state.projects.find((pr) => pr.id === projectId);
+        const root = p?.explorerRoot ?? p?.path;
+        if (root) await refreshProjectTree(projectId, root);
+      } catch (err) {
+        console.error('[FileExplore] Failed to rename:', err);
+      }
+    }
+    onDone();
+  };
+
+  return (
+    <div
+      className="flex items-center gap-1.5 w-full py-1 pr-2"
+      style={{ paddingLeft: `${8 + depth * 12}px` }}
+    >
+      <span className="w-3.5 h-3.5 shrink-0" />
+      <img
+        src={iconSrc}
+        alt=""
+        className="w-4 h-4 shrink-0"
+        onError={(e) => {
+          const img = e.target as HTMLImageElement;
+          if (img.src.endsWith(fallbackIcon)) img.style.display = 'none';
+          else img.src = fallbackIcon;
+        }}
+      />
+      <input
+        ref={inputRef}
+        defaultValue={node.name}
+        spellCheck={false}
+        className="flex-1 min-w-0 bg-input-background text-[13px] text-text-primary outline-none rounded px-1.5 py-0.5"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter') void finish(true);
+          if (e.key === 'Escape') void finish(false);
+        }}
+        onBlur={() => void finish(true)}
       />
     </div>
   );
@@ -341,9 +439,22 @@ const TreeNode = memo(function TreeNode({
     onCopyFile,
     onPasteFile,
     gitStatus,
+    ignoredPaths,
+    renamingId,
+    setRenamingId,
+    selectMode,
+    setSelectMode,
+    nodeMetaRef,
   } = useContext(FileExploreContext);
 
   const isActive = selectedNodeIds.has(node.id);
+  const isRenaming = renamingId === node.id;
+
+  useEffect(() => {
+    if (isActive && node.path) {
+      nodeMetaRef.current.set(node.id, { path: node.path, name: node.name, isFolder });
+    }
+  }, [isActive, node.id, node.path, node.name, isFolder, nodeMetaRef]);
 
   // Watcher-driven invalidation
   const dirVersionRef = useRef(dirVersion);
@@ -386,6 +497,10 @@ const TreeNode = memo(function TreeNode({
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
+      if (selectMode) {
+        onNodeClick(node.id, true, false);
+        return;
+      }
       const hasModifier = e.ctrlKey || e.metaKey || e.shiftKey;
       onNodeClick(node.id, e.ctrlKey || e.metaKey, e.shiftKey);
       if (isFolder && !hasModifier) {
@@ -393,7 +508,7 @@ const TreeNode = memo(function TreeNode({
         setTimeout(() => logRenderCountAndReset(`TOGGLE "${node.name}"`), 100);
       }
     },
-    [isFolder, node.id, node.name, projectId, toggleFolderExpand, onNodeClick],
+    [isFolder, node.id, node.name, projectId, toggleFolderExpand, onNodeClick, selectMode],
   );
 
   const handleDoubleClick = useCallback(
@@ -443,21 +558,9 @@ const TreeNode = memo(function TreeNode({
     onDeleteRequest(ids);
   }, [node.id, selectedNodeIds, onDeleteRequest]);
 
-  const handleRename = useCallback(async () => {
-    if (!node.path) return;
-    const newName = window.prompt('Tên mới:', node.name);
-    if (!newName || newName === node.name) return;
-    try {
-      const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
-      const newPath = `${parentPath}/${newName}`;
-      await window.api.invoke('fs:rename', { oldPath: node.path, newPath });
-      const p = useCodeStore.getState().projects.find((pr) => pr.id === projectId);
-      const root = p?.explorerRoot ?? p?.path;
-      if (root) await refreshProjectTree(projectId, root);
-    } catch (err) {
-      console.error('[FileExplore] Failed to rename:', err);
-    }
-  }, [node.path, node.name, projectId]);
+  const handleRename = useCallback(() => {
+    if (node.path) setRenamingId(node.id);
+  }, [node.path, node.id, setRenamingId]);
 
   const handleCutLocal = useCallback(() => {
     if (selectedNodeIds.size > 0) {
@@ -515,135 +618,219 @@ const TreeNode = memo(function TreeNode({
 
   return (
     <div>
-      <Dropdown
-        open={contextMenuOpen}
-        onOpenChange={setContextMenuOpen}
-        trigger="contextmenu"
-        className="w-full"
-      >
-        <DropdownTrigger asChild>
-          <button
-            onClick={handleClick}
-            onDoubleClick={handleDoubleClick}
-            draggable={!isFolder && !!node.path}
-            onDragStart={(e) => {
-              if (isFolder || !node.path) return;
-              e.dataTransfer.effectAllowed = 'copy';
-              e.dataTransfer.setData(
-                'application/json',
-                JSON.stringify({ type: 'phantoma-file', filePath: node.path, name: node.name }),
-              );
-            }}
-            className={cn(
-              'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group outline-none focus:outline-none focus-visible:outline-none',
-              isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
-              gitStatus[node.path ?? ''] === 'added'
-                ? 'text-emerald-500'
-                : gitStatus[node.path ?? ''] === 'modified'
-                  ? 'text-orange-400'
-                  : isActive
-                    ? 'text-text-primary'
-                    : 'text-text-secondary hover:text-text-primary',
-            )}
-            style={{ paddingLeft: `${8 + depth * 12}px` }}
-          >
-            {isFolder ? (
-              loading ? (
-                <Loader
-                  className="w-3.5 h-3.5 shrink-0 text-text-secondary animate-spin"
-                  strokeWidth={1.5}
-                />
-              ) : (
-                <ChevronRight
-                  className={cn(
-                    'w-3.5 h-3.5 shrink-0 transition-transform text-text-secondary',
-                    expanded && 'rotate-90',
-                    !canExpand && 'invisible',
-                  )}
-                  strokeWidth={1.5}
-                />
-              )
-            ) : (
-              <span className="w-3.5 h-3.5 shrink-0" />
-            )}
-
-            <img
-              src={iconSrc}
-              alt=""
-              className="w-4 h-4 shrink-0"
-              onError={(e) => {
-                const img = e.target as HTMLImageElement;
-                // Debug log - có thể xóa sau khi fix
-                if (img.src === fallbackIcon) {
-                  img.style.display = 'none';
-                } else {
-                  img.src = fallbackIcon;
+      {isRenaming ? (
+        <InlineRenameInput
+          node={node}
+          depth={depth}
+          projectId={projectId}
+          onDone={() => setRenamingId(null)}
+        />
+      ) : (
+        <Dropdown
+          open={contextMenuOpen}
+          onOpenChange={setContextMenuOpen}
+          trigger="contextmenu"
+          className="w-full"
+        >
+          <DropdownTrigger asChild>
+            <button
+              data-node-id={node.id}
+              onClick={handleClick}
+              onDoubleClick={handleDoubleClick}
+              draggable={!!node.path}
+              onDragStart={(e) => {
+                if (!node.path) return;
+                installRightClickDragCancel();
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('application/x-phantoma-mention', '1');
+                const batch =
+                  selectedNodeIds.has(node.id) && selectedNodeIds.size > 1
+                    ? Array.from(selectedNodeIds)
+                        .map((id) => nodeMetaRef.current.get(id))
+                        .filter((m): m is NodeMeta => !!m)
+                    : [];
+                const isBatch = batch.length > 1;
+                const label = isBatch ? `${batch.length} items` : node.name;
+                if (!isBatch && !isFolder) {
+                  e.dataTransfer.setData('application/x-phantoma-open-file', '1');
                 }
+                e.dataTransfer.setData(
+                  'application/json',
+                  JSON.stringify(
+                    isBatch
+                      ? {
+                          type: 'phantoma-batch',
+                          items: batch.map((m) => ({ filePath: m.path, isFolder: m.isFolder })),
+                        }
+                      : {
+                          type: isFolder ? 'phantoma-folder' : 'phantoma-file',
+                          filePath: node.path,
+                          name: node.name,
+                        },
+                  ),
+                );
+                const ghost = document.createElement('div');
+                ghost.style.cssText =
+                  'position:fixed;top:0;left:0;z-index:2147483647;pointer-events:none;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;height:28px;padding:0 12px 0 8px;line-height:20px;font-size:13px;white-space:nowrap;width:max-content;background:#1f1f1f;color:#e5e5e5;';
+                const ghostIcon = document.createElement('img');
+                ghostIcon.src = iconSrc;
+                ghostIcon.style.cssText = 'width:16px;height:16px;';
+                const ghostLabel = document.createElement('span');
+                ghostLabel.textContent = label;
+                ghost.append(ghostIcon, ghostLabel);
+                document.body.appendChild(ghost);
+                e.dataTransfer.setDragImage(ghost, 0, 0);
+                setTimeout(() => ghost.remove(), 0);
               }}
-            />
+              className={cn(
+                'flex items-center gap-1.5 w-full py-1 pr-2 rounded text-sm text-left transition-colors group outline-none focus:outline-none focus-visible:outline-none',
+                isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
+                gitStatus[node.path ?? ''] === 'added'
+                  ? 'text-emerald-500'
+                  : gitStatus[node.path ?? ''] === 'modified'
+                    ? 'text-orange-400'
+                    : isActive
+                      ? 'text-text-primary'
+                      : 'text-text-secondary hover:text-text-primary',
+              )}
+              style={{ paddingLeft: `${8 + depth * 12}px` }}
+            >
+              {selectMode && (
+                <span
+                  className={cn(
+                    'w-3.5 h-3.5 shrink-0 rounded-[3px] border grid place-items-center text-[10px] leading-none',
+                    isActive ? 'bg-primary border-primary text-white' : 'border-text-secondary',
+                  )}
+                >
+                  {isActive ? '✓' : ''}
+                </span>
+              )}
+              {isFolder ? (
+                loading ? (
+                  <Loader
+                    className="w-3.5 h-3.5 shrink-0 text-text-secondary animate-spin"
+                    strokeWidth={1.5}
+                  />
+                ) : (
+                  <ChevronRight
+                    className={cn(
+                      'w-3.5 h-3.5 shrink-0 transition-transform text-text-secondary',
+                      expanded && 'rotate-90',
+                      !canExpand && 'invisible',
+                    )}
+                    strokeWidth={1.5}
+                    onClick={
+                      selectMode
+                        ? (e) => {
+                            e.stopPropagation();
+                            toggleFolderExpand(projectId, node.id);
+                          }
+                        : undefined
+                    }
+                  />
+                )
+              ) : (
+                <span className="w-3.5 h-3.5 shrink-0" />
+              )}
 
-            <span className="truncate text-[13px]">{node.name}</span>
-          </button>
-        </DropdownTrigger>
-        <DropdownContent className="min-w-[200px]" size="sm">
-          {isFolder && (
-            <>
-              <DropdownItem onClick={() => handleCreateFromContext('file')}>New File</DropdownItem>
-              <DropdownItem onClick={() => handleCreateFromContext('folder')}>
-                New Folder
-              </DropdownItem>
-              <DropdownItem onClick={handleOpenFolder}>Open Folder</DropdownItem>
-              <DropdownSeparator />
-            </>
-          )}
-          <DropdownItem onClick={handleCutLocal}>
-            <span className="flex items-center justify-between w-full">
-              <span>Cut</span>
-              <Kbd>Ctrl+X</Kbd>
-            </span>
-          </DropdownItem>
-          <DropdownItem onClick={handleCopyLocal}>
-            <span className="flex items-center justify-between w-full">
-              <span>Copy</span>
-              <Kbd>Ctrl+C</Kbd>
-            </span>
-          </DropdownItem>
-          {clipboard && (
-            <DropdownItem onClick={handlePasteLocal}>
+              <img
+                src={iconSrc}
+                alt=""
+                className="w-4 h-4 shrink-0"
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  // Debug log - có thể xóa sau khi fix
+                  if (img.src === fallbackIcon) {
+                    img.style.display = 'none';
+                  } else {
+                    img.src = fallbackIcon;
+                  }
+                }}
+              />
+
+              <span
+                className={cn(
+                  'truncate text-[13px]',
+                  node.path &&
+                    ignoredPaths.some((p) => node.path === p || node.path!.startsWith(p + '/')) &&
+                    'opacity-50',
+                )}
+              >
+                {node.name}
+              </span>
+            </button>
+          </DropdownTrigger>
+          <DropdownContent className="min-w-[200px]" size="sm">
+            {isFolder && (
+              <>
+                <DropdownItem onClick={() => handleCreateFromContext('file')}>
+                  New File
+                </DropdownItem>
+                <DropdownItem onClick={() => handleCreateFromContext('folder')}>
+                  New Folder
+                </DropdownItem>
+                <DropdownItem onClick={handleOpenFolder}>Open Folder</DropdownItem>
+                <DropdownSeparator />
+              </>
+            )}
+            <DropdownItem
+              onClick={() => {
+                setSelectMode(true);
+                if (!selectedNodeIds.has(node.id)) onNodeClick(node.id, true, false);
+              }}
+            >
+              Select
+            </DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem onClick={handleCutLocal}>
               <span className="flex items-center justify-between w-full">
-                <span>Paste</span>
-                <Kbd>Ctrl+V</Kbd>
+                <span>Cut</span>
+                <Kbd>Ctrl+X</Kbd>
               </span>
             </DropdownItem>
-          )}
-          <DropdownSeparator />
-          <DropdownItem onClick={handleCopyPath}>
-            <span className="flex items-center justify-between w-full gap-4">
-              <span>Copy Path</span>
-              <Kbd>Ctrl+Alt+C</Kbd>
-            </span>
-          </DropdownItem>
-          <DropdownItem onClick={handleCopyRelativePathLocal}>
-            <span className="flex items-center justify-between w-full gap-4">
-              <span>Copy Relative Path</span>
-              <Kbd>C+C</Kbd>
-            </span>
-          </DropdownItem>
-          <DropdownSeparator />
-          <DropdownItem onClick={handleRename}>
-            <span className="flex items-center justify-between w-full">
-              <span>Rename</span>
-              <Kbd>F2</Kbd>
-            </span>
-          </DropdownItem>
-          <DropdownItem onClick={handleDelete} variant="error">
-            <span className="flex items-center justify-between w-full">
-              <span>Delete</span>
-              <Kbd>Del</Kbd>
-            </span>
-          </DropdownItem>
-        </DropdownContent>
-      </Dropdown>
+            <DropdownItem onClick={handleCopyLocal}>
+              <span className="flex items-center justify-between w-full">
+                <span>Copy</span>
+                <Kbd>Ctrl+C</Kbd>
+              </span>
+            </DropdownItem>
+            {clipboard && (
+              <DropdownItem onClick={handlePasteLocal}>
+                <span className="flex items-center justify-between w-full">
+                  <span>Paste</span>
+                  <Kbd>Ctrl+V</Kbd>
+                </span>
+              </DropdownItem>
+            )}
+            <DropdownSeparator />
+            <DropdownItem onClick={handleCopyPath}>
+              <span className="flex items-center justify-between w-full gap-4">
+                <span>Copy Path</span>
+                <Kbd>Ctrl+Alt+C</Kbd>
+              </span>
+            </DropdownItem>
+            <DropdownItem onClick={handleCopyRelativePathLocal}>
+              <span className="flex items-center justify-between w-full gap-4">
+                <span>Copy Relative Path</span>
+                <Kbd>C+C</Kbd>
+              </span>
+            </DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem onClick={handleRename}>
+              <span className="flex items-center justify-between w-full">
+                <span>Rename</span>
+                <Kbd>F2</Kbd>
+              </span>
+            </DropdownItem>
+            <DropdownItem onClick={handleDelete} variant="error">
+              <span className="flex items-center justify-between w-full">
+                <span>Delete</span>
+                <Kbd>Del</Kbd>
+              </span>
+            </DropdownItem>
+          </DropdownContent>
+        </Dropdown>
+      )}
 
       {/* Inline create input */}
       {isCreatingHere && isFolder && (
@@ -692,6 +879,8 @@ export function FileExplore() {
   const projectPathRef = useRef<string | null>(null);
 
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
+  const nodeMetaRef = useRef<Map<string, NodeMeta>>(new Map());
   const [lastClickedId, setLastClickedId] = useState<string | null>(null);
   const [creating, setCreating] = useState<{
     nodeId: string;
@@ -702,6 +891,7 @@ export function FileExplore() {
   // Delete modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([]);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
 
   // Clipboard nội bộ cho cut/copy/paste file
   const [clipboard, setClipboard] = useState<{ paths: string[]; operation: 'copy' | 'cut' } | null>(
@@ -1009,23 +1199,13 @@ export function FileExplore() {
     await refreshProjectTree(p.id, p.explorerRoot ?? p.path);
   }, [clipboard, selectedNodeIds]);
 
-  const handleRenameKeyboard = useCallback(async () => {
+  const handleRenameKeyboard = useCallback(() => {
     if (selectedNodeIds.size !== 1) return;
     const p = getProject();
     if (!p) return;
     const id = Array.from(selectedNodeIds)[0];
     const node = findNodeById(p.files, id);
-    if (!node?.path) return;
-    const newName = window.prompt('Tên mới:', node.name);
-    if (!newName || newName === node.name) return;
-    try {
-      const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
-      const newPath = `${parentPath}/${newName}`;
-      await window.api.invoke('fs:rename', { oldPath: node.path, newPath });
-      await refreshProjectTree(p.id, p.explorerRoot ?? p.path);
-    } catch (err) {
-      console.error('[FileExplore] Failed to rename:', err);
-    }
+    if (node?.path) setRenamingId(id);
   }, [selectedNodeIds]);
 
   // Gán handlers vào ref sau khi tất cả đã được định nghĩa
@@ -1127,6 +1307,29 @@ export function FileExplore() {
   // ── Toolbar actions ───────────────────────────────────────────────────────
   const gitRoot = project?.explorerRoot ?? project?.path;
   const [gitStatus, setGitStatus] = useState<Record<string, 'added' | 'modified'>>({});
+  const [ignoredPaths, setIgnoredPaths] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!gitRoot) {
+      setIgnoredPaths([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res: string[] = await window.api.invoke('git:ignored-paths', gitRoot);
+        if (!cancelled) setIgnoredPaths(Array.isArray(res) ? res : []);
+      } catch {
+        if (!cancelled) setIgnoredPaths([]);
+      }
+    };
+    void load();
+    const t = setInterval(() => void load(), 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [gitRoot]);
 
   useEffect(() => {
     if (!gitRoot) {
@@ -1175,6 +1378,66 @@ export function FileExplore() {
       clearInterval(t);
     };
   }, [gitRoot]);
+
+  // ── Auto-reveal file đang active ở Workspace (giống VSCode) ───────────────
+  const activeFilePath = useCodeStore((s) => {
+    const p = s.projects.find((x) => x.id === s.currentProjectId);
+    const panel = p?.workspacePanels?.find((w) => w.id === p.activeWorkspacePanelId);
+    return panel?.type === 'file' ? (panel.filePath ?? null) : null;
+  });
+  const treeScrollRef = useRef<HTMLDivElement>(null);
+  const [revealTick, setRevealTick] = useState(0);
+
+  useEffect(() => {
+    const onReveal = () => setRevealTick((t) => t + 1);
+    window.addEventListener('workspace:reveal-file', onReveal);
+    return () => window.removeEventListener('workspace:reveal-file', onReveal);
+  }, []);
+
+  useEffect(() => {
+    const root = project?.explorerRoot ?? project?.path;
+    if (!project || !root || !activeFilePath) return;
+    const base = root.replace(/\/+$/, '');
+    if (!activeFilePath.startsWith(base + '/')) return;
+
+    const folderIds: string[] = [];
+    let acc = base;
+    for (const seg of activeFilePath
+      .slice(base.length + 1)
+      .split('/')
+      .slice(0, -1)) {
+      acc = `${acc}/${seg}`;
+      folderIds.push(`fs_${acc}`);
+    }
+    const fileId = `fs_${activeFilePath}`;
+
+    const state = useCodeStore.getState();
+    const expanded = state.projects.find((p) => p.id === project.id)?.expandedFolderIds ?? [];
+    const missing = folderIds.filter((id) => !expanded.includes(id));
+    if (missing.length > 0) {
+      state.updateProject(project.id, { expandedFolderIds: [...expanded, ...missing] });
+    }
+
+    setSelectedNodeIds(new Set([fileId]));
+    setLastClickedId(fileId);
+
+    let tries = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const scrollToNode = () => {
+      const container = treeScrollRef.current;
+      const el = container?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(fileId)}"]`);
+      if (el && container) {
+        const c = container.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        if (r.top < c.top || r.bottom > c.bottom) el.scrollIntoView({ block: 'center' });
+        return;
+      }
+      if (++tries < 40) timer = setTimeout(scrollToNode, 50);
+    };
+    scrollToNode();
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilePath, revealTick, project?.id, project?.explorerRoot, project?.path]);
 
   const handleCollapseAll = useCallback(() => {
     if (currentProjectId) {
@@ -1275,9 +1538,18 @@ export function FileExplore() {
       onCopyFile: handleCopyFile,
       onPasteFile: handlePasteFile,
       gitStatus,
+      ignoredPaths,
+      renamingId,
+      setRenamingId,
+      selectMode,
+      setSelectMode,
+      nodeMetaRef,
     }),
     [
+      selectMode,
       gitStatus,
+      ignoredPaths,
+      renamingId,
       creating,
       clipboard,
       handleCopyAbsolutePath,
@@ -1337,8 +1609,23 @@ export function FileExplore() {
           />
         )}
 
+        {selectMode && (
+          <div className="flex items-center justify-between px-3 py-1 text-xs text-text-secondary border-b border-border">
+            <span>{selectedNodeIds.size} selected · drag to add to message</span>
+            <button
+              onClick={() => {
+                setSelectMode(false);
+                setSelectedNodeIds(new Set());
+              }}
+              className="px-2 py-0.5 rounded hover:bg-card-hover hover:text-text-primary"
+            >
+              Done
+            </button>
+          </div>
+        )}
+
         {/* File tree */}
-        <div className="flex-1 overflow-y-auto py-1">
+        <div ref={treeScrollRef} className="flex-1 overflow-y-auto py-1">
           {project.files.map((node) => (
             <TreeNode
               key={node.id}

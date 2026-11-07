@@ -36,6 +36,8 @@ export interface WorkspacePanel {
   /** Đường dẫn tuyệt đối của file khi type === 'file' */
   filePath?: string;
   preview?: boolean;
+  /** Tab được ghim: luôn nằm đầu pane và không bị đóng hàng loạt. */
+  pinned?: boolean;
   /** Working directory for this specific panel (crucial to prevent restart on session switch) */
   cwd?: string;
   sessionId?: string;
@@ -57,6 +59,12 @@ export interface WorkspacePanel {
   terminalRunning?: boolean;
   /** Tên tiến trình đang chạy trong terminal (runtime-only). */
   terminalProcess?: string | null;
+  /** Lệnh chạy tự động khi terminal mở (vd. terminal của phiên debug). */
+  initialCommand?: string | null;
+  /** Khoá tái sử dụng terminal (vd. 'debug:launch'): request cùng khoá sẽ chạy lại lệnh trong terminal này thay vì tạo tab mới. */
+  reuseKey?: string | null;
+  /** Tăng mỗi khi cần chạy lại initialCommand trong terminal đang mở (runtime-only). */
+  runNonce?: number;
   /** Title trang web hiện tại của Browser panel (runtime-only). */
   browserTitle?: string | null;
   /** Favicon URL của trang web hiện tại của Browser panel (runtime-only). */
@@ -211,6 +219,7 @@ export type WorkspaceAction =
   | { type: 'focus'; id: string }
   | { type: 'move'; id: string; to: PaneId }
   | { type: 'resize'; handle: ResizeHandle; value: number }
+  | { type: 'pin'; id: string; pinned: boolean }
   | { type: 'updatePanel'; id: string; patch: Partial<Omit<WorkspacePanel, 'id'>> };
 
 export interface WorkspaceLayoutSnapshot {
@@ -374,6 +383,27 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
       const value = clamp(action.value);
       if (state.sizes[action.handle] === value) return state;
       return { ...state, sizes: { ...state.sizes, [action.handle]: value } };
+    }
+
+    case 'pin': {
+      const pane = findPaneOfPanel(state.paneTabs, action.id);
+      const target = state.panels.find((p) => p.id === action.id);
+      if (!pane || !target || !!target.pinned === action.pinned) return state;
+      const panels = state.panels.map((p) =>
+        p.id === action.id
+          ? { ...p, pinned: action.pinned, ...(action.pinned ? { preview: false } : {}) }
+          : p,
+      );
+      const rest = state.paneTabs[pane].filter((id) => id !== action.id);
+      const pinnedCount = rest.filter((id) => panels.find((p) => p.id === id)?.pinned).length;
+      return {
+        ...state,
+        panels,
+        paneTabs: {
+          ...state.paneTabs,
+          [pane]: [...rest.slice(0, pinnedCount), action.id, ...rest.slice(pinnedCount)],
+        },
+      };
     }
 
     case 'updatePanel': {

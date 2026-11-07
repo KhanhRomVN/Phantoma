@@ -27,21 +27,18 @@ export interface ExecutorContext {
   getToolTimeout: (actionType: string) => number;
   extensionService: typeof extensionService;
   messageDispatcher: any;
-  // Optional fields for run_command and other special executors
   pendingToolResolvers?: Map<string, (result: string | null) => void>;
   commandStartTimes?: Map<string, number>;
   earlyCommandResults?: Map<string, any>;
-  /** Response number of the assistant message that triggered this tool execution (1-based). Used for revert tracking. */
   responseNumber?: number;
-  /** Active target ID from Emulate feature (for repeater tools) */
   activeTargetId?: string | null;
-  /** Module ID for the current conversation (code:projectId, emulate:targetId, ...) */
   moduleId?: string;
-  /** Folder path for the current conversation (required for conversation storage operations) */
   folderPath?: string | null;
-  /** Workflow agent id of the Zen tab running this tool (e.g. 'orchestrator', 'code_writer'). */
   workflowAgentId?: string | null;
 }
+
+// Special result constants
+export const DISPLAY_ONLY_RESULT = '__DISPLAY_ONLY__';
 
 // Base executor interface
 export interface ToolExecutor {
@@ -50,6 +47,5 @@ export interface ToolExecutor {
 
 // Executor options
 export interface ExecutorOptions {
-
   bypassIgnore?: boolean;
 }

@@ -32,13 +32,9 @@ function joinPath(base: string, relative: string): string {
 }
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
-export interface WriteToFileParams {
-  path?: string;
-  filePath?: string;
-  file_path?: string;
-  content?: string;
-  skipDiagnostics?: boolean;
-  requestId?: string;
+import type { WriteToFileParams } from '../../types/tool-params';
+
+export interface WriteToFileOptions {
   basePath?: string;
 }
 

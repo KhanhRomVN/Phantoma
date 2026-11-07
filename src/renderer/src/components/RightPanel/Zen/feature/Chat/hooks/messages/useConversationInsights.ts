@@ -6,8 +6,6 @@
  * dùng cho right sidebar của Chat.
  *
  * Main features:
- * - Files changed: gom write_to_file / replace_in_file / delete_file theo path,
- *   cộng dòng thêm/xóa, file vừa được chạm xếp trước
  * - Tool activity: đếm số lần gọi và số lần lỗi theo từng tool
  * - Mốc thời gian đầu/cuối và số lượt hỏi của user
  * - Kết quả phân tích từng message được cache theo object `parsed`
@@ -21,6 +19,8 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
 
+// ── Utils ──
+import { calculateDiff, checkToolMutation } from '../../utils/tool-mutation-registry';
 // ─── Interfaces ─────────────────────────────────────────────────────────
 export interface FileChange {
   path: string;
@@ -63,13 +63,7 @@ interface MessageInsight {
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────
-const IGNORED_TYPES = new Set([
-  'conversation_title',
-  'markdown',
-  'code',
-  'question',
-  'thinking',
-]);
+const IGNORED_TYPES = new Set(['conversation_title', 'markdown', 'code', 'question', 'thinking']);
 
 // WeakMap theo object parsed: message đã xong dùng lại kết quả, message đang
 // stream có parsed mới mỗi lần nên tự tính lại.
@@ -93,22 +87,18 @@ function analyze(parsed: any): MessageInsight {
     const path: string | undefined = a.params?.file_path ?? a.params?.path;
     if (!path) continue;
 
-    if (a.type === 'write_to_file') {
+    const diff = calculateDiff(a);
+    if (diff) {
       out.files.push({
         path,
-        additions: countLines(a.params.content),
-        deletions: 0,
+        ...diff,
         deleted: false,
       });
-    } else if (a.type === 'replace_in_file') {
-      out.files.push({
-        path,
-        additions: countLines(a.params.new_content),
-        deletions: countLines(a.params.old_content),
-        deleted: false,
-      });
-    } else if (a.type === 'delete_file') {
-      out.files.push({ path, additions: 0, deletions: 0, deleted: true });
+    } else {
+      const mutation = checkToolMutation(a);
+      if (mutation.mutates && mutation.mutationType === 'delete') {
+        out.files.push({ path, additions: 0, deletions: 0, deleted: true });
+      }
     }
   }
 
@@ -117,7 +107,16 @@ function analyze(parsed: any): MessageInsight {
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────
-export function useConversationInsights(messages: any[]): ConversationInsights {
+export const useConversationInsights = (
+  messages: Array<{
+    role: string;
+    content: any;
+    timestamp: number;
+    parsed?: any;
+    uiHidden?: boolean;
+    isCancelled?: boolean;
+  }>,
+): ConversationInsights => {
   return useMemo(() => {
     const fileMap = new Map<string, FileChange>();
     const toolMap = new Map<string, ToolStat>();
@@ -175,4 +174,4 @@ export function useConversationInsights(messages: any[]): ConversationInsights {
       lastTimestamp: last,
     };
   }, [messages]);
-}
+};

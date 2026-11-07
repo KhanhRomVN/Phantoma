@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   X,
   Search,
+  GitBranch,
+  Workflow as WorkflowIcon,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@renderer/shared/utils/cn';
@@ -46,6 +48,8 @@ import {
   formatTaskRange,
 } from '../../../services/task.service';
 import { ConfirmForceStartTaskModal } from './ConfirmForceStartTaskModal';
+import { useCodeStore } from '../../../hooks/useCodeStore';
+import { workflowService } from '../../../services/workflow.service';
 
 interface SelectOption {
   value: string;
@@ -133,6 +137,22 @@ export const TaskModal = memo(function TaskModal({
   const [nextIds, setNextIds] = useState<string[]>([]);
   const [pendingStatus, setPendingStatus] = useState<TaskStatus | null>(null);
   const [forced, setForced] = useState(false);
+  const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId)?.path);
+  const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [workflowText, setWorkflowText] = useState<string | null>(null);
+  const [workflowError, setWorkflowError] = useState('');
+  const openWorkflow = async () => {
+    if (!task || !projectPath) return;
+    setWorkflowOpen(true);
+    setWorkflowText(null);
+    setWorkflowError('');
+    try {
+      const info = await workflowService.get(projectPath, task.id);
+      setWorkflowText(info.content);
+    } catch (e) {
+      setWorkflowError(e instanceof Error ? e.message : String(e));
+    }
+  };
   const allTasksRef = useRef<StoredTask[]>([]);
   allTasksRef.current = allTasks ?? [];
   const [tags, setTags] = useState<TaskTag[]>([]);
@@ -654,6 +674,36 @@ export const TaskModal = memo(function TaskModal({
           </div>
 
           <div className="p-5 flex flex-col gap-5 border-t md:border-t-0 md:border-l border-divider bg-sidebar-background/50">
+            {isEdit && (
+              <Section icon={<GitBranch className="w-3.5 h-3.5" />} label="Assigned branch">
+                <div className="flex items-center gap-2 rounded-lg bg-card-hover px-3 py-2 text-sm">
+                  <GitBranch className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
+                  {task?.branchName ? (
+                    <span className="font-mono text-text-primary truncate" title={task.branchName}>
+                      {task.branchName}
+                    </span>
+                  ) : (
+                    <span className="text-text-secondary">Not assigned to any branch</span>
+                  )}
+                </div>
+                {task?.workflowId ? (
+                  <button
+                    type="button"
+                    onClick={openWorkflow}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg outline-none',
+                      SOFT_BUTTON,
+                    )}
+                  >
+                    <WorkflowIcon className="w-3.5 h-3.5" />
+                    View workflow
+                  </button>
+                ) : (
+                  <p className="text-xs text-text-secondary">No workflow linked</p>
+                )}
+              </Section>
+            )}
+
             <Section label="Status" extra={statusLocked ? 'Blocked' : undefined}>
               <Select
                 value={status}
@@ -756,6 +806,32 @@ export const TaskModal = memo(function TaskModal({
           </button>
         </div>
       )}
+    </Modal>
+    <Modal isOpen={workflowOpen} onClose={() => setWorkflowOpen(false)} className="max-w-3xl w-[90vw] h-[75vh]">
+      <div className="px-5 py-3.5 border-b border-divider shrink-0 flex items-center gap-3 bg-sidebar-background/50">
+        <WorkflowIcon className="w-4 h-4 text-text-secondary" />
+        <h3 className="flex-1 min-w-0 truncate text-sm font-bold text-text-primary">
+          Workflow - {title.trim() || 'Untitled task'}
+        </h3>
+        <button
+          type="button"
+          onClick={() => setWorkflowOpen(false)}
+          className="p-1.5 rounded-lg bg-card-hover text-text-secondary outline-none hover:bg-error/15 hover:text-error transition-colors shrink-0 cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <ModalBody className="p-5">
+        {workflowError ? (
+          <p className="text-xs text-error">{workflowError}</p>
+        ) : workflowText === null ? (
+          <p className="text-xs text-text-secondary">Loading...</p>
+        ) : (
+          <pre className="whitespace-pre-wrap break-words text-xs text-text-primary font-mono">
+            {workflowText}
+          </pre>
+        )}
+      </ModalBody>
     </Modal>
     <ConfirmForceStartTaskModal
       isOpen={pendingStatus !== null}

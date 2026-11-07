@@ -1,22 +1,45 @@
-import { LayoutDashboard } from 'lucide-react';
 import { SmartLayoutSection } from './SmartLayoutSection';
+
+const OPTIONS = [
+  'General',
+  'Appearance',
+  'Editor',
+  'Terminal',
+  'Keybindings',
+  'Git',
+  'Debug',
+  'Extensions',
+];
+
+const optionClass =
+  'px-2.5 py-2 rounded-lg text-left text-xs font-medium cursor-pointer transition-colors';
 
 export function SettingsView() {
   return (
     <div className="flex-1 flex min-h-0 bg-background">
-      <aside className="w-[220px] shrink-0 border-r border-border p-3 flex flex-col gap-1">
+      <aside className="w-[260px] shrink-0 border-r border-border p-3 flex flex-col gap-1 overflow-y-auto">
         <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary/70">
           Workspace
         </p>
         <button
           type="button"
-          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-text-primary bg-primary/12 border border-primary/25 cursor-pointer"
+          className={`${optionClass} text-text-primary bg-primary/12 border border-primary/25`}
         >
-          <span className="w-6 h-6 rounded-md grid place-items-center text-white bg-gradient-to-br from-sky-500 to-primary">
-            <LayoutDashboard className="w-3.5 h-3.5" />
-          </span>
           Smart layout
         </button>
+
+        <p className="px-2 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary/70">
+          More
+        </p>
+        {OPTIONS.map((name) => (
+          <button
+            key={name}
+            type="button"
+            className={`${optionClass} text-text-secondary hover:bg-card-hover hover:text-text-primary`}
+          >
+            {name}
+          </button>
+        ))}
       </aside>
 
       <div className="flex-1 min-w-0 overflow-y-auto">

@@ -1,0 +1,20 @@
+const callToJson = ({ tool, params }: ToolCallSpec): string =>
+  '```json\n' + JSON.stringify({ tool, params }) + '\n```';
+
+export const jsonFormat: ToolFormatDefinition = {
+  id: 'json',
+  label: 'JSON tool calls',
+  description: 'AI uses fenced JSON objects for tool calls',
+  colorVar: '--primary',
+  serializeCall: callToJson,
+  parse: (content, base) => {
+    const normalized = wrapBareJsonObjects(content);
+    const hasJsonFence = /```json[\s\S]*?```/.test(normalized);
+    const hasXmlTags =
+      /<(conversation_title|markdown|followup_question|attempt_completion|use_tool|think)[^>]*>/i.test(
+        content,
+      );
+    if (!hasJsonFence && hasXmlTags) return null;
+    return parseAIResponseJson(normalized, base);
+  },
+};

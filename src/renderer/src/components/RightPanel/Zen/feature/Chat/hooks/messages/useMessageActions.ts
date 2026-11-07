@@ -9,8 +9,8 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 import { useCallback } from "react";
-import { Message } from "../../types/message";
-
+import { Message } from '../../types/message';
+import { isUserMessage } from '../../utils/message-filters';
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface UseMessageActionsProps {
   messages: Message[];
@@ -43,11 +43,8 @@ export function useMessageActions({
    */
   const handleRegenerateRequest = useCallback(
     (messageId: string) => {
-      const msgIndex = messages.findIndex((m) => m.id === messageId);
-      if (msgIndex === -1) return;
-
-      const userMsg = messages[msgIndex];
-      if (userMsg.role !== 'user') return;
+      const userMsg = messages.find((m) => m.id === messageId);
+      if (!userMsg || !isUserMessage(userMsg)) return;
       if (!onSendMessage || !userMsg.rawRequest) return;
 
       const userContentMatch = userMsg.rawRequest.match(

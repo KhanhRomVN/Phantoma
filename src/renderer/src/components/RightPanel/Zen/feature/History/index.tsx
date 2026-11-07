@@ -87,17 +87,18 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} height="100%" strategy="absolute">
+    <Drawer isOpen={isOpen} onClose={onClose} height="100%" strategy="absolute" showHandle={false}>
       <NavPanelHeader
         title="History"
         description="Browse and manage your conversation history"
+        maxWidth={680}
         current="history"
         onNavigate={onNavigate}
         onClose={onClose}
       />
 
       {/* Search */}
-      <div className="flex gap-2 items-center px-4 py-3 bg-background">
+      <div className="w-full max-w-[680px] mx-auto box-border flex gap-2 items-center px-4 py-3 bg-background">
         <div className="relative flex-1">
           <input
             type="text"
@@ -147,7 +148,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       />
 
       {/* List */}
-      <DrawerBody className="p-3">
+      <DrawerBody className="py-3 px-[max(12px,calc((100%-680px)/2+16px))]">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-[160px] gap-2 text-text-secondary">
             <Loader2

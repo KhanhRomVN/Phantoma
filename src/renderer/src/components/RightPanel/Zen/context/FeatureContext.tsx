@@ -27,7 +27,7 @@ export interface CodeState {
 
 export interface ReconState {
   activeTargetId: string | null;
-  targets: Array<{ id: string; email: string; isActive: boolean }>;
+  targets: Array<{ id: string; title: string; isActive: boolean }>;
 }
 
 interface FeatureContextValue {

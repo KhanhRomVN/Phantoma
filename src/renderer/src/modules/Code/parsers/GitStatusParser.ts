@@ -1,5 +1,5 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/ToolParser';
-import { GitStatusParams } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tool-types';
+import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
+import type { GitStatusParams } from '../types/tool-params';
 
 /**
  * Parse git_status tag from AI response

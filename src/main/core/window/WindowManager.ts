@@ -2,13 +2,15 @@
  * ------------------------------------------------------------------
  * Quản lý cửa sổ
  * ------------------------------------------------------------------
- * Tạo và quản lý BrowserWindow chính của Electron. Xử lý
- * kích thước cửa sổ, cấu hình thanh tiêu đề tùy chỉnh, xử lý liên kết ngoài,
- * và logic tải dev/prod.
+ * Tạo và quản lý nhiều BrowserWindow của Electron (giống VSCode).
+ * Xử lý kích thước cửa sổ, cấu hình thanh tiêu đề tùy chỉnh, xử lý liên kết ngoài,
+ * và logic tải dev/prod. Mỗi cửa sổ có trạng thái độc lập.
  *
  * Hàm chính:
- * - createMainWindow() : Tạo và hiển thị cửa sổ chính
- * - getMainWindow()    : Trả về tham chiếu cửa sổ hiện tại hoặc null
+ * - createWindow()     : Tạo và hiển thị một cửa sổ mới
+ * - createMainWindow() : Alias của createWindow() (giữ tương thích)
+ * - getMainWindow()    : Trả về cửa sổ đang focus (hoặc cửa sổ đầu tiên) hoặc null
+ * - getWindows()       : Trả về danh sách tất cả cửa sổ đang mở
  * ------------------------------------------------------------------
  */
 
@@ -23,14 +25,12 @@ import { join } from 'path';
 import { windowConfig } from '../config/window.config';
 // ─── Class ──────────────────────────────────────────────────────────────
 export class WindowManager {
-  private mainWindow: BrowserWindow | null = null;
-  /** Cờ phân biệt manual reload (Ctrl+R) vs auto-recovery sau crash */
-  private isManualReload = false;
+  private windows = new Set<BrowserWindow>();
 
   constructor() {}
 
-  createMainWindow(): void {
-    this.mainWindow = new BrowserWindow({
+  createWindow(initialModule?: string): BrowserWindow {
+    const win = new BrowserWindow({
       width: windowConfig.defaultWidth,
       height: windowConfig.defaultHeight,
       minWidth: windowConfig.minWidth,
@@ -41,7 +41,10 @@ export class WindowManager {
       titleBarStyle: 'hidden', // Hide native titlebar
       trafficLightPosition: { x: 20, y: 20 }, // Adjust traffic light position for macOS
       title: windowConfig.title,
-      icon: join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'images/phantoma-logo.png'),
+      icon: join(
+        app.isPackaged ? process.resourcesPath : app.getAppPath(),
+        'images/phantoma-logo.png',
+      ),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         sandbox: false,
@@ -51,37 +54,34 @@ export class WindowManager {
       },
     });
 
-    this.mainWindow.on('ready-to-show', () => {
-      this.mainWindow?.show();
+    this.windows.add(win);
+    win.on('closed', () => {
+      this.windows.delete(win);
+    });
+
+    win.on('ready-to-show', () => {
+      win.show();
       // Linux workaround: Wait for window to map before maximizing
       setTimeout(() => {
-        this.mainWindow?.maximize();
+        if (!win.isDestroyed()) win.maximize();
       }, 150);
-
-      if (!app.isPackaged) {
-        // keep window maximized in dev
-      }
     });
 
     // Emit maximize/unmaximize events to renderer
-    this.mainWindow.on('maximize', () => {
-      this.mainWindow?.webContents.send('window:maximized');
+    win.on('maximize', () => {
+      if (!win.isDestroyed()) win.webContents.send('window:maximized');
     });
-    this.mainWindow.on('unmaximize', () => {
-      this.mainWindow?.webContents.send('window:unmaximized');
+    win.on('unmaximize', () => {
+      if (!win.isDestroyed()) win.webContents.send('window:unmaximized');
     });
 
-    // Phát hiện manual reload (Ctrl+R / Cmd+R / F5) để set cờ trước khi did-start-loading fire.
-    // Electron bắn keydown trên webContents trước navigation, nên thứ tự là:
-    //   keydown → did-start-loading → (reload diễn ra).
-    this.mainWindow.webContents.on('before-input-event', (event, input) => {
+    win.webContents.on('before-input-event', (event, input) => {
       if (input.type !== 'keyDown') return;
-      const isReloadShortcut =
-        (input.control && input.key.toLowerCase() === 'r') ||
-        (input.meta && input.key.toLowerCase() === 'r') ||
-        input.key === 'F5';
-      if (isReloadShortcut) {
-        this.isManualReload = true;
+
+      if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'n') {
+        event.preventDefault();
+        this.createWindow('settings');
+        return;
       }
 
       if (input.control || input.meta) {
@@ -90,13 +90,13 @@ export class WindowManager {
         const zoomReset = input.code === 'Digit0' || input.code === 'Numpad0';
         if (zoomIn || zoomOut || zoomReset) {
           event.preventDefault();
-          this.applyZoom(zoomIn ? 1 : zoomOut ? -1 : 0);
+          this.applyZoom(win, zoomIn ? 1 : zoomOut ? -1 : 0);
         }
       }
     });
 
-    this.mainWindow.webContents.on('will-prevent-unload', (event) => {
-      const choice = dialog.showMessageBoxSync(this.mainWindow!, {
+    win.webContents.on('will-prevent-unload', (event) => {
+      const choice = dialog.showMessageBoxSync(win, {
         type: 'warning',
         buttons: ['Leave', 'Stay'],
         defaultId: 1,
@@ -107,49 +107,57 @@ export class WindowManager {
       if (choice === 0) event.preventDefault();
     });
 
-    this.mainWindow.webContents.on('did-start-loading', () => {
-      if (this.isManualReload) {
-        this.isManualReload = false;
-      }
-    });
-
-    this.mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    win.webContents.on('render-process-gone', (_event, details) => {
       console.error(
         `[WindowManager] Renderer process gone: reason=${details.reason}, exitCode=${details.exitCode}`,
       );
-      this.mainWindow?.webContents.send('window:renderer-crashed', {
+      if (win.isDestroyed()) return;
+      win.webContents.send('window:renderer-crashed', {
         reason: details.reason,
         exitCode: details.exitCode,
         timestamp: Date.now(),
       });
     });
 
-    this.mainWindow.webContents.setWindowOpenHandler((details) => {
+    win.webContents.setWindowOpenHandler((details) => {
       shell.openExternal(details.url);
       return { action: 'deny' };
     });
 
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
+    const hash = initialModule ? `module=${initialModule}` : undefined;
     if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-      this.mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
+      win.loadURL(process.env['ELECTRON_RENDERER_URL'] + (hash ? `#${hash}` : ''));
     } else {
-      this.mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+      win.loadFile(join(__dirname, '../renderer/index.html'), hash ? { hash } : undefined);
     }
+
+    return win;
+  }
+
+  createMainWindow(): void {
+    this.createWindow();
   }
 
   /** direction: 1 = phóng to, -1 = thu nhỏ, 0 = đặt lại 100% */
-  private applyZoom(direction: number): void {
-    const contents = this.mainWindow?.webContents;
-    if (!contents) return;
+  private applyZoom(win: BrowserWindow, direction: number): void {
+    if (win.isDestroyed()) return;
+    const contents = win.webContents;
     const level =
       direction === 0 ? 0 : Math.min(5, Math.max(-3, contents.getZoomLevel() + direction * 0.5));
     contents.setZoomLevel(level);
     contents.send('window:zoom-changed', Math.round(Math.pow(1.2, level) * 100));
   }
 
+  getWindows(): BrowserWindow[] {
+    return [...this.windows];
+  }
+
   getMainWindow(): BrowserWindow | null {
-    return this.mainWindow;
+    const focused = BrowserWindow.getFocusedWindow();
+    if (focused && this.windows.has(focused)) return focused;
+    return this.windows.values().next().value ?? null;
   }
 }
 

@@ -52,6 +52,8 @@ export interface Model {
   name: string
   description?: string
   provider_id?: string
+  providerId?: string
+  website_url?: string
   max_context_length?: number
   context_length?: number
   is_thinking?: boolean

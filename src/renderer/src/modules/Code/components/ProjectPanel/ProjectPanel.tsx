@@ -45,8 +45,14 @@ import {
   Square,
   Settings,
   Download as DownloadIcon,
+  Search as SearchIcon,
+  EyeOff,
+  FolderTree,
 } from 'lucide-react';
 import { SyncBranchModal } from '../modal/SyncBranchModal';
+import { ProjectSettingsModal } from '../modal/ProjectSettingsModal';
+import { ProjectLogoImage } from '../ProjectLogo';
+import { Settings as SettingsIcon } from 'lucide-react';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
@@ -57,6 +63,19 @@ import {
   type StoredTask,
 } from '../../services/task.service';
 import { ConfirmForceStartTaskModal } from '../ContentPanel/TaskManager/ConfirmForceStartTaskModal';
+import {
+  ProjectConflictModal,
+  fromBranchTargetId,
+  toBranchTargetId,
+  type ConflictProjectOption,
+} from './ProjectConflictModal';
+import {
+  useTargetLock,
+  useBusyTargetIds,
+  useIsLateClaimant,
+  forceReleaseTarget,
+  focusTargetOwner,
+} from '@renderer/shared/target-lock/useTargetLock';
 
 // ── Utils ──
 import { cn } from '@renderer/shared/utils/cn';
@@ -129,6 +148,7 @@ import {
   getProjectTokens,
   type ProjectExtended as CardProject,
 } from './ProjectCard';
+import { ScrollToSessionButton } from './ScrollToSessionButton';
 
 // ─── Local Types ────────────────────────────────────────────────────────
 
@@ -555,8 +575,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [activeTaskManagerProjectId, setActiveTaskManagerProjectId] = useState<string | null>(null);
   const [activeGitProjectId, setActiveGitProjectId] = useState<string | null>(null);
   const [showHidden] = useState(false);
+  const [query, setQuery] = useState('');
+  const [treeOpen, setTreeOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('manual');
   const [filterStatus, setFilterStatus] = useState<'all' | SessionStatus>('all');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [dropdownTarget, setDropdownTarget] = useState<DropdownTarget | null>(null);
   const isSettingsOpen = useCodeStore((s) => s.contentViewMode === 'settings');
@@ -568,6 +591,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   } | null>(null);
   const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<ProjectExtended | null>(null);
   const [createBranchProjectId, setCreateBranchProjectId] = useState<string | null>(null);
+  const [settingsProjectId, setSettingsProjectId] = useState<string | null>(null);
   const [mergeTarget, setMergeTarget] = useState<{
     newProjectId: string;
     newProjectName: string;
@@ -782,6 +806,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
   // ── Derived: filtered + sorted list ──
   const shownProjects = useMemo(() => {
     let list = projects.filter((p) => showHidden || !p.hidden);
+    const q = query.trim().toLowerCase();
+    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
     if (filterStatus !== 'all') list = list.filter((p) => getProjectStatus(p) === filterStatus);
     if (sortMode === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     if (sortMode === 'status')
@@ -792,7 +818,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
     if (sortMode === 'tokens')
       list = [...list].sort((a, b) => getProjectTokens(b) - getProjectTokens(a));
     return list;
-  }, [projects, showHidden, filterStatus, sortMode]);
+  }, [projects, showHidden, filterStatus, sortMode, query]);
 
   const anyOpen = shownProjects.some((p) => expandedIds.has(p.id));
   const isDirty = sortMode !== 'manual' || filterStatus !== 'all';
@@ -846,12 +872,55 @@ export const ProjectPanel = memo(function ProjectPanel() {
       setActiveGitProjectId(null);
       setActiveTaskManagerProjectId(null);
       setCurrentProject(projectId);
+
+      // ASSUMED: project không có git không có branch/session → tự tạo 1 session mặc định để mở Workspace (empty state tạo tab)
+      const proj = projects.find((p) => p.id === projectId);
+      if (!proj || gitRepoByProject[projectId] !== false) return;
+      let sessionId = proj.branches.flatMap((b) => b.sessions)[0]?.id;
+      if (!sessionId) {
+        const fresh: SessionInfo = {
+          id: `n${Date.now()}`,
+          title: 'Workspace',
+          status: 'idle',
+          time: 'now',
+          task: undefined,
+          agents: [],
+          procs: [],
+          summary: mkSum(0, 0, 0, 0, 0, '—'),
+        };
+        sessionId = fresh.id;
+        const newBranches: BranchInfo[] = [
+          { name: 'no-branch', visible: true, sessions: [fresh], path: proj.path },
+        ];
+        setProjects((prev) =>
+          prev.map((p) => (p.id === projectId ? { ...p, branches: newBranches } : p)),
+        );
+        updateProject(projectId, { branches: newBranches });
+      }
+      setSelectedSessionId(sessionId);
+      setExplorerRoot(projectId, proj.path ?? null);
+      setActiveWorkspaceSessionId(sessionId);
+      setContentViewMode('workspace');
     },
-    [setCurrentProject],
+    [
+      projects,
+      gitRepoByProject,
+      updateProject,
+      setCurrentProject,
+      setExplorerRoot,
+      setActiveWorkspaceSessionId,
+      setContentViewMode,
+    ],
   );
 
+  const busyTargetIds = useBusyTargetIds('code');
+  const [blockedTarget, setBlockedTarget] = useState<{
+    projectId: string;
+    branchName: string;
+  } | null>(null);
+
   const handleSelectSession = useCallback(
-    (sessionId: string) => {
+    (sessionId: string, force = false) => {
       if (!sessionId) {
         // Deselect logic triggered by clicking an already-selected branch row
         setSelectedSessionId(null);
@@ -866,6 +935,19 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       if (!parentProject) {
         console.warn('[DEBUG_SELECT_SESSION] Session not found in any project', { sessionId });
+        return;
+      }
+
+      // ASSUMED: branch đang mở ở cửa sổ khác thì không select, chỉ hiện modal xung đột
+      const targetBranch = parentProject.branches.find((b) =>
+        b.sessions.some((s) => s.id === sessionId),
+      );
+      if (
+        !force &&
+        targetBranch &&
+        busyTargetIds.has(toBranchTargetId(parentProject.id, targetBranch.name))
+      ) {
+        setBlockedTarget({ projectId: parentProject.id, branchName: targetBranch.name });
         return;
       }
 
@@ -899,6 +981,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       setContentViewMode,
       activeTaskManagerProjectId,
       activeGitProjectId,
+      busyTargetIds,
     ],
   );
 
@@ -1086,6 +1169,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
     setConfirmDeleteTarget(null);
   }, [confirmDeleteTarget, removeProjectFromStore, showToast]);
 
+  const settingsProject = useMemo(
+    () => projects.find((p) => p.id === settingsProjectId) ?? null,
+    [projects, settingsProjectId],
+  );
   const createBranchProject = useMemo(
     () => projects.find((p) => p.id === createBranchProjectId) ?? null,
     [projects, createBranchProjectId],
@@ -1659,15 +1746,37 @@ export const ProjectPanel = memo(function ProjectPanel() {
   // (previously only the active project was checked, leaving other cards unknown).
   useEffect(() => {
     let cancelled = false;
+    const seedNoGit = (p: ProjectExtended) => {
+      if (p.branches.some((b) => b.sessions.length > 0)) return;
+      const fresh: SessionInfo = {
+        id: `n${Date.now()}-${p.id}`,
+        title: 'Workspace',
+        status: 'idle',
+        time: 'now',
+        task: undefined,
+        agents: [],
+        procs: [],
+        summary: mkSum(0, 0, 0, 0, 0, '—'),
+      };
+      const newBranches: BranchInfo[] = [
+        { name: 'no-branch', visible: true, sessions: [fresh], path: p.path },
+      ];
+      setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, branches: newBranches } : x)));
+      updateProject(p.id, { branches: newBranches });
+    };
     for (const p of projects) {
       if (!p.path || gitRepoByProject[p.id] !== undefined) continue;
       (window as any).api
         .invoke('git:is-repo', p.path)
         .then((ok: boolean) => {
-          if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [p.id]: !!ok }));
+          if (cancelled) return;
+          setGitRepoByProject((prev) => ({ ...prev, [p.id]: !!ok }));
+          if (!ok) seedNoGit(p);
         })
         .catch(() => {
-          if (!cancelled) setGitRepoByProject((prev) => ({ ...prev, [p.id]: false }));
+          if (cancelled) return;
+          setGitRepoByProject((prev) => ({ ...prev, [p.id]: false }));
+          seedNoGit(p);
         });
     }
     return () => {
@@ -1676,6 +1785,164 @@ export const ProjectPanel = memo(function ProjectPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects.map((p) => p.id + ':' + p.path).join('|')]);
 
+  // ── Target lock (multi-window) ──
+  // ASSUMED: target = branch of the project that owns the active workspace session (id: `${projectId}::${branchName}`)
+  const activeWorkspaceSessionId = useCodeStore((s) => s.activeWorkspaceSessionId);
+
+  const currentBranchName = useMemo(() => {
+    if (!currentProjectId || !activeWorkspaceSessionId) return null;
+    const owner = projects
+      .find((p) => p.id === currentProjectId)
+      ?.branches.find((b) => b.sessions.some((s) => s.id === activeWorkspaceSessionId));
+    return owner?.name ?? null;
+  }, [projects, currentProjectId, activeWorkspaceSessionId]);
+
+  const currentTargetId =
+    currentProjectId && currentBranchName
+      ? toBranchTargetId(currentProjectId, currentBranchName)
+      : null;
+
+  const handleUnselectProject = useCallback(() => {
+    setSelectedSessionId(null);
+    setActiveGitProjectId(null);
+    setActiveTaskManagerProjectId(null);
+    setCurrentProject(undefined as unknown as string);
+    setActiveWorkspaceSessionId(null);
+    setContentViewMode('files');
+  }, [setCurrentProject, setActiveWorkspaceSessionId, setContentViewMode]);
+
+  const [conflictOpen, setConflictOpen] = useState(false);
+  // ASSUMED: cửa sổ đang hiện modal xung đột chưa thực sự giữ target nên không được claim
+  useTargetLock('code', conflictOpen ? null : currentTargetId, handleUnselectProject);
+
+  const busyBranchesByProject = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    busyTargetIds.forEach((id) => {
+      const { projectId, branchName } = fromBranchTargetId(id);
+      const set = map.get(projectId) ?? new Set<string>();
+      set.add(branchName);
+      map.set(projectId, set);
+    });
+    return map;
+  }, [busyTargetIds]);
+
+  const handleReleaseElsewhere = useCallback((projectId: string, branchName: string) => {
+    forceReleaseTarget('code', toBranchTargetId(projectId, branchName));
+  }, []);
+
+  const handleFocusElsewhere = useCallback((projectId: string, branchName: string) => {
+    focusTargetOwner('code', toBranchTargetId(projectId, branchName));
+  }, []);
+
+  const isLateClaimant = useIsLateClaimant('code', currentTargetId);
+  const conflictTriggered =
+    !!currentTargetId && isLateClaimant && busyTargetIds.has(currentTargetId);
+  useEffect(() => {
+    if (conflictOpen && currentTargetId && !busyTargetIds.has(currentTargetId)) {
+      setConflictOpen(false);
+    }
+  }, [conflictOpen, currentTargetId, busyTargetIds]);
+
+  useEffect(() => {
+    setConflictOpen(conflictTriggered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTargetId]);
+
+  useEffect(() => {
+    if (conflictTriggered) setConflictOpen(true);
+  }, [conflictTriggered]);
+
+  const conflictProject =
+    conflictOpen && currentTargetId
+      ? (projects.find((p) => p.id === currentProjectId) ?? null)
+      : null;
+
+  const conflictOptions = useMemo<ConflictProjectOption[]>(
+    () =>
+      projects
+        .filter((p) => !p.hidden)
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          path: rawProjects.find((r) => r.id === p.id)?.path ?? '',
+          logoPath: p.logoPath,
+          branches: p.branches
+            .filter((b) => b.visible)
+            .map((b) => ({
+              name: b.name,
+              busy: busyTargetIds.has(toBranchTargetId(p.id, b.name)),
+            })),
+        })),
+    [projects, rawProjects, busyTargetIds],
+  );
+
+  const handleSwitchBranch = useCallback(
+    (projectId: string, branchName: string, force = false) => {
+      const branch = projects
+        .find((p) => p.id === projectId)
+        ?.branches.find((b) => b.name === branchName);
+      if (!branch) return;
+      if (!force && busyTargetIds.has(toBranchTargetId(projectId, branchName))) {
+        setBlockedTarget({ projectId, branchName });
+        return;
+      }
+      const sessionId = branch.sessions[0]?.id;
+      if (sessionId) handleSelectSession(sessionId, force);
+      else {
+        setCurrentProject(projectId);
+        handleNewSession(projectId, branchName);
+      }
+    },
+    [projects, busyTargetIds, handleSelectSession, handleNewSession, setCurrentProject],
+  );
+
+  const handleConflictSelectProject = useCallback(
+    (projectId: string) => {
+      const visible =
+        projects.find((p) => p.id === projectId)?.branches.filter((b) => b.visible) ?? [];
+      if (visible.length === 1) {
+        handleSwitchBranch(projectId, visible[0].name);
+        return;
+      }
+      setActiveWorkspaceSessionId(null);
+      handleSelectProject(projectId);
+      setContentViewMode('workspace');
+    },
+    [
+      projects,
+      handleSwitchBranch,
+      handleSelectProject,
+      setActiveWorkspaceSessionId,
+      setContentViewMode,
+    ],
+  );
+
+  // ASSUMED: expand project đang collapse → tự chọn branch rảnh đầu tiên (từ trên xuống); không có thì giữ hành vi cũ
+  const handleCardSelectProject = useCallback(
+    (projectId: string) => {
+      if (expandedIds.has(projectId) || gitRepoByProject[projectId] === false) {
+        handleSelectProject(projectId);
+        return;
+      }
+      const freeBranch = projects
+        .find((p) => p.id === projectId)
+        ?.branches.find((b) => b.visible && !busyTargetIds.has(toBranchTargetId(projectId, b.name)));
+      if (freeBranch) handleSwitchBranch(projectId, freeBranch.name);
+      else handleSelectProject(projectId);
+    },
+    [expandedIds, gitRepoByProject, projects, busyTargetIds, handleSelectProject, handleSwitchBranch],
+  );
+
+  useEffect(() => {
+    const onSelectBranch = (e: Event) => {
+      const { projectId, branchName, sessionId } = (e as CustomEvent).detail ?? {};
+      if (sessionId) handleSelectSession(sessionId);
+      else if (projectId && branchName) handleSwitchBranch(projectId, branchName);
+    };
+    window.addEventListener('phantoma:select-branch', onSelectBranch);
+    return () => window.removeEventListener('phantoma:select-branch', onSelectBranch);
+  }, [handleSelectSession, handleSwitchBranch]);
+
   // ── Render helpers ──
   const renderCard = (project: ProjectExtended) => (
     <ProjectCard
@@ -1683,7 +1950,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
       project={project}
       isSelected={expandedIds.has(project.id)}
       isProjectSelected={currentProjectId === project.id}
-      onSelectProject={handleSelectProject}
+      busyBranchNames={busyBranchesByProject.get(project.id)}
+      onReleaseElsewhere={handleReleaseElsewhere}
+      onFocusElsewhere={handleFocusElsewhere}
+      onSelectProject={handleCardSelectProject}
       selectedSessionId={selectedSessionId}
       isTaskManagerActive={activeTaskManagerProjectId === project.id}
       isGitActive={activeGitProjectId === project.id}
@@ -1744,7 +2014,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   return (
     <div className="flex flex-col h-full w-[340px] shrink-0 min-h-0 bg-sidebar-background border-r border-border overflow-hidden">
       {/* Header */}
-      <div className="px-3 h-[44px] flex items-center justify-between border-b border-divider shrink-0">
+      <div className="relative px-3 h-[44px] flex items-center justify-between border-b border-divider shrink-0">
         <b className="text-[13px] font-semibold text-text-primary font-display">
           Projects
           <span className="font-medium text-[10.5px] font-mono text-text-secondary/50 ml-1.5">
@@ -1752,6 +2022,70 @@ export const ProjectPanel = memo(function ProjectPanel() {
           </span>
         </b>
         <div className="flex gap-0.5 items-center">
+          {/* Project visibility tree */}
+          <div>
+            <button
+              onClick={() => setTreeOpen((v) => !v)}
+              className={cn(headerBtn, treeOpen ? headerBtnOn : headerBtnIdle)}
+              title="Show / hide projects"
+            >
+              <FolderTree className="w-3.5 h-3.5" />
+            </button>
+            {treeOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setTreeOpen(false)} />
+                <div className="absolute right-3 top-full mt-1 z-50 w-[260px] max-h-[320px] overflow-y-auto rounded-lg border border-border bg-sidebar-background p-1 shadow-lg">
+                  {[
+                    ...groups.map((g) => ({ id: g.id, name: g.name })),
+                    { id: '', name: 'Ungrouped' },
+                  ].map((g) => {
+                    const members = projects.filter((p) =>
+                      g.id ? p.groupId === g.id : !groups.some((x) => x.id === p.groupId),
+                    );
+                    if (members.length === 0) return null;
+                    return (
+                      <div key={g.id || 'ungrouped'}>
+                        <div className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary/70">
+                          <ChevronDown className="w-3 h-3" />
+                          {g.name}
+                        </div>
+                        <div className="pl-3">
+                          {members.map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => toggleProjectHidden(p.id)}
+                              className={cn(
+                                'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-card-hover',
+                                p.hidden ? 'text-text-secondary/50' : 'text-text-primary',
+                              )}
+                            >
+                              {p.logoPath ? (
+                                <ProjectLogoImage
+                                  path={p.logoPath}
+                                  side={32}
+                                  className="w-3.5 h-3.5 shrink-0 rounded-[3px] object-contain"
+                                  fallback={<Folder className="w-3.5 h-3.5 shrink-0" />}
+                                />
+                              ) : (
+                                <Folder className="w-3.5 h-3.5 shrink-0" />
+                              )}
+                              <span className="flex-1 truncate">{p.name}</span>
+                              {p.hidden ? (
+                                <EyeOff className="w-3.5 h-3.5 shrink-0" />
+                              ) : (
+                                <Eye className="w-3.5 h-3.5 shrink-0" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Create New Group Button */}
           <button
             onClick={() => {
@@ -1815,8 +2149,22 @@ export const ProjectPanel = memo(function ProjectPanel() {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-divider px-3">
+        <SearchIcon className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search projects"
+          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-text-primary outline-none ring-0 placeholder:text-text-secondary/60 focus:outline-none focus:ring-0"
+        />
+      </div>
+
       {/* Project list */}
-      <div className="flex-1 min-h-0 overflow-y-auto select-none flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto select-none flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm"
+      >
         {/* Group Creation Form */}
         {groupFormOpen && (
           <NewGroupModal
@@ -2159,6 +2507,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 >
                   {activeProject.hidden ? 'Show project' : 'Hide project'}
                 </DropdownItem>
+                <DropdownItem
+                  icon={<SettingsIcon className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    setSettingsProjectId(activeProject.id);
+                    closeDropdown();
+                  }}
+                >
+                  Project settings
+                </DropdownItem>
 
                 <DropdownSeparator />
                 <DropdownItem
@@ -2203,7 +2560,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     closeDropdown();
                   }}
                 >
-                  Pull from branch...
+                  Sync from...
                 </DropdownItem>
 
                 <DropdownSeparator />
@@ -2588,6 +2945,30 @@ export const ProjectPanel = memo(function ProjectPanel() {
         projectPath={confirmDeleteTarget?.path}
       />
 
+      <ProjectSettingsModal
+        isOpen={!!settingsProject}
+        onClose={() => setSettingsProjectId(null)}
+        project={
+          settingsProject
+            ? {
+                id: settingsProject.id,
+                name: settingsProject.name,
+                path: settingsProject.path,
+                color: settingsProject.color,
+                logoPath: settingsProject.logoPath,
+                hidden: settingsProject.hidden,
+                branchCount: settingsProject.branches.length,
+                groupName: groups.find((g) => g.id === settingsProject.groupId)?.name ?? null,
+              }
+            : null
+        }
+        onChange={(id, patch) => {
+          const { hidden, ...storePatch } = patch;
+          if (Object.keys(storePatch).length > 0) updateProject(id, storePatch);
+          if (hidden !== undefined) patchProject(id, (p) => ({ ...p, hidden }));
+        }}
+      />
+
       <CreateBranchModal
         isOpen={!!createBranchProject}
         onClose={() => setCreateBranchProjectId(null)}
@@ -2661,6 +3042,49 @@ export const ProjectPanel = memo(function ProjectPanel() {
         branchPath={confirmUnlinkBranchTarget?.branchPath ?? ''}
       />
 
+      {conflictProject && (
+        <ProjectConflictModal
+          project={{ id: conflictProject.id, name: conflictProject.name }}
+          branchName={currentBranchName ?? ''}
+          projects={conflictOptions}
+          onSelectProject={handleConflictSelectProject}
+          onUnselect={handleUnselectProject}
+          onTakeOver={() => {
+            if (currentTargetId) forceReleaseTarget('code', currentTargetId);
+            setConflictOpen(false);
+          }}
+          onFocusOther={() => currentTargetId && focusTargetOwner('code', currentTargetId)}
+        />
+      )}
+
+      {blockedTarget && !conflictProject && (
+        <ProjectConflictModal
+          project={{
+            id: blockedTarget.projectId,
+            name: projects.find((p) => p.id === blockedTarget.projectId)?.name ?? '',
+          }}
+          branchName={blockedTarget.branchName}
+          projects={conflictOptions}
+          onSelectProject={(projectId) => {
+            setBlockedTarget(null);
+            handleConflictSelectProject(projectId);
+          }}
+          onUnselect={() => setBlockedTarget(null)}
+          onTakeOver={() => {
+            const { projectId, branchName } = blockedTarget;
+            forceReleaseTarget('code', toBranchTargetId(projectId, branchName));
+            setBlockedTarget(null);
+            handleSwitchBranch(projectId, branchName, true);
+          }}
+          onFocusOther={() =>
+            focusTargetOwner(
+              'code',
+              toBranchTargetId(blockedTarget.projectId, blockedTarget.branchName),
+            )
+          }
+        />
+      )}
+
       <ConfirmForceStartTaskModal
         isOpen={!!forceStart}
         taskTitle={forceStart?.title ?? ''}
@@ -2680,6 +3104,12 @@ export const ProjectPanel = memo(function ProjectPanel() {
             }
           })();
         }}
+      />
+
+      {/* Scroll to selected session button */}
+      <ScrollToSessionButton
+        selectedSessionId={selectedSessionId}
+        scrollContainerRef={scrollContainerRef}
       />
     </div>
   );
