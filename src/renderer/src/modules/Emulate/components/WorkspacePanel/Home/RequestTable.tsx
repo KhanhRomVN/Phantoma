@@ -372,7 +372,7 @@ export const RequestTable = React.memo(function RequestTable({
               'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all cursor-pointer select-none',
               table.getIsAllRowsSelected()
                 ? 'bg-primary border-primary text-zinc-950 shadow-sm shadow-primary/20'
-                : 'border-border bg-card-background/50 hover:border-border-hover text-transparent',
+                : 'border-border bg-card-background/50 hover:border-primary text-transparent',
             )}
           >
             <Check className="w-2.5 h-2.5 stroke-[3.5]" />
@@ -388,7 +388,7 @@ export const RequestTable = React.memo(function RequestTable({
               'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all cursor-pointer select-none',
               row.getIsSelected()
                 ? 'bg-primary border-primary text-zinc-950 shadow-sm shadow-primary/20'
-                : 'border-border bg-card-background/50 hover:border-border-hover text-transparent',
+                : 'border-border bg-card-background/50 hover:border-primary text-transparent',
             )}
           >
             <Check className="w-2.5 h-2.5 stroke-[3.5]" />
@@ -421,15 +421,15 @@ export const RequestTable = React.memo(function RequestTable({
         cell: ({ row }) => {
           const method = row.getValue('method') as string;
           const methodColorMap: Record<string, string> = {
-            GET: 'text-blue',
-            POST: 'text-green',
-            PUT: 'text-yellow',
-            DELETE: 'text-red',
-            PATCH: 'text-purple',
-            HEAD: 'text-pink',
-            OPTIONS: 'text-teal',
-            TRACE: 'text-navy',
-            CONNECT: 'text-violet',
+            GET: 'text-blue-400',
+            POST: 'text-green-400',
+            PUT: 'text-yellow-400',
+            DELETE: 'text-red-400',
+            PATCH: 'text-purple-400',
+            HEAD: 'text-pink-400',
+            OPTIONS: 'text-teal-400',
+            TRACE: 'text-indigo-400',
+            CONNECT: 'text-violet-400',
           };
           const colorClass = methodColorMap[method] || 'text-text-primary';
           return <span className={cn('font-bold text-xs', colorClass)}>{method}</span>;
@@ -475,14 +475,14 @@ export const RequestTable = React.memo(function RequestTable({
                 onClick={(e) => e.stopPropagation()}
               >
                 <svg
-                  className="w-3.5 h-3.5 text-warning animate-pulse shrink-0"
+                  className="w-3.5 h-3.5 text-warn animate-pulse shrink-0"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <rect x="6" y="5" width="4" height="14" rx="1" />
                   <rect x="14" y="5" width="4" height="14" rx="1" />
                 </svg>
-                <span className="text-warning font-bold animate-pulse text-xs tracking-wider">
+                <span className="text-warn font-bold animate-pulse text-xs tracking-wider">
                   Held
                 </span>
                 <button
@@ -511,13 +511,13 @@ export const RequestTable = React.memo(function RequestTable({
 
           let colorClass = 'text-text-primary';
           if (status >= 200 && status < 300) {
-            colorClass = 'text-green';
+            colorClass = 'text-green-400';
           } else if (status >= 300 && status < 400) {
-            colorClass = 'text-yellow';
+            colorClass = 'text-yellow-400';
           } else if (status >= 400) {
-            colorClass = 'text-red';
+            colorClass = 'text-red-400';
           } else if (status === 0 && responseHeaders?.['X-Request-Status']) {
-            colorClass = 'text-red';
+            colorClass = 'text-red-400';
           }
           return (
             <div className="flex items-center justify-center w-full">
@@ -538,16 +538,16 @@ export const RequestTable = React.memo(function RequestTable({
           const type = row.getValue('type') as string;
           const formattedType = type ? type.charAt(0).toUpperCase() + type.slice(1) : type;
           const typeColorMap: Record<string, string> = {
-            xhr: 'text-blue',
-            js: 'text-yellow',
-            css: 'text-purple',
-            img: 'text-pink',
-            media: 'text-teal',
-            font: 'text-navy',
-            doc: 'text-violet',
-            ws: 'text-green',
-            wasm: 'text-purple',
-            manifest: 'text-yellow',
+            xhr: 'text-blue-400',
+            js: 'text-yellow-400',
+            css: 'text-purple-400',
+            img: 'text-pink-400',
+            media: 'text-teal-400',
+            font: 'text-indigo-400',
+            doc: 'text-violet-400',
+            ws: 'text-green-400',
+            wasm: 'text-purple-400',
+            manifest: 'text-yellow-400',
             other: 'text-text-secondary',
           };
           const colorClass = typeColorMap[type] || 'text-text-secondary';
@@ -589,9 +589,9 @@ export const RequestTable = React.memo(function RequestTable({
             tags.push({
               label: 'WASM',
               tooltip: 'WebAssembly',
-              colorClass: 'text-purple',
-              bgClass: 'bg-purple/15',
-              borderClass: 'border-purple/30',
+              colorClass: 'text-purple-400',
+              bgClass: 'bg-purple-500/15',
+              borderClass: 'border-purple-500/30',
             });
           }
 
@@ -608,9 +608,9 @@ export const RequestTable = React.memo(function RequestTable({
             tags.push({
               label: 'SSE',
               tooltip: 'Server-Sent Events',
-              colorClass: 'text-teal',
-              bgClass: 'bg-teal/15',
-              borderClass: 'border-teal/30',
+              colorClass: 'text-teal-400',
+              bgClass: 'bg-teal-500/15',
+              borderClass: 'border-teal-500/30',
             });
           }
 
@@ -627,9 +627,9 @@ export const RequestTable = React.memo(function RequestTable({
             tags.push({
               label: '',
               tooltip: 'Cookies',
-              colorClass: 'text-yellow',
-              bgClass: 'bg-yellow/15',
-              borderClass: 'border-yellow/30',
+              colorClass: 'text-yellow-400',
+              bgClass: 'bg-yellow-500/15',
+              borderClass: 'border-yellow-500/30',
               icon: <Cookie className="w-3 h-3" />,
             });
           }
@@ -1003,7 +1003,7 @@ export const RequestTable = React.memo(function RequestTable({
                 className={cn(
                   'flex items-center border-b border-divider/20 transition-colors cursor-pointer text-xs absolute left-0 top-0',
                   isPending
-                    ? 'bg-warning/15 hover:bg-warning/25 border-l-4 border-l-warning intercept-pending-row'
+                    ? 'bg-warn/15 hover:bg-warn/25 border-l-4 border-l-warning intercept-pending-row'
                     : isIntercepted
                       ? 'bg-error/15 hover:bg-error/25 border-l-4 border-l-error'
                       : isHighlighted
@@ -1186,7 +1186,7 @@ export const RequestTable = React.memo(function RequestTable({
                         : 'text-text-secondary hover:text-text-primary',
                     )}
                   >
-                    <span className="text-[10px] font-mono font-bold text-warning/80">M↓</span>
+                    <span className="text-[10px] font-mono font-bold text-warn/80">M↓</span>
                     Markdown
                   </button>
                 </div>
@@ -1226,7 +1226,7 @@ export const RequestTable = React.memo(function RequestTable({
             </DropdownTrigger>
             <DropdownContent className="min-w-[180px]">
               <DropdownItem
-                icon={<Copy className="w-3.5 h-3.5 text-blue" />}
+                icon={<Copy className="w-3.5 h-3.5 text-blue-400" />}
                 onClick={() => {
                   handleCopySingleAsMarkdown(contextMenu.request);
                   setContextMenu(null);
@@ -1235,7 +1235,7 @@ export const RequestTable = React.memo(function RequestTable({
                 Copy as Markdown
               </DropdownItem>
               <DropdownItem
-                icon={<Copy className="w-3.5 h-3.5 text-blue" />}
+                icon={<Copy className="w-3.5 h-3.5 text-blue-400" />}
                 onClick={() => {
                   handleCopySingleAsJson(contextMenu.request);
                   setContextMenu(null);
@@ -1257,7 +1257,7 @@ export const RequestTable = React.memo(function RequestTable({
               )}
               {onSendToIntruder && (
                 <DropdownItem
-                  icon={<Crosshair className="w-3.5 h-3.5 text-purple" />}
+                  icon={<Crosshair className="w-3.5 h-3.5 text-purple-400" />}
                   onClick={() => {
                     onSendToIntruder(contextMenu.request);
                     setContextMenu(null);
@@ -1273,7 +1273,7 @@ export const RequestTable = React.memo(function RequestTable({
                     className={cn(
                       'w-3.5 h-3.5',
                       highlightedIds.has(contextMenu.request.id)
-                        ? 'fill-warning text-warning'
+                        ? 'fill-warning text-warn'
                         : 'text-yellow-400',
                     )}
                   />

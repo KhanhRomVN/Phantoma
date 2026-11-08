@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 
 interface ListAgentsBlockProps {
   output?: string;

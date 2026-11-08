@@ -343,11 +343,11 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-table-bodyBg">
+    <div className="flex flex-col h-full bg-card-background">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
-        <div className="flex items-center justify-center w-9 h-10 rounded-lg border border-accent-green/25 bg-accent-green/15">
-          <Search className="w-4 h-4 text-accent-green" />
+        <div className="flex items-center justify-center w-9 h-10 rounded-lg border border-success/25 bg-success/15">
+          <Search className="w-4 h-4 text-success" />
         </div>
         <div className="flex-1">
           <h2 className="text-base font-bold text-text-primary">Log Viewer</h2>
@@ -366,7 +366,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
       {/* Toolbar - horizontal */}
       <div className="h-10 border-b border-border flex items-center px-3 gap-2 bg-muted/40 shrink-0 flex-wrap">
         <div className="relative flex-1 min-w-[150px]">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-secondary" />
           <input
             type="text"
             placeholder="Search logs..."
@@ -414,7 +414,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
           onClick={() => setShowFilters(!showFilters)}
           className={cn(
             'p-1.5 rounded',
-            showFilters ? 'bg-primary/10 text-primary' : 'text-muted-foreground',
+            showFilters ? 'bg-primary/10 text-primary' : 'text-text-secondary',
           )}
         >
           <Filter className="w-3.5 h-3.5" />
@@ -422,7 +422,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
         <div className="w-px h-6 bg-border" />
         <button
           onClick={() => setIsPaused(!isPaused)}
-          className="p-1.5 hover:bg-muted rounded text-muted-foreground"
+          className="p-1.5 hover:bg-muted rounded text-text-secondary"
         >
           {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
         </button>
@@ -432,7 +432,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
             'px-2 py-1 text-xs rounded border',
             autoScroll
               ? 'bg-primary/10 text-primary border-primary/30'
-              : 'text-muted-foreground border-border',
+              : 'text-text-secondary border-border',
           )}
         >
           Auto
@@ -453,7 +453,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
         <div className="border-b border-border bg-muted/20 p-2 space-y-2 shrink-0">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground mr-1">Level:</span>
+              <span className="text-xs text-text-secondary mr-1">Level:</span>
               {(['V', 'D', 'I', 'W', 'E'] as const).map((level) => (
                 <button
                   key={level}
@@ -462,7 +462,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                     'px-2 py-1 text-xs font-mono rounded border',
                     levelFilter[level]
                       ? `${getLevelColor(level)} border-current bg-current/10`
-                      : 'text-muted-foreground border-border bg-background',
+                      : 'text-text-secondary border-border bg-background',
                   )}
                 >
                   {level}
@@ -471,7 +471,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
             </div>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-2 flex-1 max-w-xs" ref={packageDropdownRef}>
-              <span className="text-xs text-muted-foreground">Package:</span>
+              <span className="text-xs text-text-secondary">Package:</span>
               <div className="relative flex-1">
                 <button
                   onClick={() => setShowPackageDropdown(!showPackageDropdown)}
@@ -543,7 +543,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
           </div>
           <div className="h-px bg-border/50" />
           <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center justify-between text-xs text-text-secondary">
               <span>Detected Tags ({tagCounts.length})</span>
               <div className="flex gap-2">
                 <button onClick={() => setHiddenTags(new Set())}>Show All</button>
@@ -559,7 +559,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                   className={cn(
                     'flex items-center gap-2 px-2 py-1 rounded text-xs border cursor-pointer',
                     hiddenTags.has(tag)
-                      ? 'bg-muted/30 text-muted-foreground border-transparent opacity-60'
+                      ? 'bg-muted/30 text-text-secondary border-transparent opacity-60'
                       : 'bg-background border-border hover:border-primary/50',
                   )}
                 >
@@ -581,9 +581,9 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
       )}
 
       {/* Logs - Virtualized horizontal */}
-      <div className="flex-1 bg-table-bodyBg relative">
+      <div className="flex-1 bg-card-background relative">
         {filteredLogs.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+          <div className="absolute inset-0 flex items-center justify-center text-text-secondary">
             {isRunning ? 'Waiting for logs...' : 'No logs available'}
           </div>
         )}
@@ -610,16 +610,16 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                 >
                   {log.level}
                 </span>
-                <span className="font-mono text-muted-foreground">{log.timestamp}</span>
-                <span className="text-muted-foreground/30">•</span>
+                <span className="font-mono text-text-secondary">{log.timestamp}</span>
+                <span className="text-text-secondary/30">•</span>
                 <span
                   className="font-semibold truncate max-w-[120px]"
                   style={{ color: getTagColor(log.tag) }}
                 >
                   {log.tag}
                 </span>
-                <span className="text-muted-foreground/30">•</span>
-                <span className="font-mono text-muted-foreground/50">{log.pid}</span>
+                <span className="text-text-secondary/30">•</span>
+                <span className="font-mono text-text-secondary/50">{log.pid}</span>
               </div>
               <div className="text-foreground/90 break-all text-xs leading-5 pl-1">
                 {log.message}

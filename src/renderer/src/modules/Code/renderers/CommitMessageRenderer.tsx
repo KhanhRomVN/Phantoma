@@ -1,15 +1,19 @@
 import React from 'react';
 import { cn } from '@renderer/utils/cn';
+import { $ } from '@renderer/utils/color';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
+
+// ── Hooks ──
+import { useCodeStore } from '../hooks/useCodeStore';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/responseParser';
+import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 
 interface CommitMessageRendererProps {
   action: ToolAction;
@@ -29,7 +33,7 @@ interface CommitMessageRendererProps {
 
 /**
  * Renderer cho loại tool commit_message
- * Hiển thị commit message với nút Accept/Reject
+ * Hiển thị commit message với nút Accept/Cancel
  */
 export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
   action,
@@ -44,6 +48,12 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
 
   const [isCommitted, setIsCommitted] = React.useState(false);
 
+  // ASSUMED: tên project lấy từ project đang active trong useCodeStore (field `name`)
+  const projectName = useCodeStore(
+    (s: any) =>
+      s.projects?.find((p: any) => p.id === s.currentProjectId)?.name as string | undefined,
+  );
+
   const statusColor = isRejected
     ? 'rgb(255, 45, 85)'
     : isCommitted
@@ -56,10 +66,7 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
         <TagHeader
           title={
             <div className="flex items-center gap-2 text-xs text-text-primary">
-              <span className="font-semibold opacity-80">
-                {getToolLabel('commit_message')}
-                {branch ? ` (${branch})` : ''}
-              </span>
+              <span className="font-semibold opacity-80">{getToolLabel('commit_message')}</span>
               <span className="codicon codicon-git-commit text-sm" />
               {isRejected && (
                 <span className="text-[10px] font-semibold text-error bg-error/15 py-0.5 px-2 rounded ml-1">
@@ -76,6 +83,25 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
           statusColor={statusColor}
           isPartial={false}
         />
+        {(projectName || branch) && (
+          <div
+            className="flex items-center gap-1.5 pl-5 pt-1 text-[11px]"
+            style={{ color: $('--text-secondary') }}
+          >
+            {projectName && <span>{projectName}</span>}
+            {branch && (
+              <span
+                className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                style={{
+                  color: $('--purple'),
+                  backgroundColor: `color-mix(in srgb, ${$('--purple')} 13%, transparent)`,
+                }}
+              >
+                {branch}
+              </span>
+            )}
+          </div>
+        )}
         <div className="pt-1 pr-3 pb-3">
           <div className="py-3 px-3.5 bg-card-background rounded-md border border-border font-mono text-[13px] whitespace-pre-wrap break-words text-text-primary max-h-auto overflow-y-visible">
             {messageContent}
@@ -105,29 +131,20 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                     });
                   }
                 }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold h-6 cursor-pointer bg-teal/15 text-teal border border-teal/30"
+                className="inline-flex items-center px-3 py-1 rounded-md text-[11px] font-semibold h-6 cursor-pointer border-0 outline-none transition-colors"
+                style={{
+                  color: $('--primary'),
+                  background: `color-mix(in srgb, ${$('--primary')} 10%, transparent)`,
+                }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                    'color-mix(in srgb, rgb(0, 210, 255) 25%, transparent)';
+                  e.currentTarget.style.background = $('--primary');
+                  e.currentTarget.style.color = $('--text-primary');
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                    'color-mix(in srgb, rgb(0, 210, 255) 15%, transparent)';
+                  e.currentTarget.style.background = `color-mix(in srgb, ${$('--primary')} 10%, transparent)`;
+                  e.currentTarget.style.color = $('--primary');
                 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
                 Accept
               </button>
               <button
@@ -142,37 +159,11 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                 }}
                 disabled={isRejected}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold h-6 bg-error/15 text-error border border-error/30',
+                  'inline-flex items-center px-3 py-1 rounded-md text-[11px] font-semibold h-6 border-0 outline-none transition-colors bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30',
                   isRejected ? 'opacity-50 cursor-default' : 'cursor-pointer',
                 )}
-                onMouseEnter={(e) => {
-                  if (!isRejected) {
-                    e.currentTarget.style.background =
-                      'color-mix(in srgb, rgb(255, 45, 85) 25%, transparent)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isRejected) {
-                    e.currentTarget.style.background =
-                      'color-mix(in srgb, rgb(255, 45, 85) 15%, transparent)';
-                  }
-                }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-                Reject
+                Cancel
               </button>
             </div>
           )}

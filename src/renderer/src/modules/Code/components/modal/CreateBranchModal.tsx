@@ -570,18 +570,15 @@ export function CreateBranchModal({
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2 border-t border-divider px-6 py-4">
-          <button
-            type="button"
+          <Button
             onClick={handleClose}
             disabled={submitting}
-            className="h-8 rounded-md px-3 text-[13px] font-medium text-text-secondary outline-none transition-colors hover:bg-white/[0.04] hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50"
+            className="h-8 rounded-md px-3 text-[13px] font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 disabled:opacity-50"
           >
             Cancel
-          </button>
+          </Button>
           <Button
-            variant="soft"
-            size="sm"
-            className="h-8 gap-1.5 font-semibold"
+            className="h-8 gap-1.5 font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80"
             onClick={openConfirm}
             disabled={!canSubmit}
           >

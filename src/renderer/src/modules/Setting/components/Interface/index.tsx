@@ -157,8 +157,7 @@ const Interface: React.FC = () => {
           <Dropdown>
             <DropdownTrigger asChild>
               <Button
-                variant="outline"
-                className="flex h-fit w-full justify-between px-3 py-2.5 text-sm"
+                className="flex h-fit w-full justify-between border border-border px-3 py-2.5 text-sm text-text-secondary hover:border-primary hover:bg-primary/10 hover:text-primary active:bg-primary/20"
                 style={{ fontFamily: selectedFont }}
               >
                 <span className="truncate">{getFontLabel(selectedFont)}</span>

@@ -2,7 +2,7 @@
 
 ## UI conventions
 
-- Modal footer confirm action (e.g. Create group) uses `variant="soft"` from `@renderer/components/ui/Button` in every state (default, hover, disabled). Do not use `solid` or `outline` for it.
+- `@renderer/components/ui/Button` has no `variant` prop (only `size`, `fullWidth`, `asChild`); style everything via `className`. Modal footer confirm action (e.g. Create group) uses the soft look in every state: `bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70`. Do not use solid or outline looks for it.
 - Modal footer Cancel button must NOT use the `variant` prop. Style it only via `className` with the soft look and secondary text: `bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background`.
 
 ## Prompt capabilities (per system prompt)
@@ -15,7 +15,7 @@
 
 ## Tool format parser architecture
 
-- **Module structure**: `src/renderer/src/components/RightPanel/Zen/feature/Chat/services/tool-formats/` contains 3 self-contained format files + registry:
+- **Module structure**: `src/renderer/src/components/Widgets/Zen/feature/Chat/services/tool-formats/` contains 3 self-contained format files + registry:
   - `XMLFormat.ts` (444 lines) — XML tag scanner + serializer
   - `JSONFormat.ts` (320 lines) — JSON fenced block scanner + normalizer
   - `DSMLFormat.ts` (127 lines) — DSML calls block parser + foreign converter
@@ -38,9 +38,23 @@
 - **UI integration**: `ModuleRegistry.ts` exposes `getPromptCapabilities(moduleId, promptId?)` to query which formats a given prompt supports; UI uses this to populate the tool-format dropdown per active system prompt.
 - **Adding a new format**: (1) Create `<Format>.ts` file with `parse(content, base, feature?)` function embedded. (2) Export `ToolFormatDefinition` with `parse`, `normalize`, `serializeCall`, etc. (3) Add to registry in `index.ts`. (4) Update `TOOL_FORMAT_IDS` in `types.ts`. NO changes to `ResponseParser.ts` needed.
 
+## FileExplore scope filter
+
+- Tooltip hover file/folder đã bị xóa hoàn toàn (không còn `FileHoverTooltip.tsx`).
+- Filter scope: `stores/useScopeStatsStore.ts` (`stats` primary/warn/error + `filter` theo project), `ScopeFilterButton` ở toolbar (đang lọc thì chỉ hiện dot viền dashed, click để hủy), `TreeNodeGate` ẩn node không khớp filter. UI FileExplore dùng tiếng Anh.
+
 ## Zen feature panel layout
 
 - Nội dung các panel Zen (Home, Chat, Account) giới hạn `maxWidth: 680px` và căn giữa (`margin: 0 auto`). Account áp dụng cho action bar, tiêu đề danh sách, `DrawerBody` và header qua prop `maxWidth` của `NavPanelHeader`. Panel mới nên dùng cùng giá trị 680.
+
+## UITest module
+
+- `modules/UITest/` là trang test component `components/ui` (module id `'uitest'`, đăng ký ở `PhantomModule`, `ViewContainer.tsx`, quickNav trong `MainLayout.tsx`): sidebar + nội dung demo từng component. Demo nằm ở `sections/{Basic,Feedback,Dropdown,Data}.tsx`, helper `Section`/`Demo` ở `shared.tsx`. Thêm component UI mới thì thêm demo vào `ITEMS` ở `index.tsx`.
+- Class Tailwind không có trong `tailwind.config.js` (vd `bg-background-strong`, `text-text-tertiary`, `border-hover`, `bg-muted`, `bg-secondary`, `text-foreground`) là lỗi style; `ResizableSplit` dùng đơn vị `%` cho `initialSize/minSize/maxSize`.
+
+## Widgets folder
+
+- `components/Widgets/` (trước đây là `RightPanel`) chỉ là folder chứa module UI (`Zen/`, `AgentTools/`), KHÔNG còn `index.tsx`. Mỗi module tự dựng panel riêng: Recon dùng `modules/Recon/components/ReconPanel` (tabBar Zen/Agent Tools, tab lưu theo target trong `stores/useReconPanelStore.ts`), Emulate dùng `modules/Emulate/components/EmulatePanel`; `MainLayout.tsx` render theo `activeModule`.
 
 ## Task & Workflow
 

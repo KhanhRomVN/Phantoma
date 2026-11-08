@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 
 interface HoverBlockProps {
   ref?: string;
@@ -59,11 +59,7 @@ export const HoverRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <HoverBlock
-          ref={action.params.ref}
-          output={outputData?.output}
-          isError={isError}
-        />
+        <HoverBlock ref={action.params.ref} output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -88,7 +84,7 @@ interface ParsedHoverResult {
 function parseHoverOutput(output: string): ParsedHoverResult | null {
   try {
     const refMatch = output.match(/ref:\s*(.+)/i);
-    
+
     if (refMatch) {
       return {
         ref: refMatch[1].trim(),
@@ -101,12 +97,9 @@ function parseHoverOutput(output: string): ParsedHoverResult | null {
   }
 }
 
-function HoverBlock({
-  output,
-  isError,
-}: HoverBlockProps) {
+function HoverBlock({ output, isError }: HoverBlockProps) {
   const parsed = output ? parseHoverOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

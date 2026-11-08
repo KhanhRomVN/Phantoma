@@ -546,9 +546,8 @@ export function RunningOptionTargetModal({
                     className="h-[42px] w-full flex-1 rounded-lg border border-border bg-input-background px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
                   />
                   <Button
-                    variant="soft"
                     title={showPassword ? 'Hide' : 'Show'}
-                    className="h-[42px] w-[42px] shrink-0 px-0 py-0"
+                    className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -571,7 +570,11 @@ export function RunningOptionTargetModal({
           Cancel
         </Button>
         <Button
-          variant={selectedAction === 'stop' ? 'soft-error' : 'soft'}
+          className={
+            selectedAction === 'stop'
+              ? 'bg-error/10 text-error hover:bg-error/20 active:bg-error/30'
+              : 'bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70'
+          }
           onClick={handleStart}
           disabled={!selectedAction || isLaunching}
         >

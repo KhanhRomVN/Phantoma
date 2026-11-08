@@ -1,4 +1,4 @@
-import { ZEN_INSERT_TEXT_EVENT } from '@renderer/components/RightPanel/Zen/shared/events';
+import { ZEN_INSERT_TEXT_EVENT } from '@renderer/components/Widgets/Zen/shared/events';
 import { getStashedMarkers } from '@renderer/components/common/CodeBlock';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 

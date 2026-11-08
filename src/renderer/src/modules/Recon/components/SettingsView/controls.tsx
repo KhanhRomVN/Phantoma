@@ -80,7 +80,7 @@ export function Segmented<T extends string>({
             'px-3 py-1 text-xs font-medium transition-colors',
             o.value === value
               ? 'bg-primary/15 text-primary'
-              : 'text-text-secondary hover:text-text-primary hover:bg-card-background-hover'
+              : 'text-text-secondary hover:text-text-primary hover:bg-card-hover'
           )}
         >
           {o.label}

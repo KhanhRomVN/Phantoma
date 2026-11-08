@@ -1,8 +1,0 @@
-<｜｜DSML｜｜ calls>
-<｜｜DSML｜｜ invoke name="conversation_title">
-<｜｜DSML｜｜ parameter name="params" string="false">{"title": "Xem danh sách task"}</｜｜DSML｜｜ parameter>
-</｜｜DSML｜｜ invoke>
-<｜｜DSML｜｜ invoke name="list_tasks">
-<｜｜DSML｜｜ parameter name="params" string="false">{}</｜｜DSML｜｜ parameter>
-</｜｜DSML｜｜ invoke>
-</｜｜DSML｜｜ calls>

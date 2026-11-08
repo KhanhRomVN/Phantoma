@@ -245,7 +245,7 @@ function TargetCard({ title, subtitle, type, isSelected, isRunning, onSelect, ac
         compact ? 'py-1.5' : 'py-2.5',
         isSelected
           ? 'bg-card-background border-border'
-          : 'bg-card-background/50 border-transparent hover:bg-card-background-hover'
+          : 'bg-card-background/50 border-transparent hover:bg-card-hover'
       )}
     >
       {isSelected && (

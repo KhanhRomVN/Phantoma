@@ -14,7 +14,7 @@ import { ChevronDown, ChevronRight, Minus, Plus, Undo2 } from 'lucide-react';
 
 import { cn } from '@renderer/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
-import { splitPath, type CommitFile } from './graph';
+import { fileKind, splitPath, type CommitFile, type FileChangeKind } from './graph';
 
 export type FilesView = 'path' | 'tree';
 
@@ -23,8 +23,6 @@ interface TreeNode {
   path: string;
   folders: Map<string, TreeNode>;
   files: CommitFile[];
-  added: number;
-  deleted: number;
 }
 
 const makeNode = (name: string, path: string): TreeNode => ({
@@ -32,8 +30,6 @@ const makeNode = (name: string, path: string): TreeNode => ({
   path,
   folders: new Map(),
   files: [],
-  added: 0,
-  deleted: 0,
 });
 
 function buildTree(files: CommitFile[]): TreeNode {
@@ -41,16 +37,12 @@ function buildTree(files: CommitFile[]): TreeNode {
   files.forEach((f) => {
     const parts = f.path.split('/');
     let node = root;
-    node.added += f.added;
-    node.deleted += f.deleted;
     parts.slice(0, -1).forEach((part, i) => {
       let next = node.folders.get(part);
       if (!next) {
         next = makeNode(part, parts.slice(0, i + 1).join('/'));
         node.folders.set(part, next);
       }
-      next.added += f.added;
-      next.deleted += f.deleted;
       node = next;
     });
     node.files.push(f);
@@ -70,14 +62,6 @@ function compact(node: TreeNode): { label: string; node: TreeNode } {
   return { label, node: cur };
 }
 
-const Counts = memo(function Counts({ added, deleted }: { added: number; deleted: number }) {
-  return (
-    <span className={'flex items-center gap-1.5 shrink-0 font-mono text-[10.5px]'}>
-      <span className={'text-green'}>{`+${added}`}</span>
-      <span className={'text-red'}>{`-${deleted}`}</span>
-    </span>
-  );
-});
 
 interface FileRowProps {
   file: CommitFile;
@@ -123,9 +107,17 @@ function ActionButton({
   );
 }
 
+const KIND_MARK: Record<FileChangeKind, { mark: string; title: string; className: string }> = {
+  added: { mark: '+', title: 'Created', className: 'text-green' },
+  modified: { mark: '~', title: 'Modified', className: 'text-amber-400' },
+  deleted: { mark: '-', title: 'Deleted', className: 'text-red' },
+};
+
 function FileRow({ file, depth, showDir, selected, onSelect }: FileRowProps) {
   const { name, dir } = splitPath(file.path);
   const actions = useContext(ActionsContext);
+  const kindId = fileKind(file);
+  const kind = KIND_MARK[kindId];
   const canStage = !!actions.onStage && !!file.unstaged;
   const canUnstage = !!actions.onUnstage && !!file.staged;
   const canDiscard = !!actions.onDiscard && (!!file.unstaged || !!file.staged);
@@ -142,7 +134,20 @@ function FileRow({ file, depth, showDir, selected, onSelect }: FileRowProps) {
       )}
     >
       <img src={getFileIconPath(name)} alt={''} className={'w-4 h-4 shrink-0'} />
-      <span className={'text-[12px] text-text-primary truncate shrink-0 max-w-[65%]'}>{name}</span>
+      <span
+        className={cn(
+          'text-[12px] truncate shrink-0 max-w-[65%]',
+          kindId === 'deleted' ? 'text-text-secondary line-through' : 'text-text-primary',
+        )}
+      >
+        {name}
+      </span>
+      <span
+        title={kind.title}
+        className={cn('shrink-0 font-mono text-[12px] font-semibold leading-none', kind.className)}
+      >
+        {`(${kind.mark})`}
+      </span>
       {showDir ? (
         <span className={'flex-1 min-w-0 truncate text-[10.5px] text-text-secondary/50'}>{dir}</span>
       ) : (
@@ -153,9 +158,7 @@ function FileRow({ file, depth, showDir, selected, onSelect }: FileRowProps) {
           S
         </span>
       )}
-      <span className={cn('flex', hasActions && 'group-hover:hidden')}>
-        <Counts added={file.added} deleted={file.deleted} />
-      </span>
+
       {hasActions && (
         <span className={'hidden group-hover:flex items-center gap-0.5 shrink-0'}>
           {canDiscard && (
@@ -210,7 +213,6 @@ function TreeLevel({ node, depth, closed, toggle, selectedPath, onSelect }: Bran
               )}
               <img src={getFolderIconPath(leaf.name, isOpen)} alt={''} className={'w-4 h-4 shrink-0'} />
               <span className={'flex-1 min-w-0 truncate text-[12px] text-text-primary'}>{label}</span>
-              <Counts added={leaf.added} deleted={leaf.deleted} />
             </div>
             {isOpen && (
               <TreeLevel

@@ -1,6 +1,6 @@
-import type { ZenModule } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
+import type { ZenModule } from '@renderer/components/Widgets/Zen/feature/Chat/services/moduleRegistry';
 import { RECON_TAG_REGISTRY } from './constants/tag-registry';
-import { rendererMapFromGlob } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-helpers';
+import { rendererMapFromGlob } from '@renderer/components/Widgets/Zen/feature/Chat/utils/renderer-helpers';
 import * as R from './executors/ReconExecutor';
 import * as P from './parsers/ReconParser';
 import {
@@ -91,7 +91,6 @@ export const reconModule: ZenModule = {
   renderers: rendererMapFromGlob(import.meta.glob('./renderers/*Renderer.tsx', { eager: true })),
   prompts: {
     systemPrompts: new Map([
-
       [
         'orchestrator',
         {

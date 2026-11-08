@@ -11,7 +11,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import type { TagDefinition } from '@renderer/components/RightPanel/Zen/feature/Chat/types/tag-types';
+import type { TagDefinition } from '@renderer/components/Widgets/Zen/feature/Chat/types/tag-types';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
@@ -122,5 +122,4 @@ export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {
     title: 'UPDATE REPORT',
     timeout: 5000,
   },
-
 };

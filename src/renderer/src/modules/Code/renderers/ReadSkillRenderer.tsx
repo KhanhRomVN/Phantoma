@@ -14,10 +14,10 @@ import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 
 // ─── Types ──────────────────────────────────────────────────────────────
-import type { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 
 // ─── Component ──────────────────────────────────────────────────────────
 export const ReadSkillRenderer: React.FC<BaseRendererProps> = ({
@@ -45,7 +45,7 @@ export const ReadSkillRenderer: React.FC<BaseRendererProps> = ({
         isPartial={false}
         statusTooltip={isError ? 'Error' : 'Skill detail'}
       />
-      <div className="border border-border-primary rounded-md px-4 py-3 bg-card-background/50">
+      <div className="border border-primary rounded-md px-4 py-3 bg-card-background/50">
         <pre className="text-[11.5px] leading-relaxed whitespace-pre-wrap break-words text-text-secondary">
           {body || '(empty)'}
         </pre>

@@ -35,7 +35,7 @@ import {
 // ── UI ──
 import {
   ChevronsDownUp,
-  Crosshair,
+  ChevronsUpDown,
   FolderPlus,
   FilePlus,
   RefreshCw,
@@ -43,7 +43,6 @@ import {
   Loader,
   File,
   Folder,
-  Info,
 } from 'lucide-react';
 import { Kbd } from '@renderer/components/ui/Kbd';
 import {
@@ -56,6 +55,7 @@ import {
 
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../../hooks/useCodeStore';
+import { parseGitStatusOutput } from '../../../services/git-status-parser';
 import { useBranchScope, isInScope } from '../../../stores/useBranchScopeStore';
 
 const nameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
@@ -106,7 +106,18 @@ import { cn } from '@renderer/utils/cn';
 // ── Components ──
 import { ConfirmDeleteFileModal } from './ConfirmDeleteFileModal';
 import { RemoteDiffModal } from './RemoteDiffModal';
-import { Tooltip } from '@renderer/components/ui/Tooltip/Tooltip';
+
+import { FolderBadges } from './FolderBadges';
+import { ScopeFilterButton } from './ScopeFilterButton';
+import { ScopeWarnBell } from './ScopeWarnBell';
+import {
+  EMPTY_SCOPE_STATS,
+  useScopeFilter,
+  SCOPE_DIFF_DOT,
+  SCOPE_DIFF_RING,
+  useScopeStats,
+  useScopeStatsStore,
+} from '../../../stores/useScopeStatsStore';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -143,7 +154,63 @@ const fetchDirChildren = async (dirPath: string): Promise<FileNode[]> => {
   }
 };
 
-const gitStatusCache = new Map<string, Record<string, 'added' | 'modified'>>();
+type GitFileStatus = 'added' | 'modified' | 'deleted';
+
+const gitStatusCache = new Map<string, Record<string, GitFileStatus>>();
+
+type GhostIndex = Map<string, Map<string, 'file' | 'folder'>>;
+
+const GHOST_PREFIX = 'ghost_';
+
+const buildGhostIndex = (root: string, gitStatus: Record<string, GitFileStatus>): GhostIndex => {
+  const index: GhostIndex = new Map();
+  if (!root) return index;
+  const base = root.replace(/\/+$/, '');
+  for (const [p, s] of Object.entries(gitStatus)) {
+    if (s !== 'deleted' || !p.startsWith(`${base}/`)) continue;
+    const parts = p.slice(base.length + 1).split('/');
+    let dir = base;
+    parts.forEach((seg, i) => {
+      let names = index.get(dir);
+      if (!names) {
+        names = new Map();
+        index.set(dir, names);
+      }
+      if (!names.has(seg)) names.set(seg, i === parts.length - 1 ? 'file' : 'folder');
+      dir = `${dir}/${seg}`;
+    });
+  }
+  return index;
+};
+
+const withGhosts = (
+  children: FileNode[] | undefined,
+  dirPath: string | undefined,
+  index: GhostIndex,
+): FileNode[] | undefined => {
+  const ghosts = dirPath ? index.get(dirPath) : undefined;
+  if (!ghosts || ghosts.size === 0) return children;
+  const existing = new Set((children ?? []).map((c) => c.name));
+  const extra: FileNode[] = [];
+  ghosts.forEach((kind, name) => {
+    if (existing.has(name)) return;
+    const path = `${dirPath}/${name}`;
+    extra.push({
+      id: `${GHOST_PREFIX}${path}`,
+      name,
+      type: kind,
+      path,
+      children: kind === 'folder' ? [] : undefined,
+    });
+  });
+  if (extra.length === 0) return children;
+  return [...(children ?? []), ...extra].sort((a, b) =>
+    compareDirEntries(
+      { name: a.name, isDirectory: a.type === 'folder' },
+      { name: b.name, isDirectory: b.type === 'folder' },
+    ),
+  );
+};
 const ignoredPathsCache = new Map<string, string[]>();
 
 let scanCount = 0;
@@ -233,7 +300,8 @@ interface FileExploreContextValue {
   onCutFile: (paths?: string[]) => void;
   onCopyFile: (paths?: string[]) => void;
   onPasteFile: () => void;
-  gitStatus: Record<string, 'added' | 'modified'>;
+  gitStatus: Record<string, GitFileStatus>;
+  ghostIndex: GhostIndex;
   ignoredPaths: string[];
   renamingId: string | null;
   setRenamingId: (id: string | null) => void;
@@ -246,6 +314,7 @@ const FileExploreContext = createContext<FileExploreContextValue>({
   setSelectMode: () => {},
   nodeMetaRef: { current: new Map() },
   gitStatus: {},
+  ghostIndex: new Map(),
   ignoredPaths: [],
   creating: null,
   setCreating: () => {},
@@ -312,7 +381,7 @@ function InlineNewInput({ type, parentPath, depth, onCreated, onCancel }: Inline
       <input
         ref={inputRef}
         className="flex-1 bg-input-background text-[13px] text-text-primary outline-none border border-primary/50 rounded px-1.5 py-0.5"
-        placeholder={type === 'folder' ? 'Tên thư mục...' : 'Tên file...'}
+        placeholder={type === 'folder' ? 'Folder name...' : 'File name...'}
         onKeyDown={(e) => {
           if (e.key === 'Enter') handleSubmit();
           if (e.key === 'Escape') onCancel();
@@ -476,6 +545,7 @@ const TreeNode = memo(function TreeNode({
     onCopyFile,
     onPasteFile,
     gitStatus,
+    ghostIndex,
     ignoredPaths,
     renamingId,
     setRenamingId,
@@ -488,6 +558,34 @@ const TreeNode = memo(function TreeNode({
 
   const isActive = selectedNodeIds.has(node.id);
   const isRenaming = renamingId === node.id;
+
+  const scopeFilter = useScopeFilter(projectId);
+  const warnPaths = useScopeStats(projectId).warn;
+  const warnBelow = useMemo(() => {
+    if (!isFolder || !node.path || warnPaths.length === 0) return 0;
+    const prefix = `${node.path}/`;
+    let n = 0;
+    for (const p of warnPaths) if (p.startsWith(prefix)) n++;
+    return n;
+  }, [isFolder, node.path, warnPaths]);
+
+  const diffPaths = useScopeStats(projectId).diff;
+  const diffBelow = useMemo(() => {
+    if (!isFolder || !node.path || diffPaths.length === 0) return 0;
+    const prefix = `${node.path}/`;
+    let n = 0;
+    for (const p of diffPaths) if (p.startsWith(prefix)) n++;
+    return n;
+  }, [isFolder, node.path, diffPaths]);
+
+  const errPaths = useScopeStats(projectId).error;
+  const errorBelow = useMemo(() => {
+    if (!isFolder || !node.path || errPaths.length === 0) return 0;
+    const prefix = `${node.path}/`;
+    let n = 0;
+    for (const p of errPaths) if (p.startsWith(prefix)) n++;
+    return n;
+  }, [isFolder, node.path, errPaths]);
 
   useEffect(() => {
     if (isActive && node.path) {
@@ -506,7 +604,11 @@ const TreeNode = memo(function TreeNode({
     }
   }, [dirVersion, isFolder, node.path]);
 
-  const children = lazyChildren !== null ? lazyChildren : node.children;
+  const baseChildren = lazyChildren !== null ? lazyChildren : node.children;
+  const children = useMemo(
+    () => (isFolder ? withGhosts(baseChildren, node.path, ghostIndex) : baseChildren),
+    [isFolder, baseChildren, node.path, ghostIndex],
+  );
   const hasChildren = children && children.length > 0;
   const canExpand = isFolder && (hasChildren || !!node.path);
 
@@ -554,6 +656,7 @@ const TreeNode = memo(function TreeNode({
     (e: React.MouseEvent) => {
       if (isFolder || e.ctrlKey || e.metaKey || e.shiftKey) return;
       onNodeClick(node.id, false, false);
+      if (node.id.startsWith(GHOST_PREFIX)) return;
 
       const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
       if (sessionId && node.path) {
@@ -674,6 +777,7 @@ const TreeNode = memo(function TreeNode({
           <DropdownTrigger asChild>
             <button
               data-node-id={node.id}
+
               onClick={handleClick}
               onDoubleClick={handleDoubleClick}
               draggable={!!node.path}
@@ -728,11 +832,13 @@ const TreeNode = memo(function TreeNode({
                 isActive ? 'bg-card-hover' : 'hover:bg-card-hover',
                 gitStatus[node.path ?? ''] === 'added'
                   ? 'text-emerald-500'
-                  : gitStatus[node.path ?? ''] === 'modified'
-                    ? 'text-orange-400'
-                    : isActive
-                      ? 'text-text-primary'
-                      : 'text-text-secondary hover:text-text-primary',
+                  : gitStatus[node.path ?? ''] === 'deleted'
+                    ? 'text-red-400'
+                    : gitStatus[node.path ?? ''] === 'modified'
+                      ? 'text-orange-400'
+                      : isActive
+                        ? 'text-text-primary'
+                        : 'text-text-secondary hover:text-text-primary',
               )}
               style={{ paddingLeft: `${8 + depth * 12}px` }}
             >
@@ -792,6 +898,8 @@ const TreeNode = memo(function TreeNode({
               <span
                 className={cn(
                   'truncate text-[13px]',
+                  (gitStatus[node.path ?? ''] === 'deleted' || node.id.startsWith(GHOST_PREFIX)) &&
+                    'line-through',
                   node.path &&
                     ignoredPaths.some((p) => node.path === p || node.path!.startsWith(p + '/')) &&
                     'opacity-50',
@@ -799,26 +907,17 @@ const TreeNode = memo(function TreeNode({
               >
                 {node.name}
               </span>
-              {scopesBelow.length > 0 && !expanded && (
-                <span
-                  className="ml-auto flex items-center gap-0.5 shrink-0"
-                  title={`Scope bên trong: ${scopesBelow.join(', ')}`}
-                >
-                  {scopesBelow.slice(0, 3).map((n) => (
-                    <span
-                      key={n}
-                      className="px-1.5 min-w-4 h-4 rounded-tr-md rounded-bl-md bg-primary text-white text-[10px] leading-4 text-center"
-                    >
-                      {n}
-                    </span>
-                  ))}
-                  {scopesBelow.length > 3 && (
-                    <span className="text-[10px] leading-4 font-medium text-primary">
-                      +{scopesBelow.length - 3}
-                    </span>
-                  )}
-                </span>
-              )}
+              {!expanded &&
+                (scopesBelow.length > 0 || errorBelow > 0 || diffBelow > 0 || warnBelow > 0) && (
+                  <FolderBadges
+                    scopes={scopesBelow}
+                    errorCount={errorBelow}
+                    diffCount={diffBelow}
+                    warnCount={warnBelow}
+                    filter={scopeFilter}
+                    deleted={node.id.startsWith(GHOST_PREFIX)}
+                  />
+                )}
             </button>
           </DropdownTrigger>
           <DropdownContent className="min-w-[200px]" size="sm">
@@ -916,7 +1015,7 @@ const TreeNode = memo(function TreeNode({
       {isFolder && expanded && hasChildren && (
         <div>
           {children!.map((child) => (
-            <TreeNode
+            <TreeNodeGate
               key={child.id}
               node={child}
               depth={depth + 1}
@@ -943,9 +1042,51 @@ const TreeNode = memo(function TreeNode({
 
 // ─── FileExplore ────────────────────────────────────────────────────────────
 interface ScopeLayout {
-  blocks: { key: string; index: number; top: number; height: number }[];
-  bad: { top: number; height: number; level: 'warn' | 'error' }[];
+  blocks: {
+    key: string;
+    index: number;
+    top: number;
+    height: number;
+    rows: number;
+    deleted?: boolean;
+  }[];
+  bad: {
+    top: number;
+    height: number;
+    level: 'warn' | 'diff' | 'error';
+    rows: number;
+    deleted?: boolean;
+  }[];
+  diff: { top: number; height: number; deleted?: boolean }[];
+  warn: { top: number; height: number; deleted?: boolean }[];
 }
+
+const GutterDot = memo(function GutterDot({
+  top,
+  dot,
+  ring,
+  deleted,
+}: {
+  top: number;
+  dot: string;
+  ring: string;
+  deleted?: boolean;
+}) {
+  if (!deleted) {
+    return <span className={cn('absolute right-3 w-2 h-2 rounded-full', dot)} style={{ top }} />;
+  }
+  return (
+    <span
+      className={cn(
+        'absolute right-[9px] inline-flex p-[2px] rounded-[4px] border border-dashed',
+        ring,
+      )}
+      style={{ top: top - 3 }}
+    >
+      <span className={cn('w-2 h-2 rounded-full shrink-0', dot)} />
+    </span>
+  );
+});
 
 // key: `${root}\n${remoteHash}` — đổi khi default branch có commit mới
 const remoteDiffCache = new Map<string, Set<string>>();
@@ -954,23 +1095,48 @@ const remoteHashByRoot = new Map<string, string>();
 interface BorderRun {
   top: number;
   height: number;
-  level?: 'warn' | 'error';
+  level?: 'warn' | 'diff' | 'error';
+  key?: string;
+  rows?: number;
 }
 
-// Gộp các border liền kề cùng màu thành 1; inset 1px mỗi đầu để khác màu có gap 2px
+const EDGE_INSET = 1;
+const GAP_INSET = 3;
+
+// Gộp các border liền kề cùng màu (và cùng scope) thành 1
 function mergeRuns<T extends BorderRun>(items: T[]): T[] {
   const sorted = [...items].sort((a, b) => a.top - b.top);
   const out: T[] = [];
   for (const it of sorted) {
     const prev = out[out.length - 1];
-    if (prev && prev.level === it.level && it.top <= prev.top + prev.height + 1) {
+    if (
+      prev &&
+      prev.level === it.level &&
+      prev.key === it.key &&
+      it.top <= prev.top + prev.height + 1
+    ) {
       const bottom = Math.max(prev.top + prev.height, it.top + it.height);
       prev.height = bottom - prev.top;
+      prev.rows = (prev.rows ?? 1) + (it.rows ?? 1);
     } else {
       out.push({ ...it });
     }
   }
-  return out.map((r) => ({ ...r, top: r.top + 1, height: Math.max(r.height - 2, 1) }));
+  return out;
+}
+
+// Inset 1px mỗi đầu; đầu nào chạm border khác màu thì inset 3px để tạo gap 6px tại đó
+function insetRuns<T extends BorderRun>(runs: T[], all: BorderRun[]): T[] {
+  const tagOf = (r: BorderRun) => r.level ?? `scope:${r.key}`;
+  return runs.map((r) => {
+    const tag = tagOf(r);
+    const bottom = r.top + r.height;
+    const touchTop = all.some((o) => tagOf(o) !== tag && Math.abs(o.top + o.height - r.top) <= 2);
+    const touchBottom = all.some((o) => tagOf(o) !== tag && Math.abs(o.top - bottom) <= 2);
+    const top = r.top + (touchTop ? GAP_INSET : EDGE_INSET);
+    const end = bottom - (touchBottom ? GAP_INSET : EDGE_INSET);
+    return { ...r, top, height: Math.max(end - top, 1) };
+  });
 }
 
 function useActiveBranchName(projectId: string): string {
@@ -982,6 +1148,21 @@ function useActiveBranchName(projectId: string): string {
     );
   });
 }
+
+const TreeNodeGate = memo(function TreeNodeGate(props: TreeNodeProps) {
+  const { node, projectId } = props;
+  const filter = useScopeFilter(projectId);
+  const stats = useScopeStats(projectId);
+  const visible = useMemo(() => {
+    if (!filter) return true;
+    if (!node.path) return false;
+    const list = stats[filter];
+    if (node.type !== 'folder') return list.includes(node.path);
+    const prefix = `${node.path}/`;
+    return list.some((p) => p.startsWith(prefix));
+  }, [filter, stats, node.path, node.type]);
+  return visible ? <TreeNode {...props} /> : null;
+});
 
 const NO_SCOPES: number[] = [];
 
@@ -1014,30 +1195,144 @@ function ScopeBlocks({
   containerRef: React.RefObject<HTMLDivElement | null>;
   projectId: string;
   root: string;
-  gitStatus: Record<string, 'added' | 'modified'>;
+  gitStatus: Record<string, GitFileStatus>;
   onErrorPaths: (paths: Set<string>) => void;
 }) {
   const branchName = useActiveBranchName(projectId);
   const scope = useBranchScope(projectId, branchName);
+  const [defaultBranch, setDefaultBranch] = useState('');
+  useEffect(() => {
+    if (!root) return;
+    let cancelled = false;
+    window.api
+      .invoke('git:default-branch', root)
+      .then((r: { name?: string }) => {
+        if (!cancelled) setDefaultBranch(r?.name ?? '');
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [root]);
+  const isDefault = !!branchName && branchName === defaultBranch;
+  const active = !!branchName && (scope.length > 0 || isDefault);
+  const setIsDefault = useScopeStatsStore((s) => s.setIsDefault);
+  useEffect(() => {
+    setIsDefault(projectId, isDefault);
+  }, [projectId, isDefault, setIsDefault]);
+  const setDefaultBranchName = useScopeStatsStore((s) => s.setDefaultBranch);
+  useEffect(() => {
+    setDefaultBranchName(projectId, defaultBranch);
+  }, [projectId, defaultBranch, setDefaultBranchName]);
   // ASSUMED: remoteDiff = null (không có remote/main|master hoặc lỗi) → giữ hành vi cũ (error)
   const [remoteDiff, setRemoteDiff] = useState<Set<string> | null>(() => {
     const h = remoteHashByRoot.get(root);
     return h ? (remoteDiffCache.get(`${root}\n${h}`) ?? null) : null;
   });
-  const lastErrRef = useRef('');
+
   const lastDiffKeyRef = useRef('');
+
+  const [otherChanged, setOtherChanged] = useState<Set<string>>(new Set());
+  const [otherMap, setOtherMap] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    if (!root || !active) {
+      setOtherChanged(new Set());
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await window.api.invoke('git:changed-in-other-branches', root);
+        if (cancelled) return;
+        const files: Record<string, string[]> = res && res.files ? res.files : {};
+        setOtherMap((prev) => (JSON.stringify(prev) === JSON.stringify(files) ? prev : files));
+        const next = new Set<string>(Object.keys(files));
+        setOtherChanged((prev) =>
+          prev.size === next.size && [...next].every((p) => prev.has(p)) ? prev : next,
+        );
+      } catch {
+        if (!cancelled) setOtherChanged(new Set());
+      }
+    };
+    void load();
+    const t = setInterval(() => void load(), 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [root, branchName, scope]);
   const candidatesKey = useMemo(() => {
     const base = root.replace(/\/+$/, '');
     return Object.keys(gitStatus)
-      .filter(
-        (p) => p.startsWith(`${base}/`) && !isInScope(p.slice(base.length + 1), scope),
-      )
+      .filter((p) => p.startsWith(`${base}/`) && !isInScope(p.slice(base.length + 1), scope))
       .sort()
       .join('\n');
   }, [gitStatus, root, scope]);
 
+  // ASSUMED: mọi key của gitStatus ngoài scope (kể cả file trong folder đang collapse) đều tính là file thay đổi
+  const errorKey = useMemo(() => {
+    if (!active || !root) return '';
+    const base = root.replace(/\/+$/, '');
+    return Object.keys(gitStatus)
+      .filter(
+        (p) =>
+          p.startsWith(`${base}/`) &&
+          !isInScope(p.slice(base.length + 1), scope) &&
+          (remoteDiff === null || remoteDiff.has(p)),
+      )
+      .sort()
+      .join('\n');
+  }, [gitStatus, root, scope, branchName, remoteDiff]);
+
   useEffect(() => {
-    if (!root || !branchName || scope.length === 0) {
+    onErrorPaths(new Set(errorKey ? errorKey.split('\n') : []));
+  }, [errorKey, onErrorPaths]);
+
+  const filter = useScopeFilter(projectId);
+  const setStats = useScopeStatsStore((s) => s.setStats);
+  useEffect(() => {
+    if (!root || !active) {
+      setStats(projectId, EMPTY_SCOPE_STATS);
+      return;
+    }
+    const base = root.replace(/\/+$/, '');
+    const primary: string[] = [];
+    const warn: string[] = [];
+    const diff: string[] = [];
+    const error: string[] = [];
+    const deletedPaths: string[] = [];
+    for (const p of Object.keys(gitStatus).sort()) {
+      if (!p.startsWith(`${base}/`)) continue;
+      if (isInScope(p.slice(base.length + 1), scope)) primary.push(p);
+      else if (remoteDiff === null || remoteDiff.has(p)) {
+        if (otherChanged.has(p)) error.push(p);
+        else {
+          diff.push(p);
+          if (gitStatus[p] === 'deleted') deletedPaths.push(p);
+        }
+      } else warn.push(p);
+    }
+    setStats(projectId, { primary, warn, diff, error, deletedPaths });
+  }, [projectId, root, branchName, scope, gitStatus, remoteDiff, otherChanged, setStats]);
+
+  const setOtherBranches = useScopeStatsStore((s) => s.setOtherBranches);
+  useEffect(() => {
+    if (!root || !active) {
+      setOtherBranches(projectId, []);
+      return;
+    }
+    const base = root.replace(/\/+$/, '');
+    const names = new Set<string>();
+    for (const p of Object.keys(gitStatus)) {
+      if (!p.startsWith(`${base}/`) || isInScope(p.slice(base.length + 1), scope)) continue;
+      if (remoteDiff !== null && !remoteDiff.has(p)) continue;
+      for (const b of otherMap[p] ?? []) names.add(b);
+    }
+    setOtherBranches(projectId, [...names].sort());
+  }, [projectId, root, active, scope, gitStatus, remoteDiff, otherMap, setOtherBranches]);
+
+  useEffect(() => {
+    if (!root || !active) {
       setRemoteDiff(null);
       return;
     }
@@ -1068,7 +1363,7 @@ function ScopeBlocks({
       cancelled = true;
     };
   }, [root, branchName, scope, candidatesKey]);
-  const [layout, setLayout] = useState<ScopeLayout>({ blocks: [], bad: [] });
+  const [layout, setLayout] = useState<ScopeLayout>({ blocks: [], bad: [], diff: [], warn: [] });
   const lastJsonRef = useRef('');
 
   useEffect(() => {
@@ -1079,8 +1374,8 @@ function ScopeBlocks({
       lastJsonRef.current = json;
       setLayout(next);
     };
-    if (!el || !branchName || scope.length === 0 || !root) {
-      apply({ blocks: [], bad: [] });
+    if (!el || !active || !root) {
+      apply({ blocks: [], bad: [], diff: [], warn: [] });
       return;
     }
     const base = root.replace(/\/+$/, '');
@@ -1101,7 +1396,16 @@ function ScopeBlocks({
         if (hit.length === 0) return [];
         const top = Math.min(...hit.map((h) => h.top));
         const bottom = Math.max(...hit.map((h) => h.bottom));
-        return [{ key: p, index: i + 1, top, height: bottom - top }];
+        return [
+          {
+            key: p,
+            index: i + 1,
+            top,
+            height: bottom - top,
+            rows: hit.length,
+            deleted: hit.length === 1 && gitStatus[hit[0].path] === 'deleted',
+          },
+        ];
       });
       const bad = rects
         .filter(
@@ -1115,22 +1419,29 @@ function ScopeBlocks({
           path: r.path,
           top: r.top,
           height: r.bottom - r.top,
-          level: (remoteDiff === null || remoteDiff.has(r.path) ? 'error' : 'warn') as
-            | 'warn'
-            | 'error',
+          deleted: gitStatus[r.path] === 'deleted',
+          level: (remoteDiff === null || remoteDiff.has(r.path)
+            ? otherChanged.has(r.path)
+              ? 'error'
+              : 'diff'
+            : 'warn') as 'warn' | 'diff' | 'error',
         }));
-      const errKey = bad
+      const mergedBlocks = mergeRuns(blocks);
+      const errors = bad
         .filter((b) => b.level === 'error')
-        .map((b) => b.path)
-        .sort()
-        .join('\n');
-      if (errKey !== lastErrRef.current) {
-        lastErrRef.current = errKey;
-        onErrorPaths(new Set(errKey ? errKey.split('\n') : []));
-      }
+        .map(({ top, height, level, deleted }) => ({ top, height, level, rows: 1, deleted }));
+      const warn = bad
+        .filter((b) => b.level === 'warn')
+        .map(({ top, height, deleted }) => ({ top, height, deleted }));
+      const diff = bad
+        .filter((b) => b.level === 'diff')
+        .map(({ top, height, deleted }) => ({ top, height, deleted }));
+      const all: BorderRun[] = mergedBlocks.filter((r) => (r.rows ?? 1) > 1);
       apply({
-        blocks: mergeRuns(blocks),
-        bad: mergeRuns(bad.map(({ top, height, level }) => ({ top, height, level }))),
+        blocks: insetRuns(mergedBlocks, all),
+        bad: errors,
+        diff,
+        warn,
       });
     };
     let frame = 0;
@@ -1145,36 +1456,68 @@ function ScopeBlocks({
       cancelAnimationFrame(frame);
       mo.disconnect();
     };
-  }, [containerRef, branchName, scope, root, gitStatus, remoteDiff]);
+  }, [containerRef, branchName, scope, root, gitStatus, remoteDiff, otherChanged]);
 
   return (
     <div className="absolute left-0 right-0 top-0 z-10 h-0 pointer-events-none">
-      {layout.blocks.map((b) => (
-        <div
-          key={b.key}
-          className="absolute left-1 right-1 rounded-md border border-dashed border-primary"
-          style={{ top: b.top, height: b.height }}
-        >
-          <span className="absolute -right-px -top-px px-1.5 min-w-4 h-4 rounded-tr-md rounded-bl-md bg-primary text-white text-[10px] leading-4 text-center">
-            {b.index}
-          </span>
-        </div>
-      ))}
-      {layout.bad.map((b, i) => (
-        <div
-          key={i}
-          className={`absolute left-1 right-1 rounded-md border border-dashed ${
-            b.level === 'warn' ? 'border-warn' : 'border-error'
-          }`}
-          style={{ top: b.top, height: b.height }}
-        />
-      ))}
+      {(!filter || filter === 'primary') &&
+        layout.blocks.map((b) =>
+          b.rows > 1 ? (
+            <div
+              key={b.key}
+              className="absolute left-1 right-1 rounded-md border border-dashed border-primary"
+              style={{ top: b.top, height: b.height }}
+            >
+              <span className="absolute -right-px -top-px px-1.5 min-w-4 h-4 rounded-tr-md rounded-bl-md bg-primary text-white text-[10px] leading-4 text-center">
+                {b.index}
+              </span>
+            </div>
+          ) : (
+            <GutterDot
+              key={b.key}
+              top={b.top + b.height / 2 - 4}
+              dot="bg-primary"
+              ring="border-primary"
+              deleted={b.deleted}
+            />
+          ),
+        )}
+      {(!filter || filter === 'error') &&
+        layout.bad.map((b, i) => (
+          <GutterDot
+            key={i}
+            top={b.top + b.height / 2 - 4}
+            dot="bg-error"
+            ring="border-error"
+            deleted={b.deleted}
+          />
+        ))}
+      {(!filter || filter === 'diff') &&
+        layout.diff.map((d, i) => (
+          <GutterDot
+            key={`d${i}`}
+            top={d.top + d.height / 2 - 4}
+            dot={SCOPE_DIFF_DOT}
+            ring={SCOPE_DIFF_RING}
+            deleted={d.deleted}
+          />
+        ))}
+      {(!filter || filter === 'warn') &&
+        layout.warn.map((w, i) => (
+          <GutterDot
+            key={`w${i}`}
+            top={w.top + w.height / 2 - 4}
+            dot="bg-warn"
+            ring="border-warn"
+            deleted={w.deleted}
+          />
+        ))}
     </div>
   );
 }
 
 export function FileExplore() {
-  const { projects, currentProjectId, collapseAllFolders } = useCodeStore();
+  const { projects, currentProjectId, collapseAllFolders, expandFolders } = useCodeStore();
   const project = projects.find((p) => p.id === currentProjectId);
   const projectPathRef = useRef<string | null>(null);
 
@@ -1609,12 +1952,34 @@ export function FileExplore() {
 
   // ── Toolbar actions ───────────────────────────────────────────────────────
   const gitRoot = project?.explorerRoot ?? project?.path;
-  const [gitStatus, setGitStatus] = useState<Record<string, 'added' | 'modified'>>(
+  const [gitStatus, setGitStatus] = useState<Record<string, GitFileStatus>>(
     () => (gitRoot ? gitStatusCache.get(gitRoot) : undefined) ?? {},
   );
   const [ignoredPaths, setIgnoredPaths] = useState<string[]>(
     () => (gitRoot ? ignoredPathsCache.get(gitRoot) : undefined) ?? [],
   );
+  const visibleGitStatus = useMemo(() => {
+    const dirKeys = new Set<string>();
+    for (const p of Object.keys(gitStatus)) {
+      let idx = p.lastIndexOf('/');
+      while (idx > 0) {
+        dirKeys.add(p.slice(0, idx));
+        idx = p.lastIndexOf('/', idx - 1);
+      }
+    }
+    const out: Record<string, GitFileStatus> = {};
+    for (const [p, s] of Object.entries(gitStatus)) {
+      if (dirKeys.has(p)) continue;
+      if (ignoredPaths.some((ip) => p === ip || p.startsWith(`${ip}/`))) continue;
+      out[p] = s;
+    }
+    return out;
+  }, [gitStatus, ignoredPaths]);
+  const ghostIndex = useMemo(() => {
+    const index = buildGhostIndex(gitRoot ?? '', visibleGitStatus);
+
+    return index;
+  }, [gitRoot, gitStatus, visibleGitStatus]);
 
   useEffect(() => {
     if (!gitRoot) {
@@ -1655,23 +2020,15 @@ export function FileExplore() {
           return;
         }
         const base = gitRoot.replace(/\/+$/, '');
-        const map: Record<string, 'added' | 'modified'> = {};
-        for (const line of String(res.output ?? '').split('\n')) {
-          const m = line.match(/^([ MADRCU?!]{1,2})\s+(.*)$/);
-          if (!m) continue;
-          const code = m[1].trim();
-          if (code.includes('D')) continue;
-          let rel = m[2].trim();
-          const arrow = rel.indexOf(' -> ');
-          if (arrow >= 0) rel = rel.slice(arrow + 4);
-          rel = rel.replace(/^"|"$/g, '').replace(/\/$/, '');
-          const status = code === '??' || code.includes('A') ? 'added' : 'modified';
+        const map: Record<string, GitFileStatus> = {};
+        for (const { path: rel, kind: status } of parseGitStatusOutput(String(res.output ?? ''))) {
           let abs = `${base}/${rel}`;
           map[abs] = status;
+          const ancestorStatus: GitFileStatus = status === 'added' ? 'added' : 'modified';
           let idx = abs.lastIndexOf('/');
           while (idx > base.length) {
             abs = abs.slice(0, idx);
-            if (status === 'modified' || !map[abs]) map[abs] = status;
+            if (ancestorStatus === 'modified' || !map[abs]) map[abs] = ancestorStatus;
             idx = abs.lastIndexOf('/');
           }
         }
@@ -1753,40 +2110,20 @@ export function FileExplore() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFilePath, revealTick, project?.id, project?.explorerRoot, project?.path]);
 
-  const scopeBranch = useActiveBranchName(project?.id ?? '');
-  const scopeList = useBranchScope(project?.id ?? '', scopeBranch);
-
-  const handleRevealScopes = useCallback(() => {
-    const root = (project?.explorerRoot ?? project?.path)?.replace(/\/+$/, '');
-    if (!project || !root || scopeList.length === 0) return;
-    const ids = new Set<string>();
-    for (const p of scopeList) {
-      let acc = root;
-      for (const seg of p.split('/').slice(0, -1)) {
-        acc = `${acc}/${seg}`;
-        ids.add(`fs_${acc}`);
+  const handleExpandAll = useCallback(() => {
+    if (!project) return;
+    const ids: string[] = [];
+    const walk = (nodes: FileNode[]) => {
+      for (const n of nodes) {
+        if (n.type === 'folder' && n.name !== 'node_modules' && n.name !== '.git') {
+          ids.push(n.id);
+          if (n.children) walk(n.children);
+        }
       }
-    }
-    const state = useCodeStore.getState();
-    const expanded = state.projects.find((x) => x.id === project.id)?.expandedFolderIds ?? [];
-    const missing = [...ids].filter((id) => !expanded.includes(id));
-    if (missing.length > 0) {
-      state.updateProject(project.id, { expandedFolderIds: [...expanded, ...missing] });
-    }
-    const targetId = `fs_${root}/${scopeList[0]}`;
-    let tries = 0;
-    const scrollToScope = () => {
-      const el = treeScrollRef.current?.querySelector<HTMLElement>(
-        `[data-node-id="${CSS.escape(targetId)}"]`,
-      );
-      if (el) {
-        el.scrollIntoView({ block: 'center' });
-        return;
-      }
-      if (++tries < 40) setTimeout(scrollToScope, 50);
     };
-    scrollToScope();
-  }, [project, scopeList]);
+    walk(project.files);
+    expandFolders(project.id, ids);
+  }, [project, expandFolders]);
 
   const handleCollapseAll = useCallback(() => {
     if (currentProjectId) {
@@ -1842,35 +2179,11 @@ export function FileExplore() {
         {project?.name || 'No project'}
       </span>
       <div className="flex items-center gap-0.5 flex-shrink-0">
-        <Tooltip
-          side="bottom"
-          align="end"
-          sideOffset={6}
-          contentClassName="max-w-[420px] text-[13px] px-3.5 py-2.5"
-          content={
-            <div className="flex flex-col gap-2 leading-snug w-[340px]">
-              <div className="flex items-start gap-2.5">
-                <span className="mt-[3px] w-5 h-3.5 shrink-0 rounded-sm border border-dashed border-primary" />
-                <span>File or folder inside the branch scope</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="mt-[3px] w-5 h-3.5 shrink-0 rounded-sm border border-dashed border-warn" />
-                <span>Changed outside the scope, but identical to the remote default branch</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="mt-[3px] w-5 h-3.5 shrink-0 rounded-sm border border-dashed border-error" />
-                <span>
-                  Changed outside the scope and different from the remote default branch (or the remote
-                  could not be determined)
-                </span>
-              </div>
-            </div>
-          }
-        >
-          <span className="p-1 inline-flex rounded text-text-secondary hover:text-text-primary cursor-help">
-            <Info className="w-3.5 h-3.5" strokeWidth={1.5} />
-          </span>
-        </Tooltip>
+        {project && gitRoot && (
+          <ScopeWarnBell projectId={project.id} projectPath={gitRoot} onDone={handleRefresh} />
+        )}
+        {project && <ScopeFilterButton projectId={project.id} />}
+
         <button
           onClick={handleRefresh}
           className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
@@ -1881,29 +2194,29 @@ export function FileExplore() {
         <button
           onClick={() => handleToolbarCreate('folder')}
           className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
-          title="Thư mục mới"
+          title="New folder"
         >
           <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.5} />
         </button>
         <button
           onClick={() => handleToolbarCreate('file')}
           className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
-          title="File mới"
+          title="New file"
         >
           <FilePlus className="w-3.5 h-3.5" strokeWidth={1.5} />
         </button>
+
         <button
-          onClick={handleRevealScopes}
-          disabled={scopeList.length === 0}
-          className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
-          title="Đến scope 1"
+          onClick={handleExpandAll}
+          className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
+          title="Expand all"
         >
-          <Crosshair className="w-3.5 h-3.5" strokeWidth={1.5} />
+          <ChevronsUpDown className="w-3.5 h-3.5" strokeWidth={1.5} />
         </button>
         <button
           onClick={handleCollapseAll}
           className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
-          title="Thu gọn tất cả"
+          title="Collapse all"
         >
           <ChevronsDownUp className="w-3.5 h-3.5" strokeWidth={1.5} />
         </button>
@@ -1924,6 +2237,7 @@ export function FileExplore() {
       onCopyFile: handleCopyFile,
       onPasteFile: handlePasteFile,
       gitStatus,
+      ghostIndex,
       ignoredPaths,
       renamingId,
       setRenamingId,
@@ -1938,6 +2252,7 @@ export function FileExplore() {
       handleViewRemoteDiff,
       selectMode,
       gitStatus,
+      ghostIndex,
       ignoredPaths,
       renamingId,
       creating,
@@ -1957,16 +2272,25 @@ export function FileExplore() {
     return (
       <div className="flex-1 flex flex-col min-h-0">
         {toolbar}
-        <div className="flex-1 overflow-hidden py-2 px-2 flex flex-col gap-1.5">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-2 animate-pulse">
-              <span className="w-3.5 h-3.5 rounded bg-card-hover shrink-0" />
-              <span
-                className="h-3 rounded bg-card-hover"
-                style={{ width: `${40 + ((i * 37) % 45)}%`, marginLeft: (i % 3) * 12 }}
-              />
-            </div>
-          ))}
+        <div className="flex-1 min-h-0 relative overflow-hidden py-1">
+          <div className="absolute top-1 left-0 right-0 overflow-hidden" style={{ height: '30%' }}>
+            {[0, 1, 2, 2, 1, 2, 0, 1, 2, 0].map((depth, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-1.5 w-full h-7 pr-2 animate-pulse"
+                style={{ paddingLeft: `${8 + depth * 12}px` }}
+              >
+                <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
+                  {depth < 2 && <span className="w-1.5 h-2 rounded-[2px] bg-card-hover" />}
+                </span>
+                <span className="w-4 h-4 rounded-[3px] bg-card-hover shrink-0" />
+                <span
+                  className="h-3 rounded bg-card-hover"
+                  style={{ width: `${[48, 62, 55, 70, 44, 66, 52, 58, 40, 60][i]}%` }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -2042,11 +2366,11 @@ export function FileExplore() {
             containerRef={treeScrollRef}
             projectId={project.id}
             root={gitRoot ?? ''}
-            gitStatus={gitStatus}
+            gitStatus={visibleGitStatus}
             onErrorPaths={setErrorPaths}
           />
-          {project.files.map((node) => (
-            <TreeNode
+          {(withGhosts(project.files, gitRoot ?? undefined, ghostIndex) ?? []).map((node) => (
+            <TreeNodeGate
               key={node.id}
               node={node}
               depth={0}

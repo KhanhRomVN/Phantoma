@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-import type { RawContentDiffExtractor } from '@renderer/components/RightPanel/Zen/shared/tool-mutation';
+import type { RawContentDiffExtractor } from '@renderer/components/Widgets/Zen/shared/tool-mutation';
 
 const countLines = (text: string | undefined): number => {
   if (!text) return 0;

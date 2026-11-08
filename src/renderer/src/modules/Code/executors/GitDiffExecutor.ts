@@ -2,8 +2,12 @@ import { GitDiffHandler } from '../handler/tool/GitHandlers';
 
 const gitDiffHandler = new GitDiffHandler();
 
-export async function executeGitDiff(filePath: string, _requestId: string): Promise<string | null> {
-  const data = await gitDiffHandler.handle({ filePath });
+export async function executeGitDiff(
+  filePath: string,
+  _requestId: string,
+  projectPath?: string,
+): Promise<string | null> {
+  const data = await gitDiffHandler.handle({ filePath, projectPath });
 
   if (data.error) {
     return "[git_diff for '" + filePath + "'] Result: Error - " + data.error;

@@ -1,4 +1,4 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
+import { extractParamValue } from '@renderer/components/Widgets/Zen/feature/Chat/utils/toolParser';
 
 export interface ApplyFilterParams {
   methods?: { action: 'hide' | 'show'; value: string }[];
@@ -29,7 +29,10 @@ export function parseApplyFilter(innerContent: string): ApplyFilterParams {
   let match: RegExpExecArray | null;
   while ((match = methodRegex.exec(innerContent)) !== null) {
     if (!params.methods) params.methods = [];
-    params.methods.push({ action: match[1] as 'hide' | 'show', value: match[2].trim().toUpperCase() });
+    params.methods.push({
+      action: match[1] as 'hide' | 'show',
+      value: match[2].trim().toUpperCase(),
+    });
   }
 
   // Parse <status> tags
@@ -46,7 +49,10 @@ export function parseApplyFilter(innerContent: string): ApplyFilterParams {
   const typeRegex = /<type\s+action=["'](hide|show)["']\s*>(.+?)<\/type>/gi;
   while ((match = typeRegex.exec(innerContent)) !== null) {
     if (!params.types) params.types = [];
-    params.types.push({ action: match[1] as 'hide' | 'show', value: match[2].trim().toLowerCase() });
+    params.types.push({
+      action: match[1] as 'hide' | 'show',
+      value: match[2].trim().toLowerCase(),
+    });
   }
 
   // Parse <host> tags

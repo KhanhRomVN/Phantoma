@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Button } from '@renderer/components/ui/Button';
 import {
   Loader2,
   Folder,
@@ -280,9 +281,9 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                       className="flex-1 bg-transparent outline-none text-text-primary placeholder:text-text-secondary/60 text-sm font-mono"
                     />
                   </div>
-                  <button className="h-[38px] w-[38px] rounded-lg bg-sidebar-item-hover text-text-secondary hover:bg-sidebar-item-active hover:text-text-primary grid place-items-center transition-colors border-none shrink-0">
+                  <Button className="h-[38px] w-[38px] rounded-lg bg-sidebar-item-hover text-text-secondary hover:bg-sidebar-item-active hover:text-text-primary grid place-items-center transition-colors border-none shrink-0">
                     <FolderOpen className="w-4 h-4" strokeWidth={1.5} />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -473,25 +474,25 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
           </span>
         </div>
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={onClose}
-            className="h-[30px] px-3.5 text-xs font-medium rounded-md bg-transparent border border-border text-text-secondary hover:bg-white/[0.05] hover:text-text-primary transition-colors"
+            className="h-[30px] px-3.5 text-xs font-medium rounded-md bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={!canSubmit || loading}
             className={cn(
-              'h-[30px] px-3.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all border-none',
+              'h-[30px] px-3.5 text-xs font-semibold rounded-md flex items-center gap-2 transition-all',
               canSubmit && !loading
-                ? 'bg-primary text-white hover:bg-primary/90'
+                ? 'bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80'
                 : 'bg-text-secondary/10 text-text-secondary/50 cursor-not-allowed',
             )}
           >
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             Create Project
-          </button>
+          </Button>
         </div>
       </ModalFooter>
     </Modal>

@@ -212,7 +212,7 @@ function ListFilterSection({
         <div className="flex gap-1.5 relative w-full items-center">
           <div className="flex-1">
             <input
-              className="w-full bg-input-background border border-input-border-default hover:border-input-border-hover focus:border-primary/70 rounded px-3 py-2 text-xs focus:bg-input-background/80 outline-none h-10 transition-all text-text-primary placeholder:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-input-background border border-input-border-default hover:border-primary focus:border-primary/70 rounded px-3 py-2 text-xs focus:bg-input-background/80 outline-none h-10 transition-all text-text-primary placeholder:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={disabled}
               value={input}
               onChange={(e) => {
@@ -283,7 +283,7 @@ function ListFilterSection({
                   key={item}
                   className={cn(
                     'inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs cursor-default',
-                    !color && 'bg-muted/50 text-muted-foreground',
+                    !color && 'bg-muted/50 text-text-secondary',
                   )}
                   style={
                     color
@@ -563,7 +563,7 @@ export function NetworkFilter({
             )}
           </div>
           {availableMethods.length === 0 ? (
-            <div className="text-xs text-muted-foreground italic px-2">No methods available</div>
+            <div className="text-xs text-text-secondary italic px-2">No methods available</div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableMethods.map((key) => {
@@ -586,7 +586,7 @@ export function NetworkFilter({
                     }}
                     className={cn(
                       'px-3 py-1 rounded text-xs font-medium transition-all relative',
-                      isVisible ? '' : 'text-muted-foreground hover:bg-gray-500/30',
+                      isVisible ? '' : 'text-text-secondary hover:bg-gray-500/30',
                     )}
                     style={
                       isVisible
@@ -606,7 +606,7 @@ export function NetworkFilter({
                   >
                     {key}
                     {isHiddenWithRequests && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-warning rounded-full border border-background animate-pulse" />
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-warn rounded-full border border-background animate-pulse" />
                     )}
                   </button>
                 );
@@ -636,15 +636,15 @@ export function NetworkFilter({
             <h3 className="text-xs font-semibold">Status</h3>
           </div>
           {availableStatuses.length === 0 && !hasFailed ? (
-            <div className="text-xs text-muted-foreground italic px-2">No statuses available</div>
+            <div className="text-xs text-text-secondary italic px-2">No statuses available</div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableStatuses.map((code) => {
                 const safeCode = typeof code === 'number' ? code : 0;
-                let colorClass = 'text-muted-foreground';
-                if (safeCode >= 200 && safeCode < 300) colorClass = 'text-green';
-                else if (safeCode >= 300 && safeCode < 400) colorClass = 'text-yellow';
-                else if (safeCode >= 400 && safeCode < 500) colorClass = 'text-red';
+                let colorClass = 'text-text-secondary';
+                if (safeCode >= 200 && safeCode < 300) colorClass = 'text-green-400';
+                else if (safeCode >= 300 && safeCode < 400) colorClass = 'text-yellow-400';
+                else if (safeCode >= 400 && safeCode < 500) colorClass = 'text-red-400';
                 else if (safeCode >= 500) colorClass = 'text-rose-400';
 
                 const isVisible = filter.status[safeCode] !== false;
@@ -663,7 +663,7 @@ export function NetworkFilter({
                     }}
                     className={cn(
                       'px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap',
-                      isVisible ? colorClass : 'text-muted-foreground hover:bg-gray-500/30',
+                      isVisible ? colorClass : 'text-text-secondary hover:bg-gray-500/30',
                     )}
                     title={isVisible ? 'Click to hide' : 'Click to show'}
                   >
@@ -687,8 +687,8 @@ export function NetworkFilter({
                   className={cn(
                     'px-3 py-1 rounded text-xs font-medium transition-all whitespace-nowrap',
                     filter.status['failed'] !== false
-                      ? 'text-red'
-                      : 'text-muted-foreground hover:bg-gray-500/30',
+                      ? 'text-red-400'
+                      : 'text-text-secondary hover:bg-gray-500/30',
                   )}
                   title={filter.status['failed'] !== false ? 'Click to hide' : 'Click to show'}
                 >
@@ -705,7 +705,7 @@ export function NetworkFilter({
             <h3 className="text-xs font-semibold">Type</h3>
           </div>
           {availableTypes.length === 0 ? (
-            <div className="text-xs text-muted-foreground italic px-2">No types available</div>
+            <div className="text-xs text-text-secondary italic px-2">No types available</div>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableTypes.map((key) => {
@@ -727,7 +727,7 @@ export function NetworkFilter({
                     }}
                     className={cn(
                       'px-3 py-1 rounded text-xs font-medium transition-all',
-                      isVisible ? '' : ' text-muted-foreground hover:bg-gray-500/30',
+                      isVisible ? '' : ' text-text-secondary hover:bg-gray-500/30',
                     )}
                     style={
                       isVisible

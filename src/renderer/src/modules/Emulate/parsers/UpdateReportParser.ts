@@ -1,4 +1,4 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
+import { extractParamValue } from '@renderer/components/Widgets/Zen/feature/Chat/utils/toolParser';
 export interface UpdateReportParams {
   report_ref: string;
   old_content: string;

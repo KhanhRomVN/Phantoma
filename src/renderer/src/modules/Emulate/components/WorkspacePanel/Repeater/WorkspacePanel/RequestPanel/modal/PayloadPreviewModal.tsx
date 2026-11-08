@@ -299,7 +299,7 @@ export function PayloadPreviewModal({
                   {substitutedParams.length > 0 ? (
                     <div className="border border-border rounded overflow-hidden">
                       <table className="w-full text-xs">
-                        <thead className="bg-table-headerBg border-b border-border">
+                        <thead className="bg-table-header-background border-b border-border">
                           <tr>
                             <th className="px-3 py-2 text-left text-text-secondary font-medium w-[40%]">
                               Key
@@ -347,7 +347,7 @@ export function PayloadPreviewModal({
                   {substitutedHeaders.length > 0 ? (
                     <div className="border border-border rounded overflow-hidden">
                       <table className="w-full text-xs">
-                        <thead className="bg-table-headerBg border-b border-border">
+                        <thead className="bg-table-header-background border-b border-border">
                           <tr>
                             <th className="px-3 py-2 text-left text-text-secondary font-medium w-[40%]">
                               Key

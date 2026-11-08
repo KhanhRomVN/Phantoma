@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 
 interface ListFramesBlockProps {
   output?: string;
@@ -53,10 +53,7 @@ export const ListFramesRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <ListFramesBlock
-          output={outputData?.output}
-          isError={isError}
-        />
+        <ListFramesBlock output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -84,11 +81,14 @@ function parseListFramesOutput(output: string): ParsedFrame[] | null {
     // Parse markdown table format similar to list_tabs
     const lines = output.trim().split('\n');
     const frames: ParsedFrame[] = [];
-    
+
     for (const line of lines) {
       if (line.trim().startsWith('|') && !line.includes('---')) {
-        const parts = line.split('|').map(p => p.trim()).filter(p => p);
-        
+        const parts = line
+          .split('|')
+          .map((p) => p.trim())
+          .filter((p) => p);
+
         // Skip header row
         if (parts.length >= 3 && parts[0] !== 'id' && parts[1] !== 'name') {
           frames.push({
@@ -99,19 +99,16 @@ function parseListFramesOutput(output: string): ParsedFrame[] | null {
         }
       }
     }
-    
+
     return frames.length > 0 ? frames : null;
   } catch {
     return null;
   }
 }
 
-function ListFramesBlock({
-  output,
-  isError,
-}: ListFramesBlockProps) {
+function ListFramesBlock({ output, isError }: ListFramesBlockProps) {
   const parsed = output ? parseListFramesOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
@@ -121,7 +118,7 @@ function ListFramesBlock({
               {parsed.length} frame{parsed.length !== 1 ? 's' : ''}
             </span>
           </div>
-          
+
           <div className="space-y-1.5">
             {parsed.map((frame, idx) => (
               <div

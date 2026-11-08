@@ -22,12 +22,12 @@ interface RequestBarProps {
 
 const METHOD_COLORS: Record<string, string> = {
   GET: 'text-emerald-400',
-  POST: 'text-blue',
+  POST: 'text-blue-400',
   PUT: 'text-amber-400',
-  DELETE: 'text-red',
-  PATCH: 'text-purple',
+  DELETE: 'text-red-400',
+  PATCH: 'text-purple-400',
   HEAD: 'text-indigo-400',
-  OPTIONS: 'text-teal',
+  OPTIONS: 'text-teal-400',
   TRACE: 'text-pink-400',
   CONNECT: 'text-violet-400',
 };

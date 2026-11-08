@@ -40,7 +40,7 @@ export function ConfirmDeleteFileModal({
   // ── Derived ──
   const count = items.length;
   const isMulti = count > 1;
-  const targetLabel = isMulti ? `${count} file/thư mục` : `"${items[0] || ''}"`;
+  const targetLabel = isMulti ? `${count} files/folders` : `"${items[0] || ''}"`;
 
   // ── Render ──
   return (
@@ -53,13 +53,13 @@ export function ConfirmDeleteFileModal({
           </div>
 
           <h3 className="text-base font-semibold text-text-primary leading-snug">
-            {isMulti ? `Xóa ${count} mục?` : 'Xóa file?'}
+            {isMulti ? `Delete ${count} items?` : 'Delete file?'}
           </h3>
 
           <p className="text-xs text-text-secondary leading-relaxed max-w-[280px]">
-            Bạn có chắc muốn xóa{' '}
-            <b className="font-medium text-text-primary break-all">{targetLabel}</b>? Hành động này
-            không thể hoàn tác.
+            Are you sure you want to delete{' '}
+            <b className="font-medium text-text-primary break-all">{targetLabel}</b>? This action
+            cannot be undone.
           </p>
 
           {isMulti && (
@@ -80,7 +80,7 @@ export function ConfirmDeleteFileModal({
           onClick={onClose}
           className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-divider"
         >
-          Hủy
+          Cancel
         </button>
         <button
           onClick={() => {
@@ -90,7 +90,7 @@ export function ConfirmDeleteFileModal({
           className="flex-1 h-[42px] text-xs font-semibold text-error hover:bg-error/[0.06] transition-colors flex items-center justify-center gap-1.5"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          Xóa
+          Delete
         </button>
       </ModalFooter>
     </Modal>

@@ -51,7 +51,7 @@ function Card({
         'group relative flex flex-col rounded-lg border cursor-pointer select-none transition-colors overflow-hidden',
         isSelected
           ? 'bg-primary/10 border-primary/60'
-          : 'bg-card-background border-border hover:bg-card-background-hover'
+          : 'bg-card-background border-border hover:bg-card-hover'
       )}
     >
       {selectable && (

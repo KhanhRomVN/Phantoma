@@ -72,7 +72,7 @@ export function ProgressModal({
             {results.length > 0 && (
               <div className="border border-border rounded overflow-hidden max-h-96 overflow-y-auto">
                 <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-table-headerBg border-b border-border">
+                  <thead className="sticky top-0 bg-table-header-background border-b border-border">
                     <tr>
                       <th className="w-10 px-3 py-1.5 text-left text-text-secondary font-medium">
                         #

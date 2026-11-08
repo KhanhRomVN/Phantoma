@@ -182,7 +182,7 @@ export function ResultsModal({ isOpen, results, onClose, onSave }: ResultsModalP
 
               {/* REQUEST section */}
               <div className="flex-1 min-h-0 flex flex-col">
-                <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/30 py-1.5">
+                <div className="flex items-center border-b border-border shrink-0 bg-table-header-background/30 py-1.5">
                   {(['params', 'headers', 'body'] as const).map((tab) => (
                     <button
                       key={tab}
@@ -264,7 +264,7 @@ export function ResultsModal({ isOpen, results, onClose, onSave }: ResultsModalP
 
               {/* RESPONSE section */}
               <div className="flex-1 min-h-0 flex flex-col border-t border-border">
-                <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/30 py-1.5">
+                <div className="flex items-center border-b border-border shrink-0 bg-table-header-background/30 py-1.5">
                   {(['headers', 'body'] as const).map((tab) => (
                     <button
                       key={tab}

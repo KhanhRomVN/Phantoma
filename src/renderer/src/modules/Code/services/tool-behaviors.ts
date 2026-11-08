@@ -13,7 +13,7 @@ import type {
   ToolCollapseChecker,
   ToolDangerChecker,
   ToolMarkdownFormatter,
-} from '@renderer/components/RightPanel/Zen/shared/tool-behaviors';
+} from '@renderer/components/Widgets/Zen/shared/tool-behaviors';
 import { SecurityValidator } from '../utils/security';
 
 /**

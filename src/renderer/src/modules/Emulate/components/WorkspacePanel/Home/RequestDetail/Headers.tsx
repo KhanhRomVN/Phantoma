@@ -64,7 +64,7 @@ function HighlightText({ text, searchTerm, className, highlightClassName }: High
           <mark
             key={i}
             className={cn(
-              'bg-warning/30 text-text-primary rounded-sm px-0.5 mx-[-2px]',
+              'bg-warn/30 text-text-primary rounded-sm px-0.5 mx-[-2px]',
               highlightClassName,
             )}
           >
@@ -118,7 +118,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                   <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-wider mb-1.5">
                     {section}
                   </h4>
-                  <div className="border border-divider/40 rounded-md bg-table-bodyBg overflow-hidden text-xs">
+                  <div className="border border-divider/40 rounded-md bg-card-background overflow-hidden text-xs">
                     {(headers as any[]).map((h, i) => (
                       <div
                         key={i}
@@ -183,7 +183,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                   <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-wider mb-1.5">
                     {section}
                   </h4>
-                  <div className="border border-divider/40 rounded-md bg-table-bodyBg overflow-hidden text-xs">
+                  <div className="border border-divider/40 rounded-md bg-card-background overflow-hidden text-xs">
                     {(headers as any[]).map((h, i) => (
                       <div
                         key={i}
@@ -257,18 +257,18 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                 ) => (
                   <div
                     key={i}
-                    className="flex flex-col bg-warning/5 hover:bg-warning/10 transition-colors border border-warning/20 p-2 rounded text-xs relative group"
+                    className="flex flex-col bg-warn/5 hover:bg-warn/10 transition-colors border border-warn/20 p-2 rounded text-xs relative group"
                   >
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="font-bold font-mono text-xs">{h.name}</span>
-                      <span className="text-[9px] bg-warning/10 text-warning px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                      <span className="text-[9px] bg-warn/10 text-warn px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
                         {h.severity}
                       </span>
                     </div>
                     <div className="text-text-secondary text-[10px] leading-relaxed mb-1.5 flex-grow">
                       {h.description}
                     </div>
-                    <div className="mt-auto pt-1.5 border-t border-warning/10 text-[10px] font-medium text-warning/90 flex gap-1">
+                    <div className="mt-auto pt-1.5 border-t border-warn/10 text-[10px] font-medium text-warn/90 flex gap-1">
                       <span className="shrink-0 font-bold uppercase text-[9px] opacity-70 mt-px">
                         Fix:
                       </span>

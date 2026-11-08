@@ -7,22 +7,22 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
 // ── Hooks ──
-import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
+import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
 import { useCodeStore } from '../hooks/useCodeStore';
 
 // Services
-import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
 
 // ── Constants ──
 import {
   TOOL_ACTION_TYPES,
   TERMINAL_STATUS,
   type TerminalStatus,
-} from '@renderer/components/RightPanel/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+} from '@renderer/components/Widgets/Zen/shared/tool-constants';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
 
 // ── Types ──
-import { Message } from '@renderer/components/RightPanel/Zen/feature/Chat/types/message';
+import { Message } from '@renderer/components/Widgets/Zen/feature/Chat/types/message';
 
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
@@ -30,10 +30,10 @@ import { $ } from '@renderer/utils/color';
 import { getFolderIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/responseParser';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
 
 interface TerminalBlockProps {
   logs: string;
@@ -524,8 +524,8 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
   const [isRejectedLocal, setIsRejectedLocal] = React.useState(false);
   const [storedOutput, setStoredOutput] = React.useState<string | null>(null);
   const rootPath = useCodeStore(
-      (s) => s.projects.find((p) => p.id === s.currentProjectId)?.path || ''
-    );
+    (s) => s.projects.find((p) => p.id === s.currentProjectId)?.path || '',
+  );
   useSettings();
   const actionId = `${messageId}-action-${actionIndex}`;
   const outputData = toolOutputs?.[actionId];
@@ -653,8 +653,8 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
                 }}
                 title="Finalize output, kill process and delete terminal"
                 className={cn(
-                  'flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold h-6 uppercase ml-auto shrink-0 cursor-pointer',
-                  'bg-error/10 border border-error/30 text-error',
+                  'flex items-center justify-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold h-6 uppercase ml-auto shrink-0 cursor-pointer transition-colors',
+                  'bg-error/10 border border-error/30 text-error hover:bg-error hover:text-text-primary active:bg-error/80',
                 )}
               >
                 <svg
@@ -768,7 +768,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
                     e.stopPropagation();
                     onCancelDangerousCommand?.(dangerousCommand.actionId);
                   }}
-                  className="px-2.5 h-6 rounded-md bg-transparent text-text-secondary text-[11px] font-semibold cursor-pointer border border-border hover:bg-foreground/12 transition-colors"
+                  className="px-2.5 h-6 rounded-md bg-text-secondary/10 text-text-secondary text-[11px] font-semibold cursor-pointer border border-text-secondary/30 hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 transition-colors"
                 >
                   Cancel
                 </button>
@@ -777,7 +777,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
                     e.stopPropagation();
                     onProceedDangerousCommand?.(dangerousCommand.actionId);
                   }}
-                  className="px-2.5 h-6 rounded-md bg-warn/14 text-warn text-[11px] font-semibold cursor-pointer border border-warn/30 hover:bg-warn/22 transition-colors"
+                  className="px-2.5 h-6 rounded-md bg-warn/10 text-warn text-[11px] font-semibold cursor-pointer border border-warn/30 hover:bg-warn hover:text-text-primary active:bg-warn/80 transition-colors"
                 >
                   Accept risk
                 </button>

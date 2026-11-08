@@ -17,6 +17,7 @@ import {
   X,
   AlertCircle,
 } from 'lucide-react';
+import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/utils/cn';
 import { Favicon, getFaviconUrl } from '@renderer/utils/favicon';
 import { getFileIconPath } from '@renderer/utils/file-icon';
@@ -1524,25 +1525,25 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           )}
         </div>
         <div className="flex gap-2.5">
-          <button
+          <Button
             onClick={onClose}
-            className="h-8 px-4 text-xs font-medium rounded-lg border-none outline-none focus:outline-none transition-colors bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background"
+            className="h-8 px-4 text-xs font-medium rounded-lg bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={!canSubmit || loading}
             className={cn(
-              'h-8 px-4 text-xs font-semibold rounded-lg flex items-center gap-2 transition-colors border-none outline-none focus:outline-none bg-button-soft-background',
+              'h-8 px-4 text-xs font-semibold rounded-lg flex items-center gap-2 transition-colors',
               canSubmit && !loading
-                ? 'text-text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70'
-                : 'text-text-secondary/50 cursor-not-allowed hover:bg-button-soft-background',
+                ? 'bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80'
+                : 'bg-text-secondary/10 text-text-secondary/50 cursor-not-allowed hover:bg-text-secondary/10',
             )}
           >
             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {actionLabel}
-          </button>
+          </Button>
         </div>
       </ModalFooter>
       <DuplicateRepoModal

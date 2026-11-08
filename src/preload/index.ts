@@ -18,6 +18,27 @@ const api = {
     getPorts: () => electronAPI.ipcRenderer.invoke('runtime:get-ports'),
     startEmulate: () => electronAPI.ipcRenderer.invoke('runtime:start-emulate'),
   },
+  agentTool: {
+    discover: (config: any) => electronAPI.ipcRenderer.invoke('agent-tool:discover', config),
+    listSessions: (config: any) =>
+      electronAPI.ipcRenderer.invoke('agent-tool:list-sessions', config),
+    resolvePermission: (id: string, approved: boolean) =>
+      electronAPI.ipcRenderer.invoke('agent-tool:resolve-permission', id, approved),
+    requestPermission: (id: string, question: string, options: string[]) =>
+      electronAPI.ipcRenderer.invoke('agent-tool:request-permission', id, question, options),
+    run: (request: any) => electronAPI.ipcRenderer.invoke('agent-tool:run', request),
+    interrupt: (runId: string) => electronAPI.ipcRenderer.invoke('agent-tool:interrupt', runId),
+    onEvent: (callback: (data: { runId: string; event: any }) => void) => {
+      const listener = (_event: any, data: any) => callback(data)
+      electronAPI.ipcRenderer.on('agent-tool:event', listener)
+      return () => electronAPI.ipcRenderer.removeListener('agent-tool:event', listener)
+    },
+    onPermissionRequest: (callback: (data: any) => void) => {
+      const listener = (_event: any, data: any) => callback(data)
+      electronAPI.ipcRenderer.on('agent-tool:permission-request', listener)
+      return () => electronAPI.ipcRenderer.removeListener('agent-tool:permission-request', listener)
+    },
+  },
 };
 
 // Expose APIs to renderer

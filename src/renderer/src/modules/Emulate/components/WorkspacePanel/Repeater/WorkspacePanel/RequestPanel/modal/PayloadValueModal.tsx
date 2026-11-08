@@ -544,7 +544,7 @@ export function PayloadValueModal({
               <>
                 {/* Code Editor */}
                 <div className="flex-1 flex flex-col border-r border-border min-w-0">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-headerBg">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-header-background">
                     <div className="text-xs font-medium text-text-secondary">
                       {currentSource?.name || 'Editor'}
                     </div>
@@ -570,7 +570,7 @@ export function PayloadValueModal({
 
                 {/* Output */}
                 <div className="flex-1 flex flex-col min-w-0">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-headerBg">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-header-background">
                     <div className="text-xs font-medium text-text-secondary">
                       Output ({templatePreviewValues.length})
                     </div>
@@ -623,7 +623,7 @@ export function PayloadValueModal({
             ) : isCurrentValues ? (
               /* My Values: CodeBlock editable view */
               <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-headerBg">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-header-background">
                   <div className="text-xs font-medium text-text-secondary">
                     {payloadName} ({currentPreviewValues.length} values)
                   </div>
@@ -675,7 +675,7 @@ export function PayloadValueModal({
             ) : (
               /* Template preview: CodeBlock */
               <div className="flex-1 flex flex-col min-w-0">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-headerBg">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-table-header-background">
                   <div className="text-xs font-medium text-text-secondary">
                     Preview ({templatePreviewValues.length} values)
                   </div>

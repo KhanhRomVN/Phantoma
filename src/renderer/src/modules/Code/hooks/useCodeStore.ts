@@ -245,6 +245,7 @@ interface CodeState {
   setForceShowLSPOverlay: (show: boolean) => void;
   toggleFolderExpand: (projectId: string, folderId: string) => void;
   collapseAllFolders: (projectId: string) => void;
+  expandFolders: (projectId: string, folderIds: string[]) => void;
   invalidateDir: (projectId: string, dirPath: string) => void;
   hydrateProjectFiles: (projectId: string, files: FileNode[]) => void;
   markFileAsUnsaved: (fileId: string, content: string) => void;
@@ -751,6 +752,14 @@ export const useCodeStore = create<CodeState>()(
                   : [...p.expandedFolderIds, folderId],
               };
             }),
+          }));
+        },
+
+        expandFolders: (projectId: string, folderIds: string[]) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, expandedFolderIds: folderIds } : p,
+            ),
           }));
         },
 

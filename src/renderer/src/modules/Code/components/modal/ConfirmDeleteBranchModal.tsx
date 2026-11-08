@@ -3,6 +3,7 @@ import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
+import { Button } from '@renderer/components/ui/Button';
 import { TreeUIPreview } from './TreeUIPreview';
 
 interface ConfirmDeleteBranchModalProps {
@@ -123,17 +124,17 @@ export function ConfirmDeleteBranchModal({
       </ModalBody>
 
       <ModalFooter className="gap-0 p-0 border-t border-divider">
-        <button
+        <Button
           onClick={handleClose}
           disabled={submitting}
-          className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-divider disabled:opacity-50"
+          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-divider rounded-none disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleConfirm}
           disabled={!canDelete}
-          className="flex-1 h-[42px] text-xs font-semibold text-error hover:bg-error/[0.06] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+          className="flex-1 h-[42px] text-xs font-semibold bg-error/10 text-error hover:bg-error hover:text-text-primary active:bg-error/80 transition-colors rounded-none flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:hover:bg-error/10 disabled:hover:text-error disabled:cursor-not-allowed"
         >
           {submitting ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -141,7 +142,7 @@ export function ConfirmDeleteBranchModal({
             <Trash2 className="w-3.5 h-3.5" />
           )}
           Delete folder
-        </button>
+        </Button>
       </ModalFooter>
     </Modal>
   );

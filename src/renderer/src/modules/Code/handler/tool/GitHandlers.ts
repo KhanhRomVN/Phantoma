@@ -22,6 +22,7 @@ interface GitStatusParams extends BaseParams {}
 
 interface GitDiffParams extends BaseParams {
   filePath?: string;
+  projectPath?: string;
 }
 
 interface BaseResult {
@@ -63,7 +64,11 @@ export class GitDiffHandler {
       const api = (window as any).api;
       if (!api?.invoke) throw new Error('IPC not available');
 
-      const result = await api.invoke('git:diff', message.filePath || null);
+      const result = await api.invoke(
+        'git:file-diff',
+        message.projectPath || '',
+        message.filePath || '',
+      );
       return {
         command: 'gitDiffResult',
         requestId: message.requestId,

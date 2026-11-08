@@ -13,25 +13,22 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import type { ReactNode } from 'react';
-
 import {
-  CaseSensitive,
-  WholeWord,
-  Regex,
-  Replace,
-  ReplaceAll,
-  RefreshCw,
-  Eraser,
   ListTree,
   List,
   ChevronsDownUp,
+  RefreshCw,
+  Eraser,
   Loader2,
   AlertCircle,
   AlertTriangle,
   SlidersHorizontal,
+  Replace,
+  ReplaceAll,
 } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import type { ReactNode } from 'react';
+import { Button } from '@renderer/components/ui/Button';
 
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { cn } from '@renderer/utils/cn';
@@ -400,13 +397,13 @@ export function Search() {
           Search
         </span>
         <div className="flex items-center gap-0.5 flex-shrink-0">
-          <button onClick={handleRefresh} className={ICON_BUTTON_CLASS} title="Refresh">
+          <Button onClick={handleRefresh} className={ICON_BUTTON_CLASS} title="Refresh">
             <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.5} />
-          </button>
-          <button onClick={handleClear} className={ICON_BUTTON_CLASS} title="Clear search">
+          </Button>
+          <Button onClick={handleClear} className={ICON_BUTTON_CLASS} title="Clear search">
             <Eraser className="w-3.5 h-3.5" strokeWidth={1.5} />
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setViewAsTree((v) => !v)}
             className={cn(ICON_BUTTON_CLASS, viewAsTree && 'text-text-primary bg-card-hover')}
             title={viewAsTree ? 'View as List' : 'View as Tree'}
@@ -416,10 +413,10 @@ export function Search() {
             ) : (
               <ListTree className="w-3.5 h-3.5" strokeWidth={1.5} />
             )}
-          </button>
-          <button onClick={handleCollapseAll} className={ICON_BUTTON_CLASS} title="Collapse All">
+          </Button>
+          <Button onClick={handleCollapseAll} className={ICON_BUTTON_CLASS} title="Collapse All">
             <ChevronsDownUp className="w-3.5 h-3.5" strokeWidth={1.5} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -435,21 +432,21 @@ export function Search() {
             onEscape={handleClear}
           />
           <IconToggle active={matchCase} title="Match Case" onClick={() => setMatchCase((v) => !v)}>
-            <CaseSensitive className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <span className="text-[11px] font-bold font-mono leading-none">Aa</span>
           </IconToggle>
           <IconToggle
             active={matchWholeWord}
             title="Match Whole Word"
             onClick={() => setMatchWholeWord((v) => !v)}
           >
-            <WholeWord className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <span className="text-[10px] font-bold font-mono tracking-[-0.5px] leading-none">ab</span>
           </IconToggle>
           <IconToggle
             active={useRegex}
             title="Use Regular Expression"
             onClick={() => setUseRegex((v) => !v)}
           >
-            <Regex className="w-3.5 h-3.5" strokeWidth={1.5} />
+            <span className="text-[10px] font-bold font-mono leading-none">.*</span>
           </IconToggle>
         </div>
 

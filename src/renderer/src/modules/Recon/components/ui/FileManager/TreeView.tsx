@@ -72,7 +72,7 @@ export default function TreeView({
 
   return (
     <div className='text-xs'>
-      <div className='sticky top-0 z-10 flex items-center gap-3 px-3 h-8 bg-card-background-hover border-b border-border text-text-secondary font-medium'>
+      <div className='sticky top-0 z-10 flex items-center gap-3 px-3 h-8 bg-card-hover border-b border-border text-text-secondary font-medium'>
         {selectable && <CheckBox checked={allSelected} onChange={onToggleAll} />}
         {COLUMNS.map((col) => {
           const active = sort.key === col.key;
@@ -111,7 +111,7 @@ export default function TreeView({
               className={cn(
                 'flex items-center gap-3 px-3 h-8 border-b border-border/30 select-none transition-colors',
                 node.type === 'folder' ? 'cursor-pointer' : 'cursor-default',
-                isSelected ? 'bg-primary/10' : 'hover:bg-card-background-hover'
+                isSelected ? 'bg-primary/10' : 'hover:bg-card-hover'
               )}
             >
               {selectable && <CheckBox checked={isSelected} onChange={() => onToggle(node)} />}

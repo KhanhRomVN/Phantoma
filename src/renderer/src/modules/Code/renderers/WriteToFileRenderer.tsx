@@ -3,26 +3,26 @@ import { cn } from '@renderer/utils/cn';
 import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
 
 // ── Hooks ──
-import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
+import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
 
 // Services
-import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/components/Widgets/Zen/feature/Chat/utils/message-navigator';
 
 import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 
 // ── Types ──
-import { MergedRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { MergedRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 
 export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   action,
@@ -188,7 +188,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
                       e.stopPropagation();
                       onRejectSingleLineAction?.(actionId);
                     }}
-                    className="flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded bg-error/10 border border-error/40 text-error cursor-pointer"
+                    className="flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded bg-error/10 border border-error/40 text-error hover:bg-error hover:text-text-primary active:bg-error/80 cursor-pointer transition-colors"
                   >
                     <span className="codicon codicon-close text-[11px]" />
                     Từ chối
@@ -198,7 +198,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
                       e.stopPropagation();
                       onConfirmSingleLineAction?.(actionId);
                     }}
-                    className="flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded bg-success/10 border border-success/40 text-success cursor-pointer"
+                    className="flex items-center gap-1 px-3 py-1 text-[11px] font-semibold rounded bg-success/10 border border-success/40 text-success hover:bg-success hover:text-text-primary active:bg-success/80 cursor-pointer transition-colors"
                   >
                     <span className="codicon codicon-check text-[11px]" />
                     Xác nhận

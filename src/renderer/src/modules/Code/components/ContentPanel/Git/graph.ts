@@ -18,13 +18,20 @@ export interface Commit {
   subject: string;
 }
 
+export type FileChangeKind = 'added' | 'modified' | 'deleted';
+
 export interface CommitFile {
   path: string;
   added: number;
   deleted: number;
+  status?: FileChangeKind;
   staged?: boolean;
   unstaged?: boolean;
   untracked?: boolean;
+}
+
+export function fileKind(f: CommitFile): FileChangeKind {
+  return f.status ?? (f.untracked ? 'added' : 'modified');
 }
 
 export interface GraphRow {

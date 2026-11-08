@@ -11,9 +11,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
-import { MarkdownRenderer } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
-import UserMessageBox from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/UserMessageBox';
-import type { Message } from '@renderer/components/RightPanel/Zen/feature/Chat/types/message';
+import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
+import UserMessageBox from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/UserMessageBox';
+import type { Message } from '@renderer/components/Widgets/Zen/feature/Chat/types/message';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../hooks/useCodeStore';
 import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../hooks/useWorkflowStore';
@@ -154,9 +154,7 @@ function ModelBadge({ agentId, className }: { agentId: string; className?: strin
       <span className="font-mono text-text-primary truncate">
         {providerId}/{modelId}
       </span>
-      {email && (
-        <span className="font-mono text-text-secondary opacity-60 truncate">{email}</span>
-      )}
+      {email && <span className="font-mono text-text-secondary opacity-60 truncate">{email}</span>}
     </span>
   );
 }
@@ -344,7 +342,10 @@ export const AgentWorkflow = memo(function AgentWorkflow({}: AgentWorkflowProps)
               const mine = m.from === USER_ID;
               const sender = mine ? undefined : agents.find((a) => a.id === m.from);
               return (
-                <div key={m.id} className={cn('flex items-start gap-2.5', mine && 'flex-row-reverse')}>
+                <div
+                  key={m.id}
+                  className={cn('flex items-start gap-2.5', mine && 'flex-row-reverse')}
+                >
                   {mine ? (
                     <UserAvatar size={28} />
                   ) : (

@@ -2,6 +2,7 @@ import { AlertTriangle, Minus, Plus, Trash2, type LucideIcon } from 'lucide-reac
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
+import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/utils/cn';
 
 export type FileChangeAction = 'discard' | 'stage' | 'unstage';
@@ -26,7 +27,7 @@ const ACTION_CONFIG: Record<FileChangeAction, ActionConfig> = {
     BadgeIcon: AlertTriangle,
     ConfirmIcon: Trash2,
     badgeClass: 'bg-error/10 border-error/20 text-error',
-    confirmClass: 'text-error hover:bg-error/[0.06]',
+    confirmClass: 'bg-error/10 text-error hover:bg-error hover:text-text-primary active:bg-error/80',
   },
   stage: {
     title: 'Stage Changes?',
@@ -36,7 +37,7 @@ const ACTION_CONFIG: Record<FileChangeAction, ActionConfig> = {
     BadgeIcon: Plus,
     ConfirmIcon: Plus,
     badgeClass: 'bg-primary/10 border-primary/20 text-primary',
-    confirmClass: 'text-primary hover:bg-primary/[0.06]',
+    confirmClass: 'bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80',
   },
   unstage: {
     title: 'Unstage Changes?',
@@ -46,7 +47,7 @@ const ACTION_CONFIG: Record<FileChangeAction, ActionConfig> = {
     BadgeIcon: Minus,
     ConfirmIcon: Minus,
     badgeClass: 'bg-primary/10 border-primary/20 text-primary',
-    confirmClass: 'text-primary hover:bg-primary/[0.06]',
+    confirmClass: 'bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80',
   },
 };
 
@@ -91,27 +92,27 @@ export function ConfirmFileChangeModal({
       </ModalBody>
 
       <ModalFooter className={'gap-0 p-0 border-t border-divider'}>
-        <button
+        <Button
           onClick={onClose}
           className={
-            'flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-divider'
+            'flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-divider rounded-none'
           }
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => {
             onConfirm();
             onClose();
           }}
           className={cn(
-            'flex-1 h-[42px] text-xs font-semibold transition-colors flex items-center justify-center gap-1.5',
+            'flex-1 h-[42px] text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 rounded-none',
             cfg.confirmClass,
           )}
         >
           <ConfirmIcon className={'w-3.5 h-3.5'} />
           {cfg.confirmLabel}
-        </button>
+        </Button>
       </ModalFooter>
     </Modal>
   );

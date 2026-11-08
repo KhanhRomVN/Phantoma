@@ -6,8 +6,8 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolStatusChecker } from '@renderer/components/RightPanel/Zen/shared/tool-status';
-import { TERMINAL_STATUS } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
+import type { ToolStatusChecker } from '@renderer/components/Widgets/Zen/shared/tool-status';
+import { TERMINAL_STATUS } from '@renderer/components/Widgets/Zen/shared/tool-constants';
 
 /**
  * Check if a Code tool is busy and should block interaction.

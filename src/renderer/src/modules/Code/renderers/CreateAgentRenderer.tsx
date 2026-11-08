@@ -5,30 +5,30 @@ import { ChevronRight, ClipboardList, Cpu, Hammer, ScanSearch, UserRound } from 
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/components/Widgets/Zen/feature/Chat/utils/message-navigator';
 import { getFaviconUrl } from '@renderer/utils/favicon';
 
 // ── Context ──
-import { useAgentRoot } from '@renderer/components/RightPanel/Zen/context/AgentRootContext';
-import { useSettings } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
-import { useAgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
+import { useAgentRoot } from '@renderer/components/Widgets/Zen/context/AgentRootContext';
+import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
+import { useAgentFeature } from '@renderer/components/Widgets/Zen/context/FeatureContext';
 
 // ── Components ──
 import { Button } from '@renderer/components/ui/Button';
-import SelectModelAccountModal from '@renderer/components/RightPanel/Zen/components/MessageInput/SelectModelAccountModal';
-import { splitModelAndEffort } from '@renderer/components/RightPanel/Zen/components/MessageInput/EffortDropdown';
+import SelectModelAccountModal from '@renderer/components/Widgets/Zen/components/MessageInput/SelectModelAccountModal';
+import { splitModelAndEffort } from '@renderer/components/Widgets/Zen/components/MessageInput/EffortDropdown';
 import {
   accountsKey,
   cacheGet,
   cacheSet,
   providersKey,
-} from '@renderer/components/RightPanel/Zen/components/MessageInput/providerModelCache';
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import type { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+} from '@renderer/components/Widgets/Zen/components/MessageInput/providerModelCache';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 
 import { AGENT_TYPE_COLORS, type AgentType } from '../types/agents';
 
@@ -328,13 +328,16 @@ const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
       {!isCompleted && !isError && (
         <div className="flex justify-end gap-2 pt-0.5">
           <Button
-            size="sm"
-            className="bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background"
+            className="bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30"
             onClick={handleCancel}
           >
             Cancel
           </Button>
-          <Button variant="soft" size="sm" onClick={handleConfirm} disabled={!canConfirm}>
+          <Button
+            className="bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80"
+            onClick={handleConfirm}
+            disabled={!canConfirm}
+          >
             Create agent
           </Button>
         </div>

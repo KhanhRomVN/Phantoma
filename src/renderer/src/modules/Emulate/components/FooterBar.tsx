@@ -104,19 +104,19 @@ export function FooterBar({
       mitm: {
         label: 'MITM Proxy',
         color: 'text-purple-400',
-        bgColor: 'bg-purple-500/10',
+        bgColor: 'bg-purple-400',
         icon: Shield,
       },
       cdp: {
         label: 'CDP Session',
         color: 'text-blue-400',
-        bgColor: 'bg-blue-500/10',
+        bgColor: 'bg-blue-400',
         icon: Wifi,
       },
       frida: {
         label: 'Frida Hook',
         color: 'text-amber-400',
-        bgColor: 'bg-amber-500/10',
+        bgColor: 'bg-amber-400',
         icon: Activity,
       },
     };
@@ -155,13 +155,13 @@ export function FooterBar({
               <span
                 className={cn(
                   'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
-                  modeConfig.color.replace('text-', 'bg-'),
+                  modeConfig.bgColor,
                 )}
               ></span>
               <span
                 className={cn(
                   'relative inline-flex rounded-full h-2 w-2',
-                  modeConfig.color.replace('text-', 'bg-'),
+                  modeConfig.bgColor,
                 )}
               ></span>
             </div>

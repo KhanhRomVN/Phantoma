@@ -31,7 +31,7 @@ import { User } from 'lucide-react';
 import {
   listChromiumProfiles,
   getChromeProfileDirs,
-} from '@renderer/components/RightPanel/Zen/services/chromeProfiles';
+} from '@renderer/components/Widgets/Zen/services/chromeProfiles';
 
 // ─── Shared Types ───────────────────────────────────────────────────────
 export interface BaseModalProps {
@@ -273,9 +273,8 @@ const FolderInput: React.FC<{
       className={cn(INPUT, 'flex-1 font-mono')}
     />
     <Button
-      variant="soft"
       title="Choose folder"
-      className="h-[42px] w-[42px] shrink-0 px-0 py-0"
+      className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
       onClick={async () => {
         const folder = await pickFolder();
         if (folder) onChange(folder);
@@ -679,11 +678,10 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
           />
         </div>
         <Button
-          variant="soft"
           disabled={loading}
           onClick={loadDevices}
           title="Rescan devices"
-          className="h-[42px] w-[42px] shrink-0 px-0 py-0"
+          className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
         >
           <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
         </Button>
@@ -727,13 +725,13 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
                   <div
                     className={cn(
                       'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
-                      device.type === 'physical' ? 'bg-green/10' : 'bg-blue/10',
+                      device.type === 'physical' ? 'bg-green-500/10' : 'bg-blue-500/10',
                     )}
                   >
                     <Icon
                       className={cn(
                         'h-4 w-4',
-                        device.type === 'physical' ? 'text-green' : 'text-blue',
+                        device.type === 'physical' ? 'text-green-400' : 'text-blue-400',
                       )}
                     />
                   </div>
@@ -902,10 +900,9 @@ const PCForm = forwardRef<BodyRef, FormProps>(function PCForm(
             />
           </div>
           <Button
-            variant="soft"
             title="Rescan apps"
             onClick={loadPcApps}
-            className="h-[42px] w-[42px] shrink-0 px-0 py-0"
+            className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
           >
             <RefreshCw className={cn('h-4 w-4 text-text-secondary', pcLoading && 'animate-spin')} />
           </Button>
@@ -1238,7 +1235,11 @@ export const TargetModal: React.FC<TargetModalProps> = ({
           <Button onClick={handleCancel} className={CANCEL_CLASS}>
             Cancel
           </Button>
-          <Button variant="soft" onClick={handleSubmit} disabled={!canSubmit}>
+          <Button
+            className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+          >
             {isEdit ? 'Save Changes' : 'Add Target'}
           </Button>
         </ModalFooter>

@@ -2,11 +2,11 @@ import React from 'react';
 
 import { cn } from '@renderer/utils/cn';
 
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import type { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
+import { getNextUserMessage } from '@renderer/components/Widgets/Zen/feature/Chat/utils/message-navigator';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 
 const parseTaskCount = (output: string): number | null => {
   try {

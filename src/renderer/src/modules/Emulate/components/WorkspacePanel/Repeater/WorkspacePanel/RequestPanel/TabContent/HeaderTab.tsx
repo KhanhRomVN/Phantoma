@@ -444,7 +444,7 @@ export function HeaderTab({
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-60">
         <table className="w-full text-xs table-auto">
-          <thead className="sticky top-0 bg-table-headerBg border-b border-border z-10">
+          <thead className="sticky top-0 bg-table-header-background border-b border-border z-10">
             <tr>
               <th className="w-8 px-2 py-1.5 text-left text-text-secondary font-medium">#</th>
               <th className="w-[180px] px-2 py-1.5 text-left text-text-secondary font-medium">
@@ -509,7 +509,7 @@ export function HeaderTab({
                             'w-full bg-transparent px-1.5 py-1.5 text-sm text-text-primary outline-none font-mono',
                             duplicateKeys.has(header.key) &&
                               header.key.trim() &&
-                              'outline outline-2 outline-dashed outline-warning',
+                              'outline outline-2 outline-dashed outline-warn',
                           )}
                           placeholder={placeholderKey}
                         />
@@ -728,7 +728,7 @@ export function HeaderTab({
                             </div>
                           </div>
                         ) : (
-                          <div className="text-[10px] text-warning">
+                          <div className="text-[10px] text-warn">
                             {'No values. '}
                             <button
                               onClick={onSwitchToPayload}

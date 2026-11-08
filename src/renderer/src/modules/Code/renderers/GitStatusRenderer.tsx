@@ -5,19 +5,19 @@ import { cn } from '@renderer/utils/cn';
 import { Check, X } from 'lucide-react';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/responseParser';
+import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
 import { GitStatusItem } from '../types/tool-params';
 
 // ── Utils ──
-import { parseGitStatusOutput } from '@renderer/components/RightPanel/Zen/shared/git-status-parser';
+import { parseGitStatusOutput } from '@renderer/components/Widgets/Zen/shared/git-status-parser';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import { getFileIconPath } from '@renderer/utils/file-icon';
 
 interface GitStatusBlockItem {
@@ -201,18 +201,20 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
                   : 'Tạo commit message từ các file đã staged'
             }
             style={{
-              background: `color-mix(in srgb, ${buttonColor} 15%, transparent)`,
+              background: `color-mix(in srgb, ${buttonColor} 10%, transparent)`,
               color: stagedItems.length === 0 ? $('--text-secondary') || '#8c8c8c' : buttonColor,
               borderColor: `color-mix(in srgb, ${stagedItems.length === 0 ? $('--text-secondary') || '#8c8c8c' : buttonColor} 30%, transparent)`,
             }}
             onMouseEnter={(e) => {
               if (stagedItems.length > 0) {
-                e.currentTarget.style.background = `color-mix(in srgb, ${buttonColor} 25%, transparent)`;
+                e.currentTarget.style.background = buttonColor;
+                e.currentTarget.style.color = $('--text-primary');
               }
             }}
             onMouseLeave={(e) => {
               if (stagedItems.length > 0) {
-                e.currentTarget.style.background = `color-mix(in srgb, ${buttonColor} 15%, transparent)`;
+                e.currentTarget.style.background = `color-mix(in srgb, ${buttonColor} 10%, transparent)`;
+                e.currentTarget.style.color = buttonColor;
               }
             }}
           >
@@ -220,18 +222,22 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
             <span>{isProcessing ? 'Processing' : 'Create Commit Message'}</span>
           </button>
           <button
-            className="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all duration-200 inline-flex items-center gap-1.5 h-6 disabled:opacity-50 disabled:cursor-not-allowed bg-error/15 text-error border border-error/30"
+            className="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all duration-200 inline-flex items-center gap-1.5 h-6 disabled:opacity-50 disabled:cursor-not-allowed bg-text-secondary/10 text-text-secondary border border-text-secondary/30"
             onClick={() => {
               onCancel();
             }}
             disabled={isProcessing}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background =
-                'color-mix(in srgb, rgb(255, 45, 85) 25%, transparent)';
+              if (!isProcessing) {
+                e.currentTarget.style.background = $('--text-secondary');
+                e.currentTarget.style.color = $('--text-primary');
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background =
-                'color-mix(in srgb, rgb(255, 45, 85) 15%, transparent)';
+              if (!isProcessing) {
+                e.currentTarget.style.background = `color-mix(in srgb, ${$('--text-secondary')} 10%, transparent)`;
+                e.currentTarget.style.color = $('--text-secondary');
+              }
             }}
           >
             <X size={14} strokeWidth={2.5} />

@@ -6,8 +6,8 @@
  * ------------------------------------------------------------------
  */
 
-import { DISPLAY_ONLY_RESULT } from '@renderer/components/RightPanel/Zen/feature/Chat/types/executor-types';
-import type { ExecutorContext } from '@renderer/components/RightPanel/Zen/feature/Chat/types/executor-types';
+import { DISPLAY_ONLY_RESULT } from '@renderer/components/Widgets/Zen/feature/Chat/types/executor-types';
+import type { ExecutorContext } from '@renderer/components/Widgets/Zen/feature/Chat/types/executor-types';
 
 export async function executeGitStatus(
   _params: Record<string, any>,

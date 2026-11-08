@@ -37,7 +37,8 @@ import { refreshEmulateBaseFromIpc } from './services/emulate-base-url';
 import { useFilterStore } from './stores/filterStore';
 
 // ── UI ──
-import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
+import { useAgentFeature } from '../../components/Widgets/Zen/context/FeatureContext';
+import { EmulatePanel } from './components/EmulatePanel';
 import { initialFilterState } from './components/WorkspacePanel/Home/Home';
 import WorkspacePanel from './components/WorkspacePanel';
 import { TargetModal } from './components/TargetListPanel/TargetModal';
@@ -846,6 +847,8 @@ export default React.memo(function Emulate({
           loadMore={loadMore}
           workerTotalCount={totalCount}
         />
+
+        <EmulatePanel />
       </div>
 
       {/* Footer Bar */}

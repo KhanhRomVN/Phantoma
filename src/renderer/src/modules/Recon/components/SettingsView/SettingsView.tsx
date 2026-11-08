@@ -44,7 +44,10 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
           </button>
           <h1 className='text-sm font-bold text-text-primary truncate'>Cài đặt Recon</h1>
         </div>
-        <Button variant='outline' size='sm' onClick={reset}>
+        <Button
+          className='border border-border text-text-secondary hover:border-primary hover:text-primary hover:bg-primary/10 active:bg-primary/20'
+          onClick={reset}
+        >
           <RotateCcw className='w-3.5 h-3.5' strokeWidth={2} />
           Đặt lại mặc định
         </Button>

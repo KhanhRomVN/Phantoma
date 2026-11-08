@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolOutputTransformer } from '@renderer/components/RightPanel/Zen/shared/tool-behaviors';
+import type { ToolOutputTransformer } from '@renderer/components/Widgets/Zen/shared/tool-behaviors';
 
 /**
  * Transform output for Code module tools.

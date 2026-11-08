@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 
 interface UpdateFileBlockProps {
   filePath?: string;
@@ -43,9 +43,7 @@ function UpdateFileBlock({
             onClick={() => setIsCollapsed((v) => !v)}
           >
             <span>{isCollapsed ? 'Show diff' : 'Hide diff'}</span>
-            {filePath && (
-              <span className="font-mono text-[10px] opacity-60">{filePath}</span>
-            )}
+            {filePath && <span className="font-mono text-[10px] opacity-60">{filePath}</span>}
           </button>
           {!isCollapsed && (
             <div className="space-y-1">

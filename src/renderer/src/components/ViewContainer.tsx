@@ -9,6 +9,7 @@ import { useState, useEffect, ReactNode } from 'react';
 
 // Import all modules
 import Setting from '../modules/Setting';
+import UITest from '../modules/UITest';
 import { Recon } from '../modules/Recon';
 import Code from '../modules/Code/Code';
 import Emulate from '@renderer/modules/Emulate/Emulate';
@@ -16,7 +17,7 @@ import Emulate from '@renderer/modules/Emulate/Emulate';
 // -- Hooks --
 import { useActiveModule } from '@renderer/hooks/useActiveModule';
 
-export type ModuleId = 'recon' | 'emulate' | 'code' | 'settings' | 'preview';
+export type ModuleId = 'recon' | 'emulate' | 'code' | 'settings' | 'preview' | 'uitest';
 
 interface ModuleConfig {
   id: ModuleId;
@@ -85,6 +86,8 @@ function getModuleComponent(moduleId: ModuleId): ReactNode {
       return <Code />;
     case 'settings':
       return <Setting />;
+    case 'uitest':
+      return <UITest />;
     default:
       return <Recon />;
   }

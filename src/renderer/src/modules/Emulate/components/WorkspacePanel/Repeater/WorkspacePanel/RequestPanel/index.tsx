@@ -883,7 +883,7 @@ export function RequestPanel({
         errors={allErrors}
       />
 
-      <div className="flex items-center border-b border-border shrink-0 bg-table-headerBg/50 overflow-x-auto">
+      <div className="flex items-center border-b border-border shrink-0 bg-table-header-background/50 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}

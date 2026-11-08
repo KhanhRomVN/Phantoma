@@ -155,10 +155,17 @@ export const GroupPickerForm = memo(function GroupPickerForm({
       </ModalBody>
 
       <ModalFooter>
-        <Button variant="outline" onClick={onCancel}>
+        <Button
+          className="border border-border text-text-secondary hover:border-primary hover:text-primary hover:bg-primary/10 active:bg-primary/20"
+          onClick={onCancel}
+        >
           Cancel
         </Button>
-        <Button variant="solid" disabled={!trimmed} onClick={handleSubmit}>
+        <Button
+          className="bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80"
+          disabled={!trimmed}
+          onClick={handleSubmit}
+        >
           {isEditing ? 'Save' : 'Create group'}
         </Button>
       </ModalFooter>

@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 
 interface GetPageContentBlockProps {
   output?: string;
@@ -45,7 +45,9 @@ export const GetPageContentRenderer: React.FC<BaseRendererProps> = ({
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-primary opacity-80">GET PAGE CONTENT</span>
+                  <span className="font-semibold text-text-primary opacity-80">
+                    GET PAGE CONTENT
+                  </span>
                 </div>
               </div>
             </div>
@@ -53,10 +55,7 @@ export const GetPageContentRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <GetPageContentBlock
-          output={outputData?.output}
-          isError={isError}
-        />
+        <GetPageContentBlock output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -88,34 +87,37 @@ interface ParsedPageContent {
 function parsePageContentOutput(output: string): ParsedPageContent | null {
   try {
     const result: ParsedPageContent = {};
-    
+
     // Check for "No content extracted"
     if (output.includes('(No content extracted)')) {
       result.hasNoContent = true;
     }
-    
+
     // Extract title
     const titleMatch = output.match(/Title:\s*(.+)/i);
     if (titleMatch) result.title = titleMatch[1].trim();
-    
+
     // Extract URL
     const urlMatch = output.match(/URL:\s*(.+)/i);
     if (urlMatch) result.url = urlMatch[1].trim();
-    
+
     // Extract interactive elements
     const elementsMatch = output.match(/Interactive elements:\s*(\d+)\s*found/i);
     if (elementsMatch) {
       const elements: ParsedPageContent['interactiveElements'] = [];
       const lines = output.split('\n');
       let inElementList = false;
-      
+
       for (const line of lines) {
         if (line.includes('Interactive elements:')) {
           inElementList = true;
           continue;
         }
         if (inElementList && line.trim().startsWith('|') && !line.includes('---')) {
-          const parts = line.split('|').map(p => p.trim()).filter(p => p);
+          const parts = line
+            .split('|')
+            .map((p) => p.trim())
+            .filter((p) => p);
           if (parts.length >= 3 && parts[0] !== 'search_query') {
             elements.push({
               ref: parts[0],
@@ -127,19 +129,16 @@ function parsePageContentOutput(output: string): ParsedPageContent | null {
       }
       result.interactiveElements = elements;
     }
-    
+
     return result;
   } catch {
     return null;
   }
 }
 
-function GetPageContentBlock({
-  output,
-  isError,
-}: GetPageContentBlockProps) {
+function GetPageContentBlock({ output, isError }: GetPageContentBlockProps) {
   const parsed = output ? parsePageContentOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
@@ -161,12 +160,14 @@ function GetPageContentBlock({
               {parsed.url && (
                 <div className="flex items-start gap-2">
                   <span className="text-text-secondary shrink-0 w-10">URL:</span>
-                  <span className="text-text-primary font-mono text-[11px] break-all">{parsed.url}</span>
+                  <span className="text-text-primary font-mono text-[11px] break-all">
+                    {parsed.url}
+                  </span>
                 </div>
               )}
             </div>
           </div>
-          
+
           {parsed.hasNoContent && (
             <div
               className="px-2.5 py-2 rounded text-text-secondary italic"
@@ -175,7 +176,7 @@ function GetPageContentBlock({
               No content extracted
             </div>
           )}
-          
+
           {parsed.interactiveElements && parsed.interactiveElements.length > 0 && (
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 px-1">
@@ -197,7 +198,7 @@ function GetPageContentBlock({
                   Interactive elements: {parsed.interactiveElements.length}
                 </span>
               </div>
-              
+
               <div className="space-y-1 max-h-60 overflow-y-auto">
                 {parsed.interactiveElements.map((elem, idx) => (
                   <div

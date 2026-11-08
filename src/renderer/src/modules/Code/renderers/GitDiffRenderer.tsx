@@ -22,14 +22,15 @@ import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '@renderer/components/RightPanel/Zen/shared/tool-constants';
+import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/RightPanel/Zen/feature/Chat/services/responseParser';
+import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
 
 // ── Components ──
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 
 // ─── GitDiffBlock ───────────────────────────────────────────────────────
 interface GitDiffBlockProps {
@@ -39,6 +40,7 @@ interface GitDiffBlockProps {
   deleted?: number;
   isPartial?: boolean;
   statusColor?: string;
+  isError?: boolean;
   onFileClick?: (filePath: string) => void;
   branch?: string;
 }
@@ -50,6 +52,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
   deleted = 0,
   isPartial = false,
   statusColor = $('--success') || '#3fb950',
+  isError = false,
   onFileClick,
   branch,
 }) => {
@@ -147,7 +150,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
 
   const headerTitle = (
     <div className="contents">
-      <div className="flex items-center gap-2 text-xs text-primary">
+      <div className="flex items-center gap-2 text-xs" style={{ color: $('--text-primary') }}>
         <span className="font-semibold opacity-80">DIFF{branch ? `(${branch})` : ''}</span>
         <img
           src={getFileIconPath(filePath)}
@@ -173,10 +176,7 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
             <span className="text-error font-semibold text-[11px]">-{deleted}</span>
           </>
         )}
-        {isPartial && (
-          <span className="codicon codicon-loading codicon-modifier-spin text-xs opacity-60" />
-        )}
-        <span className="codicon codicon-git-pull-request text-sm ml-0.5" />
+
       </div>
     </div>
   );
@@ -193,6 +193,8 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
         title={headerTitle}
         statusColor={statusColor}
         isPartial={isPartial}
+        isError={isError}
+        toolType="git_diff"
         onClick={handleHeaderClick}
         path={filePath}
         compactPath
@@ -201,43 +203,6 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
         }}
       />
 
-      {filePath && (
-        <div className="flex justify-end items-center pr-1 pt-1 mt-0.5 relative w-full max-w-full overflow-hidden pl-9">
-          <div
-            className="absolute left-5 top-0 w-4 h-3"
-            style={{
-              borderLeft: `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
-              borderBottom: `1px solid color-mix(in srgb, ${$('--text-secondary')} 20%, transparent)`,
-            }}
-          />
-          <span
-            className={cn(
-              'text-[10px] opacity-60 text-secondary font-mono whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 pl-5 rounded-[2px] transition-[text-decoration] duration-[0.15s] no-underline',
-              onFileClick ? 'cursor-pointer' : 'cursor-default',
-            )}
-            title={filePath}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onFileClick) {
-                onFileClick(filePath);
-              }
-            }}
-            onMouseEnter={(e) => {
-              if (onFileClick) {
-                e.currentTarget.style.textDecoration = 'underline';
-                e.currentTarget.style.textDecorationColor =
-                  $('--primary') || 'rgba(0, 122, 204, 0.6)';
-                e.currentTarget.style.textUnderlineOffset = '2px';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.textDecoration = 'none';
-            }}
-          >
-            {filePath}
-          </span>
-        </div>
-      )}
 
       {!isCollapsed && diffContent && (
         <div className="pt-1 pr-3 pb-3 pl-0">
@@ -282,8 +247,9 @@ export const GitDiffRenderer: React.FC<GitDiffRendererProps> = ({
   const actionId = `${messageId}-action-${actionIndex}`;
   const filePath = action.params.file_path || '';
   const outputData = toolOutputs?.[actionId];
-  const diffContent = outputData?.output || action.params.diff || '';
-  const hasOutput = !!outputData && !outputData.isError;
+  const isError = !!outputData?.isError;
+  const diffContent = isError ? '' : outputData?.output || action.params.diff || '';
+  const hasOutput = !!outputData && !isError;
 
   const hasTriggeredExecution = React.useRef(false);
   useEffect(() => {
@@ -308,13 +274,8 @@ export const GitDiffRenderer: React.FC<GitDiffRendererProps> = ({
   const stats = parseDiffStats(diffContent);
 
   const handleFileClick = (path: string) => {
-    const vscodeApi = (window as any).vscodeApi;
-    if (vscodeApi) {
-      vscodeApi.postMessage({
-        command: 'openFile',
-        path,
-      });
-    }
+    if (!path) return;
+    extensionService.postMessage({ command: 'openFile', path });
   };
 
   if (!hasOutput && !isActiveGroup) {
@@ -325,7 +286,7 @@ export const GitDiffRenderer: React.FC<GitDiffRendererProps> = ({
           diffContent=""
           added={0}
           deleted={0}
-          statusColor={$('--success')}
+          statusColor={$('--warn')}
           isPartial={true}
           branch={branch}
           onFileClick={handleFileClick}
@@ -341,11 +302,20 @@ export const GitDiffRenderer: React.FC<GitDiffRendererProps> = ({
         diffContent={diffContent}
         added={stats.added}
         deleted={stats.deleted}
-        statusColor={$('--success')}
-        isPartial={!hasOutput && isActiveGroup}
+        statusColor={isError ? $('--error') : hasOutput ? $('--success') : $('--warn')}
+        isError={isError}
+        isPartial={!hasOutput && !isError}
         branch={branch}
         onFileClick={handleFileClick}
       />
+      {isError && outputData?.output && (
+        <div
+          className="text-xs font-mono whitespace-pre-wrap break-words pl-9"
+          style={{ color: $('--error') }}
+        >
+          {outputData.output}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
-import type { ZenModule } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
-import { rendererMapFromGlob } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/renderer-helpers';
+import type { ZenModule } from '@renderer/components/Widgets/Zen/feature/Chat/services/moduleRegistry';
+import { rendererMapFromGlob } from '@renderer/components/Widgets/Zen/feature/Chat/utils/renderer-helpers';
 import { EMULATE_TAG_REGISTRY } from './constants/tag-registry';
 import {
   getTrafficSummary,
@@ -75,8 +75,7 @@ export const emulateModule: ZenModule = {
     send_to_repeater: async (a, c) => executeSendToRepeater(a.params || {}, c.activeTargetId),
     list_repeaters: async (_a, c) => executeListRepeaters(c.activeTargetId),
     delete_repeater: async (a, c) => executeDeleteRepeater(a.params || {}, c.activeTargetId),
-    get_repeater_detail: async (a, c) =>
-      executeGetRepeaterDetail(a.params || {}, c.activeTargetId),
+    get_repeater_detail: async (a, c) => executeGetRepeaterDetail(a.params || {}, c.activeTargetId),
     update_repeater_content: async (a, c) =>
       executeUpdateRepeaterContent(a.params || {}, c.activeTargetId),
     run_repeater: async (a, c) => executeRunRepeater(a.params || {}, c.activeTargetId),

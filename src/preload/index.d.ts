@@ -12,6 +12,16 @@ interface API {
     getPorts(): Promise<{ server: number; emulate: number }>;
     startEmulate(): Promise<{ server: number; emulate: number }>;
   };
+  agentTool: {
+    discover(config: any): Promise<any>;
+    resolvePermission(id: string, approved: boolean): Promise<void>;
+    requestPermission(id: string, question: string, options: string[]): Promise<boolean>;
+    onPermissionRequest(callback: (data: any) => void): () => void;
+    listSessions(config: any): Promise<Array<{ id: string; title: string; updatedAt: number }>>;
+    run(request: any): Promise<{ ok: boolean }>;
+    interrupt(runId: string): Promise<void>;
+    onEvent(callback: (data: { runId: string; event: any }) => void): () => void;
+  };
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface ElectronIpcRenderer {}

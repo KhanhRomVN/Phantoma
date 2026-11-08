@@ -16,10 +16,10 @@ import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
 
 // ─── Types ──────────────────────────────────────────────────────────────
-import type { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 
 // ─── Component ──────────────────────────────────────────────────────────
 export const UpdateMemoryRenderer: React.FC<BaseRendererProps> = ({
@@ -42,9 +42,9 @@ export const UpdateMemoryRenderer: React.FC<BaseRendererProps> = ({
         isPartial={false}
         statusTooltip={isError ? 'Error' : 'Memory update'}
       />
-      <div className="border border-border-primary rounded-md overflow-hidden">
-        {oldContent && (
-          <div className="px-3 py-2 bg-error/5 border-b border-border-primary">
+        <div className="border border-primary rounded-md overflow-hidden">
+          {error && (
+            <div className="px-3 py-2 bg-error/5 border-b border-primary">
             <div className="text-[10px] uppercase tracking-wide text-error mb-1">Old</div>
             <pre className="text-[11px] leading-relaxed whitespace-pre-wrap break-words text-text-secondary font-mono">
               {oldContent}

@@ -1,4 +1,4 @@
-import type { ZenModuleCapabilities } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
+import type { ZenModuleCapabilities } from '@renderer/components/Widgets/Zen/feature/Chat/services/moduleRegistry';
 
 /**
  * Capabilities for the Recon OSINT Planner workflow agent.

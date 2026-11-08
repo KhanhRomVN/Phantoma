@@ -110,7 +110,7 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
       {/* Search bar */}
       <div className="p-0 border-b border-border shrink-0">
         <div className="relative flex items-center w-full h-9 bg-input-background rounded-md">
-          <Search className="absolute left-2.5 w-3.5 h-3.5 text-muted-foreground/50" />
+          <Search className="absolute left-2.5 w-3.5 h-3.5 text-text-secondary/50" />
           <input
             type="text"
             placeholder="Search reports..."

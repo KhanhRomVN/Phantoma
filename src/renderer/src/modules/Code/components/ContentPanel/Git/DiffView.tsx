@@ -139,6 +139,7 @@ interface FileSectionProps {
   onToggle: (path: string) => void;
   hideHeader?: boolean;
   rowClassName?: string;
+  hideOldSide?: boolean;
 }
 
 const ROW_STYLE: Record<DiffLine['type'], string> = {
@@ -178,16 +179,90 @@ function toSplitRows(lines: DiffLine[]): SplitRow[] {
   return rows;
 }
 
+const WORD_RE = /[\p{L}\p{N}_]+|\s+|[^\p{L}\p{N}_\s]/gu;
+const WORD_DEL = 'bg-red/30 rounded-[2px]';
+const WORD_ADD = 'bg-green/30 rounded-[2px]';
+
+type CharRange = [number, number];
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+}
+
+function diffRanges(a: string, b: string): { a: CharRange; b: CharRange } | null {
+  const ta = a.match(WORD_RE) ?? [];
+  const tb = b.match(WORD_RE) ?? [];
+  let p = 0;
+  while (p < ta.length && p < tb.length && ta[p] === tb[p]) p++;
+  let s = 0;
+  while (s < ta.length - p && s < tb.length - p && ta[ta.length - 1 - s] === tb[tb.length - 1 - s])
+    s++;
+  const len = (t: string[], from: number, to: number) =>
+    t.slice(from, to).reduce((n, x) => n + x.length, 0);
+  const ra: CharRange = [len(ta, 0, p), a.length - len(ta, ta.length - s, ta.length)];
+  const rb: CharRange = [len(tb, 0, p), b.length - len(tb, tb.length - s, tb.length)];
+  const wholeA = ra[0] === 0 && ra[1] === a.length;
+  const wholeB = rb[0] === 0 && rb[1] === b.length;
+  if (wholeA && wholeB) return null;
+  return { a: ra, b: rb };
+}
+
+function pairRanges(r: SplitRow): { a: CharRange; b: CharRange } | null {
+  if (r.left?.type !== 'del' || r.right?.type !== 'add') return null;
+  return diffRanges(r.left.text, r.right.text);
+}
+
+function markHtml(html: string, start: number, end: number, cls: string): string {
+  if (end <= start) return html;
+  let out = '';
+  let pos = 0;
+  for (const part of html.split(/(<[^>]+>)/)) {
+    if (part.startsWith('<')) {
+      out += part;
+      continue;
+    }
+    const units = part.match(/&(?:#x?[0-9a-f]+|\w+);|[\s\S]/gi) ?? [];
+    let buf = '';
+    let inside = false;
+    const flush = () => {
+      if (buf) out += inside ? `<span class="${cls}">${buf}</span>` : buf;
+      buf = '';
+    };
+    for (const u of units) {
+      const ins = pos >= start && pos < end;
+      if (ins !== inside) {
+        flush();
+        inside = ins;
+      }
+      buf += u;
+      pos++;
+    }
+    flush();
+  }
+  return out;
+}
+
 function DiffCell({
   line,
   side,
   html,
+  range,
 }: {
   line: DiffLine | null;
   side: 'old' | 'new';
   html?: string;
+  range?: CharRange;
 }) {
   const no = line ? (side === 'old' ? line.oldNo : line.newNo) : null;
+  const finalHtml =
+    range && line
+      ? markHtml(
+          html ?? escapeHtml(line.text),
+          range[0],
+          range[1],
+          side === 'old' ? WORD_DEL : WORD_ADD,
+        )
+      : html;
   const textClass = 'flex-1 min-w-0 whitespace-pre-wrap break-all pl-2 pr-3 text-text-primary';
   return (
     <div
@@ -200,8 +275,8 @@ function DiffCell({
       <span className={'w-10 shrink-0 pr-2 text-right select-none text-text-secondary/40'}>
         {no ?? ''}
       </span>
-      {html !== undefined ? (
-        <span className={textClass} dangerouslySetInnerHTML={{ __html: html }} />
+      {finalHtml !== undefined ? (
+        <span className={textClass} dangerouslySetInnerHTML={{ __html: finalHtml }} />
       ) : (
         <span className={textClass}>{line?.text ?? ''}</span>
       )}
@@ -215,6 +290,7 @@ export const FileSection = memo(function FileSection({
   onToggle,
   hideHeader = false,
   rowClassName,
+  hideOldSide = false,
 }: FileSectionProps) {
   const { name, dir } = splitPath(file.path);
   const languageId = useMemo(() => detectLanguageId(file.path), [file.path]);
@@ -242,19 +318,24 @@ export const FileSection = memo(function FileSection({
               <div
                 key={ri}
                 className={cn(
-                  'grid grid-cols-2 font-mono',
+                  'grid font-mono',
+                  hideOldSide ? 'grid-cols-1' : 'grid-cols-2',
                   rowClassName ?? 'text-[12px] leading-[20px]',
                 )}
               >
-                <DiffCell
-                  line={r.left}
-                  side={'old'}
-                  html={r.left ? highlighted.get(r.left) : undefined}
-                />
+                {!hideOldSide && (
+                  <DiffCell
+                    line={r.left}
+                    side={'old'}
+                    html={r.left ? highlighted.get(r.left) : undefined}
+                    range={pairRanges(r)?.a}
+                  />
+                )}
                 <DiffCell
                   line={r.right}
                   side={'new'}
                   html={r.right ? highlighted.get(r.right) : undefined}
+                  range={pairRanges(r)?.b}
                 />
               </div>
             ))}

@@ -3,15 +3,15 @@ import React from 'react';
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/components/Widgets/Zen/feature/Chat/utils/message-navigator';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 
 import { getAgentFavicon } from '../constants/workspaceAgents';
 

@@ -75,7 +75,7 @@ export default function Diff({ items }: Props) {
             {gi < order.length - 1 && (
               <span className="absolute left-[9px] top-6 -bottom-4 w-px bg-border" />
             )}
-            <span className="absolute left-0 top-0 w-[19px] h-[19px] rounded-full bg-card-background-hover border border-border flex items-center justify-center text-primary">
+            <span className="absolute left-0 top-0 w-[19px] h-[19px] rounded-full bg-card-hover border border-border flex items-center justify-center text-primary">
               <CalendarDays className="w-2.5 h-2.5" strokeWidth={2.5} />
             </span>
             <div className="flex items-center gap-2 mb-2 h-[19px]">
@@ -89,7 +89,7 @@ export default function Diff({ items }: Props) {
                 return (
                   <div
                     key={i}
-                    className="rounded-lg border border-border bg-card-background-hover overflow-hidden"
+                    className="rounded-lg border border-border bg-card-hover overflow-hidden"
                   >
                     <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
                       <span className="text-xs font-semibold text-text-primary truncate">{it.field}</span>

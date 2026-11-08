@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useReconStore } from './stores/useReconStore';
 import { ReconTargetHandlers } from './handler/ReconTargetHandlers';
-import { useAgentFeature } from '../../components/RightPanel/Zen/context/FeatureContext';
+import { useAgentFeature } from '../../components/Widgets/Zen/context/FeatureContext';
 
 // ── Components
 import LeftPanel from './components/LeftPanel';
@@ -11,6 +11,7 @@ import { buildFileSystem } from './components/ui/FileManager/fileStore';
 import type { RawFsEntry } from './components/ui/FileManager/fileStore';
 import { ReconSettingsProvider } from './components/Settings';
 import { SettingsView } from './components/SettingsView';
+import { ReconPanel } from './components/ReconPanel';
 
 export interface ReconProps {
   activeAppId?: string;
@@ -90,36 +91,38 @@ export function Recon({}: ReconProps) {
   return (
     <ReconSettingsProvider>
       <ReconFsContext.Provider value={targetFs}>
-      <div className="flex h-full w-full overflow-hidden bg-background">
-        {/* Left Panel - Target List */}
-        <LeftPanel
-          targets={targets}
-          activeTargetId={activeTargetId}
-          onTargetSelect={setActiveTarget}
-          onLaunchBrowser={handleLaunchBrowser}
-          onCloseBrowser={handleCloseBrowser}
-          onAddTargetClick={handleAddTarget}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
+        <div className="flex h-full w-full overflow-hidden bg-background">
+          {/* Left Panel - Target List */}
+          <LeftPanel
+            targets={targets}
+            activeTargetId={activeTargetId}
+            onTargetSelect={setActiveTarget}
+            onLaunchBrowser={handleLaunchBrowser}
+            onCloseBrowser={handleCloseBrowser}
+            onAddTargetClick={handleAddTarget}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+          />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden bg-background relative">
-          {isSettingsOpen ? (
-            <SettingsView onClose={() => setIsSettingsOpen(false)} />
-          ) : activeTarget ? (
-            <ContentPanel
-              key={activeTarget.id}
-              files={targetFiles}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-            />
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-text-secondary">
-              <div className="text-center space-y-2">
-                <p className="text-sm opacity-60">Chọn một target hoặc thêm mới để bắt đầu.</p>
+          {/* Main Content Area */}
+          <div className="flex-1 flex overflow-hidden bg-background relative">
+            {isSettingsOpen ? (
+              <SettingsView onClose={() => setIsSettingsOpen(false)} />
+            ) : activeTarget ? (
+              <ContentPanel
+                key={activeTarget.id}
+                files={targetFiles}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-text-secondary">
+                <div className="text-center space-y-2">
+                  <p className="text-sm opacity-60">Chọn một target hoặc thêm mới để bắt đầu.</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
+
+        {activeTarget && <ReconPanel />}
       </div>
       </ReconFsContext.Provider>
     </ReconSettingsProvider>

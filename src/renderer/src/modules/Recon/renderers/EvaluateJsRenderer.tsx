@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 
 interface EvaluateJsBlockProps {
   output?: string;
@@ -53,10 +53,7 @@ export const EvaluateJsRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <EvaluateJsBlock
-          output={outputData?.output}
-          isError={isError}
-        />
+        <EvaluateJsBlock output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -82,7 +79,7 @@ function parseEvaluateJsOutput(output: string): ParsedJsResult | null {
   try {
     // Check if it's a result output
     const resultMatch = output.match(/result:\s*(.+)/is);
-    
+
     return {
       result: resultMatch ? resultMatch[1].trim() : output.trim(),
       success: !output.toLowerCase().includes('error'),
@@ -92,12 +89,9 @@ function parseEvaluateJsOutput(output: string): ParsedJsResult | null {
   }
 }
 
-function EvaluateJsBlock({
-  output,
-  isError,
-}: EvaluateJsBlockProps) {
+function EvaluateJsBlock({ output, isError }: EvaluateJsBlockProps) {
   const parsed = output ? parseEvaluateJsOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

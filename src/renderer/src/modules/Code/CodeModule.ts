@@ -1,4 +1,4 @@
-import type { ZenModule } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
+import type { ZenModule } from '@renderer/components/Widgets/Zen/feature/Chat/services/moduleRegistry';
 import { CODE_TAG_REGISTRY } from './constants/tag-registry';
 import { CAPABILITIES as CODE_CAPABILITIES } from './prompts/code/config';
 import { CAPABILITIES as ORCHESTRATOR_CAPABILITIES } from './prompts/multi-agent/orchestrator/config';
@@ -6,7 +6,7 @@ import { CAPABILITIES as PLANNER_CAPABILITIES } from './prompts/multi-agent/plan
 import { CAPABILITIES as EXECUTOR_CAPABILITIES } from './prompts/multi-agent/executor/config';
 import { CAPABILITIES as REVIEWER_CAPABILITIES } from './prompts/multi-agent/reviewer/config';
 import { CAPABILITIES as TESTER_CAPABILITIES } from './prompts/multi-agent/tester/config';
-import type { ExecutorOptions } from '@renderer/components/RightPanel/Zen/feature/Chat/types/executor-types';
+import type { ExecutorOptions } from '@renderer/components/Widgets/Zen/feature/Chat/types/executor-types';
 import { CommitMessageRenderer } from './renderers/CommitMessageRenderer';
 import { DeleteFileRenderer } from './renderers/DeleteFileRenderer';
 import { FindFilesRenderer } from './renderers/FindFilesRenderer';
@@ -56,6 +56,7 @@ import { parseDeleteFile } from './parsers/DeleteFileParser';
 import { parseRunCommand } from './parsers/RunCommandParser';
 import { parseGitStatus } from './parsers/GitStatusParser';
 import { parseGitDiff } from './parsers/GitDiffParser';
+import { parseCommitMessage } from './parsers/CommitMessageParser';
 import { parseReadMemory } from './parsers/ReadMemoryParser';
 import { parseUpdateMemory } from './parsers/UpdateMemoryParser';
 import { parseReadSkill } from './parsers/ReadSkillParser';
@@ -93,9 +94,9 @@ import {
   type ToolFormat as CodeToolFormat,
 } from './prompts/code';
 import { formatCodeAction, formatCodeCompletedTooltip } from './services/tool-display-formatters';
-import { registerActionDisplayFormatter } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/action-display-formatter';
-import { registerCompletedTooltipFormatter as registerTooltipFormatter } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/status-tooltip-builder';
-import { registerToolStatusChecker } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/tool-status-registry';
+import { registerActionDisplayFormatter } from '@renderer/components/Widgets/Zen/feature/Chat/utils/action-display-formatter';
+import { registerCompletedTooltipFormatter as registerTooltipFormatter } from '@renderer/components/Widgets/Zen/feature/Chat/utils/status-tooltip-builder';
+import { registerToolStatusChecker } from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-status-registry';
 import { checkCodeToolStatus } from './services/tool-status-checker';
 import {
   checkCodeToolCollapse,
@@ -108,16 +109,16 @@ import {
   registerToolDangerChecker,
   registerToolMarkdownFormatter,
   registerToolOutputTransformer,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/utils/tool-behavior-registry';
-import { registerToolOutputFormatter } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/tool-output-registry';
-import { registerStreamingTool } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/tool-streaming-registry';
+} from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-behavior-registry';
+import { registerToolOutputFormatter } from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-output-registry';
+import { registerStreamingTool } from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-streaming-registry';
 import {
   registerMutationChecker,
   registerFilePathExtractor,
   registerSingleLineReviewChecker,
   registerDiffCalculator,
   registerRawContentDiffExtractor,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/utils/tool-mutation-registry';
+} from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-mutation-registry';
 import { formatCodeToolOutput } from './services/tool-output-formatter';
 import {
   checkCodeToolMutation,
@@ -179,10 +180,14 @@ export const codeModule: ZenModule = {
     find_files: async (a) => (await executeFindFiles(a.params))?.output || null,
     delete_file: async (a) => executeDeleteFile(a.params),
     grep: async (a) => executeGrep(a.params),
-    git_diff: async (a) => {
+    git_diff: async (a, c) => {
       const filePath =
         typeof a.params === 'string' ? a.params : a.params?.path || a.params?.file_path || '';
-      return executeGitDiff(filePath, (a as any).actionId || 'git-diff-' + Date.now());
+      return executeGitDiff(
+        filePath,
+        (a as any).actionId || 'git-diff-' + Date.now(),
+        c.folderPath ?? undefined,
+      );
     },
     move_file: async (a) => executeMoveFile(a.params),
     run_command: async (a, ctx) => executeRunCommand(a, ctx),
@@ -216,6 +221,7 @@ export const codeModule: ZenModule = {
     run_command: parseRunCommand,
     git_status: parseGitStatus,
     git_diff: parseGitDiff,
+    commit_message: parseCommitMessage,
     read_memory: parseReadMemory,
     update_memory: parseUpdateMemory,
     read_skill: parseReadSkill,

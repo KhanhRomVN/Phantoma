@@ -11,7 +11,7 @@ import type {
   FilePathExtractor,
   SingleLineReviewChecker,
   DiffCalculator,
-} from '@renderer/components/RightPanel/Zen/shared/tool-mutation';
+} from '@renderer/components/Widgets/Zen/shared/tool-mutation';
 
 const countLines = (text: string | undefined): number => {
   if (!text) return 0;

@@ -9,8 +9,8 @@
 import type {
   ActionDisplayFormatter,
   CompletedTooltipFormatter,
-} from '@renderer/components/RightPanel/Zen/shared/tool-display';
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+} from '@renderer/components/Widgets/Zen/shared/tool-display';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
 
 /**
  * Format action display string cho Code tools.
@@ -114,7 +114,6 @@ export const formatCodeCompletedTooltip: CompletedTooltipFormatter = (
         return `✓ Found ${matches} ${matches === 1 ? 'match' : 'matches'} in ${files} ${files === 1 ? 'file' : 'files'}`;
       }
       return null;
-
 
     default:
       // Not a Code tool or no special formatting needed

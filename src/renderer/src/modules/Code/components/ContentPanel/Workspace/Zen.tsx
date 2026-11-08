@@ -1,29 +1,29 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { AgentRootContext } from '@renderer/components/RightPanel/Zen/context/AgentRootContext';
-import { AgentPanel } from '@renderer/components/RightPanel/Zen';
-import { SettingsProvider } from '@renderer/components/RightPanel/Zen/context/SettingsContext';
-import { useAgentFeature } from '@renderer/components/RightPanel/Zen/context/FeatureContext';
+import { AgentRootContext } from '@renderer/components/Widgets/Zen/context/AgentRootContext';
+import { AgentPanel } from '@renderer/components/Widgets/Zen';
+import { SettingsProvider } from '@renderer/components/Widgets/Zen/context/SettingsContext';
+import { useAgentFeature } from '@renderer/components/Widgets/Zen/context/FeatureContext';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { useDesignStore } from '../../../hooks/useDesignStore';
 import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../hooks/useWorkflowStore';
 import { USER_ID } from '../../../types/agents';
 import AgentMessageBox from '../../../renderers/AgentMessageBox';
-import { parseAgentMessage } from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
+import { parseAgentMessage } from '@renderer/components/Widgets/Zen/context/WorkflowAgentContext';
 import { DRAG_CANCEL_EVENT } from '@renderer/utils/drag-cancel';
 import {
   MENTION_DRAG_TYPE,
   ZEN_MENTION_DROP_EVENT,
   readDraggedItems,
-} from '@renderer/components/RightPanel/Zen/components/MessageInput/mentionEditor';
+} from '@renderer/components/Widgets/Zen/components/MessageInput/mentionEditor';
 import {
   AccountAgentsContext,
   WorkflowAgentContext,
   type WorkflowAgentSync,
-} from '@renderer/components/RightPanel/Zen/context/WorkflowAgentContext';
+} from '@renderer/components/Widgets/Zen/context/WorkflowAgentContext';
 import {
   MultiAgentContext,
   type MultiAgentControl,
-} from '@renderer/components/RightPanel/Zen/context/MultiAgentContext';
+} from '@renderer/components/Widgets/Zen/context/MultiAgentContext';
 
 const renderIncomingMessage: WorkflowAgentSync['renderIncomingMessage'] = (message) =>
   parseAgentMessage(message.content) ? <AgentMessageBox message={message} /> : null;

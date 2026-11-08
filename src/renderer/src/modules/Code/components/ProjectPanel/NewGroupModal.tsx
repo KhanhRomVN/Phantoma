@@ -139,18 +139,18 @@ export const NewGroupModal = memo(function NewGroupModal({
         </ModalBody>
 
         <ModalFooter className="gap-0 p-0 border-t border-divider">
-          <button
+          <Button
             onClick={() => setConfirmOpen(false)}
-            className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-divider"
+            className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-divider rounded-none"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => onSave(name, selected)}
-            className="flex-1 h-[42px] text-xs font-semibold text-primary hover:bg-primary/[0.06] transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 h-[42px] text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80 transition-colors rounded-none flex items-center justify-center gap-1.5"
           >
             Move
-          </button>
+          </Button>
         </ModalFooter>
       </Modal>
     );

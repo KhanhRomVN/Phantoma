@@ -74,7 +74,7 @@ export function PayloadTab({
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs table-auto">
-          <thead className="sticky top-0 bg-table-headerBg border-b border-border z-10">
+          <thead className="sticky top-0 bg-table-header-background border-b border-border z-10">
             <tr>
               <th className="w-8 px-2 py-1.5 text-left text-text-secondary font-medium">#</th>
               <th className="min-w-[120px] px-2 py-1.5 text-left text-text-secondary font-medium">

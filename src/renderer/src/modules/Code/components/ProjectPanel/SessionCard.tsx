@@ -612,17 +612,6 @@ export const SessionCard = memo(function SessionCard({
 
 function SelectedDashedFrame() {
   return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none text-primary overflow-visible">
-      <rect
-        x="1"
-        y="1"
-        rx="8"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeDasharray="8 5"
-        style={{ width: "calc(100% - 2px)", height: "calc(100% - 2px)" }}
-      />
-    </svg>
+    <span className="absolute -inset-px rounded-lg border-2 border-dashed border-primary pointer-events-none" />
   );
 }

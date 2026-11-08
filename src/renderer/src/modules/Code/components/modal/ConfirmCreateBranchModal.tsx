@@ -454,7 +454,6 @@ export function ConfirmCreateBranchModal({
 
       <ModalFooter className="gap-2 px-6 py-4">
         <Button
-          size="sm"
           className="h-8 bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background"
           onClick={handleClose}
           disabled={submitting}
@@ -462,9 +461,7 @@ export function ConfirmCreateBranchModal({
           Back
         </Button>
         <Button
-          variant="soft"
-          size="sm"
-          className="h-8 gap-1.5 font-semibold"
+          className="h-8 gap-1.5 font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80"
           onClick={onConfirm}
           disabled={submitting || !preview}
         >

@@ -126,7 +126,7 @@ function FrameRow({ frame }: { frame: WebSocketFrame }) {
     <div
       className={cn(
         'border-b border-divider/20 font-mono text-[11px] cursor-pointer transition-colors',
-        expanded ? 'bg-table-bodyBg' : 'hover:bg-sidebar-item-hover/30',
+        expanded ? 'bg-card-background' : 'hover:bg-sidebar-item-hover/30',
       )}
       onClick={() => setExpanded((v) => !v)}
     >
@@ -198,7 +198,7 @@ export function WebSocketUI({ searchTerm = '' }: WebSocketUIProps) {
 
   if (connections.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-text-secondary text-xs bg-table-bodyBg">
+      <div className="h-full flex items-center justify-center text-text-secondary text-xs bg-card-background">
         <div className="text-center">
           <Circle className="w-8 h-8 mx-auto mb-2 opacity-30" />
           <div className="font-medium mb-1">No WebSocket connections</div>
@@ -212,7 +212,7 @@ export function WebSocketUI({ searchTerm = '' }: WebSocketUIProps) {
 
   return (
     <div className="h-full flex min-h-0">
-      <div className="w-[280px] shrink-0 border-r border-divider/50 flex flex-col min-h-0 bg-table-bodyBg">
+      <div className="w-[280px] shrink-0 border-r border-divider/50 flex flex-col min-h-0 bg-card-background">
         <div className="flex items-center justify-between px-2 h-8 border-b border-divider/50 shrink-0">
           <span className="text-[11px] font-semibold text-text-secondary">
             Connections ({connections.length})
@@ -244,7 +244,7 @@ export function WebSocketUI({ searchTerm = '' }: WebSocketUIProps) {
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-2 px-2 h-8 border-b border-divider/50 shrink-0 bg-table-headerBg">
+            <div className="flex items-center gap-2 px-2 h-8 border-b border-divider/50 shrink-0 bg-table-header-background">
               <div className="flex items-center gap-0.5">
                 {(['all', 'send', 'receive'] as const).map((d) => (
                   <button

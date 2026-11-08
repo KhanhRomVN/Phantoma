@@ -1,4 +1,4 @@
-import { extractParamValue } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/toolParser';
+import { extractParamValue } from '@renderer/components/Widgets/Zen/feature/Chat/utils/toolParser';
 import type { WriteToFileParams } from '../types/tool-params';
 
 // Enable debug logs via localStorage

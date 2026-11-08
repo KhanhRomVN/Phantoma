@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../hooks/useCodeStore';
@@ -18,6 +18,15 @@ export const BranchScopeButton = memo(function BranchScopeButton({
   const root = project?.explorerRoot ?? project?.path ?? '';
   const scope = useBranchScope(projectId, branchName);
   const setScope = useBranchScopeStore((s) => s.setScope);
+  const allScopes = useBranchScopeStore((s) => s.scopes);
+  const otherScopes = useMemo(() => {
+    const prefix = `${projectId}::`;
+    return Object.entries(allScopes)
+      .filter(([key, paths]) => key.startsWith(prefix) && paths.length > 0)
+      .map(([key, paths]) => ({ branch: key.slice(prefix.length), paths }))
+      .filter((o) => o.branch !== branchName)
+      .sort((a, b) => a.branch.localeCompare(b.branch));
+  }, [allScopes, projectId, branchName]);
   const [open, setOpen] = useState(false);
   const [isRepo, setIsRepo] = useState<boolean>(gitRepoCache.get(root) ?? false);
 
@@ -33,13 +42,9 @@ export const BranchScopeButton = memo(function BranchScopeButton({
       try {
         const res = await window.api.invoke('git:is-repo', root);
         const ok = res === true || !!res?.isRepo;
-        // Debug log - có thể xóa sau khi fix
-        console.log(`[DEBUG] git:is-repo ${projectId}`, { root, res, ok });
         gitRepoCache.set(root, ok);
         if (!cancelled) setIsRepo(ok);
       } catch (err) {
-        // Debug log - có thể xóa sau khi fix
-        console.log(`[DEBUG] git:is-repo ERROR ${projectId}`, { root, err });
         gitRepoCache.set(root, false);
       }
     })();
@@ -48,15 +53,7 @@ export const BranchScopeButton = memo(function BranchScopeButton({
     };
   }, [root]);
 
-
   if (!isRepo) {
-    // Debug log - có thể xóa sau khi fix
-    console.log(`[DEBUG] BranchScopeButton HIDDEN ${projectId}/${branchName}`, {
-      reason: 'not a git repo',
-      root,
-      isRepo,
-      projectFound: !!project,
-    });
     return null;
   }
 
@@ -90,6 +87,7 @@ export const BranchScopeButton = memo(function BranchScopeButton({
             projectRoot={root}
             branchName={branchName}
             initial={scope}
+            otherScopes={otherScopes}
             onSave={(paths) => {
               setScope(projectId, branchName, paths);
               setOpen(false);

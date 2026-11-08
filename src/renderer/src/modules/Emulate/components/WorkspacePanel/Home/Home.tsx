@@ -119,7 +119,7 @@ function TextSelectionMenu({
 
   return (
     <div
-      className="fixed z-50 bg-dialog-background border border-divider rounded-md shadow-lg py-1 min-w-[160px]"
+      className="fixed z-50 bg-dropdown-background border border-divider rounded-md shadow-lg py-1 min-w-[160px]"
       style={{
         left: `${x}px`,
         top: `${y}px`,
@@ -480,7 +480,7 @@ export const RequestDetails = React.memo(function RequestDetails({
   const content = (
     <div className="flex-1 overflow-hidden h-full" onContextMenu={handleContextMenu}>
       {!request && !isComposerTab ? (
-        <div className="h-full flex items-center justify-center text-text-secondary bg-table-bodyBg">
+        <div className="h-full flex items-center justify-center text-text-secondary bg-card-background">
           Select a request to view details
         </div>
       ) : isRawMode ? (
@@ -517,7 +517,7 @@ export const RequestDetails = React.memo(function RequestDetails({
   return (
     <div className="h-full">
       <div className="h-full flex flex-col border-t border-divider/50">
-        <div className="flex h-10 items-center border-b border-divider/50 bg-table-headerBg">
+        <div className="flex h-10 items-center border-b border-divider/50 bg-table-header-background">
           <div className="flex-1 overflow-x-auto no-scrollbar flex items-center h-full">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -623,7 +623,7 @@ export const RequestDetails = React.memo(function RequestDetails({
                 className={cn(
                   'flex h-full items-center gap-1.5 px-3 text-sm font-semibold border-b-2 border-transparent transition-colors hover:text-text-primary hover:bg-secondary/40 whitespace-nowrap',
                   isFilterOpen
-                    ? 'border-primary text-primary bg-table-bodyBg'
+                    ? 'border-primary text-primary bg-card-background'
                     : 'text-text-secondary',
                 )}
                 title={isFilterOpen ? 'Collapse filters' : 'Expand filters'}

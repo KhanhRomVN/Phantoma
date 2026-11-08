@@ -18,7 +18,7 @@
 import {
   ExecutorContext,
   ExecutorOptions,
-} from '@renderer/components/RightPanel/Zen/feature/Chat/types/executor-types';
+} from '@renderer/components/Widgets/Zen/feature/Chat/types/executor-types';
 import {
   TerminalIpc,
   TerminalDataPayload,

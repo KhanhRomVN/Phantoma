@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
 
 interface ListElementsBlockProps {
   elementType?: string;
@@ -91,11 +91,14 @@ function parseListElementsOutput(output: string): ParsedElement[] | null {
     // Parse markdown table format
     const lines = output.trim().split('\n');
     const elements: ParsedElement[] = [];
-    
+
     for (const line of lines) {
       if (line.trim().startsWith('|') && !line.includes('---')) {
-        const parts = line.split('|').map(p => p.trim()).filter(p => p);
-        
+        const parts = line
+          .split('|')
+          .map((p) => p.trim())
+          .filter((p) => p);
+
         // Skip header row
         if (parts.length >= 3 && parts[0] !== 'ref' && parts[1] !== 'type') {
           elements.push({
@@ -106,20 +109,16 @@ function parseListElementsOutput(output: string): ParsedElement[] | null {
         }
       }
     }
-    
+
     return elements.length > 0 ? elements : null;
   } catch {
     return null;
   }
 }
 
-function ListElementsBlock({
-  elementType,
-  output,
-  isError,
-}: ListElementsBlockProps) {
+function ListElementsBlock({ elementType, output, isError }: ListElementsBlockProps) {
   const parsed = output ? parseListElementsOutput(output) : null;
-  
+
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
@@ -140,12 +139,12 @@ function ListElementsBlock({
               </span>
             )}
           </div>
-          
+
           <div className="space-y-1 max-h-80 overflow-y-auto">
             {parsed.map((elem, idx) => (
               <div
                 key={idx}
-                className="p-2 rounded border transition-colors hover:border-opacity-60"
+                className="p-2 rounded border transition-colors hover:border-primary"
                 style={{
                   backgroundColor: $('--background-secondary'),
                   borderColor: $('--border'),

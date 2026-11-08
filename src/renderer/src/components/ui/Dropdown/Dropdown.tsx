@@ -422,7 +422,7 @@ export const Dropdown = React.memo(function Dropdown({
                         placeholder="Search actions..."
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
-                        className="w-full px-3 py-1.5 text-sm bg-transparent border-none rounded-lg outline-none focus:outline-none focus:ring-0 text-text-primary placeholder:text-text-tertiary"
+                        className="w-full px-3 py-1.5 text-sm bg-transparent border-none rounded-lg outline-none focus:outline-none focus:ring-0 text-text-primary placeholder:text-text-secondary/60"
                         autoFocus
                         onClick={(e) => e.stopPropagation()}
                       />
@@ -452,7 +452,7 @@ export const Dropdown = React.memo(function Dropdown({
                       placeholder="Search actions..."
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm bg-transparent border-none rounded-lg outline-none focus:outline-none focus:ring-0 text-text-primary placeholder:text-text-tertiary"
+                      className="w-full px-3 py-1.5 text-sm bg-transparent border-none rounded-lg outline-none focus:outline-none focus:ring-0 text-text-primary placeholder:text-text-secondary/60"
                       autoFocus
                       onClick={(e) => e.stopPropagation()}
                     />

@@ -18,23 +18,23 @@ import React from 'react';
 import { cn } from '@renderer/utils/cn';
 import { parseDiff, DiffHighlight } from '../utils/diffUtils';
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import { getNextUserMessage } from '@renderer/components/RightPanel/Zen/feature/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/components/Widgets/Zen/feature/Chat/utils/message-navigator';
 
 // ── Hooks ──
 
 // ── Services ──
-import { extensionService } from '@renderer/components/RightPanel/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/RightPanel/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
 
 // ── Types ──
-import { MergedRendererProps } from '@renderer/components/RightPanel/Zen/feature/Chat/types/renderer-types';
+import { MergedRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/RightPanel/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
 
@@ -168,7 +168,6 @@ export const ReplaceInFileRenderer: React.FC<MergedRendererProps> = ({
 
   // Build diff preview data
   const approvalDiffData = React.useMemo(() => {
-
     const oldContent = action.params.old_content || action.params.old_str;
     const newContent = action.params.new_content || action.params.new_str;
 

@@ -6,8 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Base URI cho ảnh trong public/images.
 // Dev (http): '/images'. Build (file://): tương đối từ index.html -> './images'.
-(window as any).__zenImagesUri =
-  window.location.protocol === 'file:' ? './images' : '/images';
+(window as any).__zenImagesUri = window.location.protocol === 'file:' ? './images' : '/images';
 
 // --- Performance Profiling Tools (Development Only) ---
 if (process.env.NODE_ENV === 'development') {
@@ -30,7 +29,7 @@ if (import.meta.env.PROD) {
   });
 }
 
-import { installChatConsoleCapture } from './components/RightPanel/Zen/feature/Chat/utils/consoleLogCapture';
+import { installChatConsoleCapture } from './components/Widgets/Zen/feature/Chat/utils/consoleLogCapture';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { FontProvider } from './fonts/FontProvider';
 

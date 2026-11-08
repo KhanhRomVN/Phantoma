@@ -16,7 +16,7 @@ interface ScrollToSessionButtonProps {
   /** The ID of the currently selected session */
   selectedSessionId: string | null;
   /** Ref to the scrollable container (ProjectPanel content area) */
-  scrollContainerRef: React.RefObject<HTMLDivElement>;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const ScrollToSessionButton = memo(function ScrollToSessionButton({

@@ -65,7 +65,7 @@ export function Checkbox({
         className={cn(
           'flex items-center justify-center rounded border transition-colors',
           'border-border bg-card-background',
-          'hover:border-border-hover focus-within:ring-2 focus-within:ring-primary/30 focus-within:outline-none',
+          'hover:border-text-secondary focus-within:ring-2 focus-within:ring-primary/30 focus-within:outline-none',
           isChecked &&
             'bg-button-solid-background border-button-solid-background hover:bg-button-solid-background/90',
           disabled && 'opacity-50 cursor-not-allowed hover:border-border',

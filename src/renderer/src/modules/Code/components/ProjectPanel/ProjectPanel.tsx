@@ -951,16 +951,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
         return;
       }
 
-      const switchT0 = performance.now();
-      console.log('[DEBUG] switch session: start', { sessionId });
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() =>
-          console.log('[DEBUG] switch session: painted', {
-            sessionId,
-            totalMs: Number((performance.now() - switchT0).toFixed(1)),
-          }),
-        ),
-      );
 
       // Highlight the card in ProjectPanel
       setSelectedSessionId(sessionId);
@@ -981,14 +971,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
       }
 
       // Switch ContentPanel to Workspace view for this session
-      const setsT0 = performance.now();
+
       setActiveWorkspaceSessionId(sessionId);
       setContentViewMode('workspace');
-      console.log('[DEBUG] switch session: store sets done', {
-        sessionId,
-        setsMs: Number((performance.now() - setsT0).toFixed(1)),
-        sinceStartMs: Number((performance.now() - switchT0).toFixed(1)),
-      });
     },
     [
       projects,
@@ -1943,11 +1928,20 @@ export const ProjectPanel = memo(function ProjectPanel() {
       }
       const freeBranch = projects
         .find((p) => p.id === projectId)
-        ?.branches.find((b) => b.visible && !busyTargetIds.has(toBranchTargetId(projectId, b.name)));
+        ?.branches.find(
+          (b) => b.visible && !busyTargetIds.has(toBranchTargetId(projectId, b.name)),
+        );
       if (freeBranch) handleSwitchBranch(projectId, freeBranch.name);
       else handleSelectProject(projectId);
     },
-    [expandedIds, gitRepoByProject, projects, busyTargetIds, handleSelectProject, handleSwitchBranch],
+    [
+      expandedIds,
+      gitRepoByProject,
+      projects,
+      busyTargetIds,
+      handleSelectProject,
+      handleSwitchBranch,
+    ],
   );
 
   useEffect(() => {
@@ -2586,6 +2580,19 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 >
                   Sync from...
                 </DropdownItem>
+                <DropdownItem
+                  icon={<GitBranch className="w-3.5 h-3.5" />}
+                  onClick={() => {
+                    const cwd = activeBranch.path ?? activeProject.path;
+                    const branchName = activeBranch.name;
+                    closeDropdown();
+                    (window as any).api
+                      .invoke('git:diff-diagnostics', cwd, branchName)
+                      .catch((e: unknown) => console.error('[DEBUG][diff-diagnostics] invoke failed', e));
+                  }}
+                >
+                  Diff diagnostics
+                </DropdownItem>
 
                 <DropdownSeparator />
 
@@ -3036,6 +3043,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
         targetPath={syncBranchTarget?.branchPath ?? ''}
         projectName={syncBranchTarget?.project.name ?? ''}
         currentBranch={syncBranchTarget?.branchName ?? ''}
+        projectId={syncBranchTarget?.project.id}
+        defaultBranch={syncBranchTarget?.project.defaultBranch}
         branches={(syncBranchTarget?.project.branches ?? []).map((b) => b.name)}
         onApplied={(count, source) =>
           showToast(`Pulled ${count} file${count === 1 ? '' : 's'} from "${source}"`)

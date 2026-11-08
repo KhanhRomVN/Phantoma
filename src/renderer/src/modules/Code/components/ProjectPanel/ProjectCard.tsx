@@ -317,6 +317,16 @@ const DefaultBadge = memo(function DefaultBadge() {
   );
 });
 
+const NO_BRANCH_NAME = 'no-branch';
+
+const NoGitBadge = memo(function NoGitBadge() {
+  return (
+    <span className="inline-flex items-center h-[18px] px-1.5 rounded-[5px] shrink-0 text-[9.5px] font-medium text-text-secondary bg-button-soft-background">
+      no git
+    </span>
+  );
+});
+
 /** Badge: branch đang được một cửa sổ KHÁC mở */
 const BusyBadge = memo(function BusyBadge({
   projectId,
@@ -534,14 +544,18 @@ function CollapsedTree({
               <StatusDot status={st} />
               <span
                 className={cn(
-                  'flex-1 min-w-0 truncate font-mono text-[14px] font-medium',
+                  'min-w-0 truncate font-mono text-[14px] font-medium',
                   dim ? 'text-text-secondary/50' : 'text-text-primary',
                 )}
               >
                 {stripPrefix(b.name)}
               </span>
               {project.defaultBranch === b.name && <DefaultBadge />}
-              <BranchScopeButton projectId={project.id} branchName={b.name} />
+              {b.name === NO_BRANCH_NAME && <NoGitBadge />}
+              <span className="flex-1" />
+              {project.defaultBranch !== b.name && (
+                <BranchScopeButton projectId={project.id} branchName={b.name} />
+              )}
               {busyBranchNames?.has(b.name) && (
                 <BusyBadge
                   projectId={project.id}
@@ -634,11 +648,17 @@ export const BranchBlock = memo(function BranchBlock({
         onContextMenu={openAtCursor}
       >
         <GitBranch className="w-[13px] h-[13px] shrink-0 text-text-secondary/70" />
-        <span className="flex-1 min-w-0 truncate">{branch.name}</span>
+        <span className="min-w-0 truncate">{branch.name}</span>
 
         {project.defaultBranch === branch.name && <DefaultBadge />}
 
-        <BranchScopeButton projectId={project.id} branchName={branch.name} />
+        {branch.name === NO_BRANCH_NAME && <NoGitBadge />}
+
+        <span className="flex-1" />
+
+        {project.defaultBranch !== branch.name && (
+          <BranchScopeButton projectId={project.id} branchName={branch.name} />
+        )}
 
         {busyElsewhere && (
           <BusyBadge

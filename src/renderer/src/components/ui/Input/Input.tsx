@@ -42,7 +42,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               'disabled:opacity-50 disabled:cursor-not-allowed',
               leftIcon && 'pl-9',
               rightIcon && 'pr-9',
-              error ? 'border-error' : 'border-input-border-default',
+              error ? 'border-error' : 'border-border',
               inputClassName,
               className,
             )}

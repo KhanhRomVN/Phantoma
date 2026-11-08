@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 
 // ── UI ──
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Radar,
@@ -34,20 +34,17 @@ import {
 // ── Hooks ──
 import { useCodeStore } from '../modules/Code/hooks/useCodeStore';
 import { useActiveModule } from '../hooks/useActiveModule';
-import { useActiveTarget } from '../hooks/useActiveTarget';
+
 import { useGlobalCopyShortcut } from '../hooks/useGlobalCopyShortcut';
 
 // ── Components ──
-import { RightPanel } from '../components/RightPanel';
+
 import { HeaderBar } from '../components/HeaderBar';
 import { QuickNavModal } from '../components/QuickNavModal';
 import { ServerHealthGuard } from '../components/ServerHealthGuard';
 import { ViewContainer } from '../components/ViewContainer';
 import { Modal, ModalBody } from '../components/ui/Modal';
-import {
-  FeatureProvider,
-  useAgentFeature,
-} from '../components/RightPanel/Zen/context/FeatureContext';
+import { FeatureProvider, useAgentFeature } from '../components/Widgets/Zen/context/FeatureContext';
 
 // ── Types ──
 import { PhantomModule } from '../types/phantom-module';
@@ -56,7 +53,7 @@ import { PhantomModule } from '../types/phantom-module';
 const MainLayoutContent = () => {
   // ── Hooks ──
   const { activeModule, setActiveModule } = useActiveModule('recon');
-  const { activeSubTarget } = useActiveTarget();
+
   const { setActiveFeature } = useAgentFeature();
 
   // Enable global text copy support (Electron fix)
@@ -148,9 +145,7 @@ const MainLayoutContent = () => {
   }, [activeModule, setActiveModule]);
 
   // ── Derived ──
-  // Ẩn hoàn toàn RightPanel khi ở module Code hoặc Preview (vì chúng có ActivityPanel riêng)
-  const shouldShowRightPanel =
-    isRightPanelOpen && activeModule !== 'code' && activeModule !== 'preview';
+
   const quickNavItems = [
     {
       id: 'dashboard',
@@ -232,6 +227,16 @@ const MainLayoutContent = () => {
         setActiveModule('settings' as PhantomModule);
       },
     },
+    {
+      id: 'uitest',
+      title: 'UI Test',
+      description: 'Preview UI components and their props',
+      icon: <Wrench className="w-4 h-4" strokeWidth={1.3} />,
+      color: 'text-teal-400',
+      action: () => {
+        setActiveModule('uitest' as PhantomModule);
+      },
+    },
   ];
 
   // ── Render ──
@@ -249,21 +254,7 @@ const MainLayoutContent = () => {
               <ViewContainer />
             </ServerHealthGuard>
           </div>
-          <div className="shrink-0 h-full min-h-0">
-            <AnimatePresence mode="wait">
-              {shouldShowRightPanel && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="h-full overflow-hidden min-w-0 flex flex-col"
-                >
-                  <RightPanel subTarget={activeSubTarget} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+
         </div>
       </div>
       <QuickNavModal

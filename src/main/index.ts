@@ -55,6 +55,7 @@ import {
   setupRuntimeHandlers,
   setupDebugHandlers,
 } from './ipc';
+import { registerAgentToolHandlers } from './ipc/agent-tool.handlers';
 
 // Ensure certificate directory exists for http-mitm-proxy
 const certDir = path.join(process.cwd(), '.http-mitm-proxy', 'certs');
@@ -90,6 +91,7 @@ app.whenReady().then(() => {
   setupConversationHandlers();
   setupRuntimeHandlers();
   setupDebugHandlers();
+  registerAgentToolHandlers();
 
   // Packaged build: spawn shell server (emulate starts on-demand)
   startShellServer()

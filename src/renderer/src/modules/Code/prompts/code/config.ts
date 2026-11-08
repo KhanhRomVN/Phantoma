@@ -1,4 +1,4 @@
-import type { ZenModuleCapabilities } from '@renderer/components/RightPanel/Zen/feature/Chat/services/moduleRegistry';
+import type { ZenModuleCapabilities } from '@renderer/components/Widgets/Zen/feature/Chat/services/moduleRegistry';
 
 export type SystemPromptMode = 'fast' | 'balanced' | 'thorough';
 
