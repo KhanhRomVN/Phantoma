@@ -191,6 +191,7 @@ function Hint({ children }: { children: ReactNode }) {
   return <div className="text-[10px] text-text-secondary opacity-70">{children}</div>;
 }
 
+
 // ─── Git changes ────────────────────────────────────────────────────────
 export function GitOverviewTooltip({
   groups,
@@ -207,8 +208,6 @@ export function GitOverviewTooltip({
     committed: groups.committed.length,
   };
   const total = counts.unstaged + counts.staged + counts.committed;
-  const kinds = { added: 0, modified: 0, deleted: 0 };
-  for (const f of [...groups.unstaged, ...groups.staged]) kinds[f.kind]++;
   return (
     <Panel
       width={300}
@@ -221,39 +220,18 @@ export function GitOverviewTooltip({
         </span>
       }
     >
-      <Bar
-        parts={[
-          { value: counts.unstaged, className: 'bg-amber-400' },
-          { value: counts.staged, className: 'bg-sky-400' },
-          { value: counts.committed, className: 'bg-emerald-400' },
-        ]}
-      />
       <div className="flex flex-col gap-2">
         {(Object.keys(GROUP_META) as GitGroupKey[]).map((k) => (
-          <div key={k} className="flex flex-col gap-1">
-            <Row
-              dot={GROUP_META[k].dot}
-              label={GROUP_META[k].label}
-              sub={GROUP_META[k].hint}
-              value={counts[k]}
-              valueClass={GROUP_META[k].text}
-            />
-            <div className="h-1 rounded-full bg-border overflow-hidden">
-              <div
-                className={cn('h-full', GROUP_META[k].dot)}
-                style={{ width: total ? `${(counts[k] / total) * 100}%` : 0 }}
-              />
-            </div>
-          </div>
+          <Row
+            key={k}
+            dot={GROUP_META[k].dot}
+            label={GROUP_META[k].label}
+            sub={GROUP_META[k].hint}
+            value={counts[k]}
+            valueClass={GROUP_META[k].text}
+          />
         ))}
       </div>
-      <div className="flex items-center gap-1.5 pt-2 border-t border-border">
-        <span className="text-text-secondary">Working tree</span>
-        <Chip className={KIND_META.modified.cls}>M {kinds.modified}</Chip>
-        <Chip className={KIND_META.added.cls}>A {kinds.added}</Chip>
-        <Chip className={KIND_META.deleted.cls}>D {kinds.deleted}</Chip>
-      </div>
-      <Hint>Click to open Git view</Hint>
     </Panel>
   );
 }

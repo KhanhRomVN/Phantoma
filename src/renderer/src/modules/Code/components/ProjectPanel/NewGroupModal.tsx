@@ -15,6 +15,7 @@ interface NewGroupProject {
   id: string;
   name: string;
   groupId?: string | null;
+  logoPath?: string | null;
 }
 
 interface NewGroupInfo {
@@ -109,7 +110,7 @@ export const NewGroupModal = memo(function NewGroupModal({
             : 'border-divider bg-card-background text-text-secondary hover:bg-card-hover hover:text-text-primary',
         )}
       >
-        <ProjectIcon color={identity.color} Icon={identity.Icon} />
+        <ProjectIcon color={identity.color} Icon={identity.Icon} logoPath={p.logoPath} />
         <span className="text-[12.5px] truncate">{p.name}</span>
       </button>
     );
@@ -263,13 +264,13 @@ export const NewGroupModal = memo(function NewGroupModal({
 
       <ModalFooter>
         <Button
-          className="bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background"
+          className="h-8 px-4 text-xs font-medium rounded-lg bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30"
           onClick={onCancel}
         >
           Cancel
         </Button>
         <Button
-          className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background"
+          className="h-8 px-4 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
           disabled={!name}
           onClick={handleSubmit}
         >
