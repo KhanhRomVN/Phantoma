@@ -83,7 +83,7 @@ export const RunCommandRenderer: React.FC<BaseRendererProps> = ({
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-text-primary opacity-80">RUN COMMAND</span>
                   {command && (
-                    <span className="font-mono text-[10px] text-text-secondary opacity-70 truncate">
+                    <span className="font-mono text-[11px] text-text-secondary opacity-70 truncate">
                       {command}
                     </span>
                   )}

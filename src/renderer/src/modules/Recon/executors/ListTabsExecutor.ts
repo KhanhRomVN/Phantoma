@@ -1,22 +1,21 @@
-import { useReconStore } from '../stores/useReconStore';
-import { ListTabsHandler } from '../handler/ListTabsHandler';
+import { ReconController } from '@renderer/modules/Recon/ReconController';
 import type { ListTabsParams } from '../parsers/ListTabsParser';
-
-const handler = new ListTabsHandler();
 
 export async function executeListTabs(
   _params: ListTabsParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const targetId = useReconStore.getState().activeTargetId;
-    if (!targetId) {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
+    const targetId = activeTarget.id;
 
-    const result = await handler.handle(targetId);
+    const result = await ReconController.executeTool('list_tabs', { targetId });
 
     if (result.success) {
       return {

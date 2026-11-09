@@ -99,7 +99,7 @@ export default function SectionBox({ box }: Props) {
       style={style}
     >
       {/* Header */}
-      <div className="px-3 py-2 border-b border-border/50 bg-card-hover flex items-center justify-between gap-2 shrink-0">
+      <div className="px-3 py-2 border-b border-border/50 bg-card-background-hover flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           {HeaderIcon && (
             <div
@@ -167,7 +167,7 @@ export default function SectionBox({ box }: Props) {
             </button>
           )}
           {warnings.length > 0 && (
-            <span className="text-[10px] text-yellow-400 cursor-help" title={warnings.join('\n')}>
+            <span className="text-[11px] text-yellow-400 cursor-help" title={warnings.join('\n')}>
               ⚠️
             </span>
           )}

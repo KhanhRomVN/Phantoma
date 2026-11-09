@@ -3,7 +3,16 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode, RefOb
 import type { RenderedBox } from './types';
 import SectionBox from './SectionBox';
 import EditOverlay from './EditOverlay';
-import { GRID_COLS, GRID_GAP, applyDrag, bottomRow, collides, compact, resolveRects, stepX } from './layout';
+import {
+  GRID_COLS,
+  GRID_GAP,
+  applyDrag,
+  bottomRow,
+  collides,
+  compact,
+  resolveRects,
+  stepX,
+} from './layout';
 import type { DragMode, Rect } from './layout';
 import { cn } from '@renderer/utils/cn';
 
@@ -45,9 +54,9 @@ const GridCells = memo(function GridCells({ rows }: { rows: number }) {
       cells.push(
         <div
           key={`${r}-${c}`}
-          className='rounded-md border border-dashed border-text-secondary/30 bg-text-secondary/[0.05] pointer-events-none'
+          className="rounded-md border border-dashed border-text-secondary/30 bg-text-secondary/[0.05] pointer-events-none"
           style={{ gridColumn: c, gridRow: r }}
-        />
+        />,
       );
     }
   }
@@ -89,7 +98,7 @@ export default function BoxGrid({ boxes, editing, scrollRef, onCommit }: Props) 
     const measure = () => {
       const next = els.map((el) => el?.offsetHeight ?? 0);
       setHeights((prev) =>
-        prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next
+        prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next,
       );
     };
     measure();
@@ -112,10 +121,14 @@ export default function BoxGrid({ boxes, editing, scrollRef, onCommit }: Props) 
               : heights[i]
                 ? Math.min(heights[i], fullPx)
                 : fullPx;
-          return { ...r, y: Math.round((r.y - 1) * step) + 1, h: Math.ceil((px + GRID_GAP) / VIEW_UNIT) };
-        })
+          return {
+            ...r,
+            y: Math.round((r.y - 1) * step) + 1,
+            h: Math.ceil((px + GRID_GAP) / VIEW_UNIT),
+          };
+        }),
       ),
-    [rects, heights, rowH, boxes]
+    [rects, heights, rowH, boxes],
   );
   const shown = editing
     ? rects.map((r, i) => (preview && preview.index === i ? preview.rect : r))
@@ -141,7 +154,7 @@ export default function BoxGrid({ boxes, editing, scrollRef, onCommit }: Props) 
       (entries) => {
         if (entries.some((en) => en.isIntersecting)) setExtraRows((n) => n + 10);
       },
-      { root: scrollRef.current, rootMargin: '0px 0px 200px 0px' }
+      { root: scrollRef.current, rootMargin: '0px 0px 200px 0px' },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -223,10 +236,10 @@ export default function BoxGrid({ boxes, editing, scrollRef, onCommit }: Props) 
   };
 
   return (
-    <div className='relative'>
+    <div className="relative">
       <div
         ref={gridRef}
-        className='grid grid-cols-10 gap-4'
+        className="grid grid-cols-10 gap-4"
         style={
           {
             '--row-h': `${rowH}px`,
@@ -248,7 +261,7 @@ export default function BoxGrid({ boxes, editing, scrollRef, onCommit }: Props) 
               }}
               className={cn(
                 'relative min-w-0 flex flex-col [&>*:first-child]:flex-1',
-                editing ? (isActive ? 'z-30' : 'z-10') : 'self-start'
+                editing ? (isActive ? 'z-30' : 'z-10') : 'self-start',
               )}
               style={{
                 gridColumn: `${rect.x} / span ${rect.w}`,
@@ -270,7 +283,7 @@ export default function BoxGrid({ boxes, editing, scrollRef, onCommit }: Props) 
           );
         })}
       </div>
-      {editing && <div ref={sentinelRef} className='h-px' />}
+      {editing && <div ref={sentinelRef} className="h-px" />}
     </div>
   );
 }

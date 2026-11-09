@@ -72,7 +72,7 @@ export const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-text-primary opacity-80">CREATE AGENT</span>
                   {agentType && (
-                    <span className="font-mono text-[10px] text-text-secondary opacity-70 shrink-0">
+                    <span className="font-mono text-[11px] text-text-secondary opacity-70 shrink-0">
                       {agentType}
                     </span>
                   )}
@@ -80,7 +80,7 @@ export const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
                     <span className="font-medium text-text-primary truncate">{agentName}</span>
                   )}
                   {agentId && (
-                    <span className="font-mono text-[10px] text-text-secondary opacity-50 shrink-0">
+                    <span className="font-mono text-[11px] text-text-secondary opacity-50 shrink-0">
                       ({agentId})
                     </span>
                   )}

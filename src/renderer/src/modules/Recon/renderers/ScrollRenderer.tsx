@@ -123,7 +123,7 @@ function ScrollBlock({ output, isError }: ScrollBlockProps) {
             <div className="flex items-center gap-2">
               <span className="text-text-secondary">Direction:</span>
               <span
-                className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase"
+                className="px-1.5 py-0.5 rounded text-[11px] font-medium uppercase"
                 style={{
                   backgroundColor: $('--background-tertiary'),
                   color: $('--text-primary'),

@@ -53,7 +53,10 @@ export const EvaluateJsRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <EvaluateJsBlock output={outputData?.output} isError={isError} />
+        <EvaluateJsBlock
+          output={outputData?.output}
+          isError={isError}
+        />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -79,7 +82,7 @@ function parseEvaluateJsOutput(output: string): ParsedJsResult | null {
   try {
     // Check if it's a result output
     const resultMatch = output.match(/result:\s*(.+)/is);
-
+    
     return {
       result: resultMatch ? resultMatch[1].trim() : output.trim(),
       success: !output.toLowerCase().includes('error'),
@@ -89,9 +92,12 @@ function parseEvaluateJsOutput(output: string): ParsedJsResult | null {
   }
 }
 
-function EvaluateJsBlock({ output, isError }: EvaluateJsBlockProps) {
+function EvaluateJsBlock({
+  output,
+  isError,
+}: EvaluateJsBlockProps) {
   const parsed = output ? parseEvaluateJsOutput(output) : null;
-
+  
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

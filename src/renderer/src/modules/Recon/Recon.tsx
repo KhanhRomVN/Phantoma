@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useReconStore } from './stores/useReconStore';
-import { ReconTargetHandlers } from './handler/ReconTargetHandlers';
+import { ReconController, ReconTarget } from './ReconController';
 import { useAgentFeature } from '../../components/Widgets/Zen/context/FeatureContext';
 
 // ── Components
@@ -11,7 +10,6 @@ import { buildFileSystem } from './components/ui/FileManager/fileStore';
 import type { RawFsEntry } from './components/ui/FileManager/fileStore';
 import { ReconSettingsProvider } from './components/Settings';
 import { SettingsView } from './components/SettingsView';
-import { ReconPanel } from './components/ReconPanel';
 
 export interface ReconProps {
   activeAppId?: string;
@@ -19,23 +17,38 @@ export interface ReconProps {
 
 export function Recon({}: ReconProps) {
   const { setReconState } = useAgentFeature();
-  const targets = useReconStore((s) => s.targets);
-  const activeTargetId = useReconStore((s) => s.activeTargetId);
-  const setActiveTarget = useReconStore((s) => s.setActiveTarget);
+  const [targets, setTargets] = useState<ReconTarget[]>([]);
+  const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
   const [targetFiles, setTargetFiles] = useState<Record<string, string>>({});
   const [targetFsEntries, setTargetFsEntries] = useState<RawFsEntry[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Nạp danh sách target từ ~/.phantoma/recon:{targetId}
+  // Initialize Controller Subscriptions
   useEffect(() => {
-    void ReconTargetHandlers.loadTargets();
+    const controller = ReconController.getInstance();
+
+    const unsubTargets = controller.onTargetsUpdate((updatedTargets) => {
+      setTargets(updatedTargets);
+    });
+
+    const unsubActive = controller.onActiveTargetUpdate((targetId) => {
+      setActiveTargetId(targetId);
+    });
+
+    // Nạp danh sách target từ ~/.phantoma/recon:{targetId}
+    void controller.loadTargets();
+
+    return () => {
+      unsubTargets?.();
+      unsubActive?.();
+    };
   }, []);
 
   // Update Agent context
   useEffect(() => {
     setReconState({
       activeTargetId,
-      targets: targets.map((t) => ({ id: t.id, email: t.title, isActive: t.isActive })),
+      targets,
     });
   }, [activeTargetId, targets, setReconState]);
 
@@ -47,9 +60,10 @@ export function Recon({}: ReconProps) {
       return;
     }
     let cancelled = false;
+    const controller = ReconController.getInstance();
     void Promise.all([
-      ReconTargetHandlers.readTargetFiles(activeTargetId),
-      ReconTargetHandlers.readTargetFs(activeTargetId),
+      controller.readTargetFiles(activeTargetId),
+      controller.readTargetFs(activeTargetId),
     ]).then(([filesResult, fsResult]) => {
       if (cancelled) return;
       if (filesResult.success) setTargetFiles(filesResult.data ?? {});
@@ -62,15 +76,19 @@ export function Recon({}: ReconProps) {
 
   const targetFs = useMemo(() => buildFileSystem(targetFsEntries), [targetFsEntries]);
 
-  const handleLaunchBrowser = useCallback(async (targetId: string) => {
-    const result = await ReconTargetHandlers.launchBrowser(targetId);
-    if (!result.success) {
-      console.error('Failed to launch browser:', result.error);
-    }
+  // Handle target selection
+  const handleTargetSelect = useCallback((targetId: string) => {
+    const controller = ReconController.getInstance();
+    controller.setActiveTarget(targetId);
   }, []);
 
+  
+
+  // Handle close browser
   const handleCloseBrowser = useCallback(async (targetId: string) => {
-    const result = await ReconTargetHandlers.closeBrowser(targetId);
+    const controller = ReconController.getInstance();
+    const result = await controller.closeBrowser(targetId);
+
     if (!result.success) {
       console.error('Failed to close browser:', result.error);
     }
@@ -78,51 +96,49 @@ export function Recon({}: ReconProps) {
 
   // Nút `+`: tạo card mới với template sẵn có, chọn luôn target vừa tạo
   const handleAddTarget = useCallback(async () => {
-    const result = await ReconTargetHandlers.createTarget();
+    const controller = ReconController.getInstance();
+    const result = await controller.createTarget();
     if (!result.success || !result.data) {
       console.error('Failed to create target:', result.error);
       return;
     }
-    setActiveTarget(result.data.id);
-  }, [setActiveTarget]);
+    controller.setActiveTarget(result.data.id);
+  }, []);
 
   const activeTarget = targets.find((t) => t.id === activeTargetId) ?? null;
 
   return (
     <ReconSettingsProvider>
       <ReconFsContext.Provider value={targetFs}>
-        <div className="flex h-full w-full overflow-hidden bg-background">
-          {/* Left Panel - Target List */}
-          <LeftPanel
-            targets={targets}
-            activeTargetId={activeTargetId}
-            onTargetSelect={setActiveTarget}
-            onLaunchBrowser={handleLaunchBrowser}
-            onCloseBrowser={handleCloseBrowser}
-            onAddTargetClick={handleAddTarget}
-            onOpenSettings={() => setIsSettingsOpen(true)}
-          />
+      <div className="flex h-full w-full overflow-hidden bg-background">
+        {/* Left Panel - Target List */}
+        <LeftPanel
+          targets={targets}
+          activeTargetId={activeTargetId}
+          onTargetSelect={handleTargetSelect}
+          onCloseBrowser={handleCloseBrowser}
+          onAddTargetClick={handleAddTarget}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
 
-          {/* Main Content Area */}
-          <div className="flex-1 flex overflow-hidden bg-background relative">
-            {isSettingsOpen ? (
-              <SettingsView onClose={() => setIsSettingsOpen(false)} />
-            ) : activeTarget ? (
-              <ContentPanel
-                key={activeTarget.id}
-                files={targetFiles}
-                onOpenSettings={() => setIsSettingsOpen(true)}
-              />
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-text-secondary">
-                <div className="text-center space-y-2">
-                  <p className="text-sm opacity-60">Chọn một target hoặc thêm mới để bắt đầu.</p>
-                </div>
+        {/* Main Content Area */}
+        <div className="flex-1 flex overflow-hidden bg-background relative">
+          {isSettingsOpen ? (
+            <SettingsView onClose={() => setIsSettingsOpen(false)} />
+          ) : activeTarget ? (
+            <ContentPanel
+              key={activeTarget.id}
+              files={targetFiles}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-text-secondary">
+              <div className="text-center space-y-2">
+                <p className="text-sm opacity-60">Chọn một target hoặc thêm mới để bắt đầu.</p>
               </div>
-            )}
+            </div>
+          )}
         </div>
-
-        {activeTarget && <ReconPanel />}
       </div>
       </ReconFsContext.Provider>
     </ReconSettingsProvider>

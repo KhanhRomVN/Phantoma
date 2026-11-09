@@ -68,20 +68,32 @@ export const laneX = (i: number): number => i * LANE_WIDTH + LANE_WIDTH / 2 + 6;
 // ─── Graph ──────────────────────────────────────────────────────────────
 
 /** Assign each commit to a lane and compute the lines to draw per row. */
-export function buildGraph(commits: Commit[]): { rows: GraphRow[]; laneCount: number } {
+export function buildGraph(
+  commits: Commit[],
+  mainTip?: string | null,
+): { rows: GraphRow[]; laneCount: number } {
   let lanes: (string | null)[] = [];
   let laneCount = 1;
 
+  const byHash = new Map(commits.map((c) => [c.hash, c]));
+  const mainSet = new Set<string>();
+  for (let cur = mainTip ? byHash.get(mainTip) : undefined; cur && !mainSet.has(cur.hash); ) {
+    mainSet.add(cur.hash);
+    cur = byHash.get(cur.parents[0]);
+  }
+
+  const alloc = (): number => {
+    for (let i = 1; i < lanes.length; i++) if (lanes[i] === null) return i;
+    if (lanes.length === 0) lanes.push(null);
+    lanes.push(null);
+    return lanes.length - 1;
+  };
+
   const rows = commits.map((c) => {
     const before = [...lanes];
-    let col = lanes.indexOf(c.hash);
-    if (col === -1) {
-      col = lanes.indexOf(null);
-      if (col === -1) {
-        col = lanes.length;
-        lanes.push(null);
-      }
-    }
+    const isMain = mainSet.has(c.hash);
+    let col = isMain ? 0 : lanes.indexOf(c.hash);
+    if (col === -1) col = alloc();
 
     const incoming: number[] = [];
     before.forEach((h, i) => {
@@ -93,8 +105,9 @@ export function buildGraph(commits: Commit[]): { rows: GraphRow[]; laneCount: nu
     c.parents.forEach((p, idx) => {
       let j = lanes.indexOf(p);
       if (j === -1) {
-        j = idx === 0 ? col : lanes.indexOf(null);
-        if (j === -1) j = lanes.length;
+        if (mainSet.has(p) && !lanes[0]) j = 0;
+        else if (idx === 0) j = col;
+        else j = alloc();
         lanes[j] = p;
       }
     });

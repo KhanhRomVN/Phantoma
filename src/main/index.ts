@@ -41,6 +41,7 @@ import {
   setupTargetLockHandlers,
   setupTerminalHandlers,
   setupGitHandlers,
+  setupPullRequestHandlers,
   setupTaskHandlers,
   setupWorkflowHandlers,
   setupLoggerHandlers,
@@ -79,6 +80,7 @@ app.whenReady().then(() => {
   setupTargetLockHandlers();
   setupTerminalHandlers();
   setupGitHandlers();
+  setupPullRequestHandlers();
   setupTaskHandlers();
   setupWorkflowHandlers();
   registerWorkspaceHandlers();

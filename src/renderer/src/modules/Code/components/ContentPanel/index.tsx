@@ -20,7 +20,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 
 // ── React ──
-import { useState, useEffect, memo, useMemo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import type { ReactNode } from 'react';
 
 // ── UI ──
@@ -46,6 +46,7 @@ import { TaskManager } from './TaskManager';
 import { WorkspaceViews, EmptyState } from './Workspace';
 import { ContentHeaderBar } from './Headerbar';
 import { GitView } from './Git';
+import { PullRequestView } from './PullRequest';
 import { DesignView } from './Design';
 import { AgentWorkflow } from './AgentWorkflow';
 import { SettingsView } from './Setting';
@@ -404,20 +405,20 @@ const ContentPanelInner = memo(function ContentPanelInner() {
   // ── Validate Active Session for Workspace View ────────────────────────────
   // Check if the currently selected session actually exists in the current project's branches.
   // This prevents rendering stale workspace views after refresh or project switch.
-  const isValidWorkspaceSession = useMemo(() => {
+  const isValidWorkspaceSession = useCodeStore((s) => {
     if (!activeWorkspaceSessionId || !currentProjectId) return false;
 
-    const project = useCodeStore.getState().projects.find((p) => p.id === currentProjectId);
+    const project = s.projects.find((p) => p.id === currentProjectId);
     if (!project || !project.branches) return false;
 
     // Search through all branches and their sessions
     for (const branch of project.branches) {
-      if (branch.sessions.some((s) => s.id === activeWorkspaceSessionId)) {
+      if (branch.sessions.some((sess) => sess.id === activeWorkspaceSessionId)) {
         return true;
       }
     }
     return false;
-  }, [activeWorkspaceSessionId, currentProjectId]);
+  });
 
   const [mountedSessionIds, setMountedSessionIds] = useState<string[]>([]);
 
@@ -450,6 +451,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
   if (
     contentViewMode === 'tasks' ||
     contentViewMode === 'git' ||
+    contentViewMode === 'pullrequests' ||
     contentViewMode === 'design' ||
     contentViewMode === 'agents' ||
     contentViewMode === 'settings' ||
@@ -460,6 +462,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         {workspaceViews}
         {contentViewMode === 'tasks' && <TaskManager />}
         {contentViewMode === 'git' && <GitView />}
+        {contentViewMode === 'pullrequests' && <PullRequestView />}
         {contentViewMode === 'design' && <DesignView />}
         {contentViewMode === 'agents' && <AgentWorkflow />}
         {contentViewMode === 'settings' && <SettingsView />}
@@ -569,7 +572,7 @@ export const ContentPanel = memo(function ContentPanel() {
   const contentViewMode = useCodeStore((s) => s.contentViewMode);
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {contentViewMode !== 'git' && <ContentHeaderBar />}
+      {contentViewMode !== 'git' && contentViewMode !== 'pullrequests' && <ContentHeaderBar />}
       <ContentPanelInner />
     </div>
   );

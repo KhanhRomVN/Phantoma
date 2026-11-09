@@ -3,7 +3,13 @@ import { SYNTHESIZER_TOOLS } from './tools-reference';
 
 const tick = (text: string): string => '`' + text + '`';
 
+// Tool validation — built by format at runtime. XML vs JSON wording lives
+// on either side of the ternaries below (each branch is fully self-contained).
 export const buildSynthesizerToolValidation = (toolFormat: ToolFormat = 'xml'): string => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // XML / JSON — each branch of every ternary below emits a fully self-contained
+  // wording for its format; nothing is shared between them.
+  // ─────────────────────────────────────────────────────────────────────────
   const valid = SYNTHESIZER_TOOLS.map(tick).join(', ');
   const invented =
     toolFormat === 'json'

@@ -1,22 +1,25 @@
-import { useReconStore } from '../stores/useReconStore';
-import { FillInputHandler } from '../handler/FillInputHandler';
+import { ReconController } from '@renderer/modules/Recon/ReconController';
 import type { FillInputParams } from '../parsers/FillInputParser';
-
-const handler = new FillInputHandler();
 
 export async function executeFillInput(
   params: FillInputParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const targetId = useReconStore.getState().activeTargetId;
-    if (!targetId) {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
+    const targetId = activeTarget.id;
 
-    const result = await handler.handle(targetId, params.ref, params.value);
+    const result = await ReconController.executeTool('fill_input', {
+      targetId,
+      ref: params.ref,
+      value: params.value,
+    });
 
     if (result.success) {
       return {

@@ -1,6 +1,8 @@
 import type { ToolFormat } from '../types';
 
 export type WebCollectorToolName =
+  | 'launch_browser'
+  | 'close_browser'
   | 'list_tabs'
   | 'create_tab'
   | 'close_tab'
@@ -27,6 +29,8 @@ export type WebCollectorToolName =
   | 'send_message';
 
 export const WEB_COLLECTOR_TOOLS: WebCollectorToolName[] = [
+  'launch_browser',
+  'close_browser',
   'list_tabs',
   'create_tab',
   'close_tab',
@@ -68,6 +72,22 @@ interface ToolDef {
 }
 
 const TOOL_DEFS: Record<WebCollectorToolName, ToolDef> = {
+  launch_browser: {
+    description:
+      'Open a browser window for the active target. A per-target Chromium profile is used by default (~/.phantoma/recon:{targetId}/browser-profile). Call this FIRST if no browser is running.',
+    examples: [
+      { params: {}, note: 'launch with the target default profile' },
+      {
+        params: { profileUserDataDir: '/home/user/.config/google-chrome', profileDirectory: 'Profile 1' },
+        note: 'launch with an existing Chrome profile',
+      },
+      { params: { url: 'https://example.com' }, note: 'launch and open a URL' },
+    ],
+  },
+  close_browser: {
+    description: 'Close the browser window of the active target.',
+    examples: [{ params: {}, note: 'no parameters' }],
+  },
   list_tabs: {
     description: 'List open browser tabs with their ids and URLs. Call before any tab action.',
     examples: [{ params: {}, note: 'no parameters' }],
@@ -192,7 +212,13 @@ const TOOL_DEFS: Record<WebCollectorToolName, ToolDef> = {
   },
 };
 
+// Tools reference — built by format at runtime. XML vs JSON wording lives
+// on either side of the ternaries below (each branch is fully self-contained).
 export const buildWebCollectorToolsReference = (toolFormat: ToolFormat = 'xml'): string => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // XML / JSON — each branch of every ternary below emits a fully self-contained
+  // wording for its format; nothing is shared between them.
+  // ─────────────────────────────────────────────────────────────────────────
   const how =
     toolFormat === 'json'
       ? 'Every tool call is one JSON object in its own fenced json block: ' +

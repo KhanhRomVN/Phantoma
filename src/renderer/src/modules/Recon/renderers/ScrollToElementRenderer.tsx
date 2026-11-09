@@ -46,9 +46,7 @@ export const ScrollToElementRenderer: React.FC<BaseRendererProps> = ({
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="font-semibold text-text-primary opacity-80">
-                    SCROLL TO ELEMENT
-                  </span>
+                  <span className="font-semibold text-text-primary opacity-80">SCROLL TO ELEMENT</span>
                   {action.params.ref && (
                     <span className="text-text-secondary font-mono text-[11px]">
                       {action.params.ref}
@@ -90,7 +88,7 @@ interface ParsedScrollToElementResult {
 function parseScrollToElementOutput(output: string): ParsedScrollToElementResult | null {
   try {
     const refMatch = output.match(/ref:\s*(.+)/i);
-
+    
     if (refMatch) {
       return {
         ref: refMatch[1].trim(),
@@ -103,9 +101,12 @@ function parseScrollToElementOutput(output: string): ParsedScrollToElementResult
   }
 }
 
-function ScrollToElementBlock({ output, isError }: ScrollToElementBlockProps) {
+function ScrollToElementBlock({
+  output,
+  isError,
+}: ScrollToElementBlockProps) {
   const parsed = output ? parseScrollToElementOutput(output) : null;
-
+  
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

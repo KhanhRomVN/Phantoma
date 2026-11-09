@@ -52,7 +52,7 @@ function ListAgentsBlock({ output, isError }: ListAgentsBlockProps) {
                 />
                 <span className="text-text-secondary shrink-0 capitalize">{agent.type}</span>
                 <span className="font-medium text-text-primary truncate">{agent.name}</span>
-                <span className="ml-auto font-mono text-[10px] text-text-secondary opacity-60 shrink-0">
+                <span className="ml-auto font-mono text-[11px] text-text-secondary opacity-60 shrink-0">
                   {agent.id}
                 </span>
               </div>

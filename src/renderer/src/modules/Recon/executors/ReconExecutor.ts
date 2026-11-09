@@ -11,6 +11,7 @@ export * from './ForwardExecutor';
 export * from './GetPageContentExecutor';
 export * from './ListElementsExecutor';
 export * from './ListTabsExecutor';
+export * from './LaunchBrowserExecutor';
 export * from './NavigateExecutor';
 export * from './PressKeyExecutor';
 export * from './ReloadExecutor';

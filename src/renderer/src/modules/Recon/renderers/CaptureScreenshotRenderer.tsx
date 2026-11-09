@@ -59,7 +59,10 @@ export const CaptureScreenshotRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <CaptureScreenshotBlock output={outputData?.output} isError={isError} />
+        <CaptureScreenshotBlock
+          output={outputData?.output}
+          isError={isError}
+        />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -88,7 +91,7 @@ function parseScreenshotOutput(output: string): ParsedScreenshotResult | null {
     const fileIdMatch = output.match(/fileId:\s*(.+)/i);
     const titleMatch = output.match(/title:\s*(.+)/i);
     const urlMatch = output.match(/url:\s*(.+)/i);
-
+    
     return {
       fileId: fileIdMatch ? fileIdMatch[1].trim() : undefined,
       title: titleMatch ? titleMatch[1].trim() : undefined,
@@ -100,9 +103,12 @@ function parseScreenshotOutput(output: string): ParsedScreenshotResult | null {
   }
 }
 
-function CaptureScreenshotBlock({ output, isError }: CaptureScreenshotBlockProps) {
+function CaptureScreenshotBlock({
+  output,
+  isError,
+}: CaptureScreenshotBlockProps) {
   const parsed = output ? parseScreenshotOutput(output) : null;
-
+  
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
@@ -137,9 +143,7 @@ function CaptureScreenshotBlock({ output, isError }: CaptureScreenshotBlockProps
             {parsed.url && (
               <div className="flex items-start gap-2">
                 <span className="text-text-secondary shrink-0">URL:</span>
-                <span className="text-text-primary font-mono text-[11px] break-all">
-                  {parsed.url}
-                </span>
+                <span className="text-text-primary font-mono text-[11px] break-all">{parsed.url}</span>
               </div>
             )}
           </div>

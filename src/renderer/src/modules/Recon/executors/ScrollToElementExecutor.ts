@@ -1,22 +1,24 @@
-import { useReconStore } from '../stores/useReconStore';
-import { ScrollToElementHandler } from '../handler/ScrollToElementHandler';
+import { ReconController } from '@renderer/modules/Recon/ReconController';
 import type { ScrollToElementParams } from '../parsers/ScrollToElementParser';
-
-const handler = new ScrollToElementHandler();
 
 export async function executeScrollToElement(
   params: ScrollToElementParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const targetId = useReconStore.getState().activeTargetId;
-    if (!targetId) {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
+    const targetId = activeTarget.id;
 
-    const result = await handler.handle(targetId, params.ref);
+    const result = await ReconController.executeTool('scroll_to_element', {
+      targetId,
+      ref: params.ref,
+    });
 
     if (result.success) {
       return {

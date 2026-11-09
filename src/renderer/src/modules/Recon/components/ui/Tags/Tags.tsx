@@ -29,7 +29,7 @@ export default function Tags({ groups }: Props) {
             <span className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
               {g.title || 'Khác'}
             </span>
-            <span className="text-[10px] px-1.5 rounded-full bg-sidebar-item-hover text-text-secondary">
+            <span className="text-[11px] px-1.5 rounded-full bg-sidebar-item-hover text-text-secondary">
               {g.items.length}
             </span>
           </div>
@@ -49,14 +49,14 @@ export default function Tags({ groups }: Props) {
                     {it.value}
                     {it.type && (
                       <span
-                        className="px-1.5 rounded-full text-[10px] font-sans"
+                        className="px-1.5 rounded-full text-[11px] font-sans"
                         style={{ color, backgroundColor: `${color}1a` }}
                       >
                         {it.type}
                       </span>
                     )}
                     {it.src?.map((s) => (
-                      <span key={s} className="text-[10px] font-sans text-text-secondary">
+                      <span key={s} className="text-[11px] font-sans text-text-secondary">
                         {s}
                       </span>
                     ))}

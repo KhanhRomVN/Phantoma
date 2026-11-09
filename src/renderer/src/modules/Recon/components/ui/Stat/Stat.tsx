@@ -29,7 +29,7 @@ const TONE_COLOR: Record<string, string> = {
 const GRID_MIN: Record<StatVariant, number> = { card: 170, compact: 150, split: 220, minimal: 150 };
 
 const TILE =
-  'relative overflow-hidden rounded-l-none rounded-r-lg border border-border bg-card-hover transition-colors hover:border-primary/50';
+  'relative overflow-hidden rounded-l-none rounded-r-lg border border-border bg-card-background-hover transition-colors hover:border-primary/50';
 
 const W = 84;
 const H = 28;

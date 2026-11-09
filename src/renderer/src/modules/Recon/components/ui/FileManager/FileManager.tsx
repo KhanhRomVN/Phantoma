@@ -221,7 +221,7 @@ export default function FileManager({ config, className }: FileManagerProps) {
                 {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
                   <DropdownItem key={k} onClick={() => handleSortChange(k)} className={cn(sort.key === k && 'bg-primary/10')}>
                     <span className='flex-1'>{SORT_LABEL[k]}</span>
-                    {sort.key === k && <span className='text-[10px] text-text-secondary'>{sort.dir === 'asc' ? 'Asc' : 'Desc'}</span>}
+                    {sort.key === k && <span className='text-[11px] text-text-secondary'>{sort.dir === 'asc' ? 'Asc' : 'Desc'}</span>}
                   </DropdownItem>
                 ))}
               </DropdownContent>

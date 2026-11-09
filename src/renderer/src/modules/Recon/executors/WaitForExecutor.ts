@@ -1,28 +1,27 @@
-import { useReconStore } from '../stores/useReconStore';
-import { WaitForHandler } from '../handler/WaitForHandler';
+import { ReconController } from '@renderer/modules/Recon/ReconController';
 import type { WaitForParams } from '../parsers/WaitForParser';
-
-const handler = new WaitForHandler();
 
 export async function executeWaitFor(
   params: WaitForParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const targetId = useReconStore.getState().activeTargetId;
-    if (!targetId) {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
+    const targetId = activeTarget.id;
 
-    const result = await handler.handle(
+    const result = await ReconController.executeTool('wait_for', {
       targetId,
-      params.condition,
-      params.ref,
-      params.text,
-      params.timeoutMs,
-    );
+      condition: params.condition,
+      ref: params.ref,
+      text: params.text,
+      timeoutMs: params.timeoutMs,
+    });
 
     if (result.success) {
       return {

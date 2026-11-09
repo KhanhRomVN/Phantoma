@@ -59,7 +59,11 @@ export const HoverRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <HoverBlock ref={action.params.ref} output={outputData?.output} isError={isError} />
+        <HoverBlock
+          ref={action.params.ref}
+          output={outputData?.output}
+          isError={isError}
+        />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -84,7 +88,7 @@ interface ParsedHoverResult {
 function parseHoverOutput(output: string): ParsedHoverResult | null {
   try {
     const refMatch = output.match(/ref:\s*(.+)/i);
-
+    
     if (refMatch) {
       return {
         ref: refMatch[1].trim(),
@@ -97,9 +101,12 @@ function parseHoverOutput(output: string): ParsedHoverResult | null {
   }
 }
 
-function HoverBlock({ output, isError }: HoverBlockProps) {
+function HoverBlock({
+  output,
+  isError,
+}: HoverBlockProps) {
   const parsed = output ? parseHoverOutput(output) : null;
-
+  
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (

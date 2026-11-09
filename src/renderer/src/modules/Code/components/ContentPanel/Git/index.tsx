@@ -16,7 +16,12 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, GitCommit, Search, X } from 'lucide-react';
+import {
+  AlertCircle,
+  GitCommit,
+  Search,
+  X,
+} from 'lucide-react';
 
 import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../../hooks/useCodeStore';
@@ -126,6 +131,7 @@ interface CommitRowProps {
   dimmed: boolean;
   onSelect: (hash: string) => void;
   onContextMenu: (e: React.MouseEvent, commit: Commit) => void;
+  onHover: (e: React.MouseEvent | null, commit?: Commit) => void;
 }
 
 const CommitRow = memo(function CommitRow({
@@ -137,6 +143,7 @@ const CommitRow = memo(function CommitRow({
   dimmed,
   onSelect,
   onContextMenu,
+  onHover,
 }: CommitRowProps) {
   const color = laneColor(row.col);
   const chips = parseRefs(commit.refs);
@@ -150,6 +157,9 @@ const CommitRow = memo(function CommitRow({
       id={`git-row-${commit.hash}`}
       onClick={() => onSelect(commit.hash)}
       onContextMenu={(e) => onContextMenu(e, commit)}
+      onMouseEnter={(e) => onHover(e, commit)}
+      onMouseMove={(e) => onHover(e, commit)}
+      onMouseLeave={() => onHover(null)}
       style={{
         height: ROW_HEIGHT,
         background: selected
@@ -232,6 +242,18 @@ export const GitView = memo(function GitView() {
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [activeBranch, setActiveBranch] = useState<string | null>(null);
 
+  const [defaultBranch, setDefaultBranch] = useState('');
+  const [hover, setHover] = useState<{ x: number; y: number; title: string; lines: string[] } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!projectPath) return;
+    window.api.invoke('git:default-branch', projectPath).then((def: { name?: string }) => {
+      setDefaultBranch(def?.name ?? '');
+    });
+  }, [projectPath]);
+
   useEffect(() => {
     setActiveFile(null);
     if (!selectedHash) setDiffOpen(false);
@@ -308,7 +330,12 @@ export const GitView = memo(function GitView() {
     };
   }, [selectedHash, projectPath]);
 
-  const { rows, laneCount } = useMemo(() => buildGraph(commits), [commits]);
+  const mainTip = useMemo(() => {
+    if (!defaultBranch) return null;
+    const names = [defaultBranch, `HEAD -> ${defaultBranch}`, `origin/${defaultBranch}`];
+    return commits.find((c) => c.refs.some((r) => names.includes(r)))?.hash ?? null;
+  }, [commits, defaultBranch]);
+  const { rows, laneCount } = useMemo(() => buildGraph(commits, mainTip), [commits, mainTip]);
   const graphWidth = Math.min(Math.max(laneCount * LANE_WIDTH + 16, 72), 260);
   const selected = commits.find((c) => c.hash === selectedHash) ?? null;
   const selectedVirtual = localChanges.find((lc) => VIRTUAL_PREFIX + lc.name === selectedHash) ?? null;
@@ -406,6 +433,7 @@ export const GitView = memo(function GitView() {
     setNotice(msg);
     setTimeout(() => setNotice(null), 3500);
   }, []);
+
 
   const jumpToBranch = useCallback(
     async (name: string) => {
@@ -505,6 +533,24 @@ export const GitView = memo(function GitView() {
     setCommitMenu({ commit, pos: { top: e.clientY, left: e.clientX } });
   }, []);
 
+  const handleHover = useCallback((e: React.MouseEvent | null, commit?: Commit) => {
+    if (!e || !commit) {
+      setHover(null);
+      return;
+    }
+    const chips = parseRefs(commit.refs).map((c) => c.label);
+    setHover({
+      x: e.clientX,
+      y: e.clientY,
+      title: commit.subject,
+      lines: [
+        `${commit.author} · ${commit.hash.slice(0, 7)} · ${formatRelative(commit.date)}`,
+        ...(chips.length ? [`Refs: ${chips.join(', ')}`] : []),
+        ...(commit.parents.length > 1 ? [`Merge of ${commit.parents.map((p) => p.slice(0, 7)).join(' + ')}`] : []),
+      ],
+    });
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
     e.preventDefault();
@@ -552,6 +598,11 @@ export const GitView = memo(function GitView() {
         <div className={'h-11 shrink-0 px-4 flex items-center gap-3 border-b border-border'}>
 
 
+          <div className={'flex items-center gap-1.5 text-[12px] font-medium text-primary'}>
+            <GitCommit className={'w-3.5 h-3.5'} />
+            Graph
+          </div>
+
           <div className={'relative ml-auto w-[260px]'}>
             <Search className={'absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary/60 pointer-events-none'} />
             <input
@@ -573,6 +624,7 @@ export const GitView = memo(function GitView() {
 
         </div>
 
+        <>
         {/* ── Column header ── */}
         <div className={'h-7 shrink-0 flex items-center border-b border-border text-[10px] font-semibold uppercase tracking-wider text-text-secondary/50'}>
           <span className={'w-[200px] shrink-0 pr-2 text-right'}>Branch / Tag</span>
@@ -608,6 +660,7 @@ export const GitView = memo(function GitView() {
                   dimmed={matchSet !== null && !matchSet.has(it.commit.hash)}
                   onSelect={selectHash}
                   onContextMenu={openCommitMenu}
+                  onHover={handleHover}
                 />
               ) : (
                 <VirtualRow
@@ -625,12 +678,27 @@ export const GitView = memo(function GitView() {
             )}
           </div>
         )}
+        </>
       </section>
       )}
 
       {notice && (
         <div className={'absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-3 py-2 rounded-lg border border-border bg-card-background text-xs text-text-primary shadow-lg'}>
           {notice}
+        </div>
+      )}
+
+      {hover && !commitMenu && (
+        <div
+          style={{ top: hover.y + 14, left: Math.min(hover.x + 14, window.innerWidth - 380) }}
+          className={'fixed z-50 max-w-[360px] pointer-events-none px-3 py-2 rounded-lg border border-border bg-card-background shadow-lg'}
+        >
+          <div className={'text-xs font-medium text-text-primary break-words'}>{hover.title}</div>
+          {hover.lines.map((l) => (
+            <div key={l} className={'mt-0.5 text-[11px] text-text-secondary break-words'}>
+              {l}
+            </div>
+          ))}
         </div>
       )}
 

@@ -218,6 +218,10 @@ const questionDocs = (format: ToolFormat): string => {
 export const buildOrchestratorToolsReference = (
   toolFormat: ToolFormat = 'xml',
 ): string => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // XML / JSON — each branch of every ternary below emits a fully self-contained
+  // wording for its format; nothing is shared between them.
+  // ─────────────────────────────────────────────────────────────────────────
   const how =
     toolFormat === 'json'
       ? 'Every tool call is one JSON object in its own fenced json block: ' +

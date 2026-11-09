@@ -1,22 +1,23 @@
-import { useReconStore } from '../stores/useReconStore';
-import { BackHandler } from '../handler/BackHandler';
+import { ReconController } from '@renderer/modules/Recon/ReconController';
 import type { BackParams } from '../parsers/BackParser';
-
-const handler = new BackHandler();
 
 export async function executeBack(
   _params: BackParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const targetId = useReconStore.getState().activeTargetId;
-    if (!targetId) {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
+    const targetId = activeTarget.id;
 
-    const result = await handler.handle(targetId);
+    const result = await ReconController.executeTool('back', {
+      targetId,
+    });
 
     if (result.success) {
       return {

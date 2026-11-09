@@ -1,22 +1,24 @@
-import { useReconStore } from '../stores/useReconStore';
-import { CloseTabHandler } from '../handler/CloseTabHandler';
+import { ReconController } from '@renderer/modules/Recon/ReconController';
 import type { CloseTabParams } from '../parsers/CloseTabParser';
-
-const handler = new CloseTabHandler();
 
 export async function executeCloseTab(
   params: CloseTabParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const targetId = useReconStore.getState().activeTargetId;
-    if (!targetId) {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
+    const targetId = activeTarget.id;
 
-    const result = await handler.handle(targetId, params.tabId);
+    const result = await ReconController.executeTool('close_tab', {
+      targetId,
+      tabId: params.tabId,
+    });
 
     if (result.success) {
       return {

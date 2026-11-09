@@ -25,7 +25,7 @@ const niceMax = (v: number) => {
 
 function Axis({ max, color, side }: { max: number; color: string; side: 'left' | 'right' }) {
   return (
-    <div className="relative shrink-0 text-[10px]" style={{ width: AXIS_W, color }}>
+    <div className="relative shrink-0 text-[11px]" style={{ width: AXIS_W, color }}>
       {Array.from({ length: TICKS + 1 }, (_, i) => (
         <span
           key={i}
@@ -141,7 +141,7 @@ export default function BarLine({ items, barColor, lineColor }: Props) {
       </div>
 
       <div
-        className="flex shrink-0 text-[10px] text-text-secondary"
+        className="flex shrink-0 text-[11px] text-text-secondary"
         style={{ marginLeft: AXIS_W + GAP, marginRight: hasLine ? AXIS_W + GAP : 0 }}
       >
         {items.map((it, i) => (

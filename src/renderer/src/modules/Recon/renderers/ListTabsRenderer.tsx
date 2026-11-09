@@ -53,7 +53,11 @@ export const ListTabsRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <ListTabsBlock output={outputData?.output} isError={isError} />
+        <ListTabsBlock
+
+          output={outputData?.output}
+          isError={isError}
+        />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -84,21 +88,19 @@ function parseTabsOutput(output: string): { totalTabs: number; tabs: ParsedTab[]
     // [list_tabs] Total tabs: N
     // - Tab 0 (tab-001): "Title" | URL: about:blank | Active: true
     // - Tab 1 (tab-002): "Another" | URL: https://example.com | Active: false
-
+    
     const lines = output.trim().split('\n');
-
+    
     // Extract total tabs
     const totalMatch = lines[0]?.match(/Total tabs:\s*(\d+)/i);
     const totalTabs = totalMatch ? parseInt(totalMatch[1]) : 0;
-
+    
     // Parse list items
     const tabs: ParsedTab[] = [];
     for (const line of lines) {
       // Match pattern: - Tab {id} ({tabId}): "{title}" | URL: {url} | Active: {isActive}
-      const match = line.match(
-        /^-\s*Tab\s+(\d+)\s+\(([^)]+)\):\s*"([^"]*)"\s*\|\s*URL:\s*([^\|]+)\s*\|\s*Active:\s*(true|false)/i,
-      );
-
+      const match = line.match(/^-\s*Tab\s+(\d+)\s+\(([^)]+)\):\s*"([^"]*)"\s*\|\s*URL:\s*([^\|]+)\s*\|\s*Active:\s*(true|false)/i);
+      
       if (match) {
         tabs.push({
           id: match[1],
@@ -109,7 +111,7 @@ function parseTabsOutput(output: string): { totalTabs: number; tabs: ParsedTab[]
         });
       }
     }
-
+    
     return { totalTabs, tabs };
   } catch {
     return null;
@@ -118,26 +120,22 @@ function parseTabsOutput(output: string): { totalTabs: number; tabs: ParsedTab[]
 
 function ListTabsBlock({ output, isError }: ListTabsBlockProps) {
   const parsed = output ? parseTabsOutput(output) : null;
-
+  
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-text-secondary">
-            <span>
-              Total: {parsed.totalTabs} tab{parsed.totalTabs !== 1 ? 's' : ''}
-            </span>
+            <span>Total: {parsed.totalTabs} tab{parsed.totalTabs !== 1 ? 's' : ''}</span>
           </div>
-
+          
           <div className="space-y-1.5">
             {parsed.tabs.map((tab) => (
               <div
                 key={tab.tabId}
                 className="p-2.5 rounded border transition-colors"
                 style={{
-                  backgroundColor: tab.isActive
-                    ? $('--success') + '08'
-                    : $('--background-secondary'),
+                  backgroundColor: tab.isActive ? $('--success') + '08' : $('--background-secondary'),
                   borderColor: tab.isActive ? $('--success') + '40' : $('--border'),
                 }}
               >
@@ -150,14 +148,16 @@ function ListTabsBlock({ output, isError }: ListTabsBlockProps) {
                           style={{ backgroundColor: $('--success') }}
                         />
                       )}
-                      <span className="font-medium text-text-primary truncate">{tab.title}</span>
+                      <span className="font-medium text-text-primary truncate">
+                        {tab.title}
+                      </span>
                     </div>
                     <div className="text-text-secondary font-mono text-[11px] truncate">
                       {tab.url}
                     </div>
                   </div>
                   <span
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0"
+                    className="px-1.5 py-0.5 rounded text-[11px] font-mono shrink-0"
                     style={{
                       backgroundColor: $('--background-tertiary'),
                       color: $('--text-secondary'),

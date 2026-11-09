@@ -38,7 +38,7 @@ function ReadFileBlock({ filePath, startLine, endLine, output, isError }: ReadFi
           >
             <span>{isCollapsed ? 'Show content' : 'Hide content'}</span>
             {filePath && (
-              <span className="font-mono text-[10px] opacity-60">
+              <span className="font-mono text-[11px] opacity-60">
                 {filePath}
                 {rangeLabel}
               </span>
@@ -99,7 +99,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-text-primary opacity-80">READ</span>
                   {filePath && (
-                    <span className="font-mono text-[10px] text-text-secondary opacity-70 truncate">
+                    <span className="font-mono text-[11px] text-text-secondary opacity-70 truncate">
                       {filePath}
                     </span>
                   )}

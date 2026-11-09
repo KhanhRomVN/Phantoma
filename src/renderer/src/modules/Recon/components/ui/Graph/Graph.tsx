@@ -103,11 +103,17 @@ function computeLayout(nodes: GraphNode[], edges: GraphEdge[]): Pos {
  * Graph tương tác: lăn chuột để thu phóng, kéo nền để di chuyển, kéo node để đổi vị trí,
  * click node để chọn (chỉ node/edge liên quan sáng, phần còn lại mờ đi). Click nền để bỏ chọn.
  */
-export default function Graph({ nodes: manualNodes, edges: manualEdges, manual = false, scope }: Props) {
+export default function Graph({
+  nodes: manualNodes,
+  edges: manualEdges,
+  manual = false,
+  scope,
+}: Props) {
   const { tabs, activeTab } = useContext(ReconGraphContext);
   const graph = useMemo(
-    () => (manual ? { nodes: manualNodes, edges: manualEdges } : buildGraph(tabs, { scope, activeTab })),
-    [manual, manualNodes, manualEdges, tabs, scope, activeTab]
+    () =>
+      manual ? { nodes: manualNodes, edges: manualEdges } : buildGraph(tabs, { scope, activeTab }),
+    [manual, manualNodes, manualEdges, tabs, scope, activeTab],
   );
   const initial = useMemo(() => computeLayout(graph.nodes, graph.edges), [graph]);
 
@@ -175,11 +181,21 @@ export default function Graph({ nodes: manualNodes, edges: manualEdges, manual =
 
   const handleDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
-    const nodeId = (e.target as Element).closest('[data-node]')?.getAttribute('data-node') ?? undefined;
+    const nodeId =
+      (e.target as Element).closest('[data-node]')?.getAttribute('data-node') ?? undefined;
     const base = nodeId ? positions[nodeId] : undefined;
-    dragRef.current = nodeId && base
-      ? { kind: 'node', id: nodeId, sx: e.clientX, sy: e.clientY, ox: base.x, oy: base.y, moved: false }
-      : { kind: 'pan', sx: e.clientX, sy: e.clientY, ox: view.x, oy: view.y, moved: false };
+    dragRef.current =
+      nodeId && base
+        ? {
+            kind: 'node',
+            id: nodeId,
+            sx: e.clientX,
+            sy: e.clientY,
+            ox: base.x,
+            oy: base.y,
+            moved: false,
+          }
+        : { kind: 'pan', sx: e.clientX, sy: e.clientY, ox: view.x, oy: view.y, moved: false };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
@@ -219,12 +235,15 @@ export default function Graph({ nodes: manualNodes, edges: manualEdges, manual =
   };
 
   return (
-    <div ref={containerRef} className='w-full flex-1 min-h-[200px] bg-black/20 rounded overflow-hidden relative'>
+    <div
+      ref={containerRef}
+      className="w-full flex-1 min-h-[200px] bg-black/20 rounded overflow-hidden relative"
+    >
       <svg
         ref={svgRef}
-        width='100%'
-        height='100%'
-        className='absolute inset-0 w-full h-full touch-none select-none'
+        width="100%"
+        height="100%"
+        className="absolute inset-0 w-full h-full touch-none select-none"
         style={{ cursor: draggingId ? 'grabbing' : 'default' }}
         onPointerDown={handleDown}
         onPointerMove={handleMove}
@@ -238,10 +257,17 @@ export default function Graph({ nodes: manualNodes, edges: manualEdges, manual =
             if (!a || !b) return null;
             const active = !selected || edge.from === selected || edge.to === selected;
             const c = edge.confidence;
-            const stroke = c === undefined ? '#6b7280' : c >= 0.75 ? '#4ade80' : c >= 0.5 ? '#facc15' : '#f87171';
+            const stroke =
+              c === undefined
+                ? '#6b7280'
+                : c >= 0.75
+                  ? '#4ade80'
+                  : c >= 0.5
+                    ? '#facc15'
+                    : '#f87171';
             const width = c === undefined ? 1.5 : Math.max(1, c * 3);
             return (
-              <g key={`edge-${idx}`} opacity={active ? 1 : 0.1} className='pointer-events-none'>
+              <g key={`edge-${idx}`} opacity={active ? 1 : 0.1} className="pointer-events-none">
                 <line
                   x1={a.x}
                   y1={a.y}
@@ -253,7 +279,13 @@ export default function Graph({ nodes: manualNodes, edges: manualEdges, manual =
                   opacity={0.7}
                 />
                 {edge.label && (view.k >= 0.8 || (selected && active)) && (
-                  <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 4} fill='#9ca3af' fontSize='8' textAnchor='middle'>
+                  <text
+                    x={(a.x + b.x) / 2}
+                    y={(a.y + b.y) / 2 - 4}
+                    fill="#9ca3af"
+                    fontSize="8"
+                    textAnchor="middle"
+                  >
                     {edge.label}
                   </text>
                 )}
@@ -275,24 +307,36 @@ export default function Graph({ nodes: manualNodes, edges: manualEdges, manual =
                 opacity={active ? 1 : 0.15}
                 style={{ cursor: draggingId === node.id ? 'grabbing' : 'grab' }}
               >
-                <circle r={NODE_R} fill={fill} stroke={isSel ? '#fff' : 'rgba(255,255,255,0.5)'} strokeWidth={isSel ? 3 : 1} />
+                <circle
+                  r={NODE_R}
+                  fill={fill}
+                  stroke={isSel ? '#fff' : 'rgba(255,255,255,0.5)'}
+                  strokeWidth={isSel ? 3 : 1}
+                />
                 {node.url && (
                   <>
-                    <circle r={10} fill='#fff' className='pointer-events-none' />
+                    <circle r={10} fill="#fff" className="pointer-events-none" />
                     <image
                       href={getFaviconUrl(node.url, 32)}
                       x={-8}
                       y={-8}
                       width={16}
                       height={16}
-                      className='pointer-events-none'
+                      className="pointer-events-none"
                       onError={(ev) => {
                         ev.currentTarget.style.display = 'none';
                       }}
                     />
                   </>
                 )}
-                <text dy={NODE_R + 12} textAnchor='middle' fill='#e5e7eb' fontSize='10' fontWeight='bold' className='pointer-events-none'>
+                <text
+                  dy={NODE_R + 12}
+                  textAnchor="middle"
+                  fill="#e5e7eb"
+                  fontSize="10"
+                  fontWeight="bold"
+                  className="pointer-events-none"
+                >
                   {node.label.length > 18 ? node.label.substring(0, 17) + '..' : node.label}
                 </text>
                 <title>{`${node.label} (${node.type})`}</title>
@@ -303,19 +347,19 @@ export default function Graph({ nodes: manualNodes, edges: manualEdges, manual =
       </svg>
 
       {graph.nodes.length === 0 && (
-        <div className='absolute inset-0 flex items-center justify-center text-text-secondary italic pointer-events-none'>
+        <div className="absolute inset-0 flex items-center justify-center text-text-secondary italic pointer-events-none">
           Không có thực thể nào.
         </div>
       )}
 
       <button
-        type='button'
+        type="button"
         onClick={resetView}
-        className='absolute top-2 right-2 text-[10px] text-text-secondary bg-background/80 px-2 py-1 rounded border border-border hover:text-text-primary'
+        className="absolute top-2 right-2 text-[11px] text-text-secondary bg-background/80 px-2 py-1 rounded border border-border hover:text-text-primary"
       >
         {Math.round(view.k * 100)}% • Căn lại
       </button>
-      <div className='absolute bottom-2 right-2 text-[10px] text-gray-500 bg-background/80 px-2 py-1 rounded border border-border pointer-events-none'>
+      <div className="absolute bottom-2 right-2 text-[11px] text-gray-500 bg-background/80 px-2 py-1 rounded border border-border pointer-events-none">
         Lăn: thu phóng • Kéo nền: di chuyển • Kéo node: đổi vị trí • Click: chọn
       </div>
     </div>

@@ -1312,6 +1312,106 @@ export function setupGitHandlers(): void {
     return { name };
   });
 
+  // ── Protect default branch (pre-commit / pre-push hooks) ──
+  const PROTECT_MARKER = '# phantoma-protect-default-branch';
+  const PRE_COMMIT_HOOK = `#!/bin/sh
+${PROTECT_MARKER}
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+default=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
+[ -z "$default" ] && default=$(git config --get init.defaultBranch)
+if [ -n "$branch" ] && [ "$branch" = "$default" ]; then
+  echo "Phantoma: committing directly to '$default' is blocked. Create a feature branch, commit there and open a pull request." >&2
+  exit 1
+fi
+exit 0
+`;
+  const PRE_PUSH_HOOK = `#!/bin/sh
+${PROTECT_MARKER}
+default=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
+[ -z "$default" ] && default=$(git config --get init.defaultBranch)
+[ -z "$default" ] && exit 0
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/$default" ]; then
+    echo "Phantoma: pushing directly to '$default' is blocked. Push a feature branch and open a pull request." >&2
+    exit 1
+  fi
+done
+exit 0
+`;
+  const PROTECT_HOOKS: Record<string, string> = {
+    'pre-commit': PRE_COMMIT_HOOK,
+    'pre-push': PRE_PUSH_HOOK,
+  };
+
+  const resolveHooksDir = async (cwd: string): Promise<string> => {
+    const out = await runGit(['rev-parse', '--git-path', 'hooks'], cwd);
+    return out.error ? '' : resolve(cwd, out.stdout.trim());
+  };
+
+  const readHook = async (file: string): Promise<string | null> => {
+    try {
+      return await fs.readFile(file, 'utf8');
+    } catch {
+      return null;
+    }
+  };
+
+  ipcMain.handle('git:protect-status', async (_event, projectPath: string) => {
+    try {
+      const dir = await resolveHooksDir(projectPath || process.cwd());
+      if (!dir) return { error: 'Not a git repository' };
+      let installed = 0;
+      let conflict = false;
+      for (const name of Object.keys(PROTECT_HOOKS)) {
+        const content = await readHook(join(dir, name));
+        if (content === null) continue;
+        if (content.includes(PROTECT_MARKER)) installed++;
+        else conflict = true;
+      }
+      return { protected: installed === Object.keys(PROTECT_HOOKS).length, conflict };
+    } catch (e: any) {
+      logger.error('[git:protect-status] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('git:protect-enable', async (_event, projectPath: string) => {
+    try {
+      const dir = await resolveHooksDir(projectPath || process.cwd());
+      if (!dir) return { error: 'Not a git repository' };
+      for (const name of Object.keys(PROTECT_HOOKS)) {
+        const content = await readHook(join(dir, name));
+        if (content !== null && !content.includes(PROTECT_MARKER)) {
+          return { error: `A ${name} hook already exists in ${dir}. Add the default-branch check to it manually.` };
+        }
+      }
+      await fs.mkdir(dir, { recursive: true });
+      for (const [name, script] of Object.entries(PROTECT_HOOKS)) {
+        await fs.writeFile(join(dir, name), script, { mode: 0o755 });
+        await fs.chmod(join(dir, name), 0o755);
+      }
+      return { ok: true };
+    } catch (e: any) {
+      logger.error('[git:protect-enable] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  ipcMain.handle('git:protect-disable', async (_event, projectPath: string) => {
+    try {
+      const dir = await resolveHooksDir(projectPath || process.cwd());
+      if (!dir) return { error: 'Not a git repository' };
+      for (const name of Object.keys(PROTECT_HOOKS)) {
+        const content = await readHook(join(dir, name));
+        if (content !== null && content.includes(PROTECT_MARKER)) await fs.unlink(join(dir, name));
+      }
+      return { ok: true };
+    } catch (e: any) {
+      logger.error('[git:protect-disable] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
   // ── Check Ready (workspace có .git + có staged chưa) ──
   ipcMain.handle('git:check-ready', async (_event, projectPath: string) => {
     try {
@@ -1880,7 +1980,7 @@ export function setupGitHandlers(): void {
   );
 
   // ── Delete Branch (branch + worktree) ──
-  ipcMain.handle('git:delete-branch', async (_event, projectPath: string, branchName: string) => {
+  ipcMain.handle('git:delete-branch', async (_event, projectPath: string, branchName: string, deleteRemote?: boolean) => {
     try {
       const cwd = projectPath || process.cwd();
       const name = (branchName || '').trim();
@@ -1914,11 +2014,31 @@ export function setupGitHandlers(): void {
       if (del.error) return { error: del.stderr || del.error.message };
 
       await runGit(['worktree', 'prune'], cwd);
-      return { branch: name };
+
+      let remoteError: string | undefined;
+      if (deleteRemote) {
+        const remoteRef = await runGit(
+          ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`],
+          cwd,
+        );
+        if (!remoteRef.error) {
+          const pushed = await runGit(['push', 'origin', '--delete', name], cwd);
+          if (pushed.error) remoteError = pushed.stderr || pushed.error.message;
+        }
+      }
+      return { branch: name, remoteError };
     } catch (e: any) {
       logger.error('[git:delete-branch] Error:', e);
       return { error: e.message || String(e) };
     }
+  });
+
+  ipcMain.handle('git:remote-branch-exists', async (_event, projectPath: string, branchName: string) => {
+    const cwd = projectPath || process.cwd();
+    const name = (branchName || '').trim();
+    if (!name) return { exists: false };
+    const ref = await runGit(['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`], cwd);
+    return { exists: !ref.error };
   });
 
   // ── Branch Sync (pull changed files from another branch, skipping gitignored paths) ──

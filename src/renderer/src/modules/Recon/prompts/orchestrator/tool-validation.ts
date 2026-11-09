@@ -1,9 +1,15 @@
 import type { ToolFormat } from '../types';
 import { ORCHESTRATOR_TOOLS, RECON_AGENT_TYPES, tick } from './tools-reference';
 
+// Tool validation — built by format at runtime. XML vs JSON wording lives
+// on either side of the ternaries below (each branch is fully self-contained).
 export const buildOrchestratorToolValidation = (
   toolFormat: ToolFormat = 'xml',
 ): string => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // XML / JSON — each branch of every ternary below emits a fully self-contained
+  // wording for its format; nothing is shared between them.
+  // ─────────────────────────────────────────────────────────────────────────
   const valid = ORCHESTRATOR_TOOLS.map(tick).join(', ');
   const agentTypes = RECON_AGENT_TYPES.map(tick).join(', ');
   const shapeRules =

@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react';
-import { ShieldAlert, ShieldCheck } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { useBranchScope, useBranchScopeStore } from '../../stores/useBranchScopeStore';
@@ -53,6 +53,16 @@ export const BranchScopeButton = memo(function BranchScopeButton({
     };
   }, [root]);
 
+  useEffect(() => {
+    if (!isRepo) return;
+    const onOpen = (e: Event) => {
+      const d = (e as CustomEvent<{ projectId: string; branchName: string }>).detail;
+      if (d?.projectId === projectId && d?.branchName === branchName) setOpen(true);
+    };
+    window.addEventListener('phantoma:open-branch-scope', onOpen);
+    return () => window.removeEventListener('phantoma:open-branch-scope', onOpen);
+  }, [isRepo, projectId, branchName]);
+
   if (!isRepo) {
     return null;
   }
@@ -61,26 +71,22 @@ export const BranchScopeButton = memo(function BranchScopeButton({
 
   return (
     <>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        className={cn(
-          'relative h-5 w-5 shrink-0 rounded-[5px] flex items-center justify-center transition-colors cursor-pointer',
-          unset
-            ? 'text-error bg-error/10 hover:bg-error/20'
-            : 'text-text-secondary bg-button-soft-background hover:bg-button-soft-background/80 hover:text-text-primary',
-        )}
-        title={unset ? 'Set the scope this branch can modify' : `Scope: ${scope.length} path(s)`}
-      >
-        {unset && <span className="absolute inset-0 rounded-[5px] bg-error/20 animate-ping" />}
-        {unset ? (
+      {unset && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          className={cn(
+            'relative h-5 w-5 shrink-0 rounded-[5px] flex items-center justify-center transition-colors cursor-pointer',
+            'text-error bg-error/10 hover:bg-error/20',
+          )}
+          title="Set the scope this branch can modify"
+        >
+          <span className="absolute inset-0 rounded-[5px] bg-error/20 animate-ping" />
           <ShieldAlert className="relative w-3 h-3 animate-pulse" />
-        ) : (
-          <ShieldCheck className="relative w-3 h-3" />
-        )}
-      </button>
+        </button>
+      )}
       {open && (
         <span onClick={(e) => e.stopPropagation()}>
           <BranchScopeModal

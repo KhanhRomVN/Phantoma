@@ -9,13 +9,14 @@ import { TreeUIPreview } from './TreeUIPreview';
 interface ConfirmDeleteBranchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => Promise<{ error?: string } | void>;
+  onConfirm: (opts: { deleteRemote: boolean }) => Promise<{ error?: string } | void>;
   branchName: string;
   projectName: string;
   projectPath: string;
   branchPath: string;
   logoPath?: string | null;
   projectBranch?: string;
+  hasRemote?: boolean;
 }
 
 export function ConfirmDeleteBranchModal({
@@ -28,10 +29,12 @@ export function ConfirmDeleteBranchModal({
   branchPath,
   logoPath,
   projectBranch,
+  hasRemote = false,
 }: ConfirmDeleteBranchModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [confirmText, setConfirmText] = useState('');
+  const [deleteRemote, setDeleteRemote] = useState(false);
 
   const { folderName, targetDir } = useMemo(() => {
     const trimmed = branchPath.replace(/\/+$/, '');
@@ -43,6 +46,7 @@ export function ConfirmDeleteBranchModal({
     if (!isOpen) {
       setConfirmText('');
       setError('');
+      setDeleteRemote(false);
     }
   }, [isOpen]);
 
@@ -59,7 +63,7 @@ export function ConfirmDeleteBranchModal({
     setSubmitting(true);
     setError('');
     try {
-      const res = await onConfirm();
+      const res = await onConfirm({ deleteRemote });
       if (res && res.error) {
         setError(res.error);
         return;
@@ -118,6 +122,33 @@ export function ConfirmDeleteBranchModal({
               className="h-9 w-full rounded-md border border-divider bg-input-background/40 px-3 font-mono text-xs text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 focus:border-error/60 disabled:opacity-50"
             />
           </div>
+
+          {hasRemote && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={deleteRemote}
+            disabled={submitting}
+            onClick={() => setDeleteRemote((v) => !v)}
+            className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-divider bg-input-background/40 px-3 py-2.5 text-left outline-none transition-colors hover:bg-input-background/60 disabled:opacity-50"
+          >
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-xs font-medium text-text-primary">
+                Also delete <span className="font-mono">origin/{branchName}</span> on remote
+              </span>
+              <span className="text-[11px] text-text-secondary">
+                Runs git push origin --delete. Other people lose this branch too.
+              </span>
+            </span>
+            <span
+              className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${deleteRemote ? 'bg-error' : 'bg-text-secondary/30'}`}
+            >
+              <span
+                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all ${deleteRemote ? 'left-[14px]' : 'left-0.5'}`}
+              />
+            </span>
+          </button>
+          )}
 
           {error && <p className="text-xs text-error leading-relaxed">{error}</p>}
         </div>

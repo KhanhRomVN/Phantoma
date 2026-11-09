@@ -53,7 +53,10 @@ export const ListFramesRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <ListFramesBlock output={outputData?.output} isError={isError} />
+        <ListFramesBlock
+          output={outputData?.output}
+          isError={isError}
+        />
       </div>
       {!hasOutput && (
         <ActionBar
@@ -81,14 +84,11 @@ function parseListFramesOutput(output: string): ParsedFrame[] | null {
     // Parse markdown table format similar to list_tabs
     const lines = output.trim().split('\n');
     const frames: ParsedFrame[] = [];
-
+    
     for (const line of lines) {
       if (line.trim().startsWith('|') && !line.includes('---')) {
-        const parts = line
-          .split('|')
-          .map((p) => p.trim())
-          .filter((p) => p);
-
+        const parts = line.split('|').map(p => p.trim()).filter(p => p);
+        
         // Skip header row
         if (parts.length >= 3 && parts[0] !== 'id' && parts[1] !== 'name') {
           frames.push({
@@ -99,16 +99,19 @@ function parseListFramesOutput(output: string): ParsedFrame[] | null {
         }
       }
     }
-
+    
     return frames.length > 0 ? frames : null;
   } catch {
     return null;
   }
 }
 
-function ListFramesBlock({ output, isError }: ListFramesBlockProps) {
+function ListFramesBlock({
+  output,
+  isError,
+}: ListFramesBlockProps) {
   const parsed = output ? parseListFramesOutput(output) : null;
-
+  
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
@@ -118,7 +121,7 @@ function ListFramesBlock({ output, isError }: ListFramesBlockProps) {
               {parsed.length} frame{parsed.length !== 1 ? 's' : ''}
             </span>
           </div>
-
+          
           <div className="space-y-1.5">
             {parsed.map((frame, idx) => (
               <div
@@ -131,7 +134,7 @@ function ListFramesBlock({ output, isError }: ListFramesBlockProps) {
               >
                 <div className="flex items-start gap-2 mb-1.5">
                   <span
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0"
+                    className="px-1.5 py-0.5 rounded text-[11px] font-mono shrink-0"
                     style={{
                       backgroundColor: $('--background-tertiary'),
                       color: $('--text-secondary'),

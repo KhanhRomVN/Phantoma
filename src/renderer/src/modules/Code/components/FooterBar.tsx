@@ -215,6 +215,25 @@ export function FooterBar({ className }: FooterBarProps) {
   }, [loadGit]);
 
   useEffect(() => {
+    if (!projectPath) return;
+    void window.api.invoke('fs:watch-dir', projectPath).catch(() => undefined);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onChange = (_event: any, payload?: { projectPath?: string }) => {
+      if (payload?.projectPath && payload.projectPath !== projectPath) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => void loadGit(), 300);
+    };
+    window.api.on('fs:dir-changed', onChange);
+    window.api.on('git:index-changed', onChange);
+    return () => {
+      clearTimeout(timer);
+      window.api.off('fs:dir-changed', onChange);
+      window.api.off('git:index-changed', onChange);
+      void window.api.invoke('fs:unwatch-dir', projectPath).catch(() => undefined);
+    };
+  }, [projectPath, loadGit]);
+
+  useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
   }, []);

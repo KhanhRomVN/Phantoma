@@ -101,6 +101,10 @@ export const BranchScopeModal = memo(function BranchScopeModal({
   const [cache, setCache] = useState<Record<string, Entry[]>>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
+  const locked = initial.length === 0;
+  const handleClose = useCallback(() => {
+    if (!locked) onClose();
+  }, [locked, onClose]);
   const ownersOf = (rel: string) =>
     otherScopes
       .filter((o) => o.paths.some((p) => rel === p || rel.startsWith(`${p}/`)))
@@ -224,7 +228,8 @@ export const BranchScopeModal = memo(function BranchScopeModal({
   return (
     <Modal
       isOpen
-      onClose={onClose}
+      onClose={handleClose}
+      closeOnBackdropClick={!locked}
       className="w-[680px] max-w-[calc(100vw-2rem)] min-h-[40vh] max-h-[60vh]"
     >
       <ModalHeader
@@ -237,7 +242,8 @@ export const BranchScopeModal = memo(function BranchScopeModal({
           </span>
         }
         description="Choose the folders and files this branch is allowed to modify."
-        onClose={onClose}
+        onClose={handleClose}
+        showCloseButton={!locked}
         className="px-5 py-4"
       />
 
@@ -357,16 +363,19 @@ export const BranchScopeModal = memo(function BranchScopeModal({
 
       <div className="flex items-center justify-end gap-2 px-5 py-4 shrink-0">
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-8 cursor-pointer rounded-lg bg-button-soft-background px-3 text-[12.5px] font-medium text-text-secondary outline-none transition-colors hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70"
-          >
-            Cancel
-          </button>
+          {!locked && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-8 cursor-pointer rounded-lg bg-button-soft-background px-3 text-[12.5px] font-medium text-text-secondary outline-none transition-colors hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70"
+            >
+              Cancel
+            </button>
+          )}
           <Button
             className="h-8 gap-1.5 font-semibold bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
             onClick={() => onSave(selectedList)}
+            disabled={selected.size === 0}
           >
             Save scope
           </Button>

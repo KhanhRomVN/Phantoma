@@ -50,7 +50,7 @@ function CalloutRow({ item }: { item: CalloutItem }) {
         </div>
       )}
       {item.src && item.src.length > 0 && (
-        <div className="text-[10px] text-text-secondary mt-1">Nguồn: {item.src.join(', ')}</div>
+        <div className="text-[11px] text-text-secondary mt-1">Nguồn: {item.src.join(', ')}</div>
       )}
     </div>
   );

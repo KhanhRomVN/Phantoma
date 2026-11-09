@@ -72,11 +72,16 @@ export function CreateBranchModal({
   branches,
   remoteBranches = [],
   defaultSource,
-  existingBranch,
-  existingBranchRemote,
+  existingBranch: existingBranchProp,
+  existingBranchRemote: existingBranchRemoteProp,
   projectLogoPath,
   onCreated,
 }: CreateBranchModalProps) {
+  const [remoteOverride, setRemoteOverride] = useState<string | null>(null);
+  const existingBranch = existingBranchProp ?? remoteOverride ?? undefined;
+  const existingBranchRemote = existingBranchProp
+    ? existingBranchRemoteProp
+    : remoteOverride !== null;
   const [name, setName] = useState('');
   const [source, setSource] = useState('');
   const [currentBranch, setCurrentBranch] = useState('');
@@ -104,7 +109,8 @@ export function CreateBranchModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setName(existingBranch ?? '');
+    setRemoteOverride(null);
+    setName(existingBranchProp ?? '');
     setTargetDir(parentDir(projectPath));
     setError('');
     setSubmitting(false);
@@ -372,10 +378,23 @@ export function CreateBranchModal({
                     </p>
                   )}
                   {takenRemote && (
-                    <p className="mt-1.5 text-[13px] text-error">
-                      A remote branch named origin/{bareName} already exists. Open it from the project menu
-                      instead.
-                    </p>
+                    <>
+                      <p className="mt-1.5 text-[13px] text-error">
+                        A remote branch named origin/{bareName} already exists. Open it from the project menu
+                        instead.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRemoteOverride(bareName);
+                          setName(bareName);
+                          setError('');
+                        }}
+                        className="mt-2 h-8 cursor-pointer rounded-lg bg-button-soft-background px-3 text-[12.5px] font-medium text-primary outline-none transition-colors hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+                      >
+                        Create project as remote branch
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -545,6 +564,16 @@ export function CreateBranchModal({
                   ? `A local branch ${existingBranch} will be created, tracking origin/${existingBranch}.`
                   : `${existingBranch} will be checked out in the new folder.`}
               </p>
+            )}
+            {remoteOverride !== null && !existingBranchProp && (
+              <button
+                type="button"
+                onClick={() => setRemoteOverride(null)}
+                disabled={submitting}
+                className="mt-2 h-8 cursor-pointer rounded-lg bg-button-soft-background px-3 text-[12.5px] font-medium text-text-secondary outline-none transition-colors hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:opacity-50"
+              >
+                Back to Create Local Branch
+              </button>
             )}
           </div>
 

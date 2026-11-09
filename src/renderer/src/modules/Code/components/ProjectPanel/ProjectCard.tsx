@@ -19,6 +19,7 @@ import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { taskService, type StoredTask } from '../../services/task.service';
 import {
   GitBranch,
+  GitPullRequest,
   ChevronRight,
   ChevronDown,
   MoreVertical,
@@ -122,6 +123,10 @@ interface ProjectCardProps {
   hasGit?: boolean;
   /** Toggle Git view for this project */
   onToggleGit?: (projectId: string) => void;
+  /** Whether the Pull Request view is currently active for THIS project */
+  isPullRequestActive?: boolean;
+  /** Toggle Pull Request view for this project */
+  onTogglePullRequest?: (projectId: string) => void;
   /** Project drag is only enabled with Manual sort */
   draggable: boolean;
   /** True if ANY item in the list is being dragged — forces visual collapse */
@@ -742,6 +747,8 @@ export const ProjectCard = memo(function ProjectCard({
   isGitActive = false,
   hasGit,
   onToggleGit,
+  isPullRequestActive = false,
+  onTogglePullRequest,
   draggable,
   isGlobalDragging = false,
   onToggleProject,
@@ -884,6 +891,32 @@ export const ProjectCard = memo(function ProjectCard({
               }
             >
               <GitGraph className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (hasGit === false) return;
+                onTogglePullRequest?.(project.id);
+              }}
+              disabled={hasGit === false}
+              className={cn(
+                'w-[22px] h-[22px] rounded-md flex items-center justify-center shrink-0 transition-colors',
+                hasGit === false
+                  ? 'text-text-secondary/30 cursor-not-allowed'
+                  : 'cursor-pointer ' +
+                      (isPullRequestActive
+                        ? 'text-primary bg-primary/10'
+                        : 'text-text-secondary hover:bg-card-hover hover:text-text-primary'),
+              )}
+              title={
+                hasGit === false
+                  ? 'Not a git repository — Pull requests unavailable'
+                  : isPullRequestActive
+                    ? 'Close Pull requests'
+                    : 'Open Pull requests'
+              }
+            >
+              <GitPullRequest className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={(e) => {

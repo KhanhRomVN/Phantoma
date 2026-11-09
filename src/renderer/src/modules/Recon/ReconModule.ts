@@ -91,6 +91,7 @@ export const reconModule: ZenModule = {
   renderers: rendererMapFromGlob(import.meta.glob('./renderers/*Renderer.tsx', { eager: true })),
   prompts: {
     systemPrompts: new Map([
+
       [
         'orchestrator',
         {

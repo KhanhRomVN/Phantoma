@@ -8,6 +8,7 @@ import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/cons
 
 // ── Hooks ──
 import { useCodeStore } from '../hooks/useCodeStore';
+import { GitCommitHandler } from '../handler/tool/GitHandlers';
 
 // ── Types ──
 import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
@@ -47,12 +48,52 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
   const messageContent = action.params?.message || action.params?.content || '';
 
   const [isCommitted, setIsCommitted] = React.useState(false);
+  const [isCommitting, setIsCommitting] = React.useState(false);
+  const [commitError, setCommitError] = React.useState<string | null>(null);
+
+  const projectPath = useCodeStore((s: any) => {
+    const p = s.projects?.find((x: any) => x.id === s.currentProjectId);
+    return (p?.explorerRoot ?? p?.path ?? '') as string;
+  });
+
+  const handleAccept = async () => {
+    if (isCommitting) return;
+    setIsCommitting(true);
+    setCommitError(null);
+    const result: any = await new GitCommitHandler().handle({
+      message: messageContent,
+      projectPath,
+    });
+    setIsCommitting(false);
+    if (result?.error) {
+      setCommitError(String(result.error));
+      return;
+    }
+    setIsCommitted(true);
+  };
 
   // ASSUMED: tên project lấy từ project đang active trong useCodeStore (field `name`)
   const projectName = useCodeStore(
     (s: any) =>
       s.projects?.find((p: any) => p.id === s.currentProjectId)?.name as string | undefined,
   );
+
+  const [fetchedBranch, setFetchedBranch] = React.useState('');
+  const currentBranch = branch || fetchedBranch;
+
+  React.useEffect(() => {
+    if (branch || !projectPath) return;
+    let cancelled = false;
+    window.api
+      .invoke('git:status', projectPath)
+      .then((res: any) => {
+        if (!cancelled && res && !res.error && res.branch) setFetchedBranch(res.branch);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [branch, projectPath]);
 
   const statusColor = isRejected
     ? 'rgb(255, 45, 85)'
@@ -67,15 +108,9 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
           title={
             <div className="flex items-center gap-2 text-xs text-text-primary">
               <span className="font-semibold opacity-80">{getToolLabel('commit_message')}</span>
-              <span className="codicon codicon-git-commit text-sm" />
               {isRejected && (
                 <span className="text-[10px] font-semibold text-error bg-error/15 py-0.5 px-2 rounded ml-1">
                   REJECTED
-                </span>
-              )}
-              {isCommitted && (
-                <span className="text-[10px] font-semibold text-success bg-success/15 py-0.5 px-2 rounded ml-1">
-                  ✓ COMMITTED
                 </span>
               )}
             </div>
@@ -83,54 +118,50 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
           statusColor={statusColor}
           isPartial={false}
         />
-        {(projectName || branch) && (
+        {(projectName || currentBranch) && (
           <div
-            className="flex items-center gap-1.5 pl-5 pt-1 text-[11px]"
+            className="flex items-center gap-1.5 ml-6 pl-5 pr-1 pt-0.5 relative text-[11px]"
             style={{ color: $('--text-secondary') }}
           >
-            {projectName && <span>{projectName}</span>}
-            {branch && (
+            <div className="absolute left-0 top-0 w-4 h-2.5 border-l border-b border-text-secondary/20" />
+            {projectName && <span className="opacity-60 font-mono">{projectName}</span>}
+            {currentBranch && (
               <span
-                className="px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                className="px-1.5 py-0.5 rounded text-[10px] font-semibold font-mono"
                 style={{
                   color: $('--purple'),
                   backgroundColor: `color-mix(in srgb, ${$('--purple')} 13%, transparent)`,
                 }}
               >
-                {branch}
+                {currentBranch}
               </span>
             )}
           </div>
         )}
         <div className="pt-1 pr-3 pb-3">
-          <div className="py-3 px-3.5 bg-card-background rounded-md border border-border font-mono text-[13px] whitespace-pre-wrap break-words text-text-primary max-h-auto overflow-y-visible">
+          <div
+            className={cn(
+              'py-3 px-3.5 bg-card-background rounded-md border font-mono text-[13px] whitespace-pre-wrap break-words text-text-primary max-h-auto overflow-y-visible',
+              isCommitted
+                ? 'border-dashed border-success'
+                : isRejected || commitError
+                  ? 'border-dashed border-error'
+                  : 'border-border',
+            )}
+          >
             {messageContent}
-            {isCommitted && (
-              <div className="mt-3 py-2.5 px-3.5 bg-success/10 border border-success/30 rounded-md text-xs text-text-primary">
-                <div className="font-semibold text-success mb-1">Commit thành công!</div>
-                <div className="opacity-80 text-[11px]">
-                  Hãy chạy{' '}
-                  <code className="bg-card-background py-0.5 px-1.5 rounded font-mono text-[11px]">
-                    git push
-                  </code>{' '}
-                  để đẩy commit lên remote.
-                </div>
+            {commitError && (
+              <div className="mt-3 py-2.5 px-3.5 bg-error/10 border border-error/30 rounded-md text-xs text-error whitespace-pre-wrap">
+                {commitError}
               </div>
             )}
+
           </div>
           {!isCommitted && !isRejected && (
             <div className="flex gap-1.5 py-2 justify-end">
               <button
-                onClick={() => {
-                  const vscodeApi = (window as any).vscodeApi;
-                  if (vscodeApi) {
-                    setIsCommitted(true);
-                    vscodeApi.postMessage({
-                      command: 'gitCommit',
-                      message: messageContent,
-                    });
-                  }
-                }}
+                onClick={() => void handleAccept()}
+                disabled={isCommitting}
                 className="inline-flex items-center px-3 py-1 rounded-md text-[11px] font-semibold h-6 cursor-pointer border-0 outline-none transition-colors"
                 style={{
                   color: $('--primary'),

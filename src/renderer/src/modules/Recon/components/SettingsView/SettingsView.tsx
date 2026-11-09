@@ -32,29 +32,26 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
   const ActivePanel = active.Panel;
 
   return (
-    <div className='flex-1 h-full min-w-0 flex flex-col bg-background'>
-      <header className='shrink-0 h-12 px-4 flex items-center justify-between gap-3 border-b border-border'>
-        <div className='flex items-center gap-2 min-w-0'>
+    <div className="flex-1 h-full min-w-0 flex flex-col bg-background">
+      <header className="shrink-0 h-12 px-4 flex items-center justify-between gap-3 border-b border-border">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={onClose}
-            title='Quay lại'
-            className='w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors'
+            title="Quay lại"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors"
           >
-            <ArrowLeft className='w-4 h-4' strokeWidth={2} />
+            <ArrowLeft className="w-4 h-4" strokeWidth={2} />
           </button>
-          <h1 className='text-sm font-bold text-text-primary truncate'>Cài đặt Recon</h1>
+          <h1 className="text-sm font-bold text-text-primary truncate">Cài đặt Recon</h1>
         </div>
-        <Button
-          className='border border-border text-text-secondary hover:border-primary hover:text-primary hover:bg-primary/10 active:bg-primary/20'
-          onClick={reset}
-        >
-          <RotateCcw className='w-3.5 h-3.5' strokeWidth={2} />
+        <Button onClick={reset}>
+          <RotateCcw className="w-3.5 h-3.5" strokeWidth={2} />
           Đặt lại mặc định
         </Button>
       </header>
 
-      <div className='flex-1 min-h-0 flex'>
-        <nav className='w-56 shrink-0 border-r border-border bg-sidebar-background p-2 space-y-1 overflow-y-auto'>
+      <div className="flex-1 min-h-0 flex">
+        <nav className="w-56 shrink-0 border-r border-border bg-sidebar-background p-2 space-y-1 overflow-y-auto">
           {ITEMS.map((item) => {
             const Icon = item.icon;
             const selected = item.id === active.id;
@@ -66,18 +63,18 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
                   'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left',
                   selected
                     ? 'bg-primary/10 text-primary'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
                 )}
               >
-                <Icon className='w-4 h-4 shrink-0' strokeWidth={2} />
-                <span className='truncate'>{item.label}</span>
+                <Icon className="w-4 h-4 shrink-0" strokeWidth={2} />
+                <span className="truncate">{item.label}</span>
               </button>
             );
           })}
         </nav>
 
-        <main className='flex-1 min-w-0 overflow-y-auto p-6'>
-          <div className='max-w-2xl'>
+        <main className="flex-1 min-w-0 overflow-y-auto p-6">
+          <div className="max-w-2xl">
             <ActivePanel />
           </div>
         </main>

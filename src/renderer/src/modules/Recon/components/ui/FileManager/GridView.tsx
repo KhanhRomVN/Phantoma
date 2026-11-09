@@ -15,7 +15,7 @@ function Preview({ file }: { file: FileNode }) {
   if (file.content !== undefined) {
     const head = file.content.split('\n').slice(0, 8).join('\n');
     return (
-      <pre className='w-full h-full p-2 overflow-hidden text-[10px] leading-snug text-text-secondary font-mono whitespace-pre-wrap break-all text-left'>
+      <pre className='w-full h-full p-2 overflow-hidden text-[11px] leading-snug text-text-secondary font-mono whitespace-pre-wrap break-all text-left'>
         {head}
       </pre>
     );
@@ -51,7 +51,7 @@ function Card({
         'group relative flex flex-col rounded-lg border cursor-pointer select-none transition-colors overflow-hidden',
         isSelected
           ? 'bg-primary/10 border-primary/60'
-          : 'bg-card-background border-border hover:bg-card-hover'
+          : 'bg-card-background border-border hover:bg-card-background-hover'
       )}
     >
       {selectable && (
@@ -66,7 +66,7 @@ function Card({
       </div>
       <div className='px-2.5 py-2 min-w-0'>
         <div className='text-xs font-medium text-text-primary truncate'>{node.name}</div>
-        <div className='text-[10px] text-text-secondary truncate'>{subtitle(node)}</div>
+        <div className='text-[11px] text-text-secondary truncate'>{subtitle(node)}</div>
       </div>
     </div>
   );

@@ -42,11 +42,11 @@ export function Body({ file }: { file: FileNode }) {
 export default function FileViewer({ file, onClose, canDownload = true }: FileViewerProps) {
   return (
     <div className='absolute inset-0 z-20 flex flex-col bg-background'>
-      <div className='shrink-0 h-11 px-3 flex items-center gap-3 border-b border-border bg-card-hover'>
+      <div className='shrink-0 h-11 px-3 flex items-center gap-3 border-b border-border bg-card-background-hover'>
         <NodeIcon node={file} size={18} />
         <div className='min-w-0 flex-1'>
           <div className='text-sm font-medium text-text-primary truncate'>{file.name}</div>
-          <div className='text-[10px] text-text-secondary truncate'>
+          <div className='text-[11px] text-text-secondary truncate'>
             {KIND_LABEL[file.kind]} · {formatSize(file.size)} · {formatDate(file.modified)}
           </div>
         </div>

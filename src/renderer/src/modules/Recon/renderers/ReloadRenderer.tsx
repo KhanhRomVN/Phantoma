@@ -53,7 +53,10 @@ export const ReloadRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <ReloadBlock output={outputData?.output} isError={isError} />
+        <ReloadBlock
+          output={outputData?.output}
+          isError={isError}
+        />
       </div>
       {!hasOutput && (
         <ActionBar

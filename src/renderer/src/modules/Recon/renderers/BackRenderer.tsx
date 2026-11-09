@@ -53,7 +53,10 @@ export const BackRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <BackBlock output={outputData?.output} isError={isError} />
+        <BackBlock
+          output={outputData?.output}
+          isError={isError}
+        />
       </div>
       {!hasOutput && (
         <ActionBar

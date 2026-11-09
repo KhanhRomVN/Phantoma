@@ -210,7 +210,9 @@ export function Code() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setProjectManagerOpen, setNewProjectOpen]);
 
-  const isGitView = useCodeStore((s) => s.contentViewMode === 'git');
+  const isGitView = useCodeStore(
+    (s) => s.contentViewMode === 'git' || s.contentViewMode === 'pullrequests',
+  );
 
   // ── Render ──
   return (

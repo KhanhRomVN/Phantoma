@@ -1,22 +1,27 @@
-import { useReconStore } from '../stores/useReconStore';
-import { SelectOptionHandler } from '../handler/SelectOptionHandler';
+import { ReconController } from '@renderer/modules/Recon/ReconController';
 import type { SelectOptionParams } from '../parsers/SelectOptionParser';
-
-const handler = new SelectOptionHandler();
 
 export async function executeSelectOption(
   params: SelectOptionParams,
 ): Promise<{ success: boolean; output?: string; error?: string }> {
   try {
-    const targetId = useReconStore.getState().activeTargetId;
-    if (!targetId) {
+    const controller = ReconController.getInstance();
+    const activeTarget = controller.getActiveTarget();
+    if (!activeTarget) {
       return {
         success: false,
         error: 'No active target selected.',
       };
     }
+    const targetId = activeTarget.id;
 
-    const result = await handler.handle(targetId, params.ref, params.value, params.label);
+    const result = await ReconController.executeTool('select_option', {
+      targetId,
+      ref: params.ref,
+      value: params.value,
+      label: params.label,
+      frameId: params.frameId,
+    });
 
     if (result.success) {
       return {

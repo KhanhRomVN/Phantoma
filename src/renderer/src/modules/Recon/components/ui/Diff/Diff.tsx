@@ -24,7 +24,7 @@ function Pill({ kind, count }: { kind: Kind; count: number }) {
   const { label, color, Icon } = KIND[kind];
   return (
     <span
-      className="inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-medium border"
+      className="inline-flex items-center gap-1 h-5 px-2 rounded-full text-[11px] font-medium border"
       style={{ color, borderColor: `${color}55`, backgroundColor: `${color}1a` }}
     >
       <Icon className="w-3 h-3" strokeWidth={2.5} />
@@ -75,12 +75,12 @@ export default function Diff({ items }: Props) {
             {gi < order.length - 1 && (
               <span className="absolute left-[9px] top-6 -bottom-4 w-px bg-border" />
             )}
-            <span className="absolute left-0 top-0 w-[19px] h-[19px] rounded-full bg-card-hover border border-border flex items-center justify-center text-primary">
+            <span className="absolute left-0 top-0 w-[19px] h-[19px] rounded-full bg-card-background-hover border border-border flex items-center justify-center text-primary">
               <CalendarDays className="w-2.5 h-2.5" strokeWidth={2.5} />
             </span>
             <div className="flex items-center gap-2 mb-2 h-[19px]">
               <span className="text-xs font-semibold text-text-primary">{date}</span>
-              <span className="text-[10px] text-text-secondary">{group.length} thay đổi</span>
+              <span className="text-[11px] text-text-secondary">{group.length} thay đổi</span>
             </div>
             <div className="flex flex-col gap-2">
               {group.map((it, i) => {
@@ -89,18 +89,18 @@ export default function Diff({ items }: Props) {
                 return (
                   <div
                     key={i}
-                    className="rounded-lg border border-border bg-card-hover overflow-hidden"
+                    className="rounded-lg border border-border bg-card-background-hover overflow-hidden"
                   >
                     <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
                       <span className="text-xs font-semibold text-text-primary truncate">{it.field}</span>
                       <span className="flex items-center gap-1.5 shrink-0">
                         {it.src?.map((s) => (
-                          <span key={s} className="text-[10px] text-text-secondary">
+                          <span key={s} className="text-[11px] text-text-secondary">
                             {s}
                           </span>
                         ))}
                         <span
-                          className="inline-flex items-center gap-1 h-[18px] px-1.5 rounded-full text-[10px] font-medium border"
+                          className="inline-flex items-center gap-1 h-[18px] px-1.5 rounded-full text-[11px] font-medium border"
                           style={{ color, borderColor: `${color}55`, backgroundColor: `${color}1a` }}
                         >
                           <Icon className="w-2.5 h-2.5" strokeWidth={2.5} />

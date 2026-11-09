@@ -160,7 +160,19 @@ function buildRgArgs(query: string, options: RgSearchOptions, searchPath: string
 // ─── Watcher Manager ─────────────────────────────────────────────────────────
 
 const watchers = new Map<string, FSWatcher>();
+const gitWatchers = new Map<string, FSWatcher>();
 const watcherRefs = new Map<string, number>();
+
+function resolveGitDir(projectPath: string): string | null {
+  const dotGit = path.join(projectPath, '.git');
+  try {
+    if (fs.statSync(dotGit).isDirectory()) return dotGit;
+    const m = fs.readFileSync(dotGit, 'utf-8').match(/^gitdir:\s*(.+)$/m);
+    return m ? path.resolve(projectPath, m[1].trim()) : null;
+  } catch {
+    return null;
+  }
+}
 
 function startWatching(projectPath: string, sender: Electron.WebContents): void {
   if (watchers.has(projectPath)) return;
@@ -196,6 +208,33 @@ function startWatching(projectPath: string, sender: Electron.WebContents): void 
   });
 
   watchers.set(projectPath, watcher);
+
+  const gitDir = resolveGitDir(projectPath);
+  if (gitDir) {
+    const notify = debounce(() => sender.send('git:index-changed', { projectPath }), 200, {
+      maxWait: 600,
+    });
+    const gitWatcher = chokidar.watch(gitDir, {
+      ignored: (p: string) => {
+        const rel = path.relative(gitDir, p);
+        return (
+          rel !== '' &&
+          rel !== 'index' &&
+          rel !== 'HEAD' &&
+          rel !== 'refs' &&
+          !rel.startsWith('refs' + path.sep)
+        );
+      },
+      persistent: true,
+      ignoreInitial: true,
+      depth: 6,
+    });
+    gitWatcher.on('all', notify);
+    gitWatcher.on('error', (err) => {
+      logger.error('[fs:git-watcher] Error watching ' + gitDir + ':', err.message);
+    });
+    gitWatchers.set(projectPath, gitWatcher);
+  }
 }
 
 function stopWatching(projectPath: string): void {
@@ -203,6 +242,11 @@ function stopWatching(projectPath: string): void {
   if (watcher) {
     watcher.close();
     watchers.delete(projectPath);
+  }
+  const gitWatcher = gitWatchers.get(projectPath);
+  if (gitWatcher) {
+    gitWatcher.close();
+    gitWatchers.delete(projectPath);
   }
 }
 

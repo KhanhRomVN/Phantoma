@@ -48,6 +48,8 @@ import {
   Search as SearchIcon,
   EyeOff,
   FolderTree,
+  ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
 import { SyncBranchModal } from '../modal/SyncBranchModal';
 import { ProjectSettingsModal } from '../modal/ProjectSettingsModal';
@@ -56,6 +58,7 @@ import { Settings as SettingsIcon } from 'lucide-react';
 // ── Hooks & Store ──
 import { useCodeStore, type Project } from '../../hooks/useCodeStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
+import { useBranchScopeStore, toScopeKey } from '../../stores/useBranchScopeStore';
 import {
   taskService,
   getBlockers,
@@ -574,6 +577,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   /** Tracks which project's Task Manager is currently open in ContentPanel */
   const [activeTaskManagerProjectId, setActiveTaskManagerProjectId] = useState<string | null>(null);
   const [activeGitProjectId, setActiveGitProjectId] = useState<string | null>(null);
+  const [activePullRequestProjectId, setActivePullRequestProjectId] = useState<string | null>(null);
   const [showHidden] = useState(false);
   const [query, setQuery] = useState('');
   const [treeOpen, setTreeOpen] = useState(false);
@@ -870,6 +874,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
     (projectId: string) => {
       setSelectedSessionId(null);
       setActiveGitProjectId(null);
+      setActivePullRequestProjectId(null);
       setActiveTaskManagerProjectId(null);
       setCurrentProject(projectId);
 
@@ -969,11 +974,25 @@ export const ProjectPanel = memo(function ProjectPanel() {
       if (activeGitProjectId) {
         setActiveGitProjectId(null);
       }
+      if (activePullRequestProjectId) {
+        setActivePullRequestProjectId(null);
+      }
 
       // Switch ContentPanel to Workspace view for this session
 
       setActiveWorkspaceSessionId(sessionId);
       setContentViewMode('workspace');
+
+      if (targetBranch && parentProject.defaultBranch !== targetBranch.name) {
+        const scoped = useBranchScopeStore.getState().scopes[toScopeKey(parentProject.id, targetBranch.name)];
+        if (!scoped || scoped.length === 0) {
+          window.dispatchEvent(
+            new CustomEvent('phantoma:open-branch-scope', {
+              detail: { projectId: parentProject.id, branchName: targetBranch.name },
+            }),
+          );
+        }
+      }
     },
     [
       projects,
@@ -983,6 +1002,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       setContentViewMode,
       activeTaskManagerProjectId,
       activeGitProjectId,
+      activePullRequestProjectId,
       busyTargetIds,
     ],
   );
@@ -1002,10 +1022,32 @@ export const ProjectPanel = memo(function ProjectPanel() {
       } else {
         setCurrentProject(projectId);
         setActiveGitProjectId(projectId);
+        setActivePullRequestProjectId(null);
         setContentViewMode('git');
       }
     },
     [activeGitProjectId, setContentViewMode, setCurrentProject, gitRepoByProject],
+  );
+
+  /** Toggle Pull Request view for a specific project. Clicking again closes it. */
+  const handleTogglePullRequest = useCallback(
+    (projectId: string) => {
+      if (gitRepoByProject[projectId] === false) return;
+
+      setSelectedSessionId(null);
+      setActiveTaskManagerProjectId(null);
+      setActiveGitProjectId(null);
+
+      if (activePullRequestProjectId === projectId) {
+        setActivePullRequestProjectId(null);
+        setContentViewMode('files');
+      } else {
+        setCurrentProject(projectId);
+        setActivePullRequestProjectId(projectId);
+        setContentViewMode('pullrequests');
+      }
+    },
+    [activePullRequestProjectId, setContentViewMode, setCurrentProject, gitRepoByProject],
   );
 
   /** Toggle Task Manager for a specific project. Clicking again closes it. */
@@ -1024,6 +1066,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       } else {
         // Open for this project
         setActiveGitProjectId(null);
+        setActivePullRequestProjectId(null);
         setCurrentProject(projectId);
         setActiveTaskManagerProjectId(projectId);
         setContentViewMode('tasks');
@@ -1096,6 +1139,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   // Removed unused createGroupFromProject as logic shifted to GroupPickerForm + Drag/Drop
 
   const removeProjectFromStore = useCodeStore((s) => s.removeProject);
+  const branchScopes = useBranchScopeStore((s) => s.scopes);
 
   const handleRemoveProject = useCallback(
     (projectId: string) => {
@@ -1203,10 +1247,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [patchProject, updateProject, showToast],
   );
 
-  const confirmDeleteBranch = useCallback(async () => {
+  const confirmDeleteBranch = useCallback(async ({ deleteRemote }: { deleteRemote: boolean }) => {
     if (!confirmDeleteBranchTarget) return {};
     const { project, branchName } = confirmDeleteBranchTarget;
-    const res = await (window as any).api.invoke('git:delete-branch', project.path, branchName);
+    const res = await (window as any).api.invoke(
+      'git:delete-branch',
+      project.path,
+      branchName,
+      deleteRemote,
+    );
     if (res?.error) return { error: res.error as string };
     const removed = project.branches.find((b) => b.name === branchName);
     const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
@@ -1214,9 +1263,40 @@ export const ProjectPanel = memo(function ProjectPanel() {
     patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
     updateProject(project.id, { branches: newBranches } as any);
     setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
-    showToast(`Deleted folder of branch "${branchName}"`);
+    showToast(
+      res?.remoteError
+        ? `Deleted folder of "${branchName}", but remote delete failed: ${res.remoteError}`
+        : deleteRemote
+          ? `Deleted folder and remote branch of "${branchName}"`
+          : `Deleted folder of branch "${branchName}"`,
+    );
     return {};
   }, [confirmDeleteBranchTarget, patchProject, updateProject, showToast]);
+
+  const [deleteBranchHasRemote, setDeleteBranchHasRemote] = useState(false);
+
+  useEffect(() => {
+    if (!confirmDeleteBranchTarget) {
+      setDeleteBranchHasRemote(false);
+      return;
+    }
+    let cancelled = false;
+    (window as any).api
+      .invoke(
+        'git:remote-branch-exists',
+        confirmDeleteBranchTarget.project.path,
+        confirmDeleteBranchTarget.branchName,
+      )
+      .then((res: { exists?: boolean }) => {
+        if (!cancelled) setDeleteBranchHasRemote(!!res?.exists);
+      })
+      .catch(() => {
+        if (!cancelled) setDeleteBranchHasRemote(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [confirmDeleteBranchTarget]);
 
   const unlinkBranch = useCallback(
     (project: ProjectExtended, branchName: string) => {
@@ -1807,6 +1887,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const handleUnselectProject = useCallback(() => {
     setSelectedSessionId(null);
     setActiveGitProjectId(null);
+    setActivePullRequestProjectId(null);
     setActiveTaskManagerProjectId(null);
     setCurrentProject(undefined as unknown as string);
     setActiveWorkspaceSessionId(null);
@@ -1970,6 +2051,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
       isGitActive={activeGitProjectId === project.id}
       hasGit={gitRepoByProject[project.id]}
       onToggleGit={handleToggleGit}
+      isPullRequestActive={activePullRequestProjectId === project.id}
+      onTogglePullRequest={handleTogglePullRequest}
       draggable={sortMode === 'manual'}
       isGlobalDragging={isGlobalDragging}
       onToggleProject={handleToggleProject}
@@ -2580,6 +2663,30 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 >
                   Sync from...
                 </DropdownItem>
+                {activeBranch.name !== activeProject.defaultBranch &&
+                  (() => {
+                    const scopeUnset =
+                      (branchScopes[toScopeKey(activeProject.id, activeBranch.name)] ?? []).length === 0;
+                    return (
+                      <DropdownItem
+                        icon={
+                          scopeUnset ? (
+                            <ShieldAlert className="w-3.5 h-3.5" />
+                          ) : (
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          )
+                        }
+                        variant={scopeUnset ? 'error' : undefined}
+                        onClick={() => {
+                          const detail = { projectId: activeProject.id, branchName: activeBranch.name };
+                          closeDropdown();
+                          window.dispatchEvent(new CustomEvent('phantoma:open-branch-scope', { detail }));
+                        }}
+                      >
+                        Set scope
+                      </DropdownItem>
+                    );
+                  })()}
                 <DropdownItem
                   icon={<GitBranch className="w-3.5 h-3.5" />}
                   onClick={() => {
@@ -3061,6 +3168,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
         branchPath={confirmDeleteBranchTarget?.branchPath ?? ''}
         logoPath={confirmDeleteBranchTarget?.project.logoPath}
         projectBranch={confirmDeleteBranchTarget?.project.defaultBranch}
+        hasRemote={deleteBranchHasRemote}
       />
 
       <ConfirmUnlinkBranchModal

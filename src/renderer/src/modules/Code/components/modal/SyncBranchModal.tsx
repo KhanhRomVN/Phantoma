@@ -15,6 +15,7 @@ import {
   GitCommit,
   Loader2,
   Minus,
+  Search,
 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
@@ -27,7 +28,9 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { Button } from '@renderer/components/ui/Button/Button';
+import { Tooltip } from '@renderer/components/ui/Tooltip/Tooltip';
 import { useBranchScope, useBranchScopeStore, isInScope } from '../../stores/useBranchScopeStore';
+import { SCOPE_CATEGORIES, type ScopeCategory } from '../../stores/useScopeStatsStore';
 
 type FileStatus = 'added' | 'modified' | 'deleted';
 type SourceKind = 'local' | 'remote';
@@ -84,6 +87,51 @@ const STATUS_META: Record<FileStatus, { icon: typeof FileDiff; cls: string; labe
   modified: { icon: FileDiff, cls: 'text-warn', label: 'Modified' },
   deleted: { icon: FileMinus2, cls: 'text-error', label: 'Deleted' },
 };
+
+const SCOPE_BADGE_ORDER: ScopeCategory[] = ['error', 'diff', 'warn', 'primary'];
+
+const SCOPE_BADGE_META: Record<ScopeCategory, { label: string; hint: string }> = {
+  error: {
+    label: 'Conflict risk',
+    hint: 'Outside this branch scope, differs from the default branch and is also changed in another branch.',
+  },
+  diff: {
+    label: 'Diverged',
+    hint: 'Outside this branch scope and differs from the default branch.',
+  },
+  warn: {
+    label: 'Outside scope',
+    hint: 'Outside this branch scope but identical to the default branch.',
+  },
+  primary: {
+    label: 'In scope',
+    hint: 'Inside the scope this branch is allowed to modify.',
+  },
+};
+
+const SCOPE_DOT = Object.fromEntries(SCOPE_CATEGORIES.map((c) => [c.id, c.dot])) as Record<
+  ScopeCategory,
+  string
+>;
+
+const SCOPE_BADGE_ON: Record<ScopeCategory, string> = {
+  error: 'bg-error/10 text-error hover:bg-error/20 active:bg-error/30',
+  diff: 'bg-[#f97316]/10 text-[#f97316] hover:bg-[#f97316]/20 active:bg-[#f97316]/30',
+  warn: 'bg-warn/10 text-warn hover:bg-warn/20 active:bg-warn/30',
+  primary: 'bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30',
+};
+
+const BRANCH_BADGE_PALETTE = [
+  'bg-warn/15 text-warn',
+  'bg-info/15 text-info',
+  'bg-success/15 text-success',
+  'bg-error/15 text-error',
+  'bg-primary/15 text-primary',
+  'bg-[#f97316]/15 text-[#f97316]',
+];
+
+const SCOPE_BADGE_OFF =
+  'bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30';
 
 const stripOrigin = (n: string) => n.replace(/^origin\//, '');
 
@@ -230,6 +278,12 @@ export function SyncBranchModal({
   const [error, setError] = useState('');
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState('');
+  const [hidden, setHidden] = useState<Set<ScopeCategory>>(new Set());
+  const [scopeInfo, setScopeInfo] = useState<{
+    diff: Set<string> | null;
+    other: Set<string>;
+  } | null>(null);
 
   const options = useMemo<SourceOption[]>(() => {
     const all = rawBranches ?? branches;
@@ -257,15 +311,28 @@ export function SyncBranchModal({
   const refLabel =
     isRemote && pickedCommit ? `${branchRef}@${pickedCommit.slice(0, 7)}` : branchRef;
   const pickedCommitInfo = commits?.find((c) => c.hash === pickedCommit) ?? null;
-  const scope = useBranchScope(projectId ?? '', currentBranch);
+  const targetScope = useBranchScope(projectId ?? '', currentBranch);
+  const sourceScope = useBranchScope(
+    projectId ?? '',
+    !fixedSource && selected?.kind === 'local' ? selected.name : '',
+  );
+  const scope = targetScope.length > 0 ? targetScope : sourceScope;
   const allScopes = useBranchScopeStore((s) => s.scopes);
   const otherScopes = useMemo(() => {
     const prefix = `${projectId ?? ''}::`;
     return Object.entries(allScopes)
       .filter(([k, paths]) => k.startsWith(prefix) && paths.length > 0)
       .map(([k, paths]) => ({ branch: k.slice(prefix.length), paths }))
-      .filter((o) => o.branch !== currentBranch);
+      .filter((o) => o.branch !== currentBranch)
+      .sort((a, b) => a.branch.localeCompare(b.branch));
   }, [allScopes, projectId, currentBranch]);
+  const ownerColor = (b: string) =>
+    BRANCH_BADGE_PALETTE[
+      Math.max(
+        0,
+        otherScopes.findIndex((o) => o.branch === b),
+      ) % BRANCH_BADGE_PALETTE.length
+    ];
   useEffect(() => {
     if (!isOpen) return;
   }, [isOpen, projectId, currentBranch, allScopes, otherScopes]);
@@ -298,6 +365,8 @@ export function SyncBranchModal({
     setPickedTarget(null);
     setCommits(null);
     setPickedCommit(null);
+    setQuery('');
+    setHidden(new Set());
     if (fixedSource) {
       setRawBranches([]);
       return;
@@ -366,6 +435,7 @@ export function SyncBranchModal({
         }
         setExcluded(new Set());
         setCollapsed(new Set());
+        setHidden(new Set());
       })
       .catch((e: any) => {
         if (cancelled) return;
@@ -380,7 +450,33 @@ export function SyncBranchModal({
     };
   }, [isOpen, ref, targetPath, rawBranches === null]);
 
-  const tree = useMemo(() => buildTree(files ?? []), [files]);
+  const byCategory = useMemo(() => {
+    const out: Record<ScopeCategory, string[]> = { error: [], diff: [], warn: [], primary: [] };
+    if (!scopeInfo) return out;
+    const base = targetPath.replace(/\/+$/, '');
+    for (const f of files ?? []) {
+      const abs = `${base}/${f.path}`;
+      if (isInScope(f.path, scope)) out.primary.push(f.path);
+      else if (scopeInfo.diff === null || scopeInfo.diff.has(abs))
+        (scopeInfo.other.has(abs) ? out.error : out.diff).push(f.path);
+      else out.warn.push(f.path);
+    }
+    return out;
+  }, [scopeInfo, files, targetPath, scope]);
+  const hiddenPaths = useMemo(() => {
+    const s = new Set<string>();
+    hidden.forEach((id) => byCategory[id].forEach((p) => s.add(p)));
+    return s;
+  }, [hidden, byCategory]);
+  const visibleFiles = useMemo(
+    () => (files ?? []).filter((f) => !hiddenPaths.has(f.path)),
+    [files, hiddenPaths],
+  );
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? visibleFiles.filter((f) => f.path.toLowerCase().includes(q)) : visibleFiles;
+  }, [visibleFiles, query]);
+  const tree = useMemo(() => buildTree(shown), [shown]);
   const rows = useMemo(() => flatten(tree, collapsed), [tree, collapsed]);
   const chosen = useMemo(
     () => (files ?? []).filter((f) => !excluded.has(f.path)),
@@ -400,18 +496,47 @@ export function SyncBranchModal({
     return c;
   }, [chosen]);
 
-  const errorFiles = (files ?? []).filter((f) => !isInScope(f.path, scope));
-  const errorOnlyActive =
-    errorFiles.length > 0 &&
-    chosen.length === errorFiles.length &&
-    chosen.every((f) => !isInScope(f.path, scope));
-  const pickErrorOnly = () =>
-    setExcluded(new Set((files ?? []).filter((f) => isInScope(f.path, scope)).map((f) => f.path)));
+  useEffect(() => {
+    setScopeInfo(null);
+    if (!isOpen || !files || files.length === 0) return;
+    let cancelled = false;
+    const base = targetPath.replace(/\/+$/, '');
+    const outside = files.filter((f) => !isInScope(f.path, scope)).map((f) => `${base}/${f.path}`);
+    Promise.all([
+      (window as any).api
+        .invoke('git:diff-vs-remote', targetPath, outside)
+        .then((res: any) => (res && Array.isArray(res.files) ? new Set<string>(res.files) : null))
+        .catch(() => null),
+      (window as any).api
+        .invoke('git:changed-in-other-branches', targetPath)
+        .then((res: any) => new Set<string>(Object.keys(res?.files ?? {})))
+        .catch(() => new Set<string>()),
+    ]).then(([diff, other]) => {
+      if (!cancelled) setScopeInfo({ diff, other });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, files, targetPath, scope]);
+
+  const toggleCategory = (id: ScopeCategory) => {
+    const ps = byCategory[id];
+    const willHide = !hidden.has(id);
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (willHide) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (willHide) ps.forEach((p) => next.add(p));
+      else ps.forEach((p) => next.delete(p));
+      return next;
+    });
+  };
   const SEG =
-    'flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[13.5px] font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50';
-  const SEG_ON = 'border-primary bg-primary/10 text-text-primary';
-  const SEG_OFF =
-    'border-text-secondary/20 text-text-secondary hover:border-text-secondary/40 hover:text-text-primary';
+    'flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-[13.5px] font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50';
 
   const pathsOf = (n: TreeNode) => (n.isDir ? n.files : [n.path]);
 
@@ -440,7 +565,7 @@ export function SyncBranchModal({
     });
 
   const selectAll = (on: boolean) =>
-    setExcluded(on ? new Set() : new Set((files ?? []).map((f) => f.path)));
+    setExcluded(on ? new Set(hiddenPaths) : new Set((files ?? []).map((f) => f.path)));
 
   const handleApply = async () => {
     if (!ref || chosen.length === 0 || applying) return;
@@ -471,9 +596,9 @@ export function SyncBranchModal({
     if (!applying) onClose();
   };
 
-  const allState = !files?.length
+  const allState = !visibleFiles.length
     ? 'none'
-    : chosen.length === files.length
+    : chosen.length === visibleFiles.length
       ? 'all'
       : chosen.length === 0
         ? 'none'
@@ -602,24 +727,43 @@ export function SyncBranchModal({
           )}
         </div>
 
-        {scoped && (
+        {files && files.length > 0 && (
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => selectAll(true)}
-              className={cn(SEG, allState === 'all' ? SEG_ON : SEG_OFF)}
-            >
-              All files ({files?.length ?? 0})
-            </button>
-            <button
-              type="button"
-              onClick={pickErrorOnly}
-              disabled={errorFiles.length === 0}
-              className={cn(SEG, errorOnlyActive ? SEG_ON : SEG_OFF)}
-            >
-              <span className="h-2 w-2 rounded-full bg-error" />
-              Error only ({errorFiles.length})
-            </button>
+            {SCOPE_BADGE_ORDER.map((id) => {
+              const meta = SCOPE_BADGE_META[id];
+              const ps = byCategory[id];
+              const on = !hidden.has(id);
+              return (
+                <Tooltip
+                  key={id}
+                  side="top"
+                  align="start"
+                  content={
+                    <div className="flex flex-col gap-1">
+                      <span className="font-semibold">{meta.label}</span>
+                      <span className="text-text-secondary">{meta.hint}</span>
+                      <span>
+                        {on ? 'Click to hide and untick' : 'Click to show and tick'} all {ps.length}{' '}
+                        file{ps.length === 1 ? '' : 's'} in this group.
+                      </span>
+                    </div>
+                  }
+                >
+                  <button
+                    type="button"
+                    disabled={!scopeInfo || ps.length === 0}
+                    onClick={() => toggleCategory(id)}
+                    className={cn(SEG, on ? SCOPE_BADGE_ON[id] : SCOPE_BADGE_OFF)}
+                  >
+                    <span className={cn('h-2 w-2 shrink-0 rounded-full', SCOPE_DOT[id])} />
+                    {meta.label}
+                    <span className="font-mono text-[12px] text-text-secondary">
+                      {scopeInfo ? ps.length : '…'}
+                    </span>
+                  </button>
+                </Tooltip>
+              );
+            })}
           </div>
         )}
 
@@ -683,6 +827,20 @@ export function SyncBranchModal({
           </Dropdown>
         )}
 
+        {files && files.length > 0 && (
+          <div className="relative shrink-0">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search files"
+              spellCheck={false}
+              className={cn(FIELD, 'pl-9 pr-3 font-mono')}
+            />
+          </div>
+        )}
+
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-text-secondary/20">
           <div className="flex h-10 shrink-0 items-center gap-2.5 border-b border-text-secondary/20 px-3">
             {files && files.length > 0 ? (
@@ -690,7 +848,7 @@ export function SyncBranchModal({
                 <Checkbox state={allState} onClick={() => selectAll(allState !== 'all')} />
                 <span className="text-[13.5px] font-medium text-text-primary">
                   {chosen.length}
-                  <span className="font-normal text-text-secondary"> / {files.length} files</span>
+                  <span className="font-normal text-text-secondary"> / {visibleFiles.length} files</span>
                 </span>
                 <span className="flex items-center gap-2.5 text-[12px] text-text-secondary">
                   {(Object.keys(STATUS_META) as FileStatus[]).map((s) => {
@@ -771,6 +929,16 @@ export function SyncBranchModal({
               </div>
             )}
 
+            {!loading && files !== null && files.length > 0 && shown.length === 0 && (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                <Search className="h-5 w-5 text-text-secondary" />
+                <span className="text-[14px] font-medium text-text-primary">No matching files</span>
+                <span className="text-[13.5px] leading-relaxed text-text-secondary">
+                  Nothing matches <span className="font-mono">{query.trim()}</span>.
+                </span>
+              </div>
+            )}
+
             {!loading &&
               rows.map(({ node, depth }) => {
                 const st = stateOf(node);
@@ -836,7 +1004,10 @@ export function SyncBranchModal({
                       ownersOf(node).map((b) => (
                         <span
                           key={b}
-                          className="shrink-0 rounded bg-warn/15 px-1.5 py-[2px] font-mono text-[10.5px] text-warn"
+                          className={cn(
+                            'shrink-0 rounded px-1.5 py-[2px] font-mono text-[10.5px]',
+                            ownerColor(b),
+                          )}
                         >
                           {b}
                         </span>

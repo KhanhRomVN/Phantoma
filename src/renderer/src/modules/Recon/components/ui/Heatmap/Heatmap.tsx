@@ -62,13 +62,13 @@ export default function Heatmap({ cells, color }: Props) {
         >
           <div />
           {Array.from({ length: COLS }, (_, h) => (
-            <div key={h} className="text-[10px] text-center text-text-secondary">
+            <div key={h} className="text-[11px] text-center text-text-secondary">
               {h % 3 === 0 ? h : ''}
             </div>
           ))}
           {model.rows.map((row) => (
             <div key={row} className="contents">
-              <div className="text-[10px] text-text-secondary flex items-center">{row}</div>
+              <div className="text-[11px] text-text-secondary flex items-center">{row}</div>
               {Array.from({ length: COLS }, (_, h) => {
                 const v = model.grid.get(`${row}|${h}`) ?? 0;
                 const isPeak = v > 0 && v === model.peak.value && row === model.peak.row && h === model.peak.col;
@@ -95,7 +95,7 @@ export default function Heatmap({ cells, color }: Props) {
           <Summary label="Đỉnh" value={`${model.peak.row} ${pad(model.peak.col)}:00`} />
           <Summary label="Giờ nhiều nhất" value={`${pad(model.busiest)}:00`} />
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-text-secondary">
+        <div className="flex items-center gap-1 text-[11px] text-text-secondary">
           Ít
           {LEVELS.map((l) => (
             <span key={l} className="w-3 h-3 rounded-[3px]" style={{ backgroundColor: mix(base, l) }} />
@@ -110,7 +110,7 @@ export default function Heatmap({ cells, color }: Props) {
 function Summary({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] text-text-secondary">{label}</div>
+      <div className="text-[11px] text-text-secondary">{label}</div>
       <div className="font-semibold text-text-primary">{value}</div>
     </div>
   );

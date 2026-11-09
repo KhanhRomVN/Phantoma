@@ -1,6 +1,10 @@
 import type { SystemPromptMode, ToolFormat } from '../types';
 import { MAX_REWORK_ROUNDS } from './workflow';
 
+// Constraints — format-specific rules decided by formatRule(format).
+// ─────────────────────────────────────────────────────────────────────────────
+// XML | JSON
+// ─────────────────────────────────────────────────────────────────────────────
 const formatRule = (toolFormat: ToolFormat): string =>
   toolFormat === 'json'
     ? '- **FORMAT-CONSISTENCY**: Emit only JSON objects, each alone in its own fenced json block (a tool call has a "tool" key, a UI object has a "type" key: markdown or question). No XML tags anywhere, no arrays.'

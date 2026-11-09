@@ -100,7 +100,7 @@ export class GitCommitHandler {
       const api = (window as any).api;
       if (!api?.invoke) throw new Error('IPC not available');
 
-      const result = await api.invoke('git:commit', message.message);
+      const result = await api.invoke('git:commit', message.projectPath, message.message);
       return {
         command: 'gitCommitResult',
         requestId: message.requestId,

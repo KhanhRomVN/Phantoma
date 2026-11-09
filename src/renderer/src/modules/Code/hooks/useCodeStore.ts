@@ -36,6 +36,7 @@ import type { MCP, MCPInput } from '../types/mcp';
 
 // ─── Interfaces ────────────────────────────────────────────────────────
 import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
+import { useBranchScopeStore } from '../stores/useBranchScopeStore';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
 export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent';
@@ -191,7 +192,7 @@ function createDefaultPerProject() {
 // ─── Store Interface ────────────────────────────────────────────────────
 
 export type ContentViewMode =
-  'files' | 'tasks' | 'workspace' | 'git' | 'design' | 'agents' | 'settings';
+  'files' | 'tasks' | 'workspace' | 'git' | 'pullrequests' | 'design' | 'agents' | 'settings';
 
 interface CodeState {
   projects: Project[];
@@ -561,12 +562,22 @@ export const useCodeStore = create<CodeState>()(
         },
 
         removeProject: (id) => {
+          useBranchScopeStore.getState().clearProject(id);
           set((state) => {
             const filtered = state.projects.filter((p) => p.id !== id);
+            const removed = state.projects.find((p) => p.id === id);
+            const removedSessionIds = new Set(
+              (removed?.branches ?? []).flatMap((b) => b.sessions.map((s) => s.id)),
+            );
             return {
               projects: filtered,
               currentProjectId:
                 state.currentProjectId === id ? filtered[0]?.id || null : state.currentProjectId,
+              activeWorkspaceSessionId:
+                state.activeWorkspaceSessionId &&
+                removedSessionIds.has(state.activeWorkspaceSessionId)
+                  ? null
+                  : state.activeWorkspaceSessionId,
             };
           });
         },

@@ -53,7 +53,10 @@ export const ForwardRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <ForwardBlock output={outputData?.output} isError={isError} />
+        <ForwardBlock
+          output={outputData?.output}
+          isError={isError}
+        />
       </div>
       {!hasOutput && (
         <ActionBar

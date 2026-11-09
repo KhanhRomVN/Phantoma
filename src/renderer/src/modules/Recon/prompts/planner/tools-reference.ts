@@ -50,7 +50,13 @@ const TOOL_DEFS: Record<PlannerToolName, ToolDef> = {
   },
 };
 
+// Tools reference — built by format at runtime. XML vs JSON wording lives
+// on either side of the ternaries below (each branch is fully self-contained).
 export const buildPlannerToolsReference = (toolFormat: ToolFormat = 'xml'): string => {
+  // ─────────────────────────────────────────────────────────────────────────
+  // XML / JSON — each branch of every ternary below emits a fully self-contained
+  // wording for its format; nothing is shared between them.
+  // ─────────────────────────────────────────────────────────────────────────
   const how =
     toolFormat === 'json'
       ? 'Every tool call is one JSON object in its own fenced json block: ' +

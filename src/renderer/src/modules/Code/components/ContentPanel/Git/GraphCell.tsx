@@ -32,7 +32,7 @@ const KIND_STYLE: Record<RefKind, string> = {
 };
 
 export const RefPill = memo(function RefPill({ chip, color }: { chip: RefChip; color?: string }) {
-  const { accentColors, toRgba } = useAccentColors();
+  const { accentColors } = useAccentColors();
   const Icon = chip.kind === 'tag' ? Tag : chip.kind === 'remote' ? Cloud : GitBranch;
   let accent: string | null = null;
   if (chip.kind === 'remote' && color) {
@@ -47,7 +47,11 @@ export const RefPill = memo(function RefPill({ chip, color }: { chip: RefChip; c
       title={chip.label}
       style={
         accent
-          ? { color: accent, backgroundColor: toRgba(accent, 0.1), borderColor: toRgba(accent, 0.45) }
+          ? {
+              color: accent,
+              backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
+              borderColor: `color-mix(in srgb, ${accent} 45%, transparent)`,
+            }
           : undefined
       }
       className={cn(

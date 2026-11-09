@@ -43,7 +43,7 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-text-primary opacity-80">DELETE FILE</span>
                   {filePath && (
-                    <span className="font-mono text-[10px] text-text-secondary opacity-70 truncate">
+                    <span className="font-mono text-[11px] text-text-secondary opacity-70 truncate">
                       {filePath}
                     </span>
                   )}

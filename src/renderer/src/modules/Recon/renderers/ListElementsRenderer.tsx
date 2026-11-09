@@ -91,14 +91,11 @@ function parseListElementsOutput(output: string): ParsedElement[] | null {
     // Parse markdown table format
     const lines = output.trim().split('\n');
     const elements: ParsedElement[] = [];
-
+    
     for (const line of lines) {
       if (line.trim().startsWith('|') && !line.includes('---')) {
-        const parts = line
-          .split('|')
-          .map((p) => p.trim())
-          .filter((p) => p);
-
+        const parts = line.split('|').map(p => p.trim()).filter(p => p);
+        
         // Skip header row
         if (parts.length >= 3 && parts[0] !== 'ref' && parts[1] !== 'type') {
           elements.push({
@@ -109,16 +106,20 @@ function parseListElementsOutput(output: string): ParsedElement[] | null {
         }
       }
     }
-
+    
     return elements.length > 0 ? elements : null;
   } catch {
     return null;
   }
 }
 
-function ListElementsBlock({ elementType, output, isError }: ListElementsBlockProps) {
+function ListElementsBlock({
+  elementType,
+  output,
+  isError,
+}: ListElementsBlockProps) {
   const parsed = output ? parseListElementsOutput(output) : null;
-
+  
   return (
     <div className="text-xs space-y-2">
       {output && !isError && parsed ? (
@@ -129,7 +130,7 @@ function ListElementsBlock({ elementType, output, isError }: ListElementsBlockPr
             </span>
             {elementType && (
               <span
-                className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase"
+                className="px-1.5 py-0.5 rounded text-[11px] font-medium uppercase"
                 style={{
                   backgroundColor: $('--background-tertiary'),
                   color: $('--text-secondary'),
@@ -139,12 +140,12 @@ function ListElementsBlock({ elementType, output, isError }: ListElementsBlockPr
               </span>
             )}
           </div>
-
+          
           <div className="space-y-1 max-h-80 overflow-y-auto">
             {parsed.map((elem, idx) => (
               <div
                 key={idx}
-                className="p-2 rounded border transition-colors hover:border-primary"
+                className="p-2 rounded border transition-colors hover:border-opacity-60"
                 style={{
                   backgroundColor: $('--background-secondary'),
                   borderColor: $('--border'),
@@ -152,7 +153,7 @@ function ListElementsBlock({ elementType, output, isError }: ListElementsBlockPr
               >
                 <div className="flex items-start gap-2">
                   <span
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono shrink-0"
+                    className="px-1.5 py-0.5 rounded text-[11px] font-mono shrink-0"
                     style={{
                       backgroundColor: $('--background-tertiary'),
                       color: $('--text-secondary'),
@@ -162,7 +163,7 @@ function ListElementsBlock({ elementType, output, isError }: ListElementsBlockPr
                   </span>
                   <div className="flex-1 min-w-0">
                     <div
-                      className="text-[10px] uppercase font-medium mb-0.5"
+                      className="text-[11px] uppercase font-medium mb-0.5"
                       style={{ color: $('--text-secondary') }}
                     >
                       {elem.type}

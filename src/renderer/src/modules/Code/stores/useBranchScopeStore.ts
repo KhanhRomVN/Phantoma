@@ -17,12 +17,25 @@ const load = (): Record<string, string[]> => {
 interface BranchScopeState {
   scopes: Record<string, string[]>;
   setScope: (projectId: string, branchName: string, paths: string[]) => void;
+  clearProject: (projectId: string) => void;
 }
 
 export const useBranchScopeStore = create<BranchScopeState>((set, get) => ({
   scopes: load(),
   setScope: (projectId, branchName, paths) => {
     const scopes = { ...get().scopes, [toScopeKey(projectId, branchName)]: paths };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(scopes));
+    } catch {
+      // ASSUMED: bỏ qua lỗi quota
+    }
+    set({ scopes });
+  },
+  clearProject: (projectId) => {
+    const prefix = `${projectId}::`;
+    const scopes = Object.fromEntries(
+      Object.entries(get().scopes).filter(([key]) => !key.startsWith(prefix)),
+    );
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(scopes));
     } catch {
