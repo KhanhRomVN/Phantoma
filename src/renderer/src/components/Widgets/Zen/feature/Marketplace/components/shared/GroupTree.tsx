@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { CSSProperties, MouseEvent } from "react";
+import type { CSSProperties } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -97,9 +97,6 @@ export function GroupTree({
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const hidePreview = () => onPreviewChange(null);
-
-  const trackPreview = (skill: DrawerSkill, e: MouseEvent) =>
-    onPreviewChange({ skill, x: e.clientX, y: e.clientY });
 
   const toggleExpand = (name: string) => {
     hidePreview();
@@ -301,10 +298,11 @@ export function GroupTree({
                             trigger="contextmenu"
                             align="start"
                             side="bottom"
+                            className="!block w-full"
                           >
                             <DropdownTrigger asChild>
                               <div
-                                className="sk-skill-row flex items-center gap-2 py-1 px-2 rounded-md cursor-grab min-w-0"
+                                className="sk-skill-row flex items-center gap-2 w-full py-1 px-2 rounded-md cursor-grab min-w-0"
                                 draggable
                                 onDragStart={(e) => {
                                   hidePreview();
@@ -319,9 +317,7 @@ export function GroupTree({
                                   setDragging(null);
                                   setDropTarget(null);
                                 }}
-                                onMouseEnter={(e) => trackPreview(skill, e)}
-                                onMouseMove={(e) => trackPreview(skill, e)}
-                                onMouseLeave={hidePreview}
+
                                 onClick={() => {
                                   if (selectable) return;
                                   hidePreview();
@@ -329,29 +325,21 @@ export function GroupTree({
                                 }}
                               >
                                 <span
-                                  className="min-w-[16px] text-[11px] tabular-nums shrink-0"
+                                  className="min-w-[18px] text-xs tabular-nums shrink-0"
                                   style={{ color }}
                                 >
                                   {index + 1}.
                                 </span>
                                 <span
-                                  className="flex-1 min-w-0 text-xs truncate"
+                                  className="flex-1 min-w-0 text-[13px] truncate"
                                   style={{ color: $('--text-primary'), ...ellipsis }}
                                 >
                                   {skill.name}
                                 </span>
-                                {skill.author && (
-                                  <span
-                                    className="sk-swap-idle text-[11px] opacity-65 shrink-0 max-w-[40%] truncate"
-                                    style={{ color: $('--text-secondary'), ...ellipsis }}
-                                  >
-                                    {skill.author}
-                                  </span>
-                                )}
-                                <span className="sk-swap-actions">
+                                <span className="sk-skill-actions">
                                   <button
                                     type="button"
-                                    className="sk-action w-[22px] h-[22px] p-0 border-none rounded-md bg-transparent flex items-center justify-center shrink-0 cursor-pointer"
+                                    className="sk-action sk-action-open w-[22px] h-[22px] p-0 border-none rounded-md bg-transparent flex items-center justify-center shrink-0 cursor-pointer"
                                     title="Open skill folder"
                                     aria-label="Open skill folder"
                                     draggable={false}
@@ -362,7 +350,7 @@ export function GroupTree({
                                     }}
                                     style={{ color: $('--text-secondary') }}
                                   >
-                                    <FolderOpen size={12} />
+                                    <FolderOpen size={14} />
                                   </button>
                                   <button
                                     type="button"
@@ -377,7 +365,7 @@ export function GroupTree({
                                     }}
                                     style={{ color: $('--text-secondary') }}
                                   >
-                                    <Trash2 size={12} />
+                                    <Trash2 size={14} />
                                   </button>
                                 </span>
                               </div>
@@ -423,12 +411,15 @@ export function GroupTree({
 
       <style>{`
         .sk-group-row:hover { background-color: var(--card-background-hover); }
-        .sk-skill-row:hover { background-color: var(--card-background-hover); }
+        .sk-skill-row:hover { background-color: color-mix(in srgb, var(--text-primary) 8%, transparent); }
+        .sk-skill-actions { display: flex; align-items: center; gap: 2px; margin-left: auto; flex-shrink: 0; opacity: 0; pointer-events: none; }
+        .sk-skill-row:hover .sk-skill-actions { opacity: 1; pointer-events: auto; }
         .sk-skill-row:active { cursor: grabbing; }
         .sk-swap-actions { display: none; align-items: center; gap: 2px; flex-shrink: 0; }
         .sk-group-row:hover .sk-swap-idle, .sk-skill-row:hover .sk-swap-idle { display: none; }
         .sk-group-row:hover .sk-swap-actions, .sk-skill-row:hover .sk-swap-actions { display: flex; }
         .sk-action:hover { background-color: color-mix(in srgb, var(--text-primary) 12%, transparent) !important; color: var(--text-primary) !important; }
+        .sk-action-open:hover { background-color: color-mix(in srgb, var(--primary) 15%, transparent) !important; color: var(--primary) !important; }
         .sk-action-danger:hover { background-color: color-mix(in srgb, var(--error) 15%, transparent) !important; color: var(--error) !important; }
       `}</style>
     </div>

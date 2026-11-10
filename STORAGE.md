@@ -22,6 +22,8 @@ Cấu trúc lưu trữ dữ liệu của Phantoma (đề xuất mới).
   │   └── `conversations/`
   ├── [`code:{system_path}/`](#code-system-path)
   │   └── `conversations/`
+  ├── [`skills/`](#skills)
+  ├── `skill-workspace-state.json` — group/toggle của skill (xem [Skills](#skills))
   └── [`extensions/`](#extensions)
 
 ---
@@ -151,6 +153,25 @@ Lưu trữ các design UI tạm thời (dùng mockData) theo từng project củ
 `meta.json` gồm `id`, `name`, `description`, `nodes` (mỗi node: `id`, `name`, `route`, `file`, `x`, `y`), `createdAt`, `updatedAt`. Mỗi node tương ứng một page (`file`) và được hiển thị dưới dạng diagram.
 
 Page `.tsx` được biên dịch lúc chạy bằng esbuild ở main process rồi nạp vào iframe. Quản lý qua IPC channels `design:list`, `design:create`, `design:update`, `design:delete`, `design:compile-page` (xem `src/main/ipc/design.handlers.ts`, `src/main/storage/DesignStorage.ts`).
+
+---
+
+<a name="skills"></a>
+### Skills
+
+Skill tải từ mcp.directory, lưu **toàn cục** (không theo project/module) để dùng cho mọi nơi trong Phantoma. Mỗi skill là một thư mục `{slug}/` chứa toàn bộ gói skill (luôn có `SKILL.md` ở gốc, có thể kèm `scripts/`, `references/`, `assets/`...) cùng metadata `{slug}.json`.
+
+
+~/.phantoma/skills/
+└── {slug}/
+    ├── SKILL.md
+    ├── {slug}.json
+    └── scripts/ references/ assets/ ...
+
+
+Trạng thái nhóm/bật-tắt skill lưu ở `~/.phantoma/skill-workspace-state.json`: `{ toggles, groups: [{ name, slugs, icon?, color?, description? }], collapsedGroups }`.
+
+Cài đặt: tải zip, giải nén vào thư mục tạm `{slug}.tmp-*` rồi đổi tên (không để lại skill dở dang). Quản lý bởi `src/main/storage/SkillStorage.ts`, API marketplace ở `src/main/services/skill-marketplace.ts`, IPC `skill:*` ở `src/main/ipc/skill.handlers.ts`.
 
 ---
 

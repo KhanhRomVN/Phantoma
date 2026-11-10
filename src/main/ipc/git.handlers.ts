@@ -439,9 +439,13 @@ export function setupGitHandlers(): void {
                 );
               });
           }
-          const files: { added: number; deleted: number; path: string; status?: FileKind }[] = diff.error
-            ? []
-            : parseNumstat(diff.stdout).map((f) => ({ ...f, status: kindByPath.get(f.path) ?? 'modified' }));
+          const files: { added: number; deleted: number; path: string; status?: FileKind }[] =
+            diff.error
+              ? []
+              : parseNumstat(diff.stdout).map((f) => ({
+                  ...f,
+                  status: kindByPath.get(f.path) ?? 'modified',
+                }));
           if (name === current) {
             const status = await runGit(['status', '--porcelain', '--untracked-files=all'], cwd);
             status.stdout
@@ -458,7 +462,11 @@ export function setupGitHandlers(): void {
                 let file = files.find((f) => f.path === path);
                 if (!file) {
                   const kind: FileKind =
-                    untracked || code.includes('A') ? 'added' : code.includes('D') ? 'deleted' : 'modified';
+                    untracked || code.includes('A')
+                      ? 'added'
+                      : code.includes('D')
+                        ? 'deleted'
+                        : 'modified';
                   file = { added: 0, deleted: 0, path, status: kind };
                   files.push(file);
                 }
@@ -488,7 +496,8 @@ export function setupGitHandlers(): void {
           runGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd),
           runGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd),
         ]);
-        const base = !baseRes.error && baseRes.stdout.trim() ? baseRes.stdout.trim() : 'origin/main';
+        const base =
+          !baseRes.error && baseRes.stdout.trim() ? baseRes.stdout.trim() : 'origin/main';
         const isCurrent = headRes.stdout.trim() === branchName;
         const ref = isCurrent ? 'HEAD' : branchName;
         const diffArgs = (...flags: string[]) => [
@@ -497,7 +506,6 @@ export function setupGitHandlers(): void {
           base,
           ...(isCurrent ? [] : [branchName]),
         ];
-        console.log(`${tag} ===== branch=${branchName} base=${base} isCurrent=${isCurrent} cwd=${cwd} =====`);
 
         const [
           nameStatusRes,
@@ -518,11 +526,13 @@ export function setupGitHandlers(): void {
             ? runGit(['status', '--porcelain', '--untracked-files=all'], cwd)
             : Promise.resolve({ stdout: '' }),
           runGit(['rev-list', '--left-right', '--count', `${base}...${ref}`], cwd),
-          runGit(['log', `${base}..${ref}`, '--pretty=format:%h %s', '--shortstat', '-n', '60'], cwd),
+          runGit(
+            ['log', `${base}..${ref}`, '--pretty=format:%h %s', '--shortstat', '-n', '60'],
+            cwd,
+          ),
         ]);
         if (nameStatusRes.error || numstatRes.error) {
           const msg = nameStatusRes.stderr || numstatRes.stderr || 'git diff failed';
-          console.log(`${tag} git diff failed: ${msg}`);
           return { error: msg };
         }
 
@@ -579,17 +589,12 @@ export function setupGitHandlers(): void {
           const c = ignoreCr.get(path);
           if (!c || c.added + c.deleted === 0) crOnly++;
         });
-        const modeChanges = nonEmpty(summaryRes.stdout).filter((l) => l.includes('mode change')).length;
 
         const dirCount = new Map<string, number>();
         diffPaths.forEach((p) => {
           const key = p.split('/').slice(0, 3).join('/');
           dirCount.set(key, (dirCount.get(key) ?? 0) + 1);
         });
-        const topDirs = [...dirCount.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 15)
-          .map(([d, n]) => `${n}\t${d}`);
 
         const statusPaths = new Set<string>();
         let statusDeleted = 0;
@@ -602,22 +607,6 @@ export function setupGitHandlers(): void {
             if (p.includes(' -> ')) p = p.split(' -> ')[1];
             statusPaths.add(p.replace(/^"|"$/g, ''));
           });
-        const both = [...statusPaths].filter((p) => diffPaths.has(p)).length;
-        const statusOnly = statusPaths.size - both;
-        const diffOnlyPaths = [...diffPaths].filter((p) => !statusPaths.has(p));
-        const [behind, ahead] = countRes.stdout.trim().split(/\s+/);
-
-        console.log(`${tag} behind=${behind} ahead=${ahead} (so với ${base})`);
-        console.log(`${tag} [1] files differing from ${base}${isCurrent ? ' (working tree included)' : ''}: ${diffPaths.size} | +${totalAdded} -${totalDeleted}`);
-        console.log(`${tag} [2] by type (A/M/D/R...):`, JSON.stringify(typeCount));
-        console.log(`${tag} [3] by changed lines (small = 1-4, medium = 5-20, large = 21+):`, JSON.stringify(buckets));
-        console.log(`${tag} [4] mode changes: ${modeChanges} | whitespace-only: ${whitespaceOnly} | CR-at-EOL-only: ${crOnly}`);
-        console.log(`${tag} [5] git status paths: ${statusPaths.size} (deleted: ${statusDeleted}) | in both: ${both} | status-only: ${statusOnly} | diff-only (committed, unpushed): ${diffOnlyPaths.length}`);
-        console.log(`${tag} [6] top dirs (files / dir):\n${topDirs.join('\n')}`);
-        console.log(`${tag} [7] files with <=4 changed lines (added/deleted path), first 40:\n${smallFiles.slice(0, 40).join('\n')}`);
-        console.log(`${tag} [8] diff-only files, first 40:\n${diffOnlyPaths.slice(0, 40).join('\n')}`);
-        console.log(`${tag} [9] unpushed commits (max 60):\n${commitsRes.stdout}`);
-        console.log(`${tag} ===== end =====`);
 
         return { ok: true, base, total: diffPaths.size, statusCount: statusPaths.size };
       } catch (e: any) {
@@ -936,6 +925,7 @@ export function setupGitHandlers(): void {
         const head = await runGit(['rev-parse', remoteRef], cwd);
         if (head.error) return { error: head.stderr || head.error.message };
         const remoteHash = head.stdout.trim();
+        console.log('[DEBUG] git:diff-vs-remote', { cwd, remoteRef, remoteHash, inputCount: absPaths.length });
 
         const base = cwd.replace(/\/+$/, '');
         const rels: string[] = [];
@@ -979,7 +969,15 @@ export function setupGitHandlers(): void {
           }
         }
 
-        return { remoteHash, files: differing.map((p) => `${base}/${p}`) };
+        const names = await runGit(['diff', '--name-only', '-z', 'HEAD', remoteRef], cwd);
+        const remoteOnly = names.error
+          ? []
+          : names.stdout
+              .split('\0')
+              .filter((p) => p.length > 0)
+              .map((p) => `${base}/${p}`);
+        console.log('[DEBUG] git:diff-vs-remote differing', { count: differing.length, remoteOnlyCount: remoteOnly.length, sample: remoteOnly.slice(0, 5) });
+        return { remoteHash, files: differing.map((p) => `${base}/${p}`), remoteOnly };
       } catch (e: any) {
         logger.error('[git:diff-vs-remote] Error:', e);
         return { error: e.message || String(e) };
@@ -1097,7 +1095,6 @@ export function setupGitHandlers(): void {
         dir = parent;
       }
       const gitPath = absFile.startsWith(cwd) ? absFile.slice(cwd.length + 1) : absFile;
-      console.log('[DEBUG][git:file-diff]', { root, filePath, cwd, gitPath });
 
       const tracked = await runGit(['ls-files', '--', gitPath], cwd);
       if (!tracked.stdout.trim()) {
@@ -1105,7 +1102,9 @@ export function setupGitHandlers(): void {
           const content = await fs.readFile(absFile, 'utf-8');
           const lines = content.split('\n');
           const body = lines.map((l) => '+' + l).join('\n');
-          return { output: `--- /dev/null\n+++ b/${filePath}\n@@ -0,0 +1,${lines.length} @@\n${body}` };
+          return {
+            output: `--- /dev/null\n+++ b/${filePath}\n@@ -0,0 +1,${lines.length} @@\n${body}`,
+          };
         } catch {
           return { output: '' };
         }
@@ -1382,7 +1381,9 @@ exit 0
       for (const name of Object.keys(PROTECT_HOOKS)) {
         const content = await readHook(join(dir, name));
         if (content !== null && !content.includes(PROTECT_MARKER)) {
-          return { error: `A ${name} hook already exists in ${dir}. Add the default-branch check to it manually.` };
+          return {
+            error: `A ${name} hook already exists in ${dir}. Add the default-branch check to it manually.`,
+          };
         }
       }
       await fs.mkdir(dir, { recursive: true });
@@ -1980,66 +1981,75 @@ exit 0
   );
 
   // ── Delete Branch (branch + worktree) ──
-  ipcMain.handle('git:delete-branch', async (_event, projectPath: string, branchName: string, deleteRemote?: boolean) => {
-    try {
+  ipcMain.handle(
+    'git:delete-branch',
+    async (_event, projectPath: string, branchName: string, deleteRemote?: boolean) => {
+      try {
+        const cwd = projectPath || process.cwd();
+        const name = (branchName || '').trim();
+        if (!name) return { error: 'Thiếu tên branch' };
+
+        const exists = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`], cwd);
+        if (exists.error) return { error: `Branch "${name}" không tồn tại` };
+
+        const current = await runGit(['branch', '--show-current'], cwd);
+        if (current.stdout.trim() === name) {
+          return { error: `Không thể xóa branch "${name}" đang được checkout` };
+        }
+
+        const { name: defaultBranch } = await resolveDefaultBranch(cwd);
+        if (name === defaultBranch) {
+          return { error: `Không thể xóa branch mặc định "${name}"` };
+        }
+
+        const list = await runGit(['worktree', 'list', '--porcelain'], cwd);
+        const blocks = list.stdout.split(/\n\s*\n/).slice(1);
+        for (const block of blocks) {
+          const lines = block.split('\n').map((l) => l.trim());
+          if (!lines.includes(`branch refs/heads/${name}`)) continue;
+          const wtLine = lines.find((l) => l.startsWith('worktree '));
+          if (!wtLine) continue;
+          const remove = await runGit(['worktree', 'remove', '--force', wtLine.slice(9)], cwd);
+          if (remove.error) return { error: remove.stderr || remove.error.message };
+        }
+
+        const del = await runGit(['branch', '-D', name], cwd);
+        if (del.error) return { error: del.stderr || del.error.message };
+
+        await runGit(['worktree', 'prune'], cwd);
+
+        let remoteError: string | undefined;
+        if (deleteRemote) {
+          const remoteRef = await runGit(
+            ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`],
+            cwd,
+          );
+          if (!remoteRef.error) {
+            const pushed = await runGit(['push', 'origin', '--delete', name], cwd);
+            if (pushed.error) remoteError = pushed.stderr || pushed.error.message;
+          }
+        }
+        return { branch: name, remoteError };
+      } catch (e: any) {
+        logger.error('[git:delete-branch] Error:', e);
+        return { error: e.message || String(e) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    'git:remote-branch-exists',
+    async (_event, projectPath: string, branchName: string) => {
       const cwd = projectPath || process.cwd();
       const name = (branchName || '').trim();
-      if (!name) return { error: 'Thiếu tên branch' };
-
-      const exists = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`], cwd);
-      if (exists.error) return { error: `Branch "${name}" không tồn tại` };
-
-      const current = await runGit(['branch', '--show-current'], cwd);
-      if (current.stdout.trim() === name) {
-        return { error: `Không thể xóa branch "${name}" đang được checkout` };
-      }
-
-      const { name: defaultBranch } = await resolveDefaultBranch(cwd);
-      if (name === defaultBranch) {
-        return { error: `Không thể xóa branch mặc định "${name}"` };
-      }
-
-      const list = await runGit(['worktree', 'list', '--porcelain'], cwd);
-      const blocks = list.stdout.split(/\n\s*\n/).slice(1);
-      for (const block of blocks) {
-        const lines = block.split('\n').map((l) => l.trim());
-        if (!lines.includes(`branch refs/heads/${name}`)) continue;
-        const wtLine = lines.find((l) => l.startsWith('worktree '));
-        if (!wtLine) continue;
-        const remove = await runGit(['worktree', 'remove', '--force', wtLine.slice(9)], cwd);
-        if (remove.error) return { error: remove.stderr || remove.error.message };
-      }
-
-      const del = await runGit(['branch', '-D', name], cwd);
-      if (del.error) return { error: del.stderr || del.error.message };
-
-      await runGit(['worktree', 'prune'], cwd);
-
-      let remoteError: string | undefined;
-      if (deleteRemote) {
-        const remoteRef = await runGit(
-          ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`],
-          cwd,
-        );
-        if (!remoteRef.error) {
-          const pushed = await runGit(['push', 'origin', '--delete', name], cwd);
-          if (pushed.error) remoteError = pushed.stderr || pushed.error.message;
-        }
-      }
-      return { branch: name, remoteError };
-    } catch (e: any) {
-      logger.error('[git:delete-branch] Error:', e);
-      return { error: e.message || String(e) };
-    }
-  });
-
-  ipcMain.handle('git:remote-branch-exists', async (_event, projectPath: string, branchName: string) => {
-    const cwd = projectPath || process.cwd();
-    const name = (branchName || '').trim();
-    if (!name) return { exists: false };
-    const ref = await runGit(['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`], cwd);
-    return { exists: !ref.error };
-  });
+      if (!name) return { exists: false };
+      const ref = await runGit(
+        ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`],
+        cwd,
+      );
+      return { exists: !ref.error };
+    },
+  );
 
   // ── Branch Sync (pull changed files from another branch, skipping gitignored paths) ──
   const findBranchWorktree = async (cwd: string, ref: string) => {
@@ -2149,9 +2159,6 @@ exit 0
     if (!ref) return { error: 'Thiếu branch nguồn' };
     const verify = await runGit(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], cwd);
     if (verify.error) return { error: `Branch nguồn "${ref}" không tồn tại` };
-    const headSha = await runGit(['rev-parse', 'HEAD'], cwd);
-    const refSha = await runGit(['rev-parse', `${ref}^{commit}`], cwd);
-    const curBranch = await runGit(['branch', '--show-current'], cwd);
     const srcWorktree = await findBranchWorktree(cwd, ref);
     if (srcWorktree && resolve(srcWorktree) !== resolve(cwd)) {
       return await readWorktreeDiff(cwd, srcWorktree);
@@ -2271,6 +2278,104 @@ exit 0
         return await readBranchDiff(projectPath || process.cwd(), (sourceRef || '').trim());
       } catch (e: any) {
         logger.error('[git:branch-sync-preview] Error:', e);
+        return { error: e.message || String(e) };
+      }
+    },
+  );
+
+  ipcMain.handle('git:unpushed-files', async (_event, projectPath: string, branch: string) => {
+    try {
+      const cwd = resolve(projectPath || process.cwd());
+      const b = (branch || '').trim();
+      if (!b) return { error: 'Thiếu branch nguồn' };
+      const files = new Set<string>();
+
+      const remote = await runGit(
+        ['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${b}`],
+        cwd,
+      );
+      if (!remote.error) {
+        const res = await runGit(
+          ['diff', '--name-only', '--no-renames', '-z', `origin/${b}...${b}`],
+          cwd,
+        );
+        res.stdout
+          .split('\0')
+          .filter(Boolean)
+          .forEach((p) => files.add(p));
+      } else {
+        const res = await runGit(
+          ['-c', 'core.quotepath=false', 'log', b, '--not', '--remotes', '--name-only', '--pretty=format:'],
+          cwd,
+        );
+        res.stdout
+          .split('\n')
+          .filter(Boolean)
+          .forEach((p) => files.add(p));
+      }
+
+      const wt = await findBranchWorktree(cwd, b);
+      if (wt) {
+        const st = await runGit(['status', '--porcelain', '-z', '--untracked-files=all'], wt);
+        const parts = st.stdout.split('\0');
+        for (let i = 0; i < parts.length; i++) {
+          const rec = parts[i];
+          if (rec.length < 4) continue;
+          files.add(rec.slice(3));
+          if (rec[0] === 'R' || rec[0] === 'C') i++;
+        }
+      }
+      return { files: Array.from(files) };
+    } catch (e: any) {
+      logger.error('[git:unpushed-files] Error:', e);
+      return { error: e.message || String(e) };
+    }
+  });
+
+  const noIndexDiff = (a: string, b: string) =>
+    new Promise<string>((done) => {
+      execFile(
+        'git',
+        ['diff', '--no-index', '--no-color', '--', a, b],
+        { maxBuffer: 20 * 1024 * 1024 },
+        (_e: any, stdout: string) => done(stdout || ''),
+      );
+    });
+
+  ipcMain.handle(
+    'git:branch-sync-file-diff',
+    async (_event, projectPath: string, sourceRef: string, filePath: string) => {
+      try {
+        const cwd = resolve(projectPath || process.cwd());
+        const ref = (sourceRef || '').trim();
+        if (!ref || !filePath) return { error: 'Thiếu branch nguồn hoặc file' };
+        const mine = resolve(cwd, filePath);
+        const has = (p: string) =>
+          fs.access(p).then(
+            () => true,
+            () => false,
+          );
+        const srcWt = await findBranchWorktree(cwd, ref);
+        let raw = '';
+        if (srcWt && resolve(srcWt) !== cwd) {
+          const theirs = resolve(srcWt, filePath);
+          const [hasMine, hasTheirs] = await Promise.all([has(mine), has(theirs)]);
+          raw = await noIndexDiff(hasMine ? mine : '/dev/null', hasTheirs ? theirs : '/dev/null');
+        } else {
+          const res = await runGit(
+            ['diff', '--no-color', '--no-renames', '-R', ref, '--', `:(literal)${filePath}`],
+            cwd,
+          );
+          if (res.error) return { error: res.stderr || res.error.message };
+          raw = res.stdout;
+          if (!raw) {
+            const inRef = await runGit(['cat-file', '-e', `${ref}:${filePath}`], cwd);
+            if (inRef.error && (await has(mine))) raw = await noIndexDiff(mine, '/dev/null');
+          }
+        }
+        return { diff: raw.replace(/^diff --git .*$/m, `diff --git a/${filePath} b/${filePath}`) };
+      } catch (e: any) {
+        logger.error('[git:branch-sync-file-diff] Error:', e);
         return { error: e.message || String(e) };
       }
     },

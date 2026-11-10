@@ -27,7 +27,7 @@ import { $ } from '@renderer/utils/color';
 
 // ── Components ──
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
-import CodeBlock from '@renderer/components/common/CodeBlock';
+import ReadOnlyCodeBlock from '@renderer/components/common/ReadOnlyCodeBlock';
 
 // Path utils inlined
 const isLikelyFolder = (token: string): boolean => {
@@ -142,7 +142,11 @@ const domNodeToReact = (
       const className = codeEl.className || '';
       const languageMatch = className.match(/language-(\w+)/);
       const language = languageMatch ? languageMatch[1] : 'text';
-      return <CodeBlock key={key} code={codeText} language={language} />;
+      return (
+        <div key={key} className="my-2 rounded-md border border-border overflow-hidden">
+          <ReadOnlyCodeBlock code={codeText} language={language} />
+        </div>
+      );
     }
   }
 

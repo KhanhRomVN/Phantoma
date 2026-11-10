@@ -58,14 +58,6 @@ import {
 } from './ipc';
 import { registerAgentToolHandlers } from './ipc/agent-tool.handlers';
 
-import { createHash } from 'crypto';
-
-if (!app.isPackaged) {
-  const projectHash = createHash('md5').update(process.cwd()).digest('hex').slice(0, 8);
-  app.setPath('userData', path.join(app.getPath('appData'), `${app.getName()}-dev-${projectHash}`));
-  app.commandLine.appendSwitch('remote-debugging-port', String(40000 + (parseInt(projectHash, 16) % 20000)));
-}
-
 // Ensure certificate directory exists for http-mitm-proxy
 const certDir = path.join(process.cwd(), '.http-mitm-proxy', 'certs');
 try {

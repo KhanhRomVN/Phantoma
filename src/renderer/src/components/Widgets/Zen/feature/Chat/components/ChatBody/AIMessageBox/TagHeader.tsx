@@ -113,7 +113,6 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
   subTitleClassName,
   statusColor,
   diffStats,
-  isCollapsed,
   onToggleCollapse,
   onClick,
   icon,
@@ -297,11 +296,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({
               {/* Right column: All other content */}
               <div className="flex-1 min-w-0 flex flex-col gap-0.5 mt-0.5">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {onToggleCollapse && (
-                    <span
-                      className={`collapse-icon codicon codicon-chevron-${isCollapsed ? 'right' : 'down'} text-[13px] mr-1`}
-                    />
-                  )}
+
                   {icon && <span className="flex items-center">{icon}</span>}
                   {typeof title === 'string' ? (
                     <span>{title}</span>

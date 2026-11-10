@@ -3,7 +3,7 @@
  * MarketplacePanel
  * ------------------------------------------------------------------
  * Marketplace với 2 tab: SKILL, MCP. Bao gồm luôn SkillPanel
- * (SKILL tab), SkillSearchBar và SkillGroupDrawer để tránh vòng import.
+ * (SKILL tab), SkillSearchBar và SkillGroupModal để tránh vòng import.
  * Shared state UIs nằm ở ./components/shared/StateViews.
  *
  * Mapped from Zen to Phantoma (Tailwind + IPC).
@@ -26,13 +26,13 @@ import {
 import { MCPPanel } from "./components/MCPPanel";
 import { ErrorState } from "./components/shared/StateViews";
 import {
-  SkillGroupDrawer,
+  SkillGroupModal,
   type DrawerGroup,
   type DrawerSkill,
-} from "./components/Skill/SkillGroupDrawer";
+} from "./components/Skill/SkillGroupModal";
 import { buildSkillPreview } from "./utils/skillPreview";
 import type { SkillSummary } from "./types/skill.types";
-import { extensionService } from '../../services/ExtensionService';
+
 import { $ } from '@renderer/utils/color';
 import AgentNavBadge, { type NavTarget } from '../../components/AgentNavBadge';
 
@@ -102,7 +102,9 @@ function SkillSearchBar({
 
 const iconButtonClass = "w-[34px] h-[34px] box-border rounded-lg border-none cursor-pointer flex items-center justify-center shrink-0";
 
-export function SkillPanel() {
+export function SkillPanel({
+  header,
+}: { header?: import("react").ReactNode } = {}) {
   const {
     skills,
     loading,
@@ -234,6 +236,7 @@ export function SkillPanel() {
 
   return (
     <div className="h-full flex flex-col">
+      {header}
       <SkillSearchBar
         value={searchQuery}
         onChange={setSearchQuery}
@@ -253,7 +256,7 @@ export function SkillPanel() {
         onUninstall={(skill) => handleUninstall(skill.slug)}
       />
 
-      <SkillGroupDrawer
+      <SkillGroupModal
         isOpen={drawerOpen}
         skill={pendingInstallSkill}
         groups={drawerGroups}
@@ -272,7 +275,7 @@ export function SkillPanel() {
         onDeleteGroup={(name) => workspaceState.removeGroup(name)}
         onMoveSkill={workspaceState.assignSkillToGroup}
         onOpenSkillFolder={(slug) =>
-          extensionService.postMessage({ command: "openSkillFolder", slug })
+          window.api.invoke('skill:open-folder', { slug })
         }
         onOpenSkill={(slug) => {
           setDrawerOpen(false);

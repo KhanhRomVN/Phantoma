@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { agentToolIpc } from '../handlers/AgentToolIpc'
 import {
   ToolEntry,
   ToolFilter,
@@ -154,7 +155,7 @@ export const useAgentToolStore = create<AgentToolState>((set, get) => ({
 
     try {
       // Call IPC to discover tools (implement in main process)
-      const result = await window.api.agentTool.discover(agentConfig)
+      const result = await agentToolIpc.discover(agentConfig)
       set({
         discovery: result,
         discoveryLoading: false,
@@ -209,7 +210,7 @@ export const useAgentToolStore = create<AgentToolState>((set, get) => ({
     const request = get().pendingPermissions.find((r) => r.id === id)
     if (request) {
       // Send approval to IPC
-      window.api.agentTool.resolvePermission(id, approved)
+      agentToolIpc.resolvePermission(id, approved)
       set((state) => ({
         pendingPermissions: state.pendingPermissions.filter((r) => r.id !== id)
       }))

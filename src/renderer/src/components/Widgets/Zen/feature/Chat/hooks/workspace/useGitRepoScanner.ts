@@ -91,11 +91,6 @@ export const useGitRepoScanner = (rootPath?: string) => {
   const scan = useCallback(async (): Promise<GitRepoInfo[]> => {
     setLoading(true);
     setError(null);
-    // Debug log - có thể xóa sau khi fix
-    console.log('[DEBUG][GitScan] start', {
-      rootPath,
-      hasApiInvoke: typeof (window as any).api?.invoke,
-    });
 
     try {
       const api = (window as any).api;
@@ -105,13 +100,6 @@ export const useGitRepoScanner = (rootPath?: string) => {
         command: 'scanGitRepos',
         rootPath,
       })) as { repos?: GitRepoInfo[]; error?: string } | undefined;
-
-      // Debug log - có thể xóa sau khi fix
-      console.log('[DEBUG][GitScan] result', {
-        error: result?.error,
-        count: result?.repos?.length ?? 0,
-        repos: result?.repos,
-      });
 
       if (result?.error) {
         setError(result.error);
@@ -124,7 +112,6 @@ export const useGitRepoScanner = (rootPath?: string) => {
       return found;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Scan failed';
-      console.log('[DEBUG][GitScan] exception', message);
       setError(message);
       setRepos([]);
       return [];

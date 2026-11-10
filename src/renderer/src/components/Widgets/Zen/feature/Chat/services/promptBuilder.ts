@@ -183,7 +183,7 @@ export class PromptBuilder {
           }
         }
 
-        if (feature === 'code' && workflowAgentId === 'orchestrator') {
+        if (feature === 'code' && (!workflowAgentId || workflowAgentId === 'orchestrator')) {
           const { loadOrchestratorTaskContext } =
             await import('@renderer/modules/Code/services/orchestrator-task-context');
           systemPrompt += await loadOrchestratorTaskContext();
@@ -243,7 +243,7 @@ export class PromptBuilder {
     },
     _workspace?: string,
   ): Promise<string> {
-    let systemInfo = {
+    let systemInfo: any = {
       os: 'Unknown OS',
       ide: 'Zen IDE',
       shell: 'unknown',
@@ -265,6 +265,47 @@ export class PromptBuilder {
       }
     } catch (e) {
       console.warn('[PromptBuilder] Failed to fetch system info:', e);
+    }
+
+    // Load branch tasks for Code module
+    if (feature === 'code' || !feature) {
+      try {
+        const { useCodeStore } = await import('@renderer/modules/Code/hooks/useCodeStore');
+        const { taskService } = await import('@renderer/modules/Code/services/task.service');
+        const codeState = useCodeStore.getState();
+        const currentProject = codeState.projects.find((p) => p.id === codeState.currentProjectId);
+        
+        if (currentProject?.path && currentProject.branches) {
+          const sessionId = codeState.activeWorkspaceSessionId;
+          // Find the branch that contains this session
+          const ownerBranch = currentProject.branches.find((b) =>
+            b.sessions?.some((s) => s.id === sessionId)
+          );
+          const branchName = ownerBranch?.name;
+          
+          if (branchName) {
+            const allTasks = await taskService.list(currentProject.path);
+            const branchTasks = allTasks
+              .filter((t) => !t.archived && t.branchName === branchName && t.status !== 'done')
+              .map((t) => ({
+                id: t.id,
+                title: t.title,
+                status: t.status as 'todo' | 'progress' | 'review' | 'done',
+                priority: t.priority,
+                startDate: t.startDate,
+                startTime: t.startTime,
+                endDate: t.endDate,
+                endTime: t.endTime,
+              }));
+            
+            if (branchTasks.length > 0) {
+              systemInfo.branchTasks = branchTasks;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[PromptBuilder] Failed to load branch tasks:', e);
+      }
     }
 
     const effectiveLang = aiLanguage;

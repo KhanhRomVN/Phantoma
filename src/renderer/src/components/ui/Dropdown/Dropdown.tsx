@@ -203,7 +203,7 @@ export const Dropdown = React.memo(function Dropdown({
       }
       // Use manual position if provided (e.g., for context menus)
       if (manualPosition) {
-        setPosition(manualPosition);
+        setPosition(calculateContextMenuPosition(manualPosition));
         setIsPositioned(true);
         return;
       }
@@ -410,6 +410,10 @@ export const Dropdown = React.memo(function Dropdown({
                     left: position.left,
                     // Don't set width for end-aligned dropdowns to allow natural content width
                     width: align === 'end' ? undefined : position.width,
+                    // ASSUMED: manual-position menus must fit the viewport, scroll when taller
+                    ...(manualPosition
+                      ? { maxHeight: 'calc(100vh - 16px)', overflowY: 'auto' as const }
+                      : {}),
                     opacity: isPositioned ? 1 : 0,
                     transition: 'opacity 0.15s ease',
                     pointerEvents: 'auto',

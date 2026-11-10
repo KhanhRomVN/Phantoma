@@ -14,4 +14,6 @@ export interface TooltipProps {
   alignOffset?: number;
   className?: string;
   contentClassName?: string;
+  /** Tooltip bám theo con trỏ chuột, ưu tiên bên phải, tự lật sang trái khi hết chỗ */
+  followMouse?: boolean;
 }

@@ -702,7 +702,7 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
 
   // Set original content when code first loads
   useEffect(() => {
-    if (fileId && code) {
+    if (fileId && code !== undefined && code !== null) {
       setOriginalContent(fileId, code);
     }
   }, [fileId]); // Only run when fileId changes

@@ -37,7 +37,7 @@
     "url": "https://github.com/KhanhRomVN/Phantoma/issues"
   },
   "scripts": {
-    "dev": "electron-vite dev --noSandbox",
+    "dev": "electron-vite dev --noSandbox --remoteDebuggingPort=9222",
     "build": "node scripts/build-interactive.js",
     "typecheck": "tsc --noEmit -p tsconfig.node.json --composite false && tsc --noEmit -p tsconfig.web.json --composite false",
     "lint": "eslint .",
@@ -62,6 +62,7 @@
     "framer-motion": "^12.35.1",
     "highlight.js": "^11.11.1",
     "http-mitm-proxy": "^1.1.0",
+    "jszip": "^3.10.2",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^1.28.0",
     "maplibre-gl": "^6.14.0",

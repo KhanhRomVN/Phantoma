@@ -1,5 +1,4 @@
-
-import { ChevronRight } from "lucide-react";
+import { ArrowLeft } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
 
 interface SkillDetailBreadcrumbProps {
@@ -7,14 +6,11 @@ interface SkillDetailBreadcrumbProps {
   onBack: () => void;
 }
 
-/** Breadcrumb bar — "Browse > <tên skill>" với nút quay lại. */
-export function SkillDetailBreadcrumb({
-  name,
-  onBack,
-}: SkillDetailBreadcrumbProps) {
+/** Breadcrumb bar — nút ArrowLeft + <tên skill>, cao bằng tabBar workspace (36px). */
+export function SkillDetailBreadcrumb({ name, onBack }: SkillDetailBreadcrumbProps) {
   return (
     <div
-      className="px-5 py-3 border-b flex-shrink-0 flex items-center gap-1 text-xs"
+      className="h-9 px-3 border-b flex-shrink-0 flex items-center gap-1.5 text-xs"
       style={{
         borderColor: $('--border'),
         color: $('--text-secondary'),
@@ -23,16 +19,13 @@ export function SkillDetailBreadcrumb({
       <button
         type="button"
         onClick={onBack}
-        className="bg-transparent border-none p-0 cursor-pointer text-xs"
-        style={{ color: $('--primary') }}
+        title="Back to skills"
+        className="p-1 rounded-md bg-transparent border-none cursor-pointer flex items-center justify-center shrink-0 hover:bg-white/5"
+        style={{ color: $('--text-secondary') }}
       >
-        Browse
+        <ArrowLeft size={14} />
       </button>
-      <ChevronRight size={12} style={{ opacity: 0.6 }} />
-      <span
-        className="truncate"
-        style={{ color: $('--text-primary') }}
-      >
+      <span className="truncate" style={{ color: $('--text-primary') }}>
         {name}
       </span>
     </div>

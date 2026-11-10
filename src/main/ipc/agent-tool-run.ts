@@ -118,7 +118,11 @@ export function runClaude(
       'default',
       '--no-chrome'
     ]
-    if (request.model) args.push('--model', request.model)
+    if (request.model) {
+      // ASSUMED: context 1M của Claude CLI chọn bằng hậu tố [1m] sau model id
+      args.push('--model', request.contextSize === '1m' ? request.model + '[1m]' : request.model)
+    }
+    if (request.variant) args.push('--effort', request.variant)
     if (request.resume) args.push('--resume=' + request.resume)
 
     // ASSUMED: chưa có cwd từ project hiện tại, fallback về thư mục home
@@ -221,6 +225,15 @@ export function runClaude(
           if (typeof frame.error === 'string' && frame.error) {
             hooks.emit({ type: 'error', message: frame.error })
           }
+          const messageUsage = frame.message?.usage
+          const contextKeys = ['input_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens']
+          if (messageUsage && contextKeys.some((key) => typeof messageUsage[key] === 'number')) {
+            const tokens = contextKeys.reduce(
+              (sum, key) => sum + (typeof messageUsage[key] === 'number' ? messageUsage[key] : 0),
+              0
+            )
+            hooks.emit({ type: 'context_usage', tokens })
+          }
           hooks.emit({ type: 'message_completed' })
           return
         }
@@ -244,6 +257,17 @@ export function runClaude(
           return
         case 'result': {
           if (frame.session_id) sessionId = frame.session_id
+          // ASSUMED: modelUsage khóa theo model id; ưu tiên khóa bắt đầu bằng model đã chọn, không có thì lấy mục đầu
+          const modelUsage = Object.entries(frame.modelUsage ?? {}) as Array<[string, any]>
+          const picked =
+            modelUsage.find(([id]) => id.startsWith(request.model ?? '\0'))?.[1] ?? modelUsage[0]?.[1]
+          const contextWindow = Number(picked?.contextWindow)
+          if (contextWindow > 0) hooks.emit({ type: 'context_usage', window: contextWindow })
+          hooks.emit({
+            type: 'usage',
+            inputTokens: Number(frame.usage?.input_tokens ?? 0),
+            outputTokens: Number(frame.usage?.output_tokens ?? 0)
+          })
           if (interrupted) return finish('interrupted')
           if (frame.subtype === 'success') return finish('completed')
           const errors = Array.isArray(frame.errors)

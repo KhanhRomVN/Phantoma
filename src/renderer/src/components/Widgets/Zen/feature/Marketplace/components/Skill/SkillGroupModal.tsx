@@ -1,21 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
-import { createPortal } from "react-dom";
-import { X, Plus, FolderPlus, Search, Trash2 } from "lucide-react";
-import type { SkillSummary } from "../../types/skill.types";
-import { isReservedGroupName } from "../../hooks/useSkillWorkspaceState";
-import { IconPicker } from "../shared/IconPicker";
-import { DEFAULT_GROUP_ICON } from "../shared/iconLibrary";
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Plus, FolderPlus, Search } from 'lucide-react';
+import type { SkillSummary } from '../../types/skill.types';
+import { isReservedGroupName } from '../../hooks/useSkillWorkspaceState';
+import { IconPicker } from '../shared/IconPicker';
+import { ConfirmDeleteModal } from '../shared/ConfirmDeleteModal';
+import { DEFAULT_GROUP_ICON } from '../shared/iconLibrary';
 import {
   GroupTree,
   GROUP_ACCENT_COLORS,
   resolveGroupColor,
   type DrawerGroup,
   type SkillPreviewState,
-} from "../shared/GroupTree";
+} from '../shared/GroupTree';
+import { useAgentRoot } from '@renderer/components/Widgets/Zen/context/AgentRootContext';
 import { $ } from '@renderer/utils/color';
 
-export type { DrawerGroup, DrawerSkill } from "../shared/GroupTree";
+export type { DrawerGroup, DrawerSkill } from '../shared/GroupTree';
 
 export interface GroupMeta {
   icon?: string;
@@ -27,19 +29,19 @@ export interface GroupUpdate extends GroupMeta {
   name: string;
 }
 
-interface SkillGroupDrawerProps {
+interface SkillGroupModalProps {
   isOpen: boolean;
   /** Skill cần cài — null nghĩa là chỉ mở để quản lý group. */
   skill: SkillSummary | null;
-  /** Danh sách group (đã bao gồm "Others" ở đầu). */
+  /** Danh sách group (đã bao gồm 'Others' ở đầu). */
   groups: DrawerGroup[];
   onClose: () => void;
   onConfirmInstall: (groupName: string) => void;
   onCreateGroup: (name: string, meta?: GroupMeta) => void;
   onUpdateGroup: (oldName: string, next: GroupUpdate) => void;
-  /** Xóa group — skill trong group sẽ chuyển về "Others". */
+  /** Xóa group — skill trong group sẽ chuyển về 'Others'. */
   onDeleteGroup: (name: string) => void;
-  /** Kéo-thả skill sang group khác ("Others" = bỏ khỏi mọi group). */
+  /** Kéo-thả skill sang group khác ('Others' = bỏ khỏi mọi group). */
   onMoveSkill: (slug: string, groupName: string) => void;
   /** Gỡ cài đặt skill. */
   onDeleteSkill: (slug: string) => void;
@@ -50,11 +52,11 @@ interface SkillGroupDrawerProps {
 }
 
 type PendingDelete =
-  | { kind: "group"; name: string; count: number }
-  | { kind: "skill"; slug: string; name: string };
+  | { kind: 'group'; name: string; count: number }
+  | { kind: 'skill'; slug: string; name: string };
 
 interface FormState {
-  mode: "create" | "edit";
+  mode: 'create' | 'edit';
   original?: string;
   name: string;
   description: string;
@@ -65,16 +67,16 @@ interface FormState {
 }
 
 const NEW_FORM: FormState = {
-  mode: "create",
-  name: "",
-  description: "",
+  mode: 'create',
+  name: '',
+  description: '',
   icon: DEFAULT_GROUP_ICON,
   error: null,
 };
 
-// Note: Dashed box background using CSS vars requires careful handling.
-// We'll use inline style with resolved values or standard border-dashed if possible.
-// For complex repeating gradients, keeping it in a <style> tag or computed style is safer.
+// ASSUMED: container rộng hơn 640px thì hiển thị modal giữa, ngược lại bottom sheet (khớp SelectModelAccountModal)
+const MAX_SHEET_WIDTH = 640;
+const MODAL_MAX_WIDTH = 560;
 
 const TOOLTIP_OFFSET = 14;
 const TOOLTIP_MAX_WIDTH = 340;
@@ -90,18 +92,8 @@ const getTooltipStyle = (p: { x: number; y: number }): CSSProperties => {
   const spaceAbove = p.y - TOOLTIP_OFFSET - 8;
   const below = spaceBelow >= 200 || spaceBelow >= spaceAbove;
   return below
-    ? {
-        left,
-        width,
-        top: p.y + TOOLTIP_OFFSET,
-        maxHeight: Math.min(TOOLTIP_MAX_HEIGHT, spaceBelow),
-      }
-    : {
-        left,
-        width,
-        bottom: vh - p.y + TOOLTIP_OFFSET,
-        maxHeight: Math.min(TOOLTIP_MAX_HEIGHT, spaceAbove),
-      };
+    ? { left, width, top: p.y + TOOLTIP_OFFSET, maxHeight: Math.min(TOOLTIP_MAX_HEIGHT, spaceBelow) }
+    : { left, width, bottom: vh - p.y + TOOLTIP_OFFSET, maxHeight: Math.min(TOOLTIP_MAX_HEIGHT, spaceAbove) };
 };
 
 /** Tooltip xem trước nội dung skill — bám theo con chuột, không delay. */
@@ -125,9 +117,11 @@ function SkillPreviewTooltip({ skill, x, y }: SkillPreviewState) {
 }
 
 /**
- * Drawer chọn group để cài skill + quản lý group.
+ * Modal chọn group để cài skill + quản lý group. Render trong AgentRoot
+ * (position absolute) nên không tràn ra ngoài panel chứa nó: container rộng
+ * thì là modal giữa, hẹp thì là bottom sheet.
  */
-export function SkillGroupDrawer({
+export function SkillGroupModal({
   isOpen,
   skill,
   groups,
@@ -140,42 +134,59 @@ export function SkillGroupDrawer({
   onDeleteSkill,
   onOpenSkillFolder,
   onOpenSkill,
-}: SkillGroupDrawerProps) {
-  const [selected, setSelected] = useState("Others");
+}: SkillGroupModalProps) {
+  const agentRoot = useAgentRoot();
+  const [selected, setSelected] = useState('Others');
   const [form, setForm] = useState<FormState | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
-    null,
-  );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [preview, setPreview] = useState<SkillPreviewState | null>(null);
+  const [containerSize, setContainerSize] = useState(() => {
+    const r = (agentRoot ?? document.body).getBoundingClientRect();
+    return { width: r.width, height: r.height };
+  });
 
   useEffect(() => {
     if (isOpen) {
-      setSelected(groups[0]?.name ?? "Others");
+      setSelected(groups[0]?.name ?? 'Others');
       setForm(null);
-      setSearchQuery("");
+      setSearchQuery('');
       setPendingDelete(null);
       setPreview(null);
     }
-  }, [isOpen, groups]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      if (e.key !== 'Escape') return;
       if (pendingDelete) setPendingDelete(null);
       else onClose();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose, pendingDelete]);
 
   useEffect(() => {
     if (!preview) return;
     const hide = () => setPreview(null);
-    window.addEventListener("scroll", hide, true);
-    return () => window.removeEventListener("scroll", hide, true);
+    window.addEventListener('scroll', hide, true);
+    return () => window.removeEventListener('scroll', hide, true);
   }, [!!preview]);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const el = agentRoot ?? document.body;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setContainerSize({ width: r.width, height: r.height });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isOpen, agentRoot]);
 
   const filteredGroups = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -183,7 +194,7 @@ export function SkillGroupDrawer({
     return groups.filter(
       (g) =>
         g.name.toLowerCase().includes(q) ||
-        (g.description ?? "").toLowerCase().includes(q) ||
+        (g.description ?? '').toLowerCase().includes(q) ||
         g.skills.some((s) => s.name.toLowerCase().includes(q)),
     );
   }, [groups, searchQuery]);
@@ -195,14 +206,14 @@ export function SkillGroupDrawer({
 
   const requestDeleteGroup = (name: string) => {
     const group = groups.find((g) => g.name === name);
-    setPendingDelete({ kind: "group", name, count: group?.skills.length ?? 0 });
+    setPendingDelete({ kind: 'group', name, count: group?.skills.length ?? 0 });
   };
 
   const confirmDelete = () => {
     if (!pendingDelete) return;
-    if (pendingDelete.kind === "group") {
+    if (pendingDelete.kind === 'group') {
       onDeleteGroup(pendingDelete.name);
-      if (selected === pendingDelete.name) setSelected("Others");
+      if (selected === pendingDelete.name) setSelected('Others');
     } else {
       onDeleteSkill(pendingDelete.slug);
     }
@@ -211,10 +222,10 @@ export function SkillGroupDrawer({
 
   const openEdit = (group: DrawerGroup) =>
     setForm({
-      mode: "edit",
+      mode: 'edit',
       original: group.name,
       name: group.name,
-      description: group.description ?? "",
+      description: group.description ?? '',
       icon: group.icon ?? DEFAULT_GROUP_ICON,
       color: group.color,
       error: null,
@@ -225,17 +236,13 @@ export function SkillGroupDrawer({
     const name = form.name.trim();
     let error: string | null = null;
     if (!name) {
-      error = "Group name cannot be empty";
+      error = 'Group name cannot be empty';
     } else if (isReservedGroupName(name)) {
       error = `"${name}" is reserved`;
     } else if (
-      groups.some(
-        (g) =>
-          g.name.toLowerCase() === name.toLowerCase() &&
-          g.name !== form.original,
-      )
+      groups.some((g) => g.name.toLowerCase() === name.toLowerCase() && g.name !== form.original)
     ) {
-      error = "Group already exists";
+      error = 'Group already exists';
     }
     if (error) {
       setForm({ ...form, error });
@@ -246,7 +253,7 @@ export function SkillGroupDrawer({
       color: form.color,
       description: form.description.trim() || undefined,
     };
-    if (form.mode === "edit" && form.original) {
+    if (form.mode === 'edit' && form.original) {
       onUpdateGroup(form.original, { name, ...meta });
     } else {
       onCreateGroup(name, meta);
@@ -254,59 +261,75 @@ export function SkillGroupDrawer({
     setForm(null);
   };
 
-  // Resolve theme colors for inline styles
-  const tertiaryBg = $('--dropdown-background'); // Using dropdown bg for drawer surface as it's elevated
   const borderColor = $('--border');
-  const inputBg = $('--input-background');
+  const inputBg = `color-mix(in srgb, ${$('--text-primary')} 8%, ${$('--background')})`;
   const textPrimary = $('--text-primary');
   const textSecondary = $('--text-secondary');
   const primaryColor = $('--primary');
   const errorColor = $('--error');
 
+  const isWide = containerSize.width > MAX_SHEET_WIDTH;
+  const modalWidth = Math.min(MODAL_MAX_WIDTH, Math.max(containerSize.width - 32, 0));
+  const modalHeight = Math.min(modalWidth * 1.1, containerSize.height * 0.9);
+
+  const panelLayoutStyle: CSSProperties = isWide
+    ? {
+        position: 'absolute',
+        inset: 0,
+        margin: 'auto',
+        width: modalWidth,
+        height: modalHeight,
+        border: `1px solid ${borderColor}`,
+        borderRadius: '12px',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+        animation: 'skModalFadeScale 0.2s ease-out',
+      }
+    : {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        height: '75%',
+        borderTop: `1px solid ${borderColor}`,
+        boxShadow: '0 -8px 24px rgba(0,0,0,0.2)',
+        animation: 'skModalSlideUp 0.25s ease-out',
+      };
+
+  const container = agentRoot ?? document.body;
+
   const content = (
     <>
-      {/* Backdrop */}
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/55 z-[10000] animate-fade-in"
+        className="absolute inset-0 z-[10000]"
+        style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}
       />
-      
-      {/* Drawer Panel */}
+
       <div
-        className="fixed bottom-0 left-0 right-0 h-[75%] z-[10001] flex flex-col shadow-[0_-8px_32px_rgba(0,0,0,0.25)] animate-slide-up"
-        style={{
-          backgroundColor: tertiaryBg,
-          borderTop: `1px solid ${borderColor}`,
-        }}
+        className="z-[10001] flex flex-col overflow-hidden"
+        style={{ ...panelLayoutStyle, backgroundColor: $('--background'), color: textPrimary }}
       >
-        {/* Header */}
-        <div
-          className="px-4 py-3 border-b flex items-center justify-between shrink-0"
-          style={{ borderColor }}
-        >
+        <div className="px-4 py-3 border-b flex items-center justify-between shrink-0" style={{ borderColor }}>
           <div className="min-w-0">
-            <div className="text-base font-bold" style={{ color: textPrimary }}>
-              {skill ? "Install Skill" : "Manage Groups"}
+            <div className="text-[17px] font-bold" style={{ color: textPrimary }}>
+              {skill ? 'Install Skill' : 'Manage Groups'}
             </div>
-            <div
-              className="text-xs opacity-70 mt-0.5 truncate max-w-[min(240px,60vw)]"
-              style={{ color: textSecondary }}
-            >
-              {skill ? skill.name : "Create and organize skill groups"}
+            <div className="text-[11px] opacity-70 mt-0.5 truncate" style={{ color: textSecondary }}>
+              {skill ? skill.name : 'Create and organize skill groups'}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded transition-colors hover:bg-red-500/10 hover:text-red-500"
+            className="p-1.5 rounded transition-colors bg-transparent border-none cursor-pointer hover:bg-red-500/10 hover:text-red-500 shrink-0"
             style={{ color: textSecondary }}
           >
             <X size={16} />
           </button>
         </div>
 
-        {/* Toolbar */}
-        <div className="px-4 py-2.5 flex gap-2 items-center shrink-0">
+        <div className="px-3 pt-3 pb-1 flex gap-2 items-center shrink-0">
           <div className="relative flex-1">
             <Search
               size={14}
@@ -318,11 +341,8 @@ export function SkillGroupDrawer({
               placeholder="Search groups or skills..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg outline-none border-none h-[34px] box-border"
-              style={{
-                backgroundColor: inputBg,
-                color: textPrimary,
-              }}
+              className="w-full pl-8 pr-3 py-2 text-[13px] rounded-lg outline-none border-none h-[34px] box-border"
+              style={{ backgroundColor: inputBg, color: textPrimary }}
             />
           </div>
           <button
@@ -330,24 +350,17 @@ export function SkillGroupDrawer({
             onClick={() => setForm(NEW_FORM)}
             title="New group"
             className="w-[34px] h-[34px] rounded-lg border-none cursor-pointer flex items-center justify-center shrink-0"
-            style={{
-              backgroundColor: inputBg,
-              color: textSecondary,
-            }}
+            style={{ backgroundColor: inputBg, color: textSecondary }}
           >
             <FolderPlus size={16} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-4 pb-2.5">
+        <div className="flex-1 overflow-y-auto p-3">
           {form && (
             <div className="mb-3">
-              <div
-                className="text-[11px] font-semibold uppercase tracking-wide mb-1.5"
-                style={{ color: textSecondary }}
-              >
-                {form.mode === "create" ? "New Group" : "Edit Group"}
+              <div className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: textSecondary }}>
+                {form.mode === 'create' ? 'New Group' : 'Edit Group'}
               </div>
               <div
                 className="flex flex-col gap-2 p-3 rounded-xl border border-dashed"
@@ -357,7 +370,7 @@ export function SkillGroupDrawer({
                   <IconPicker
                     value={form.icon}
                     color={resolveGroupColor({
-                      name: form.name.trim() || form.original || "",
+                      name: form.name.trim() || form.original || '',
                       color: form.color,
                     })}
                     onChange={(icon) => patchForm({ icon })}
@@ -369,17 +382,14 @@ export function SkillGroupDrawer({
                     value={form.name}
                     onChange={(e) => patchForm({ name: e.target.value })}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") submitForm();
-                      else if (e.key === "Escape") {
+                      if (e.key === 'Enter') submitForm();
+                      else if (e.key === 'Escape') {
                         e.stopPropagation();
                         setForm(null);
                       }
                     }}
-                    className="flex-1 text-sm px-2.5 py-1.5 rounded-lg outline-none border-none"
-                    style={{
-                      backgroundColor: inputBg,
-                      color: textPrimary,
-                    }}
+                    className="flex-1 min-w-0 text-[13px] px-2.5 py-2 rounded-lg outline-none border-none"
+                    style={{ backgroundColor: inputBg, color: textPrimary }}
                   />
                 </div>
                 <input
@@ -388,15 +398,12 @@ export function SkillGroupDrawer({
                   value={form.description}
                   onChange={(e) => patchForm({ description: e.target.value })}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") submitForm();
+                    if (e.key === 'Enter') submitForm();
                   }}
-                  className="text-sm px-2.5 py-1.5 rounded-lg outline-none border-none"
-                  style={{
-                    backgroundColor: inputBg,
-                    color: textPrimary,
-                  }}
+                  className="text-[13px] px-2.5 py-2 rounded-lg outline-none border-none"
+                  style={{ backgroundColor: inputBg, color: textPrimary }}
                 />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[11px] mr-1" style={{ color: textSecondary }}>
                     Color
                   </span>
@@ -404,12 +411,11 @@ export function SkillGroupDrawer({
                     type="button"
                     title="Auto"
                     onClick={() => patchForm({ color: undefined })}
-                    className="w-[18px] h-[18px] p-0 rounded-full border border-dashed cursor-pointer shrink-0"
+                    className="w-[18px] h-[18px] p-0 rounded-full border border-dashed cursor-pointer shrink-0 bg-transparent"
                     style={{
                       borderColor: textSecondary,
-                      backgroundColor: 'transparent',
                       outline: form.color === undefined ? `2px solid ${textSecondary}` : 'none',
-                      outlineOffset: '2px'
+                      outlineOffset: '2px',
                     }}
                   />
                   {GROUP_ACCENT_COLORS.map((c) => (
@@ -422,7 +428,7 @@ export function SkillGroupDrawer({
                       style={{
                         backgroundColor: c,
                         outline: form.color === c ? `2px solid ${c}` : 'none',
-                        outlineOffset: '2px'
+                        outlineOffset: '2px',
                       }}
                     />
                   ))}
@@ -451,53 +457,29 @@ export function SkillGroupDrawer({
                     }}
                   >
                     <Plus size={13} />
-                    {form.mode === "create" ? "Create" : "Save"}
+                    {form.mode === 'create' ? 'Create' : 'Save'}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {pendingDelete && (
-            <div
-              className="flex items-center gap-2 px-2.5 py-2 mb-2.5 rounded-lg border"
-              style={{
-                backgroundColor: `color-mix(in srgb, ${errorColor} 10%, transparent)`,
-                borderColor: `color-mix(in srgb, ${errorColor} 35%, transparent)`,
-              }}
-            >
-              <Trash2 size={14} style={{ color: errorColor, flexShrink: 0 }} />
-              <div
-                className="flex-1 min-w-0 text-xs"
-                style={{ color: textPrimary }}
-              >
-                {pendingDelete.kind === "group"
-                  ? pendingDelete.count > 0
-                    ? `Delete group "${pendingDelete.name}"? ${pendingDelete.count} skill(s) will move to Others.`
-                    : `Delete group "${pendingDelete.name}"?`
-                  : `Uninstall skill "${pendingDelete.name}"?`}
-              </div>
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                className="px-3 py-1.5 rounded-md border-none bg-transparent text-xs cursor-pointer"
-                style={{ color: textSecondary }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="px-3 py-1.5 rounded-md border-none text-xs font-medium cursor-pointer"
-                style={{
-                  backgroundColor: `color-mix(in srgb, ${errorColor} 18%, transparent)`,
-                  color: errorColor,
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          )}
+          <ConfirmDeleteModal
+            isOpen={!!pendingDelete}
+            onClose={() => setPendingDelete(null)}
+            onConfirm={confirmDelete}
+            title={pendingDelete?.kind === 'group' ? 'Delete group?' : 'Uninstall skill?'}
+            confirmLabel={pendingDelete?.kind === 'group' ? 'Delete' : 'Uninstall'}
+            description={
+              pendingDelete?.kind === 'group'
+                ? pendingDelete.count > 0
+                  ? `Delete group "${pendingDelete.name}"? ${pendingDelete.count} skill(s) will move to Others.`
+                  : `Delete group "${pendingDelete.name}"?`
+                : pendingDelete
+                  ? `Uninstall skill "${pendingDelete.name}"? This action cannot be undone.`
+                  : ''
+            }
+          />
 
           <GroupTree
             groups={filteredGroups}
@@ -507,21 +489,15 @@ export function SkillGroupDrawer({
             onEdit={openEdit}
             onDelete={requestDeleteGroup}
             onMoveSkill={onMoveSkill}
-            onDeleteSkill={(s) =>
-              setPendingDelete({ kind: "skill", slug: s.slug, name: s.name })
-            }
+            onDeleteSkill={(s) => setPendingDelete({ kind: 'skill', slug: s.slug, name: s.name })}
             onOpenSkillFolder={(s) => onOpenSkillFolder(s.slug)}
             onOpenSkill={(s) => onOpenSkill(s.slug)}
             onPreviewChange={setPreview}
           />
         </div>
 
-        {/* Footer Actions (only when installing) */}
         {skill && (
-          <div
-            className="flex justify-end gap-2 px-4 py-3 border-t shrink-0"
-            style={{ borderColor }}
-          >
+          <div className="flex justify-end gap-2 px-4 py-3 border-t shrink-0" style={{ borderColor }}>
             <button
               type="button"
               onClick={onClose}
@@ -552,13 +528,9 @@ export function SkillGroupDrawer({
       {preview && <SkillPreviewTooltip {...preview} />}
 
       <style>{`
-        @keyframes skDrawerSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes skDrawerFadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .animate-slide-up { animation: skDrawerSlideUp 0.22s ease-out forwards; }
-        .animate-fade-in { animation: skDrawerFadeIn 0.15s ease-out forwards; }
-        
-        /* Tooltip Styles */
-        .sk-tip { position: fixed; z-index: 10010; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px; overflow: hidden; pointer-events: none; border-radius: 12px; background: var(--tooltip-background); border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(0,0,0,.35); }
+        @keyframes skModalSlideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes skModalFadeScale { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .sk-tip { position: fixed; z-index: 99999; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px; overflow: hidden; pointer-events: none; border-radius: 12px; background: var(--tooltip-background); border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(0,0,0,.35); }
         .sk-tip-title { font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
         .sk-tip-chips { display: flex; flex-wrap: wrap; gap: 5px; }
         .sk-tip-chip { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 500; color: var(--text-secondary); background: color-mix(in srgb, var(--text-primary) 7%, transparent); }
@@ -569,5 +541,5 @@ export function SkillGroupDrawer({
     </>
   );
 
-  return createPortal(content, document.body);
+  return createPortal(content, container);
 }

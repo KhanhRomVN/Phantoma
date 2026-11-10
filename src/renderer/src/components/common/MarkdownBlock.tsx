@@ -186,7 +186,11 @@ const domNodeToReact = (
       const className = codeEl.className || '';
       const languageMatch = className.match(/language-(\w+)/);
       const language = languageMatch ? languageMatch[1] : 'text';
-      return <ReadOnlyCodeBlock key={key} code={codeText} language={language} />;
+      return (
+        <div key={key} className="rounded-md border border-border overflow-hidden">
+          <ReadOnlyCodeBlock code={codeText} language={language} />
+        </div>
+      );
     }
   }
 

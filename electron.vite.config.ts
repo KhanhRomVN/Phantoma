@@ -1,5 +1,4 @@
 import { resolve } from 'path';
-import { createHash } from 'crypto';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 
@@ -48,10 +47,6 @@ export default defineConfig({
       },
     },
     plugins: [react()],
-    server: {
-      port: 20000 + (createHash('md5').update(resolve('.')).digest().readUInt16BE(0) % 20000),
-      strictPort: true,
-    },
     build: {
       outDir: 'out/renderer',
       rollupOptions: {

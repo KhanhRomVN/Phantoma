@@ -6,9 +6,17 @@ import {
   Provider,
   MCPServer,
 } from '../../shared/types/agent-tool';
-import { listAgentSessions } from './agent-tool-sessions';
+import {
+  listAgentSessions,
+  listOpencodeSessions,
+  loadAgentSessionMessages,
+  loadOpencodeMessages,
+} from './agent-tool-sessions';
+import { probeClaude, probeCodex, probeOpencode } from './agent-tool-session-probe';
 import { runClaude } from './agent-tool-run';
-import type { AgentEvent, RunRequest } from '../../shared/types/agent-tool';
+import { runOpencode, type OpencodeServer } from './agent-tool-opencode-run';
+import { fetchPlanUsage } from './agent-tool-usage';
+import type { AgentEvent, AgentKind, RunRequest } from '../../shared/types/agent-tool';
 import { exec, spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import * as net from 'net';
@@ -352,7 +360,10 @@ async function discoverCodex(result: DiscoveryResult, config: AgentConfig): Prom
     id: 'codex',
     name: 'Codex',
     connected: true,
-    models: toModels(CODEX_STATIC_MODELS, 'codex'),
+    models: toModels(CODEX_STATIC_MODELS, 'codex').map((m) => ({
+      ...m,
+      variants: ['low', 'medium', 'high', 'xhigh'], // ASSUMED: mức reasoning của Codex là tĩnh
+    })),
   });
 }
 
@@ -510,6 +521,21 @@ async function discoverOpencode(result: DiscoveryResult, config: AgentConfig): P
       data = await opencodeJson(base, auth, '/provider');
     }
 
+    // ASSUMED: danh sách agent lấy từ /agent (v1) hoặc /api/agent (v2), bỏ subagent và agent ẩn
+    const agentBody = await opencodeJson(
+      base,
+      auth,
+      protocol === 'v2' ? '/api/agent' : '/agent',
+    ).catch(() => null);
+    const agentItems: any[] = Array.isArray(agentBody)
+      ? agentBody
+      : Array.isArray(agentBody?.data)
+        ? agentBody.data
+        : [];
+    result.agents = agentItems
+      .filter((a) => a?.name && a.mode !== 'subagent' && !a.hidden)
+      .map((a) => String(a.name));
+
     // Parse provider catalog (tương tự Wu's ProviderCatalog)
     if (data.all) {
       const connectedSet = new Set(data.connected || []);
@@ -549,6 +575,57 @@ async function discoverOpencode(result: DiscoveryResult, config: AgentConfig): P
   } finally {
     child?.kill();
   }
+}
+
+async function startOpencodeServer(request: RunRequest): Promise<OpencodeServer> {
+  if (request.baseUrl) {
+    const protocol = (await detectOpencodeProtocol(request.baseUrl)) ?? 'v1';
+    return { base: request.baseUrl, protocol, stop: () => {} };
+  }
+
+  const executable = request.executable || (await findOpencodeExecutable());
+  const port = await freeLocalhostPort();
+  const password = randomUUID();
+  const state = { exited: false, error: null as Error | null, stderr: '' };
+  const child = spawn(executable, ['serve', '--port', String(port), '--hostname', '127.0.0.1'], {
+    cwd: request.cwd || os.homedir(),
+    env: {
+      ...process.env,
+      OPENCODE_PASSWORD: password,
+      OPENCODE_SERVER_PASSWORD: password,
+      OPENCODE_SERVER_USERNAME: OPENCODE_USERNAME,
+      OPENCODE_CLIENT: 'phantoma',
+    },
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
+  child.stderr?.on('data', (chunk) => {
+    state.stderr = (state.stderr + chunk.toString()).slice(-2000);
+  });
+  child.on('error', (error) => {
+    state.error = error;
+  });
+  child.on('exit', () => {
+    state.exited = true;
+  });
+  const base = `http://127.0.0.1:${port}`;
+  const auth = `Basic ${Buffer.from(`${OPENCODE_USERNAME}:${password}`).toString('base64')}`;
+
+  try {
+    const deadline = Date.now() + 20000;
+    while (!(await detectOpencodeProtocol(base, auth))) {
+      if (state.error) throw state.error;
+      if (state.exited) throw new Error(`opencode serve exited: ${state.stderr.trim()}`);
+      if (Date.now() >= deadline) {
+        throw new Error('opencode serve did not become healthy within 20s');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  } catch (error) {
+    child.kill();
+    throw error;
+  }
+  const protocol = (await detectOpencodeProtocol(base, auth)) ?? 'v1';
+  return { base, auth, protocol, stop: () => child.kill() };
 }
 
 /**
@@ -618,8 +695,66 @@ export function registerAgentToolHandlers() {
   });
 
   ipcMain.handle('agent-tool:list-sessions', async (_event, config: AgentConfig) => {
+    if (config.kind === 'opencode') {
+      const server = await startOpencodeServer({
+        executable: config.executable,
+        baseUrl: config.baseUrl,
+        cwd: os.homedir(),
+      } as RunRequest);
+      try {
+        return await listOpencodeSessions(server);
+      } finally {
+        server.stop();
+      }
+    }
     const sessions = await listAgentSessions(config);
     return sessions;
+  });
+
+  ipcMain.handle(
+    'agent-tool:load-session',
+    async (_event, config: AgentConfig, sessionId: string) => {
+      let messages;
+      if (config.kind === 'opencode') {
+        const server = await startOpencodeServer({
+          executable: config.executable,
+          baseUrl: config.baseUrl,
+          cwd: os.homedir(),
+        } as RunRequest);
+        try {
+          messages = await loadOpencodeMessages(server, sessionId);
+        } finally {
+          server.stop();
+        }
+      } else {
+        messages = await loadAgentSessionMessages(config, sessionId);
+      }
+      return messages;
+    },
+  );
+
+  ipcMain.handle('agent-tool:probe-sessions', async () => {
+    const result: Record<string, unknown> = {};
+    result.claude = await probeClaude().catch((error) => {
+      console.error('[DEBUG][probe] claude failed', error);
+      return String(error);
+    });
+    result.codex = await probeCodex().catch((error) => {
+      console.error('[DEBUG][probe] codex failed', error);
+      return String(error);
+    });
+    try {
+      const server = await startOpencodeServer({ cwd: os.homedir() } as RunRequest);
+      try {
+        result.opencode = await probeOpencode(server);
+      } finally {
+        server.stop();
+      }
+    } catch (error) {
+      console.error('[DEBUG][probe] opencode failed', error);
+      result.opencode = String(error);
+    }
+    return result;
   });
 
   const activeRuns = new Map<string, () => void>();
@@ -630,6 +765,15 @@ export function registerAgentToolHandlers() {
         event.sender.send('agent-tool:event', { runId: request.runId, event: payload });
       }
     };
+    if (request.kind === 'opencode') {
+      void runOpencode(request, {
+        emit: send,
+        askPermission: (question, options) => requestPermission(randomUUID(), question, options),
+        onInterrupt: (handler) => activeRuns.set(request.runId, handler),
+        startServer: () => startOpencodeServer(request),
+      }).finally(() => activeRuns.delete(request.runId));
+      return { ok: true };
+    }
     if (request.kind !== 'claude') {
       send({ type: 'error', message: 'Agent ' + request.kind + ' chưa được hỗ trợ chạy' });
       send({ type: 'done', status: 'errored' });
@@ -648,6 +792,8 @@ export function registerAgentToolHandlers() {
     }).finally(() => activeRuns.delete(request.runId));
     return { ok: true };
   });
+
+  ipcMain.handle('agent-tool:plan-usage', (_event, kind: AgentKind) => fetchPlanUsage(kind));
 
   ipcMain.handle('agent-tool:interrupt', (_event, runId: string) => {
     activeRuns.get(runId)?.();
