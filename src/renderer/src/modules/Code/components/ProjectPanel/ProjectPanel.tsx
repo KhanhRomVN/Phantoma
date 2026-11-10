@@ -122,6 +122,7 @@ import {
   StatusDot,
   TaskIcon,
 } from './SessionCard';
+import { AssignTaskModal } from './AssignTaskModal';
 
 // ── Accent Colors Hook (Simple implementation for stable random colors) ──
 const ACCENT_PALETTE = [
@@ -180,7 +181,7 @@ type DropdownTarget =
   | { kind: 'header-config'; pos: MenuPosition }
   | { kind: 'task'; sessionId: string; pos: MenuPosition }
   | { kind: 'session'; sessionId: string; projectId: string; pos: MenuPosition }
-  | { kind: 'assign-task'; sessionId: string; projectId: string; pos: MenuPosition }
+
   | { kind: 'process'; sessionId: string; index: number; pos: MenuPosition }
   | { kind: 'move-to-group'; projectId: string; pos: MenuPosition };
 
@@ -622,6 +623,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
     project: ProjectExtended;
     branchName: string;
     branchPath: string;
+  } | null>(null);
+  const [assignTaskTarget, setAssignTaskTarget] = useState<{
+    projectId: string;
+    sessionId: string | null;
+    branchName: string | null;
   } | null>(null);
   const [toast, setToast] = useState<{ msg: string; on: boolean }>({ msg: '', on: false });
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -1095,16 +1101,22 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   // ── Project actions ──
-  const toggleBranchVisibility = useCallback(
-    (projectId: string, branchName: string) => {
-      patchProject(projectId, (p) => ({
-        ...p,
-        branches: p.branches.map((b) =>
-          b.name === branchName ? { ...b, visible: !b.visible } : b,
-        ),
-      }));
+  const setBranchVisible = useCallback(
+    (projectId: string, branchName: string, visible?: boolean) => {
+      const storeProject = useCodeStore.getState().projects.find((p) => p.id === projectId);
+      const apply = (branches: BranchInfo[]) =>
+        branches.map((b) =>
+          b.name === branchName ? { ...b, visible: visible ?? !b.visible } : b,
+        );
+      if (storeProject) updateProject(projectId, { branches: apply(storeProject.branches ?? []) });
+      patchProject(projectId, (p) => ({ ...p, branches: apply(p.branches) }));
     },
-    [patchProject],
+    [patchProject, updateProject],
+  );
+
+  const toggleBranchVisibility = useCallback(
+    (projectId: string, branchName: string) => setBranchVisible(projectId, branchName),
+    [setBranchVisible],
   );
 
   const moveProject = useCallback((projectId: string, dir: -1 | 1) => {
@@ -1330,13 +1342,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   const hideBranch = useCallback(
-    (projectId: string, branchName: string) => {
-      patchProject(projectId, (p) => ({
-        ...p,
-        branches: p.branches.map((b) => (b.name === branchName ? { ...b, visible: false } : b)),
-      }));
-    },
-    [patchProject],
+    (projectId: string, branchName: string) => setBranchVisible(projectId, branchName, false),
+    [setBranchVisible],
   );
 
   const handleNewSession = useCallback(
@@ -1496,16 +1503,27 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const path = findSessionProjectPath(sessionId);
       if (!task || !path) return;
       const all = tasksByPath[path] ?? [];
+      
+      // Unlink: clear sessionId but keep branchName when changing to 'todo'
+      // Un-assign: clear both sessionId and branchName when changing to 'done'
+      const updates: UpdateTaskInput = { status };
+      if (status === 'todo') {
+        updates.sessionId = null; // Unlink only
+      } else if (status === 'done') {
+        updates.sessionId = null; // Un-assign completely
+        updates.branchName = null;
+      }
+      
       if (status !== 'todo' && status !== task.status && getBlockers(task, all).length > 0) {
         setForceStart({
           path,
           title: task.title,
           chain: getUnfinishedChain(task, all),
-          proceed: () => taskService.update(path, task.id, { status }),
+          proceed: () => taskService.update(path, task.id, updates),
         });
         return;
       }
-      void taskService.update(path, task.id, { status });
+      void taskService.update(path, task.id, updates);
     },
     [bySession, tasksByPath, findSessionProjectPath],
   );
@@ -2687,19 +2705,41 @@ export const ProjectPanel = memo(function ProjectPanel() {
                       </DropdownItem>
                     );
                   })()}
-                <DropdownItem
-                  icon={<GitBranch className="w-3.5 h-3.5" />}
-                  onClick={() => {
-                    const cwd = activeBranch.path ?? activeProject.path;
-                    const branchName = activeBranch.name;
-                    closeDropdown();
-                    (window as any).api
-                      .invoke('git:diff-diagnostics', cwd, branchName)
-                      .catch((e: unknown) => console.error('[DEBUG][diff-diagnostics] invoke failed', e));
-                  }}
-                >
-                  Diff diagnostics
-                </DropdownItem>
+
+                {(() => {
+                  const path = activeProject.path;
+                  const assigned = (tasksByPath[path] ?? []).find(
+                    (t) => !t.archived && t.branchName === activeBranch.name,
+                  );
+                  return assigned ? (
+                    <DropdownItem
+                      icon={<Unlink className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        void taskService.update(path, assigned.id, {
+                          sessionId: null,
+                          branchName: null,
+                        });
+                        closeDropdown();
+                      }}
+                    >
+                      Unassign task
+                    </DropdownItem>
+                  ) : (
+                    <DropdownItem
+                      icon={<Link2 className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        setAssignTaskTarget({
+                          projectId: activeProject.id,
+                          sessionId: null,
+                          branchName: activeBranch.name,
+                        });
+                        closeDropdown();
+                      }}
+                    >
+                      Assign task...
+                    </DropdownItem>
+                  );
+                })()}
 
                 <DropdownSeparator />
 
@@ -2894,45 +2934,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
               </>
             )}
 
-            {/* ASSIGN TASK PICKER */}
-            {dropdownTarget.kind === 'assign-task' &&
-              (() => {
-                const proj = projects.find((p) => p.id === dropdownTarget.projectId);
-                const path = proj?.path ?? '';
-                const branchName =
-                  proj?.branches.find((b) =>
-                    b.sessions.some((s) => s.id === dropdownTarget.sessionId),
-                  )?.name ?? null;
-                const candidates = (tasksByPath[path] ?? []).filter(
-                  (t) => !t.archived && !t.sessionId,
-                );
-                if (candidates.length === 0) {
-                  return (
-                    <span className="block px-2 py-1 text-xs text-text-secondary/60">
-                      No unlinked tasks
-                    </span>
-                  );
-                }
-                return (
-                  <>
-                    {candidates.map((t) => (
-                      <DropdownItem
-                        key={t.id}
-                        icon={<TaskIcon status={t.status} />}
-                        onClick={() => {
-                          void taskService.update(path, t.id, {
-                            sessionId: dropdownTarget.sessionId,
-                            branchName,
-                          });
-                          closeDropdown();
-                        }}
-                      >
-                        {t.title}
-                      </DropdownItem>
-                    ))}
-                  </>
-                );
-              })()}
 
             {/* PROCESS CONTEXT MENU */}
             {dropdownTarget.kind === 'process' && (
@@ -2992,12 +2993,12 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   <DropdownItem
                     icon={<Link2 className="w-3 h-3" />}
                     onClick={() => {
-                      setDropdownTarget({
-                        kind: 'assign-task',
-                        sessionId: dropdownTarget.sessionId,
+                      setAssignTaskTarget({
                         projectId: dropdownTarget.projectId,
-                        pos: dropdownTarget.pos,
+                        sessionId: dropdownTarget.sessionId,
+                        branchName: null,
                       });
+                      closeDropdown();
                     }}
                   >
                     Assign Task...
@@ -3171,6 +3172,34 @@ export const ProjectPanel = memo(function ProjectPanel() {
         hasRemote={deleteBranchHasRemote}
       />
 
+      {(() => {
+        const proj = projects.find((p) => p.id === assignTaskTarget?.projectId);
+        const path = proj?.path ?? '';
+        const sessionBranch = assignTaskTarget?.sessionId
+          ? proj?.branches.find((b) => b.sessions.some((s) => s.id === assignTaskTarget.sessionId))
+          : undefined;
+        const targetBranchName = assignTaskTarget?.branchName ?? sessionBranch?.name ?? null;
+        const candidates = (tasksByPath[path] ?? []).filter(
+          (t) => !t.archived && !t.sessionId && !t.branchName,
+        );
+        return (
+          <AssignTaskModal
+            isOpen={!!assignTaskTarget}
+            onClose={() => setAssignTaskTarget(null)}
+            tasks={candidates}
+            targetLabel={`${proj?.name ?? ''}${targetBranchName ? ` · ${targetBranchName}` : ''}`}
+            onSelect={(t) => {
+              if (!assignTaskTarget) return;
+              void taskService.update(path, t.id, {
+                sessionId: targetBranchName ? null : assignTaskTarget.sessionId,
+                branchName: targetBranchName,
+              });
+              setAssignTaskTarget(null);
+            }}
+          />
+        );
+      })()}
+
       <ConfirmUnlinkBranchModal
         isOpen={!!confirmUnlinkBranchTarget}
         onClose={() => setConfirmUnlinkBranchTarget(null)}
@@ -3237,7 +3266,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
           void (async () => {
             try {
               for (const t of pending.chain) {
-                await taskService.update(pending.path, t.id, { status: 'done' });
+                await taskService.update(pending.path, t.id, { status: 'done', sessionId: null, branchName: null });
               }
               await pending.proceed();
             } catch (e: any) {

@@ -9,7 +9,7 @@
 
 // ─── Types (mirrors src/main/storage/TaskStorage.ts) ─────────────────
 
-export type TaskStatus = 'todo' | 'progress' | 'review' | 'done';
+export type TaskStatus = 'todo' | 'progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
 export interface TaskTag {

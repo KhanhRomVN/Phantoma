@@ -13,6 +13,16 @@ export interface SystemInfo {
   cwd: string;
   language: string;
   targetOS?: "auto" | "windows" | "linux";
+  branchTasks?: Array<{
+    id: string;
+    title: string;
+    status: 'todo' | 'progress' | 'review' | 'done';
+    priority: 'low' | 'medium' | 'high';
+    startDate: number | null;
+    startTime: string | null;
+    endDate: number | null;
+    endTime: string | null;
+  }>;
 }
 
 export const buildSystemContext = (
@@ -43,9 +53,40 @@ export const buildSystemContext = (
 `
     : "";
 
+  // Format task schedule
+  const formatTaskSchedule = (task: NonNullable<SystemInfo['branchTasks']>[0]): string => {
+    const parts: string[] = [];
+    if (task.startDate) {
+      const start = new Date(task.startDate);
+      const startStr = task.startTime
+        ? `${start.getDate()}/${start.getMonth() + 1} ${task.startTime}`
+        : `${start.getDate()}/${start.getMonth() + 1}`;
+      parts.push(startStr);
+    }
+    if (task.endDate) {
+      const end = new Date(task.endDate);
+      const endStr = task.endTime
+        ? `${end.getDate()}/${end.getMonth() + 1} ${task.endTime}`
+        : `${end.getDate()}/${end.getMonth() + 1}`;
+      parts.push(endStr);
+    }
+    return parts.length > 0 ? ` (${parts.join(' → ')})` : '';
+  };
+
+  // Build tasks section
+  const tasksSection = info.branchTasks && info.branchTasks.length > 0
+    ? `
+## Branch Tasks
+The following tasks are associated with the current branch:
+${info.branchTasks
+  .map(t => `- [${t.status}] **${t.title}** (Priority: ${t.priority}, ID: ${t.id})${formatTaskSchedule(t)}`)
+  .join('\n')}
+`
+    : '';
+
   return `# SYSTEM ENVIRONMENT
 OS: ${info.os}, Shell: ${info.shell}, Home: ${info.homeDir}, CWD: ${info.cwd}, Language: ${info.language}
-${authoringNote}## Path & Execution Limits
+${authoringNote}${tasksSection}## Path & Execution Limits
 - All paths MUST be relative to CWD: \`${info.cwd}\`
 - Do NOT use bare \`cd\` — combine: \`cd dir && npm install\`
 - Use forward slashes (/) for cross-platform compatibility in tool calls (read_file, write_to_file, etc.)

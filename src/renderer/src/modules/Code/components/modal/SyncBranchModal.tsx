@@ -8,6 +8,8 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   Download,
+  Upload,
+  Eye,
   FileDiff,
   FileMinus2,
   FilePlus2,
@@ -18,6 +20,8 @@ import {
   Search,
 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
+import { SyncFileDiffModal } from './SyncFileDiffModal';
+import { parseGitStatusOutput } from '../../services/git-status-parser';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
@@ -279,6 +283,10 @@ export function SyncBranchModal({
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
+  const [diffPath, setDiffPath] = useState<string | null>(null);
+  const [unpushedOnly, setUnpushedOnly] = useState(false);
+  const [unpushed, setUnpushed] = useState<Set<string> | null>(null);
+  const [unpushedLoading, setUnpushedLoading] = useState(false);
   const [hidden, setHidden] = useState<Set<ScopeCategory>>(new Set());
   const [scopeInfo, setScopeInfo] = useState<{
     diff: Set<string> | null;
@@ -289,20 +297,25 @@ export function SyncBranchModal({
     const all = rawBranches ?? branches;
     const local = Array.from(
       new Set(all.filter((n) => !n.startsWith('origin/') && n !== 'origin' && n !== 'HEAD')),
-    ).filter((n) => n && n !== currentBranch);
+    ).filter(
+      (n) =>
+        n &&
+        n !== currentBranch &&
+        (!defaultBranch || fixedSource || (currentBranch === defaultBranch ? n !== defaultBranch : n === defaultBranch)),
+    );
     const remote = Array.from(
       new Set(
         all
           .filter((n) => n.startsWith('origin/'))
           .map(stripOrigin)
-          .filter((n) => n && n !== 'HEAD'),
+          .filter((n) => n && n !== 'HEAD' && (!defaultBranch || fixedSource || n === defaultBranch)),
       ),
     );
     return [
       ...local.map((name) => ({ name, kind: 'local' as const })),
       ...remote.map((name) => ({ name, kind: 'remote' as const })),
     ];
-  }, [rawBranches, branches, currentBranch]);
+  }, [rawBranches, branches, currentBranch, defaultBranch, fixedSource]);
 
   const selected = picked ?? options[0] ?? null;
   const isRemote = !fixedSource && selected?.kind === 'remote';
@@ -311,12 +324,7 @@ export function SyncBranchModal({
   const refLabel =
     isRemote && pickedCommit ? `${branchRef}@${pickedCommit.slice(0, 7)}` : branchRef;
   const pickedCommitInfo = commits?.find((c) => c.hash === pickedCommit) ?? null;
-  const targetScope = useBranchScope(projectId ?? '', currentBranch);
-  const sourceScope = useBranchScope(
-    projectId ?? '',
-    !fixedSource && selected?.kind === 'local' ? selected.name : '',
-  );
-  const scope = targetScope.length > 0 ? targetScope : sourceScope;
+  const scope = useBranchScope(projectId ?? '', !fixedSource && selected ? selected.name : '');
   const allScopes = useBranchScopeStore((s) => s.scopes);
   const otherScopes = useMemo(() => {
     const prefix = `${projectId ?? ''}::`;
@@ -433,7 +441,15 @@ export function SyncBranchModal({
         } else {
           setFiles(res?.files ?? []);
         }
-        setExcluded(new Set());
+        setExcluded(
+          new Set<string>(
+            scope.length > 0
+              ? ((res?.files ?? []) as SyncFile[])
+                  .filter((f) => isInScope(f.path, scope))
+                  .map((f) => f.path)
+              : [],
+          ),
+        );
         setCollapsed(new Set());
         setHidden(new Set());
       })
@@ -469,9 +485,36 @@ export function SyncBranchModal({
     return s;
   }, [hidden, byCategory]);
   const visibleFiles = useMemo(
-    () => (files ?? []).filter((f) => !hiddenPaths.has(f.path)),
-    [files, hiddenPaths],
+    () =>
+      (files ?? []).filter(
+        (f) => !hiddenPaths.has(f.path) && (!unpushedOnly || !!unpushed?.has(f.path)),
+      ),
+    [files, hiddenPaths, unpushedOnly, unpushed],
   );
+  const isLocalSource = !fixedSource && selected?.kind === 'local';
+
+  const [dirty, setDirty] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setDirty(new Set());
+    if (!isOpen || !isRemote || !targetPath) return;
+    let cancelled = false;
+    (window as any).api
+      .invoke('git:status', targetPath)
+      .then((res: any) => {
+        if (cancelled || res?.error) return;
+        setDirty(new Set(parseGitStatusOutput(String(res?.output ?? '')).map((e: any) => e.path)));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isRemote, targetPath, ref, files]);
+
+
+  useEffect(() => {
+    setUnpushedOnly(false);
+    setUnpushed(null);
+  }, [ref]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? visibleFiles.filter((f) => f.path.toLowerCase().includes(q)) : visibleFiles;
@@ -481,6 +524,10 @@ export function SyncBranchModal({
   const chosen = useMemo(
     () => (files ?? []).filter((f) => !excluded.has(f.path)),
     [files, excluded],
+  );
+  const blocked = useMemo(
+    () => (isRemote ? chosen.filter((f) => dirty.has(f.path)) : []),
+    [isRemote, chosen, dirty],
   );
   const totals = useMemo(
     () =>
@@ -519,6 +566,11 @@ export function SyncBranchModal({
     };
   }, [isOpen, files, targetPath, scope]);
 
+  useEffect(() => {
+    setDiffPath(null);
+  }, [isOpen, ref, targetPath]);
+
+
   const toggleCategory = (id: ScopeCategory) => {
     const ps = byCategory[id];
     const willHide = !hidden.has(id);
@@ -536,7 +588,7 @@ export function SyncBranchModal({
     });
   };
   const SEG =
-    'flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-[13.5px] font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+    'flex h-8 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13.5px] font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50';
 
   const pathsOf = (n: TreeNode) => (n.isDir ? n.files : [n.path]);
 
@@ -564,8 +616,52 @@ export function SyncBranchModal({
       return next;
     });
 
-  const selectAll = (on: boolean) =>
-    setExcluded(on ? new Set(hiddenPaths) : new Set((files ?? []).map((f) => f.path)));
+  const selectAll = (on: boolean) => {
+    const visible = new Set(visibleFiles.map((f) => f.path));
+    setExcluded(
+      new Set(
+        (files ?? []).filter((f) => !on || !visible.has(f.path)).map((f) => f.path),
+      ),
+    );
+  };
+
+  const toggleUnpushed = async () => {
+    if (unpushedLoading) return;
+    if (unpushedOnly) {
+      setUnpushedOnly(false);
+      setExcluded((prev) => {
+        const next = new Set(prev);
+        (files ?? []).forEach((f) => {
+          if (!hiddenPaths.has(f.path)) next.delete(f.path);
+        });
+        return next;
+      });
+      return;
+    }
+    if (!selected) return;
+    setUnpushedLoading(true);
+    try {
+      const res = await (window as any).api.invoke('git:unpushed-files', targetPath, selected.name);
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      const set = new Set<string>(res?.files ?? []);
+      setUnpushed(set);
+      setUnpushedOnly(true);
+      setExcluded((prev) => {
+        const next = new Set(prev);
+        (files ?? []).forEach((f) => {
+          if (!set.has(f.path)) next.add(f.path);
+        });
+        return next;
+      });
+    } catch (e: any) {
+      setError(e?.message || String(e));
+    } finally {
+      setUnpushedLoading(false);
+    }
+  };
 
   const handleApply = async () => {
     if (!ref || chosen.length === 0 || applying) return;
@@ -608,7 +704,7 @@ export function SyncBranchModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      className="w-[680px] max-w-[calc(100vw-2rem)] min-h-[50vh] max-h-[70vh]"
+      className="w-[820px] max-w-[calc(100vw-2rem)] min-h-[50vh] max-h-[70vh]"
     >
       <ModalHeader
         title={fixedSource ? 'Apply commit to branch' : 'Sync From Branch'}
@@ -727,9 +823,9 @@ export function SyncBranchModal({
           )}
         </div>
 
-        {files && files.length > 0 && (
+        {files && files.length > 0 && (scope.length > 0 || isLocalSource) && (
           <div className="flex shrink-0 items-center gap-2">
-            {SCOPE_BADGE_ORDER.map((id) => {
+            {scope.length > 0 && SCOPE_BADGE_ORDER.map((id) => {
               const meta = SCOPE_BADGE_META[id];
               const ps = byCategory[id];
               const on = !hidden.has(id);
@@ -764,6 +860,34 @@ export function SyncBranchModal({
                 </Tooltip>
               );
             })}
+            {isLocalSource && (
+              <>
+                <span className="flex-1" />
+                <Tooltip
+                  side="top"
+                  align="end"
+                  content="Only list files not yet added, committed or pushed on this branch."
+                >
+                  <button
+                    type="button"
+                    disabled={unpushedLoading}
+                    onClick={() => void toggleUnpushed()}
+                    className={cn(
+                      SEG,
+                      'whitespace-nowrap',
+                      unpushedOnly ? SCOPE_BADGE_ON.primary : SCOPE_BADGE_OFF,
+                    )}
+                  >
+                    {unpushedLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    Unpushed only
+                  </button>
+                </Tooltip>
+              </>
+            )}
           </div>
         )}
 
@@ -836,12 +960,15 @@ export function SyncBranchModal({
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search files"
               spellCheck={false}
-              className={cn(FIELD, 'pl-9 pr-3 font-mono')}
+              className={cn(
+                'h-9 w-full rounded-md border-none bg-card-background pl-9 font-mono text-[14px] text-text-primary outline-none placeholder:text-text-secondary/40',
+                'pr-3',
+              )}
             />
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-text-secondary/20">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-dashed border-text-secondary/20">
           <div className="flex h-10 shrink-0 items-center gap-2.5 border-b border-text-secondary/20 px-3">
             {files && files.length > 0 ? (
               <>
@@ -896,23 +1023,33 @@ export function SyncBranchModal({
 
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5">
             {(loading || (files === null && !error)) && (
-              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-                <Loader2 className="h-5 w-5 animate-spin text-text-secondary" />
-                <span className="text-[14px] font-medium text-text-primary">
-                  {fetchingRemote ? 'Fetching remote' : 'Scanning changes'}
-                </span>
-                <span className="text-[13.5px] leading-relaxed text-text-secondary">
-                  {fetchingRemote ? (
-                    <>
-                      Syncing <span className="font-mono">origin</span> to get the latest commits.
-                    </>
-                  ) : (
-                    <>
-                      Comparing <span className="font-mono">{currentBranch || projectName}</span>{' '}
-                      with <span className="font-mono">{refLabel || 'the source'}</span>.
-                    </>
-                  )}
-                </span>
+              <div className="flex animate-pulse flex-col gap-0.5" aria-busy="true">
+                {[
+                  [0, 'w-16'],
+                  [1, 'w-24'],
+                  [2, 'w-40'],
+                  [2, 'w-32'],
+                  [2, 'w-44'],
+                  [1, 'w-20'],
+                  [2, 'w-36'],
+                  [2, 'w-28'],
+                  [0, 'w-14'],
+                  [1, 'w-32'],
+                  [2, 'w-40'],
+                ].map(([depth, w], i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 py-1 pr-2"
+                    style={{ paddingLeft: 6 + (depth as number) * 16 }}
+                  >
+                    <div className="h-3.5 w-3.5 shrink-0 rounded bg-text-secondary/10" />
+                    <div className="h-4 w-4 shrink-0 rounded bg-text-secondary/10" />
+                    <div className={cn('h-3.5 rounded bg-text-secondary/10', w as string)} />
+                    <span className="flex-1" />
+                    {depth === 2 && <div className="h-3 w-10 shrink-0 rounded bg-text-secondary/10" />}
+                    <div className="h-4 w-4 shrink-0 rounded-[4px] bg-text-secondary/10" />
+                  </div>
+                ))}
               </div>
             )}
 
@@ -957,7 +1094,7 @@ export function SyncBranchModal({
                       e.stopPropagation();
                       toggleNode(node);
                     }}
-                    className="flex cursor-pointer items-center gap-2 rounded-md py-1 pr-2 transition-colors hover:bg-card-hover"
+                    className="group flex cursor-pointer items-center gap-2 rounded-md py-1 pr-2 transition-colors hover:bg-card-hover"
                     style={{ paddingLeft: 6 + depth * 16 }}
                     title={node.path}
                   >
@@ -1000,6 +1137,23 @@ export function SyncBranchModal({
                       </span>
                     )}
                     <span className="flex-1" />
+                    {node.file && (
+                      <button
+                        type="button"
+                        title="View diff"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const p = node.file!.path;
+                          setDiffPath(diffPath === p ? null : p);
+                        }}
+                        className={cn(
+                          'grid h-5 w-5 shrink-0 cursor-pointer place-items-center rounded text-text-secondary opacity-0 outline-none transition-all hover:bg-card-hover hover:text-text-primary group-hover:opacity-100',
+                          diffPath === node.file.path && 'bg-primary/10 text-primary',
+                        )}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     {(!node.isDir || !isOpenDir) &&
                       ownersOf(node).map((b) => (
                         <span
@@ -1012,7 +1166,7 @@ export function SyncBranchModal({
                           {b}
                         </span>
                       ))}
-                    <Counts added={node.added} deleted={node.deleted} />
+                    {!node.isDir && <Counts added={node.added} deleted={node.deleted} />}
                     <Checkbox
                       state={st}
                       onClick={(e) => {
@@ -1025,6 +1179,38 @@ export function SyncBranchModal({
               })}
           </div>
         </div>
+
+        {blocked.length > 0 && (
+          <div className="flex shrink-0 flex-col gap-1.5 rounded-md border border-warn/30 px-3 py-2 text-[13.5px] text-warn">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
+              <span>
+                {blocked.length} file{blocked.length === 1 ? '' : 's'} have local uncommitted changes and would
+                be overwritten. Commit or stash them first, or untick them.
+              </span>
+            </div>
+            <div className="max-h-[72px] overflow-y-auto pl-5 font-mono text-[12.5px] text-text-secondary">
+              {blocked.map((f) => (
+                <div key={f.path} className="truncate">
+                  {f.path}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setExcluded((prev) => {
+                  const next = new Set(prev);
+                  blocked.forEach((f) => next.add(f.path));
+                  return next;
+                })
+              }
+              className="w-fit cursor-pointer pl-5 text-[13px] font-medium text-primary outline-none hover:underline"
+            >
+              Untick conflicting files
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="flex shrink-0 items-start gap-2 rounded-md border border-error/30 px-3 py-2 text-[14px] text-error">
@@ -1046,7 +1232,7 @@ export function SyncBranchModal({
           <Button
             className="h-8 gap-1.5 font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80"
             onClick={handleApply}
-            disabled={chosen.length === 0 || loading || applying}
+            disabled={chosen.length === 0 || loading || applying || blocked.length > 0}
           >
             {applying ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1057,6 +1243,19 @@ export function SyncBranchModal({
           </Button>
         </div>
       </div>
+
+      <SyncFileDiffModal
+        isOpen={isOpen && diffPath !== null}
+        onClose={() => setDiffPath(null)}
+        projectPath={targetPath}
+        sourceRef={ref}
+        sourceLabel={refLabel}
+        filePath={diffPath}
+        files={flatten(tree, new Set())
+          .filter((r) => !r.node.isDir && r.node.file)
+          .map((r) => r.node.file!.path)}
+        onNavigate={setDiffPath}
+      />
     </Modal>
   );
 }

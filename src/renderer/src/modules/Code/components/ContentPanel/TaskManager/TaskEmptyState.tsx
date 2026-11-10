@@ -33,8 +33,8 @@ export const TaskEmptyState = memo(function TaskEmptyState({ status, onAdd }: Ta
       <span
         className={
           isBoard
-            ? 'w-14 h-14 rounded-2xl flex items-center justify-center bg-card-hover text-text-secondary'
-            : 'w-11 h-11 rounded-xl flex items-center justify-center bg-card-hover text-text-secondary'
+            ? 'w-14 h-14 rounded-2xl flex items-center justify-center bg-card-hover/50 text-text-secondary/50'
+            : 'w-11 h-11 rounded-xl flex items-center justify-center bg-card-hover/50 text-text-secondary/50'
         }
       >
         <Icon className={isBoard ? 'w-6 h-6' : 'w-5 h-5'} />

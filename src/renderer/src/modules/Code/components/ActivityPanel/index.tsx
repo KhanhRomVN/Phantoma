@@ -24,6 +24,7 @@ import {
   Palette,
   Users,
   Bug,
+  Sparkles,
 } from 'lucide-react';
 
 // ── Hooks ─
@@ -39,6 +40,7 @@ import { Search } from './Search';
 import { Design } from './Design';
 import { Debug } from './Debug';
 import { Account } from './Account';
+import { Skill } from './Skill';
 
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
@@ -53,6 +55,7 @@ const TABS = [
     label: 'Design',
   },
   { id: 'debug', icon: <Bug className="w-4 h-4" />, label: 'Run & Debug' },
+  { id: 'skill', icon: <Sparkles className="w-4 h-4" />, label: 'Skills' },
   { id: 'account', icon: <Users className="w-4 h-4" />, label: 'Accounts' },
 ];
 
@@ -68,7 +71,9 @@ export function ActivityPanel() {
   const branchTab =
     useActivityPanelStore((s) => (branchKey ? s.tabs[branchKey] : undefined)) ?? 'explore';
   const setBranchTab = useActivityPanelStore((s) => s.setTab);
-  const activityPanelTab = isAccountPanelOpen ? 'account' : branchTab;
+  const isSkillPanelOpen = useCodeStore((s) => s.isSkillPanelOpen);
+  const setSkillPanelOpen = useCodeStore((s) => s.setSkillPanelOpen);
+  const activityPanelTab = isAccountPanelOpen ? 'account' : isSkillPanelOpen ? 'skill' : branchTab;
   const activityPanelWidth = useCodeStore((s) => s.activityPanelWidth);
   const setActivityPanelWidth = useCodeStore((s) => s.setActivityPanelWidth);
   const contentViewMode = useCodeStore((s) => s.contentViewMode);
@@ -101,6 +106,12 @@ export function ActivityPanel() {
 
   // ── Handlers ──
   const handleTabChange = (tab: string) => {
+    if (tab === 'skill') {
+      if (contentViewMode === 'design') setContentViewMode(lastViewModeRef.current);
+      setSkillPanelOpen(true);
+      return;
+    }
+    setSkillPanelOpen(false);
     if (tab === 'account') {
       if (contentViewMode === 'design') setContentViewMode(lastViewModeRef.current);
       setAccountPanelOpen(true);
@@ -149,6 +160,8 @@ export function ActivityPanel() {
         return null;
       case 'debug':
         return <Debug />;
+      case 'skill':
+        return <Skill />;
       case 'account':
         return <Account />;
 

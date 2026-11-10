@@ -17,7 +17,7 @@ import {
   type StoredTask,
   type TaskPriority,
 } from '../../services/task.service';
-import { STATUS_META } from './TaskManager/kanban/KanbanTaskCard';
+import { STATUS_META } from './TaskManager/statusMeta';
 
 const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string }> = {
   high: { label: 'High', color: '--error' },

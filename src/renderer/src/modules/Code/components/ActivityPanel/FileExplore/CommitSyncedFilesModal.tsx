@@ -90,12 +90,10 @@ export function CommitSyncedFilesModal({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const tree = useMemo(
-    () =>
-      buildTree(files.map((p) => (p.startsWith(`${base}/`) ? p.slice(base.length + 1) : p))),
+    () => buildTree(files.map((p) => (p.startsWith(`${base}/`) ? p.slice(base.length + 1) : p))),
     [files, base],
   );
   const rows = useMemo(() => flattenTree(tree, collapsed), [tree, collapsed]);
-
   const toggleFolder = (key: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -168,12 +166,16 @@ export function CommitSyncedFilesModal({
                   strokeWidth={1.5}
                 />
                 <img
-                  src={isFolder ? getFolderIconPath(node.name, expanded) : getFileIconPath(node.name)}
+                  src={
+                    isFolder ? getFolderIconPath(node.name, expanded) : getFileIconPath(node.name)
+                  }
                   alt=""
                   className="w-4 h-4 shrink-0"
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
-                    const fallback = isFolder ? '/images/icon/folder-base.svg' : '/images/icon/file.svg';
+                    const fallback = isFolder
+                      ? '/images/icon/folder-base.svg'
+                      : '/images/icon/file.svg';
                     if (img.src.endsWith(fallback)) img.style.display = 'none';
                     else img.src = fallback;
                   }}

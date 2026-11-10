@@ -12,7 +12,7 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 
 // ── Icons ─
@@ -21,13 +21,16 @@ import { Terminal, Loader2, AlertTriangle } from 'lucide-react';
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { getFaviconUrl } from '@renderer/utils/favicon';
+import { Tooltip } from '@renderer/components/ui/Tooltip';
+import { Row, TOOLTIP_CLASS } from '../FooterTooltips';
 
 // ── Task link ──
 import { useCodeStore } from '../../hooks/useCodeStore';
+import { useScopeStats } from '../../stores/useScopeStatsStore';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { useWorkflowSubTasks } from '../../hooks/useWorkflowSubTasks';
 import type { StoredTask } from '../../services/task.service';
-import { TASK_DRAG_TYPE } from '../ContentPanel/TaskManager/kanban/TaskDropZones';
+import { TASK_DRAG_TYPE } from '../ContentPanel/TaskManager/taskDrag';
 
 export function getTempSessionName(
   sessionId: string,
@@ -89,7 +92,7 @@ function getAgentFavicon(agentName: string): string | undefined {
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export type SessionStatus = 'running' | 'review' | 'blocked' | 'queued' | 'done' | 'idle';
-export type TaskStatus = 'todo' | 'progress' | 'review' | 'done';
+export type TaskStatus = 'todo' | 'progress' | 'done';
 export type ProcessStatus = 'live' | 'busy' | 'crashed';
 /** Visual state of an agent avatar ring */
 export type AgentVisualState = 'run' | 'err' | 'wait' | 'que' | 'done';
@@ -197,19 +200,15 @@ export const STATUS_TEXT_COLORS: Record<SessionStatus, string> = {
 };
 
 export const TASK_STATUSES: [TaskStatus, string][] = [
-  ['todo', 'Todo'],
+  ['todo', 'To do'],
   ['progress', 'In progress'],
-  ['review', 'In review'],
   ['done', 'Done'],
 ];
-
 export const TASK_COLORS: Record<TaskStatus, string> = {
-  todo: '#8b8d96',
-  progress: '#4fa8e0',
-  review: '#ffb020',
-  done: '#3ddc84',
+  todo: '#6b7280',
+  progress: '#3b82f6',
+  done: '#10b981',
 };
-
 export const PROCESS_COLORS: Record<ProcessStatus, string> = {
   live: '#3ddc84',
   busy: '#4fa8e0',
@@ -277,16 +276,16 @@ export function StatusDot({
         STATUS_COLORS[status],
         `pp-dot-${status}`,
       )}
+      style={{ transform: 'translateY(-1px)' }}
     />
   );
 }
 
-/** Task status icon (todo ○ · progress ◐ · review ◉ · done ●) */
+/** Task status icon (todo ○ · progress ◐ · done ●) */
 export function TaskIcon({ status, className }: { status: TaskStatus; className?: string }) {
   const c = TASK_COLORS[status];
   const style: CSSProperties = { borderColor: c };
   if (status === 'progress') style.background = `conic-gradient(${c} 0 50%, transparent 0)`;
-  if (status === 'review') style.background = `radial-gradient(${c} 0 32%, transparent 36%)`;
   if (status === 'done') style.background = c;
   return (
     <i
@@ -475,7 +474,340 @@ function TaskIconButton({
   );
 }
 
+// ASSUMED: scope stats are per project (active branch in FileExplore), not per session
+function ScopeSection({ projectId }: { projectId: string }) {
+  const stats = useScopeStats(projectId);
+  const rows = [
+    {
+      label: 'Conflict risk',
+      sub: 'in another branch',
+      n: stats.error.length,
+      dot: 'bg-error',
+      text: 'text-error',
+    },
+    {
+      label: 'Diverged',
+      sub: 'differs from default',
+      n: stats.diff.length,
+      dot: 'bg-[#f97316]',
+      text: 'text-[#f97316]',
+    },
+    {
+      label: 'Outside scope',
+      sub: 'same as default',
+      n: stats.warn.length,
+      dot: 'bg-warn',
+      text: 'text-warn',
+    },
+    {
+      label: 'In scope',
+      sub: 'this branch',
+      n: stats.primary.length,
+      dot: 'bg-primary',
+      text: 'text-primary',
+    },
+  ];
+  if (rows.every((r) => r.n === 0)) return null;
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5">
+      <span className="text-text-secondary">Scope</span>
+
+      {rows.map((r) => (
+        <Row
+          key={r.label}
+          dot={r.n > 0 ? r.dot : 'bg-border'}
+          label={r.label}
+          sub={r.sub}
+          value={r.n}
+          valueClass={r.n > 0 ? r.text : 'text-text-secondary'}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface GitDotCounts {
+  unstaged: number;
+  staged: number;
+  committed: number;
+  unpushed: number;
+}
+
+/** 4 git dots: not added · added · committed · unpushed commits */
+function GitDots({ path }: { path: string }) {
+  const [git, setGit] = useState<GitDotCounts | null>(null);
+
+  useEffect(() => {
+    if (!path) return;
+    let cancelled = false;
+    window.api
+      .invoke('git:status', path)
+      .then((res: any) => {
+        if (cancelled || !res || res.error) return;
+        let unstaged = 0;
+        let staged = 0;
+        for (const line of String(res.output ?? '').split('\n')) {
+          if (line.length < 4) continue;
+          if (line[0] === '?' || line[1] !== ' ') unstaged++;
+          else if (line[0] !== ' ') staged++;
+        }
+        setGit({
+          unstaged,
+          staged,
+          committed: Array.isArray(res.committedFiles) ? res.committedFiles.length : 0,
+          unpushed: Array.isArray(res.unpushedCommits) ? res.unpushedCommits.length : 0,
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [path]);
+
+  if (!git) return null;
+
+  const items: { label: string; sub: string; value: number; dot: string; text: string }[] = [
+    {
+      label: 'Not added',
+      sub: 'needs git add',
+      value: git.unstaged,
+      dot: 'bg-amber-400',
+      text: 'text-amber-400',
+    },
+    {
+      label: 'Added',
+      sub: 'ready to commit',
+      value: git.staged,
+      dot: 'bg-sky-400',
+      text: 'text-sky-400',
+    },
+    {
+      label: 'Committed',
+      sub: 'not pushed yet',
+      value: git.committed,
+      dot: 'bg-emerald-400',
+      text: 'text-emerald-400',
+    },
+    {
+      label: 'Unpushed',
+      sub: 'local commits',
+      value: git.unpushed,
+      dot: 'bg-violet-400',
+      text: 'text-violet-400',
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5">
+      <span className="text-text-secondary">Git</span>
+
+      {items.map((it) => (
+        <Row
+          key={it.label}
+          dot={it.value > 0 ? it.dot : 'bg-border'}
+          label={it.label}
+          sub={it.sub}
+          value={it.value}
+          valueClass={it.value > 0 ? it.text : 'text-text-secondary'}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Detailed hover tooltip content for a session card */
+function SessionTooltipContent({
+  session,
+  displayName,
+  task,
+  subTasks,
+  zenChatCount,
+  branchPath,
+  projectId,
+  branchName,
+}: {
+  session: SessionInfo;
+  displayName: string;
+  task?: StoredTask;
+  projectName: string;
+  branchName: string;
+  subTasks: { text: string; done: boolean }[];
+  zenChatCount: number;
+  branchPath: string;
+  projectId: string;
+}) {
+  const st = session.status;
+  const doneSubs = subTasks.filter((t) => t.done).length;
+  const agents = sortAgentsByState(session.agents, st);
+  const procs = session.procs ?? [];
+  const zenLogo = `${(window as any).__zenImagesUri || '/images'}/zen-logo.png`;
+  const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === projectId)?.path);
+  const allTasks = useSessionTasks((s) => (projectPath ? s.byPath[projectPath] : []));
+  const branchTasks = (allTasks ?? []).filter(
+    (t) => !t.archived && t.branchName === branchName && t.status !== 'done' && t.id !== task?.id
+  );
+
+  return (
+    <div style={{ width: 290 }} className="text-[11px]">
+      {task && task.status !== 'done' && (
+        <div className="flex items-center gap-2 px-3 py-2">
+          <TaskIcon status={task.status} />
+          <span className="flex-1 min-w-0 truncate text-text-primary" title={task.title}>
+            {task.title}
+          </span>
+        </div>
+      )}
+
+      {branchTasks.length > 0 && (
+        <div className="flex flex-col gap-1.5 border-t border-border px-3 py-2.5">
+          <span className="text-text-secondary">Tasks</span>
+          {branchTasks.map((t) => (
+            <div key={t.id} className="flex items-center gap-2">
+              <TaskIcon status={t.status} />
+              <span className="flex-1 min-w-0 truncate text-text-primary" title={t.title}>
+                {t.title}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!task && subTasks.length === 0 && branchTasks.length === 0 && (
+        <div className="flex items-start gap-1.5 px-3 py-2">
+          <span className="flex-1 min-w-0 text-[12px] font-semibold leading-snug text-text-primary break-words">
+            {displayName}
+          </span>
+        </div>
+      )}
+
+      {subTasks.length > 0 && (
+        <div className="flex items-start gap-1.5 border-t border-border px-3 py-2">
+          <span className="flex-1 min-w-0 text-[12px] font-semibold leading-snug text-text-primary break-words">
+            {displayName}
+          </span>
+          <span className="shrink-0 font-mono font-semibold text-text-secondary">
+            {doneSubs}/{subTasks.length}
+          </span>
+        </div>
+      )}
+
+      {(agents.length > 0 || zenChatCount > 0) && (
+        <div className="flex flex-col gap-1.5 border-t border-border px-3 py-2.5">
+          <span className="text-text-secondary">Agents</span>
+          {agents.map((a, i) => (
+            <div key={i} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <AgentAvatar agent={a} sessionStatus={st} size="sm" />
+                <span className="truncate text-text-primary">{a.name}</span>
+                <span className="ml-auto text-text-secondary">
+                  {AGENT_STATE_LABELS[getAgentState(a, st)]}
+                </span>
+              </div>
+              {(a.subs ?? []).map((sub, j) => (
+                <div key={j} className="flex items-center gap-2 pl-6 text-text-secondary">
+                  <span className="truncate">{sub.name}</span>
+                  <span className="ml-auto">{STATUS_LABELS[sub.status]}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          {zenChatCount > 0 && (
+            <div className="flex items-center gap-2">
+              <img src={zenLogo} alt="Zen" className="w-4 h-4 object-contain shrink-0" />
+              <span className="text-text-primary">Zen</span>
+              <span className="ml-auto font-mono text-text-secondary">x{zenChatCount}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {session.hint && (
+        <div className="border-t border-border px-3 py-2.5 leading-tight text-[#ff4757]">
+          {session.hint}
+        </div>
+      )}
+
+      {procs.length > 0 && (
+        <div className="flex flex-col gap-1.5 border-t border-border px-3 py-2.5">
+          <span className="text-text-secondary">Terminals</span>
+          {procs.map((p, i) => (
+            <div key={i} className="flex items-center gap-2 font-mono">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: PROCESS_COLORS[p.status] }}
+              />
+              <span className="truncate text-text-primary">{p.cmd}</span>
+              {p.port && <span className="ml-auto text-text-secondary">:{p.port}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <ScopeSection projectId={projectId} />
+
+      <GitDots path={branchPath} />
+    </div>
+  );
+}
+
 // ─── Session card ───────────────────────────────────────────────────────
+
+/** Hover tooltip for a branch's newest session (used by collapsed branch rows) */
+export function SessionHoverTooltip({
+  session,
+  projectId,
+  projectName,
+  branchName,
+  branchPath = '',
+  className,
+  children,
+}: {
+  session: SessionInfo;
+  projectId: string;
+  projectName: string;
+  branchName: string;
+  branchPath?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const task = useSessionTasks((s) => s.bySession[session.id]);
+  const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === projectId)?.path);
+  const subTasks = useWorkflowSubTasks(projectPath, task?.id, task?.workflowId);
+  const displayName = task?.title ?? getTempSessionName(session.id, projectName, branchName);
+  const zenChatCount = useCodeStore(
+    (s) =>
+      (s.projects.find((p) => p.id === projectId)?.workspacePanels ?? []).filter(
+        (wp) => wp.type === 'agent' && wp.sessionId === session.id,
+      ).length,
+  );
+
+  return (
+    <Tooltip
+      side="right"
+      align="start"
+      sideOffset={10}
+      followMouse
+      className={className}
+      contentClassName={TOOLTIP_CLASS}
+      content={
+        <SessionTooltipContent
+          session={session}
+          displayName={displayName}
+          task={task}
+          projectName={projectName}
+          branchName={branchName}
+          subTasks={subTasks}
+          zenChatCount={zenChatCount}
+          branchPath={branchPath || projectPath || ''}
+          projectId={projectId}
+        />
+      }
+    >
+      {children}
+    </Tooltip>
+  );
+}
 
 export const SessionCard = memo(function SessionCard({
   session,
@@ -488,8 +820,10 @@ export const SessionCard = memo(function SessionCard({
   projectName = '',
   branchName = '',
   projectId = '',
+  branchPath = '',
   onDropTask,
 }: {
+  branchPath?: string;
   projectId?: string;
   projectName?: string;
   branchName?: string;
@@ -523,90 +857,118 @@ export const SessionCard = memo(function SessionCard({
   };
 
   return (
-    <div
-      className={cn(
-        'bg-card-background border rounded-lg px-3 py-2.5 flex flex-col gap-[3px] cursor-pointer transition-colors',
-        st === 'blocked' ? 'border-[rgba(255,71,87,0.35)]' : 'border-divider',
-        isSelected ? 'relative border-transparent' : 'hover:border-primary/50',
-        dropOver && 'border-primary bg-primary/10',
-      )}
-      data-session-id={session.id}
-      draggable={draggable}
-      onDragOver={(e) => {
-        if (!onDropTask || task || !e.dataTransfer.types.includes(TASK_DRAG_TYPE)) return;
-        e.preventDefault();
-        setDropOver(true);
-      }}
-      onDragLeave={() => setDropOver(false)}
-      onDrop={(e) => {
-        setDropOver(false);
-        const id = e.dataTransfer.getData(TASK_DRAG_TYPE);
-        if (!id || !onDropTask || task) return;
-        e.preventDefault();
-        e.stopPropagation();
-        onDropTask(id, session.id);
-      }}
-      onClick={() => onSelect(session.id)}
-      onContextMenu={handleContextMenu}
+    <Tooltip
+      side="right"
+      align="start"
+      sideOffset={10}
+      followMouse
+      className="block w-full"
+      contentClassName={TOOLTIP_CLASS}
+      content={
+        <SessionTooltipContent
+          session={session}
+          displayName={displayName}
+          task={task}
+          projectName={projectName}
+          branchName={branchName}
+          subTasks={subTasks}
+          zenChatCount={zenChatCount}
+          branchPath={branchPath || projectPath || ''}
+          projectId={projectId}
+        />
+      }
     >
-      {isSelected && <SelectedDashedFrame />}
-      {/* Title row */}
-      <div className="flex items-center gap-[6px] text-[12.5px] font-semibold leading-none h-[16px]">
-        {task && (
-          <TaskIconButton sessionId={session.id} task={task} onOpenTaskMenu={onOpenTaskMenu} />
+      <div
+        className={cn(
+          'bg-card-background border rounded-lg px-3 py-2.5 flex flex-col gap-[3px] cursor-pointer transition-colors',
+          st === 'blocked' ? 'border-[rgba(255,71,87,0.35)]' : 'border-divider',
+          isSelected ? 'relative border-transparent' : 'hover:border-primary/50',
+          dropOver && 'border-primary bg-primary/10',
         )}
-        <span className="flex-1 min-w-0 truncate text-text-primary" title={displayName}>
-          {displayName}
-        </span>
-      </div>
-
-      {subTasks.length > 0 && (
-        <div className="flex flex-col gap-[2px] pl-[2px]">
-          {subTasks.slice(0, 6).map((sub, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-[6px] text-[11px] leading-tight text-text-secondary"
-              title={sub.text}
-            >
-              <span
-                className={cn(
-                  'w-[5px] h-[5px] rounded-full shrink-0',
-                  sub.done ? 'bg-success' : 'bg-text-secondary/50',
-                )}
-              />
-              <span className={cn('truncate', sub.done && 'line-through opacity-70')}>{sub.text}</span>
-            </div>
-          ))}
-          {subTasks.length > 6 && (
-            <span className="text-[10px] text-text-secondary/70 pl-[11px]">
-              +{subTasks.length - 6} more
-            </span>
+        data-session-id={session.id}
+        draggable={draggable}
+        onDragOver={(e) => {
+          if (!onDropTask || task || !e.dataTransfer.types.includes(TASK_DRAG_TYPE)) return;
+          e.preventDefault();
+          setDropOver(true);
+        }}
+        onDragLeave={() => setDropOver(false)}
+        onDrop={(e) => {
+          setDropOver(false);
+          const id = e.dataTransfer.getData(TASK_DRAG_TYPE);
+          if (!id || !onDropTask || task) return;
+          e.preventDefault();
+          e.stopPropagation();
+          onDropTask(id, session.id);
+        }}
+        onClick={() => onSelect(session.id)}
+        onContextMenu={handleContextMenu}
+      >
+        {isSelected && <SelectedDashedFrame />}
+        {/* Title row */}
+        <div className="flex items-center gap-[6px] text-[12.5px] font-semibold leading-none h-[16px]">
+          {task && (
+            <TaskIconButton sessionId={session.id} task={task} onOpenTaskMenu={onOpenTaskMenu} />
           )}
+          <span className="flex-1 min-w-0 truncate text-text-primary" title={displayName}>
+            {displayName}
+          </span>
         </div>
-      )}
 
-      {/* Agents - Only if exists */}
-      {(session.agents.length > 0 || zenChatCount > 0) && (
-        <div className="flex gap-[4px] flex-wrap items-center leading-none">
-          {session.agents.map((a, i) => (
-            <AgentChip key={i} agent={a} sessionStatus={st} />
-          ))}
-          {zenChatCount > 0 && <ZenBadge count={zenChatCount} />}
-        </div>
-      )}
+        {subTasks.length > 0 && (
+          <div className="flex flex-col gap-[2px] pl-[2px]">
+            {subTasks.slice(0, 6).map((sub, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-[6px] text-[11px] leading-tight text-text-secondary"
+                title={sub.text}
+              >
+                <span
+                  className={cn(
+                    'w-[5px] h-[5px] rounded-full shrink-0',
+                    sub.done ? 'bg-success' : 'bg-text-secondary/50',
+                  )}
+                />
+                <span className={cn('truncate', sub.done && 'line-through opacity-70')}>
+                  {sub.text}
+                </span>
+              </div>
+            ))}
+            {subTasks.length > 6 && (
+              <span className="text-[10px] text-text-secondary/70 pl-[11px]">
+                +{subTasks.length - 6} more
+              </span>
+            )}
+          </div>
+        )}
 
-      {/* Hint - Only if exists */}
-      {session.hint && (
-        <div className="text-[11px] text-[#ff4757] bg-[rgba(255,71,87,0.08)] rounded-[4px] px-1.5 py-0.5 leading-tight">
-          {session.hint}
-        </div>
-      )}
+        {/* Agents - Only if exists */}
+        {(session.agents.length > 0 || zenChatCount > 0) && (
+          <div className="flex gap-[4px] flex-wrap items-center leading-none">
+            {session.agents.map((a, i) => (
+              <AgentChip key={i} agent={a} sessionStatus={st} />
+            ))}
+            {zenChatCount > 0 && <ZenBadge count={zenChatCount} />}
+          </div>
+        )}
 
-      {/* Background processes - Only if exists */}
-      {(session.procs?.length ?? 0) > 0 && (
-        <ProcessList sessionId={session.id} procs={session.procs!} onInteract={onProcessInteract} />
-      )}
-    </div>
+        {/* Hint - Only if exists */}
+        {session.hint && (
+          <div className="text-[11px] text-[#ff4757] bg-[rgba(255,71,87,0.08)] rounded-[4px] px-1.5 py-0.5 leading-tight">
+            {session.hint}
+          </div>
+        )}
+
+        {/* Background processes - Only if exists */}
+        {(session.procs?.length ?? 0) > 0 && (
+          <ProcessList
+            sessionId={session.id}
+            procs={session.procs!}
+            onInteract={onProcessInteract}
+          />
+        )}
+      </div>
+    </Tooltip>
   );
 });
 

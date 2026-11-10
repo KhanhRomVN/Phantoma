@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Check, Eye } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import {
   computeRects,
@@ -29,8 +29,8 @@ const TYPE_STYLE: Record<PanelType, { label: string; hint: string; solid: string
   agent: {
     label: 'Zen Agent',
     hint: 'AI chat & workflows',
-    solid: 'bg-violet-500',
-    soft: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
+    solid: 'bg-text-secondary',
+    soft: 'bg-text-secondary/15 text-text-secondary border-text-secondary/30',
   },
   file: {
     label: 'Files',
@@ -55,6 +55,12 @@ const TYPE_STYLE: Record<PanelType, { label: string; hint: string; solid: string
     hint: 'Device preview',
     solid: 'bg-pink-500',
     soft: 'bg-pink-500/15 text-pink-300 border-pink-500/30',
+  },
+  agenttools: {
+    label: 'CLI Agents',
+    hint: 'Claude Code, OpenCode, Codex',
+    solid: 'bg-text-secondary',
+    soft: 'bg-text-secondary/15 text-text-secondary border-text-secondary/30',
   },
 
 };
@@ -86,14 +92,14 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative w-10 h-[22px] rounded-full transition-colors cursor-pointer shrink-0',
+        'relative w-9 h-5 rounded-md transition-colors cursor-pointer shrink-0',
         checked ? 'bg-primary' : 'bg-text-secondary/30',
       )}
     >
       <span
         className={cn(
-          'absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow transition-transform duration-200',
-          checked && 'translate-x-[18px]',
+          'absolute top-[3px] left-[3px] w-3.5 h-3.5 rounded-[4px] bg-white shadow transition-transform duration-200',
+          checked && 'translate-x-4',
         )}
       />
     </button>
@@ -127,19 +133,6 @@ function PanePicker({
           />
         ))}
       </div>
-      <button
-        type="button"
-        onClick={() => onChange('auto')}
-        title="Open in the focused pane"
-        className={cn(
-          'h-6 px-2 rounded-md text-[11px] font-medium border transition-colors cursor-pointer',
-          value === 'auto'
-            ? 'bg-primary/15 text-primary border-primary/30'
-            : 'text-text-secondary border-border hover:bg-card-hover',
-        )}
-      >
-        Auto
-      </button>
     </div>
   );
 }
@@ -178,7 +171,7 @@ function LiveMap({ rules, dimmed }: { rules: PanelRules; dimmed: boolean }) {
   const { panes, rects, autoTypes, fallback, typesIn } = layoutOf(rules);
   return (
     <div className={cn('flex flex-col gap-2 transition-opacity', dimmed && 'opacity-40')}>
-      <div className="relative w-full aspect-[4/3] rounded-xl border border-border bg-gradient-to-br from-card-hover/60 to-transparent">
+      <div className="relative w-full aspect-video rounded-xl border border-border bg-gradient-to-br from-card-hover/60 to-transparent">
         <div className="absolute inset-1">
           {panes.map((pane) => {
             const r = rects[pane];
@@ -301,7 +294,24 @@ export const SmartLayoutSection = memo(function SmartLayoutSection() {
           </div>
         </section>
 
-        <section className="grid grid-cols-[1fr_260px] gap-6">
+        <section>
+          <SectionTitle>Live map</SectionTitle>
+          <div className="relative flex items-center justify-center min-h-[320px] p-6 rounded-xl border border-border bg-card-background overflow-hidden">
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none text-text-secondary/25"
+              style={{
+                backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+                backgroundSize: '14px 14px',
+              }}
+            />
+            <div className="relative w-full max-w-[480px]">
+              <LiveMap rules={rules} dimmed={!smartLayout} />
+            </div>
+          </div>
+        </section>
+
+        <section>
           <div>
             <SectionTitle>Placement rules</SectionTitle>
             <div className="flex flex-col gap-1.5">
@@ -334,20 +344,12 @@ export const SmartLayoutSection = memo(function SmartLayoutSection() {
               })}
             </div>
           </div>
-
-          <div>
-            <SectionTitle>Live map</SectionTitle>
-            <LiveMap rules={rules} dimmed={!smartLayout} />
-          </div>
         </section>
       </div>
 
       <section>
         <SectionTitle>Behavior</SectionTitle>
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-card-background">
-          <span className="w-7 h-7 rounded-md grid place-items-center shrink-0 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-            <Eye className="w-3.5 h-3.5" />
-          </span>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-text-primary">Reuse preview tab</p>
             <p className="text-[10px] text-text-secondary">

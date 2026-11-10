@@ -4,16 +4,16 @@
  *  - WorkspaceEmptyState → project selected but no panels open
  */
 
-import { memo, useState, type ReactNode } from 'react';
+import { memo, useEffect, useState, type ReactNode } from 'react';
 import {
   Plus,
   Terminal as TerminalIcon,
   Globe,
   FolderOpen,
   GitBranch,
-  Bot,
   LayoutGrid,
 } from 'lucide-react';
+import { getAgentFavicon } from '../../../constants/workspaceAgents';
 import { OpenProjectModal } from '../../modal/OpenProjectModal';
 import { CreateProjectModal } from '../../modal/CreateProjectModal';
 
@@ -41,6 +41,7 @@ function ActionCard({
   title,
   subtitle,
   accent,
+  iconClassName,
   onClick,
   disabled,
 }: {
@@ -48,6 +49,7 @@ function ActionCard({
   title: string;
   subtitle: string;
   accent: Accent;
+  iconClassName?: string;
   onClick?: () => void;
   disabled?: boolean;
 }) {
@@ -55,12 +57,12 @@ function ActionCard({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`group flex items-center gap-3 text-left px-3 py-2.5 rounded-xl border border-border bg-card-background transition-all hover:-translate-y-0.5 ${ACCENTS[accent].hover} ${
+      className={`group flex items-center gap-3 text-left px-3 py-2.5 rounded-xl border border-border bg-card-background hover:outline hover:outline-1 hover:outline-dashed hover:outline-text-secondary ${
         disabled ? 'cursor-not-allowed opacity-50' : ''
       }`}
     >
       <span
-        className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 transition-colors ${ACCENTS[accent].icon}`}
+        className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 ${iconClassName ?? ACCENTS[accent].icon}`}
       >
         {icon}
       </span>
@@ -181,10 +183,47 @@ EmptyState.displayName = 'EmptyState';
 
 export type EmptyWorkspaceAction = 'browser' | 'terminal' | 'agent';
 
+const CLI_AGENT_IDS = ['claude', 'opencode', 'codex'] as const;
+
+function CliAgentsCard({ onClick }: { onClick?: () => void }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setActiveIndex((i) => (i + 1) % CLI_AGENT_IDS.length), 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <button
+      onClick={onClick}
+      className="group flex items-center gap-3 text-left px-3 py-2.5 rounded-xl border border-border bg-card-background hover:outline hover:outline-1 hover:outline-dashed hover:outline-text-secondary"
+    >
+      <span className="relative w-8 h-8 rounded-lg grid place-items-center shrink-0 bg-text-secondary/20">
+        {CLI_AGENT_IDS.map((id, index) => (
+          <img
+            key={id}
+            src={getAgentFavicon(id)}
+            alt={id}
+            className={`absolute w-4 h-4 transition-opacity duration-500 ${
+              index === activeIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ))}
+      </span>
+      <span>
+        <strong className="block text-[12.5px] font-medium text-text-primary">CLI Agents</strong>
+        <small className="block text-[11px] text-text-secondary">Claude Code, OpenCode, Codex</small>
+      </span>
+    </button>
+  );
+}
+
 export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
   onAddPanel,
+  onOpenCli,
 }: {
   onAddPanel?: (action: EmptyWorkspaceAction) => void;
+  onOpenCli?: () => void;
 }) {
   const handleAction = (action: EmptyWorkspaceAction) => {
     if (onAddPanel) {
@@ -224,20 +263,14 @@ export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
         />
         <ActionCard
           accent="warn"
-          icon={<Bot className="w-4 h-4" />}
-          title="Agent"
+          iconClassName="bg-text-secondary/20"
+          icon={<img src="/images/zen-logo.png" alt="Zen" className="w-4 h-4 object-contain" />}
+          title="Zen"
           subtitle="Assign task to agent"
           onClick={() => handleAction('agent')}
         />
+        <CliAgentsCard onClick={onOpenCli} />
       </div>
-
-      <Hints
-        items={[
-          ['⌘ T', 'new tab'],
-          ['⌘ \\', 'split right'],
-          ['⌘ P', 'quick open'],
-        ]}
-      />
     </EmptyStateShell>
   );
 });
