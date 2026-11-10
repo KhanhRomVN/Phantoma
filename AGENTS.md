@@ -72,6 +72,7 @@
 - 2 server con: `server/` (shell backend, chỉ `/health`) và `emulate/` (Emulate service).
 - Port source of truth: `src/shared/ports.ts` (`DEFAULT_SERVER_PORT=8080`, `DEFAULT_EMULATE_PORT=3002`). KHÔNG hardcode port ở bất kỳ đâu khác.
 - Dev (`npm run dev`): KHÔNG nhúng, KHÔNG spawn. Server chạy ngoài, renderer dùng `DEV_PORTS`.
+- Renderer dev port được suy ra từ hash đường dẫn project (20000-39999) + `strictPort: true` (`electron.vite.config.ts`): localStorage của Chromium gắn theo origin (gồm port), nên mỗi project có port ổn định riêng, không hardcode và không nhảy port. Dev còn đặt `userData` và `remote-debugging-port` (40000-59999) riêng theo hash `process.cwd()` (`src/main/index.ts`, script dev không còn `--remoteDebuggingPort=9222`): hai Electron dùng chung `userData` sẽ tranh lock LevelDB, instance sau không lưu được localStorage. Lưu ý: port/userData đổi so với trước nên config localStorage cũ sẽ không còn thấy.
 - Build (`electron-builder`): `src/main/services/server-spawner.ts` fork server con qua `utilityProcess.fork`, port trống ngẫu nhiên, truyền `PORT`/`EMULATE_PORT` qua env. Renderer lấy port qua IPC `runtime:get-ports`.
 - **Shell server** spawn ngay khi app ready (`startShellServer`).
 - **Emulate server** spawn ON-DEMAND khi renderer vào module Emulate (`startEmulateServer` qua IPC `runtime:start-emulate`, idempotent). `Emulate.tsx` mount → `startEmulate()` → `refreshEmulateBaseFromIpc()` → mới cài WS bridge.
