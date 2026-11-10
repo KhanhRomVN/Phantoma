@@ -43,9 +43,18 @@
 - Tooltip hover file/folder đã bị xóa hoàn toàn (không còn `FileHoverTooltip.tsx`).
 - Filter scope: `stores/useScopeStatsStore.ts` (`stats` primary/warn/error + `filter` theo project), `ScopeFilterButton` ở toolbar (đang lọc thì chỉ hiện dot viền dashed, click để hủy), `TreeNodeGate` ẩn node không khớp filter. UI FileExplore dùng tiếng Anh.
 
+## TaskManager
+
+- `ContentPanel/TaskManager` chỉ còn layout Table (`table/TaskTable.tsx`, menu chuột phải: Edit/Move to/Archive/Delete); Kanban, Timeline và drag-drop đã bị xóa. `statusMeta.ts` giữ `STATUS_META` dùng chung, `taskDrag.ts` giữ `TASK_DRAG_TYPE` (SessionCard kéo session thành task).
+
 ## Zen feature panel layout
 
 - Nội dung các panel Zen (Home, Chat, Account) giới hạn `maxWidth: 680px` và căn giữa (`margin: 0 auto`). Account áp dụng cho action bar, tiêu đề danh sách, `DrawerBody` và header qua prop `maxWidth` của `NavPanelHeader`. Panel mới nên dùng cùng giá trị 680.
+
+## Skills (toàn cục)
+
+- Skill lưu toàn cục ở `~/.phantoma/skills/{slug}/` (SKILL.md + `{slug}.json`), state group/toggle ở `~/.phantoma/skill-workspace-state.json` — dùng chung mọi module, không theo project. Logic ở `src/main/storage/SkillStorage.ts` + `src/main/services/skill-marketplace.ts`, IPC `skill:*` ở `src/main/ipc/skill.handlers.ts`.
+- UI/hook/service nằm ở `components/Widgets/Zen/feature/Marketplace` (`SkillPanel`); tab Skills của module Code (`ActivityPanel/Skill`) chỉ bọc lại `SkillPanel`.
 
 ## UITest module
 
@@ -81,6 +90,12 @@
 - Build server/emulate chỉ ra `server/dist/` và `emulate/dist/` (không version, không folder release riêng — đây là backend phụ trợ, không phát hành độc lập). Script: `scripts/build-server.js <server|emulate>` chỉ chạy `npm run build` trong folder đó.
 - `electron-builder.yml` extraResources copy `server/{dist,package.json,node_modules}`, `emulate/{dist,package.json,node_modules}`, và `images/` vào `resources/`. `server-spawner.ts` fork `resources/<name>/dist/index.js`. Window icon = `images/phantoma-logo.png` (dev: `app.getAppPath()`, build: `process.resourcesPath`).
 - Settings General KHÔNG còn URL input / Database Path — chỉ hiển thị read-only port (server + emulate). Endpoint `/api/v1/database/path` đã bị xóa khỏi emulate; `services/database.service.ts` đã bị xóa.
+
+## Opencode run (v1 / v2)
+
+- `agent-tool-opencode-run.ts` có 2 nhánh theo `OpencodeServer.protocol` (do `startOpencodeServer` trong `agent-tool.handlers.ts` detect): `runOpencodeV1` (`/session`, `/event`, `prompt_async`) và `runOpencodeV2` (`/api/session`, `/api/event`, `/api/session/{id}/prompt|interrupt|permission/{reqId}/reply`). Binary opencode 2.x KHÔNG có route v1 (POST /session trả 405).
+- v2: event SSE có dạng `{type, data}` với `session.text.delta`, `session.reasoning.delta`, `session.tool.input.started|called|success|failed`, `session.execution.succeeded`; tool shell tên `shell`, read dùng `input.path`.
+- Spec đầy đủ: chạy `opencode serve` rồi GET `/openapi.json`.
 
 ## Run & Debug (js-debug)
 

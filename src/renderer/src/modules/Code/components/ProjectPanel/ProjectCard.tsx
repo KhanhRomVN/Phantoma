@@ -29,7 +29,6 @@ import {
   MonitorUp,
   PowerOff,
   Unlink,
-  X,
   Circle,
   Square,
   Triangle,
@@ -48,6 +47,7 @@ import {
   Leaf,
   Bookmark,
   Flag,
+  CircleCheckBig,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -60,9 +60,14 @@ import {
   DropdownItem,
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
+
+// ── Local modals ──
+import { TaskStatusModal } from './TaskStatusModal';
+import { ConfirmUnlinkTaskModal } from './ConfirmUnlinkTaskModal';
 import { closeTargetOwner } from '@renderer/hooks/useTargetLock';
 import { toBranchTargetId } from './ProjectConflictModal';
 import { BranchScopeButton } from './BranchScopeButton';
+import { SessionHoverTooltip } from './SessionCard';
 
 // ── Types & Constants ──
 import {
@@ -72,12 +77,10 @@ import {
   type MenuPosition,
   type ProcessInteractHandler,
   STATUS_ORDER,
-  TASK_STATUSES,
+  TASK_COLORS,
   getNewestSession,
   getBranchStatus,
   sortAgentsByState,
-  StatusDot,
-  TaskIcon,
   AgentAvatar,
   ProcessPill,
   SessionCard,
@@ -187,7 +190,7 @@ export function getTaskCounts(
   project: ProjectExtended,
   bySession: Record<string, StoredTask>,
 ): Record<TaskStatus, number> {
-  const c: Record<TaskStatus, number> = { todo: 0, progress: 0, review: 0, done: 0 };
+  const c: Record<TaskStatus, number> = { todo: 0, progress: 0, done: 0 };
   project.branches?.forEach((b) =>
     b.sessions?.forEach((s) => {
       const t = bySession[s.id];
@@ -255,6 +258,7 @@ const PROJECT_ICONS: LucideIcon[] = [
   Leaf,
   Bookmark,
   Flag,
+  CircleCheckBig,
 ];
 
 const PROJECT_COLORS = [
@@ -407,6 +411,8 @@ function CollapsedTree({
   busyBranchNames,
   onFocusElsewhere,
   onReleaseElsewhere,
+  projectTasks,
+  onOpenTaskStatusModal,
 }: {
   project: ProjectExtended;
   selectedSessionId: string | null;
@@ -424,9 +430,11 @@ function CollapsedTree({
   busyBranchNames?: ReadonlySet<string>;
   onFocusElsewhere?: ProjectCardProps['onFocusElsewhere'];
   onReleaseElsewhere?: ProjectCardProps['onReleaseElsewhere'];
+  projectTasks?: StoredTask[];
+  onOpenTaskStatusModal: (branchName: string) => void;
 }) {
   const [expandedBranchName, setExpandedBranchName] = useState<string | null>(null);
-  
+
   const footerCls = 'pt-[5px] pl-[18px] text-[10.5px] text-text-secondary/50';
   const vb = getVisibleBranches(project);
   if (!vb.length) return <div className={footerCls}>No branches shown</div>;
@@ -458,7 +466,31 @@ function CollapsedTree({
         const agents = n && live ? sortAgentsByState(n.agents, n.status) : [];
         const procs = n?.procs ?? [];
         const dim = !live && procs.length === 0;
-        
+
+        // Calculate task counts for this specific branch
+        const branchTaskCounts = useMemo(() => {
+          const c: Record<TaskStatus, number> = { todo: 0, progress: 0, done: 0 };
+          (projectTasks ?? []).forEach((t) => {
+            if (!t.archived && t.branchName === b.name) c[t.status]++;
+          });
+          return c;
+        }, [projectTasks, b.name]);
+        const wrap = (row: React.ReactNode) =>
+          n ? (
+            <SessionHoverTooltip
+              session={n}
+              projectId={project.id}
+              projectName={project.name}
+              branchName={b.name}
+              branchPath={b.path ?? ''}
+              className="block w-full"
+            >
+              {row}
+            </SessionHoverTooltip>
+          ) : (
+            row
+          );
+
         // Determine if this specific branch is currently expanded inline
         const isBranchExpanded = expandedBranchName === b.name;
 
@@ -483,6 +515,8 @@ function CollapsedTree({
                 busyElsewhere={busyBranchNames?.has(b.name)}
                 onFocusElsewhere={onFocusElsewhere}
                 onReleaseElsewhere={onReleaseElsewhere}
+                projectTasks={projectTasks}
+                onOpenTaskStatusModal={onOpenTaskStatusModal}
               />
             </div>
           );
@@ -492,98 +526,134 @@ function CollapsedTree({
         return (
           <div key={b.name} className="flex flex-col gap-1">
             {/* Branch Row */}
-            <div
-              title={b.name}
-              className={cn(
-                'flex items-center gap-2 min-w-0 px-1.5 py-[6px] rounded-md transition-colors cursor-pointer hover:bg-card-hover',
-              )}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onOpenDropdown('branch', project.id, b.name, { top: e.clientY, left: e.clientX });
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                
-                const newestSession = getNewestSession(b);
+            {wrap(
+              <div
+                title={n ? undefined : b.name}
+                className={cn(
+                  'flex items-center gap-2 min-w-0 px-1.5 py-[6px] rounded-md transition-colors cursor-pointer hover:bg-card-hover',
+                )}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenDropdown('branch', project.id, b.name, { top: e.clientY, left: e.clientX });
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
 
-                // Priority 1: If there is a session, expand the project AND select the session.
-                // Expanding ensures the BranchBlock (which renders the SessionCard) becomes visible.
-                if (newestSession) {
-                  onExpandProject();
-                  onSelectSession(newestSession.id);
-                  return;
-                }
+                  const newestSession = getNewestSession(b);
 
-                // Priority 2: If the project has exactly 2 visible branches and this branch has no session,
-                // select the FIRST idle branch that has a session instead of expanding.
-                if (vb.length === 2) {
-                  const firstIdleBranchWithSession = vb.find(
-                    (br) => br.name !== b.name && getNewestSession(br) !== null
-                  );
-                  if (firstIdleBranchWithSession) {
-                    const session = getNewestSession(firstIdleBranchWithSession);
-                    if (session) {
-                      onExpandProject();
-                      onSelectSession(session.id);
-                      return;
+                  // Priority 1: If there is a session, expand the project AND select the session.
+                  // Expanding ensures the BranchBlock (which renders the SessionCard) becomes visible.
+                  if (newestSession) {
+                    onExpandProject();
+                    onSelectSession(newestSession.id);
+                    return;
+                  }
+
+                  // Priority 2: If the project has exactly 2 visible branches and this branch has no session,
+                  // select the FIRST idle branch that has a session instead of expanding.
+                  if (vb.length === 2) {
+                    const firstIdleBranchWithSession = vb.find(
+                      (br) => br.name !== b.name && getNewestSession(br) !== null,
+                    );
+                    if (firstIdleBranchWithSession) {
+                      const session = getNewestSession(firstIdleBranchWithSession);
+                      if (session) {
+                        onExpandProject();
+                        onSelectSession(session.id);
+                        return;
+                      }
                     }
                   }
-                }
 
-                // Priority 3: No session yet -> fallback to expansion logic
-                // If the project has only ONE visible branch, expanding the whole card makes more sense
-                if (vb.length === 1) {
-                  onExpandProject();
-                  return;
-                }
+                  // Priority 3: No session yet -> fallback to expansion logic
+                  // If the project has only ONE visible branch, expanding the whole card makes more sense
+                  if (vb.length === 1) {
+                    onExpandProject();
+                    return;
+                  }
 
-                // Otherwise, toggle inline expansion for this specific branch to allow creating a new session
-                if (isBranchExpanded) {
-                  setExpandedBranchName(null);
-                } else {
-                  setExpandedBranchName(b.name);
-                }
-              }}
-            >
-              <StatusDot status={st} />
-              <span
-                className={cn(
-                  'min-w-0 truncate font-mono text-[14px] font-medium',
-                  dim ? 'text-text-secondary/50' : 'text-text-primary',
-                )}
+                  // Otherwise, toggle inline expansion for this specific branch to allow creating a new session
+                  if (isBranchExpanded) {
+                    setExpandedBranchName(null);
+                  } else {
+                    setExpandedBranchName(b.name);
+                  }
+                }}
               >
-                {stripPrefix(b.name)}
-              </span>
-              {project.defaultBranch === b.name && <DefaultBadge />}
-              {b.name === NO_BRANCH_NAME && <NoGitBadge />}
-              <span className="flex-1" />
-              {project.defaultBranch !== b.name && (
-                <BranchScopeButton projectId={project.id} branchName={b.name} />
-              )}
-              {busyBranchNames?.has(b.name) && (
-                <BusyBadge
-                  projectId={project.id}
-                  branchName={b.name}
-                  onFocus={() => onFocusElsewhere?.(project.id, b.name)}
-                  onRelease={() => onReleaseElsewhere?.(project.id, b.name)}
-                />
-              )}
-              <span className="flex items-center gap-[5px] shrink-0">
-                {n &&
-                  agents
-                    .slice(0, 4)
-                    .map((a, i) => (
-                      <AgentAvatar key={i} agent={a} sessionStatus={n.status} size="sm" />
-                    ))}
-                {agents.length > 4 && (
-                  <span className="font-mono text-[10px] text-text-secondary/50">
-                    +{agents.length - 4}
-                  </span>
+                <GitBranch className="w-[13px] h-[13px] shrink-0 text-text-secondary/70" />
+                <span
+                  className={cn(
+                    'min-w-0 truncate font-mono text-[14px] font-medium',
+                    dim ? 'text-text-secondary/50' : 'text-text-primary',
+                  )}
+                >
+                  {stripPrefix(b.name)}
+                </span>
+                {project.defaultBranch === b.name && <DefaultBadge />}
+                {b.name === NO_BRANCH_NAME && <NoGitBadge />}
+                <span className="flex-1" />
+                {/* Task status badge */}
+                {(branchTaskCounts.todo > 0 || branchTaskCounts.progress > 0) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenTaskStatusModal(b.name);
+                    }}
+                    className="flex items-center gap-1 px-1.5 h-[18px] rounded-md bg-card-hover hover:bg-card-hover/80 transition-colors cursor-pointer"
+                    title="View and link tasks"
+                  >
+                    {branchTaskCounts.todo > 0 && (
+                      <div className="flex items-center gap-0.5">
+                        <div
+                          className="w-1.5 h-1.5 rounded-full border-[1.5px]"
+                          style={{ borderColor: TASK_COLORS.todo }}
+                        />
+                        <span className="text-[10.5px] font-medium text-text-secondary">
+                          {branchTaskCounts.todo}
+                        </span>
+                      </div>
+                    )}
+                    {branchTaskCounts.progress > 0 && (
+                      <div className="flex items-center gap-0.5">
+                        <div
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ background: TASK_COLORS.progress }}
+                        />
+                        <span className="text-[10.5px] font-medium text-text-secondary">
+                          {branchTaskCounts.progress}
+                        </span>
+                      </div>
+                    )}
+                  </button>
                 )}
-                <ProcessPill procs={procs} />
-              </span>
-            </div>
+                {project.defaultBranch !== b.name && (
+                  <BranchScopeButton projectId={project.id} branchName={b.name} />
+                )}
+                {busyBranchNames?.has(b.name) && (
+                  <BusyBadge
+                    projectId={project.id}
+                    branchName={b.name}
+                    onFocus={() => onFocusElsewhere?.(project.id, b.name)}
+                    onRelease={() => onReleaseElsewhere?.(project.id, b.name)}
+                  />
+                )}
+                <span className="flex items-center gap-[5px] shrink-0">
+                  {n &&
+                    agents
+                      .slice(0, 4)
+                      .map((a, i) => (
+                        <AgentAvatar key={i} agent={a} sessionStatus={n.status} size="sm" />
+                      ))}
+                  {agents.length > 4 && (
+                    <span className="font-mono text-[10px] text-text-secondary/50">
+                      +{agents.length - 4}
+                    </span>
+                  )}
+                  <ProcessPill procs={procs} />
+                </span>
+              </div>,
+            )}
           </div>
         );
       })}
@@ -609,6 +679,8 @@ export const BranchBlock = memo(function BranchBlock({
   busyElsewhere = false,
   onFocusElsewhere,
   onReleaseElsewhere,
+  projectTasks,
+  onOpenTaskStatusModal,
 }: {
   project: ProjectExtended;
   branch: BranchInfo;
@@ -626,9 +698,20 @@ export const BranchBlock = memo(function BranchBlock({
   busyElsewhere?: boolean;
   onFocusElsewhere?: ProjectCardProps['onFocusElsewhere'];
   onReleaseElsewhere?: ProjectCardProps['onReleaseElsewhere'];
+  projectTasks?: StoredTask[];
+  onOpenTaskStatusModal: (branchName: string) => void;
 }) {
   const newest = getNewestSession(branch);
   const busy = !!newest && ['running', 'queued', 'blocked', 'review'].includes(newest.status);
+
+  // Calculate task counts for this specific branch
+  const branchTaskCounts = useMemo(() => {
+    const c: Record<TaskStatus, number> = { todo: 0, progress: 0, done: 0 };
+    (projectTasks ?? []).forEach((t) => {
+      if (!t.archived && t.branchName === branch.name) c[t.status]++;
+    });
+    return c;
+  }, [projectTasks, branch.name]);
 
   const openAtCursor = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -660,6 +743,41 @@ export const BranchBlock = memo(function BranchBlock({
         {branch.name === NO_BRANCH_NAME && <NoGitBadge />}
 
         <span className="flex-1" />
+
+        {/* Task status badge */}
+        {(branchTaskCounts.todo > 0 || branchTaskCounts.progress > 0) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenTaskStatusModal(branch.name);
+            }}
+            className="flex items-center gap-1 px-1.5 h-[18px] rounded-md bg-card-hover hover:bg-card-hover/80 transition-colors cursor-pointer"
+            title="View and link tasks"
+          >
+            {branchTaskCounts.todo > 0 && (
+              <div className="flex items-center gap-0.5">
+                <div
+                  className="w-1.5 h-1.5 rounded-full border-[1.5px]"
+                  style={{ borderColor: TASK_COLORS.todo }}
+                />
+                <span className="text-[10.5px] font-medium text-text-secondary">
+                  {branchTaskCounts.todo}
+                </span>
+              </div>
+            )}
+            {branchTaskCounts.progress > 0 && (
+              <div className="flex items-center gap-0.5">
+                <div
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ background: TASK_COLORS.progress }}
+                />
+                <span className="text-[10.5px] font-medium text-text-secondary">
+                  {branchTaskCounts.progress}
+                </span>
+              </div>
+            )}
+          </button>
+        )}
 
         {project.defaultBranch !== branch.name && (
           <BranchScopeButton projectId={project.id} branchName={branch.name} />
@@ -709,15 +827,26 @@ export const BranchBlock = memo(function BranchBlock({
           projectId={project.id}
           projectName={project.name}
           branchName={branch.name}
+          branchPath={
+            branch.path ?? useCodeStore.getState().projects.find((p) => p.id === project.id)?.path
+          }
           onDropTask={(taskId, sessionId) => {
             const path = useCodeStore.getState().projects.find((p) => p.id === project.id)?.path;
-            if (path) void taskService.update(path, taskId, { sessionId, branchName: branch.name });
+            if (!path) return;
+            const task = projectTasks?.find((t) => t.id === taskId);
+            if (!task) return;
+            const newStatus = task.status === 'todo' ? 'progress' : task.status;
+            void taskService.update(path, taskId, {
+              sessionId,
+              branchName: branch.name,
+              status: newStatus,
+            });
           }}
           // Explicitly disable drag on SessionCard to prevent accidental loss of parent Branch context
-          draggable={false} 
+          draggable={false}
         />
       ) : (
-        <div 
+        <div
           className="rounded-lg px-2.5 py-[9px] flex justify-center items-center text-[11px] text-text-secondary/40 cursor-default"
           style={{
             borderStyle: 'dashed',
@@ -771,18 +900,25 @@ export const ProjectCard = memo(function ProjectCard({
   useEffect(() => {
     void loadTasks(projectPath);
   }, [loadTasks, projectPath]);
-  const counts = useMemo(() => {
-    const c: Record<TaskStatus, number> = { todo: 0, progress: 0, review: 0, done: 0 };
-    (projectTasks ?? []).forEach((t) => {
-      if (!t.archived) c[t.status]++;
-    });
-    return c;
-  }, [projectTasks]);
   const visBranches = getVisibleBranches(project);
   const identity = useMemo(
     () => getProjectIdentity(project.id + project.name),
     [project.id, project.name],
   );
+
+  const [taskStatusModalOpen, setTaskStatusModalOpen] = useState(false);
+  const [taskStatusModalBranch, setTaskStatusModalBranch] = useState<string | null>(null);
+  const [confirmUnlinkTask, setConfirmUnlinkTask] = useState<StoredTask | null>(null);
+
+  const handleOpenTaskStatusModal = useCallback((branchName: string) => {
+    setTaskStatusModalBranch(branchName);
+    setTaskStatusModalOpen(true);
+  }, []);
+
+  const handleCloseTaskStatusModal = useCallback(() => {
+    setTaskStatusModalOpen(false);
+    setTaskStatusModalBranch(null);
+  }, []);
 
   const openMenuAt = useCallback(
     (e: React.MouseEvent) => {
@@ -813,9 +949,10 @@ export const ProjectCard = memo(function ProjectCard({
       {/* ── Top: name row + task chips ── */}
       <div
         className={cn(
-          "group/top relative flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none transition-colors",
-          !isGlobalDragging && "hover:bg-white/[0.02]",
-          isProjectSelected && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-primary",
+          'group/top relative flex flex-col gap-1.5 px-3 pt-[9px] pb-2.5 cursor-pointer select-none transition-colors',
+          !isGlobalDragging && 'hover:bg-white/[0.02]',
+          isProjectSelected &&
+            "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[2px] before:bg-primary",
         )}
         onClick={() => {
           if (isGlobalDragging) return;
@@ -840,11 +977,9 @@ export const ProjectCard = memo(function ProjectCard({
             {project.name}
           </span>
 
-
-          
           {/* Elements hidden via CSS during drag to preserve DOM structure and prevent flickering/layout shifts */}
-          <div data-drag-hide className={cn("contents", isGlobalDragging && "hidden")}>
-             {project.hidden && (
+          <div data-drag-hide className={cn('contents', isGlobalDragging && 'hidden')}>
+            {project.hidden && (
               <span className="text-[9.5px] text-text-secondary/50 border border-border rounded px-[5px]">
                 hidden
               </span>
@@ -934,32 +1069,10 @@ export const ProjectCard = memo(function ProjectCard({
             </button>
           </div>
         </div>
-
-        {/* Task status count chips - Hidden via wrapper during drag */}
-        <div className={cn(isGlobalDragging && "hidden")}>
-           <div className="flex gap-1 pl-[30px] mt-1.5">
-            {TASK_STATUSES.map(([k, label]) => (
-              <span
-                key={k}
-                title={`${label}: ${counts[k]}`}
-                className={cn(
-                  'inline-flex items-center justify-center gap-[5px] h-5 pl-1.5 pr-[7px] rounded-[5px] font-mono text-[10.5px] font-medium leading-none text-text-secondary bg-card-background border border-divider',
-                  !counts[k] && 'opacity-40',
-                )}
-              >
-                <TaskIcon status={k} />
-                {counts[k]}
-              </span>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* ── CONTENT AREA: Hidden via CSS during drag to preserve DOM structure ── */}
-      <div className={cn(isGlobalDragging && "hidden")}>
-
-
-
+      <div className={cn(isGlobalDragging && 'hidden')}>
         {!isSelected && (
           <div className="flex flex-col gap-px pl-3 pr-2 pb-2.5 transition-opacity duration-150">
             <CollapsedTree
@@ -979,6 +1092,8 @@ export const ProjectCard = memo(function ProjectCard({
               busyBranchNames={busyBranchNames}
               onFocusElsewhere={onFocusElsewhere}
               onReleaseElsewhere={onReleaseElsewhere}
+              projectTasks={projectTasks}
+              onOpenTaskStatusModal={handleOpenTaskStatusModal}
             />
           </div>
         )}
@@ -1005,6 +1120,8 @@ export const ProjectCard = memo(function ProjectCard({
                   busyElsewhere={busyBranchNames?.has(branch.name)}
                   onFocusElsewhere={onFocusElsewhere}
                   onReleaseElsewhere={onReleaseElsewhere}
+                  projectTasks={projectTasks}
+                  onOpenTaskStatusModal={handleOpenTaskStatusModal}
                 />
               ))
             ) : (
@@ -1017,6 +1134,52 @@ export const ProjectCard = memo(function ProjectCard({
           </div>
         )}
       </div>
+
+      {/* Task Status Modal */}
+      <TaskStatusModal
+        isOpen={taskStatusModalOpen}
+        onClose={handleCloseTaskStatusModal}
+        projectName={project.name}
+        branchName={taskStatusModalBranch ?? ''}
+        tasks={(projectTasks ?? []).filter((t) => !t.archived)}
+        linkedTaskId={
+          (projectTasks ?? []).find((t) => !t.archived && t.branchName === taskStatusModalBranch)
+            ?.id ?? null
+        }
+        onLink={(taskId) => {
+          const task = (projectTasks ?? []).find((t) => t.id === taskId);
+          if (!task) return;
+          const newStatus = task.status === 'todo' ? 'progress' : task.status;
+          void taskService.update(projectPath, taskId, {
+            status: newStatus,
+            branchName: taskStatusModalBranch,
+            sessionId: null,
+          });
+          handleCloseTaskStatusModal();
+        }}
+        onUnlink={(taskId) => {
+          const task = (projectTasks ?? []).find((t) => t.id === taskId);
+          if (!task) return;
+          setConfirmUnlinkTask(task);
+          handleCloseTaskStatusModal();
+        }}
+      />
+
+      {/* Confirm Unlink Task Modal */}
+      <ConfirmUnlinkTaskModal
+        isOpen={!!confirmUnlinkTask}
+        onClose={() => setConfirmUnlinkTask(null)}
+        taskTitle={confirmUnlinkTask?.title ?? ''}
+        onConfirm={(newStatus) => {
+          if (!confirmUnlinkTask) return;
+          void taskService.update(projectPath, confirmUnlinkTask.id, {
+            status: newStatus,
+            branchName: null,
+            sessionId: null,
+          });
+          setConfirmUnlinkTask(null);
+        }}
+      />
     </div>
   );
 });

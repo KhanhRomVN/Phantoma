@@ -12,7 +12,7 @@ export function SkillDetailAbout({ content }: SkillDetailAboutProps) {
   return (
     <div className="pt-3.5 border-t" style={{ borderColor: $('--border') }}>
       <div
-        className="text-[11px] font-semibold uppercase tracking-wide mb-2.5"
+        className="text-sm font-semibold uppercase tracking-wide"
         style={{ color: $('--text-secondary') }}
       >
         About this skill

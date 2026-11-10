@@ -8,7 +8,7 @@
  *
  * Main features:
  * - Single item: shows filename highlighted in the description
- * - Multi item: lists all items in a compact scrollable container
+ * - Multi item: summary count + fixed-height scrollable list with icons
  * - Centered alert badge + title + description
  * - Split Cancel / Delete footer buttons
  * ------------------------------------------------------------------
@@ -21,14 +21,25 @@ import { AlertTriangle, Trash2 } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
+// ── Utils ──
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
+export interface DeleteItem {
+  name: string;
+  path: string;
+  isFolder: boolean;
+}
+
 interface ConfirmDeleteFileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  items: string[];
+  items: DeleteItem[];
 }
+
+// ─── Helpers ────────────────────────────────────────────────────────────
+const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
 // ─── Component ─────────────────────────────────────────────────────────
 export function ConfirmDeleteFileModal({
@@ -40,7 +51,12 @@ export function ConfirmDeleteFileModal({
   // ── Derived ──
   const count = items.length;
   const isMulti = count > 1;
-  const targetLabel = isMulti ? `${count} files/folders` : `"${items[0] || ''}"`;
+  const folderCount = items.filter((i) => i.isFolder).length;
+  const fileCount = count - folderCount;
+  const summary = [fileCount > 0 && plural(fileCount, 'file'), folderCount > 0 && plural(folderCount, 'folder')]
+    .filter(Boolean)
+    .join(', ');
+  const title = isMulti ? `Delete ${count} items?` : items[0]?.isFolder ? 'Delete folder?' : 'Delete file?';
 
   // ── Render ──
   return (
@@ -52,21 +68,30 @@ export function ConfirmDeleteFileModal({
             <AlertTriangle className="w-5 h-5" strokeWidth={1.8} />
           </div>
 
-          <h3 className="text-base font-semibold text-text-primary leading-snug">
-            {isMulti ? `Delete ${count} items?` : 'Delete file?'}
-          </h3>
+          <h3 className="text-base font-semibold text-text-primary leading-snug">{title}</h3>
 
           <p className="text-xs text-text-secondary leading-relaxed max-w-[280px]">
             Are you sure you want to delete{' '}
-            <b className="font-medium text-text-primary break-all">{targetLabel}</b>? This action
-            cannot be undone.
+            <b className="font-medium text-text-primary break-all">
+              {isMulti ? summary : `"${items[0]?.name || ''}"`}
+            </b>
+            ? This action cannot be undone.
           </p>
 
           {isMulti && (
-            <div className="w-full max-h-28 overflow-y-auto bg-card-background rounded-md p-2 mt-1 text-left">
-              {items.map((name, i) => (
-                <div key={i} className="text-[12px] text-text-secondary py-0.5 truncate">
-                  {name}
+            <div className="w-full max-h-48 overflow-y-auto bg-card-background rounded-md p-1.5 mt-1 text-left">
+              {items.map((item, i) => (
+                <div
+                  key={`${item.path}-${i}`}
+                  className="flex items-center gap-2 py-1 px-1.5 text-[12px] text-text-secondary"
+                  title={item.path || item.name}
+                >
+                  <img
+                    src={item.isFolder ? getFolderIconPath(item.name) : getFileIconPath(item.name)}
+                    alt=""
+                    className="w-4 h-4 shrink-0"
+                  />
+                  <span className="truncate">{item.name}</span>
                 </div>
               ))}
             </div>

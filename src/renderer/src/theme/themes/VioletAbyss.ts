@@ -147,9 +147,9 @@ export const PhantomNight: ThemeConfig = {
     ],
     colors: {
       'editor.foreground': '#f4f4fb',
-      'editor.background': '#07070d',
+      'editor.background': '#0a0a12',
       'editor.selectionBackground': '#2a2452',
-      'editor.lineHighlightBackground': '#0f0f1a',
+      'editor.lineHighlightBackground': '#121224',
       'editorCursor.foreground': '#8b6dff',
       'editorWhitespace.foreground': '#26263a',
     },

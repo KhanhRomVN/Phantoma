@@ -824,7 +824,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
           <div className="flex justify-end gap-2 mt-2">
             {totalQuestions > 1 && (
               <Button
-                className="rounded-sm px-4 text-primary hover:bg-text-secondary/10 hover:text-text-secondary active:bg-primary/20"
+                className="rounded-sm px-5 py-2 text-sm text-primary hover:bg-text-secondary/10 hover:text-text-secondary active:bg-primary/20"
                 onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
                 disabled={currentIndex === 0}
               >
@@ -832,7 +832,7 @@ const QuestionAnswerBlock: React.FC<QuestionAnswerBlockProps> = ({
               </Button>
             )}
             <Button
-              className="rounded-sm px-4 bg-text-secondary/10 text-text-secondary hover:bg-primary/10 hover:text-primary active:bg-primary/20"
+              className="rounded-sm px-5 py-2 text-sm bg-text-secondary/10 text-text-secondary hover:bg-primary/10 hover:text-primary active:bg-primary/20"
               onClick={() => {
                 let allAnswers = answers;
                 if (currentQuestion?.type === 'multi') {

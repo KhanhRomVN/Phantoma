@@ -4,7 +4,7 @@ import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import type { StoredTask } from '../../../services/task.service';
-import { STATUS_META } from './kanban/KanbanTaskCard';
+import { STATUS_META } from './statusMeta';
 
 interface ConfirmForceStartTaskModalProps {
   isOpen: boolean;

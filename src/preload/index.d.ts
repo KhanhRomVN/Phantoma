@@ -18,8 +18,13 @@ interface API {
     requestPermission(id: string, question: string, options: string[]): Promise<boolean>;
     onPermissionRequest(callback: (data: any) => void): () => void;
     listSessions(config: any): Promise<Array<{ id: string; title: string; updatedAt: number }>>;
+    loadSession(
+      config: any,
+      sessionId: string
+    ): Promise<Array<{ role: 'user' | 'assistant'; content: string; thinking?: string; timestamp: number }>>;
     run(request: any): Promise<{ ok: boolean }>;
     interrupt(runId: string): Promise<void>;
+    planUsage(kind: string): Promise<import('../shared/types/agent-tool').PlanUsageResult>;
     onEvent(callback: (data: { runId: string; event: any }) => void): () => void;
   };
 }

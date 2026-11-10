@@ -202,7 +202,7 @@ const buildXtermTheme = () => ({
   brightWhite: getCSSVar('--terminal-ansiBrightWhite', '#e5e5e5'),
 });
 
-const TerminalBlock: React.FC<TerminalBlockProps> = ({
+export const TerminalBlock: React.FC<TerminalBlockProps> = ({
   logs,
   status,
   maxHeight = 400,

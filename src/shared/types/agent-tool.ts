@@ -73,6 +73,7 @@ export interface MCPTool {
 
 export interface DiscoveryResult {
   providers: Provider[]
+  agents?: string[]
   mcpServers: MCPServer[]
   timestamp: number
   source: 'fresh' | 'stale'
@@ -103,6 +104,19 @@ export interface AgentConfig {
 
 export type AgentDoneStatus = 'completed' | 'interrupted' | 'errored'
 
+export interface PlanUsageWindow {
+  label: string
+  usedFraction: number
+  resetsAt?: number
+}
+
+export interface PlanUsage {
+  windows: PlanUsageWindow[]
+  planLabel?: string
+}
+
+export type PlanUsageResult = { ok: true; usage: PlanUsage } | { ok: false; error: string }
+
 export type AgentEvent =
   | { type: 'session_started'; sessionId: string; model?: string }
   | { type: 'text_delta'; text: string }
@@ -111,6 +125,8 @@ export type AgentEvent =
   | { type: 'tool_call'; id: string; call: ToolCall }
   | { type: 'tool_result'; id: string; isError: boolean; output?: string; diff?: ToolDiff }
   | { type: 'error'; message: string }
+  | { type: 'context_usage'; tokens?: number; window?: number }
+  | { type: 'usage'; inputTokens: number; outputTokens: number }
   | { type: 'done'; status: AgentDoneStatus; error?: string; sessionId?: string }
 
 export interface RunRequest {
@@ -120,6 +136,9 @@ export interface RunRequest {
   model?: string
   cwd?: string
   resume?: string
+  variant?: string
+  agent?: string
+  contextSize?: string
   executable?: string
   baseUrl?: string
 }

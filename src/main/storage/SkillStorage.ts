@@ -12,7 +12,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as JSZip from 'jszip';
 import { logger } from '../utils/logger';
+
+const SKILL_DOWNLOAD_URL = 'https://mcp.directory/api/skills/download';
+const SKILL_ENTRY_FILE = 'SKILL.md';
+const DOWNLOAD_TIMEOUT_MS = 60000;
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface SkillDetail {
@@ -120,11 +125,9 @@ export class SkillStorage {
         const skillMdPath = path.join(dirPath, 'SKILL.md');
 
         let meta: any = {};
-        const metaFile = fs.existsSync(metaPath)
-          ? metaPath
-          : fs.existsSync(skillJsonPath)
-            ? skillJsonPath
-            : null;
+        const namedJsonPath = path.join(dirPath, `${slug}.json`);
+        const metaFile =
+          [namedJsonPath, metaPath, skillJsonPath].find((p) => fs.existsSync(p)) ?? null;
         if (metaFile) {
           try {
             meta = JSON.parse(fs.readFileSync(metaFile, 'utf-8'));
@@ -171,6 +174,78 @@ export class SkillStorage {
     } catch {
       return null;
     }
+  }
+
+  private toSafeName(slug: string): string {
+    const safe = slug.replace(/[^a-zA-Z0-9._-]/g, '_');
+    return /^\.+$/.test(safe) ? '_' : safe;
+  }
+
+  /** Thư mục của 1 skill: ~/.phantoma/skills/{slug}/ (toàn cục cho mọi module). */
+  getSkillDir(slug: string): string {
+    return path.join(SKILLS_DIR, this.toSafeName(slug));
+  }
+
+  private async extractZip(buffer: Buffer, targetDir: string): Promise<void> {
+    const zip = await JSZip.loadAsync(buffer);
+    const files = Object.values(zip.files).filter(
+      (f) => !f.dir && !f.name.startsWith('__MACOSX/'),
+    );
+    const entry = files
+      .filter(
+        (f) => path.posix.basename(f.name).toLowerCase() === SKILL_ENTRY_FILE.toLowerCase(),
+      )
+      .sort((a, b) => a.name.split('/').length - b.name.split('/').length)[0];
+    if (!entry) throw new Error(`Skill archive does not contain ${SKILL_ENTRY_FILE}`);
+
+    const prefix = entry.name.slice(0, entry.name.length - path.posix.basename(entry.name).length);
+    const root = path.resolve(targetDir);
+
+    for (const f of files) {
+      if (!f.name.startsWith(prefix)) continue;
+      const dest = path.resolve(root, f.name.slice(prefix.length));
+      if (!dest.startsWith(root + path.sep)) continue;
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, await f.async('nodebuffer'));
+    }
+  }
+
+  /** Tải zip từ mcp.directory, giải nén vào thư mục tạm rồi đổi tên để tránh skill dở dang. */
+  async installSkill(skill: Record<string, any>): Promise<void> {
+    if (!skill?.slug) throw new Error('installSkill requires a skill with slug');
+    if (skill.id === undefined || skill.id === null) {
+      throw new Error('installSkill requires a skill with id');
+    }
+    this.ensureSkillsDir();
+
+    const res = await fetch(`${SKILL_DOWNLOAD_URL}/${encodeURIComponent(String(skill.id))}`, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+
+    const finalDir = this.getSkillDir(skill.slug);
+    const tmpDir = `${finalDir}.tmp-${Date.now()}`;
+    try {
+      fs.mkdirSync(tmpDir, { recursive: true });
+      await this.extractZip(buffer, tmpDir);
+      fs.writeFileSync(
+        path.join(tmpDir, `${this.toSafeName(skill.slug)}.json`),
+        JSON.stringify(skill, null, 2),
+        'utf-8',
+      );
+      fs.rmSync(finalDir, { recursive: true, force: true });
+      fs.renameSync(tmpDir, finalDir);
+    } catch (err: any) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      logger.error(`[SkillStorage] installSkill '${skill.slug}' failed:`, err.message);
+      throw err;
+    }
+  }
+
+  uninstallSkill(slug: string): void {
+    fs.rmSync(this.getSkillDir(slug), { recursive: true, force: true });
   }
 
   /** Đọc workspace state (groups, toggles) từ file JSON. */

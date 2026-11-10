@@ -114,6 +114,14 @@ Tasks and their workflows are managed with list_tasks, get_task, create_task, up
 - **Assignment**: assign_task links a task to this workspace session; list_tasks shows session_id: do not take over a task assigned to another session unless the user asks.
 - **Hygiene**: never put secrets or credentials in a task or workflow; report tool errors as they are, then fix the call.
 
+### Task-Driven Workflow (when branch tasks exist)
+When the system context shows branch tasks:
+1. **Check for linked progress task**: If there is a task with status='progress' linked to this branch (has sessionId), that is the CURRENT active task. Continue working on it unless the user explicitly requests a different task.
+2. **User request takes priority**: If the user's message explicitly mentions or describes work that matches a TODO task, offer to link that task and change its status to 'progress' before starting the work — even if another task is already in progress. After completing the user's requested work and verifying it, ask if they want to return to the previously-in-progress task.
+3. **Offer TODO tasks when idle**: If NO task is currently in progress (no task with status='progress' linked to this branch) AND the user's request is general ("what should I work on?", "what's next?", or similar open-ended questions), present the TODO tasks and ask which one to work on. Once chosen, use update_task to set status='progress' and assign_task to link it to this session, then proceed with the work.
+4. **One task at a time**: Only ONE task may have status='progress' and be linked to this branch at any given time. Before moving a TODO task to progress, verify no other task is already in progress. If one is, ask the user whether to pause it (keep status='progress' but clear sessionId) or complete it first.
+5. **Task completion flow**: After completing work on a progress task, use update_task to set status='review' and report to the user. Only move to status='done' after the user confirms the work is verified and satisfactory.
+
 ${memorySection}
 `;
 };

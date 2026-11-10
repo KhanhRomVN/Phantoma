@@ -739,11 +739,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       setShowGitRepoPicker(false);
       try {
         const status = await (window as any).api?.invoke?.('git:status', repo.absPath);
-        console.log('[DEBUG][GitCommitPrompt] git:status', {
-          absPath: repo.absPath,
-          error: status?.error,
-          outputLength: status?.output?.length ?? 0,
-        });
         const output = String(status?.output || '')
           .split('\n')
           .filter((l) => l.length >= 3 && l[0] !== ' ' && l[0] !== '?')
@@ -759,15 +754,13 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         );
         setMessage(prompt);
       } catch (err) {
-        console.log('[DEBUG][GitCommitPrompt] error', err);
+        console.error('[GitRepoPicker] Failed to get git status:', err);
       }
     };
 
     React.useEffect(() => {
       if (!showGitRepoPicker) return;
       refreshGitRepos().then((found) => {
-        console.log('[DEBUG][GitRepoPicker] scanned:', found.length);
-        // ASSUMED: chỉ 1 repo có staged thì chọn luôn; không có staged vẫn hiện modal để báo lý do
         if (found.length === 1 && found[0].staged > 0) handleGitRepoSelect(found[0]);
       });
     }, [showGitRepoPicker]);

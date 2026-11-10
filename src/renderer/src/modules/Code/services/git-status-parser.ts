@@ -20,7 +20,8 @@ export function parseGitStatusOutput(output: string): GitStatusEntry[] {
     let rel = m[2].trim();
     const arrow = rel.indexOf(' -> ');
     if (arrow >= 0) rel = rel.slice(arrow + 4);
-    rel = rel.replace(/^"|"$/g, '').replace(/\/$/, '');
+    rel = rel.replace(/^"|"$/g, '');
+    if (rel.endsWith('/')) continue; // ASSUMED: trailing '/' = nested git repo (git không liệt kê file bên trong), không phải file của project
     if (!rel) continue;
     const kind: GitChangeKind = code.includes('D')
       ? 'deleted'

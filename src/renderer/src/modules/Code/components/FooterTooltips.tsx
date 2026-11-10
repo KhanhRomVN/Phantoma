@@ -187,6 +187,8 @@ function FileList({
   );
 }
 
+export { Panel, Row, Bar };
+
 function Hint({ children }: { children: ReactNode }) {
   return <div className="text-[10px] text-text-secondary opacity-70">{children}</div>;
 }

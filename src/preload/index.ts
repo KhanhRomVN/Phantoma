@@ -22,12 +22,15 @@ const api = {
     discover: (config: any) => electronAPI.ipcRenderer.invoke('agent-tool:discover', config),
     listSessions: (config: any) =>
       electronAPI.ipcRenderer.invoke('agent-tool:list-sessions', config),
+    loadSession: (config: any, sessionId: string) =>
+      electronAPI.ipcRenderer.invoke('agent-tool:load-session', config, sessionId),
     resolvePermission: (id: string, approved: boolean) =>
       electronAPI.ipcRenderer.invoke('agent-tool:resolve-permission', id, approved),
     requestPermission: (id: string, question: string, options: string[]) =>
       electronAPI.ipcRenderer.invoke('agent-tool:request-permission', id, question, options),
     run: (request: any) => electronAPI.ipcRenderer.invoke('agent-tool:run', request),
     interrupt: (runId: string) => electronAPI.ipcRenderer.invoke('agent-tool:interrupt', runId),
+    planUsage: (kind: string) => electronAPI.ipcRenderer.invoke('agent-tool:plan-usage', kind),
     onEvent: (callback: (data: { runId: string; event: any }) => void) => {
       const listener = (_event: any, data: any) => callback(data)
       electronAPI.ipcRenderer.on('agent-tool:event', listener)

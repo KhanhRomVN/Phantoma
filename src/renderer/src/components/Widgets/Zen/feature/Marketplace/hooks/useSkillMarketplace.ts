@@ -9,7 +9,7 @@
  * ------------------------------------------------------------------
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchLeaderboard,
   searchSkills,
@@ -18,14 +18,14 @@ import {
   getCachedSearch,
   getCachedSkillDetail,
   isCacheFresh,
-} from "../services/skill.service";
+} from '../services/skill.service';
 import {
   listInstalledSkills,
   installSkill,
   uninstallSkill,
   type InstalledSkill,
-} from "../services/skillInstall.service";
-import type { SkillSummary, SkillDetail } from "../types/skill.types";
+} from '../services/skillInstall.service';
+import type { SkillSummary, SkillDetail } from '../types/skill.types';
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -56,12 +56,10 @@ export interface UseSkillMarketplaceResult {
 }
 
 export function useSkillMarketplace(): UseSkillMarketplaceResult {
-  const [skills, setSkills] = useState<SkillSummary[]>(
-    () => getCachedLeaderboard()?.data ?? [],
-  );
+  const [skills, setSkills] = useState<SkillSummary[]>(() => getCachedLeaderboard()?.data ?? []);
   const [loading, setLoading] = useState(() => !getCachedLeaderboard());
   const activeSlugRef = useRef<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSkill, setSelectedSkill] = useState<SkillDetail | null>(null);
@@ -72,11 +70,7 @@ export function useSkillMarketplace(): UseSkillMarketplaceResult {
 
   const installedSlugs = useMemo(
     () =>
-      new Set(
-        installedSkills
-          .map((s) => s.slug)
-          .filter((s): s is string => typeof s === "string"),
-      ),
+      new Set(installedSkills.map((s) => s.slug).filter((s): s is string => typeof s === 'string')),
     [installedSkills],
   );
 
@@ -94,7 +88,7 @@ export function useSkillMarketplace(): UseSkillMarketplaceResult {
       const data = await fetchLeaderboard();
       setSkills(data);
     } catch (err: any) {
-      if (!cached) setError(err.message || "Failed to load skills");
+      if (!cached) setError(err.message || 'Failed to load skills');
     } finally {
       setLoading(false);
     }
@@ -106,7 +100,7 @@ export function useSkillMarketplace(): UseSkillMarketplaceResult {
       const list = await listInstalledSkills();
       setInstalledSkills(list);
     } catch (err: any) {
-      console.error("[useSkillMarketplace] load installed error:", err.message);
+      console.error('[useSkillMarketplace] load installed error:', err.message);
     } finally {
       setInstalledLoading(false);
     }
@@ -134,7 +128,7 @@ export function useSkillMarketplace(): UseSkillMarketplaceResult {
           const result = await searchSkills(query);
           setSkills(result.skills);
         } catch (err: any) {
-          if (!cached) setError(err.message || "Search failed");
+          if (!cached) setError(err.message || 'Search failed');
         } finally {
           setSearchLoading(false);
         }
@@ -168,7 +162,7 @@ export function useSkillMarketplace(): UseSkillMarketplaceResult {
       if (activeSlugRef.current === skill.slug) setSelectedSkill(detail);
     } catch (err: any) {
       if (!cached && activeSlugRef.current === skill.slug) {
-        setDetailError(err.message || "Failed to load skill detail");
+        setDetailError(err.message || 'Failed to load skill detail');
       }
     } finally {
       if (activeSlugRef.current === skill.slug) setDetailLoading(false);
@@ -176,7 +170,7 @@ export function useSkillMarketplace(): UseSkillMarketplaceResult {
   }, []);
 
   const handleClearSearch = useCallback(() => {
-    setSearchQuery("");
+    setSearchQuery('');
     loadLeaderboard();
   }, [loadLeaderboard]);
 
@@ -186,7 +180,7 @@ export function useSkillMarketplace(): UseSkillMarketplaceResult {
         await installSkill(skill);
         await reloadInstalled();
       } catch (err: any) {
-        console.error("[useSkillMarketplace] install error:", err.message);
+        console.error('[useSkillMarketplace] install error:', err.message);
       }
     },
     [reloadInstalled],
@@ -198,7 +192,7 @@ export function useSkillMarketplace(): UseSkillMarketplaceResult {
         await uninstallSkill(slug);
         await reloadInstalled();
       } catch (err: any) {
-        console.error("[useSkillMarketplace] uninstall error:", err.message);
+        console.error('[useSkillMarketplace] uninstall error:', err.message);
       }
     },
     [reloadInstalled],

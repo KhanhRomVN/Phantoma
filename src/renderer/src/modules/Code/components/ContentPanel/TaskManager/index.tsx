@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import {
@@ -11,22 +11,21 @@ import {
   type CreateTaskInput,
   type UpdateTaskInput,
 } from '../../../services/task.service';
-import { KanbanColumn } from './kanban/KanbanColumn';
 import { TaskModal } from './TaskModal';
-import { TaskTable } from './table/TaskTable';
-import { TimelineView } from './timeline/TimelineView';
-import { TaskDropZones, type DropIntent } from './kanban/TaskDropZones';
+import { TaskTable } from './TaskTable';
+import {
+  FilterSection,
+  EMPTY_FILTERS,
+  applyTaskFilters,
+  countActiveFilters,
+  type TaskFilters,
+} from './FilterSection';
 import { ConfirmArchiveTaskModal } from './ConfirmArchiveTaskModal';
 import { ConfirmDeleteTaskModal } from './ConfirmDeleteTaskModal';
 import { ConfirmForceStartTaskModal } from './ConfirmForceStartTaskModal';
 
-const COLUMNS: TaskStatus[] = ['todo', 'progress', 'review', 'done'];
-
-type Layout = 'board' | 'table' | 'timeline';
-
-const toLayout = (v: unknown): Layout => (v === 'table' || v === 'timeline' ? v : 'board');
-
-const taskOrder = (t: StoredTask): number => t.order ?? t.createdAt;
+const bulkTitle = (list: StoredTask[]): string =>
+  list.length === 1 ? list[0].title : list.length > 1 ? `${list.length} tasks` : '';
 
 export const TaskManager = memo(function TaskManager() {
   const project = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId));
@@ -40,18 +39,8 @@ export const TaskManager = memo(function TaskManager() {
   const [editingTask, setEditingTask] = useState<StoredTask | null>(null);
   const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [intent, setIntent] = useState<DropIntent | null>(null);
-  const [archiveTarget, setArchiveTarget] = useState<StoredTask | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<StoredTask | null>(null);
-  const dragActiveRef = useRef(false);
-  const [layout, setLayout] = useState<Layout>(() => {
-    try {
-      return toLayout(localStorage.getItem('phantoma:task-layout'));
-    } catch {
-      return 'board';
-    }
-  });
+  const [archiveTargets, setArchiveTargets] = useState<StoredTask[]>([]);
+  const [deleteTargets, setDeleteTargets] = useState<StoredTask[]>([]);
 
   const fetchTasks = useCallback(async () => {
     if (!projectPath) {
@@ -101,14 +90,11 @@ export const TaskManager = memo(function TaskManager() {
     const onSearch = (e: Event) => {
       setSearchQuery((e as CustomEvent<string>).detail ?? '');
     };
-    const onLayout = (e: Event) => setLayout(toLayout((e as CustomEvent<Layout>).detail));
     window.addEventListener('phantoma:new-task', onNewTask);
     window.addEventListener('phantoma:task-search', onSearch as EventListener);
-    window.addEventListener('phantoma:task-layout', onLayout as EventListener);
     return () => {
       window.removeEventListener('phantoma:new-task', onNewTask);
       window.removeEventListener('phantoma:task-search', onSearch as EventListener);
-      window.removeEventListener('phantoma:task-layout', onLayout as EventListener);
     };
   }, []);
 
@@ -124,20 +110,6 @@ export const TaskManager = memo(function TaskManager() {
     );
   }, [tasks, searchQuery]);
 
-  const groupedTasks = useMemo(
-    () =>
-      COLUMNS.reduce(
-        (acc, status) => {
-          acc[status] = filteredTasks
-            .filter((t) => t.status === status)
-            .sort((a, b) => taskOrder(a) - taskOrder(b));
-          return acc;
-        },
-        {} as Record<TaskStatus, StoredTask[]>,
-      ),
-    [filteredTasks],
-  );
-
   const blockedCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredTasks.forEach((t) => {
@@ -145,6 +117,26 @@ export const TaskManager = memo(function TaskManager() {
     });
     return counts;
   }, [filteredTasks, tasks]);
+
+  const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  useEffect(() => {
+    const onFilterOpen = (e: Event) => setFilterOpen(Boolean((e as CustomEvent<boolean>).detail));
+    window.addEventListener('phantoma:task-filter-open', onFilterOpen);
+    return () => window.removeEventListener('phantoma:task-filter-open', onFilterOpen);
+  }, []);
+
+  const visibleTasks = useMemo(
+    () => applyTaskFilters(filteredTasks, filters, blockedCounts),
+    [filteredTasks, filters, blockedCounts],
+  );
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('phantoma:task-filter-count', { detail: countActiveFilters(filters) }),
+    );
+  }, [filters]);
 
   const handleEdit = (task: StoredTask) => {
     setEditingTask(task);
@@ -178,7 +170,7 @@ export const TaskManager = memo(function TaskManager() {
   const completeChain = async (chain: StoredTask[]) => {
     const results: StoredTask[] = [];
     for (const t of chain) {
-      results.push(await taskService.update(projectPath, t.id, { status: 'done' }));
+      results.push(await taskService.update(projectPath, t.id, { status: 'done', sessionId: null, branchName: null }));
     }
     setTasks((prev) => prev.map((t) => results.find((r) => r.id === t.id) ?? t));
   };
@@ -230,22 +222,31 @@ export const TaskManager = memo(function TaskManager() {
     await save();
   };
 
-  const deleteTaskById = useCallback(
-    async (taskId: string) => {
-      if (!projectPath) return;
+  const deleteTasksByIds = useCallback(
+    async (ids: string[]) => {
+      if (!projectPath || ids.length === 0) return;
       try {
-        const bridge = tasks.find((t) => t.id === taskId)?.dependsOn ?? [];
-        await taskService.delete(projectPath, taskId);
-        const dependents = tasks.filter((t) => t.id !== taskId && t.dependsOn.includes(taskId));
+        const doomed = new Set(ids);
+        const byId = new Map(tasks.map((t) => [t.id, t]));
+        const expand = (depId: string, seen: Set<string>): string[] => {
+          if (!doomed.has(depId)) return [depId];
+          if (seen.has(depId)) return [];
+          seen.add(depId);
+          return (byId.get(depId)?.dependsOn ?? []).flatMap((d) => expand(d, seen));
+        };
+        for (const id of ids) await taskService.delete(projectPath, id);
+        const affected = tasks.filter(
+          (t) => !doomed.has(t.id) && t.dependsOn.some((d) => doomed.has(d)),
+        );
         const updated = await Promise.all(
-          dependents.map((t) =>
+          affected.map((t) =>
             taskService.update(projectPath, t.id, {
-              dependsOn: [...new Set([...t.dependsOn.filter((id) => id !== taskId), ...bridge])],
+              dependsOn: [...new Set(t.dependsOn.flatMap((d) => expand(d, new Set<string>())))],
             }),
           ),
         );
         setTasks((prev) =>
-          prev.filter((t) => t.id !== taskId).map((t) => updated.find((u) => u.id === t.id) ?? t),
+          prev.filter((t) => !doomed.has(t.id)).map((t) => updated.find((u) => u.id === t.id) ?? t),
         );
       } catch (e: any) {
         alert(`Error deleting task: ${e.message}`);
@@ -256,7 +257,7 @@ export const TaskManager = memo(function TaskManager() {
 
   const handleDelete = async () => {
     if (!editingTask) return;
-    await deleteTaskById(editingTask.id);
+    await deleteTasksByIds([editingTask.id]);
     setModalOpen(false);
   };
 
@@ -273,75 +274,22 @@ export const TaskManager = memo(function TaskManager() {
     [projectPath],
   );
 
-  const resetDrag = useCallback(() => {
-    dragActiveRef.current = false;
-    setDraggingId(null);
-    setIntent(null);
-  }, []);
-
-  const handleDragStart = useCallback((taskId: string) => {
-    dragActiveRef.current = true;
-    setTimeout(() => {
-      if (dragActiveRef.current) setDraggingId(taskId);
-    }, 0);
-  }, []);
-
-  const handleDropStatus = useCallback(
-    (taskId: string, status: TaskStatus, index: number | null) => {
-      resetDrag();
-      const t = tasks.find((x) => x.id === taskId);
-      if (!t) return;
-      if (status !== 'todo' && t.status !== status && getBlockers(t, tasks).length > 0) {
+  const handleMoveTask = useCallback(
+    (task: StoredTask, status: TaskStatus) => {
+      if (task.status === status) return;
+      if (status !== 'todo' && getBlockers(task, tasks).length > 0) {
         setForceStart({
-          title: t.title,
-          chain: getUnfinishedChain(t, tasks),
-          proceed: () => patchTask(taskId, { status }),
+          title: task.title,
+          chain: getUnfinishedChain(task, tasks),
+          proceed: () => patchTask(task.id, { status }),
         });
         return;
       }
-      if (index === null) {
-        if (t.status !== status) void patchTask(taskId, { status });
-        return;
-      }
-      const fullColumn = groupedTasks[status] ?? [];
-      if (t.status === status && fullColumn.findIndex((x) => x.id === taskId) === index) return;
-      const column = fullColumn.filter((x) => x.id !== taskId);
-      const prev = index > 0 ? taskOrder(column[index - 1]) : null;
-      const next = index < column.length ? taskOrder(column[index]) : null;
-      // midpoint ordering loses float precision after ~40 consecutive inserts in one gap — upgrade path: renumber the column
-      let order: number;
-      if (prev !== null && next !== null) order = (prev + next) / 2;
-      else if (prev !== null) order = prev + 1000;
-      else if (next !== null) order = next - 1000;
-      else order = Date.now();
-      void patchTask(taskId, { status, order });
+      void patchTask(task.id, { status });
     },
-    [tasks, groupedTasks, patchTask, resetDrag],
+    [tasks, patchTask],
   );
 
-  const handleDropArchive = useCallback(
-    (taskId: string) => {
-      resetDrag();
-      const t = tasks.find((x) => x.id === taskId);
-      if (t) setArchiveTarget(t);
-    },
-    [tasks, resetDrag],
-  );
-
-  const handleDropDelete = useCallback(
-    (taskId: string) => {
-      resetDrag();
-      const t = tasks.find((x) => x.id === taskId);
-      if (t) setDeleteTarget(t);
-    },
-    [tasks, resetDrag],
-  );
-
-  const handleMoveTask = useCallback(
-    (task: StoredTask, status: TaskStatus) =>
-      handleDropStatus(task.id, status, (groupedTasks[status] ?? []).length),
-    [handleDropStatus, groupedTasks],
-  );
 
   if (loading) {
     return (
@@ -350,16 +298,9 @@ export const TaskManager = memo(function TaskManager() {
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
           Loading tasks...
         </div>
-        <div className="flex-1 flex gap-4 min-h-0 overflow-hidden">
-          {COLUMNS.map((status) => (
-            <div
-              key={status}
-              className="flex-1 min-w-[240px] flex flex-col gap-2 rounded-lg border border-divider bg-card-background p-3 animate-pulse"
-            >
-              <div className="h-3 w-1/3 rounded bg-card-hover" />
-              <div className="h-16 rounded-md bg-card-hover/60" />
-              <div className="h-16 rounded-md bg-card-hover/60" />
-            </div>
+        <div className="flex flex-col gap-2 animate-pulse">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-10 rounded-md bg-card-hover/60" />
           ))}
         </div>
       </div>
@@ -381,54 +322,31 @@ export const TaskManager = memo(function TaskManager() {
     );
   }
 
-  const noPadding = layout === 'table' || layout === 'timeline';
-
   return (
     <>
-      <div
-        className={`flex-1 flex min-h-0 overflow-hidden bg-background ${noPadding ? '' : 'p-4'}`}
-      >
-        {layout === 'table' && (
-          <TaskTable tasks={filteredTasks} onTaskClick={handleEdit} onAdd={() => openNew()} />
-        )}
-        {layout === 'timeline' && (
-          <TimelineView
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-background">
+        {filterOpen && (
+          <FilterSection
             tasks={filteredTasks}
-            highlighted={searchQuery.trim() !== ''}
-            onTaskClick={handleEdit}
-            onAdd={() => openNew()}
+            blockedCounts={blockedCounts}
+            resultCount={visibleTasks.length}
+            filters={filters}
+            onChange={setFilters}
           />
         )}
-        {layout === 'board' && (
-          <div className="flex-1 min-w-0 flex gap-4 min-h-0 overflow-x-hidden">
-            {COLUMNS.map((status) => (
-              <KanbanColumn
-                key={status}
-                status={status}
-                tasks={groupedTasks[status]}
-                draggingId={draggingId}
-                intent={intent}
-                blockedCounts={blockedCounts}
-                onTaskClick={handleEdit}
-                onDropTask={handleDropStatus}
-                onDragStartTask={handleDragStart}
-                onDragEndTask={resetDrag}
-                onAddTask={openNew}
-                onMoveTask={handleMoveTask}
-                onArchiveTask={setArchiveTarget}
-                onDeleteTask={setDeleteTarget}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+        <TaskTable
+          tasks={visibleTasks}
+          blockedCounts={blockedCounts}
+          onTaskClick={handleEdit}
+          onAdd={() => openNew()}
+          onMoveTask={handleMoveTask}
+          onArchiveTask={(t) => setArchiveTargets([t])}
+          onDeleteTask={(t) => setDeleteTargets([t])}
 
-      <TaskDropZones
-        visible={draggingId !== null && layout === 'board'}
-        onArchive={handleDropArchive}
-        onDelete={handleDropDelete}
-        onIntentChange={setIntent}
-      />
+          onArchiveTasks={setArchiveTargets}
+          onDeleteTasks={setDeleteTargets}
+        />
+      </div>
 
       <TaskModal
         open={modalOpen}
@@ -461,20 +379,20 @@ export const TaskManager = memo(function TaskManager() {
       />
 
       <ConfirmArchiveTaskModal
-        isOpen={!!archiveTarget}
-        taskTitle={archiveTarget?.title ?? ''}
-        onClose={() => setArchiveTarget(null)}
+        isOpen={archiveTargets.length > 0}
+        taskTitle={bulkTitle(archiveTargets)}
+        onClose={() => setArchiveTargets([])}
         onConfirm={() => {
-          if (archiveTarget) void patchTask(archiveTarget.id, { archived: true });
+          archiveTargets.forEach((t) => void patchTask(t.id, { archived: true }));
         }}
       />
 
       <ConfirmDeleteTaskModal
-        isOpen={!!deleteTarget}
-        taskTitle={deleteTarget?.title ?? ''}
-        onClose={() => setDeleteTarget(null)}
+        isOpen={deleteTargets.length > 0}
+        taskTitle={bulkTitle(deleteTargets)}
+        onClose={() => setDeleteTargets([])}
         onConfirm={() => {
-          if (deleteTarget) void deleteTaskById(deleteTarget.id);
+          void deleteTasksByIds(deleteTargets.map((t) => t.id));
         }}
       />
     </>

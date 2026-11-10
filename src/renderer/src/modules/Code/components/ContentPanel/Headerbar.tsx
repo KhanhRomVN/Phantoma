@@ -15,18 +15,14 @@ import {
   Loader2,
   RefreshCw,
   GitBranch,
-  Bell,
+  Filter,
   Search,
   Plus,
   MoreVertical,
-  LayoutGrid,
-  List,
-  GanttChart,
   Archive,
   Palette,
   FileText,
   Link2,
-  Settings,
 } from 'lucide-react';
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { useDesignStore } from '../../hooks/useDesignStore';
@@ -40,7 +36,7 @@ import { useAccentColors } from '@renderer/hooks/useAccentColors';
 
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { getTempSessionName } from '../ProjectPanel/SessionCard';
-import { getProjectIdentity } from '../ProjectPanel/ProjectCard';
+import { getProjectIdentity, ProjectIcon } from '../ProjectPanel/ProjectCard';
 import { ArchivedTasksModal } from './ArchivedTasksModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -70,8 +66,7 @@ export function ContentHeaderBar() {
 
   const toggleAgents = () =>
     setContentViewMode(contentViewMode === 'agents' ? lastViewModeRef.current : 'agents');
-  const toggleSettings = () =>
-    setContentViewMode(contentViewMode === 'settings' ? lastViewModeRef.current : 'settings');
+
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const projectName = useCodeStore((s) => {
     const p = s.projects.find((p) => p.id === s.currentProjectId);
@@ -81,6 +76,10 @@ export function ContentHeaderBar() {
     const p = s.projects.find((p) => p.id === s.currentProjectId);
     return p?.path ?? '';
   });
+
+  const projectLogoPath = useCodeStore(
+    (s) => s.projects.find((p) => p.id === s.currentProjectId)?.logoPath ?? null,
+  );
 
   const activeWorkspaceSessionId = useCodeStore((s) => s.activeWorkspaceSessionId);
 
@@ -154,25 +153,27 @@ export function ContentHeaderBar() {
   // TaskManager specific state
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [taskLayout, setTaskLayout] = useState<'board' | 'table' | 'timeline'>(() => {
-    try {
-      const stored = localStorage.getItem('phantoma:task-layout');
-      return stored === 'table' || stored === 'timeline' ? stored : 'board';
-    } catch {
-      return 'board';
-    }
-  });
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterCount, setFilterCount] = useState(0);
 
-
-  const handleLayoutChange = (layout: 'board' | 'table' | 'timeline') => {
-    setTaskLayout(layout);
-    try {
-      localStorage.setItem('phantoma:task-layout', layout);
-    } catch {
-      /* storage unavailable */
+  useEffect(() => {
+    if (contentViewMode !== 'tasks') {
+      setFilterOpen(false);
+      setFilterCount(0);
     }
-    window.dispatchEvent(new CustomEvent('phantoma:task-layout', { detail: layout }));
+  }, [contentViewMode]);
+
+  useEffect(() => {
+    const onCount = (e: Event) => setFilterCount((e as CustomEvent<number>).detail ?? 0);
+    window.addEventListener('phantoma:task-filter-count', onCount);
+    return () => window.removeEventListener('phantoma:task-filter-count', onCount);
+  }, []);
+
+  const handleFilterToggle = () => {
+    const next = !filterOpen;
+    setFilterOpen(next);
+    window.dispatchEvent(new CustomEvent('phantoma:task-filter-open', { detail: next }));
   };
 
   const handleNewTaskClick = () => {
@@ -189,15 +190,7 @@ export function ContentHeaderBar() {
         <div className="flex-1 min-w-0 flex items-center gap-3 z-10">
           {contentViewMode === 'tasks' && (
             <>
-              <span
-                className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0"
-                style={{
-                  color: identity.color,
-                  backgroundColor: `color-mix(in srgb, ${identity.color} 15%, transparent)`,
-                }}
-              >
-                <identity.Icon className="w-3.5 h-3.5" />
-              </span>
+              <ProjectIcon color={identity.color} Icon={identity.Icon} logoPath={projectLogoPath} />
               <span className="text-sm font-semibold text-text-primary truncate">
                 {projectName}
               </span>
@@ -238,12 +231,7 @@ export function ContentHeaderBar() {
           )}
 
           {contentViewMode === 'settings' && (
-            <>
-              <span className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 text-white bg-gradient-to-br from-sky-500 to-primary">
-                <Settings className="w-3.5 h-3.5" />
-              </span>
-              <span className="text-sm font-semibold text-text-primary truncate">Settings</span>
-            </>
+            <span className="text-sm font-semibold text-text-primary truncate">Settings</span>
           )}
 
           {contentViewMode === 'agents' && (
@@ -317,29 +305,6 @@ export function ContentHeaderBar() {
                 />
               </div>
 
-              <div className="h-[26px] p-0.5 rounded-md border border-border bg-card-background flex items-center gap-0.5">
-                {(
-                  [
-                    ['board', LayoutGrid, 'Board view'],
-                    ['table', List, 'Table view'],
-                    ['timeline', GanttChart, 'Timeline view'],
-                  ] as const
-                ).map(([key, Icon, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => handleLayoutChange(key)}
-                    title={label}
-                    className={`w-[22px] h-full rounded flex items-center justify-center transition-colors cursor-pointer ${
-                      taskLayout === key
-                        ? 'bg-primary/15 text-primary'
-                        : 'text-text-primary/80 hover:text-text-primary hover:bg-card-hover'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                  </button>
-                ))}
-              </div>
-
               <button
                 onClick={() => setArchiveOpen(true)}
                 className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
@@ -348,25 +313,22 @@ export function ContentHeaderBar() {
                 <Archive className="w-3.5 h-3.5" />
               </button>
 
-              <Dropdown trigger="click" align="end">
-                <DropdownTrigger asChild>
-                  <button
-                    className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
-                    title="Notifications"
-                  >
-                    <Bell className="w-3.5 h-3.5" />
-                  </button>
-                </DropdownTrigger>
-                <DropdownContent>
-                  <div className="w-[260px] py-6 flex flex-col items-center gap-2 text-center">
-                    <span className="w-9 h-9 rounded-xl bg-card-hover grid place-items-center text-text-secondary">
-                      <Bell className="w-4 h-4" strokeWidth={1.5} />
-                    </span>
-                    <p className="text-xs font-medium text-text-primary">No notifications</p>
-                    <p className="text-[11px] text-text-secondary">You are all caught up.</p>
-                  </div>
-                </DropdownContent>
-              </Dropdown>
+              <button
+                onClick={handleFilterToggle}
+                className={`relative w-[26px] h-[26px] rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+                  filterOpen
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-text-secondary hover:bg-card-hover hover:text-text-primary'
+                }`}
+                title="Filter"
+              >
+                <Filter className="w-3.5 h-3.5" />
+                {filterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-primary text-[9px] leading-[14px] text-center text-white">
+                    {filterCount}
+                  </span>
+                )}
+              </button>
 
               <button
                 onClick={handleNewTaskClick}
@@ -377,7 +339,6 @@ export function ContentHeaderBar() {
               </button>
             </>
           )}
-
 
           {contentViewMode === 'design' && (
             <button
@@ -408,30 +369,21 @@ export function ContentHeaderBar() {
             </button>
           )}
 
-          {contentViewMode === 'settings' && (
-            <button
-              onClick={toggleSettings}
-              title="Close Settings"
-              className="w-[26px] h-[26px] rounded-md flex items-center justify-center transition-colors cursor-pointer bg-primary/15 text-primary hover:bg-primary/25"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
+          {contentViewMode !== 'tasks' && contentViewMode !== 'settings' && (
+            <Dropdown trigger="click" align="end">
+              <DropdownTrigger asChild>
+                <button
+                  className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
+                  title="More options"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </DropdownTrigger>
+              <DropdownContent>
+                <DropdownItem disabled>No actions available yet</DropdownItem>
+              </DropdownContent>
+            </Dropdown>
           )}
-
-          {/* Global More Options */}
-          <Dropdown trigger="click" align="end">
-            <DropdownTrigger asChild>
-              <button
-                className="w-[26px] h-[26px] rounded-md flex items-center justify-center text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors cursor-pointer"
-                title="More options"
-              >
-                <MoreVertical className="w-3.5 h-3.5" />
-              </button>
-            </DropdownTrigger>
-            <DropdownContent>
-              <DropdownItem disabled>No actions available yet</DropdownItem>
-            </DropdownContent>
-          </Dropdown>
         </div>
       </div>
       <ArchivedTasksModal
@@ -439,7 +391,6 @@ export function ContentHeaderBar() {
         onClose={() => setArchiveOpen(false)}
         projectPath={projectPath}
       />
-
     </>
   );
 }

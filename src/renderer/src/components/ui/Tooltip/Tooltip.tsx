@@ -13,17 +13,33 @@ export const Tooltip: React.FC<TooltipProps> = ({
   alignOffset = 0,
   className,
   contentClassName,
+  followMouse = false,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const mouseRef = useRef<{ x: number; y: number } | null>(null);
 
   const calculatePosition = () => {
     if (!triggerRef.current || !tooltipRef.current) return;
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
+
+    if (followMouse && mouseRef.current) {
+      const gap = 14;
+      const edge = 8;
+      const { x: mx, y: my } = mouseRef.current;
+      let fx = mx + gap;
+      if (fx + tooltipRect.width > window.innerWidth - edge) fx = mx - tooltipRect.width - gap;
+      let fy = my - 16;
+      if (fy + tooltipRect.height > window.innerHeight - edge) {
+        fy = window.innerHeight - tooltipRect.height - edge;
+      }
+      setPosition({ x: Math.max(edge, fx), y: Math.max(edge, fy) });
+      return;
+    }
 
     let x = 0;
     let y = 0;
@@ -110,7 +126,15 @@ export const Tooltip: React.FC<TooltipProps> = ({
   return (
     <div
       className={cn('relative inline-block', className)}
-      onMouseEnter={() => setIsVisible(true)}
+      onMouseEnter={(e) => {
+        if (followMouse) mouseRef.current = { x: e.clientX, y: e.clientY };
+        setIsVisible(true);
+      }}
+      onMouseMove={(e) => {
+        if (!followMouse) return;
+        mouseRef.current = { x: e.clientX, y: e.clientY };
+        if (isVisible) requestAnimationFrame(calculatePosition);
+      }}
       onMouseLeave={() => setIsVisible(false)}
     >
       <div ref={triggerRef}>{children}</div>
@@ -138,6 +162,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
           <div
             className="absolute w-0 h-0 border-solid pointer-events-none"
             style={{
+              display: followMouse ? 'none' : undefined,
               color: $('--tooltip-background') || 'rgb(26, 31, 46)',
               filter: `drop-shadow(0 0 0 1px ${$('--border') || 'rgba(128,128,128,0.2)'})`,
               ...(side === 'top' && {

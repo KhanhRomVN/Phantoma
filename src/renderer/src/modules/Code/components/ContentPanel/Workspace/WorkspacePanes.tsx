@@ -37,6 +37,7 @@ import { CodeBrowser } from './Browser';
 
 import { CodeFile } from './File';
 import { CodeAgent } from './Zen';
+import { CodeAgentTools } from './AgentTools';
 
 import {
   Dropdown,
@@ -48,6 +49,7 @@ import {
 import { getFileIconPath } from '@renderer/utils/file-icon';
 import { useGitFileStatus } from '../../../hooks/useGitFileStatus';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
+import { getConversation } from '@renderer/components/Widgets/AgentTools/services/conversationStorage';
 import type { SessionStatus } from '../../ProjectPanel/SessionCard';
 import {
   TABBAR_HEIGHT,
@@ -81,6 +83,35 @@ function buildZenCliCommand(panel: WorkspacePanel): string | null {
   return `zen-cli --resume ${panel.zencliConversationId}`;
 }
 
+const CLI_AGENT_IDS = ['claude', 'opencode', 'codex'];
+
+function CliAgentsIcon({ iconClass }: { iconClass: string }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setIndex((i) => (i + 1) % CLI_AGENT_IDS.length), 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span className={cn('relative inline-block shrink-0', iconClass)}>
+      {CLI_AGENT_IDS.map((id, i) => (
+        <img
+          key={id}
+          src={getAgentFavicon(id)}
+          alt={id}
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-contain transition-all duration-500"
+          style={{
+            opacity: i === index ? 1 : 0,
+            transform: i === index ? 'scale(1)' : 'scale(0.6)',
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function getPanelMeta(
   type: PanelType,
   iconClass = 'w-3.5 h-3.5',
@@ -95,7 +126,7 @@ export function getPanelMeta(
       return { icon: <Globe className={cn(iconClass, 'text-sky-400')} />, label: 'Browser' };
 
     case 'file':
-      return { icon: <FileText className={cn(iconClass, 'text-slate-400')} />, label: 'File' };
+      return { icon: <FileText className={cn(iconClass, 'text-emerald-400')} />, label: 'File' };
     case 'agent':
       return {
         icon: (
@@ -107,6 +138,11 @@ export function getPanelMeta(
           />
         ),
         label: 'Zen',
+      };
+    case 'agenttools':
+      return {
+        icon: <CliAgentsIcon iconClass={iconClass} />,
+        label: 'CLI Agents',
       };
     case 'emulator':
       return {
@@ -120,9 +156,35 @@ export function getPanelMeta(
 }
 
 /** Panel types offered by the "+" dropdown. */
-const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent'];
+const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent', 'agenttools'];
 
 // ─── Tab ──────────────────────────────────────────────────────────────
+
+const AGENT_TOOLS_NAMES: Record<string, string> = {
+  claude: 'Claude Code',
+  codex: 'Codex',
+  opencode: 'OpenCode',
+};
+
+// ASSUMED: panel chưa có conversation thì lấy agent đang chọn gần nhất trong MessageInput
+function getAgentToolsInfo(panel: WorkspacePanel): { providerId?: string; title: string } {
+  let providerId: string | undefined;
+  let conversationTitle: string | undefined;
+  if (panel.agentConversationId) {
+    const conversation = getConversation(panel.agentConversationId);
+    providerId = conversation?.provider;
+    conversationTitle = conversation?.title;
+  }
+  if (!providerId) {
+    try {
+      providerId = JSON.parse(localStorage.getItem('agent-tools:last-selection') ?? 'null')?.providerId;
+    } catch {
+      providerId = undefined;
+    }
+  }
+  const name = providerId ? (AGENT_TOOLS_NAMES[providerId] ?? providerId) : 'CLI Agents';
+  return { providerId, title: conversationTitle ? `${name}|${conversationTitle}` : name };
+}
 
 function getPanelTitle(panel: WorkspacePanel): string {
   const label = getPanelMeta(panel.type).label;
@@ -130,6 +192,7 @@ function getPanelTitle(panel: WorkspacePanel): string {
     if (panel.workflowAgentId) return panel.title;
     return panel.agentTitle ? `Zen|${panel.agentTitle}` : 'Zen';
   }
+  if (panel.type === 'agenttools') return getAgentToolsInfo(panel).title;
   if (panel.type === 'website') return panel.browserTitle || panel.title || label;
   if (panel.type === 'terminal') return panel.terminalProcess || panel.title || label;
   return panel.title || label;
@@ -183,6 +246,8 @@ function WorkspaceTab({
   const isAgentTab = panel.type === 'agent';
   const zenLogoUrl = `${(window as any).__zenImagesUri || '/images'}/zen-logo.png`;
   const displayTitle = getPanelTitle(panel);
+  const agentToolsFavicon =
+    panel.type === 'agenttools' ? getAgentFavicon(getAgentToolsInfo(panel).providerId) : undefined;
   const showAgentBadge = !!agentId && panel.type === 'terminal';
 
   return (
@@ -216,6 +281,17 @@ function WorkspaceTab({
           src={faviconUrl}
           alt=""
           className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : agentToolsFavicon ? (
+        <img
+          src={agentToolsFavicon}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
           onError={(e) => {
             e.currentTarget.style.display = 'none';
           }}
@@ -260,7 +336,7 @@ function WorkspaceTab({
 
       <span
         className={cn(
-          isAgentTab && 'max-w-[180px] truncate',
+          (isAgentTab || panel.type === 'agenttools') && 'max-w-[180px] truncate',
           panel.preview && !isDirty && 'italic',
           fileGitStatus === 'added' && 'text-emerald-500',
           fileGitStatus === 'modified' && 'text-orange-400',
@@ -731,7 +807,7 @@ const PanelBody = memo(function PanelBody({
         />
       );
     case 'file':
-      return <CodeFile filePath={panel.filePath} fileId={panel.id} />;
+      return <CodeFile filePath={panel.filePath} fileId={panel.id} cwd={panel.cwd} />;
 
     case 'agent':
       return (
@@ -741,6 +817,15 @@ const PanelBody = memo(function PanelBody({
           onTitleChange={handleAgentTitle}
           workflowAgentId={panel.workflowAgentId ?? undefined}
           multiAgent={multiAgent}
+        />
+      );
+
+    case 'agenttools':
+      return (
+        <CodeAgentTools
+          initialConversationId={panel.agentConversationId}
+          onConversationChange={handleAgentConversation}
+          cwd={panel.cwd ?? cwd}
         />
       );
 

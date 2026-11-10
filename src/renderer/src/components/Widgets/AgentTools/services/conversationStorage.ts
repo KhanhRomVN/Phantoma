@@ -11,6 +11,8 @@ export interface Message {
   toolCall?: any
   toolResult?: any
   isError?: boolean
+  thinking?: string
+  usage?: { inputTokens: number; outputTokens: number }
 }
 
 export interface Conversation {
@@ -19,6 +21,9 @@ export interface Conversation {
   provider: string
   model: string
   nativeSessionId?: string
+  contextTokens?: number
+  contextWindow?: number
+  totalTokens?: number
   messages: Message[]
   createdAt: number
   updatedAt: number

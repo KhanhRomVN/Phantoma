@@ -39,7 +39,7 @@ import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
 import { useBranchScopeStore } from '../stores/useBranchScopeStore';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
-export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent';
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent' | 'agenttools';
 
 export interface StoredWorkspacePanel {
   sessionId?: string;
@@ -101,7 +101,8 @@ export interface Project {
     | 'extension'
     | 'lsp'
     | 'account'
-    | 'debug';
+    | 'debug'
+    | 'skill';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -202,6 +203,7 @@ interface CodeState {
   activityPanelWidth: number;
   /** Account tab độc lập với project (không lưu theo project) */
   isAccountPanelOpen: boolean;
+  isSkillPanelOpen: boolean;
   forceShowLSPOverlay: boolean;
   pendingAction: (() => void) | null;
   isSaveConfirmModalOpen: boolean;
@@ -236,13 +238,15 @@ interface CodeState {
       | 'extension'
       | 'lsp'
       | 'account'
-      | 'debug',
+      | 'debug'
+      | 'skill',
   ) => void;
   setProjectManagerOpen: (open: boolean) => void;
   setNewProjectOpen: (open: boolean) => void;
   setProjectFiles: (projectId: string, files: FileNode[]) => void;
   setActivityPanelWidth: (width: number) => void;
   setAccountPanelOpen: (open: boolean) => void;
+  setSkillPanelOpen: (open: boolean) => void;
   setForceShowLSPOverlay: (show: boolean) => void;
   toggleFolderExpand: (projectId: string, folderId: string) => void;
   collapseAllFolders: (projectId: string) => void;
@@ -530,6 +534,7 @@ export const useCodeStore = create<CodeState>()(
         isNewProjectOpen: false,
         activityPanelWidth: 320,
         isAccountPanelOpen: false,
+        isSkillPanelOpen: false,
         forceShowLSPOverlay: false,
         pendingAction: null,
         isSaveConfirmModalOpen: false,
@@ -740,7 +745,11 @@ export const useCodeStore = create<CodeState>()(
         },
 
         setAccountPanelOpen: (open) => {
-          set({ isAccountPanelOpen: open });
+          set(open ? { isAccountPanelOpen: true, isSkillPanelOpen: false } : { isAccountPanelOpen: false });
+        },
+
+        setSkillPanelOpen: (open) => {
+          set(open ? { isSkillPanelOpen: true, isAccountPanelOpen: false } : { isSkillPanelOpen: false });
         },
 
         setActivityPanelWidth: (width) => {

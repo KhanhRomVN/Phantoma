@@ -33,6 +33,7 @@ import { WorkspacePanes } from './WorkspacePanes';
 import { WorkspaceEmptyState, type EmptyWorkspaceAction } from './WorkspaceEmptyStates';
 import { ConfirmSmartPlaceModal } from './ConfirmSmartPlaceModal';
 import { ConfirmSaveFileModal } from '../../modal/ConfirmSaveFileModal';
+import { useActivityPanelStore, useCurrentBranchKey } from '../../../stores/useActivityPanelStore';
 import { ConfirmDeleteOrchestratorModal } from '../../modal/ConfirmDeleteOrchestratorModal';
 
 import { useWorkspaceInteractions } from '../../../hooks/useWorkspaceInteractions';
@@ -559,6 +560,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     [currentProjectPath],
   );
 
+
   const [pendingAdd, setPendingAdd] = useState<{
     type: PanelType;
     pane: PaneId;
@@ -1010,6 +1012,140 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     [state, dnd.dragSourceId, dnd.dropTarget],
   );
 
+  // ─── Keyboard Shortcuts ─────────────────────────────────────────────
+  const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
+  const branchKey = useCurrentBranchKey();
+  const setBranchTab = useActivityPanelStore((s) => s.setTab);
+  const setAccountPanelOpen = useCodeStore((s) => s.setAccountPanelOpen);
+  const setSkillPanelOpen = useCodeStore((s) => s.setSkillPanelOpen);
+  const openActivityTab = useCallback(
+    (tab: string) => {
+      setAccountPanelOpen(false);
+      setSkillPanelOpen(false);
+      if (branchKey) setBranchTab(branchKey, tab as any);
+    },
+    [branchKey, setBranchTab, setAccountPanelOpen, setSkillPanelOpen],
+  );
+
+  useEffect(() => {
+    if (!isActive || !isViewVisible) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+` - Create new terminal (e.key is '~' while Shift is held, so match e.code;
+      // checked before the input guard because xterm/Monaco focus a hidden textarea)
+      if (e.ctrlKey && e.shiftKey && e.code === 'Backquote') {
+        e.preventDefault();
+        e.stopPropagation();
+        addPanel('terminal');
+        return;
+      }
+
+      // Ctrl+Shift+E/F/D/G - match e.code (e.key depends on CapsLock/layout/IME) and run
+      // before the input guard so they work from any focused field
+      if (e.ctrlKey && e.shiftKey && !e.altKey) {
+        const panelShortcuts: Record<string, () => void> = {
+          KeyE: () => openActivityTab('explore'),
+          KeyF: () => openActivityTab('search'),
+          KeyD: () => openActivityTab('debug'),
+          KeyG: () => setContentViewMode('git'),
+        };
+        const run = panelShortcuts[e.code];
+        if (run) {
+          e.preventDefault();
+          e.stopPropagation();
+          run();
+          return;
+        }
+      }
+
+      const target = e.target as HTMLElement;
+      // Monaco and xterm focus a hidden textarea, so those surfaces must keep the shortcuts working
+      const inEditorSurface = !!target.closest?.('.xterm, .monaco-editor');
+      // Skip if user is typing in an input/textarea/contenteditable
+      if (
+        !inEditorSurface &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // Ctrl+N - Create new temp markdown file
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'n') {
+        e.preventDefault();
+        e.stopPropagation();
+        dispatch({
+          type: 'add',
+          pane: resolvePaneForType('file'),
+          panel: {
+            id: createPanelId('file'),
+            type: 'file',
+            title: 'Untitled.md',
+            providerId: null,
+            filePath: '', // Empty path means temp file
+            cwd: currentProjectPath,
+            preview: false,
+          },
+        });
+        return;
+      }
+
+      // Ctrl+O - Open file dialog
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'o') {
+        e.preventDefault();
+        e.stopPropagation();
+        window.api
+          .invoke('dialog:select-paths', {
+            kind: 'file',
+            multiple: false,
+            defaultPath: currentProjectPath,
+          })
+          .then((res: any) => {
+            if (res?.success && res.paths?.[0]) {
+              const filePath = res.paths[0];
+              const fileName = filePath.split(/[\\/]/).pop() || 'file';
+              const existing = panels.find((p) => p.type === 'file' && p.filePath === filePath);
+              if (existing) {
+                dispatch({ type: 'focus', id: existing.id });
+              } else {
+                dispatch({
+                  type: 'add',
+                  pane: resolvePaneForType('file'),
+                  panel: {
+                    id: createPanelId('file'),
+                    type: 'file',
+                    title: fileName,
+                    providerId: null,
+                    filePath,
+                    preview: false,
+                  },
+                });
+              }
+            }
+          })
+          .catch((err) => console.error('[Workspace] Open file failed:', err));
+        return;
+      }
+
+
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [isActive, isViewVisible, addPanel, currentProjectPath, panels, openActivityTab, setContentViewMode]);
+
+  useEffect(() => {
+    const onTempFileSaved = (e: Event) => {
+      const { fileId, filePath } = (e as CustomEvent<{ fileId: string; filePath: string }>).detail;
+      dispatch({
+        type: 'updatePanel',
+        id: fileId,
+        patch: { filePath, title: filePath.split(/[\\/]/).pop() ?? filePath },
+      });
+    };
+    window.addEventListener('code:temp-file-saved', onTempFileSaved);
+    return () => window.removeEventListener('code:temp-file-saved', onTempFileSaved);
+  }, []);
+
   // ─── Render ─────────────────────────────────────────────────────────
 
   return (
@@ -1131,6 +1267,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
           {panels.length === 0 ? (
             <WorkspaceEmptyState
               onAddPanel={(action) => addPanel(EMPTY_ACTION_TO_PANEL_TYPE[action])}
+              onOpenCli={() => addPanel('agenttools')}
             />
           ) : (
             <>
