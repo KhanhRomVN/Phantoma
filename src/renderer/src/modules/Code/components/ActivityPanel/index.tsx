@@ -84,6 +84,11 @@ export function ActivityPanel() {
   // ── State ──
   const [isResizing, setIsResizing] = useState(false);
   const [designMounted, setDesignMounted] = useState(activityPanelTab === 'design');
+  // ASSUMED: autoCollapse = chế độ thu gọn (bật thì chỉ expand khi hover, tắt thì luôn expand)
+  const [autoCollapse, setAutoCollapse] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const collapsed = autoCollapse && !hovered;
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (activityPanelTab === 'design') setDesignMounted(true);
@@ -170,28 +175,65 @@ export function ActivityPanel() {
     }
   };
 
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => setHovered(false), 300);
+  };
+
+  const handleToggleCollapse = () => setAutoCollapse((v) => !v);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + B to toggle collapse
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        setAutoCollapse((v) => !v);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
+
   // ── Render ──
   return (
     <div
-      className="flex flex-col h-full bg-sidebar-background border-l border-border relative flex-shrink-0"
-      style={{ width: activityPanelWidth }}
+      className="flex flex-col h-full bg-sidebar-background border-l border-border relative flex-shrink-0 transition-all duration-300"
+      style={{ width: collapsed ? 44 : activityPanelWidth }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Resize handle on LEFT edge */}
       <div
         className={cn(
           'absolute left-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-primary/30',
           isResizing && 'bg-primary/50',
+          collapsed && 'hidden',
         )}
         onMouseDown={handleMouseDown}
         style={{ zIndex: 10 }}
       />
 
       {/* Topbar: height matches panel width */}
-      <ActivityBar activeTab={activityPanelTab} onTabChange={handleTabChange} tabs={TABS.map((t) => (t.id === 'debug' ? { ...t, busy: debugBusy } : t))}
+      <ActivityBar
+        activeTab={activityPanelTab}
+        onTabChange={handleTabChange}
+        tabs={TABS.map((t) => (t.id === 'debug' ? { ...t, busy: debugBusy } : t))}
+        collapsed={collapsed}
+        onToggleCollapse={handleToggleCollapse}
+        collapseEnabled={autoCollapse}
+
       />
 
       {/* Content area below topbar */}
-      <div className="flex-1 overflow-hidden flex flex-col min-w-0">
+      <div className={cn('flex-1 overflow-hidden flex flex-col min-w-0', collapsed && 'hidden')}>
         {designMounted && (
           <div
             className={cn(

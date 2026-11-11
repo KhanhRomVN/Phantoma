@@ -8,8 +8,21 @@ import {
   DropdownTrigger,
 } from '@renderer/components/ui/Dropdown';
 import type { DesignMeta } from '../../../hooks/useDesignStore';
-import { getDesignPageUrl } from '../../ContentPanel/Design/designUrl';
 
+// ─── Design URL helper (copied from Workspace/Design.tsx) ──────────────
+
+function toBase64Url(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  bytes.forEach((b) => {
+    binary += String.fromCharCode(b);
+  });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function getDesignPageUrl(projectPath: string, designId: string, file: string, stamp = 0): string {
+  return `phantoma-design://page/${toBase64Url(projectPath)}/${designId}/${encodeURIComponent(file)}?t=${stamp}`;
+}
 interface DesignCardProps {
   projectPath: string;
   design: DesignMeta;
@@ -119,11 +132,7 @@ export function DesignCard({ projectPath, design, active, onOpen, onDelete }: De
         <DropdownItem icon={<ExternalLink className="h-3.5 w-3.5" />} onClick={onOpen}>
           Open
         </DropdownItem>
-        <DropdownItem
-          icon={<Trash2 className="h-3.5 w-3.5" />}
-          variant="error"
-          onClick={onDelete}
-        >
+        <DropdownItem icon={<Trash2 className="h-3.5 w-3.5" />} variant="error" onClick={onDelete}>
           Delete
         </DropdownItem>
       </DropdownContent>

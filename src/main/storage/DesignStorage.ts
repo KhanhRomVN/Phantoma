@@ -52,12 +52,8 @@ export function slugToProjectPath(slug: string): string {
 }
 
 function getDesignsDir(projectPath: string): string {
-  return path.join(
-    app.getPath('home'),
-    '.phantoma',
-    `code:${getProjectSlug(projectPath)}`,
-    'designs',
-  );
+  // ASSUMED: Lưu design trực tiếp trong project folder thay vì ~/.phantoma
+  return path.join(projectPath, 'design');
 }
 
 function assertSafeId(designId: string) {

@@ -29,6 +29,7 @@ import {
   X,
   Circle,
   Pin,
+  Palette,
 } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { cn } from '@renderer/utils/cn';
@@ -38,6 +39,7 @@ import { CodeBrowser } from './Browser';
 import { CodeFile } from './File';
 import { CodeAgent } from './Zen';
 import { CodeAgentTools } from './AgentTools';
+import { Design as CodeDesign } from './Design';
 
 import {
   Dropdown,
@@ -149,6 +151,11 @@ export function getPanelMeta(
         icon: <MonitorPlay className={cn(iconClass, 'text-pink-400')} />,
         label: 'Emulator',
       };
+    case 'design':
+      return {
+        icon: <Palette className={cn(iconClass, 'text-purple-400')} />,
+        label: 'Design',
+      };
 
     default:
       return { icon: null, label: 'Unknown' };
@@ -195,6 +202,19 @@ function getPanelTitle(panel: WorkspacePanel): string {
   if (panel.type === 'agenttools') return getAgentToolsInfo(panel).title;
   if (panel.type === 'website') return panel.browserTitle || panel.title || label;
   if (panel.type === 'terminal') return panel.terminalProcess || panel.title || label;
+  if (panel.type === 'design') {
+    // ASSUMED: Design title lấy từ store dựa vào content (designId)
+    const designId = panel.content;
+    if (designId) {
+      try {
+        const designs = (window as any).__designStore?.getState?.()?.designs || [];
+        const design = designs.find((d: any) => d.id === designId);
+        if (design) return design.name;
+      } catch {
+        // Fallback to panel.title or label
+      }
+    }
+  }
   return panel.title || label;
 }
 
@@ -834,6 +854,10 @@ const PanelBody = memo(function PanelBody({
         <div className="flex-1 h-full flex items-center justify-center bg-black text-gray-500">
           Emulator View Placeholder
         </div>
+      );
+    case 'design':
+      return (
+        <CodeDesign designId={panel.content} />
       );
     default:
       return null;

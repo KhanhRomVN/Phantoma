@@ -1308,6 +1308,7 @@ export const useCodeStore = create<CodeState>()(
         return {
           ...state,
           projects: partializedProjects,
+          currentProjectId: null,
           focusPanelRequest: null,
           isProjectManagerOpen: false,
           isNewProjectOpen: false,

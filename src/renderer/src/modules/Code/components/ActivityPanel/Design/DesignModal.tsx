@@ -1,24 +1,44 @@
 import { useEffect, useState } from 'react';
-import { Palette, LayoutTemplate } from 'lucide-react';
+import { Palette, Monitor, Smartphone } from 'lucide-react';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@renderer/components/ui/Modal';
+import { cn } from '@renderer/utils/cn';
 
 interface DesignModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (name: string, description: string) => void;
+  onSubmit: (name: string, description: string, platform: 'website' | 'mobile') => void;
 }
 
 const NAME_MAX = 40;
 const DESC_MAX = 120;
 
+type Platform = 'website' | 'mobile';
+
+const PLATFORMS: Array<{ id: Platform; label: string; icon: typeof Monitor; description: string }> = [
+  {
+    id: 'website',
+    label: 'Website (Desktop)',
+    icon: Monitor,
+    description: 'Responsive web pages optimized for desktop browsers',
+  },
+  {
+    id: 'mobile',
+    label: 'Mobile App',
+    icon: Smartphone,
+    description: 'Mobile-first UI components for iOS and Android',
+  },
+];
+
 export function DesignModal({ isOpen, onClose, onSubmit }: DesignModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [platform, setPlatform] = useState<Platform>('website');
 
   useEffect(() => {
     if (isOpen) {
       setName('');
       setDescription('');
+      setPlatform('website');
     }
   }, [isOpen]);
 
@@ -26,7 +46,7 @@ export function DesignModal({ isOpen, onClose, onSubmit }: DesignModalProps) {
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    onSubmit(name.trim(), description.trim());
+    onSubmit(name.trim(), description.trim(), platform);
   };
 
   return (
@@ -37,13 +57,46 @@ export function DesignModal({ isOpen, onClose, onSubmit }: DesignModalProps) {
         onClose={onClose}
       />
       <ModalBody className="flex flex-col gap-4 py-4">
-        <div className="flex items-center gap-3 rounded-lg border border-border bg-card-background p-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <LayoutTemplate className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-text-primary">Starter template</p>
-            <p className="text-[11px] text-text-secondary">Home (/) and Profile (/profile), linked together</p>
+        <div>
+          <label className="mb-2 block text-xs font-medium text-text-secondary">Platform</label>
+          <div className="grid grid-cols-2 gap-3">
+            {PLATFORMS.map((p) => {
+              const Icon = p.icon;
+              const isSelected = platform === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPlatform(p.id)}
+                  className={cn(
+                    'flex flex-col items-start gap-2 rounded-lg border p-3 text-left transition-all',
+                    isSelected
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-card-background hover:border-primary/50 hover:bg-card-hover',
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'flex h-8 w-8 items-center justify-center rounded-lg',
+                      isSelected ? 'bg-primary/20 text-primary' : 'bg-background text-text-secondary',
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p
+                      className={cn(
+                        'text-xs font-semibold',
+                        isSelected ? 'text-primary' : 'text-text-primary',
+                      )}
+                    >
+                      {p.label}
+                    </p>
+                    <p className="text-[11px] text-text-secondary">{p.description}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -88,14 +141,14 @@ export function DesignModal({ isOpen, onClose, onSubmit }: DesignModalProps) {
       <ModalFooter>
         <button
           onClick={onClose}
-          className="rounded-lg px-4 py-2 text-xs text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
+          className="bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 rounded-lg px-4 py-2 text-xs font-medium transition-all"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70 disabled:cursor-not-allowed disabled:opacity-40 rounded-lg px-4 py-2 text-xs font-medium transition-all"
         >
           Create
         </button>

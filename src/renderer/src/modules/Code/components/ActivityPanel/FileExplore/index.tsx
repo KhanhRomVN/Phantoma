@@ -69,8 +69,7 @@ const compareDirEntries = (
 };
 
 // Local helper to avoid circular dependency or missing export in AddProjectModal
-async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
-  if (depth > 8) return []; // safety cap against runaway recursion
+async function scanDirectory(dirPath: string): Promise<FileNode[]> {
   let entries: Array<{ name: string; path: string; isDirectory: boolean }> = [];
   try {
     entries = await window.api.invoke('fs:list-dir', dirPath);
@@ -79,23 +78,15 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   }
   if (!Array.isArray(entries)) return [];
 
-  const nodes: FileNode[] = [];
-  for (const entry of [...entries].sort(compareDirEntries)) {
-    const node: FileNode = {
+  return [...entries].sort(compareDirEntries).map(
+    (entry): FileNode => ({
       id: `fs_${entry.path}`,
       name: entry.name,
       type: entry.isDirectory ? 'folder' : 'file',
       path: entry.path,
-    };
-    if (entry.isDirectory) {
-      node.children =
-        entry.name === 'node_modules' || entry.name === '.git'
-          ? []
-          : await scanDirectory(entry.path, depth + 1);
-    }
-    nodes.push(node);
-  }
-  return nodes;
+      children: entry.isDirectory ? [] : undefined,
+    }),
+  );
 }
 
 // ── Utils ──
@@ -230,16 +221,33 @@ function useTreeScanning(): boolean {
   return scanning;
 }
 
-async function refreshProjectTree(projectId: string, projectPath: string) {
+const refreshInFlight = new Map<string, Promise<void>>();
+function refreshProjectTree(projectId: string, projectPath: string): Promise<void> {
+  const key = `${projectId}|${projectPath}`;
+  const running = refreshInFlight.get(key);
+  if (running) return running;
+  const p = refreshProjectTreeImpl(projectId, projectPath).finally(() =>
+    refreshInFlight.delete(key),
+  );
+  refreshInFlight.set(key, p);
+  return p;
+}
+
+async function refreshProjectTreeImpl(projectId: string, projectPath: string) {
   const { setProjectFiles } = useCodeStore.getState();
   scanCount++;
   emitScan();
+  const t0 = performance.now();
+  console.log('[DEBUG] refreshProjectTree start', { projectId, projectPath, scanCount, caller: new Error().stack?.split('\n').slice(2, 4).join(' | ') });
   try {
     const files = await scanDirectory(projectPath);
+    console.log('[DEBUG] refreshProjectTree scanDirectory done', { projectPath, topLevel: files?.length, ms: Math.round(performance.now() - t0) });
     setProjectFiles(projectId, files);
+    console.log('[DEBUG] refreshProjectTree setProjectFiles done', { ms: Math.round(performance.now() - t0) });
   } finally {
     scanCount--;
     emitScan();
+    console.log('[DEBUG] refreshProjectTree end', { scanCount, ms: Math.round(performance.now() - t0) });
   }
 }
 
@@ -649,8 +657,11 @@ const TreeNode = memo(function TreeNode({
   useEffect(() => {
     if (isFolder && expanded && node.path && lazyChildren === null && !loading) {
       setLoading(true);
+      const t0 = performance.now();
+      console.log('[DEBUG] TreeNode auto-load start', { path: node.path, dirVersion });
       fetchDirChildren(node.path)
         .then((kids) => {
+          console.log('[DEBUG] TreeNode auto-load done', { path: node.path, count: kids?.length, ms: Math.round(performance.now() - t0) });
           setLazyChildren(kids);
           setLoading(false);
         })
@@ -1387,6 +1398,7 @@ function ScopeBlocks({
         }
       } else warn.push(p);
     }
+    console.log('[DEBUG] FileExplore setStats', { primary: primary.length, warn: warn.length, diff: diff.length, error: error.length, t: Math.round(performance.now()) });
     setStats(projectId, { primary, warn, diff, error, deletedPaths });
   }, [projectId, root, branchName, scope, effectiveStatus, remoteDiff, otherChanged, setStats]);
 
@@ -1526,6 +1538,7 @@ function ScopeBlocks({
               : 'diff'
             : 'warn') as 'warn' | 'diff' | 'error',
         }));
+      console.log('[DEBUG] ScopeBlocks compute', { rects: rects.length, scope: scope.length, blocks: blocks.length, t: Math.round(performance.now()) });
       const mergedBlocks = mergeRuns(blocks);
       const errors = bad
         .filter((b) => b.level === 'error')
@@ -1670,6 +1683,7 @@ export function FileExplore() {
     const normalizedRoot = normalize(projectPath);
 
     const handler = (_event: any, payload: { dirPath: string }) => {
+      console.log('[DEBUG] FileExplore fs:dir-changed', { dirPath: payload.dirPath, t: Math.round(performance.now()) });
       const store = useCodeStore.getState();
       if (!store.currentProjectId) return;
 
@@ -2132,8 +2146,9 @@ export function FileExplore() {
             idx = abs.lastIndexOf('/');
           }
         }
+        console.log('[DEBUG] FileExplore git:status loaded', { gitRoot, keys: Object.keys(map).length, t: Math.round(performance.now()) });
         gitStatusCache.set(gitRoot, map);
-        setGitStatus(map);
+        setGitStatus((prev) => (JSON.stringify(prev) === JSON.stringify(map) ? prev : map));
       } catch {
         if (!cancelled) setGitStatus({});
       }
@@ -2222,6 +2237,11 @@ export function FileExplore() {
       }
     };
     walk(project.files);
+    lazyNodeRegistry.forEach((n) => {
+      if (n.type === 'folder' && n.name !== 'node_modules' && n.name !== '.git' && !ids.includes(n.id)) {
+        ids.push(n.id);
+      }
+    });
     expandFolders(project.id, ids);
   }, [project, expandFolders]);
 

@@ -20,6 +20,10 @@
 // ── React ──
 import { ReactNode } from 'react';
 
+// ── UI ──
+import { ChevronsRight, ChevronsLeft } from 'lucide-react';
+import Tooltip from '@renderer/components/ui/Tooltip/Tooltip';
+
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
@@ -43,6 +47,10 @@ interface ActivityBarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   tabs: TabItem[];
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  hideCollapseButton?: boolean;
+  collapseEnabled?: boolean;
 }
 
 // ─── Color Helper ───────────────────────────────────────────────────────
@@ -83,13 +91,75 @@ const getTabColor = (tabId: string) => {
 };
 
 // ─── Component ──────────────────────────────────────────────────────────
-export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) {
+export function ActivityBar({ activeTab, onTabChange, tabs, collapsed = false, onToggleCollapse, hideCollapseButton = false, collapseEnabled = false }: ActivityBarProps) {
   // ── Store ──
   const { accentColors, UNIFIED_ACCENT } = useAccentColors();
   const debugBusy = useDebugStore((s) => s.status !== 'idle');
 
   if (typeof accentColors !== 'undefined' && accentColors.length > 0) {
     setAccentColorsForActivityBar(accentColors, UNIFIED_ACCENT);
+  }
+
+  // ── Render (collapsed rail: expand icon on top, vertical icon list below) ──
+  if (collapsed) {
+    return (
+      <div className="flex-1 min-h-0 w-full bg-sidebar-background flex flex-col items-center z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
+        <div
+          className="flex w-full shrink-0 items-center justify-center border-b border-border"
+          style={{ height: TOPBAR_HEIGHT }}
+        >
+          <Tooltip content="Expand panel" side="left" sideOffset={4}>
+            <button
+              onClick={onToggleCollapse}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-[--tab-color] bg-[--tab-color-bg] transition-colors"
+              style={
+                {
+                  '--tab-color': getTabColor('collapse').base,
+                  '--tab-color-bg': getTabColor('collapse').bg,
+                } as React.CSSProperties
+              }
+              aria-pressed={true}
+              aria-label="Expand panel"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+          </Tooltip>
+        </div>
+        <div className="flex flex-col items-center gap-1 py-2">
+          {tabs.map((tab) => {
+            const tabColor = getTabColor(tab.id);
+            const isActive = activeTab === tab.id;
+            const busy = !!tab.busy || (tab.id === 'debug' && debugBusy);
+
+            return (
+              <Tooltip key={tab.id} content={tab.label} side="left" sideOffset={4}>
+                <button
+                  onClick={() => onTabChange(tab.id)}
+                  className={cn(
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-0 outline-none transition-all duration-200',
+                    !isActive &&
+                      !busy &&
+                      'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                    isActive && 'text-[--tab-color] bg-[--tab-color-bg]',
+                  )}
+                  style={
+                    isActive || busy
+                      ? ({
+                          '--tab-color': tabColor?.base || $('--text-primary'),
+                          '--tab-color-bg': tabColor?.bg || 'rgba(54,134,255,0.1)',
+                          ...(busy ? { color: '#34d399' } : {}),
+                        } as React.CSSProperties)
+                      : undefined
+                  }
+                >
+                  <div className="flex h-3.5 w-3.5 items-center justify-center">{tab.icon}</div>
+                </button>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   // ── Render ──
@@ -124,8 +194,9 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
                     } as React.CSSProperties)
                   : undefined
               }
-              title={tab.label}
             >
+              <Tooltip content={tab.label} side="bottom" sideOffset={4}>
+                <div className="flex items-center justify-center gap-1.5">
               {busy && !isActive && (
                 <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
                   <rect
@@ -157,10 +228,39 @@ export function ActivityBar({ activeTab, onTabChange, tabs }: ActivityBarProps) 
                   {tab.label}
                 </span>
               )}
+                </div>
+              </Tooltip>
             </button>
           );
         })}
       </div>
+      {!hideCollapseButton && onToggleCollapse && (
+        <div className="ml-auto flex items-center pr-2">
+          <Tooltip content={collapsed ? 'Expand panel' : 'Collapse panel'} side="bottom" sideOffset={4}>
+            <button
+              onClick={onToggleCollapse}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+                collapseEnabled
+                  ? 'text-[--tab-color] bg-[--tab-color-bg]'
+                  : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+              )}
+              style={
+                collapseEnabled
+                  ? ({
+                      '--tab-color': getTabColor('collapse').base,
+                      '--tab-color-bg': getTabColor('collapse').bg,
+                    } as React.CSSProperties)
+                  : undefined
+              }
+              aria-pressed={collapseEnabled}
+              aria-label={collapsed ? 'Expand panel' : 'Collapse panel'}
+            >
+              {collapsed ? <ChevronsLeft className="h-4 w-4" /> : <ChevronsRight className="h-4 w-4" />}
+            </button>
+          </Tooltip>
+        </div>
+      )}
     </div>
   );
 }

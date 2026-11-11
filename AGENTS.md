@@ -5,6 +5,15 @@
 - `@renderer/components/ui/Button` has no `variant` prop (only `size`, `fullWidth`, `asChild`); style everything via `className`. Modal footer confirm action (e.g. Create group) uses the soft look in every state: `bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70`. Do not use solid or outline looks for it.
 - Modal footer Cancel button must NOT use the `variant` prop. Style it only via `className` with the soft look and secondary text: `bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background`.
 
+## Design module
+
+- Design files lưu trong `<project>/design/<design-name>/` (không còn lưu ở `~/.phantoma`). Mỗi design folder chứa `meta.json`, `README.md` (platform marker), và các file `.tsx`/`.ts`.
+- Design tab (ActivityPanel) CHỈ hiển thị danh sách DesignCard. KHÔNG có activeDesign state, KHÔNG có Zen agent panel. Khi click Open hoặc Create, design mở trong Workspace dưới dạng panel type `'design'` (không còn `contentViewMode: 'design'`).
+- ActivityPanel có chế độ collapse (state `autoCollapse` trong `ActivityPanel/index.tsx`, toggle bằng nút ở ActivityBar hoặc Ctrl/Cmd+B): bật thì panel thu thành rail 44px (icon expand ở trên cùng, danh sách icon tab xếp dọc bên dưới), hover vào panel thì mở, rời đi thì đóng lại (delay 300ms); tắt thì luôn mở dù không hover. Không còn tự bật theo Design tab.
+- Design component trong Workspace (`ContentPanel/Workspace/Design.tsx`) gộp DesignCanvas + DesignViewer thành 1 file duy nhất, nhận `designId` từ `panel.content`.
+- DesignModal có 2 platform: `website` (desktop) và `mobile`. Template tách thành 2 folder: `template/website/` và `template/mobile/`. Graph khác nhau: website layout ngang, mobile layout dọc. Mobile template có UI tối ưu cho touch (spacing lớn hơn, text nhỏ hơn).
+- Event `workspace:open-design` (detail: `{ designId }`) trigger mở/focus design panel trong Workspace.
+
 ## Prompt capabilities (per system prompt)
 
 - Mỗi `prompts/<name>/config.ts` export `CAPABILITIES: ZenModuleCapabilities` — nguồn sự thật cho toolbar và build prompt của prompt đó.
@@ -121,6 +130,7 @@
 ## Dev environment tips
 
 - Mọi lệnh git ở main (`runGit` trong `src/main/ipc/git.handlers.ts`, `runGitArgs` trong `src/main/ipc/workspace.handlers.ts`) phải set env `GIT_CEILING_DIRECTORIES` = thư mục cha của cwd, nếu không project con nằm trong repo khác (vd `temp/HelloWorld` trong Phantoma) sẽ bị git tự tìm `.git` của repo cha.
+- `useCodeStore` (persist key `code-store`) KHÔNG persist `currentProjectId` (`partialize` set `null`): vào module Code chưa chọn project thì không quét/refresh tree; chỉ quét khi user chọn project.
 - Main type-check: `npx tsc --noEmit -p tsconfig.node.json --composite false`.
 - Renderer type-check: `npx tsc --noEmit -p tsconfig.web.json` (a pre-existing error in `RunCommandExecutor.ts` — unused `spawnResult` — is unrelated).
 - `tsconfig.web.json` không kế thừa `tsconfig.base.json`: phải tự khai báo path `@app/*` → `src/shared/*` và include `src/shared/**/*`.

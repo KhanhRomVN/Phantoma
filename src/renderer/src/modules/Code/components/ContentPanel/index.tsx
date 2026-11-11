@@ -47,7 +47,6 @@ import { WorkspaceViews, EmptyState } from './Workspace';
 import { ContentHeaderBar } from './Headerbar';
 import { GitView } from './Git';
 import { PullRequestView } from './PullRequest';
-import { DesignView } from './Design';
 import { AgentWorkflow } from './AgentWorkflow';
 import { SettingsView } from './Setting';
 
@@ -463,7 +462,6 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         {contentViewMode === 'tasks' && <TaskManager />}
         {contentViewMode === 'git' && <GitView />}
         {contentViewMode === 'pullrequests' && <PullRequestView />}
-        {contentViewMode === 'design' && <DesignView />}
         {contentViewMode === 'agents' && <AgentWorkflow />}
         {contentViewMode === 'settings' && <SettingsView />}
       </>
