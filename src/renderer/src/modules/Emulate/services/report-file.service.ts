@@ -5,7 +5,7 @@
  * Quản lý file code (.html, .css, .js) bên trong mỗi report.
  * Dùng filesystem qua IPC (window.api.invoke) với cấu trúc:
  *
- *   ~/.phantoma/emulate:{targetId}/reports/report:{reportId}/code/
+ *   ~/.phantoma/emulate/{targetId}/reports/report:{reportId}/code/
  *     ├── index.html
  *     ├── style.css
  *     └── script.js
@@ -79,7 +79,7 @@ async function resolveReportId(targetId: string, reportRef: string): Promise<str
 export async function getReportCodeDir(targetId: string, reportId: string): Promise<string> {
   const home = await getHomedir();
   const actualId = await resolveReportId(targetId, reportId);
-  const dir = `${home}/.phantoma/emulate:${targetId}/reports/report:${actualId}/code`;
+  const dir = `${home}/.phantoma/emulate/${targetId}/reports/report:${actualId}/code`;
   return dir;
 }
 

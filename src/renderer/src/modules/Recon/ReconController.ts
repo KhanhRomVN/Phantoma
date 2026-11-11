@@ -331,7 +331,7 @@ export class ReconController {
 
   // ── Target Management ─────────────────────────────────────────────
 
-  /** Nạp danh sách target từ storage (~/.phantoma/recon:{targetId}/_index.recon). */
+  /** Nạp danh sách target từ storage (~/.phantoma/recon/{targetId}/_index.recon). */
   public async loadTargets(): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await (window as any).electron.ipcRenderer.invoke('recon:targets:list');

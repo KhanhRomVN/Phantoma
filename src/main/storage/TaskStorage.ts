@@ -2,7 +2,7 @@
  * ------------------------------------------------------------------
  * Task Storage — JSON File Based Implementation
  * ------------------------------------------------------------------
- * Stores tasks in ~/.phantoma/code:{slug}/tasks.json
+ * Stores tasks in ~/.phantoma/code/{slug}/tasks.json
  * Uses atomic write pattern to prevent corruption.
  * No native dependencies required.
  * ------------------------------------------------------------------
@@ -118,7 +118,7 @@ export function getProjectSlug(projectPath: string): string {
 
 function getTasksFilePath(projectPath: string): string {
   const slug = getProjectSlug(projectPath);
-  const baseDir = path.join(app.getPath('home'), '.phantoma', `code:${slug}`);
+  const baseDir = path.join(app.getPath('home'), '.phantoma', 'code', slug);
   return path.join(baseDir, 'tasks.json');
 }
 

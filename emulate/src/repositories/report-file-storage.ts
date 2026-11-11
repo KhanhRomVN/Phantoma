@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------
  * Ported from internal/repository/emulate/report_file_storage.go.
  * Layout on disk (unchanged from Go server for backward compatibility):
- *   ~/.phantoma/emulate:{targetId}/reports/report:{reportId}/{reportId}.md
+ *   ~/.phantoma/emulate/{targetId}/reports/report:{reportId}/{reportId}.md
  * ------------------------------------------------------------------
  */
 
@@ -20,7 +20,7 @@ import type { Report } from '../domain/emulate';
 // ─── Helpers ───────────────────────────────────────────────────────────
 
 function getReportsDir(targetID: string): string {
-  return path.join(getAppDataDir(), `emulate:${targetID}`, 'reports');
+  return path.join(getAppDataDir(), 'emulate', targetID, 'reports');
 }
 
 function getReportDir(targetID: string, reportID: string): string {

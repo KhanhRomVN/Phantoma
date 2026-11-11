@@ -12,8 +12,8 @@
  * - skill:open-folder           : Mở thư mục skill trong file manager.
  * - skill:list-installed        : Liệt kê skill đã cài local.
  * - skill:read-content          : Đọc SKILL.md của skill đã cài.
- * - skill:load-workspace-state  : Đọc groups/toggles.
- * - skill:save-workspace-state  : Ghi groups/toggles.
+ * - skill:load-workspace-state  : Đọc groups (skills/groups.json).
+ * - skill:save-workspace-state  : Ghi groups (skills/groups.json).
  * ------------------------------------------------------------------
  */
 

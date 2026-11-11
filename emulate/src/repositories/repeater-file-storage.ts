@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------
  * Ported from internal/repository/emulate/repeater_file_storage.go.
  * Stores params.json / headers.json / body.json per repeater request:
- *   ~/.phantoma/emulate:{targetId}/repeaters/repeater_{requestId}/
+ *   ~/.phantoma/emulate/{targetId}/repeaters/repeater_{requestId}/
  * ------------------------------------------------------------------
  */
 
@@ -19,7 +19,7 @@ import { getAppDataDir } from '../config/server.config';
 // ─── Helpers ───────────────────────────────────────────────────────────
 
 function getRepeaterDir(targetID: string, requestID: string): string {
-  return path.join(getAppDataDir(), `emulate:${targetID}`, 'repeaters', `repeater_${requestID}`);
+  return path.join(getAppDataDir(), 'emulate', targetID, 'repeaters', `repeater_${requestID}`);
 }
 
 function ensureDir(dir: string): void {

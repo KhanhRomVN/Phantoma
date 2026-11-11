@@ -13,7 +13,8 @@ function getWorkflowFilePath(projectPath: string, taskId: string): string {
   return path.join(
     app.getPath('home'),
     '.phantoma',
-    `code:${getProjectSlug(projectPath)}`,
+    'code',
+    getProjectSlug(projectPath),
     'workflows',
     `workflow_${taskId}.md`,
   );

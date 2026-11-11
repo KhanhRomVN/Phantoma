@@ -53,7 +53,7 @@
 
 ## Skills (toàn cục)
 
-- Skill lưu toàn cục ở `~/.phantoma/skills/{slug}/` (SKILL.md + `{slug}.json`), state group/toggle ở `~/.phantoma/skill-workspace-state.json` — dùng chung mọi module, không theo project. Logic ở `src/main/storage/SkillStorage.ts` + `src/main/services/skill-marketplace.ts`, IPC `skill:*` ở `src/main/ipc/skill.handlers.ts`.
+- Skill lưu toàn cục ở `~/.phantoma/skills/{slug}/` (SKILL.md + `{slug}.json`), gán skill vào group ở `~/.phantoma/skills/groups.json` (không còn bật/tắt skill hay trạng thái expand/collapse group) — dùng chung mọi module, không theo project. Logic ở `src/main/storage/SkillStorage.ts` + `src/main/services/skill-marketplace.ts`, IPC `skill:*` ở `src/main/ipc/skill.handlers.ts`.
 - UI/hook/service nằm ở `components/Widgets/Zen/feature/Marketplace` (`SkillPanel`); tab Skills của module Code (`ActivityPanel/Skill`) chỉ bọc lại `SkillPanel`.
 
 ## UITest module
@@ -67,7 +67,7 @@
 
 ## Task & Workflow
 
-- Task lưu ở `~/.phantoma/code:{slug}/tasks.json` (`src/main/storage/TaskStorage.ts`); workflow của task là file `workflows/workflow_{taskId}.md` (`src/main/storage/WorkflowStorage.ts`, IPC `workflow:get|create|update` ở `src/main/ipc/workflow.handlers.ts`), field `workflowId` trên task.
+- Task lưu ở `~/.phantoma/code/{slug}/tasks.json` (`src/main/storage/TaskStorage.ts`); workflow của task là file `workflows/workflow_{taskId}.md` (`src/main/storage/WorkflowStorage.ts`, IPC `workflow:get|create|update` ở `src/main/ipc/workflow.handlers.ts`), field `workflowId` trên task.
 - Orchestrator có 8 tool task/workflow (`list_tasks`, `get_task`, `create_task`, `update_task`, `assign_task`, `create_workflow`, `get_workflow`, `update_workflow`): mỗi tool có đủ 1 parser (`parsers/<Name>Parser.ts`), 1 executor (`executors/<Name>Executor.ts`), 1 renderer (`renderers/<Name>Renderer.tsx`) — dùng chung `parsers/TaskToolParserUtils.ts`, `executors/TaskToolUtils.ts`, `renderers/TaskToolRendererBase.tsx`; đăng ký ở `CodeModule.ts` và `constants/tag-registry.ts`; prompt ở `prompts/multi-agent/orchestrator/tools-reference.ts`.
 - UI Workflow nằm ở `components/ContentPanel/Workflow` (đã chuyển khỏi `Workspace/Workflow`).
 

@@ -30,6 +30,7 @@ setupLogger();
 import { windowManager } from './core/window/WindowManager';
 import { startShellServer, stopServers } from './services/server-spawner';
 import { killAllTerminals } from './ipc/terminal.handlers';
+import { migrateModuleDirs } from './storage/migrateModuleDirs';
 import { stopAllDebug } from './ipc/debug.handlers';
 
 // Import IPC handlers
@@ -79,6 +80,8 @@ try {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
+  migrateModuleDirs();
+
   // Setup all IPC handlers
   setupLoggerHandlers();
   setupAppHandlers();

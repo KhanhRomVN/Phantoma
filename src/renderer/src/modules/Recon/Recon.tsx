@@ -35,7 +35,7 @@ export function Recon({}: ReconProps) {
       setActiveTargetId(targetId);
     });
 
-    // Nạp danh sách target từ ~/.phantoma/recon:{targetId}
+    // Nạp danh sách target từ ~/.phantoma/recon/{targetId}
     void controller.loadTargets();
 
     return () => {

@@ -25,7 +25,7 @@ const getApi = () => {
 // ─── Class ──────────────────────────────────────────────────────────────
 export class UpdateRepeaterContentHandler {
   /**
-   * Format: ~/.phantoma/emulate:{targetId}/repeaters/repeater_{requestId}/{target}.json
+   * Format: ~/.phantoma/emulate/{targetId}/repeaters/repeater_{requestId}/{target}.json
    */
   public async getFilePath(
     targetId: string,
@@ -33,7 +33,7 @@ export class UpdateRepeaterContentHandler {
     target: RepeaterTarget,
   ): Promise<string> {
     const homedir = await getApi().invoke('fs:get-homedir');
-    return `${homedir}/.phantoma/emulate:${targetId}/repeaters/repeater_${requestId}/${target}.json`;
+    return `${homedir}/.phantoma/emulate/${targetId}/repeaters/repeater_${requestId}/${target}.json`;
   }
 
   public async readFile(filePath: string): Promise<string> {

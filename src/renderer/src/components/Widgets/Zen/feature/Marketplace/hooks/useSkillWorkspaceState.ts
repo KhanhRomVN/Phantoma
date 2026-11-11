@@ -17,8 +17,7 @@ export interface GroupExtra {
 export interface UseSkillWorkspaceStateResult {
   state: SkillWorkspaceState;
   loading: boolean;
-  setSkillEnabled: (slug: string, enabled: boolean) => void;
-  toggleSkillEnabled: (slug: string) => void;
+
   addGroup: (name: string, icon?: string, extra?: GroupExtra) => void;
   renameGroup: (oldName: string, newName: string) => void;
   updateGroup: (
@@ -30,7 +29,6 @@ export interface UseSkillWorkspaceStateResult {
     options?: { deleteSlugs?: string[]; moveTo?: string },
   ) => void;
   assignSkillToGroup: (slug: string, groupName: string) => void;
-  toggleGroupCollapsed: (name: string) => void;
 }
 
 /** Chuẩn hoá tên để so sánh group (case-insensitive, trim). */
@@ -84,20 +82,6 @@ export function useSkillWorkspaceState(): UseSkillWorkspaceStateResult {
     };
   }, [state]);
 
-  const setSkillEnabled = useCallback((slug: string, enabled: boolean) => {
-    setState((prev) => ({
-      ...prev,
-      toggles: { ...prev.toggles, [slug]: enabled },
-    }));
-  }, []);
-
-  const toggleSkillEnabled = useCallback((slug: string) => {
-    setState((prev) => ({
-      ...prev,
-      toggles: { ...prev.toggles, [slug]: !prev.toggles[slug] },
-    }));
-  }, []);
-
   const addGroup = useCallback(
     (name: string, icon?: string, extra?: GroupExtra) => {
     const trimmed = name.trim();
@@ -143,12 +127,7 @@ export function useSkillWorkspaceState(): UseSkillWorkspaceStateResult {
             : g,
         );
 
-        const collapsedGroups: Record<string, boolean> = {};
-        for (const [k, v] of Object.entries(prev.collapsedGroups)) {
-          collapsedGroups[normalizeGroupName(k) === oldKey ? newKey : k] = v;
-        }
-
-        return { ...prev, groups, collapsedGroups };
+        return { ...prev, groups };
       });
     },
     [],
@@ -169,12 +148,7 @@ export function useSkillWorkspaceState(): UseSkillWorkspaceStateResult {
         normalizeGroupName(g.name) === oldKey ? { ...g, name: trimmed } : g,
       );
 
-      const collapsedGroups: Record<string, boolean> = {};
-      for (const [k, v] of Object.entries(prev.collapsedGroups)) {
-        collapsedGroups[normalizeGroupName(k) === oldKey ? newKey : k] = v;
-      }
-
-      return { ...prev, groups, collapsedGroups };
+      return { ...prev, groups };
     });
   }, []);
 
@@ -204,10 +178,7 @@ export function useSkillWorkspaceState(): UseSkillWorkspaceStateResult {
           })
           .filter((g): g is { name: string; slugs: string[] } => g !== null);
 
-        const collapsedGroups = { ...prev.collapsedGroups };
-        delete collapsedGroups[key];
-
-        return { ...prev, groups, collapsedGroups };
+        return { ...prev, groups };
       });
     },
     [],
@@ -240,29 +211,14 @@ export function useSkillWorkspaceState(): UseSkillWorkspaceStateResult {
     });
   }, []);
 
-  const toggleGroupCollapsed = useCallback((name: string) => {
-    setState((prev) => {
-      const key = normalizeGroupName(name);
-      return {
-        ...prev,
-        collapsedGroups: {
-          ...prev.collapsedGroups,
-          [key]: !prev.collapsedGroups[key],
-        },
-      };
-    });
-  }, []);
-
   return {
     state,
     loading,
-    setSkillEnabled,
-    toggleSkillEnabled,
+
     addGroup,
     renameGroup,
     updateGroup,
     removeGroup,
     assignSkillToGroup,
-    toggleGroupCollapsed,
   };
 }

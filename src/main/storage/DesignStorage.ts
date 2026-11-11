@@ -55,7 +55,8 @@ function getDesignsDir(projectPath: string): string {
   return path.join(
     app.getPath('home'),
     '.phantoma',
-    `code:${getProjectSlug(projectPath)}`,
+    'code',
+    getProjectSlug(projectPath),
     'designs',
   );
 }
