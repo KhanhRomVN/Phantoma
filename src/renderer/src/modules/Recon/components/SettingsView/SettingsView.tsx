@@ -38,7 +38,7 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
           <button
             onClick={onClose}
             title="Quay lại"
-            className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
           >
             <ArrowLeft className="w-4 h-4" strokeWidth={2} />
           </button>
@@ -51,7 +51,7 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
       </header>
 
       <div className="flex-1 min-h-0 flex">
-        <nav className="w-56 shrink-0 border-r border-border bg-sidebar-background p-2 space-y-1 overflow-y-auto">
+        <nav className="w-56 shrink-0 border-r border-border bg-panel-background p-2 space-y-1 overflow-y-auto">
           {ITEMS.map((item) => {
             const Icon = item.icon;
             const selected = item.id === active.id;
@@ -63,7 +63,7 @@ export default function SettingsView({ onClose }: SettingsViewProps) {
                   'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left',
                   selected
                     ? 'bg-primary/10 text-primary'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
+                    : 'text-text-secondary hover:text-text-primary hover:bg-card-hover',
                 )}
               >
                 <Icon className="w-4 h-4 shrink-0" strokeWidth={2} />

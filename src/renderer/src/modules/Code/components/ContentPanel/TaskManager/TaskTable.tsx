@@ -106,9 +106,9 @@ export const TaskTable = memo(function TaskTable({
 
   return (
     <div className="relative flex-1 min-h-0 flex">
-      <div className="flex-1 min-h-0 overflow-x-auto custom-scrollbar bg-sidebar-background/50">
+      <div className="flex-1 min-h-0 overflow-x-auto custom-scrollbar bg-panel-background/50">
         <div className="min-w-[1020px] h-full flex flex-col">
-          <div className={cn(GRID, 'shrink-0 py-2.5 border-b border-divider bg-card-background')}>
+          <div className={cn(GRID, 'shrink-0 py-2.5 border-b border-border bg-card-background')}>
             <div className="flex items-center justify-center">
               <Checkbox size="sm" checked={allSelected} onChange={toggleAll} />
             </div>
@@ -149,7 +149,7 @@ export const TaskTable = memo(function TaskTable({
                         onClick={() => onTaskClick(task)}
                         className={cn(
                           GRID,
-                          'py-3 border-b border-divider cursor-pointer transition-colors hover:bg-card-hover',
+                          'py-3 border-b border-border cursor-pointer transition-colors hover:bg-card-hover',
                           selected.has(task.id) && 'bg-primary/5',
                         )}
                       >
@@ -328,7 +328,7 @@ export const TaskTable = memo(function TaskTable({
             {selectedCount} selected
           </span>
 
-          <span className="w-px h-4 bg-divider" />
+          <span className="w-px h-4 bg-border" />
 
           <button
             type="button"

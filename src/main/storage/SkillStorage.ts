@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------
  * 1. Fetch chi tiết skill từ mcp.directory (leaderboard marketplace).
  * 2. Quản lý skill đã cài local (~/.phantoma/skills/).
- * 3. Quản lý workspace state (~/.phantoma/skill-workspace-state.json).
+ * 3. Quản lý group skill (~/.phantoma/skills/groups.json).
  * ------------------------------------------------------------------
  */
 
@@ -43,7 +43,6 @@ export interface InstalledSkill {
 }
 
 export interface SkillWorkspaceState {
-  toggles: Record<string, boolean>;
   groups: Array<{
     name: string;
     slugs: string[];
@@ -51,19 +50,17 @@ export interface SkillWorkspaceState {
     color?: string;
     description?: string;
   }>;
-  collapsedGroups: Record<string, boolean>;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────
 const MCP_DIRECTORY_BASE = 'https://mcp.directory';
 const PHANTOMA_DIR = path.join(os.homedir(), '.phantoma');
 const SKILLS_DIR = path.join(PHANTOMA_DIR, 'skills');
-const WORKSPACE_STATE_FILE = path.join(PHANTOMA_DIR, 'skill-workspace-state.json');
+const WORKSPACE_STATE_FILE = path.join(SKILLS_DIR, 'groups.json');
+const LEGACY_WORKSPACE_STATE_FILE = path.join(PHANTOMA_DIR, 'skill-workspace-state.json');
 
 const DEFAULT_WORKSPACE_STATE: SkillWorkspaceState = {
-  toggles: {},
   groups: [],
-  collapsedGroups: {},
 };
 
 // ─── Class ──────────────────────────────────────────────────────────────
@@ -251,15 +248,16 @@ export class SkillStorage {
   /** Đọc workspace state (groups, toggles) từ file JSON. */
   loadWorkspaceState(): SkillWorkspaceState {
     try {
-      if (!fs.existsSync(WORKSPACE_STATE_FILE)) {
+      const file = fs.existsSync(WORKSPACE_STATE_FILE)
+        ? WORKSPACE_STATE_FILE
+        : LEGACY_WORKSPACE_STATE_FILE;
+      if (!fs.existsSync(file)) {
         return DEFAULT_WORKSPACE_STATE;
       }
-      const raw = fs.readFileSync(WORKSPACE_STATE_FILE, 'utf-8');
+      const raw = fs.readFileSync(file, 'utf-8');
       const data = JSON.parse(raw);
       return {
-        toggles: data.toggles ?? {},
         groups: Array.isArray(data.groups) ? data.groups : [],
-        collapsedGroups: data.collapsedGroups ?? {},
       };
     } catch (err: any) {
       logger.error('[SkillStorage] loadWorkspaceState error:', err.message);
@@ -270,10 +268,12 @@ export class SkillStorage {
   /** Ghi workspace state ra file JSON. */
   saveWorkspaceState(state: SkillWorkspaceState): void {
     try {
-      if (!fs.existsSync(PHANTOMA_DIR)) {
-        fs.mkdirSync(PHANTOMA_DIR, { recursive: true });
-      }
-      fs.writeFileSync(WORKSPACE_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
+      this.ensureSkillsDir();
+      fs.writeFileSync(
+        WORKSPACE_STATE_FILE,
+        JSON.stringify({ groups: state.groups }, null, 2),
+        'utf-8',
+      );
     } catch (err: any) {
       logger.error('[SkillStorage] saveWorkspaceState error:', err.message);
       throw err;

@@ -238,7 +238,7 @@ const LightweightCodeView = React.memo(function LightweightCodeView({
                 : ''
           }`}
         >
-          <span className="w-14 shrink-0 text-right pr-3 text-text-secondary/40 select-none border-r border-divider/30 sticky left-0 bg-background">
+          <span className="w-14 shrink-0 text-right pr-3 text-text-secondary/40 select-none border-r border-border/30 sticky left-0 bg-background">
             {i + 1}
           </span>
           <span
@@ -358,7 +358,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} className={MODAL_WIDTH_CLASS[mode]}>
       {/* Custom header cho file preview — có icon theo loại file */}
-      <div className="px-5 py-3 border-b border-divider shrink-0 flex items-center gap-3">
+      <div className="px-5 py-3 border-b border-border shrink-0 flex items-center gap-3">
         <img
           src={getFileIconPath(fileName)}
           alt=""
@@ -380,9 +380,9 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
         {mode === 'content' ? (
           <LightweightCodeView content={newContent} filePath={filePath} />
         ) : (
-          <div className="flex-1 grid grid-cols-2 min-h-0 divide-x divide-divider">
+          <div className="flex-1 grid grid-cols-2 min-h-0 divide-x divide-border">
             <div className="flex flex-col min-h-0 overflow-hidden">
-              <div className="px-3 py-1.5 text-[11px] font-semibold text-text-secondary bg-card-background/50 border-b border-divider shrink-0">
+              <div className="px-3 py-1.5 text-[11px] font-semibold text-text-secondary bg-card-background/50 border-b border-border shrink-0">
                 {oldContentLabel}
               </div>
               {showLoadingLeft ? (
@@ -402,7 +402,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
               )}
             </div>
             <div className="flex flex-col min-h-0 overflow-hidden">
-              <div className="px-3 py-1.5 text-[11px] font-semibold text-text-secondary bg-card-background/50 border-b border-divider shrink-0">
+              <div className="px-3 py-1.5 text-[11px] font-semibold text-text-secondary bg-card-background/50 border-b border-border shrink-0">
                 {newContentLabel}
               </div>
               <LightweightCodeView

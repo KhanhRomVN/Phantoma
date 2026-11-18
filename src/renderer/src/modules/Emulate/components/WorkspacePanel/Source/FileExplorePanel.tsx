@@ -160,7 +160,7 @@ export function FileExplorePanel({ tree, stats, onSelectNode }: FileExplorePanel
   return (
     <div className="h-full bg-background border-r border-border/50 flex flex-col">
       {/* Header bar */}
-      <div className="flex items-center justify-between h-9 px-2 border-b border-divider flex-shrink-0 bg-sidebar-background">
+      <div className="flex items-center justify-between h-9 px-2 border-b border-border flex-shrink-0 bg-panel-background">
         <div className="flex items-center gap-2">
           <img src={getFolderIconPath()} className="w-4 h-4 shrink-0" alt="" />
           <span className="text-[13px] text-text-secondary truncate max-w-[50%]">Explorer</span>

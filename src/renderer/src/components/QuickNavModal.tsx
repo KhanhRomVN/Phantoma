@@ -14,9 +14,9 @@
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
+// ── Imports ────────────────────────────────────────────────────────────
 // ── React ──
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, Fragment } from 'react';
 
 // ── UI ──
 import { Search, ArrowUp, ArrowDown, CornerDownLeft, Circle } from 'lucide-react';
@@ -27,10 +27,12 @@ import { useRunningTargets } from '@renderer/hooks/useRunningTargets';
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ── Config ──
+import { getModulesForQuickNav } from '@renderer/config/module-registry';
+
 // ── Components ──
 import { Modal, ModalBody, ModalFooter } from './ui/Modal';
 import { Kbd } from './ui/Kbd';
-
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface QuickNavItem {
   id: string;
@@ -44,7 +46,8 @@ interface QuickNavItem {
 interface QuickNavModalProps {
   isOpen: boolean;
   onClose: () => void;
-  items: QuickNavItem[];
+  /** If not provided, will use modules from registry */
+  items?: QuickNavItem[];
 }
 
 // ─── Footer Component ───────────────────────────────────────────────────
@@ -54,7 +57,7 @@ const QuickNavFooter = memo(function QuickNavFooter({ resultCount }: { resultCou
     <ModalFooter className="px-4 py-3 border-t border-border flex items-center justify-between text-[10px]">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1">
-          <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
+          <div className="flex items-center justify-center bg-card-hover/70 rounded p-1">
             <Kbd>
               <ArrowUp className="w-3 h-3" strokeWidth={1.5} />
               <ArrowDown className="w-3 h-3" strokeWidth={1.5} />
@@ -63,7 +66,7 @@ const QuickNavFooter = memo(function QuickNavFooter({ resultCount }: { resultCou
           <span className="text-text-primary">Navigate</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="flex items-center justify-center bg-sidebar-item-hover/70 rounded p-1">
+          <div className="flex items-center justify-center bg-card-hover/70 rounded p-1">
             <Kbd>
               <CornerDownLeft className="w-3 h-3" strokeWidth={1.5} />
             </Kbd>
@@ -81,7 +84,20 @@ const QuickNavFooter = memo(function QuickNavFooter({ resultCount }: { resultCou
 });
 
 // ─── Component ──────────────────────────────────────────────────────────
-export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
+export function QuickNavModal({ isOpen, onClose, items: customItems }: QuickNavModalProps) {
+  // Use custom items if provided, otherwise use registry
+  const items =
+    customItems ??
+    getModulesForQuickNav().map((m) => ({
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      icon: <m.icon className="h-4 w-4" />,
+      action: () => {
+        // Module switching is handled by the caller
+      },
+      color: m.color,
+    }));
   // ── State ──
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -162,7 +178,7 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-2xl">
       <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-3 bg-sidebar-item-hover rounded-lg px-3 py-2">
+        <div className="flex items-center gap-3 bg-card-hover rounded-lg px-3 py-2">
           <Search className="w-4 h-4 text-text-secondary" strokeWidth={1.5} />
           <input
             ref={inputRef}
@@ -190,7 +206,7 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
                   'flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors',
                   index === selectedIndex
                     ? 'bg-primary/10 text-text-primary'
-                    : 'hover:bg-sidebar-item-hover text-text-secondary',
+                    : 'hover:bg-card-hover text-text-secondary',
                 )}
                 onClick={() => {
                   item.action();
@@ -204,7 +220,7 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
               >
                 <div
                   className={cn(
-                    'shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-sidebar-item-hover/50',
+                    'shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-card-hover/50',
                     item.color || 'text-primary',
                   )}
                 >
@@ -226,7 +242,7 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
                       {runningTargets.slice(0, 3).map((target) => (
                         <div
                           key={target.id}
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-sidebar-item-hover border border-border text-text-secondary"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-card-hover border border-border text-text-secondary"
                           title={target.title}
                         >
                           {target.favicon ? (
@@ -238,7 +254,7 @@ export function QuickNavModal({ isOpen, onClose, items }: QuickNavModalProps) {
                         </div>
                       ))}
                       {runningTargets.length > 3 && (
-                        <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-sidebar-item-hover border border-border text-text-secondary">
+                        <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-card-hover border border-border text-text-secondary">
                           +{runningTargets.length - 3} more
                         </div>
                       )}

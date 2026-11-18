@@ -18,15 +18,21 @@ const sessionIdsOfBranch = (projectPath: string, branchName: string): string[] =
   return (branch?.sessions ?? []).map((s) => s.id);
 };
 
-// Task chỉ hiển thị trên session card khi có sessionId.
-// branchName chỉ dùng để assign task cho branch, không tự động link vào session.
+// Task hiển thị trên session card khi có sessionId.
+// ASSUMED: task đang in progress được gán cho branch (chưa có sessionId) thì link vào session đầu tiên của branch đó.
 const indexBySession = (byPath: Record<string, StoredTask[]>) => {
   const map: Record<string, StoredTask> = {};
-  Object.entries(byPath).forEach(([path, list]) =>
+  Object.values(byPath).forEach((list) =>
     list.forEach((t) => {
       if (t.archived || t.status === 'done') return;
-      // Chỉ task có sessionId mới được link vào session card
       if (t.sessionId) map[t.sessionId] = t;
+    }),
+  );
+  Object.entries(byPath).forEach(([path, list]) =>
+    list.forEach((t) => {
+      if (t.archived || t.status !== 'progress' || t.sessionId || !t.branchName) return;
+      const sessionId = sessionIdsOfBranch(path, t.branchName)[0];
+      if (sessionId && !map[sessionId]) map[sessionId] = t;
     }),
   );
   return map;

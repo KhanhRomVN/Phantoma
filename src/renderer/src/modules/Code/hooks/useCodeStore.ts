@@ -26,7 +26,7 @@
 
 // ── Store ──
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 
 // ── Types ──
 import type { Design, DesignInput } from '../types/design';
@@ -162,6 +162,35 @@ export interface FileNode {
   language?: string;
   path?: string;
 }
+
+// ─── Persistence (file-based via IPC: ~/.phantoma/code/{uuid}/project.json) ─
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+const projectFileStorage: StateStorage = {
+  getItem: async () => {
+    const res = await window.api.invoke('project:load');
+    if (!res?.success) return null;
+    const projects = res.projects ?? [];
+    const settings = res.settings ?? {};
+    if (projects.length === 0 && Object.keys(settings).length === 0) return null;
+    return JSON.stringify({ state: { ...settings, projects }, version: 0 });
+  },
+  setItem: (_name, value) => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      try {
+        const { state } = JSON.parse(value);
+        const { projects, ...settings } = state;
+        window.api.invoke('project:save', projects ?? [], settings);
+      } catch (err) {
+        console.error('[CodeStore] Failed to save projects:', err);
+      }
+    }, 300);
+  },
+  removeItem: () => {},
+};
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -554,7 +583,7 @@ export const useCodeStore = create<CodeState>()(
         addProject: (project) => {
           const newProject: Project = {
             ...project,
-            id: `project_${Date.now()}`,
+            id: crypto.randomUUID(),
             services: [],
             files: [],
             ...createDefaultPerProject(),
@@ -1285,6 +1314,7 @@ export const useCodeStore = create<CodeState>()(
     },
     {
       name: 'code-store',
+      storage: createJSONStorage(() => projectFileStorage),
       partialize: (state) => {
         const partializedProjects = state.projects.map((p) => ({
           ...p,
@@ -1331,19 +1361,4 @@ export const useCodeStore = create<CodeState>()(
   ),
 );
 
-// [DEBUG] — log mỗi khi projects thay đổi, kèm danh sách field bị thay đổi
-// Xóa sau khi xác định được nguyên nhân
-useCodeStore.subscribe((state, prevState) => {
-  if (state.projects === prevState.projects) return;
 
-  const prevProj = prevState.projects.find((p) => p.id === prevState.currentProjectId);
-  const currProj = state.projects.find((p) => p.id === state.currentProjectId);
-  if (!prevProj || !currProj) return;
-
-  const changedFields: string[] = [];
-  for (const key of Object.keys(currProj) as (keyof typeof currProj)[]) {
-    if (prevProj[key] !== currProj[key]) {
-      changedFields.push(key);
-    }
-  }
-});

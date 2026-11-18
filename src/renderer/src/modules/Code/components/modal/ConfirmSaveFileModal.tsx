@@ -51,11 +51,11 @@ export function ConfirmSaveFileModal({
         </div>
       </ModalBody>
 
-      <ModalFooter className="gap-0 p-0 border-t border-divider">
+      <ModalFooter className="gap-0 p-0 border-t border-border">
         <Button
           onClick={onClose}
           disabled={saving}
-          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-divider rounded-none disabled:opacity-50"
+          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-border rounded-none disabled:opacity-50"
         >
           Cancel
         </Button>
@@ -65,7 +65,7 @@ export function ConfirmSaveFileModal({
             onClose();
           }}
           disabled={saving}
-          className="flex-1 h-[42px] text-xs font-medium bg-error/10 text-error hover:bg-error hover:text-text-primary active:bg-error/80 transition-colors border-r border-divider rounded-none flex items-center justify-center gap-1.5 disabled:opacity-50"
+          className="flex-1 h-[42px] text-xs font-medium bg-error/10 text-error hover:bg-error hover:text-text-primary active:bg-error/80 transition-colors border-r border-border rounded-none flex items-center justify-center gap-1.5 disabled:opacity-50"
         >
           <Trash2 className="w-3.5 h-3.5" />
           Don't Save

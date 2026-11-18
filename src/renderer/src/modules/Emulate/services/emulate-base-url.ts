@@ -15,7 +15,7 @@
  * ------------------------------------------------------------------
  */
 
-import { DEV_PORTS, emulateBaseUrl } from '@app/ports';
+import { DEV_PORTS, emulateBaseUrl } from '@renderer/config/ports';
 
 const DEFAULT_EMULATE_BASE = emulateBaseUrl(DEV_PORTS.emulate);
 

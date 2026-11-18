@@ -59,7 +59,7 @@ function GitWidget() {
         <ArrowDown className="w-3 h-3" />
         {behind}
       </span>
-      <span className="w-px h-3 bg-divider" />
+      <span className="w-px h-3 bg-border" />
       <span className="text-yellow-400">{changed} changed</span>
     </span>
   );

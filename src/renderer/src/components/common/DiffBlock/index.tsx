@@ -350,7 +350,7 @@ export const FileSection = memo(function FileSection({
         <div
           onClick={() => onToggle(file.path)}
           className={
-            'sticky top-0 z-10 flex items-center gap-2 px-3 h-9 bg-sidebar-background border-b border-border cursor-pointer hover:bg-card-hover transition-colors'
+            'sticky top-0 z-10 flex items-center gap-2 px-3 h-9 bg-panel-background border-b border-border cursor-pointer hover:bg-card-hover transition-colors'
           }
         >
           {collapsed ? (

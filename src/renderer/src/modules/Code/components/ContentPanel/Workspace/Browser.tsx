@@ -364,7 +364,7 @@ export const CodeBrowser = ({
   return (
     <div className="flex flex-col h-full w-full bg-background">
       {/* Toolbar */}
-      <div className="h-10 shrink-0 flex items-center gap-2 px-3 bg-sidebar-background border-b border-divider">
+      <div className="h-10 shrink-0 flex items-center gap-2 px-3 bg-panel-background border-b border-border">
         <button
           onClick={handleGoBack}
           disabled={!canGoBack}

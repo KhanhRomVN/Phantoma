@@ -2,8 +2,8 @@
 
 ## UI conventions
 
-- `@renderer/components/ui/Button` has no `variant` prop (only `size`, `fullWidth`, `asChild`); style everything via `className`. Modal footer confirm action (e.g. Create group) uses the soft look in every state: `bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70`. Do not use solid or outline looks for it.
-- Modal footer Cancel button must NOT use the `variant` prop. Style it only via `className` with the soft look and secondary text: `bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background`.
+- `@renderer/components/ui/Button` has no `variant` prop (only `size`, `fullWidth`, `asChild`); style everything via `className`. Modal footer confirm action (e.g. Create group) uses the soft look in every state: `bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30`. Do not use solid or outline looks for it.
+- Modal footer Cancel button must NOT use the `variant` prop. Style it only via `className` with the soft look and secondary text: `bg-primary/10 text-text-secondary hover:bg-primary/20 hover:text-text-primary active:bg-primary/30 disabled:hover:bg-primary/10`.
 
 ## Design module
 
@@ -70,6 +70,50 @@
 - `modules/UITest/` là trang test component `components/ui` (module id `'uitest'`, đăng ký ở `PhantomModule`, `ViewContainer.tsx`, quickNav trong `MainLayout.tsx`): sidebar + nội dung demo từng component. Demo nằm ở `sections/{Basic,Feedback,Dropdown,Data}.tsx`, helper `Section`/`Demo` ở `shared.tsx`. Thêm component UI mới thì thêm demo vào `ITEMS` ở `index.tsx`.
 - Class Tailwind không có trong `tailwind.config.js` (vd `bg-background-strong`, `text-text-tertiary`, `border-hover`, `bg-muted`, `bg-secondary`, `text-foreground`) là lỗi style; `ResizableSplit` dùng đơn vị `%` cho `initialSize/minSize/maxSize`.
 
+## Profile module
+
+- `modules/Profile/` là fake UI + mock data (chưa nối IPC/store): `Profile.tsx` chỉ ghép layout; `types.ts`, `mock/mockData.ts` (seed cố định), `utils/{query,filter,security,format}.ts`, `components/` (SourceSwitcher, FilterBar, QueryBuilder, StatsBar, ProfileTable, ProfileDetail, `detail/*Tab.tsx`).
+- Truy vấn nâng cao dùng parser SQL-like tự viết ở `utils/query.ts` (`compileQuery`; trường khai báo trong `QUERY_FIELDS`/`GETTERS`); điểm bảo mật tính ở `utils/security.ts`. lucide-react bản đang dùng KHÔNG có icon `Chrome`.
+- Profile: cột phải `aside` luôn hiện (border-l) trong `Profile.tsx`, chứa `ProfileDetail` hoặc `QueryDrawer` (query builder dạng form, helper ở `utils/queryBuilder.ts` sinh text cho `compileQuery`); `QueryBuilder.tsx` cũ đã xóa; toolbar (saved queries dropdown, Sync, More→Import, Add profile) ở `ProfileToolbar.tsx` đặt cạnh searchbar; group lọc bằng dropdown GroupCard trong `FilterBar`.
+- Profile KHÔNG có category/tags (chỉ có `group`); source có `browsers: BrowserEngine[]` (chrome/chromium) hiển thị bằng dot trong badge số của `SourceSwitcher`; 3 nút Import/Sync/Add profile truyền qua prop `actions` của `SourceSwitcher`; bulk action là overlay dashed `border-primary` ở dưới giữa table (trong `Profile.tsx`); `ProfileTable` có sort theo cột và menu chuột phải (`Dropdown` strategy fixed + `position`), không còn nút 3 chấm.
+- Profile dialogs ở `modules/Profile/components/dialogs/` (`SourceModal`, `ProfileModal`, `ImportModal` + tiện ích form chung `FormBits.tsx`): render có điều kiện từ `Profile.tsx` (state `dialog`), `Profile.tsx` giữ `profiles`/`sources` trong state (khởi tạo từ mock). Import có 3 cách: folder (mỗi sub-folder đặt tên theo email), CSV/TSV, paste text. Drawer chi tiết dùng `utils/totp.ts` (`useTotp`, mã TOTP sống bằng WebCrypto) và `detail/CopyButton.tsx`. Avatar bo góc theo tỉ lệ size (không còn tròn).
+- ProfileDetail nhận `source` (lấy từ `sources` trong `Profile.tsx`): nút Open/Sync dựa theo `source.browsers` (1 browser → nút đơn, nhiều → dropdown, rỗng → nhãn chung), KHÔNG hardcode Chrome. Header có breadcrumb `Profiles / source / name`; copy bằng click vào text qua `detail/CopyText.tsx` (không dùng icon copy ở email/Credentials/`SecretField`); Overview dùng `detail/SecurityCard.tsx` + `detail/TotpCard.tsx` (sửa secret base32 ở local state của `OverviewTab`), badge group/purpose nằm đầu Overview, backup code mỗi ô một tone theo index.
+- Style Profile: UI tiếng Anh, tránh lạm dụng `primary` cho badge/chip active (dùng `bg-text-secondary/10..15` + accent tone), style soft (`bg-primary/10`, tone `bg-<tone>/10 text-<tone>`), `rounded-md`, hạn chế outline (chỉ dùng `border-dashed` khi cần), không ghost. Màu tone dùng chung `TONE_CLASS`/`hashTone` ở `components/StatusBadge.tsx` (không lặp một màu primary); favicon dịch vụ/website qua `ServiceIcon` hoặc `Favicon` + `getFaviconUrl`; menu dùng `ui/Dropdown`, thông tin hover dùng `ui/Tooltip`.
+- Tab Services: `ServiceDetail.tsx` hiển thị 2FA bằng `FieldView` (không có SectionCard/header riêng), `FieldView` truyền `onRemove`/`onAdd` vào `BackupCodeGrid` để hover hiện nút X giống Overview; section Custom fields dùng `tone="muted"` (không dùng primary) và không có `desc`.
+- UI 2FA dùng chung của Overview và Services nằm ở `ProfileDrawer/common/`: `TOTP.tsx` (`TotpCard` đầy đủ: nhập secret, quét QR, dán clipboard; `TotpDisplay`, `TotpLive`), `BackupCode.tsx` (`BackupCodesCard`, `BackupCodeGrid`, `BackupItem`, `parseBackup`, `serializeBackup`, `backupTone`). Không import chéo giữa các `tab/*` (không còn `Overview/TotpCard.tsx`).
+- ProfileDrawer có 5 tab: Overview, Services, Footprint (`tab/Footprint/`: timeline chỉ tạo mốc mới khi footprint đổi, mục Website tracking, `FootprintDetail` xem đầy đủ IP/location/device/platform/screen), History (`tab/History/`: search + chip lọc theo ngày + HistoryCard có giờ), Activity. Helper dùng chung ở `utils/footprint.ts`; `BrowsingEntry.footprintId` trỏ tới `NetworkFootprint.id`.
+- `modules/Profile/components/modal/LaunchBrowserModal/` chia 3 panel: `BrowserPanel.tsx` (engine, 1 file), `ConfigPanel/` (proxy + footprint + lifecycle + header/footer), `DetailPanel/` (chi tiết proxy/fingerprint); `index.tsx` chỉ ghép layout. Phần không phải UI nằm ở `types/`, `utils/`, `hooks/` (`useLaunchConfig`, `useProxyPicker`, `useFootprintPicker`), `constants/`. Nền detail panel = nền panel giữa (`bg-background`), card trong detail dùng `bg-card-background`. Country filter của proxy là `CountryBadges` (sort theo số proxy, thừa thì gom vào dropdown "+N more", giới hạn `COUNTRY_BADGE_LIMIT`).
+
+## Footprint service
+
+- `src/renderer/src/services/fingerprint-generator.ts` là file duy nhất sinh footprint: types (`FootprintPreset`, `OsFamily`, `FingerprintSection`), `generateFootprints(ipInfo)`, `buildFingerprint(preset)`, `GEO`, `TZ_OFFSET`. File rất dài (~3000 dòng), đọc theo `start_line`/`end_line`, không đọc cả file. Không viết lại logic sinh footprint trong module Profile.
+
+## Profile server
+
+- Thư mục thực tế là `profile/` (không phải `profile-server/`). Quy ước: mỗi table một bộ `repositories/<table>.repository.ts` (chỉ SQL/mapper) → `services/<table>.service.ts` (validate, 404, nghiệp vụ) → `routes/<table>.routes.ts` (parse request, gọi service); `routes/routes.ts` chỉ ghép router (`registerRoutes`). Child của profile dùng `makeChildService` (`services/child.service.ts`) + `mountChild` (`routes/child.routes.ts`). Repository không gọi service; `profile-store.ts`/`activity-store.ts`/`service-email-store.ts` đã bị xoá.
+- Đã đổi tên 'profile' → 'email' trong `profile/src`: bảng main db `emails` (cột con `email_id`, schema v5 tự migrate từ `profiles`/`profile_id`), `repositories/email.repository.ts` + `repositories/service_email.repository.ts` (+ `service.repository.ts` giữ sources/services/children), `services/email.service.ts`, `routes/email.route.ts`, `cache/email.cache.ts`. URL API vẫn là `/profiles/...` (renderer chưa đổi).
+- Mỗi email có `<profile dir>/vault.sql` (helper `database/vault.ts`) gồm 2 bảng `emails` (recovery_email, phone, totp_enabled, `totp`, backup_codes) và `service_emails`; vault cũ (`profile`/`service_email`/`services.db`) tự migrate khi mở. Vault `emails` chỉ được ghi khi renderer gọi `PUT /profiles/:id` (Overview TOTP gọi qua `profileApi.profiles.update`).
+
+- `profile-server/` (Express + better-sqlite3, không Kysely): API `/api/v1`, envelope `{ success, data | error }`. Cấu trúc: `config/server.config.ts` (env `PROFILE_PORT`, fallback 3033; `PROFILE_DATA_DIR` mặc định `~/.phantoma/profile`), `database/connection.ts` (schema nhúng sẵn, version qua `PRAGMA user_version` — đổi schema thì tăng `SCHEMA_VERSION`), `domain/mappers.ts` (row snake_case → type camelCase của `modules/Profile/types`, thời gian trả ISO), `repositories/` (`sql.ts` helper + `makeChildStore`, `profile-store.ts`, `activity-store.ts`), `services/browser-folder.service.ts` (thư mục chrome/chromium của profile, đọc cookie/history/login bằng cách copy file ra tmp), `routes/routes.ts` (CRUD) và `routes/browser.routes.ts` (thư mục browser, mật khẩu, fingerprint history).
+- Dữ liệu lưu ở `~/.phantoma/profile/` (xem STORAGE.md mục 6): `profile.sql` + `profiles/{profileId}/{chrome,chromium}` + `passwords.db`/`fp-ip-history.db` dùng chung ở cấp base.
+- Type-check: `cd profile-server && npx tsc --noEmit`. Build/spawn giống emulate: `node scripts/build-server.js profile-server`; main spawn on-demand qua IPC `runtime:start-profile` (`startProfileServer`), dev chạy ngoài.
+
+- Import source: `SourceModal` có toggle Create new / Import existing (chỉ khi tạo mới, edit không có); import gọi `profileApi.sources.import` → `POST /sources/import` (`sourceService.importExisting`: dùng nguyên folder làm source, sync Chrome profile, dựng lại backup), handler `importSource` ở `Profile.tsx`.
+- Backup chỉ ghi: `profile/src/database/backup.ts` + `services/backup.service.ts` ghi `<dataDir>/backup/<sourceName>.sql` (bảng `emails`, `service_emails` kèm `email_id`). Hook `syncEmailBackup`/`dropEmailBackup` nằm ở tầng service (`email.service.ts`, `service_email.service.ts`), đổi tên/xóa source xử lý ở `source.service.ts`; đường đọc không dùng file này. Lỗi tsc có sẵn ở `email.repository.ts` (email lặp) và import `mapBrowsing/mapDevice/mapFootprint/mapScript` thiếu trong `service.repository.ts`.
+
+## Proxy server VPN providers
+
+- `proxy/src/services/vpn.service.ts` chạy 3 nguồn VPN-to-proxy (`warp` = temp/cloudflare-warp, `foxhole` = temp/foxhole-vpn, `proton` = temp/protonvpn-proxy qua wireproxy) dưới dạng child process SOCKS5 trên 127.0.0.1, rồi tự tạo source + proxy tương ứng; route ở `routes/vpn.route.ts` (`GET /vpn`, `GET /vpn/:id`, `POST /vpn/:id/start|stop`). Binary lấy từ PATH hoặc env `PROXY_WARP_BIN`, `PROXY_FOXHOLE_BIN`, `PROXY_WIREPROXY_BIN`; dữ liệu VPN ở `<dataDir>/vpn/<id>/`.
+- VPN account: bảng `vpn_accounts` (schema v2, `repositories/vpn-account.repository.ts`), mỗi account có 1 row `sources` ẩn cùng id (không hiện ở `GET /sources`) để proxy giữ FK; credential lưu JSON, secret không trả về client (chỉ `secretsSet`). API `/vpn/providers`, `/vpn/accounts` (CRUD) + `/:id/activate|start|stop`; phải activate trước khi start.
+- Type-check: `cd proxy && npx tsc --noEmit`.
+- Bảng `accounts` (schema v3, `repositories/account.repository.ts`): mỗi login Mozilla của Foxhole là 1 row (uid, email, session_token, profile_id, user_data_dir, profile_directory) thuộc về `source_id` = row `vpn_accounts` của provider foxhole; `activate` upsert theo `(source_id, uid)`, `start` nhận `accountId` để chọn account; renderer KHÔNG tạo vpn account mới cho mỗi lần login (`createFoxhole` dùng lại source đang chọn).
+- `foxholeBin` mặc định tự dò `temp/foxhole-vpn/dist/cli.js` (cần build: `cd temp/foxhole-vpn && npm install && npm run build`), không có thì fallback `foxhole` trên PATH hoặc env `PROXY_FOXHOLE_BIN`. Đăng nhập Mozilla bằng Google đi qua `/v1/linked_account/login` (`fxa-cdp.service.ts`); cleanup Chrome phải kill cả process group trước khi xóa thư mục tạm.
+- Renderer `modules/Proxy` gọi API thật qua `services/proxy-api.service.ts` (base URL từ `getPorts().proxy`, fallback `DEFAULT_PROXY_PORT=3044` trong `config/ports.ts`); không còn mockData. Source kiểu `vpn` (provider warp/foxhole/proton) có nút Start/Stop gọi `/vpn/:id/start|stop`. Main chưa spawn proxy server khi build (`RuntimePorts.proxy` optional).
+
+## Setting Backup
+
+- `modules/Setting/components/Backup/index.tsx` backup thư mục `~/.phantoma` lên repo GitHub private của user; main handler ở `src/main/ipc/backup.handlers.ts` (`backup:status|enable|list-dir|set-ignore|push`, đăng ký `setupBackupHandlers` ở `main/index.ts`). `git add .` / `git commit` dùng lại `git:stage-all` / `git:commit` với projectPath = `~/.phantoma`; set/unset `.gitignore` theo từng path dạng `/rel/path`.
+
 ## Widgets folder
 
 - `components/Widgets/` (trước đây là `RightPanel`) chỉ là folder chứa module UI (`Zen/`, `AgentTools/`), KHÔNG còn `index.tsx`. Mỗi module tự dựng panel riêng: Recon dùng `modules/Recon/components/ReconPanel` (tabBar Zen/Agent Tools, tab lưu theo target trong `stores/useReconPanelStore.ts`), Emulate dùng `modules/Emulate/components/EmulatePanel`; `MainLayout.tsx` render theo `activeModule`.
@@ -87,8 +131,8 @@
 
 ## Runtime servers & ports
 
-- 2 server con: `server/` (shell backend, chỉ `/health`) và `emulate/` (Emulate service).
-- Port source of truth: `src/shared/ports.ts` (`DEFAULT_SERVER_PORT=8080`, `DEFAULT_EMULATE_PORT=3002`). KHÔNG hardcode port ở bất kỳ đâu khác.
+- 3 server con: `server/` (shell backend, chỉ `/health`), `emulate/` (Emulate service) và `profile-server/` (backend module Profile).
+- Port source of truth: `src/renderer/src/config/ports.ts` (`DEFAULT_SERVER_PORT=8080`, `DEFAULT_EMULATE_PORT=3002`, `DEFAULT_PROFILE_PORT=3033`; import qua `@renderer/config/ports`, main import tương đối `../../renderer/src/config/ports`). KHÔNG hardcode port ở bất kỳ đâu khác.
 - Dev (`npm run dev`): KHÔNG nhúng, KHÔNG spawn. Server chạy ngoài, renderer dùng `DEV_PORTS`.
 - Build (`electron-builder`): `src/main/services/server-spawner.ts` fork server con qua `utilityProcess.fork`, port trống ngẫu nhiên, truyền `PORT`/`EMULATE_PORT` qua env. Renderer lấy port qua IPC `runtime:get-ports`.
 - **Shell server** spawn ngay khi app ready (`startShellServer`).
@@ -126,6 +170,14 @@
 - `npm run test:latest` — chỉ chạy bản build gần nhất trong `release-build/` (tự tìm version cao nhất), KHÔNG build lại.
 - Cả 2 đều tự `delete ELECTRON_RUN_AS_NODE` — shell môi trường của dev có set biến này (`ELECTRON_RUN_AS_NODE=1`) khiến binary chạy như Node thay vì mở app.
 - Không cần nén AppImage cho việc test logic — chỉ nén khi thực sự phát hành.
+
+## Module registry
+
+- **Single source of truth**: `src/renderer/src/config/module-registry.tsx` là nơi DUY NHẤT khai báo modules. Thêm/xóa module CHỈ cần sửa file này, tất cả file khác (ViewContainer, QuickNavModal, MainLayout) tự động cập nhật.
+- Mỗi module có `ModuleDefinition`: id, title, description, icon (lucide-react), component (lazy import), color, showInQuickNav, showInActivityBar.
+- Helper functions: `getModuleById`, `getModulesForQuickNav`, `getModulesForActivityBar`, `getAllModuleIds`, `getDefaultModuleId`.
+- Lazy loading: tất cả module dùng `lazy()` để code splitting, render bọc trong `<Suspense>` với fallback loading.
+- Xem chi tiết: `src/renderer/src/config/README.md`.
 
 ## Dev environment tips
 

@@ -6,12 +6,12 @@ import {
   Tag,
   Keyboard,
   CheckSquare,
-  TextCursorInput,
+
   Layers,
   PanelRight,
   Menu,
   MessageSquare,
-  Table as TableIcon,
+
   Calendar as CalendarIcon,
   PanelLeft,
 } from 'lucide-react';
@@ -20,11 +20,10 @@ import {
   BadgeDemo,
   KbdDemo,
   CheckboxDemo,
-  InputDemo,
 } from './sections/Basic';
 import { ModalDemo, DrawerDemo, TooltipDemo } from './sections/Feedback';
 import { DropdownDemo } from './sections/Dropdown';
-import { TableDemo, CalendarDemo, ResizableSplitDemo } from './sections/Data';
+import { CalendarDemo, ResizableSplitDemo } from './sections/Data';
 
 interface SidebarItem {
   id: string;
@@ -39,12 +38,12 @@ const ITEMS: SidebarItem[] = [
   { id: 'badge', label: 'Badge', icon: Tag, component: BadgeDemo },
   { id: 'kbd', label: 'Kbd', icon: Keyboard, component: KbdDemo },
   { id: 'checkbox', label: 'Checkbox', icon: CheckSquare, component: CheckboxDemo },
-  { id: 'input', label: 'Input', icon: TextCursorInput, component: InputDemo },
+
   { id: 'modal', label: 'Modal', icon: Layers, component: ModalDemo },
   { id: 'drawer', label: 'Drawer', icon: PanelRight, component: DrawerDemo },
   { id: 'dropdown', label: 'Dropdown', icon: Menu, component: DropdownDemo },
   { id: 'tooltip', label: 'Tooltip', icon: MessageSquare, component: TooltipDemo },
-  { id: 'table', label: 'Table', icon: TableIcon, component: TableDemo },
+
   { id: 'calendar', label: 'Calendar', icon: CalendarIcon, component: CalendarDemo },
   { id: 'resizable-split', label: 'ResizableSplit', icon: PanelLeft, component: ResizableSplitDemo },
 ];
@@ -75,7 +74,7 @@ const UITest: React.FC = () => {
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
                   activeId === item.id
                     ? 'bg-primary/10 text-primary'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-card-hover'
                 }`}
               >
                 <Icon className="w-4 h-4" />

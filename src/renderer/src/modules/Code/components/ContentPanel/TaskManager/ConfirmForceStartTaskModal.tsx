@@ -73,7 +73,7 @@ export function ConfirmForceStartTaskModal({
             marked as Done.
           </p>
 
-          <div className="w-full flex flex-col items-center gap-1.5 mt-1 py-3 px-3 rounded-xl border border-divider bg-sidebar-background/50">
+          <div className="w-full flex flex-col items-center gap-1.5 mt-1 py-3 px-3 rounded-xl border border-border bg-panel-background/50">
             {tiers.map((tier, i) => (
               <div key={i} className="flex flex-col items-center gap-1.5">
                 <div className="flex flex-wrap justify-center gap-1.5">
@@ -92,10 +92,10 @@ export function ConfirmForceStartTaskModal({
         </div>
       </ModalBody>
 
-      <ModalFooter className="gap-0 p-0 border-t border-divider">
+      <ModalFooter className="gap-0 p-0 border-t border-border">
         <button
           onClick={onClose}
-          className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-divider"
+          className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-border"
         >
           Cancel
         </button>

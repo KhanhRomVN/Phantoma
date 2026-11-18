@@ -212,7 +212,7 @@ function ListFilterSection({
         <div className="flex gap-1.5 relative w-full items-center">
           <div className="flex-1">
             <input
-              className="w-full bg-input-background border border-input-border-default hover:border-primary focus:border-primary/70 rounded px-3 py-2 text-xs focus:bg-input-background/80 outline-none h-10 transition-all text-text-primary placeholder:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-input-background border border-input-border-default hover:border-primary rounded px-3 py-2 text-xs outline-none h-10 transition-all text-text-primary placeholder:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={disabled}
               value={input}
               onChange={(e) => {
@@ -246,7 +246,7 @@ function ListFilterSection({
           {showSuggestions && filteredSuggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-background border border-divider rounded-md shadow-xl z-50"
+              className="absolute top-full mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-background border border-border rounded-md shadow-xl z-50"
             >
               <div className="p-1 flex flex-col gap-1">
                 {filteredSuggestions.map((suggestion) => {
@@ -259,7 +259,7 @@ function ListFilterSection({
                         'w-full text-left px-2 py-2 text-xs rounded transition-colors flex items-center justify-between gap-2 min-w-0',
                         isAlreadyAdded
                           ? 'bg-primary/20 text-primary font-medium hover:bg-primary/30'
-                          : 'hover:bg-sidebar-item-hover/40 text-text-secondary hover:text-text-primary',
+                          : 'hover:bg-card-hover/40 text-text-secondary hover:text-text-primary',
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0">

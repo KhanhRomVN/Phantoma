@@ -176,7 +176,7 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
       </div>
       <button
         onClick={handleOpenExternal}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary transition-colors"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors"
       >
         <ExternalLink className="w-4 h-4" />
         Open with default app

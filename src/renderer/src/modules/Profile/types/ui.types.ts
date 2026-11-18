@@ -1,0 +1,1 @@
+export type Tone = 'success' | 'error' | 'warn' | 'info' | 'primary' | 'muted';

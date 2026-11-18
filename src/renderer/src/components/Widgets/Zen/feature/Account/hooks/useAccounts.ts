@@ -27,6 +27,11 @@ export const getAccountStatus = (account: FlatAccount): AccountStatus => {
   return 'inactive';
 };
 
+const accountEndpoint = (accounts: FlatAccount[], id: string): string =>
+  accounts.find((a) => a.id === id)?.is_api_account
+    ? `/v1/api-accounts/${id}`
+    : `/v1/accounts/${id}`;
+
 const ACCOUNTS_CACHE_KEY = 'zen.accounts.cache.v1';
 const PROVIDERS_CACHE_KEY = 'zen.providers.cache.v1';
 
@@ -204,9 +209,36 @@ export const useAccounts = (isOpen: boolean) => {
             }),
           );
 
-          setAllAccounts(accountsWithStats);
+          let apiAccounts: FlatAccount[] = [];
+          try {
+            const apiResult = await callBackend('/v1/api-accounts?page=1&limit=10000');
+            if (apiResult.success && apiResult.data) {
+              apiAccounts = (apiResult.data.accounts || []).map((a: any) => ({
+                id: a.id,
+                provider_id: `api:${a.provider_name}`,
+                email: a.label || a.provider_name,
+                credential: a.api_key || '',
+                usage: a.usage ?? undefined,
+                reset_usage_at: a.reset_usage_at ?? undefined,
+                is_active_cli: true,
+                is_api_account: true,
+                auth_method: 'API',
+                base_url: a.base_url,
+                api_type: a.api_type,
+                label: a.label ?? undefined,
+                website: a.config?.website,
+                config: a.config ?? null,
+                expires_at: a.expires_at ?? null,
+              }));
+            }
+          } catch (err) {
+            console.error('Failed to fetch API accounts:', err);
+          }
+          const mergedAccounts = [...accountsWithStats, ...apiAccounts];
+
+          setAllAccounts(mergedAccounts);
           if (emailFilter.length === 0 && statsPeriod === 'day') {
-            writeCache(ACCOUNTS_CACHE_KEY, accountsWithStats);
+            writeCache(ACCOUNTS_CACHE_KEY, mergedAccounts);
           }
           setPagination({
             total: result.data.pagination?.total || 0,
@@ -247,10 +279,12 @@ export const useAccounts = (isOpen: boolean) => {
     setDeleteLoading(true);
     try {
       if (deleteItem) {
-        await callBackend(`/v1/accounts/${deleteItem.id}`, 'DELETE');
+        await callBackend(accountEndpoint(allAccounts, deleteItem.id), 'DELETE');
       } else if (selectedAccounts.size > 0) {
         await Promise.all(
-          Array.from(selectedAccounts).map((id) => callBackend(`/v1/accounts/${id}`, 'DELETE')),
+          Array.from(selectedAccounts).map((id) =>
+            callBackend(accountEndpoint(allAccounts, id), 'DELETE'),
+          ),
         );
         setSelectedAccounts(new Set());
       }

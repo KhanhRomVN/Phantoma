@@ -42,7 +42,7 @@ const ThemeCard: React.FC<ThemeCardProps> = ({ theme, selected, onSelect }) => {
       >
         <div
           className="flex h-5 items-center gap-1 px-2"
-          style={{ background: c('sidebarBackground'), borderBottom: border }}
+          style={{ background: c('panelBackground'), borderBottom: border }}
         >
           {(['red', 'yellow', 'green'] as const).map((k) => (
             <span key={k} className="h-1.5 w-1.5 rounded-full" style={{ background: c(k) }} />
@@ -55,7 +55,7 @@ const ThemeCard: React.FC<ThemeCardProps> = ({ theme, selected, onSelect }) => {
         <div className="flex h-24">
           <div
             className="w-1/4 space-y-1.5 p-2"
-            style={{ background: c('sidebarBackground'), borderRight: border }}
+            style={{ background: c('panelBackground'), borderRight: border }}
           >
             <Line color={c('primary')} width="100%" />
             <Line color={c('textSecondary')} width="75%" opacity={0.35} />
@@ -78,11 +78,11 @@ const ThemeCard: React.FC<ThemeCardProps> = ({ theme, selected, onSelect }) => {
               <div className="flex gap-1.5 pt-1">
                 <span
                   className="h-2.5 w-8 rounded-full"
-                  style={{ background: c('buttonSolidBackground') }}
+                  style={{ background: c('primary') }}
                 />
                 <span
                   className="h-2.5 w-8 rounded-full"
-                  style={{ background: c('buttonSoftBackground'), border }}
+                  style={{ background: `${c('primary')}22`, border }}
                 />
               </div>
             </div>

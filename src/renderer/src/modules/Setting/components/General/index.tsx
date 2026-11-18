@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useServerHealth } from '../../../../providers/ServerHealthProvider';
 import { getRuntimePorts } from '@renderer/services/runtime-ports';
-import { DEV_PORTS, serverBaseUrl, emulateBaseUrl } from '@app/ports';
+import { DEV_PORTS, serverBaseUrl, emulateBaseUrl } from '@renderer/config/ports';
 
 const General: React.FC = () => {
   const [serverPort, setServerPort] = useState<number>(DEV_PORTS.server);
@@ -29,9 +29,12 @@ const General: React.FC = () => {
           <label className="block text-sm font-medium text-text-primary tracking-wide mb-1.5">
             Server Port
           </label>
-          <div className="w-full max-w-md px-4 py-3 bg-input-background border border-border rounded-md text-text-primary text-[13px] font-mono">
-            {new URL(serverBaseUrl(serverPort)).port}
-          </div>
+          <input
+            type="text"
+            readOnly
+            value={new URL(serverBaseUrl(serverPort)).port}
+            className="w-full max-w-md px-4 py-3 bg-input-background border border-border rounded-md text-text-primary text-[13px] font-mono outline-none"
+          />
           <p className="text-[10px] text-text-secondary mt-2 mb-0">
             Cổng do ứng dụng tự chọn khi khởi động (không cố định).
           </p>
@@ -60,9 +63,12 @@ const General: React.FC = () => {
           <label className="block text-sm font-medium text-text-primary tracking-wide mb-1.5">
             Emulate Service Port
           </label>
-          <div className="w-full max-w-md px-4 py-3 bg-input-background border border-border rounded-md text-text-primary text-[13px] font-mono">
-            {new URL(emulateBaseUrl(emulatePort)).port}
-          </div>
+          <input
+            type="text"
+            readOnly
+            value={new URL(emulateBaseUrl(emulatePort)).port}
+            className="w-full max-w-md px-4 py-3 bg-input-background border border-border rounded-md text-text-primary text-[13px] font-mono outline-none"
+          />
           <p className="text-[10px] text-text-secondary mt-2 mb-0">
             Cổng do ứng dụng tự chọn khi khởi động (không cố định).
           </p>

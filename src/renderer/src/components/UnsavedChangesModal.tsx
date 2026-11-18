@@ -84,18 +84,18 @@ export function UnsavedChangesModal({
         </div>
       </ModalBody>
 
-      <ModalFooter className="gap-0 p-0 border-t border-divider">
+      <ModalFooter className="gap-0 p-0 border-t border-border">
         <button
           onClick={onClose}
           disabled={saving}
-          className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-divider disabled:opacity-50"
+          className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-border disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           onClick={onDiscard}
           disabled={saving}
-          className="flex-1 h-[42px] text-xs font-medium text-error hover:bg-error/[0.06] transition-colors border-r border-divider flex items-center justify-center gap-1.5 disabled:opacity-50"
+          className="flex-1 h-[42px] text-xs font-medium text-error hover:bg-error/[0.06] transition-colors border-r border-border flex items-center justify-center gap-1.5 disabled:opacity-50"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Don't Save

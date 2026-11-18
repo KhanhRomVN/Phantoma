@@ -249,7 +249,7 @@ export function FooterBar({ className }: FooterBarProps) {
   return (
     <div
       className={cn(
-        'h-7 border-t border-border bg-sidebar-background/80 backdrop-blur-sm px-3 flex items-center justify-between gap-3 text-[11px] select-none shrink-0 w-full',
+        'h-7 border-t border-border bg-panel-background/80 backdrop-blur-sm px-3 flex items-center justify-between gap-3 text-[11px] select-none shrink-0 w-full',
         className,
       )}
     >

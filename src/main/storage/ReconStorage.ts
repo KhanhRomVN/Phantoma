@@ -1,7 +1,7 @@
 /**
  * Recon Storage — lưu target recon dưới dạng thư mục file .recon
  *
- * Mỗi target là một thư mục `~/.phantoma/recon:{targetId}/` chứa các file `.recon`
+ * Mỗi target là một thư mục `~/.phantoma/recon/{targetId}/` chứa các file `.recon`
  * (cùng định dạng với `src/renderer/src/modules/Recon/mock/mock1/`).
  * `_index.recon` là nguồn sự thật cho danh sách target (title, target_type, tags).
  */
@@ -15,14 +15,14 @@ const TARGET_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 const RECON_FILE_PATTERN = /\.recon$/;
 
 function getReconRoot(): string {
-  return path.join(app.getPath('home'), '.phantoma');
+  return path.join(app.getPath('home'), '.phantoma', 'recon');
 }
 
 function getTargetDir(targetId: string): string {
   if (!TARGET_ID_PATTERN.test(targetId)) {
     throw new Error(`Invalid target id: ${targetId}`);
   }
-  return path.join(getReconRoot(), `recon:${targetId}`);
+  return path.join(getReconRoot(), targetId);
 }
 
 function writeFileAtomic(filePath: string, content: string): void {
@@ -125,8 +125,8 @@ class ReconStorageService {
 
     const records: ReconTargetRecord[] = [];
     for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-      if (!entry.isDirectory() || !entry.name.startsWith('recon:')) continue;
-      const id = entry.name.slice('recon:'.length);
+      if (!entry.isDirectory()) continue;
+      const id = entry.name;
       const indexPath = path.join(root, entry.name, '_index.recon');
       if (!fs.existsSync(indexPath)) continue;
 

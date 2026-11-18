@@ -61,7 +61,7 @@ export const ScopeFilterButton = memo(function ScopeFilterButton({
         role="button"
         title="Clear filter"
         onClick={() => setFilter(projectId, null)}
-        className="inline-flex items-center justify-center h-6 px-1.5 rounded cursor-pointer bg-button-soft-background hover:bg-button-soft-background/80 transition-colors"
+        className="inline-flex items-center justify-center h-6 px-1.5 rounded cursor-pointer bg-text-secondary/10 hover:bg-text-secondary/15 transition-colors"
       >
         <span
           className={cn(

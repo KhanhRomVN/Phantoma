@@ -69,7 +69,7 @@ function PagePreview({ projectPath, design }: { projectPath: string; design: Des
   return (
     <div
       ref={boxRef}
-      className="relative w-full overflow-hidden border-b border-divider bg-sidebar-background"
+      className="relative w-full overflow-hidden border-b border-border bg-panel-background"
       style={{ aspectRatio: `${FRAME_WIDTH} / ${FRAME_HEIGHT}` }}
     >
       {node && (
@@ -90,7 +90,7 @@ function PagePreview({ projectPath, design }: { projectPath: string; design: Des
         />
       )}
       {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-sidebar-background text-text-secondary/50">
+        <div className="absolute inset-0 flex items-center justify-center bg-panel-background text-text-secondary/50">
           <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
         </div>
       )}

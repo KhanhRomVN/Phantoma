@@ -501,22 +501,14 @@ export function SkillGroupModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-2 rounded-lg border-none text-xs font-medium cursor-pointer"
-              style={{
-                backgroundColor: `color-mix(in srgb, ${textSecondary} 8%, transparent)`,
-                color: textSecondary,
-              }}
+              className="px-3.5 py-2 rounded-lg border-none text-xs font-medium cursor-pointer transition-colors bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={() => onConfirmInstall(selected)}
-              className="px-3.5 py-2 rounded-lg border-none text-xs font-semibold cursor-pointer flex items-center gap-1.5"
-              style={{
-                backgroundColor: `color-mix(in srgb, ${primaryColor} 18%, transparent)`,
-                color: primaryColor,
-              }}
+              className="px-3.5 py-2 rounded-lg border-none text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-colors bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
             >
               <Plus size={13} />
               Install

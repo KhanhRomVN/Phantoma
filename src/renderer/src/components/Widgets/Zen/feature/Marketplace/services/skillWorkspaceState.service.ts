@@ -7,7 +7,6 @@
  */
 
 export interface SkillWorkspaceState {
-  toggles: Record<string, boolean>;
   groups: Array<{
     name: string;
     slugs: string[];
@@ -15,13 +14,10 @@ export interface SkillWorkspaceState {
     color?: string;
     description?: string;
   }>;
-  collapsedGroups: Record<string, boolean>;
 }
 
 export const DEFAULT_SKILL_WORKSPACE_STATE: SkillWorkspaceState = {
-  toggles: {},
   groups: [],
-  collapsedGroups: {},
 };
 
 interface SkillApiResponse<T> {
@@ -40,9 +36,7 @@ export async function loadSkillWorkspaceState(): Promise<SkillWorkspaceState> {
     if (!res?.success || !res.data) return DEFAULT_SKILL_WORKSPACE_STATE;
     const d = res.data;
     return {
-      toggles: d.toggles ?? {},
       groups: Array.isArray(d.groups) ? d.groups : [],
-      collapsedGroups: d.collapsedGroups ?? {},
     };
   } catch {
     return DEFAULT_SKILL_WORKSPACE_STATE;

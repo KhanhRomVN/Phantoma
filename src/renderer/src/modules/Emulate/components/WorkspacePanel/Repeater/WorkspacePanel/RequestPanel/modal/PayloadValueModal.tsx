@@ -727,13 +727,13 @@ export function PayloadValueModal({
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-3 py-1.5 rounded text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-3 py-1.5 rounded text-xs font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
             >
               Save Values
             </button>

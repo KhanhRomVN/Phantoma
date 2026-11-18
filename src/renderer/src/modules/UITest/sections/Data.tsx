@@ -1,65 +1,7 @@
 import { useState } from 'react';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableFooter,
-  TableRow,
-  TableCell,
-} from '@renderer/components/ui/Table';
 import Calendar from '@renderer/components/ui/Calendar/Calendar';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit';
 import { Demo, Section } from '../shared';
-
-const ROWS = [
-  { id: 1, name: 'Alpha', status: 'active', size: 120 },
-  { id: 2, name: 'Beta', status: 'paused', size: 80 },
-  { id: 3, name: 'Gamma', status: 'done', size: 45 },
-];
-
-export function TableDemo() {
-  const [selected, setSelected] = useState<number | null>(null);
-
-  return (
-    <Section
-      title="Table"
-      description="Table, TableHeader, TableBody, TableFooter, TableRow (+ HTML attrs, onClick), TableCell (as: th | td, colSpan...), className"
-    >
-      <Demo label="basic + row onClick + className" column>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableCell as="th">Name</TableCell>
-              <TableCell as="th">Status</TableCell>
-              <TableCell as="th" className="text-right">
-                Size
-              </TableCell>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {ROWS.map((row) => (
-              <TableRow
-                key={row.id}
-                onClick={() => setSelected(row.id)}
-                className={selected === row.id ? 'bg-primary/10' : 'cursor-pointer'}
-              >
-                <TableCell>{row.name}</TableCell>
-                <TableCell>{row.status}</TableCell>
-                <TableCell className="text-right">{row.size}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell colSpan={2}>Selected: {selected ?? 'none'}</TableCell>
-              <TableCell className="text-right">{ROWS.reduce((s, r) => s + r.size, 0)}</TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
-      </Demo>
-    </Section>
-  );
-}
 
 export function CalendarDemo() {
   const [value, setValue] = useState<string | null>(null);

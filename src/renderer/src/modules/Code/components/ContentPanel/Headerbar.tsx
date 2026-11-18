@@ -183,7 +183,7 @@ export function ContentHeaderBar() {
   return (
     <>
       <div
-        className="w-full shrink-0 border-b border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center gap-3"
+        className="w-full shrink-0 border-b border-border bg-panel-background/80 backdrop-blur-sm px-4 flex items-center gap-3"
         style={{ height: CONTENT_HEADER_HEIGHT }}
       >
         {/* LEFT SECTION: Session Name + Branch Badge */}

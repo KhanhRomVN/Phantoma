@@ -33,15 +33,37 @@ export interface FaviconProps {
 }
 
 // ─── Functions ──────────────────────────────────────────────────────────
+// ASSUMED: heuristic root domain (keeps 3 labels for com.vn / co.uk style) — upgrade path: use the tldts / public suffix list
+const getRootOrigin = (u: URL): string => {
+  const parts = u.hostname.split('.');
+  if (parts.length <= 2 || /^\d+(\.\d+){3}$/.test(u.hostname)) return u.origin;
+  const secondLevel = ['com', 'net', 'org', 'co', 'gov', 'edu', 'ac'];
+  const tld = parts[parts.length - 1];
+  const sld = parts[parts.length - 2];
+  const keep = tld.length === 2 && secondLevel.includes(sld) ? 3 : 2;
+  return `${u.protocol}//${parts.slice(-keep).join('.')}`;
+};
+
 export const getFaviconUrl = (url?: string, size: number = 32): string => {
   if (!url) return '/favicon-fallback.png';
 
   try {
-    const domain = new URL(url).hostname;
-    // Google's favicon service - most reliable
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+    const origin = getRootOrigin(new URL(url));
+    // Google faviconV2 - fallback_opts=URL makes it read the site's own icon when S2 has no entry for the (sub)domain
+    return `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(origin)}&size=${size}`;
   } catch {
     return '/favicon-fallback.png';
+  }
+};
+
+// Google has no entry for some subdomains (404) — retry once with the site's own /favicon.ico
+const getOwnIconUrl = (src: string): string | null => {
+  if (!src.includes('faviconV2')) return null;
+  try {
+    const target = new URL(src).searchParams.get('url');
+    return target ? `${new URL(target).origin}/favicon.ico` : null;
+  } catch {
+    return null;
   }
 };
 
@@ -151,23 +173,30 @@ export const Favicon: React.FC<FaviconProps> = ({
   onLoad,
 }) => {
   const [failed, setFailed] = useState(false);
+  const [src, setSrc] = useState(url);
 
   useEffect(() => {
     setFailed(false);
+    setSrc(url);
   }, [url]);
 
-  if (!url || failed) {
+  if (!src || failed) {
     return fallbackIcon ? React.createElement(React.Fragment, null, fallbackIcon) : null;
   }
 
   return React.createElement('img', {
-    src: url,
+    src,
     width: size,
     height: size,
     alt,
     className,
     onLoad,
     onError: () => {
+      const own = getOwnIconUrl(src);
+      if (own) {
+        setSrc(own);
+        return;
+      }
       setFailed(true);
       onError?.();
     },

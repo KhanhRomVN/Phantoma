@@ -141,14 +141,14 @@ export function DesignModal({ isOpen, onClose, onSubmit }: DesignModalProps) {
       <ModalFooter>
         <button
           onClick={onClose}
-          className="bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 rounded-lg px-4 py-2 text-xs font-medium transition-all"
+          className="bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15 hover:text-text-primary active:bg-text-secondary/20 rounded-lg px-4 py-2 text-xs font-medium transition-all"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70 disabled:cursor-not-allowed disabled:opacity-40 rounded-lg px-4 py-2 text-xs font-medium transition-all"
+          className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30 disabled:cursor-not-allowed disabled:opacity-40 rounded-lg px-4 py-2 text-xs font-medium transition-all"
         >
           Create
         </button>

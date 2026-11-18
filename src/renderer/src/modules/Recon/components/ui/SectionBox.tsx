@@ -128,7 +128,7 @@ export default function SectionBox({ box }: Props) {
                 placeholder="Tìm kiếm..."
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
-                className="w-44 h-7 bg-input-background border border-input-border-default rounded-md pl-7 pr-2 text-xs text-text-primary focus:outline-none focus:border-primary"
+                className="w-44 h-7 bg-input-background border border-input-border-default rounded-md pl-7 pr-2 text-xs text-text-primary outline-none"
               />
             </div>
           )}

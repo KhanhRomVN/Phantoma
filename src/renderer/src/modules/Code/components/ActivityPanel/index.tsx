@@ -205,7 +205,7 @@ export function ActivityPanel() {
   // ── Render ──
   return (
     <div
-      className="flex flex-col h-full bg-sidebar-background border-l border-border relative flex-shrink-0 transition-all duration-300"
+      className="flex flex-col h-full bg-panel-background border-l border-border relative flex-shrink-0 transition-all duration-300"
       style={{ width: collapsed ? 44 : activityPanelWidth }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Check,
   ChevronDown,
@@ -34,9 +34,17 @@ const STRATEGIES = ['fixed', 'relative'] as const;
 const TRIGGERS = ['click', 'contextmenu'] as const;
 const OFFSETS: number[] = [4, 12, 32];
 const WIDTHS: number[] = [0, 200, 280];
-const MENU_ITEMS = ['Profile', 'Settings', 'Billing', 'Team', 'Integrations', 'API keys', 'Audit log'];
+const MENU_ITEMS = [
+  'Profile',
+  'Settings',
+  'Billing',
+  'Team',
+  'Integrations',
+  'API keys',
+  'Audit log',
+];
 const LANGS = ['English', 'Tiếng Việt', 'Français', 'Deutsch', 'Español', 'Português', 'Italiano'];
-const THEMES = ['MidnightBlue', 'MonoBlack', 'VioletAbyss', 'EmberVoid'];
+const THEMES = ['VioletAbyss'];
 const FILES = ['README.md', 'package.json', 'tailwind.config.js', 'src/'];
 
 export default function DropdownTab() {
@@ -53,7 +61,7 @@ export default function DropdownTab() {
   const [picked, setPicked] = useState('none');
 
   const [lang, setLang] = useState('English');
-  const [theme, setTheme] = useState('MidnightBlue');
+  const [theme, setTheme] = useState('VioletAbyss');
   const [lastAction, setLastAction] = useState('none');
 
   const dropdownProps: Omit<DropdownProps, 'children'> = {
@@ -70,17 +78,13 @@ export default function DropdownTab() {
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
-      <Panel
-        title="Playground"
-        description={`picked: ${picked}`}
-        className="xl:row-span-2"
-      >
+      <Panel title="Playground" description={`picked: ${picked}`} className="xl:row-span-2">
         <div className="flex flex-col gap-4">
           <div className="flex min-h-[140px] items-center justify-center rounded-lg border border-dashed border-border bg-background p-6">
             <Dropdown {...dropdownProps}>
               <DropdownTrigger asChild>
                 {trigger === 'click' ? (
-                  <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">
+                  <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
                     Open menu
                     <ChevronDown className="h-3.5 w-3.5" />
                   </Button>
@@ -128,7 +132,11 @@ export default function DropdownTab() {
             <div className="grid grid-cols-2 gap-2">
               <Toggle label="searchable" checked={searchable} onChange={setSearchable} />
               <Toggle label="closeOnSelect" checked={closeOnSelect} onChange={setCloseOnSelect} />
-              <Toggle label="disableAutoFlip" checked={disableAutoFlip} onChange={setDisableAutoFlip} />
+              <Toggle
+                label="disableAutoFlip"
+                checked={disableAutoFlip}
+                onChange={setDisableAutoFlip}
+              />
             </div>
           </Field>
           <JsxPreview name="Dropdown" props={dropdownProps as Record<string, unknown>} />
@@ -139,7 +147,7 @@ export default function DropdownTab() {
         <Panel title="User menu" description={`DropdownSub chọn theme: ${theme}`}>
           <Dropdown align="start" width={220}>
             <DropdownTrigger>
-              <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
                 <User className="h-3.5 w-3.5" />
                 Account
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -237,7 +245,7 @@ export default function DropdownTab() {
         </Panel>
 
         <Panel title="Row action menu" description="align=end, nút ba chấm">
-          <div className="flex flex-col divide-y divide-divider">
+          <div className="flex flex-col divide-y divide-border">
             {['Alpha', 'Beta', 'Gamma'].map((row) => (
               <div key={row} className="flex items-center justify-between py-2">
                 <span className="text-sm text-text-primary">{row}</span>

@@ -255,7 +255,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                 <label className="block text-[10px] font-mono uppercase tracking-widest text-text-secondary/50 mb-1.5">
                   Project name
                 </label>
-                <div className="flex items-center gap-3 bg-sidebar-item-hover rounded-lg px-3 py-2">
+                <div className="flex items-center gap-3 bg-card-hover rounded-lg px-3 py-2">
                   <Folder className="w-4 h-4 text-text-secondary shrink-0" strokeWidth={1.5} />
                   <input
                     type="text"
@@ -272,7 +272,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                   Location
                 </label>
                 <div className="flex gap-2">
-                  <div className="flex-1 flex items-center gap-3 bg-sidebar-item-hover rounded-lg px-3 py-2">
+                  <div className="flex-1 flex items-center gap-3 bg-card-hover rounded-lg px-3 py-2">
                     <Home className="w-4 h-4 text-text-secondary shrink-0" strokeWidth={1.5} />
                     <input
                       type="text"
@@ -281,7 +281,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                       className="flex-1 bg-transparent outline-none text-text-primary placeholder:text-text-secondary/60 text-sm font-mono"
                     />
                   </div>
-                  <Button className="h-[38px] w-[38px] rounded-lg bg-sidebar-item-hover text-text-secondary hover:bg-sidebar-item-active hover:text-text-primary grid place-items-center transition-colors border-none shrink-0">
+                  <Button className="h-[38px] w-[38px] rounded-lg bg-card-hover text-text-secondary hover:bg-card-hover hover:text-text-primary grid place-items-center transition-colors border-none shrink-0">
                     <FolderOpen className="w-4 h-4" strokeWidth={1.5} />
                   </Button>
                 </div>
@@ -374,7 +374,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                     className={cn(
                       'w-3.5 h-3.5 rounded border grid place-items-center transition-colors',
                       options[opt.key as keyof typeof options]
-                        ? 'bg-warn border-warn text-button-solid-text'
+                        ? 'bg-warn border-warn text-text-foreground'
                         : 'border-border text-transparent',
                     )}
                   >
@@ -385,12 +385,12 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
               ))}
             </div>
 
-            <div className="flex items-center gap-3 bg-sidebar-item-hover rounded-lg px-3 py-2 mt-1">
+            <div className="flex items-center gap-3 bg-card-hover rounded-lg px-3 py-2 mt-1">
               <FileText className="w-4 h-4 text-text-secondary shrink-0" strokeWidth={1.5} />
               <select
                 value={license}
                 onChange={(e) => setLicense(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-text-primary placeholder:text-text-secondary/60 text-sm font-mono appearance-none cursor-pointer [&_option]:bg-sidebar-background [&_option]:text-text-primary"
+                className="flex-1 bg-transparent outline-none text-text-primary placeholder:text-text-secondary/60 text-sm font-mono appearance-none cursor-pointer [&_option]:bg-panel-background [&_option]:text-text-primary"
               >
                 {['MIT', 'Apache-2.0', 'GPL-3.0', 'Proprietary'].map((l) => (
                   <option key={l} value={l}>
@@ -438,7 +438,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
               <div className="h-3 shrink-0" />
 
               {/* Tree Preview */}
-              <div className="mx-3.5 p-2 rounded-md bg-sidebar-background border border-border font-mono text-[11px] leading-relaxed text-text-secondary flex-1 min-h-0 overflow-hidden">
+              <div className="mx-3.5 p-2 rounded-md bg-panel-background border border-border font-mono text-[11px] leading-relaxed text-text-secondary flex-1 min-h-0 overflow-hidden">
                 {selectedTemplate.treePreview.map((node, idx) => (
                   <div
                     key={idx}
@@ -464,7 +464,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
           </div>
         </div>
       </ModalBody>
-      <ModalFooter className="justify-end px-5 py-4 bg-sidebar-background/50 border-t border-border">
+      <ModalFooter className="justify-end px-5 py-4 bg-panel-background/50 border-t border-border">
         <div className="flex-1 mr-auto text-[11.5px] text-text-secondary/60 flex items-center gap-3 min-w-0">
           <span>
             Will create in{' '}

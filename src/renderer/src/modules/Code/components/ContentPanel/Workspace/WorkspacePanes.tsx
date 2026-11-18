@@ -289,10 +289,10 @@ function WorkspaceTab({
       }}
       className={cn(
         'group/tab h-9 px-3 flex items-center gap-2 shrink-0 transition-colors text-[13px] relative',
-        'border-r border-divider',
+        'border-r border-border',
         isActive
           ? 'bg-card-background text-text-primary border-b-2 border-b-primary/80' // Added bottom border
-          : 'bg-sidebar-background text-text-secondary hover:bg-white/[0.03]',
+          : 'bg-panel-background text-text-secondary hover:bg-white/[0.03]',
       )}
       style={{ cursor: 'grab', userSelect: 'none' }}
     >
@@ -549,7 +549,7 @@ export function TabBar({
   return (
     <div
       ref={tabBarRef}
-      className="h-9 w-full shrink-0 flex items-end bg-sidebar-background border-b border-divider"
+      className="h-9 w-full shrink-0 flex items-end bg-panel-background border-b border-border"
     >
       <div
         ref={scrollRef}
@@ -907,7 +907,7 @@ function Divider({
     >
       <div
         className={cn(
-          'absolute bg-divider group-hover:bg-primary transition-colors',
+          'absolute bg-border group-hover:bg-primary transition-colors',
           isVertical
             ? 'inset-y-0 left-1/2 w-[2px] -translate-x-1/2'
             : 'inset-x-0 top-1/2 h-[2px] -translate-y-1/2',

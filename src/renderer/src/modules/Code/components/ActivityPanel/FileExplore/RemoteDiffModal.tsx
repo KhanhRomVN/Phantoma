@@ -128,7 +128,7 @@ export function RemoteDiffModal({ isOpen, onClose, projectPath, filePath }: Remo
       />
       <ModalBody className="p-0 flex flex-col min-h-0 overflow-hidden">
         <div className="flex-1 min-h-0 overflow-auto">
-          <div className="sticky top-0 z-10 grid grid-cols-2 h-9 border-b border-divider bg-card-background text-[13px] font-medium text-text-secondary">
+          <div className="sticky top-0 z-10 grid grid-cols-2 h-9 border-b border-border bg-card-background text-[13px] font-medium text-text-secondary">
             <span className="flex items-center gap-1.5 px-3 min-w-0">
               <GitBranch className="w-3.5 h-3.5 shrink-0" strokeWidth={1.5} />
               <span className="truncate">{remoteRef || 'remote default'}</span>

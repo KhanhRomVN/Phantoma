@@ -315,7 +315,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
   if (!emulatorSerial) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
+        <div className="px-4 pt-4 pb-3 border-b border-border shrink-0 flex items-center gap-3">
           <div className="flex items-center justify-center w-9 h-10 rounded-lg bg-green-500/15 border border-green-500/25">
             <Search className="w-4 h-4 text-green-400" />
           </div>
@@ -345,7 +345,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
   return (
     <div className="flex flex-col h-full bg-card-background">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-divider shrink-0 flex items-center gap-3">
+      <div className="px-4 pt-4 pb-3 border-b border-border shrink-0 flex items-center gap-3">
         <div className="flex items-center justify-center w-9 h-10 rounded-lg border border-success/25 bg-success/15">
           <Search className="w-4 h-4 text-success" />
         </div>
@@ -372,7 +372,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
             placeholder="Search logs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-7 pr-16 py-1 text-xs bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full pl-7 pr-16 py-1 text-xs bg-input-background border border-border rounded outline-none"
           />
           <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
             <button
@@ -381,7 +381,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                 'p-0.5 rounded cursor-pointer border-none transition-all',
                 matchCase
                   ? 'bg-primary/20 text-primary'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
+                  : 'text-text-secondary hover:text-text-primary hover:bg-card-hover',
               )}
             >
               <CaseSensitive className="w-3 h-3" />
@@ -392,7 +392,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                 'p-0.5 rounded cursor-pointer border-none transition-all',
                 matchWholeWord
                   ? 'bg-primary/20 text-primary'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
+                  : 'text-text-secondary hover:text-text-primary hover:bg-card-hover',
               )}
             >
               <WholeWord className="w-3 h-3" />
@@ -403,7 +403,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                 'p-0.5 rounded cursor-pointer border-none transition-all',
                 useRegex
                   ? 'bg-success/20 text-success'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
+                  : 'text-text-secondary hover:text-text-primary hover:bg-card-hover',
               )}
             >
               <Regex className="w-3 h-3" />
@@ -492,7 +492,7 @@ export function LogViewer({ emulatorSerial, onClose }: LogViewerProps) {
                         placeholder="Search packages..."
                         value={packageSearchTerm}
                         onChange={(e) => setPackageSearchTerm(e.target.value)}
-                        className="w-full px-2 py-1 text-xs bg-muted border border-border rounded"
+                        className="w-full px-2 py-1 text-xs bg-input-background border border-border rounded outline-none"
                       />
                       <div className="flex gap-2">
                         <button

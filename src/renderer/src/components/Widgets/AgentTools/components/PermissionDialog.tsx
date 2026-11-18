@@ -79,8 +79,8 @@ export const PermissionDialog = memo<PermissionDialogProps>(({ className }) => {
               onClick={() => handleResolve(true)}
               className={cn(
                 'px-4 py-2 rounded-md text-sm font-medium transition-colors',
-                'bg-button-soft-background text-text-primary',
-                'hover:bg-button-soft-background/80',
+                'bg-text-secondary/10 text-text-primary',
+                'hover:bg-text-secondary/15',
               )}
             >
               Allow

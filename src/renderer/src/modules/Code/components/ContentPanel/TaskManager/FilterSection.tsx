@@ -105,7 +105,7 @@ function Chip({ active, color = '--primary', icon: Icon, count, onClick, childre
         'inline-flex items-center gap-1.5 text-[11px] font-medium rounded-full pl-2 pr-1.5 py-1 border transition-all cursor-pointer',
         active
           ? 'shadow-sm'
-          : 'border-divider bg-card-hover/40 text-text-secondary hover:text-text-primary hover:bg-card-hover',
+          : 'border-border bg-card-hover/40 text-text-secondary hover:text-text-primary hover:bg-card-hover',
         !active && count === 0 && 'opacity-50',
       )}
       style={
@@ -140,7 +140,7 @@ interface GroupProps {
 
 function Group({ icon: Icon, color, label, children }: GroupProps) {
   return (
-    <div className="flex flex-col gap-2.5 min-w-0 rounded-lg border border-divider bg-background/50 p-3">
+    <div className="flex flex-col gap-2.5 min-w-0 rounded-lg border border-border bg-background/50 p-3">
       <div className="flex items-center gap-2">
         <span
           className="w-5 h-5 rounded-md grid place-items-center"
@@ -212,7 +212,7 @@ export const FilterSection = memo(function FilterSection({
   const activeCount = countActiveFilters(filters);
 
   return (
-    <div className="w-full shrink-0 flex flex-col gap-3 px-4 py-3 border-b border-divider bg-gradient-to-b from-primary/5 to-transparent">
+    <div className="w-full shrink-0 flex flex-col gap-3 px-4 py-3 border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
       <div className="flex items-center gap-2.5">
         <span className="w-6 h-6 rounded-md grid place-items-center bg-primary/15 text-primary">
           <Filter className="w-3.5 h-3.5" />

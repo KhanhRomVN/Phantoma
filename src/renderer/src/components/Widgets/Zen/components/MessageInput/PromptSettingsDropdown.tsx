@@ -375,7 +375,7 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
                     <button
                       key={meta.key}
                       onClick={() => onSelectSystemPromptMode(meta.key)}
-                  className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors cursor-pointer hover:bg-sidebar-item-hover ${isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : 'border-l-2 border-l-transparent'}`}
+                  className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors cursor-pointer hover:bg-card-hover ${isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : 'border-l-2 border-l-transparent'}`}
                 >
                   <span
                     className="inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0"
@@ -410,7 +410,7 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
                 <SectionLabel label="Skill" />
                 <button
                   onClick={onSkillToggle}
-                  className="w-full px-3 py-2 flex items-center gap-2.5 text-left hover:bg-sidebar-item-hover transition-colors"
+                  className="w-full px-3 py-2 flex items-center gap-2.5 text-left hover:bg-card-hover transition-colors"
                 >
                   <span
                     className="inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0"
@@ -437,7 +437,7 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
                 <SectionLabel label="Memory" />
                 <button
                   onClick={onMemoryToggle}
-                  className="w-full px-3 py-2 flex items-center gap-2.5 text-left hover:bg-sidebar-item-hover transition-colors"
+                  className="w-full px-3 py-2 flex items-center gap-2.5 text-left hover:bg-card-hover transition-colors"
                 >
                   <span
                     className="inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0"
@@ -489,7 +489,7 @@ const PromptSettingsDropdown: React.FC<PromptSettingsDropdownProps> = ({
                   className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors ${
                     isSelected 
                       ? 'bg-primary/10 border-l-2 border-l-primary' 
-                      : 'border-l-2 border-l-transparent hover:bg-sidebar-item-hover'
+                      : 'border-l-2 border-l-transparent hover:bg-card-hover'
                   }`}
                 >
                   <span

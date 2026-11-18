@@ -58,7 +58,7 @@ export const ReportViewPanel: React.FC<ReportViewPanelProps> = ({ report, target
   return (
     <div className="h-full overflow-hidden flex flex-col">
       {/* Header bar */}
-      <div className="h-[37px] px-3 border-b border-divider flex items-center justify-between shrink-0 bg-muted/10">
+      <div className="h-[37px] px-3 border-b border-border flex items-center justify-between shrink-0 bg-muted/10">
         <span className="text-xs font-medium text-text-primary truncate min-w-0 flex-1">
           {report.title}
         </span>

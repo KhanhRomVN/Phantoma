@@ -32,7 +32,7 @@ const RevertConfirmModal: React.FC<RevertConfirmModalProps> = ({
         <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}
-            className="px-3.5 py-1.5 rounded text-[13px] cursor-pointer bg-transparent border border-[var(--vscode-panel-border)] text-[var(--vscode-foreground)]"
+            className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer transition-colors bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30"
           >
             Cancel
           </button>
@@ -41,7 +41,7 @@ const RevertConfirmModal: React.FC<RevertConfirmModalProps> = ({
               onClose();
               onConfirm();
             }}
-            className="px-3.5 py-1.5 rounded text-[13px] cursor-pointer bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] font-semibold border-none"
+            className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold cursor-pointer transition-colors bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
           >
             Revert
           </button>

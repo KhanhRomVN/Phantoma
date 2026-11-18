@@ -19,10 +19,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
 }) => {
   return (
     <div
-      className={cn(
-        'px-5 py-3 border-b border-divider shrink-0 flex items-center gap-3',
-        className,
-      )}
+      className={cn('px-5 py-3 border-b border-border shrink-0 flex items-center gap-3', className)}
     >
       <div className="flex-1 min-w-0">
         {title && <h3 className="text-base font-bold text-text-primary">{title}</h3>}
@@ -34,7 +31,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
         <button
           onClick={onClose}
           className={cn(
-            'p-1.5 rounded-lg bg-card-hover text-text-secondary outline-none hover:bg-error/15 hover:text-error transition-colors shrink-0 cursor-pointer',
+            'p-1.5 rounded-md bg-card-background text-text-secondary hover:bg-error/15 hover:text-error transition-colors shrink-0 cursor-pointer',
           )}
         >
           <X className="w-4 h-4" />

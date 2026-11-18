@@ -56,7 +56,11 @@ import {
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../../hooks/useCodeStore';
 import { parseGitStatusOutput } from '../../../services/git-status-parser';
-import { useBranchScope, useBranchScopeStore, isInScope } from '../../../stores/useBranchScopeStore';
+import {
+  useBranchScope,
+  useBranchScopeStore,
+  isInScope,
+} from '../../../stores/useBranchScopeStore';
 
 const nameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -78,15 +82,13 @@ async function scanDirectory(dirPath: string): Promise<FileNode[]> {
   }
   if (!Array.isArray(entries)) return [];
 
-  return [...entries].sort(compareDirEntries).map(
-    (entry): FileNode => ({
-      id: `fs_${entry.path}`,
-      name: entry.name,
-      type: entry.isDirectory ? 'folder' : 'file',
-      path: entry.path,
-      children: entry.isDirectory ? [] : undefined,
-    }),
-  );
+  return [...entries].sort(compareDirEntries).map((entry): FileNode => ({
+    id: `fs_${entry.path}`,
+    name: entry.name,
+    type: entry.isDirectory ? 'folder' : 'file',
+    path: entry.path,
+    children: entry.isDirectory ? [] : undefined,
+  }));
 }
 
 // ── Utils ──
@@ -238,16 +240,12 @@ async function refreshProjectTreeImpl(projectId: string, projectPath: string) {
   scanCount++;
   emitScan();
   const t0 = performance.now();
-  console.log('[DEBUG] refreshProjectTree start', { projectId, projectPath, scanCount, caller: new Error().stack?.split('\n').slice(2, 4).join(' | ') });
   try {
     const files = await scanDirectory(projectPath);
-    console.log('[DEBUG] refreshProjectTree scanDirectory done', { projectPath, topLevel: files?.length, ms: Math.round(performance.now() - t0) });
     setProjectFiles(projectId, files);
-    console.log('[DEBUG] refreshProjectTree setProjectFiles done', { ms: Math.round(performance.now() - t0) });
   } finally {
     scanCount--;
     emitScan();
-    console.log('[DEBUG] refreshProjectTree end', { scanCount, ms: Math.round(performance.now() - t0) });
   }
 }
 
@@ -296,7 +294,6 @@ interface NodeMeta {
 }
 
 interface FileExploreContextValue {
-
   nodeMetaRef: React.MutableRefObject<Map<string, NodeMeta>>;
   creating: CreatingState | null;
   setCreating: (v: CreatingState | null) => void;
@@ -317,7 +314,6 @@ interface FileExploreContextValue {
 }
 
 const FileExploreContext = createContext<FileExploreContextValue>({
-
   nodeMetaRef: { current: new Map() },
   gitStatus: {},
   ghostIndex: new Map(),
@@ -658,10 +654,8 @@ const TreeNode = memo(function TreeNode({
     if (isFolder && expanded && node.path && lazyChildren === null && !loading) {
       setLoading(true);
       const t0 = performance.now();
-      console.log('[DEBUG] TreeNode auto-load start', { path: node.path, dirVersion });
       fetchDirChildren(node.path)
         .then((kids) => {
-          console.log('[DEBUG] TreeNode auto-load done', { path: node.path, count: kids?.length, ms: Math.round(performance.now() - t0) });
           setLazyChildren(kids);
           setLoading(false);
         })
@@ -874,7 +868,6 @@ const TreeNode = memo(function TreeNode({
               )}
               style={{ paddingLeft: `${8 + depth * 12}px` }}
             >
-
               {isFolder ? (
                 loading ? (
                   <Loader
@@ -1398,7 +1391,6 @@ function ScopeBlocks({
         }
       } else warn.push(p);
     }
-    console.log('[DEBUG] FileExplore setStats', { primary: primary.length, warn: warn.length, diff: diff.length, error: error.length, t: Math.round(performance.now()) });
     setStats(projectId, { primary, warn, diff, error, deletedPaths });
   }, [projectId, root, branchName, scope, effectiveStatus, remoteDiff, otherChanged, setStats]);
 
@@ -1424,11 +1416,9 @@ function ScopeBlocks({
     if (!root || !active) return;
     let cancelled = false;
     const t = setInterval(() => {
-      console.log('[DEBUG] FileExplore fetch tick start', { root });
       void window.api
         .invoke('git:fetch', root)
-        .then((r: unknown) => console.log('[DEBUG] FileExplore git:fetch result', r))
-        .catch((e: unknown) => console.log('[DEBUG] FileExplore git:fetch error', e))
+        .catch(() => undefined)
         .finally(() => {
           if (!cancelled) setRemoteTick((n) => n + 1);
         });
@@ -1447,7 +1437,6 @@ function ScopeBlocks({
     let cancelled = false;
     void (async () => {
       try {
-        console.log('[DEBUG] FileExplore diff-vs-remote start', { root, active, branchName, remoteTick, candidatesLen: candidatesKey.length });
         const res = await window.api.invoke(
           'git:diff-vs-remote',
           root,
@@ -1455,7 +1444,6 @@ function ScopeBlocks({
         );
         if (cancelled) return;
         const ok = res && Array.isArray(res.files);
-        console.log('[DEBUG] FileExplore diff-vs-remote result', { ok, remoteHash: res?.remoteHash, filesCount: res?.files?.length, error: res?.error, lastKeyLen: lastDiffKeyRef.current.length });
         const only: string[] = ok && Array.isArray(res.remoteOnly) ? res.remoteOnly : [];
         const next = ok ? new Set<string>([...res.files, ...only]) : null;
         if (ok && res.remoteHash) {
@@ -1538,7 +1526,6 @@ function ScopeBlocks({
               : 'diff'
             : 'warn') as 'warn' | 'diff' | 'error',
         }));
-      console.log('[DEBUG] ScopeBlocks compute', { rects: rects.length, scope: scope.length, blocks: blocks.length, t: Math.round(performance.now()) });
       const mergedBlocks = mergeRuns(blocks);
       const errors = bad
         .filter((b) => b.level === 'error')
@@ -1683,17 +1670,9 @@ export function FileExplore() {
     const normalizedRoot = normalize(projectPath);
 
     const handler = (_event: any, payload: { dirPath: string }) => {
-      console.log('[DEBUG] FileExplore fs:dir-changed', { dirPath: payload.dirPath, t: Math.round(performance.now()) });
       const store = useCodeStore.getState();
       if (!store.currentProjectId) return;
-
-      // Luôn bump dirVersion cho folder bị thay đổi (drives lazy-children refresh
-      // của các TreeNode đang expanded).
       store.invalidateDir(store.currentProjectId, payload.dirPath);
-
-      // Root-level nodes lấy từ `project.files` (initial scan), KHÔNG qua
-      // lazyChildren — nên invalidateDir một mình không làm file mới xuất hiện
-      // ở cấp gốc. Nếu event thuộc root project, re-scan toàn bộ tree.
       const changedDir = normalize(payload.dirPath);
       if (changedDir === normalizedRoot) {
         void refreshProjectTree(store.currentProjectId, projectPath);
@@ -2146,7 +2125,6 @@ export function FileExplore() {
             idx = abs.lastIndexOf('/');
           }
         }
-        console.log('[DEBUG] FileExplore git:status loaded', { gitRoot, keys: Object.keys(map).length, t: Math.round(performance.now()) });
         gitStatusCache.set(gitRoot, map);
         setGitStatus((prev) => (JSON.stringify(prev) === JSON.stringify(map) ? prev : map));
       } catch {
@@ -2154,10 +2132,18 @@ export function FileExplore() {
       }
     };
     void load();
-    const t = setInterval(() => void load(), 5000);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onChange = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => void load(), 300);
+    };
+    window.api.on('fs:dir-changed', onChange);
+    window.api.on('git:index-changed', onChange);
     return () => {
       cancelled = true;
-      clearInterval(t);
+      clearTimeout(timer);
+      window.api.off('fs:dir-changed', onChange);
+      window.api.off('git:index-changed', onChange);
     };
   }, [gitRoot]);
 
@@ -2238,7 +2224,12 @@ export function FileExplore() {
     };
     walk(project.files);
     lazyNodeRegistry.forEach((n) => {
-      if (n.type === 'folder' && n.name !== 'node_modules' && n.name !== '.git' && !ids.includes(n.id)) {
+      if (
+        n.type === 'folder' &&
+        n.name !== 'node_modules' &&
+        n.name !== '.git' &&
+        !ids.includes(n.id)
+      ) {
         ids.push(n.id);
       }
     });
@@ -2292,7 +2283,7 @@ export function FileExplore() {
 
   // ── Toolbar ────────────────────────────────────────────────────────────────
   const toolbar = (
-    <div className="flex items-center justify-between h-9 px-2 border-b border-divider flex-shrink-0 bg-sidebar-background">
+    <div className="flex items-center justify-between h-9 px-2 border-b border-border flex-shrink-0 bg-panel-background">
       <span className="text-[13px] text-text-secondary truncate max-w-[50%]" title={project?.name}>
         {project?.name || 'No project'}
       </span>
@@ -2461,7 +2452,6 @@ export function FileExplore() {
           />
         )}
 
-
         {/* File tree */}
         <div ref={treeScrollRef} className="flex-1 overflow-y-auto py-1 relative">
           <ScopeBlocks
@@ -2489,7 +2479,9 @@ export function FileExplore() {
 
         {selectedNodeIds.size > 1 && (
           <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-md bg-card-background px-3 py-1 text-xs text-text-secondary outline outline-1 outline-dashed outline-primary">
-            <span className="whitespace-nowrap">{selectedNodeIds.size} selected · drag to add to message</span>
+            <span className="whitespace-nowrap">
+              {selectedNodeIds.size} selected · drag to add to message
+            </span>
             <button
               onClick={() => {
                 setSelectedNodeIds(new Set());

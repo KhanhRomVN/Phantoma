@@ -95,7 +95,7 @@ export function ProgressModal({
                     {results.map((result, index) => (
                       <tr
                         key={`${result.payloadName}-${result.value}-${index}`}
-                        className="border-b border-border/40 hover:bg-dropdown-item-hover/30 transition-colors"
+                        className="border-b border-border/40 hover:bg-table-row-hover transition-colors"
                       >
                         <td className="px-3 py-1.5 text-text-secondary">{index + 1}</td>
                         <td className="px-3 py-1.5 text-text-primary font-medium">

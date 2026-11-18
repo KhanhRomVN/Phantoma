@@ -3,7 +3,7 @@ import { cn } from '@renderer/utils/cn';
 import Checkbox from '@renderer/components/ui/Checkbox/Checkbox';
 
 export const CANCEL_BUTTON_CLASS =
-  'bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background';
+  'bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 disabled:hover:bg-text-secondary/10';
 
 interface PanelProps {
   title?: string;
@@ -30,7 +30,7 @@ export function Panel({
       )}
     >
       {(title || actions) && (
-        <header className="flex items-center gap-3 border-b border-divider px-4 py-2.5">
+        <header className="flex items-center gap-3 border-b border-border px-4 py-2.5">
           <div className="min-w-0 flex-1">
             {title && <h3 className="truncate text-sm font-semibold text-text-primary">{title}</h3>}
             {description && <p className="truncate text-xs text-text-secondary">{description}</p>}

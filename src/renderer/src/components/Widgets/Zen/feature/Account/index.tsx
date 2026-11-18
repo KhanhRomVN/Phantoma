@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import AccountCard from './components/AccountCard';
 import AddAccountModal from './components/AddAccountModal';
+import { ApiAccountFormButton, ApiAccountFormModal } from './components/ApiAccountFormModal';
 import EditAccountModal from './components/EditAccountModal';
 import ConfirmDeleteAccountModal from './components/ConfirmDeleteAccountModal';
 import ImportDuplicatesModal, { DuplicateEntry } from './components/ImportDuplicatesModal';
@@ -46,7 +47,7 @@ import { useSettings } from '../../context/SettingsContext';
 
 import { extensionService, messageDispatcher } from '../../services/ExtensionService';
 import { Drawer, DrawerBody } from '@renderer/components/ui/Drawer';
-import { Input } from '@renderer/components/ui/Input';
+
 import { $ } from '@renderer/utils/color';
 import { getFaviconUrl } from '@renderer/utils/favicon';
 import { FlatAccount } from './types';
@@ -390,17 +391,19 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
       <div className="w-full max-w-[680px] mx-auto px-4 pt-3 pb-2 shrink-0 flex gap-2 items-center bg-background box-border">
         {/* Search Input */}
         <div className="flex-1 min-w-0">
-            <Input
-              type="text"
-              placeholder="Search by email, provider ID or provider name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              leftIcon={<Search size={14} className="text-text-secondary" />}
-              containerClassName="gap-0 [&>div]:relative"
-              inputClassName="h-[34px] text-[13px] rounded-lg"
-              className="border-none"
-              style={{ backgroundColor: $('--input-background') }}
-            />
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none"
+              />
+              <input
+                type="text"
+                placeholder="Search by email, provider ID or provider name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-[34px] pl-9 pr-3 text-[13px] rounded-lg border-none bg-input-background text-text-primary outline-none placeholder:text-text-secondary/60"
+              />
+            </div>
         </div>
 
         <Dropdown align="end" sideOffset={4}>
@@ -492,6 +495,10 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
         >
           <Plus size={16} />
         </button>
+
+        <ApiAccountFormButton
+          onSaved={() => fetchAccounts(pagination.page, pagination.limit, true)}
+        />
 
         <Dropdown align="end" sideOffset={4}>
           <DropdownTrigger asChild>
@@ -685,8 +692,18 @@ const AccountPanel: React.FC<AccountPanelProps> = ({
         onSuccess={() => fetchAccounts(pagination.page, pagination.limit, true)}
       />
 
+      {editAccount?.is_api_account && (
+        <ApiAccountFormModal
+          key={editAccount.id}
+          open
+          account={editAccount}
+          onClose={() => setEditAccount(null)}
+          onSaved={() => fetchAccounts(pagination.page, pagination.limit, true)}
+        />
+      )}
+
       <EditAccountModal
-        open={!!editAccount}
+        open={!!editAccount && !editAccount.is_api_account}
         account={editAccount}
         onOpenChange={(o) => {
           if (!o) setEditAccount(null);

@@ -8,4 +8,10 @@ export type PhantomModule =
   | 'code'
   | 'settings'
   | 'preview'
-  | 'uitest';
+  | 'uitest'
+  | 'chat'
+  | 'proxy'
+  | 'profile'
+  | 'monitor'
+  | 'reverse'
+  | 'fleet';

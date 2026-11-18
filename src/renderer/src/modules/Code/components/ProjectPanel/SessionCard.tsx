@@ -314,7 +314,7 @@ export function AgentAvatar({
       className={cn(
         'pp-aa relative rounded-full flex items-center justify-center shrink-0 text-white font-display font-bold border-[1.5px] border-border',
         size === 'sm'
-          ? 'w-4 h-4 text-[6.5px] shadow-[inset_0_0_0_1px_rgb(var(--sidebar-item-hover))]'
+          ? 'w-4 h-4 text-[6.5px] shadow-[inset_0_0_0_1px_rgb(var(--card-background-hover))]'
           : 'w-5 h-5 text-[7.5px] shadow-[inset_0_0_0_1.5px_rgb(var(--background))]',
         `pp-aa-${state}`,
       )}
@@ -645,7 +645,7 @@ function SessionTooltipContent({
   const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === projectId)?.path);
   const allTasks = useSessionTasks((s) => (projectPath ? s.byPath[projectPath] : []));
   const branchTasks = (allTasks ?? []).filter(
-    (t) => !t.archived && t.branchName === branchName && t.status !== 'done' && t.id !== task?.id
+    (t) => !t.archived && t.branchName === branchName && t.status === 'todo' && t.id !== task?.id
   );
 
   return (
@@ -661,7 +661,7 @@ function SessionTooltipContent({
 
       {branchTasks.length > 0 && (
         <div className="flex flex-col gap-1.5 border-t border-border px-3 py-2.5">
-          <span className="text-text-secondary">Tasks</span>
+          <span className="text-text-secondary">Todo</span>
           {branchTasks.map((t) => (
             <div key={t.id} className="flex items-center gap-2">
               <TaskIcon status={t.status} />
@@ -881,7 +881,7 @@ export const SessionCard = memo(function SessionCard({
       <div
         className={cn(
           'bg-card-background border rounded-lg px-3 py-2.5 flex flex-col gap-[3px] cursor-pointer transition-colors',
-          st === 'blocked' ? 'border-[rgba(255,71,87,0.35)]' : 'border-divider',
+          st === 'blocked' ? 'border-[rgba(255,71,87,0.35)]' : 'border-border',
           isSelected ? 'relative border-transparent' : 'hover:border-primary/50',
           dropOver && 'border-primary bg-primary/10',
         )}

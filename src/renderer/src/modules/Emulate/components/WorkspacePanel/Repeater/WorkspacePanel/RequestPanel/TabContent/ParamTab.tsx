@@ -327,26 +327,6 @@ export function ParamTab({
 
   const fallbackAccentColor = getColorByIndex(0);
 
-  // Detect duplicate keys
-  const getDuplicateKeys = (): Set<string> => {
-    const keyCount = new Map<string, number>();
-    params.forEach((param) => {
-      if (param.key?.trim()) {
-        keyCount.set(param.key, (keyCount.get(param.key) || 0) + 1);
-      }
-    });
-
-    const duplicates = new Set<string>();
-    keyCount.forEach((count, key) => {
-      if (count > 1) {
-        duplicates.add(key);
-      }
-    });
-
-    return duplicates;
-  };
-
-  const duplicateKeys = getDuplicateKeys();
 
   const handleRawChange = (newJson: string) => {
     // Update local state immediately for responsive UI
@@ -474,7 +454,7 @@ export function ParamTab({
                     <tr
                       key={param.id}
                       className={cn(
-                        'border-b border-border/40 hover:bg-dropdown-item-hover/30 transition-colors',
+                        'border-b border-border/40 hover:bg-table-row-hover transition-colors',
                         !param.enabled && 'opacity-50',
                       )}
                     >
@@ -506,12 +486,7 @@ export function ParamTab({
                             onChange(updated);
                           }}
                           readOnly={readOnly}
-                          className={cn(
-                            'w-full bg-transparent px-1.5 py-1.5 text-sm text-text-primary outline-none font-mono',
-                            duplicateKeys.has(param.key) &&
-                              param.key.trim() &&
-                              'outline outline-2 outline-dashed outline-warn',
-                          )}
+                          className="w-full bg-transparent px-1.5 py-1.5 text-sm text-text-primary outline-none font-mono"
                           placeholder={placeholderKey}
                         />
                       </td>
@@ -589,7 +564,7 @@ export function ParamTab({
                   );
                 })}
             {!readOnly && (
-              <tr className="border-b border-border/40 hover:bg-dropdown-item-hover/30 transition-colors">
+              <tr className="border-b border-border/40 hover:bg-table-row-hover transition-colors">
                 <td className="px-2 py-1.5"></td>
                 <td className="px-2 py-0">
                   <input

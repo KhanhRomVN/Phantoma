@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@renderer/components/ui/Button';
 import Checkbox from '@renderer/components/ui/Checkbox/Checkbox';
-import { Input } from '@renderer/components/ui/Input';
+
 import { Drawer, DrawerHeader, DrawerBody, DrawerFooter } from '@renderer/components/ui/Drawer';
 import type { DrawerProps } from '@renderer/components/ui/Drawer';
 import { CANCEL_BUTTON_CLASS, Field, JsxPreview, Panel, Segmented, Toggle } from './shared';
@@ -53,7 +53,7 @@ export default function DrawerTab() {
               <Toggle label="closeOnBackdropClick" checked={backdrop} onChange={setBackdrop} />
             </div>
           </Field>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setOpen((v) => !v)}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setOpen((v) => !v)}>
             {open ? 'Close drawer' : 'Open drawer'}
           </Button>
           <JsxPreview name="Drawer" props={{ isOpen: open, ...drawerProps }} />
@@ -91,7 +91,7 @@ export default function DrawerTab() {
               <Button className={CANCEL_BUTTON_CLASS} onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setOpen(false)}>
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setOpen(false)}>
                 Apply
               </Button>
             </DrawerFooter>
@@ -101,13 +101,13 @@ export default function DrawerTab() {
 
       <Panel title="Real-world drawers" description="strategy=fixed" className="xl:col-span-2">
         <div className="flex flex-wrap gap-3">
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setScenario('settings')}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setScenario('settings')}>
             Settings (right)
           </Button>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setScenario('filters')}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setScenario('filters')}>
             Filters (left)
           </Button>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setScenario('sheet')}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setScenario('sheet')}>
             Bottom sheet (handle)
           </Button>
         </div>
@@ -117,15 +117,22 @@ export default function DrawerTab() {
         <DrawerHeader title="Settings" description="Cấu hình tài khoản" onClose={closeScenario} />
         <DrawerBody>
           <div className="flex flex-col gap-3">
-            <Input label="Display name" placeholder="Your name" />
-            <Input label="Email" type="email" placeholder="you@example.com" />
+            <input
+              placeholder="Your name"
+              className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary/60"
+            />
+            <input
+              type="email"
+              placeholder="you@example.com"
+              className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary/60"
+            />
           </div>
         </DrawerBody>
         <DrawerFooter>
           <Button className={CANCEL_BUTTON_CLASS} onClick={closeScenario}>
             Cancel
           </Button>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={closeScenario}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={closeScenario}>
             Save
           </Button>
         </DrawerFooter>

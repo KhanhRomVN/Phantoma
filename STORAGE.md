@@ -1,54 +1,163 @@
-# Data Storage Architecture — PREVIEW
+# Kiến trúc lưu trữ dữ liệu của Phantoma
 
-> ⚠️ Bản nháp xem trước — chưa áp dụng vào `data-storage.md`.
+> **Tài liệu kỹ thuật** · Data Storage Architecture
+> Mô tả cấu trúc thư mục, định dạng file và cách quản lý dữ liệu cục bộ của ứng dụng Phantoma.
 
-Cấu trúc lưu trữ dữ liệu của Phantoma (đề xuất mới).
-
----
-
-## 📂 Tổng quan
-
-**Thư mục gốc:** `~/.phantoma/`
-
-- `~/.phantoma/`
-  ├── `phantoma.sql`
-  ├── `phantoma.sql-shm` — SQLite shared memory
-  ├── `phantoma.sql-wal` — SQLite write-ahead log
-  ├── [`emulate:{targetId}/`](#emulate-targetid)
-  │   ├── `conversations/`
-  │   ├── [`repeaters/`](#repeaters)
-  │   └── [`reports/`](#reports)
-  ├── [`recon:{targetId}/`](#recon-targetid)
-  │   └── `conversations/`
-  ├── [`code:{system_path}/`](#code-system-path)
-  │   └── `conversations/`
-  ├── [`skills/`](#skills)
-  ├── `skill-workspace-state.json` — group/toggle của skill (xem [Skills](#skills))
-  └── [`extensions/`](#extensions)
+| Thuộc tính | Giá trị |
+|---|---|
+| **Thư mục gốc** | `~/.phantoma/` |
+| **Cơ sở dữ liệu chính** | SQLite (chế độ WAL) |
+| **Định dạng dữ liệu phụ** | JSON, Markdown, TSX |
+| **Phạm vi** | Theo module (Emulate, Recon, Code) và toàn cục (Skills) |
 
 ---
 
-<a name="emulate-targetid"></a>
-### Emulate:{targetId}
+## Mục lục
+
+1. [Tổng quan](#1-tổng-quan)
+   - [1.1 Cây thư mục tổng thể](#11-cây-thư-mục-tổng-thể)
+   - [1.2 Phạm vi lưu trữ](#12-phạm-vi-lưu-trữ)
+   - [1.3 Quy ước đặt tên](#13-quy-ước-đặt-tên)
+2. [Cơ sở dữ liệu SQLite](#2-cơ-sở-dữ-liệu-sqlite)
+3. [Module Emulate](#3-module-emulate)
+   - [3.1 Cấu trúc tổng thể](#31-cấu-trúc-tổng-thể)
+   - [3.2 Repeaters](#32-repeaters)
+   - [3.3 Reports](#33-reports)
+4. [Module Recon](#4-module-recon)
+5. [Module Code](#5-module-code)
+   - [5.1 Cấu trúc tổng thể](#51-cấu-trúc-tổng-thể)
+   - [5.2 Mã hoá đường dẫn project](#52-mã-hoá-đường-dẫn-project)
+   - [5.3 Tasks](#53-tasks)
+   - [5.4 Workflows](#54-workflows)
+   - [5.5 Designs](#55-designs)
+6. [Module Profile](#6-module-profile)
+   - [6.1 Cấu trúc tổng thể](#61-cấu-trúc-tổng-thể)
+   - [6.2 Cơ sở dữ liệu profile.sql](#62-cơ-sở-dữ-liệu-profilesql)
+   - [6.3 Thư mục browser của profile](#63-thư-mục-browser-của-profile)
+   - [6.4 API của profile-server](#64-api-của-profile-server)
+7. [Skills (toàn cục)](#7-skills-toàn-cục)
+8. [Browsers (toàn cục)](#8-browsers-toàn-cục)
+9. [Phụ lục: Bản đồ mã nguồn liên quan](#9-phụ-lục-bản-đồ-mã-nguồn-liên-quan)
+10. [Các điểm cần xác nhận](#10-các-điểm-cần-xác-nhận)
+
+---
+
+## 1. Tổng quan
+
+Phantoma lưu toàn bộ dữ liệu người dùng trong một thư mục ẩn duy nhất tại `~/.phantoma/`. Dữ liệu được tổ chức theo **module** (Emulate, Recon, Code) và theo **đối tượng làm việc** (target hoặc project), bên cạnh các tài nguyên **toàn cục** dùng chung (Skills).
+
+### 1.1 Cây thư mục tổng thể
+
+```text
+~/.phantoma/
+├── phantoma.sql                  # Cơ sở dữ liệu SQLite chính
+├── phantoma.sql-shm              # SQLite shared memory
+├── phantoma.sql-wal              # SQLite write-ahead log
+├── emulate/                      # Dữ liệu module Emulate (theo target)
+│   └── {targetId}/
+│       ├── conversations/
+│       ├── repeaters/
+│       └── reports/
+├── recon/                        # Dữ liệu module Recon (theo target)
+│   └── {targetId}/
+│       └── conversations/
+├── code/                         # Dữ liệu module Code (theo project)
+│   └── {system_path}/
+│       ├── tasks.json
+│       ├── workflows/
+│       ├── worktrees/
+│       ├── designs/
+│       └── conversations/
+├── browsers/                     # Browser binary toàn cục, dùng chung mọi module
+│   └── {browserName}/            # Tên browser, vd: ungoogled-chromium
+│       └── {version}/            # Mỗi version một thư mục, vd: 156.0.8078.79-1
+│           └── chrome            # File thực thi (đã giải nén, bỏ thư mục gốc của tar)
+├── profile/                      # Dữ liệu module Profile (do profile-server quản lý)
+│   ├── profile.sql               # SQLite (WAL): bảng sources, services
+│   └── profiles/
+│       └── {emailId}/
+│           ├── email.json
+│           ├── service_email.sql
+│           ├── chrome/
+│           ├── chromium/
+│           ├── passwords.db
+│           └── fp-ip-history.db
+└── skills/                       # Skill toàn cục
+    ├── groups.json               # Nhóm skill (chỉ quản lý việc gán skill vào nhóm)
+    └── {slug}/                   # Mỗi skill một thư mục
+        ├── SKILL.md
+        └── {slug}.json
+```
+
+> **Lưu ý:** thư mục `designs/` được bổ sung vào sơ đồ ở trên để đồng bộ với [mục 5.5](#55-designs); bản gốc chỉ mô tả thư mục này ở phần chi tiết.
+
+### 1.2 Phạm vi lưu trữ
+
+| Thành phần | Phạm vi | Khoá phân vùng |
+|---|---|---|
+| Cơ sở dữ liệu SQLite | Toàn cục | — |
+| Emulate | Theo target | `{targetId}` |
+| Recon | Theo target | `{targetId}` |
+| Code | Theo project | `{system_path}` (base64url) |
+| Profile | Toàn cục (profile-server) | `{profileId}` |
+| Skills | Toàn cục | `{slug}` |
+| Browsers | Toàn cục | `{browserName}/{version}` |
+
+
+### 1.3 Quy ước đặt tên
+
+| Mẫu | Ý nghĩa |
+|---|---|
+| `emulate/{targetId}` | Thư mục dữ liệu Emulate của một target |
+| `recon/{targetId}` | Thư mục dữ liệu Recon của một target |
+| `code/{system_path}` | Thư mục dữ liệu Code của một project |
+| `repeater_{requestId}` | Một request lặp lại |
+| `report:{reportId}` | Một báo cáo |
+| `workflow_{taskId}.md` | File workflow của một task |
+| `design_{id}` | Một design UI |
+| `{conversationId}.json` | Một cuộc hội thoại |
+
+---
+
+## 2. Cơ sở dữ liệu SQLite
+
+Ba file nằm trực tiếp ở thư mục gốc `~/.phantoma/`:
+
+| File | Vai trò |
+|---|---|
+| `phantoma.sql` | File cơ sở dữ liệu SQLite chính |
+| `phantoma.sql-shm` | Vùng nhớ chia sẻ (shared memory) của SQLite |
+| `phantoma.sql-wal` | Nhật ký ghi trước (write-ahead log) của SQLite |
+
+> Hai file `-shm` và `-wal` do SQLite tự quản lý khi bật chế độ WAL, **không** chỉnh sửa hoặc xoá thủ công khi ứng dụng đang chạy.
+
+---
+
+## 3. Module Emulate
 
 Lưu trữ dữ liệu phiên emulate: hội thoại, request lặp lại và báo cáo.
 
-```
-~/.phantoma/emulate:{targetId}/
+### 3.1 Cấu trúc tổng thể
+
+```text
+~/.phantoma/emulate/{targetId}/
 ├── conversations/
 ├── repeaters/
 └── reports/
 ```
 
----
+| Thư mục | Nội dung |
+|---|---|
+| `conversations/` | Hội thoại của phiên emulate |
+| `repeaters/` | Các request lặp lại, phân nhóm theo `repeater_{requestId}` |
+| `reports/` | Các báo cáo, mỗi báo cáo một thư mục `report:{reportId}` |
 
-<a name="repeaters"></a>
-### Repeaters
+### 3.2 Repeaters
 
-Lưu trữ request lặp lại, phân nhóm theo `repeater_{requestId}`.
+Mỗi request lặp lại được lưu trong một thư mục riêng, đặt tên `repeater_{requestId}`, gồm ba file tách biệt theo thành phần của request.
 
-```
-~/.phantoma/emulate:{targetId}/repeaters/
+```text
+~/.phantoma/emulate/{targetId}/repeaters/
 ├── repeater_{requestId_1}/
 │   ├── params.json
 │   ├── headers.json
@@ -59,15 +168,18 @@ Lưu trữ request lặp lại, phân nhóm theo `repeater_{requestId}`.
     └── body.json
 ```
 
----
+| File | Nội dung |
+|---|---|
+| `params.json` | Tham số của request |
+| `headers.json` | Header của request |
+| `body.json` | Nội dung body của request |
 
-<a name="reports"></a>
-### Reports
+### 3.3 Reports
 
-Lưu trữ báo cáo. Mỗi report gồm file `reportId.md` (báo cáo dạng markdown) và thư mục `code/` chứa các file code khác.
+Mỗi report gồm một file markdown mô tả báo cáo và một thư mục `code/` chứa các file code đi kèm.
 
-```
-~/.phantoma/emulate:{targetId}/reports/
+```text
+~/.phantoma/emulate/{targetId}/reports/
 └── report:{reportId}/
     ├── reportId.md
     └── code/
@@ -76,129 +188,305 @@ Lưu trữ báo cáo. Mỗi report gồm file `reportId.md` (báo cáo dạng ma
         └── script.js
 ```
 
+| Thành phần | Mô tả |
+|---|---|
+| `reportId.md` | Báo cáo ở dạng markdown |
+| `code/` | Các file code khác (HTML, CSS, JS...) |
+
 ---
 
-<a name="recon-targetid"></a>
-### Recon:{targetId}
+## 4. Module Recon
 
 Lưu trữ hội thoại của phiên recon.
 
-```
-~/.phantoma/recon:{targetId}/
+```text
+~/.phantoma/recon/{targetId}/
 └── conversations/
     └── {conversationId}.json
 ```
 
+Mỗi cuộc hội thoại là một file JSON riêng, đặt tên theo `conversationId`.
+
 ---
 
-<a name="code-system-path"></a>
-### Code:{system_path}
+## 5. Module Code
 
-Lưu trữ dữ liệu của module Code theo từng project. Đường dẫn `{system_path}` là base64url encode của absolute path project (vd: `/home/user/proj` → `L2hvbWUvdXNlci9wcm9q`).
+Lưu trữ dữ liệu của module Code **theo từng project**.
 
+### 5.1 Cấu trúc tổng thể
 
-~/.phantoma/code:{system_path}/
-├── tasks.json               ← Danh sách task của kanban board
-├── workflows/               ← Workflow của task (mỗi task tối đa 1 file `workflow_{taskId}.md`)
-├── worktrees/               ← Git worktree của các branch (mỗi branch một thư mục `{branchSlug}`)
-└── conversations/           ← Hội thoại AI assistant
+```text
+~/.phantoma/code/{system_path}/
+├── tasks.json               # Danh sách task của kanban board
+├── workflows/               # Workflow của task (mỗi task tối đa 1 file workflow_{taskId}.md)
+├── worktrees/               # Git worktree của các branch (mỗi branch một thư mục {branchSlug})
+├── designs/                 # Design UI tạm thời (mỗi design một thư mục design_{id})
+└── conversations/           # Hội thoại AI assistant
     └── {conversationId}.json
+```
 
+### 5.2 Mã hoá đường dẫn project
 
-#### Định dạng `tasks.json`
+`{system_path}` là **base64url** của đường dẫn tuyệt đối tới project.
 
-Mảng JSON các task, kiểu `StoredTask` (xem `src/renderer/src/modules/Code/services/task.service.ts`). Ghi theo kiểu atomic bởi `src/main/storage/TaskStorage.ts`.
+| Đường dẫn project | Giá trị `{system_path}` |
+|---|---|
+| `/home/user/proj` | `L2hvbWUvdXNlci9wcm9q` |
 
+Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
 
+### 5.3 Tasks
+
+#### Tổng quan
+
+`tasks.json` là một **mảng JSON** các task, kiểu `StoredTask` (định nghĩa tại `src/renderer/src/modules/Code/services/task.service.ts`). File được ghi theo kiểu **atomic** bởi `src/main/storage/TaskStorage.ts`.
+
+#### Lược đồ trường
+
+| Trường | Kiểu | Bắt buộc | Mặc định | Mô tả |
+|---|---|:---:|---|---|
+| `id` | TEXT (PK) | ✅ | — | Định danh task |
+| `title` | TEXT | ✅ | — | Tiêu đề |
+| `description` | TEXT | | `''` | Mô tả |
+| `status` | TEXT | | `'todo'` | Trạng thái: `todo`, `progress`, `review`, `done` |
+| `priority` | TEXT | | `'medium'` | Độ ưu tiên: `low`, `medium`, `high` |
+| `session_id` | TEXT | | `NULL` | Khoá ngoại mềm tới conversation/session id |
+| `workflow_id` | TEXT | | `NULL` | `workflow_{taskId}`; `NULL` nghĩa là task chưa có workflow |
+| `branch_name` | TEXT | | `NULL` | Tên git branch liên kết |
+| `due_date` | INTEGER | | `NULL` | Hạn chót, Unix timestamp (ms) |
+| `created_at` | INTEGER | ✅ | — | Thời điểm tạo, Unix timestamp (ms) |
+| `updated_at` | INTEGER | ✅ | — | Thời điểm cập nhật, Unix timestamp (ms) |
+
+#### Lược đồ SQL tham chiếu
+
+```sql
 CREATE TABLE IF NOT EXISTS tasks (
   id          TEXT PRIMARY KEY,
   title       TEXT NOT NULL,
   description TEXT DEFAULT '',
   status      TEXT CHECK(status IN ('todo','progress','review','done')) DEFAULT 'todo',
   priority    TEXT CHECK(priority IN ('low','medium','high')) DEFAULT 'medium',
-  session_id  TEXT DEFAULT NULL,   -- FK mềm tới conversation/session id
-  workflow_id TEXT DEFAULT NULL,   -- `workflow_{taskId}`; NULL = task chưa có workflow
-  branch_name TEXT DEFAULT NULL,   -- Tên git branch liên kết
-  due_date    INTEGER DEFAULT NULL,-- Unix ms timestamp
+  session_id  TEXT DEFAULT NULL,    -- FK mềm tới conversation/session id
+  workflow_id TEXT DEFAULT NULL,    -- `workflow_{taskId}`; NULL = task chưa có workflow
+  branch_name TEXT DEFAULT NULL,    -- Tên git branch liên kết
+  due_date    INTEGER DEFAULT NULL, -- Unix ms timestamp
   created_at  INTEGER NOT NULL,
   updated_at  INTEGER NOT NULL
 );
 CREATE INDEX idx_tasks_status ON tasks(status);
 CREATE INDEX idx_tasks_session ON tasks(session_id);
-
-
-Quản lý qua IPC channels `task:list`, `task:get`, `task:create`, `task:update`, `task:delete` (xem `src/main/ipc/task.handlers.ts`).
-
-#### Workflows
-
-Mỗi task có tối đa 1 workflow, lưu thành file Markdown `workflows/workflow_{taskId}.md`. Field `workflowId` của task (`workflow_{taskId}`, `null` nếu chưa có) cho biết task đã có workflow. Ghi atomic bởi `src/main/storage/WorkflowStorage.ts`; quản lý qua IPC `workflow:get`, `workflow:create` (tạo file và gán `workflowId` cho task), `workflow:update` (thay thế exact-match) trong `src/main/ipc/workflow.handlers.ts`; renderer gọi qua `services/workflow.service.ts`.
 ```
 
----
+#### IPC channels
 
-<a name="designs"></a>
-### Designs
+| Channel | Chức năng |
+|---|---|
+| `task:list` | Lấy danh sách task |
+| `task:get` | Lấy một task |
+| `task:create` | Tạo task |
+| `task:update` | Cập nhật task |
+| `task:delete` | Xoá task |
 
-Lưu trữ các design UI tạm thời (dùng mockData) theo từng project của module Code. Mỗi design là một thư mục `design_{id}` chứa `meta.json` và các file page `.tsx` được tạo từ template.
+Handler: `src/main/ipc/task.handlers.ts`.
 
+### 5.4 Workflows
 
-~/.phantoma/code:{system_path}/designs/
+Mỗi task có **tối đa 1 workflow**, lưu thành file Markdown tại `workflows/workflow_{taskId}.md`.
+
+- Trường `workflowId` của task (`workflow_{taskId}`, hoặc `null` nếu chưa có) cho biết task đã có workflow hay chưa.
+- File được ghi atomic bởi `src/main/storage/WorkflowStorage.ts`.
+- Renderer gọi qua `services/workflow.service.ts`.
+
+| IPC channel | Chức năng |
+|---|---|
+| `workflow:get` | Đọc workflow của task |
+| `workflow:create` | Tạo file workflow và gán `workflowId` cho task |
+| `workflow:update` | Cập nhật workflow bằng cách thay thế **exact-match** |
+
+Handler: `src/main/ipc/workflow.handlers.ts`.
+
+### 5.5 Designs
+
+Lưu trữ các design UI **tạm thời** (dùng `mockData`) theo từng project của module Code. Mỗi design là một thư mục `design_{id}` chứa `meta.json` và các file page `.tsx` được tạo từ template.
+
+```text
+~/.phantoma/code/{system_path}/designs/
 └── design_{id}/
     ├── meta.json
     ├── mockData.ts
     ├── Home.tsx
     └── Profile.tsx
+```
 
+#### Cấu trúc `meta.json`
 
-`meta.json` gồm `id`, `name`, `description`, `nodes` (mỗi node: `id`, `name`, `route`, `file`, `x`, `y`), `createdAt`, `updatedAt`. Mỗi node tương ứng một page (`file`) và được hiển thị dưới dạng diagram.
+| Trường | Mô tả |
+|---|---|
+| `id` | Định danh design |
+| `name` | Tên design |
+| `description` | Mô tả |
+| `nodes` | Danh sách node (xem bảng dưới) |
+| `createdAt` | Thời điểm tạo |
+| `updatedAt` | Thời điểm cập nhật |
 
-Page `.tsx` được biên dịch lúc chạy bằng esbuild ở main process rồi nạp vào iframe. Quản lý qua IPC channels `design:list`, `design:create`, `design:update`, `design:delete`, `design:compile-page` (xem `src/main/ipc/design.handlers.ts`, `src/main/storage/DesignStorage.ts`).
+Mỗi phần tử trong `nodes` tương ứng **một page** (`file`) và được hiển thị dưới dạng diagram:
+
+| Trường node | Mô tả |
+|---|---|
+| `id` | Định danh node |
+| `name` | Tên page |
+| `route` | Route của page |
+| `file` | File `.tsx` tương ứng |
+| `x`, `y` | Toạ độ node trên diagram |
+
+#### Biên dịch và quản lý
+
+- Page `.tsx` được **biên dịch lúc chạy bằng esbuild** ở main process, sau đó nạp vào `iframe`.
+- Lưu trữ: `src/main/storage/DesignStorage.ts`.
+- Handler: `src/main/ipc/design.handlers.ts`.
+
+| IPC channel | Chức năng |
+|---|---|
+| `design:list` | Liệt kê design |
+| `design:create` | Tạo design |
+| `design:update` | Cập nhật design |
+| `design:delete` | Xoá design |
+| `design:compile-page` | Biên dịch một page |
 
 ---
 
-<a name="skills"></a>
-### Skills
+## 6. Module Profile
 
-Skill tải từ mcp.directory, lưu **toàn cục** (không theo project/module) để dùng cho mọi nơi trong Phantoma. Mỗi skill là một thư mục `{slug}/` chứa toàn bộ gói skill (luôn có `SKILL.md` ở gốc, có thể kèm `scripts/`, `references/`, `assets/`...) cùng metadata `{slug}.json`.
+Dữ liệu module Profile do **profile-server** (`profile-server/`, Express + better-sqlite3, port mặc định `DEFAULT_PROFILE_PORT = 3033` trong `src/renderer/src/config/ports.ts`) quản lý. Thư mục gốc có thể ghi đè bằng biến môi trường `PROFILE_DATA_DIR`.
+
+### 6.1 Cấu trúc tổng thể
 
 
+~/.phantoma/profile/
+├── profile.sql                   # SQLite chính của profile-server (WAL)
+└── profiles/
+    └── {emailId}/                # Mỗi email một thư mục
+        ├── email.json            # Dữ liệu email (field:value)
+        ├── service_email.sql     # Bảng service_emails
+        ├── chrome/               # user-data-dir của Google Chrome
+        ├── chromium/             # user-data-dir của (ungoogled-)Chromium
+        ├── passwords.db          # Mật khẩu, dùng chung cho cả 2 browser
+        └── fp-ip-history.db      # Lịch sử fingerprint + IP, dùng chung cho cả 2 browser
+
+
+| Thành phần | Mô tả |
+|---|---|
+| `profile.sql` | Bảng `sources`, `services` |
+| `profiles/{emailId}/` | `email.json`, `service_email.sql`, dữ liệu browser; xoá khi xoá email |
+| `passwords.db`, `fp-ip-history.db` | Nằm ở **cấp base** để `chrome/` và `chromium/` cùng thấy một dữ liệu; bản cũ nằm trong sub-folder được tự động chuyển lên khi truy cập lần đầu |
+
+### 6.2 Cơ sở dữ liệu profile.sql
+
+Schema được áp dụng một lần qua `PRAGMA user_version` (hiện là `6`), `foreign_keys = ON`. Thời gian lưu dạng Unix timestamp (ms); API trả về chuỗi ISO.
+
+| Bảng | Lưu ở | Nội dung |
+|---|---|---|
+| `sources` | `profile.sql` | `id`, `name`, `path`; source (kể cả `local` Chrome) có folder không còn tồn tại bị xoá khi đọc |
+| `services` | `profile.sql` | `id`, `name`, `website_url`, `auth_methods` (JSON), `custom_fields` (JSON mảng `{ id, name, kind, required? }`) |
+| email | `profiles/{emailId}/email.json` | `email`, `display_name`, `avatar_hue`, `avatar_url`, `recovery_email`, `phone_number`, `totp`, `backup_codes`, `created_at`, `updated_at` |
+| `service_emails` | `profiles/{emailId}/service_email.sql` | `id`, `service_id`, `totps`, `backup_codes`, `auth_methods`, `custom_fields` (JSON mảng `{ name, value }`) |
+
+### 6.3 Thư mục browser của profile
+
+- Đọc dữ liệu browser (cookie, `Login Data`, `History`, `Preferences`, avatar) bằng cách **sao chép file ra thư mục tạm rồi mở read-only**, không khoá file đang được browser sử dụng.
+- `passwords.db` (bảng `passwords`) và `fp-ip-history.db` (bảng `site_fingerprint_history`) được tạo lười khi truy cập lần đầu.
+- Logic tham khảo từ `temp/Zentri/src/main/core/events/{account,browser}`.
+
+### 6.4 API của profile-server
+
+Tiền tố `/api/v1`; phản hồi dạng `{ success, data }` hoặc `{ success: false, error }`. Health check: `GET /health`.
+
+| Nhóm | Endpoint |
+|---|---|
+| Source | `GET/POST /sources`, `GET/PUT/DELETE /sources/:id` |
+| Profile | `GET/POST /profiles`, `POST /profiles/bulk`, `POST /profiles/bulk-delete`, `GET/PUT/DELETE /profiles/:id` (`?full=true` kèm dữ liệu liên quan) |
+| Service | `GET/POST /services`, `GET/PUT/DELETE /services/:id` |
+| Service-email | `GET/POST /profiles/:profileId/service-emails`, `GET/PUT/DELETE /service-emails/:id` |
+| Footprint | `GET/POST /profiles/:profileId/footprints`, `GET/PUT/DELETE /footprints/:id` |
+| Activity | `GET/POST /profiles/:profileId/activity`, `GET/PUT/DELETE /activity/:id`; `GET/DELETE /profiles/:profileId/browsing` |
+| Script / Device | `/profiles/:profileId/scripts`, `/scripts/:id`, `/profiles/:profileId/devices`, `/devices/:id` (cùng dạng CRUD) |
+| Thư mục browser | `GET/POST/DELETE /profiles/:id/folder`, `GET /browser/executables` |
+| Đọc dữ liệu browser | `GET /profiles/:id/{avatar,google-login,domain-session,saved-logins,extension-state,history}` (tham số `?browser=chrome\|chromium`) |
+| Mật khẩu | `GET/POST /profiles/:id/passwords`, `PUT/DELETE /profiles/:id/passwords/:passwordId` |
+| Fingerprint history | `GET /profiles/:id/fingerprint-history`, `DELETE /profiles/:id/fingerprint-history/:entryId` |
+
+---
+
+## 7. Skills (toàn cục)
+
+Skill tải từ **mcp.directory**, lưu **toàn cục** (không theo project hay module) để dùng ở mọi nơi trong Phantoma.
+
+Mỗi skill là một thư mục `{slug}/` chứa toàn bộ gói skill: luôn có `SKILL.md` ở gốc, có thể kèm `scripts/`, `references/`, `assets/`..., cùng metadata `{slug}.json`.
+
+```text
 ~/.phantoma/skills/
 └── {slug}/
     ├── SKILL.md
     ├── {slug}.json
     └── scripts/ references/ assets/ ...
+```
+
+### Nhóm skill
+
+Lưu tại `~/.phantoma/skills/groups.json`:
 
 
-Trạng thái nhóm/bật-tắt skill lưu ở `~/.phantoma/skill-workspace-state.json`: `{ toggles, groups: [{ name, slugs, icon?, color?, description? }], collapsedGroups }`.
+{
+  "groups": [
+    {
+      "name": "string",
+      "slugs": ["string"],
+      "icon": "string (tuỳ chọn)",
+      "color": "string (tuỳ chọn)",
+      "description": "string (tuỳ chọn)"
+    }
+  ]
+}
 
-Cài đặt: tải zip, giải nén vào thư mục tạm `{slug}.tmp-*` rồi đổi tên (không để lại skill dở dang). Quản lý bởi `src/main/storage/SkillStorage.ts`, API marketplace ở `src/main/services/skill-marketplace.ts`, IPC `skill:*` ở `src/main/ipc/skill.handlers.ts`.
+
+| Trường | Mô tả |
+|---|---|
+| `groups` | Danh sách nhóm skill (`name`, `slugs`, và tuỳ chọn `icon`, `color`, `description`) |
+
+File chỉ quản lý việc gán skill vào nhóm. Nếu chưa có `groups.json`, app đọc `groups` từ file cũ `~/.phantoma/skill-workspace-state.json` (nếu còn) và lần lưu kế tiếp sẽ ghi sang `groups.json`.
+### Cài đặt skill
+
+1. Tải file zip của skill.
+2. Giải nén vào thư mục tạm `{slug}.tmp-*`.
+3. Đổi tên thành `{slug}` để hoàn tất.
+
+Quy trình này đảm bảo **không để lại skill dở dang** nếu quá trình cài đặt bị gián đoạn.
+
+| Thành phần | Vị trí |
+|---|---|
+| Lưu trữ | `src/main/storage/SkillStorage.ts` |
+| API marketplace | `src/main/services/skill-marketplace.ts` |
+| IPC `skill:*` | `src/main/ipc/skill.handlers.ts` |
 
 ---
 
-<a name="extensions"></a>
-### Extensions
+## 8. Browsers (toàn cục)
 
-Lưu trữ các extension đã tải về, mỗi extension có manifest, metadata và mã nguồn.
+Binary browser tải về, lưu **toàn cục** (không theo project hay module). Mỗi browser một thư mục con theo tên, bên trong là các thư mục theo version.
 
-```
-~/.phantoma/extensions/
-└── Gydunhn.typescript-essentials/
-    ├── extension.vsixmanifest
-    ├── metadata.json
-    ├── [Content_Types].xml
-    └── extension/
-        ├── package.json
-        ├── README.md
-        ├── CHANGELOG.md
-        ├── LICENSE.txt
-        └── img/
-            └── essentials.png
-```
 
----
+~/.phantoma/browsers/
+└── {browserName}/                # vd: ungoogled-chromium
+    └── {version}/                # vd: 156.0.8078.79-1
+        ├── chrome                # File thực thi
+        └── ...                   # Các file còn lại của bản portable
 
-## 📖 Ghi chú cần xác nhận
 
-- `phantoma.sql`, `phantoma.sql-shm`, `phantoma.sql-wal` vẫn giữ ở gốc `~/.phantoma/`?
-- `conversations/` trong `recon:{targetId}` và `code:{system_path}` dùng số nhiều `conversations/` đúng không?
-- File `reportId.md` nằm cùng cấp với `code/` trong `report:{reportId}/`?
+| Thành phần | Mô tả |
+|---|---|
+| `{browserName}` | Tên browser, hiện có `ungoogled-chromium` |
+| `{version}` | Chuỗi version đầy đủ (gồm revision `-1`), nhiều version có thể cùng tồn tại |
+
+- Nguồn tải: bản **Portable Linux 64-bit** của ungoogled-chromium (`.tar.xz` trên GitHub Releases của `ungoogled-chromium-portablelinux`).
+- Cài đặt: tải về thư mục tạm, giải nén với `--strip-components=1` vào `{version}/`, rồi xoá file tạm; nếu `{version}/chrome` đã tồn tại thì bỏ qua.
+- Script tham khảo: `temp/ungoogled-chromium/fetch-versions.js` (`--installed`, `--latest`, `--list`, `--search`, `--install`).

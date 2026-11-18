@@ -81,7 +81,7 @@ export default function ButtonTab() {
 
   return (
     <div className='overflow-hidden rounded-xl border border-border bg-card-background'>
-      <div className='flex items-center justify-between border-b border-divider px-5 py-3'>
+      <div className='flex items-center justify-between border-b border-border px-5 py-3'>
         <div className='flex flex-col'>
           <h2 className='text-sm font-semibold text-text-primary'>Button variants</h2>
           <p className='text-xs text-text-secondary'>Mặc định, có icon và disabled của từng biến thể</p>
@@ -93,7 +93,7 @@ export default function ButtonTab() {
 
       <table className='w-full border-collapse text-sm'>
         <thead>
-          <tr className='bg-background/60 text-left text-[10px] font-semibold uppercase tracking-widest text-text-secondary'>
+          <tr className='bg-table-header-background text-left text-[10px] font-semibold uppercase tracking-widest text-text-secondary'>
             <th className='w-20 px-5 py-2.5'>STT</th>
             <th className='w-80 px-5 py-2.5'>Tên</th>
             <th className='px-5 py-2.5'>UI</th>
@@ -101,7 +101,7 @@ export default function ButtonTab() {
         </thead>
         {GROUPS.map((group) => (
           <tbody key={group.title}>
-            <tr className='border-y border-divider bg-background/40'>
+            <tr className='border-y border-border bg-background/40'>
               <td colSpan={3} className='px-5 py-2'>
                 <div className='flex items-baseline gap-3'>
                   <span className='text-[11px] font-semibold uppercase tracking-widest text-primary'>
@@ -116,7 +116,7 @@ export default function ButtonTab() {
               return (
                 <tr
                   key={variant.name}
-                  className='border-b border-divider transition-colors last:border-b-0 hover:bg-card-hover'
+                  className='border-b border-border transition-colors last:border-b-0 hover:bg-table-row-hover'
                 >
                   <td className='px-5 py-4 align-middle font-mono text-xs tabular-nums text-text-secondary'>
                     {String(index).padStart(2, '0')}

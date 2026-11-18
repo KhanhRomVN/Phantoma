@@ -49,7 +49,7 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 };
 
 const CANCEL_CLASS =
-  'bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background';
+  'bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 disabled:hover:bg-text-secondary/10';
 
 const METHOD_RGB: Record<string, string> = {
   cdp: '14, 165, 233',
@@ -543,11 +543,11 @@ export function RunningOptionTargetModal({
                     value={sudoPassword}
                     onChange={(e) => setSudoPassword(e.target.value)}
                     placeholder="Enter your sudo password..."
-                    className="h-[42px] w-full flex-1 rounded-lg border border-border bg-input-background px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+                    className="h-[42px] w-full flex-1 rounded-lg border border-border bg-input-background px-3 text-sm text-text-primary outline-none transition-colors"
                   />
                   <Button
                     title={showPassword ? 'Hide' : 'Show'}
-                    className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+                    className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -573,7 +573,7 @@ export function RunningOptionTargetModal({
           className={
             selectedAction === 'stop'
               ? 'bg-error/10 text-error hover:bg-error/20 active:bg-error/30'
-              : 'bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70'
+              : 'bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30'
           }
           onClick={handleStart}
           disabled={!selectedAction || isLaunching}

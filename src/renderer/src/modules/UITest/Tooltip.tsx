@@ -17,7 +17,7 @@ function PlacementGrid() {
     <div className={className}>
       {ALIGNS.map((align) => (
         <Tooltip key={align} side={side} align={align} content={`side=${side} align=${align}`}>
-          <button className="h-7 w-7 cursor-pointer rounded-md bg-button-soft-background text-[10px] font-semibold uppercase text-text-secondary outline-none transition-colors hover:text-text-primary">
+          <button className="h-7 w-7 cursor-pointer rounded-md bg-text-secondary/10 text-[10px] font-semibold uppercase text-text-secondary outline-none transition-colors hover:text-text-primary">
             {align[0]}
           </button>
         </Tooltip>
@@ -77,7 +77,7 @@ export default function TooltipTab() {
               alignOffset={alignOffset}
               disableHoverableContent={!hoverable}
             >
-              <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">Hover me</Button>
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">Hover me</Button>
             </Tooltip>
           </div>
           <Field label="side">
@@ -163,7 +163,7 @@ export default function TooltipTab() {
         <Panel title="Controlled" description={`open=${String(open)}, onOpenChange`}>
           <div className="flex items-center gap-4">
             <Tooltip content="Controlled tooltip" open={open} onOpenChange={setOpen}>
-              <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">Target</Button>
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">Target</Button>
             </Tooltip>
             <Toggle label="open" checked={open} onChange={setOpen} />
           </div>

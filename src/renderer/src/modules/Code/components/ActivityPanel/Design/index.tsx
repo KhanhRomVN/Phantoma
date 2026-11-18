@@ -59,7 +59,7 @@ export function Design() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-divider bg-sidebar-background px-3">
+      <div className="flex h-9 shrink-0 items-center justify-between border-b border-border bg-panel-background px-3">
         <span className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
           Design
         </span>

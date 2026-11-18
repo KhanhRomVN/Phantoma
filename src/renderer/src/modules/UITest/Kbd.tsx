@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import { Button } from '@renderer/components/ui/Button';
-import { Input } from '@renderer/components/ui/Input';
+
 import Kbd from '@renderer/components/ui/Kbd/Kbd';
 import { Panel, Stage } from './shared';
 
@@ -72,7 +72,7 @@ export default function KbdTab() {
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
       {GROUPS.map((group) => (
         <Panel key={group.title} title={group.title} description="Cheat sheet">
-          <div className="flex flex-col divide-y divide-divider">
+          <div className="flex flex-col divide-y divide-border">
             {group.items.map(([label, keys]) => (
               <div key={label} className="flex items-center justify-between py-2">
                 <span className="text-sm text-text-primary">{label}</span>
@@ -133,11 +133,16 @@ export default function KbdTab() {
             <Kbd>Ctrl</Kbd>
             <Kbd>Enter</Kbd>
           </Button>
-          <Input
-            placeholder="Search..."
-            leftIcon={<Search className="h-4 w-4" />}
-            rightIcon={<Kbd>/</Kbd>}
-          />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
+            <input
+              placeholder="Search..."
+              className="w-full rounded-lg border border-border bg-input-background py-2 pl-9 pr-9 text-sm text-text-primary outline-none placeholder:text-text-secondary/60"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Kbd>/</Kbd>
+            </div>
+          </div>
         </div>
       </Panel>
     </div>

@@ -84,9 +84,9 @@ const getTabColor = (tabId: string) => {
   }
   return {
     base: color || unifiedAccentCache,
-    bg: $('--sidebar-item-hover'),
+    bg: $('--card-background-hover'),
     border: $('--divider'),
-    hover: $('--sidebar-item-hover'),
+    hover: $('--card-background-hover'),
   };
 };
 
@@ -103,7 +103,7 @@ export function ActivityBar({ activeTab, onTabChange, tabs, collapsed = false, o
   // ── Render (collapsed rail: expand icon on top, vertical icon list below) ──
   if (collapsed) {
     return (
-      <div className="flex-1 min-h-0 w-full bg-sidebar-background flex flex-col items-center z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
+      <div className="flex-1 min-h-0 w-full bg-panel-background flex flex-col items-center z-10 overflow-y-auto [&::-webkit-scrollbar]:w-0">
         <div
           className="flex w-full shrink-0 items-center justify-center border-b border-border"
           style={{ height: TOPBAR_HEIGHT }}
@@ -139,7 +139,7 @@ export function ActivityBar({ activeTab, onTabChange, tabs, collapsed = false, o
                     'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-0 outline-none transition-all duration-200',
                     !isActive &&
                       !busy &&
-                      'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                      'text-text-secondary hover:bg-card-hover hover:text-text-primary',
                     isActive && 'text-[--tab-color] bg-[--tab-color-bg]',
                   )}
                   style={
@@ -165,7 +165,7 @@ export function ActivityBar({ activeTab, onTabChange, tabs, collapsed = false, o
   // ── Render ──
   return (
     <div
-      className="relative w-full shrink-0 bg-sidebar-background border-b border-border flex flex-row z-10 overflow-x-auto [&::-webkit-scrollbar]:h-0"
+      className="relative w-full shrink-0 bg-panel-background border-b border-border flex flex-row z-10 overflow-x-auto [&::-webkit-scrollbar]:h-0"
       style={{ height: TOPBAR_HEIGHT }}
     >
       <div className="flex flex-row gap-1 h-full px-2 items-center">
@@ -182,7 +182,7 @@ export function ActivityBar({ activeTab, onTabChange, tabs, collapsed = false, o
                 'relative p-1.5 rounded-md flex items-center justify-center gap-1.5 shrink-0 border-0 outline-none focus:outline-none focus-visible:outline-none transition-all duration-200',
                 !isActive &&
                   !busy &&
-                  'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                  'text-text-secondary hover:bg-card-hover hover:text-text-primary',
                 isActive && 'px-2.5 text-[--tab-color] bg-[--tab-color-bg]',
               )}
               style={
@@ -243,7 +243,7 @@ export function ActivityBar({ activeTab, onTabChange, tabs, collapsed = false, o
                 'flex h-7 w-7 items-center justify-center rounded-md transition-colors',
                 collapseEnabled
                   ? 'text-[--tab-color] bg-[--tab-color-bg]'
-                  : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
               )}
               style={
                 collapseEnabled

@@ -128,7 +128,7 @@ export function FooterBar({
   return (
     <div
       className={cn(
-        'h-8 border-t border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center justify-between text-[10px] text-text-secondary select-none shrink-0 w-full',
+        'h-8 border-t border-border bg-panel-background/80 backdrop-blur-sm px-4 flex items-center justify-between text-[10px] text-text-secondary select-none shrink-0 w-full',
         className,
       )}
     >

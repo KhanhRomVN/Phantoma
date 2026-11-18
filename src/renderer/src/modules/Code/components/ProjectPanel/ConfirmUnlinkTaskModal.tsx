@@ -20,7 +20,7 @@ export const ConfirmUnlinkTaskModal = memo(function ConfirmUnlinkTaskModal({
 }: ConfirmUnlinkTaskModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[420px] w-[90vw]">
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-divider">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
             <AlertCircle className="w-4 h-4 text-warning" />
@@ -93,10 +93,10 @@ export const ConfirmUnlinkTaskModal = memo(function ConfirmUnlinkTaskModal({
           </button>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2 border-t border-divider">
+        <div className="flex justify-end gap-2 pt-2 border-t border-border">
           <Button
             onClick={onClose}
-            className="bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70"
+            className="bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15 hover:text-text-primary active:bg-text-secondary/20"
           >
             Cancel
           </Button>
