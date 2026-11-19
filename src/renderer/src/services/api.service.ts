@@ -19,7 +19,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 import { ApiResponse } from '@renderer/types/api';
-import { DEV_PORTS, serverBaseUrl } from '@app/ports';
+import { DEV_PORTS, serverBaseUrl } from '@renderer/config/ports';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 // Dev: DEV_PORTS.server. Build: sẽ được cập nhật qua IPC bên dưới.

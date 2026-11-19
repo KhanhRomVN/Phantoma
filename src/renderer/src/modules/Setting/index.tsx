@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Settings, Palette, ChevronRight, Home } from 'lucide-react';
+import { Settings, Palette, ChevronRight, Home, CloudUpload } from 'lucide-react';
 import General from './components/General';
 import Interface from './components/Interface';
+import Backup from './components/Backup';
 
-type SettingTab = 'general' | 'interface' | 'database' | 'performance';
+type SettingTab = 'general' | 'interface' | 'backup' | 'database' | 'performance';
 
 const Setting: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingTab>('general');
@@ -14,6 +15,8 @@ const Setting: React.FC = () => {
         return 'General';
       case 'interface':
         return 'Interface';
+      case 'backup':
+        return 'Backup';
       default:
         return '';
     }
@@ -40,7 +43,7 @@ const Setting: React.FC = () => {
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
               activeTab === 'general'
                 ? 'bg-primary/10 text-primary'
-                : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+                : 'text-text-secondary hover:text-text-primary hover:bg-card-hover'
             }`}
           >
             <Settings className="w-4 h-4" />
@@ -51,11 +54,22 @@ const Setting: React.FC = () => {
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
               activeTab === 'interface'
                 ? 'bg-primary/10 text-primary'
-                : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover'
+                : 'text-text-secondary hover:text-text-primary hover:bg-card-hover'
             }`}
           >
             <Palette className="w-4 h-4" />
             <span>Interface</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('backup')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              activeTab === 'backup'
+                ? 'bg-primary/10 text-primary'
+                : 'text-text-secondary hover:text-text-primary hover:bg-card-hover'
+            }`}
+          >
+            <CloudUpload className="w-4 h-4" />
+            <span>Backup</span>
           </button>
         </div>
 
@@ -69,6 +83,11 @@ const Setting: React.FC = () => {
           {activeTab === 'interface' && (
             <div className="overflow-auto p-5 h-full">
               <Interface />
+            </div>
+          )}
+          {activeTab === 'backup' && (
+            <div className="overflow-auto p-5 h-full">
+              <Backup />
             </div>
           )}
         </div>

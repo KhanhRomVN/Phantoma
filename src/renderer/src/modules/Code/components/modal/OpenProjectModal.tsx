@@ -453,7 +453,7 @@ export const deriveFolderName = (url: string): string =>
   url.trim().match(/[/:]([^/:]+?)(?:\.git)?\/?$/)?.[1] ?? '';
 
 const inputClass =
-  'w-full h-10 rounded-lg bg-sidebar-item-hover border border-transparent px-3 text-sm font-mono text-text-primary outline-none focus:outline-none focus:ring-0 placeholder:text-text-secondary/40 transition-all';
+  'w-full h-10 rounded-lg bg-card-hover border border-transparent px-3 text-sm font-mono text-text-primary outline-none focus:outline-none focus:ring-0 placeholder:text-text-secondary/40 transition-all';
 
 interface NewRepositoryFormProps {
   url: string;
@@ -583,7 +583,7 @@ export function NewRepositoryForm({
               type="button"
               onClick={onBrowseDest}
               title="Choose destination folder"
-              className="h-10 w-10 shrink-0 rounded-lg border border-border bg-sidebar-item-hover text-text-secondary hover:text-text-primary hover:bg-sidebar-item-active grid place-items-center transition-colors"
+              className="h-10 w-10 shrink-0 rounded-lg border border-border bg-card-hover text-text-secondary hover:text-text-primary hover:bg-card-hover grid place-items-center transition-colors"
             >
               <FolderOpen className="w-4 h-4" />
             </button>
@@ -1184,7 +1184,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       : 'Pick a recent project or browse your filesystem';
 
   const renderTabs = () => (
-    <div className="relative grid grid-cols-2 items-center h-10 p-1 rounded-lg bg-sidebar-item-hover shrink-0">
+    <div className="relative grid grid-cols-2 items-center h-10 p-1 rounded-lg bg-card-hover shrink-0">
       <span
         aria-hidden
         className={cn(
@@ -1220,7 +1220,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       {renderTabs()}
       {mode === 'local' && (
         <>
-          <div className="flex-1 min-w-0 flex items-center gap-2.5 h-10 bg-sidebar-item-hover rounded-lg px-3 border border-transparent transition-all">
+          <div className="flex-1 min-w-0 flex items-center gap-2.5 h-10 bg-card-hover rounded-lg px-3 border border-transparent transition-all">
             <Search className="w-4 h-4 text-text-secondary shrink-0" strokeWidth={1.5} />
             <input
               type="text"
@@ -1242,7 +1242,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           </div>
           <button
             onClick={handleBrowseFolder}
-            className="h-10 w-10 rounded-lg bg-sidebar-item-hover text-text-secondary hover:bg-sidebar-item-active hover:text-text-primary flex items-center justify-center transition-all border border-dashed border-border outline-none focus:outline-none shrink-0"
+            className="h-10 w-10 rounded-lg bg-card-hover text-text-secondary hover:bg-card-hover hover:text-text-primary flex items-center justify-center transition-all border border-dashed border-border outline-none focus:outline-none shrink-0"
             title="Browse"
             aria-label="Browse folder"
           >
@@ -1511,7 +1511,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           </div>
         </div>
       </ModalBody>
-      <ModalFooter className="items-center px-5 py-3.5 bg-sidebar-background/50 border-t border-border">
+      <ModalFooter className="items-center px-5 py-3.5 bg-panel-background/50 border-t border-border">
         <div className="flex-1 mr-auto min-w-0 text-[11.5px]">
           {error ? (
             <span className="flex items-center gap-1.5 text-error truncate" title={error}>

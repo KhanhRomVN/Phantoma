@@ -60,7 +60,7 @@ const ListReportsBlock: React.FC<ListReportsBlockProps> = ({ content, maxHeight 
     <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
       <div className="overflow-auto" style={{ maxHeight }}>
         <table className="w-full text-[12px]">
-          <thead className="sticky top-0 bg-card-background border-b border-border">
+          <thead className="sticky top-0 bg-table-header-background border-b border-border">
             <tr>
               <th className="px-3 py-2 text-left font-semibold text-text-secondary text-[11px] w-[120px]">
                 ID
@@ -77,7 +77,7 @@ const ListReportsBlock: React.FC<ListReportsBlockProps> = ({ content, maxHeight 
             {rows.map((row, idx) => (
               <tr
                 key={idx}
-                className="border-b border-border/50 hover:bg-dropdown-item-hover transition-colors"
+                className="border-b border-border/50 hover:bg-table-row-hover transition-colors"
               >
                 <td className="px-3 py-2 font-mono text-text-secondary">{row.id}</td>
                 <td className="px-3 py-2 text-text-primary">{row.title}</td>

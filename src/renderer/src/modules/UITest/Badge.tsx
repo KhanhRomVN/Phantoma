@@ -50,11 +50,11 @@ export default function BadgeTab() {
           </Stage>
           <Field label="count">
             <div className="flex items-center gap-2">
-              <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setCount((c) => Math.max(0, c - 1))}>
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setCount((c) => Math.max(0, c - 1))}>
                 <Minus className="h-3.5 w-3.5" />
               </Button>
               <span className="w-12 text-center font-mono text-sm text-text-primary">{count}</span>
-              <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setCount((c) => c + 1)}>
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setCount((c) => c + 1)}>
                 <Plus className="h-3.5 w-3.5" />
               </Button>
               <Button className="text-primary hover:bg-primary/10 active:bg-primary/20" onClick={() => setCount(150)}>
@@ -74,7 +74,7 @@ export default function BadgeTab() {
 
       <div className="flex flex-col gap-4 xl:col-span-2">
         <Panel title="Tab bar" description="Badge ngay sau label, count=0 tự ẩn">
-          <div className="flex gap-1 border-b border-divider">
+          <div className="flex gap-1 border-b border-border">
             {tabs.map((item) => (
               <button
                 key={item.name}
@@ -100,7 +100,7 @@ export default function BadgeTab() {
                 return (
                   <div
                     key={item.name}
-                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary"
+                    className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-text-secondary hover:bg-card-hover hover:text-text-primary"
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.name}</span>

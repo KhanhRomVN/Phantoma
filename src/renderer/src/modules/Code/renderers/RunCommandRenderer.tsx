@@ -349,7 +349,7 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
             onMouseEnter={(e) => {
               if (canExpand)
                 e.currentTarget.style.backgroundColor =
-                  $('--sidebar-item-hover') || $('--background') || '';
+                  $('--card-background-hover') || $('--background') || '';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = $('--background') || '#1e1e1e';

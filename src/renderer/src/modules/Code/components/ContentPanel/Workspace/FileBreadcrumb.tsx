@@ -219,7 +219,7 @@ export const FileBreadcrumb = memo(function FileBreadcrumb({ filePath }: FileBre
   }, [filePath, root]);
 
   return (
-    <div className="flex items-center w-full h-7 px-2 gap-0.5 border-b border-divider flex-shrink-0 overflow-x-auto">
+    <div className="flex items-center w-full h-7 px-2 gap-0.5 border-b border-border flex-shrink-0 overflow-x-auto">
       {segments.map((seg, i) => (
         <div key={seg.targetPath} className="flex items-center shrink-0">
           {i > 0 && (

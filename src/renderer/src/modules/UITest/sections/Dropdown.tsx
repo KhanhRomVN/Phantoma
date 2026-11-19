@@ -37,7 +37,7 @@ function Menu({ label, dropdown, content, children }: MenuProps) {
   return (
     <Dropdown {...dropdown}>
       <DropdownTrigger>
-        <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">
+        <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
           {label}
         </Button>
       </DropdownTrigger>
@@ -115,7 +115,7 @@ export function DropdownDemo() {
             position={{ top: 160, left: 480 }}
           >
             <DropdownTrigger>
-              <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
                 open = {String(open)}
               </Button>
             </DropdownTrigger>

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 export type GitFileStatus = 'added' | 'modified';
 export type GitStatusMap = Record<string, GitFileStatus>;
 
-const POLL_MS = 5000;
+const POLL_MS = 15000;
 const EMPTY: GitStatusMap = {};
 
 interface Entry {

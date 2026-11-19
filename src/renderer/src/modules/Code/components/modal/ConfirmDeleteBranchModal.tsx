@@ -119,7 +119,7 @@ export function ConfirmDeleteBranchModal({
               autoFocus
               spellCheck={false}
               placeholder={folderName}
-              className="h-9 w-full rounded-md border border-divider bg-input-background/40 px-3 font-mono text-xs text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 focus:border-error/60 disabled:opacity-50"
+              className="h-9 w-full rounded-md border border-border bg-input-background/40 px-3 font-mono text-xs text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 focus:border-error/60 disabled:opacity-50"
             />
           </div>
 
@@ -130,7 +130,7 @@ export function ConfirmDeleteBranchModal({
             aria-checked={deleteRemote}
             disabled={submitting}
             onClick={() => setDeleteRemote((v) => !v)}
-            className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-divider bg-input-background/40 px-3 py-2.5 text-left outline-none transition-colors hover:bg-input-background/60 disabled:opacity-50"
+            className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-input-background/40 px-3 py-2.5 text-left outline-none transition-colors hover:bg-input-background/60 disabled:opacity-50"
           >
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="text-xs font-medium text-text-primary">
@@ -154,11 +154,11 @@ export function ConfirmDeleteBranchModal({
         </div>
       </ModalBody>
 
-      <ModalFooter className="gap-0 p-0 border-t border-divider">
+      <ModalFooter className="gap-0 p-0 border-t border-border">
         <Button
           onClick={handleClose}
           disabled={submitting}
-          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-divider rounded-none disabled:opacity-50"
+          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-border rounded-none disabled:opacity-50"
         >
           Cancel
         </Button>

@@ -8,7 +8,7 @@ import type { TooltipProps } from '@renderer/components/ui/Tooltip';
 import { Demo, Section } from '../shared';
 
 const CANCEL_CLASS =
-  'bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background';
+  'bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 disabled:hover:bg-text-secondary/10';
 
 type ModalKind = 'default' | 'noCloseButton' | 'noBackdropClose' | 'customClass';
 
@@ -46,7 +46,7 @@ function SampleModal({ kind, open, onClose }: SampleModalProps) {
         <Button className={CANCEL_CLASS} onClick={onClose}>
           Cancel
         </Button>
-        <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={onClose}>
+        <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={onClose}>
           Confirm
         </Button>
       </ModalFooter>
@@ -65,7 +65,7 @@ export function ModalDemo() {
     >
       <Demo label="open variants">
         {MODAL_KINDS.map(({ kind, label }) => (
-          <Button key={kind} className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setOpen(kind)}>
+          <Button key={kind} className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setOpen(kind)}>
             {label}
           </Button>
         ))}
@@ -102,7 +102,7 @@ export function DrawerDemo() {
     >
       <Demo label="presets">
         {DRAWER_PRESETS.map((item, index) => (
-          <Button key={item.label} className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setActive(index)}>
+          <Button key={item.label} className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setActive(index)}>
             {item.label}
           </Button>
         ))}
@@ -124,7 +124,7 @@ export function DrawerDemo() {
             <Button className={CANCEL_CLASS} onClick={close}>
               Cancel
             </Button>
-            <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={close}>
+            <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={close}>
               Confirm
             </Button>
           </DrawerFooter>
@@ -141,7 +141,7 @@ export function TooltipDemo() {
 
   const trigger = (label: string, props: TooltipPreset = {}) => (
     <Tooltip key={label} content={`Tooltip: ${label}`} {...props}>
-      <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">
+      <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
         {label}
       </Button>
     </Tooltip>
@@ -176,7 +176,7 @@ export function TooltipDemo() {
       <Demo label="defaultOpen">{trigger('defaultOpen', { defaultOpen: true })}</Demo>
       <Demo label="controlled open / onOpenChange">
         <Tooltip content="Controlled tooltip" open={open} onOpenChange={setOpen}>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
             hover me
           </Button>
         </Tooltip>

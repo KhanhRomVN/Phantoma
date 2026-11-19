@@ -30,6 +30,15 @@
    - [5.3 Tasks](#53-tasks)
    - [5.4 Workflows](#54-workflows)
    - [5.5 Designs](#55-designs)
+6. [Module Profile](#6-module-profile)
+   - [6.1 Cấu trúc tổng thể](#61-cấu-trúc-tổng-thể)
+   - [6.2 Cơ sở dữ liệu profile.sql](#62-cơ-sở-dữ-liệu-profilesql)
+   - [6.3 Thư mục browser của profile](#63-thư-mục-browser-của-profile)
+   - [6.4 API của profile-server](#64-api-của-profile-server)
+7. [Skills (toàn cục)](#7-skills-toàn-cục)
+8. [Browsers (toàn cục)](#8-browsers-toàn-cục)
+9. [Phụ lục: Bản đồ mã nguồn liên quan](#9-phụ-lục-bản-đồ-mã-nguồn-liên-quan)
+10. [Các điểm cần xác nhận](#10-các-điểm-cần-xác-nhận)
 6. [Skills (toàn cục)](#6-skills-toàn-cục)
 7. [Phụ lục: Bản đồ mã nguồn liên quan](#7-phụ-lục-bản-đồ-mã-nguồn-liên-quan)
 8. [Các điểm cần xác nhận](#8-các-điểm-cần-xác-nhận)
@@ -62,6 +71,20 @@ Phantoma lưu toàn bộ dữ liệu người dùng trong một thư mục ẩn 
 │       ├── worktrees/
 │       ├── designs/
 │       └── conversations/
+├── browsers/                     # Browser binary toàn cục, dùng chung mọi module
+│   └── {browserName}/            # Tên browser, vd: ungoogled-chromium
+│       └── {version}/            # Mỗi version một thư mục, vd: 156.0.8078.79-1
+│           └── chrome            # File thực thi (đã giải nén, bỏ thư mục gốc của tar)
+├── profile/                      # Dữ liệu module Profile (do profile-server quản lý)
+│   ├── profile.sql               # SQLite (WAL): bảng sources, services
+│   └── profiles/
+│       └── {emailId}/
+│           ├── email.json
+│           ├── service_email.sql
+│           ├── chrome/
+│           ├── chromium/
+│           ├── passwords.db
+│           └── fp-ip-history.db
 └── skills/                       # Skill toàn cục
     ├── groups.json               # Nhóm skill (chỉ quản lý việc gán skill vào nhóm)
     └── {slug}/                   # Mỗi skill một thư mục
@@ -79,6 +102,9 @@ Phantoma lưu toàn bộ dữ liệu người dùng trong một thư mục ẩn 
 | Emulate | Theo target | `{targetId}` |
 | Recon | Theo target | `{targetId}` |
 | Code | Theo project | `{system_path}` (base64url) |
+| Profile | Toàn cục (profile-server) | `{profileId}` |
+| Skills | Toàn cục | `{slug}` |
+| Browsers | Toàn cục | `{browserName}/{version}` |
 | Skills | Toàn cục | `{slug}` |
 
 
@@ -237,6 +263,33 @@ Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
 
 #### Lược đồ SQL tham chiếu
 
+
+Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
+
+### 5.3 Tasks
+
+#### Tổng quan
+
+`tasks.json` là một **mảng JSON** các task, kiểu `StoredTask` (định nghĩa tại `src/renderer/src/modules/Code/services/task.service.ts`). File được ghi theo kiểu **atomic** bởi `src/main/storage/TaskStorage.ts`.
+
+#### Lược đồ trường
+
+| Trường | Kiểu | Bắt buộc | Mặc định | Mô tả |
+|---|---|:---:|---|---|
+| `id` | TEXT (PK) | ✅ | — | Định danh task |
+| `title` | TEXT | ✅ | — | Tiêu đề |
+| `description` | TEXT | | `''` | Mô tả |
+| `status` | TEXT | | `'todo'` | Trạng thái: `todo`, `progress`, `review`, `done` |
+| `priority` | TEXT | | `'medium'` | Độ ưu tiên: `low`, `medium`, `high` |
+| `session_id` | TEXT | | `NULL` | Khoá ngoại mềm tới conversation/session id |
+| `workflow_id` | TEXT | | `NULL` | `workflow_{taskId}`; `NULL` nghĩa là task chưa có workflow |
+| `branch_name` | TEXT | | `NULL` | Tên git branch liên kết |
+| `due_date` | INTEGER | | `NULL` | Hạn chót, Unix timestamp (ms) |
+| `created_at` | INTEGER | ✅ | — | Thời điểm tạo, Unix timestamp (ms) |
+| `updated_at` | INTEGER | ✅ | — | Thời điểm cập nhật, Unix timestamp (ms) |
+
+#### Lược đồ SQL tham chiếu
+
 ```sql
 CREATE TABLE IF NOT EXISTS tasks (
   id          TEXT PRIMARY KEY,
@@ -287,6 +340,23 @@ Handler: `src/main/ipc/workflow.handlers.ts`.
 
 Lưu trữ các design UI **tạm thời** (dùng `mockData`) theo từng project của module Code. Mỗi design là một thư mục `design_{id}` chứa `meta.json` và các file page `.tsx` được tạo từ template.
 
+
+- Trường `workflowId` của task (`workflow_{taskId}`, hoặc `null` nếu chưa có) cho biết task đã có workflow hay chưa.
+- File được ghi atomic bởi `src/main/storage/WorkflowStorage.ts`.
+- Renderer gọi qua `services/workflow.service.ts`.
+
+| IPC channel | Chức năng |
+|---|---|
+| `workflow:get` | Đọc workflow của task |
+| `workflow:create` | Tạo file workflow và gán `workflowId` cho task |
+| `workflow:update` | Cập nhật workflow bằng cách thay thế **exact-match** |
+
+Handler: `src/main/ipc/workflow.handlers.ts`.
+
+### 5.5 Designs
+
+Lưu trữ các design UI **tạm thời** (dùng `mockData`) theo từng project của module Code. Mỗi design là một thư mục `design_{id}` chứa `meta.json` và các file page `.tsx` được tạo từ template.
+
 ```text
 ~/.phantoma/code/{system_path}/designs/
 └── design_{id}/
@@ -295,6 +365,107 @@ Lưu trữ các design UI **tạm thời** (dùng `mockData`) theo từng projec
     ├── Home.tsx
     └── Profile.tsx
 ```
+
+#### Cấu trúc `meta.json`
+
+| Trường | Mô tả |
+|---|---|
+| `id` | Định danh design |
+| `name` | Tên design |
+| `description` | Mô tả |
+| `nodes` | Danh sách node (xem bảng dưới) |
+| `createdAt` | Thời điểm tạo |
+| `updatedAt` | Thời điểm cập nhật |
+
+Mỗi phần tử trong `nodes` tương ứng **một page** (`file`) và được hiển thị dưới dạng diagram:
+
+| Trường node | Mô tả |
+|---|---|
+| `id` | Định danh node |
+| `name` | Tên page |
+| `route` | Route của page |
+| `file` | File `.tsx` tương ứng |
+| `x`, `y` | Toạ độ node trên diagram |
+
+#### Biên dịch và quản lý
+
+- Page `.tsx` được **biên dịch lúc chạy bằng esbuild** ở main process, sau đó nạp vào `iframe`.
+- Lưu trữ: `src/main/storage/DesignStorage.ts`.
+- Handler: `src/main/ipc/design.handlers.ts`.
+
+| IPC channel | Chức năng |
+|---|---|
+| `design:list` | Liệt kê design |
+| `design:create` | Tạo design |
+| `design:update` | Cập nhật design |
+| `design:delete` | Xoá design |
+| `design:compile-page` | Biên dịch một page |
+
+---
+
+## 6. Module Profile
+
+Dữ liệu module Profile do **profile-server** (`profile-server/`, Express + better-sqlite3, port mặc định `DEFAULT_PROFILE_PORT = 3033` trong `src/renderer/src/config/ports.ts`) quản lý. Thư mục gốc có thể ghi đè bằng biến môi trường `PROFILE_DATA_DIR`.
+
+### 6.1 Cấu trúc tổng thể
+
+
+~/.phantoma/profile/
+├── profile.sql                   # SQLite chính của profile-server (WAL)
+└── profiles/
+    └── {emailId}/                # Mỗi email một thư mục
+        ├── email.json            # Dữ liệu email (field:value)
+        ├── service_email.sql     # Bảng service_emails
+        ├── chrome/               # user-data-dir của Google Chrome
+        ├── chromium/             # user-data-dir của (ungoogled-)Chromium
+        ├── passwords.db          # Mật khẩu, dùng chung cho cả 2 browser
+        └── fp-ip-history.db      # Lịch sử fingerprint + IP, dùng chung cho cả 2 browser
+
+
+| Thành phần | Mô tả |
+|---|---|
+| `profile.sql` | Bảng `sources`, `services` |
+| `profiles/{emailId}/` | `email.json`, `service_email.sql`, dữ liệu browser; xoá khi xoá email |
+| `passwords.db`, `fp-ip-history.db` | Nằm ở **cấp base** để `chrome/` và `chromium/` cùng thấy một dữ liệu; bản cũ nằm trong sub-folder được tự động chuyển lên khi truy cập lần đầu |
+
+### 6.2 Cơ sở dữ liệu profile.sql
+
+Schema được áp dụng một lần qua `PRAGMA user_version` (hiện là `6`), `foreign_keys = ON`. Thời gian lưu dạng Unix timestamp (ms); API trả về chuỗi ISO.
+
+| Bảng | Lưu ở | Nội dung |
+|---|---|---|
+| `sources` | `profile.sql` | `id`, `name`, `path`; source (kể cả `local` Chrome) có folder không còn tồn tại bị xoá khi đọc |
+| `services` | `profile.sql` | `id`, `name`, `website_url`, `auth_methods` (JSON), `custom_fields` (JSON mảng `{ id, name, kind, required? }`) |
+| email | `profiles/{emailId}/email.json` | `email`, `display_name`, `avatar_hue`, `avatar_url`, `recovery_email`, `phone_number`, `totp`, `backup_codes`, `created_at`, `updated_at` |
+| `service_emails` | `profiles/{emailId}/service_email.sql` | `id`, `service_id`, `totps`, `backup_codes`, `auth_methods`, `custom_fields` (JSON mảng `{ name, value }`) |
+
+### 6.3 Thư mục browser của profile
+
+- Đọc dữ liệu browser (cookie, `Login Data`, `History`, `Preferences`, avatar) bằng cách **sao chép file ra thư mục tạm rồi mở read-only**, không khoá file đang được browser sử dụng.
+- `passwords.db` (bảng `passwords`) và `fp-ip-history.db` (bảng `site_fingerprint_history`) được tạo lười khi truy cập lần đầu.
+- Logic tham khảo từ `temp/Zentri/src/main/core/events/{account,browser}`.
+
+### 6.4 API của profile-server
+
+Tiền tố `/api/v1`; phản hồi dạng `{ success, data }` hoặc `{ success: false, error }`. Health check: `GET /health`.
+
+| Nhóm | Endpoint |
+|---|---|
+| Source | `GET/POST /sources`, `GET/PUT/DELETE /sources/:id` |
+| Profile | `GET/POST /profiles`, `POST /profiles/bulk`, `POST /profiles/bulk-delete`, `GET/PUT/DELETE /profiles/:id` (`?full=true` kèm dữ liệu liên quan) |
+| Service | `GET/POST /services`, `GET/PUT/DELETE /services/:id` |
+| Service-email | `GET/POST /profiles/:profileId/service-emails`, `GET/PUT/DELETE /service-emails/:id` |
+| Footprint | `GET/POST /profiles/:profileId/footprints`, `GET/PUT/DELETE /footprints/:id` |
+| Activity | `GET/POST /profiles/:profileId/activity`, `GET/PUT/DELETE /activity/:id`; `GET/DELETE /profiles/:profileId/browsing` |
+| Script / Device | `/profiles/:profileId/scripts`, `/scripts/:id`, `/profiles/:profileId/devices`, `/devices/:id` (cùng dạng CRUD) |
+| Thư mục browser | `GET/POST/DELETE /profiles/:id/folder`, `GET /browser/executables` |
+| Đọc dữ liệu browser | `GET /profiles/:id/{avatar,google-login,domain-session,saved-logins,extension-state,history}` (tham số `?browser=chrome\|chromium`) |
+| Mật khẩu | `GET/POST /profiles/:id/passwords`, `PUT/DELETE /profiles/:id/passwords/:passwordId` |
+| Fingerprint history | `GET /profiles/:id/fingerprint-history`, `DELETE /profiles/:id/fingerprint-history/:entryId` |
+
+---
+
+## 7. Skills (toàn cục)
 
 #### Cấu trúc `meta.json`
 
@@ -383,6 +554,29 @@ Quy trình này đảm bảo **không để lại skill dở dang** nếu quá t
 | Lưu trữ | `src/main/storage/SkillStorage.ts` |
 | API marketplace | `src/main/services/skill-marketplace.ts` |
 | IPC `skill:*` | `src/main/ipc/skill.handlers.ts` |
+
+---
+
+## 8. Browsers (toàn cục)
+
+Binary browser tải về, lưu **toàn cục** (không theo project hay module). Mỗi browser một thư mục con theo tên, bên trong là các thư mục theo version.
+
+
+~/.phantoma/browsers/
+└── {browserName}/                # vd: ungoogled-chromium
+    └── {version}/                # vd: 156.0.8078.79-1
+        ├── chrome                # File thực thi
+        └── ...                   # Các file còn lại của bản portable
+
+
+| Thành phần | Mô tả |
+|---|---|
+| `{browserName}` | Tên browser, hiện có `ungoogled-chromium` |
+| `{version}` | Chuỗi version đầy đủ (gồm revision `-1`), nhiều version có thể cùng tồn tại |
+
+- Nguồn tải: bản **Portable Linux 64-bit** của ungoogled-chromium (`.tar.xz` trên GitHub Releases của `ungoogled-chromium-portablelinux`).
+- Cài đặt: tải về thư mục tạm, giải nén với `--strip-components=1` vào `{version}/`, rồi xoá file tạm; nếu `{version}/chrome` đã tồn tại thì bỏ qua.
+- Script tham khảo: `temp/ungoogled-chromium/fetch-versions.js` (`--installed`, `--latest`, `--list`, `--search`, `--install`).
 
 ---
 

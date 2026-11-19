@@ -3,7 +3,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Folder, Search, X } from 'luc
 import { cn } from '@renderer/utils/cn';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
-import { Input } from '@renderer/components/ui/Input';
+
 import { ProjectIcon, getProjectIdentity } from './ProjectCard';
 
 const MAX_NAME_LENGTH = 30;
@@ -107,7 +107,7 @@ export const NewGroupModal = memo(function NewGroupModal({
           'w-full shrink-0 flex items-center gap-2.5 px-3 h-11 rounded-lg border text-left cursor-pointer transition-colors',
           active
             ? 'text-text-primary'
-            : 'border-divider bg-card-background text-text-secondary hover:bg-card-hover hover:text-text-primary',
+            : 'border-border bg-card-background text-text-secondary hover:bg-card-hover hover:text-text-primary',
         )}
       >
         <ProjectIcon color={identity.color} Icon={identity.Icon} logoPath={p.logoPath} />
@@ -139,10 +139,10 @@ export const NewGroupModal = memo(function NewGroupModal({
           </div>
         </ModalBody>
 
-        <ModalFooter className="gap-0 p-0 border-t border-divider">
+        <ModalFooter className="gap-0 p-0 border-t border-border">
           <Button
             onClick={() => setConfirmOpen(false)}
-            className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-divider rounded-none"
+            className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-border rounded-none"
           >
             Cancel
           </Button>
@@ -168,22 +168,24 @@ export const NewGroupModal = memo(function NewGroupModal({
       />
 
       <ModalBody className="flex flex-col gap-4 py-4">
-        <Input
-          label="Name"
-          autoFocus
-          value={name}
-          maxLength={MAX_NAME_LENGTH}
-          inputClassName="focus:border-input-border-default"
-          placeholder="e.g. Backend-services"
-          hint={`${name.length}/${MAX_NAME_LENGTH} · letters, numbers, - and _ only`}
-          onChange={(e) => setName(sanitizeName(e.target.value))}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleSubmit();
-            }
-          }}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-text-primary">Name</label>
+          <input
+            autoFocus
+            value={name}
+            maxLength={MAX_NAME_LENGTH}
+            placeholder="e.g. Backend-services"
+            onChange={(e) => setName(sanitizeName(e.target.value))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary/60"
+          />
+          <span className="text-xs text-text-secondary">{`${name.length}/${MAX_NAME_LENGTH} · letters, numbers, - and _ only`}</span>
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
@@ -199,7 +201,7 @@ export const NewGroupModal = memo(function NewGroupModal({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search projects..."
-              className="w-full h-8 pl-8 pr-8 rounded-lg border border-divider bg-card-background text-[12.5px] text-text-primary placeholder:text-text-secondary/50 outline-none"
+              className="w-full h-8 pl-8 pr-8 rounded-lg border border-border bg-card-background text-[12.5px] text-text-primary placeholder:text-text-secondary/50 outline-none"
             />
             {query && (
               <button
@@ -244,9 +246,9 @@ export const NewGroupModal = memo(function NewGroupModal({
                     <div className="relative ml-[11px] flex flex-col gap-1">
                       {items.map((p, i) => (
                         <div key={p.id} className="relative pl-5 shrink-0">
-                          <span className="absolute left-0 top-0 h-[22px] w-4 border-l border-b border-divider rounded-bl-[10px] pointer-events-none" />
+                          <span className="absolute left-0 top-0 h-[22px] w-4 border-l border-b border-border rounded-bl-[10px] pointer-events-none" />
                           {i < items.length - 1 && (
-                            <span className="absolute left-0 top-[22px] -bottom-1 w-px bg-divider pointer-events-none" />
+                            <span className="absolute left-0 top-[22px] -bottom-1 w-px bg-border pointer-events-none" />
                           )}
                           {renderProject(p)}
                         </div>

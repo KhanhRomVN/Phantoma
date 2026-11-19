@@ -108,7 +108,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {/* Request Headers */}
         <div className="space-y-3">
-          <h3 className="text-[10px] font-bold text-text-secondary uppercase pb-1.5 border-b border-divider/50">
+          <h3 className="text-[10px] font-bold text-text-secondary uppercase pb-1.5 border-b border-border/50">
             Request Headers
           </h3>
           {requestHeadersSections && Object.keys(requestHeadersSections).length > 0 ? (
@@ -118,13 +118,13 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                   <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-wider mb-1.5">
                     {section}
                   </h4>
-                  <div className="border border-divider/40 rounded-md bg-card-background overflow-hidden text-xs">
+                  <div className="border border-border/40 rounded-md bg-card-background overflow-hidden text-xs">
                     {(headers as any[]).map((h, i) => (
                       <div
                         key={i}
-                        className="flex flex-col sm:flex-row border-b border-divider/40 last:border-0 hover:bg-secondary/30 transition-colors"
+                        className="flex flex-col sm:flex-row border-b border-border/40 last:border-0 hover:bg-secondary/30 transition-colors"
                       >
-                        <div className="w-full sm:w-[140px] flex-shrink-0 p-1.5 sm:border-r border-divider/40 bg-secondary/10">
+                        <div className="w-full sm:w-[140px] flex-shrink-0 p-1.5 sm:border-r border-border/40 bg-secondary/10">
                           <div className="flex items-center gap-1.5 mb-1">
                             <span className="font-bold font-mono text-xs break-all text-text-primary/90">
                               <HighlightText text={h.name} searchTerm={searchTerm} />
@@ -145,7 +145,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                             <HighlightText text={h.value} searchTerm={searchTerm} />
                           </div>
                           {h.parsed && Object.keys(h.parsed).length > 0 && (
-                            <div className="mt-1.5 text-[10px] bg-secondary/30 p-1.5 rounded border border-divider/20">
+                            <div className="mt-1.5 text-[10px] bg-secondary/30 p-1.5 rounded border border-border/20">
                               <div className="font-semibold text-text-secondary/70 mb-1 pointer-events-none select-none">
                                 Parsed Values
                               </div>
@@ -173,7 +173,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
 
         {/* Response Headers */}
         <div className="space-y-3">
-          <h3 className="text-[10px] font-bold text-text-secondary uppercase pb-1.5 border-b border-divider/50">
+          <h3 className="text-[10px] font-bold text-text-secondary uppercase pb-1.5 border-b border-border/50">
             Response Headers
           </h3>
           {responseHeadersSections && Object.keys(responseHeadersSections).length > 0 ? (
@@ -183,13 +183,13 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                   <h4 className="text-[10px] font-bold text-primary/80 uppercase tracking-wider mb-1.5">
                     {section}
                   </h4>
-                  <div className="border border-divider/40 rounded-md bg-card-background overflow-hidden text-xs">
+                  <div className="border border-border/40 rounded-md bg-card-background overflow-hidden text-xs">
                     {(headers as any[]).map((h, i) => (
                       <div
                         key={i}
-                        className="flex flex-col sm:flex-row border-b border-divider/40 last:border-0 hover:bg-secondary/30 transition-colors"
+                        className="flex flex-col sm:flex-row border-b border-border/40 last:border-0 hover:bg-secondary/30 transition-colors"
                       >
-                        <div className="w-full sm:w-[140px] flex-shrink-0 p-1.5 sm:border-r border-divider/40 bg-secondary/10">
+                        <div className="w-full sm:w-[140px] flex-shrink-0 p-1.5 sm:border-r border-border/40 bg-secondary/10">
                           <div className="flex items-center gap-1.5 mb-1">
                             <span className="font-bold font-mono text-xs break-all text-text-primary/90">
                               <HighlightText text={h.name} searchTerm={searchTerm} />
@@ -210,7 +210,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
                             <HighlightText text={h.value} searchTerm={searchTerm} />
                           </div>
                           {h.parsed && Object.keys(h.parsed).length > 0 && (
-                            <div className="mt-1.5 text-[10px] bg-secondary/30 p-1.5 rounded border border-divider/20">
+                            <div className="mt-1.5 text-[10px] bg-secondary/30 p-1.5 rounded border border-border/20">
                               <div className="font-semibold text-text-secondary/70 mb-1 pointer-events-none select-none">
                                 Parsed Values
                               </div>
@@ -241,7 +241,7 @@ export function HeadersDetails({ request, searchTerm }: HeadersDetailsProps) {
         Array.isArray(analysis.headers.missing) &&
         analysis.headers.missing.length > 0 && (
           <div>
-            <h3 className="text-[10px] font-bold text-text-secondary uppercase mb-2 border-b border-divider/50 pb-1.5">
+            <h3 className="text-[10px] font-bold text-text-secondary uppercase mb-2 border-b border-border/50 pb-1.5">
               Missing Headers
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">

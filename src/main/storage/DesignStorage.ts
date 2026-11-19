@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
 import { logger } from '../utils/logger';
+import { projectStorage } from './ProjectStorage';
 
 export interface DesignNode {
   id: string;
@@ -44,7 +45,7 @@ export interface UpdateDesignInput {
 }
 
 function getProjectSlug(projectPath: string): string {
-  return Buffer.from(path.resolve(projectPath)).toString('base64url');
+  return projectStorage.getProjectId(projectPath);
 }
 
 export function slugToProjectPath(slug: string): string {

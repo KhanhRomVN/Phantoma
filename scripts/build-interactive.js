@@ -31,7 +31,8 @@ function serverDistExists() {
   const root = path.join(__dirname, '..');
   return (
     fs.existsSync(path.join(root, 'server', 'dist', 'index.js')) &&
-    fs.existsSync(path.join(root, 'emulate', 'dist', 'index.js'))
+    fs.existsSync(path.join(root, 'emulate', 'dist', 'index.js')) &&
+    fs.existsSync(path.join(root, 'profile-server', 'dist', 'index.js'))
   );
 }
 
@@ -40,10 +41,10 @@ const steps = [{ title: 'Select build target', items: targets, cursor: 0 }];
 // Nếu đã có dist sẵn -> hỏi dùng lại hay build lại
 if (serverDistExists()) {
   steps.push({
-    title: 'Đã có dist sẵn (server + emulate). Dùng lại hay build lại?',
+    title: 'Đã có dist sẵn (server + emulate + profile-server). Dùng lại hay build lại?',
     items: [
       { label: 'Dùng lại bản build có sẵn (nhanh hơn)', value: 'reuse' },
-      { label: 'Build lại server + emulate', value: 'rebuild' },
+      { label: 'Build lại server + emulate + profile-server', value: 'rebuild' },
     ],
     cursor: 0,
   });
@@ -153,8 +154,14 @@ async function main() {
       console.error('\nemulate build failed. Aborting.');
       process.exit(emulateCode);
     }
+    console.log('\u2192 Building profile-server...');
+    const profileCode = await runCommand('node', ['scripts/build-server.js', 'profile-server']);
+    if (profileCode !== 0) {
+      console.error('\nprofile-server build failed. Aborting.');
+      process.exit(profileCode);
+    }
   } else {
-    console.log('\u2192 Reusing existing server/emulate dist');
+    console.log('\u2192 Reusing existing server/emulate/profile-server dist');
   }
 
   console.log('\u2192 Running electron-vite build...');

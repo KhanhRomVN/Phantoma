@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@renderer/components/ui/Button';
-import { Input } from '@renderer/components/ui/Input';
+
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { CANCEL_BUTTON_CLASS, Field, Panel, Segmented, Toggle } from './shared';
 
@@ -69,7 +69,7 @@ export default function ModalTab() {
               <Toggle label="ModalHeader showCloseButton" checked={closeButton} onChange={setCloseButton} />
             </div>
           </Field>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setOpen('playground')}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setOpen('playground')}>
             Open playground modal
           </Button>
         </div>
@@ -80,7 +80,7 @@ export default function ModalTab() {
           <Panel key={item.kind} title={item.title} description={item.description}>
             <div className="flex h-full flex-col justify-between gap-4">
               <code className="font-mono text-[11px] text-text-secondary">{item.props}</code>
-              <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={() => setOpen(item.kind)}>
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={() => setOpen(item.kind)}>
                 Open
               </Button>
             </div>
@@ -107,7 +107,7 @@ export default function ModalTab() {
           <Button className={CANCEL_BUTTON_CLASS} onClick={close}>
             Cancel
           </Button>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={close}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={close}>
             Confirm
           </Button>
         </ModalFooter>
@@ -122,7 +122,7 @@ export default function ModalTab() {
           <Button className={CANCEL_BUTTON_CLASS} onClick={close}>
             Cancel
           </Button>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={close}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={close}>
             Delete
           </Button>
         </ModalFooter>
@@ -131,18 +131,18 @@ export default function ModalTab() {
       <Modal isOpen={open === 'form'} onClose={close} className="max-w-md">
         <ModalHeader title="Create group" description="Đặt tên cho nhóm mới" onClose={close} />
         <ModalBody>
-          <Input
-            label="Group name"
+          <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My group"
+            className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary/60"
           />
         </ModalBody>
         <ModalFooter>
           <Button className={CANCEL_BUTTON_CLASS} onClick={close}>
             Cancel
           </Button>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" disabled={!name.trim()} onClick={close}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" disabled={!name.trim()} onClick={close}>
             Create group
           </Button>
         </ModalFooter>
@@ -174,7 +174,7 @@ export default function ModalTab() {
             Back
           </Button>
           <Button
-            className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+            className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
             onClick={() => (step === STEPS.length - 1 ? close() : setStep((s) => s + 1))}
           >
             {step === STEPS.length - 1 ? 'Finish' : 'Next'}
@@ -193,7 +193,7 @@ export default function ModalTab() {
           ))}
         </ModalBody>
         <ModalFooter>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={close}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={close}>
             I agree
           </Button>
         </ModalFooter>
@@ -210,7 +210,7 @@ export default function ModalTab() {
           <p className="text-sm text-text-secondary">Bạn phải chọn một hành động để tiếp tục.</p>
         </ModalBody>
         <ModalFooter>
-          <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70" onClick={close}>
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30" onClick={close}>
             Sign in again
           </Button>
         </ModalFooter>

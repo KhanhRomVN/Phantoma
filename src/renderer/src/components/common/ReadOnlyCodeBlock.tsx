@@ -71,7 +71,7 @@ export default function ReadOnlyCodeBlock({ code, language }: Props) {
 
   return (
     <div>
-      <div className="flex items-center justify-between h-7 px-2 border-b border-divider bg-sidebar-background">
+      <div className="flex items-center justify-between h-7 px-2 border-b border-border bg-panel-background">
         <div className="flex items-center gap-1.5 min-w-0">
           <img src={getFileIconPath(`file.${ext}`)} alt={lang} className="w-3.5 h-3.5 shrink-0" />
           <span className="text-[11px] text-text-secondary truncate">{lang}</span>

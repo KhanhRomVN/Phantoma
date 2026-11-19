@@ -89,7 +89,7 @@ export default function LeftPanel({
 
   return (
     <div
-      className="relative flex flex-col h-full bg-sidebar-background border-r border-border select-none"
+      className="relative flex flex-col h-full bg-panel-background border-r border-border select-none"
       style={{ width: `${width}px`, borderColor: $('--border') }}
     >
       {/* Header */}
@@ -155,7 +155,7 @@ export default function LeftPanel({
             placeholder="Tìm kiếm..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg bg-input-background border border-transparent focus:border-primary/50 outline-none text-text-primary placeholder:text-text-secondary/50 transition-all"
+            className="w-full pl-8 pr-3 py-2 text-xs rounded-lg bg-input-background border border-transparent outline-none text-text-primary placeholder:text-text-secondary/50 transition-all"
             style={{ backgroundColor: $('--input-background') }}
           />
           <svg

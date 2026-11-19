@@ -83,7 +83,7 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
     return (
       <div
         key={index}
-        className="flex items-center gap-2.5 px-3.5 py-1 text-xs transition-colors duration-[0.15s] border-l-2 cursor-pointer hover:bg-sidebar-item-hover"
+        className="flex items-center gap-2.5 px-3.5 py-1 text-xs transition-colors duration-[0.15s] border-l-2 cursor-pointer hover:bg-card-hover"
         style={{ borderLeftColor: statusColor }}
         onClick={() => handleRowClick(item.path)}
         title={`Click để xem git diff của ${item.path}`}

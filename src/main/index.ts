@@ -31,6 +31,7 @@ import { windowManager } from './core/window/WindowManager';
 import { startShellServer, stopServers } from './services/server-spawner';
 import { killAllTerminals } from './ipc/terminal.handlers';
 import { migrateModuleDirs } from './storage/migrateModuleDirs';
+import { setupProjectHandlers } from './ipc/project.handlers';
 import { stopAllDebug } from './ipc/debug.handlers';
 
 // Import IPC handlers
@@ -42,6 +43,7 @@ import {
   setupTargetLockHandlers,
   setupTerminalHandlers,
   setupGitHandlers,
+  setupBackupHandlers,
   setupPullRequestHandlers,
   setupTaskHandlers,
   setupWorkflowHandlers,
@@ -91,7 +93,9 @@ app.whenReady().then(() => {
   setupTargetLockHandlers();
   setupTerminalHandlers();
   setupGitHandlers();
+  setupBackupHandlers();
   setupPullRequestHandlers();
+  setupProjectHandlers();
   setupTaskHandlers();
   setupWorkflowHandlers();
   registerWorkspaceHandlers();

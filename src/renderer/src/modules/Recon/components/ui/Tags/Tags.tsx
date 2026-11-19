@@ -29,7 +29,7 @@ export default function Tags({ groups }: Props) {
             <span className="text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
               {g.title || 'Khác'}
             </span>
-            <span className="text-[11px] px-1.5 rounded-full bg-sidebar-item-hover text-text-secondary">
+            <span className="text-[11px] px-1.5 rounded-full bg-card-hover text-text-secondary">
               {g.items.length}
             </span>
           </div>
@@ -65,7 +65,7 @@ export default function Tags({ groups }: Props) {
                     type="button"
                     title="Copy"
                     onClick={() => copy(it.value)}
-                    className="h-full w-6 border-l border-border flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors"
+                    className="h-full w-6 border-l border-border flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
                   >
                     {done ? (
                       <Check className="w-3 h-3 text-green-500" />

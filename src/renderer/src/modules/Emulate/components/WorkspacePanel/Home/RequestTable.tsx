@@ -863,7 +863,7 @@ export const RequestTable = React.memo(function RequestTable({
   return (
     <div className="h-full w-full flex flex-col text-sm overflow-hidden relative">
       {!hideSearchBar && (
-      <div className="flex items-center px-1 py-1.5 border-b border-divider gap-1.5 shrink-0">
+      <div className="flex items-center px-1 py-1.5 border-b border-border gap-1.5 shrink-0">
         <div className="flex-1 flex items-center gap-2 bg-input-background border border-border rounded px-2 h-9">
           <div className="relative flex-1">
             <input
@@ -888,7 +888,7 @@ export const RequestTable = React.memo(function RequestTable({
                 'p-1 rounded transition-colors',
                 matchCase
                   ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                  : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
               )}
               title="Match case"
             >
@@ -900,7 +900,7 @@ export const RequestTable = React.memo(function RequestTable({
                 'p-1 rounded transition-colors',
                 matchWholeWord
                   ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                  : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
               )}
               title="Match whole word"
             >
@@ -912,7 +912,7 @@ export const RequestTable = React.memo(function RequestTable({
                 'p-1 rounded transition-colors',
                 useRegex
                   ? 'bg-success/20 text-success hover:bg-success/30'
-                  : 'text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary',
+                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
               )}
               title="Use regular expression"
             >
@@ -921,7 +921,7 @@ export const RequestTable = React.memo(function RequestTable({
           </div>
         </div>
         {isTargetActive && (
-          <div className="flex items-center gap-1 border-l border-divider pl-2 h-full">
+          <div className="flex items-center gap-1 border-l border-border pl-2 h-full">
             <span className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-text-secondary border border-border/30 rounded">
               <span
                 className={cn(
@@ -947,7 +947,7 @@ export const RequestTable = React.memo(function RequestTable({
         onScroll={handleScroll}
         className="request-table-scroll flex-1 flex flex-col overflow-auto relative"
       >
-        <div className="flex h-10 min-h-10 flex-shrink-0 bg-table-header-background text-sm font-semibold text-text-secondary border-b border-divider/20 sticky top-0 z-10 w-full">
+        <div className="flex h-10 min-h-10 flex-shrink-0 bg-table-header-background text-sm font-semibold text-text-secondary border-b border-border/20 sticky top-0 z-10 w-full">
           {table.getHeaderGroups().map((headerGroup) => (
             <div key={headerGroup.id} className="flex w-full h-full">
               {headerGroup.headers.map((header) => {
@@ -1001,7 +1001,7 @@ export const RequestTable = React.memo(function RequestTable({
                 data-state={row.getValue('id') === selectedId ? 'selected' : undefined}
                 onDragStart={(e) => e.preventDefault()}
                 className={cn(
-                  'flex items-center border-b border-divider/20 transition-colors cursor-pointer text-xs absolute left-0 top-0',
+                  'flex items-center border-b border-border/20 transition-colors cursor-pointer text-xs absolute left-0 top-0',
                   isPending
                     ? 'bg-warn/15 hover:bg-warn/25 border-l-4 border-l-warning intercept-pending-row'
                     : isIntercepted
@@ -1081,7 +1081,7 @@ export const RequestTable = React.memo(function RequestTable({
                 </div>
               </div>
 
-              <div className="h-px bg-divider/60 mx-1" />
+              <div className="h-px bg-border/60 mx-1" />
 
               <div className="px-2 pt-2 pb-1">
                 <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2 px-1">
@@ -1148,7 +1148,7 @@ export const RequestTable = React.memo(function RequestTable({
                 </div>
               </div>
 
-              <div className="h-px bg-divider/60 mx-1 mt-1" />
+              <div className="h-px bg-border/60 mx-1 mt-1" />
 
               <div className="px-2 pt-2 pb-1">
                 <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2 px-1">
@@ -1192,7 +1192,7 @@ export const RequestTable = React.memo(function RequestTable({
                 </div>
               </div>
 
-              <div className="h-px bg-divider/60 mx-1 mt-1" />
+              <div className="h-px bg-border/60 mx-1 mt-1" />
 
               <div className="px-2 py-2">
                 <button

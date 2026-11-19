@@ -92,10 +92,10 @@ function ConnectionRow({
     <button
       onClick={onSelect}
       className={cn(
-        'w-full text-left px-2 py-1.5 border-b border-divider/30 transition-colors flex items-center gap-2 min-w-0',
+        'w-full text-left px-2 py-1.5 border-b border-border/30 transition-colors flex items-center gap-2 min-w-0',
         isSelected
           ? 'bg-primary/15 text-text-primary'
-          : 'hover:bg-sidebar-item-hover/40 text-text-secondary hover:text-text-primary',
+          : 'hover:bg-card-hover/40 text-text-secondary hover:text-text-primary',
       )}
     >
       <StatusDot status={connection.status} />
@@ -125,8 +125,8 @@ function FrameRow({ frame }: { frame: WebSocketFrame }) {
   return (
     <div
       className={cn(
-        'border-b border-divider/20 font-mono text-[11px] cursor-pointer transition-colors',
-        expanded ? 'bg-card-background' : 'hover:bg-sidebar-item-hover/30',
+        'border-b border-border/20 font-mono text-[11px] cursor-pointer transition-colors',
+        expanded ? 'bg-card-background' : 'hover:bg-card-hover/30',
       )}
       onClick={() => setExpanded((v) => !v)}
     >
@@ -212,8 +212,8 @@ export function WebSocketUI({ searchTerm = '' }: WebSocketUIProps) {
 
   return (
     <div className="h-full flex min-h-0">
-      <div className="w-[280px] shrink-0 border-r border-divider/50 flex flex-col min-h-0 bg-card-background">
-        <div className="flex items-center justify-between px-2 h-8 border-b border-divider/50 shrink-0">
+      <div className="w-[280px] shrink-0 border-r border-border/50 flex flex-col min-h-0 bg-card-background">
+        <div className="flex items-center justify-between px-2 h-8 border-b border-border/50 shrink-0">
           <span className="text-[11px] font-semibold text-text-secondary">
             Connections ({connections.length})
           </span>
@@ -244,7 +244,7 @@ export function WebSocketUI({ searchTerm = '' }: WebSocketUIProps) {
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-2 px-2 h-8 border-b border-divider/50 shrink-0 bg-table-header-background">
+            <div className="flex items-center gap-2 px-2 h-8 border-b border-border/50 shrink-0 bg-table-header-background">
               <div className="flex items-center gap-0.5">
                 {(['all', 'send', 'receive'] as const).map((d) => (
                   <button
@@ -254,7 +254,7 @@ export function WebSocketUI({ searchTerm = '' }: WebSocketUIProps) {
                       'px-2 py-0.5 text-[10px] rounded transition-colors',
                       directionFilter === d
                         ? 'bg-primary/20 text-primary'
-                        : 'text-text-secondary hover:bg-sidebar-item-hover/40',
+                        : 'text-text-secondary hover:bg-card-hover/40',
                     )}
                   >
                     {d === 'all' ? 'All' : d === 'send' ? '↑ Sent' : '↓ Received'}
@@ -281,7 +281,7 @@ export function WebSocketUI({ searchTerm = '' }: WebSocketUIProps) {
                         'px-1.5 py-0.5 text-[10px] rounded transition-colors font-mono',
                         isActive
                           ? 'bg-primary/20 text-primary'
-                          : 'text-text-secondary hover:bg-sidebar-item-hover/40',
+                          : 'text-text-secondary hover:bg-card-hover/40',
                       )}
                     >
                       {OPCODE_CONFIG[op].label}

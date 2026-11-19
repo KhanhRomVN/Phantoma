@@ -106,7 +106,7 @@ export function PayloadTab({
                   <tr
                     key={payload.id}
                     className={cn(
-                      'border-b border-border/40 hover:bg-dropdown-item-hover/30 transition-colors',
+                      'border-b border-border/40 hover:bg-table-row-hover transition-colors',
                       !payload.enabled && 'opacity-50',
                     )}
                   >

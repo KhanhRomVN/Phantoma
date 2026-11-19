@@ -45,7 +45,7 @@ export function EmulatePanel() {
   return (
     <SettingsProvider>
       <div
-        className="shrink-0 border-l border-divider flex flex-col overflow-hidden relative h-full"
+        className="shrink-0 border-l border-border flex flex-col overflow-hidden relative h-full"
         style={{ width: `${width}px` }}
       >
         <div

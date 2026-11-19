@@ -61,7 +61,7 @@ export function ResourceList({
             placeholder="Search resources..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full h-8 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary focus:border-blue-500/50 outline-none"
+            className="w-full h-8 bg-input-background border border-input-border-default rounded-md pl-8 pr-3 text-sm text-text-primary outline-none"
           />
         </div>
       </div>

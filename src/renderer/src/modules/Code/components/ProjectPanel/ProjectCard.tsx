@@ -62,7 +62,7 @@ import {
 } from '@renderer/components/ui/Dropdown';
 
 // ── Local modals ──
-import { TaskStatusModal } from './TaskStatusModal';
+import { AssignTaskModal } from './AssignTaskModal';
 import { ConfirmUnlinkTaskModal } from './ConfirmUnlinkTaskModal';
 import { closeTargetOwner } from '@renderer/hooks/useTargetLock';
 import { toBranchTargetId } from './ProjectConflictModal';
@@ -327,11 +327,12 @@ const DefaultBadge = memo(function DefaultBadge() {
 });
 
 const NO_BRANCH_NAME = 'no-branch';
+const NO_GIT_NAME = 'no-git';
 
-const NoGitBadge = memo(function NoGitBadge() {
+const TempBranchBadge = memo(function TempBranchBadge({ name }: { name: string }) {
   return (
-    <span className="inline-flex items-center h-[18px] px-1.5 rounded-[5px] shrink-0 text-[9.5px] font-medium text-text-secondary bg-button-soft-background">
-      no git
+    <span className="inline-flex items-center h-[18px] px-1.5 rounded-[5px] shrink-0 text-[9.5px] font-medium text-text-secondary bg-text-secondary/10">
+      {name === NO_GIT_NAME ? 'no git' : 'no branch'}
     </span>
   );
 });
@@ -468,13 +469,10 @@ function CollapsedTree({
         const dim = !live && procs.length === 0;
 
         // Calculate task counts for this specific branch
-        const branchTaskCounts = useMemo(() => {
-          const c: Record<TaskStatus, number> = { todo: 0, progress: 0, done: 0 };
-          (projectTasks ?? []).forEach((t) => {
-            if (!t.archived && t.branchName === b.name) c[t.status]++;
-          });
-          return c;
-        }, [projectTasks, b.name]);
+        const branchTaskCounts: Record<TaskStatus, number> = { todo: 0, progress: 0, done: 0 };
+        (projectTasks ?? []).forEach((t) => {
+          if (!t.archived && t.branchName === b.name) branchTaskCounts[t.status]++;
+        });
         const wrap = (row: React.ReactNode) =>
           n ? (
             <SessionHoverTooltip
@@ -591,7 +589,7 @@ function CollapsedTree({
                   {stripPrefix(b.name)}
                 </span>
                 {project.defaultBranch === b.name && <DefaultBadge />}
-                {b.name === NO_BRANCH_NAME && <NoGitBadge />}
+                {(b.name === NO_BRANCH_NAME || b.name === NO_GIT_NAME) && <TempBranchBadge name={b.name} />}
                 <span className="flex-1" />
                 {/* Task status badge */}
                 {(branchTaskCounts.todo > 0 || branchTaskCounts.progress > 0) && (
@@ -740,7 +738,9 @@ export const BranchBlock = memo(function BranchBlock({
 
         {project.defaultBranch === branch.name && <DefaultBadge />}
 
-        {branch.name === NO_BRANCH_NAME && <NoGitBadge />}
+        {(branch.name === NO_BRANCH_NAME || branch.name === NO_GIT_NAME) && (
+                  <TempBranchBadge name={branch.name} />
+                )}
 
         <span className="flex-1" />
 
@@ -932,7 +932,7 @@ export const ProjectCard = memo(function ProjectCard({
   return (
     <div
       className={cn(
-        'relative shrink-0 border-y border-divider overflow-hidden transition-colors',
+        'relative shrink-0 border-y border-border overflow-hidden transition-colors',
         project.hidden && 'opacity-50',
         // Selected project indicator — subtle accent strip + tinted background
         isProjectSelected && 'bg-primary/[0.04]',
@@ -1136,31 +1136,48 @@ export const ProjectCard = memo(function ProjectCard({
       </div>
 
       {/* Task Status Modal */}
-      <TaskStatusModal
+      <AssignTaskModal
         isOpen={taskStatusModalOpen}
         onClose={handleCloseTaskStatusModal}
         projectName={project.name}
-        branchName={taskStatusModalBranch ?? ''}
-        tasks={(projectTasks ?? []).filter((t) => !t.archived)}
-        linkedTaskId={
-          (projectTasks ?? []).find((t) => !t.archived && t.branchName === taskStatusModalBranch)
-            ?.id ?? null
-        }
-        onLink={(taskId) => {
-          const task = (projectTasks ?? []).find((t) => t.id === taskId);
-          if (!task) return;
-          const newStatus = task.status === 'todo' ? 'progress' : task.status;
-          void taskService.update(projectPath, taskId, {
-            status: newStatus,
+        branchName={taskStatusModalBranch}
+        tasks={(projectTasks ?? []).filter(
+          (t) =>
+            !t.archived &&
+            t.status === 'todo' &&
+            (!t.branchName || t.branchName === taskStatusModalBranch) &&
+            !t.sessionId,
+        )}
+        inProgressTasks={(projectTasks ?? []).filter(
+          (t) =>
+            !t.archived && t.status === 'progress' && t.branchName === taskStatusModalBranch,
+        )}
+        onSelect={(t) => {
+          void taskService.update(projectPath, t.id, {
+            status: 'progress',
             branchName: taskStatusModalBranch,
             sessionId: null,
           });
           handleCloseTaskStatusModal();
         }}
-        onUnlink={(taskId) => {
-          const task = (projectTasks ?? []).find((t) => t.id === taskId);
-          if (!task) return;
-          setConfirmUnlinkTask(task);
+        onSwitchProgress={(t, action) => {
+          (projectTasks ?? [])
+            .filter(
+              (p) =>
+                !p.archived && p.status === 'progress' && p.branchName === taskStatusModalBranch,
+            )
+            .forEach((p) => {
+              void taskService.update(projectPath, p.id, { status: action });
+            });
+          void taskService.update(projectPath, t.id, {
+            status: 'progress',
+            branchName: taskStatusModalBranch,
+            sessionId: null,
+          });
+          handleCloseTaskStatusModal();
+        }}
+        onUnlink={(t) => {
+          setConfirmUnlinkTask(t);
           handleCloseTaskStatusModal();
         }}
       />

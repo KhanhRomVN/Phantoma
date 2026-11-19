@@ -172,7 +172,7 @@ export default function Table({ data, filterText = '' }: Props) {
               ))}
             </colgroup>
           )}
-          <thead className="sticky top-0 bg-background z-10 shadow-md">
+          <thead className="sticky top-0 bg-table-header-background z-10 shadow-md">
             <tr>
               {data.headers.map((header, idx) => {
                 const sortableCol = canSort(idx);
@@ -220,7 +220,7 @@ export default function Table({ data, filterText = '' }: Props) {
                     key={idx}
                     onClick={() => setExpandedIdx(expanded ? null : idx)}
                     className={cn(
-                      'cursor-pointer hover:bg-muted/30 transition-colors border-b border-border/20 last:border-0',
+                      'cursor-pointer hover:bg-table-row-hover transition-colors border-b border-border/20 last:border-0',
                       expanded && 'bg-muted/20'
                     )}
                   >

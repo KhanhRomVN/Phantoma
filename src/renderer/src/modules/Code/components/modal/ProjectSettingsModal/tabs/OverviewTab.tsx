@@ -60,7 +60,7 @@ export function OverviewTab({ project }: { project: ProjectSettingsTarget }) {
   return (
     <div className='flex flex-col gap-7'>
       <div
-        className='rounded-2xl border border-divider p-5'
+        className='rounded-2xl border border-border p-5'
         style={{
           background: `linear-gradient(135deg, color-mix(in srgb, ${project.color} 16%, transparent) 0%, transparent 65%)`,
         }}
@@ -77,14 +77,14 @@ export function OverviewTab({ project }: { project: ProjectSettingsTarget }) {
               {project.name}
             </h3>
             <div className='mt-2 flex flex-wrap items-center gap-1.5'>
-              <span className='inline-flex h-5 items-center gap-1.5 rounded-full border border-divider bg-black/20 px-2 text-[10.5px] text-text-secondary'>
+              <span className='inline-flex h-5 items-center gap-1.5 rounded-full border border-border bg-black/20 px-2 text-[10.5px] text-text-secondary'>
                 <span
                   className='h-1.5 w-1.5 rounded-full'
                   style={{ backgroundColor: project.hidden ? '#8b91a1' : '#3fb950' }}
                 />
                 {project.hidden ? 'Hidden' : 'Visible'}
               </span>
-              <span className='inline-flex h-5 items-center gap-1.5 rounded-full border border-divider bg-black/20 px-2 text-[10.5px] text-text-secondary'>
+              <span className='inline-flex h-5 items-center gap-1.5 rounded-full border border-border bg-black/20 px-2 text-[10.5px] text-text-secondary'>
                 <Folder className='h-3 w-3' />
                 {project.groupName || 'Ungrouped'}
               </span>
@@ -115,7 +115,7 @@ export function OverviewTab({ project }: { project: ProjectSettingsTarget }) {
       </div>
 
       <Section title='Details' description='Identifiers and location of this project.'>
-        <Panel className='divide-y divide-divider'>
+        <Panel className='divide-y divide-border'>
           <DetailRow label='Location' copy={project.path}>
             <span className='break-all font-mono'>{project.path}</span>
           </DetailRow>

@@ -26,7 +26,7 @@
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent' | 'agenttools';
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent' | 'agenttools' | 'design';
 
 export interface WorkspacePanel {
   id: string;

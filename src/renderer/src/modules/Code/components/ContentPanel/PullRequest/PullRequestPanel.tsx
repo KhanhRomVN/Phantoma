@@ -301,7 +301,7 @@ export const PullRequestPanel = memo(function PullRequestPanel({
               className={cn(
                 'h-7 px-2.5 rounded-md text-[12px] font-medium outline-none cursor-pointer transition-colors inline-flex items-center gap-1.5',
                 filter === f.id
-                  ? 'bg-button-soft-background text-primary'
+                  ? 'bg-primary/10 text-primary'
                   : 'text-text-secondary hover:text-text-primary hover:bg-card-hover',
               )}
             >

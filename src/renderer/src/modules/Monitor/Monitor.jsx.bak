@@ -1,0 +1,3002 @@
+// // Monitor.tsx — bản nâng cấp "VioletAbyss Signal". Thêm: Hero header + signal wave + radar, Command Palette (⌘K),
+// // Focus mode (F), density/accent switcher, sparkline & health ring, system cards + time marker trong feed,
+// // 3 view mới (Timeline có Time machine, Kanban, Heatmap), related signals, signal confidence, empty/loading có hồn.
+// import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
+// import type { CSSProperties, ReactNode } from 'react';
+// import {
+//   Activity,
+//   ArrowUp,
+//   Bell,
+//   BellPlus,
+//   Check,
+//   ChevronLeft,
+//   ChevronRight,
+//   Clock,
+//   Download,
+//   ExternalLink,
+//   FileText,
+//   GitCompare,
+//   History,
+//   Home,
+//   Inbox,
+//   List,
+//   MessageSquare,
+//   Maximize2,
+//   MoreHorizontal,
+//   Pause,
+//   Pin,
+//   Play,
+//   Plus,
+//   RefreshCw,
+//   Search,
+//   Send,
+//   Sparkles,
+//   Star,
+//   Target,
+//   Trash2,
+//   Volume2,
+//   X,
+//   Zap,
+//   Command,
+//   Eye,
+//   Flame,
+//   Layers,
+//   LayoutGrid,
+//   Minimize2,
+//   Palette,
+// } from 'lucide-react';
+
+// // ===== Types =====
+// type SourceType = 'forum' | 'telegram' | 'x' | 'facebook' | 'rss' | 'website' | 'profile';
+// type MediaKind = 'text' | 'image' | 'gallery' | 'audio' | 'video' | 'diff' | 'link';
+// type Priority = 'high' | 'medium' | 'low';
+// type ViewId = 'feed' | 'monitors' | 'alerts' | 'reports' | 'audit' | 'timeline' | 'kanban' | 'heatmap';
+
+// interface MediaItem {
+//   type: 'image' | 'video' | 'audio';
+//   url: string;
+//   thumb?: string;
+//   durationSec?: number;
+//   alt?: string;
+// }
+// interface DiffLine {
+//   kind: 'add' | 'remove' | 'same';
+//   text: string;
+// }
+// interface SnapshotDiff {
+//   before: string[];
+//   after: string[];
+//   addedCount: number;
+//   removedCount: number;
+// }
+// interface PostNote {
+//   id: string;
+//   author: string;
+//   text: string;
+//   at: string;
+// }
+// interface Post {
+//   id: string;
+//   monitorId: string;
+//   sourceType: SourceType;
+//   sourceName: string;
+//   sourceDomain: string;
+//   author?: string;
+//   title?: string;
+//   body: string;
+//   mediaType: MediaKind;
+//   mediaItems?: MediaItem[];
+//   linkPreview?: { title: string; description: string; domain: string; thumb?: string };
+//   diff?: SnapshotDiff;
+//   tags: string[];
+//   priority: Priority;
+//   ruleHit?: { id: string; name: string };
+//   createdAt: string;
+//   isRecommended?: boolean;
+//   archived: boolean;
+//   notes: PostNote[];
+//   viewedCount: number;
+//   isNote?: boolean;
+//   pinned?: boolean;
+//   assigned?: boolean;
+//   expires?: boolean;
+//   confidence?: number;
+//   stage?: 'new' | 'reading' | 'saved' | 'done';
+// }
+// interface MonitorItem {
+//   id: string;
+//   name: string;
+//   sourceType: SourceType;
+//   schedule: string;
+//   hits24h: number;
+//   alerts: number;
+//   status: 'running' | 'paused' | 'error';
+//   group: string;
+//   tags: string[];
+// }
+// interface AlertRule {
+//   id: string;
+//   name: string;
+//   condition: string;
+//   channels: string[];
+//   enabled: boolean;
+//   priority: Priority;
+// }
+// interface AlertHit {
+//   id: string;
+//   at: string;
+//   ruleId: string;
+//   monitor: string;
+//   summary: string;
+//   channel: string;
+// }
+// interface ReportDef {
+//   id: string;
+//   name: string;
+//   cycle: string;
+//   scope: string;
+//   formats: string[];
+//   lastRun: string;
+//   nextRun: string;
+// }
+// interface AuditEntry {
+//   id: string;
+//   at: string;
+//   monitor: string;
+//   action: string;
+//   actor: string;
+//   result: string;
+// }
+// interface MonitorGroup {
+//   id: string;
+//   name: string;
+//   monitorIds: string[];
+// }
+// interface TagDef {
+//   name: string;
+//   count: number;
+// }
+
+// // ===== Theme (VioletAbyss) =====
+// const THEME: Record<string, string> = {
+//   primary: '139,109,255',
+//   success: '52,211,153',
+//   error: '244,63,94',
+//   warn: '251,191,36',
+//   info: '34,211,238',
+//   bg: '7,7,13',
+//   tp: '244,244,251',
+//   ts: '154,154,184',
+//   border: '38,38,58',
+//   card: '15,15,26',
+//   cardHover: '23,23,40',
+//   input: '15,15,26',
+//   dropdown: '17,17,29',
+//   dropHover: '26,26,45',
+//   tooltip: '23,23,40',
+//   panel: '10,10,18',
+//   thead: '15,15,26',
+//   rowHover: '23,23,40',
+// };
+// const ACCENTS = [
+//   '139,109,255',
+//   '34,211,238',
+//   '244,114,182',
+//   '52,211,153',
+//   '251,191,36',
+//   '244,63,94',
+//   '96,165,250',
+//   '251,146,60',
+// ];
+// const c = (name: string, a = 1): string => `rgba(var(--${name}),${a})`;
+// const TONES: Record<string, string> = {
+//   success: 'success',
+//   error: 'error',
+//   warn: 'warn',
+//   info: 'info',
+//   primary: 'primary',
+//   muted: 'ts',
+// };
+// const tc = (tone: string, a = 1): string => c(TONES[tone] || 'ts', a);
+
+// const CSS = `
+// .mn{${Object.entries(THEME)
+//   .map(([k, v]) => `--${k}:${v}`)
+//   .join(
+//     ';',
+//   )};display:flex;height:100%;min-height:600px;width:100%;overflow:hidden;position:relative;background:${c('bg')};color:${c('tp')};font-family:Inter,'IBM Plex Mono',system-ui,sans-serif;font-size:12px}
+// .mn *{box-sizing:border-box}
+// .mn button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+// .mn button:disabled{opacity:.4;cursor:default}
+// .mn input,.mn select,.mn textarea{font:inherit;color:${c('tp')};outline:none}
+// .mn .soft{display:inline-flex;align-items:center;gap:6px;border-radius:6px;padding:0 12px;height:32px;background:${c('ts', 0.1)};color:${c('ts')};white-space:nowrap}
+// .mn .soft:hover{background:${c('ts', 0.15)};color:${c('tp')}}
+// .mn .prim{display:inline-flex;align-items:center;gap:6px;border-radius:6px;padding:0 12px;height:32px;background:${c('primary', 0.1)};color:${c('primary')};white-space:nowrap}
+// .mn .prim:hover{background:${c('primary', 0.2)}}
+// .mn .dng{display:inline-flex;align-items:center;gap:6px;border-radius:6px;padding:0 12px;height:32px;background:${c('error', 0.15)};color:${c('error')};white-space:nowrap}
+// .mn .ico{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:${c('ts', 0.1)};color:${c('ts')}}
+// .mn .ico:hover{background:${c('ts', 0.15)};color:${c('tp')}}
+// .mn .field{width:100%;height:34px;border-radius:8px;border:1px solid ${c('border')};background:${c('input')};padding:0 10px}
+// .mn textarea.field{height:auto;padding:8px 10px;resize:none}
+// .mn .field:focus{border-color:${c('primary', 0.6)}}
+// .mn .chip{display:inline-flex;align-items:center;gap:6px;border-radius:6px;padding:4px 10px;background:${c('ts', 0.1)};color:${c('ts')};font-weight:500;white-space:nowrap}
+// .mn .chip:hover{background:${c('ts', 0.15)};color:${c('tp')}}
+// .mn .chip.on{background:${c('ts', 0.25)};color:${c('tp')}}
+// .mn tbody tr:hover{background:${c('rowHover')}}
+// .mn .card{background:${c('card')};border-radius:6px}
+// .mn .sec{background:${c('card')};border-radius:6px;padding:12px 14px;margin-bottom:12px}
+// .mn .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid ${c('border', 0.4)}}
+// .mn .row:last-child{border-bottom:0}
+// .mn .mono{font-family:'IBM Plex Mono',monospace}
+// .mn .sub{color:${c('ts')};font-size:11px}
+// .mn .tr{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+// .mn .menu{position:fixed;z-index:60;width:200px;background:${c('dropdown')};border:1px solid ${c('border')};border-radius:8px;padding:4px}
+// .mn .menu button{display:flex;width:100%;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;text-align:left}
+// .mn .menu button:hover{background:${c('dropHover')}}
+// .mn .nav{display:flex;width:100%;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;color:${c('ts')};text-align:left}
+// .mn .nav:hover{background:${c('ts', 0.1)};color:${c('tp')}}
+// .mn .nav.on{background:${c('primary', 0.12)};color:${c('primary')}}
+// .mn .post{border:1px solid transparent;transition:border-color .15s}
+// .mn .post:hover{border-color:${c('border')};background:${c('cardHover')}}
+// .mn .skel{background:${c('ts', 0.12)};border-radius:6px;animation:mnpulse 1.2s ease-in-out infinite}
+// @keyframes mnpulse{0%,100%{opacity:.4}50%{opacity:1}}
+// .mn .scroll{overflow-y:auto;min-height:0}
+// .mn .scroll::-webkit-scrollbar{width:6px}
+// .mn .scroll::-webkit-scrollbar-thumb{background:${c('border')};border-radius:6px}
+// .mn .bnav{display:none}
+// @media (max-width:1100px){.mn .rr{display:none!important}}
+// @media (max-width:800px){
+//   .mn{flex-direction:column}
+//   .mn .lr{display:none!important}
+//   .mn .bnav{display:flex;border-top:1px solid ${c('border')};background:${c('panel')};padding:6px;gap:4px;justify-content:space-around}
+//   .mn .detail-cols{flex-direction:column!important}
+// }
+// `;
+
+// // ===== Extra visual layer: motion, glow, grain, focus, glass dock =====
+// const NOISE = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`;
+// const CSS_EXTRA = `
+// .mn{font-feature-settings:'ss01' 1,'cv11' 1;-webkit-font-smoothing:antialiased}
+// .mn .tnum,.mn .mono{font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
+// .mn button,.mn .chip,.mn .nav,.mn .card,.mn .field{transition:background-color .16s ease-out,color .16s ease-out,border-color .16s ease-out,box-shadow .18s ease-out,transform .14s ease-out,opacity .16s}
+// .mn button:active:not(:disabled){transform:scale(.96)}
+// .mn :focus-visible{outline:2px solid ${c('primary', 0.4)};outline-offset:2px}
+// .mn .field:focus-visible{outline:none;box-shadow:0 0 0 2px ${c('primary', 0.4)}}
+// .mn .chip.on,.mn .nav.on{box-shadow:0 0 18px -4px ${c('primary', 0.5)}}
+// .mn .card{box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+// .mn .post:hover{transform:translateY(-1px);box-shadow:0 10px 28px -14px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05)}
+// .mn .noise{position:relative}
+// .mn .noise::before{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;background-image:${NOISE}}
+// .mn .skel{background:linear-gradient(90deg,${c('ts', 0.07)} 0%,${c('ts', 0.2)} 50%,${c('ts', 0.07)} 100%);background-size:200% 100%;animation:mnshimmer 1.5s linear infinite}
+// .mn .avs{background-size:200% 200%;background-position:0 0;transition:background-position .45s ease-out}
+// .mn .avs:hover{background-position:100% 100%}
+// .mn .scanline{position:absolute;left:0;right:0;top:-30%;height:30%;pointer-events:none;z-index:2;background:linear-gradient(transparent,${c('info', 0.22)},transparent);animation:mnscan 1.8s ease-out 1 both}
+// .mn .shimmer-badge{background:linear-gradient(90deg,${c('primary', 0.12)} 0%,${c('primary', 0.32)} 50%,${c('primary', 0.12)} 100%);background-size:200% 100%;animation:mnshimmer 2.8s linear infinite}
+// .mn .div-grad{height:1px;background:linear-gradient(90deg,transparent,${c('border')} 20%,${c('border')} 80%,transparent)}
+// .mn .card-pop{animation:mnpop .3s ease-out both}
+// .mn .dot-live{animation:mnbreathe 2.4s ease-in-out infinite}
+// .mn kbd{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid ${c('border')};border-bottom-width:2px;color:${c('ts')};background:${c('ts', 0.06)}}
+// .mn input[type=range]{accent-color:rgb(var(--primary));width:100%}
+// .mn .rail-toggle{display:none}
+// .mn .rr.open{display:block!important;position:fixed;right:0;top:0;bottom:0;z-index:58;width:min(320px,92vw);box-shadow:-24px 0 60px rgba(0,0,0,.6)}
+// .mn.focus .lr,.mn.focus .rr{display:none!important}
+// @keyframes mnshimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+// @keyframes mnwave{to{stroke-dashoffset:-240}}
+// @keyframes mndraw{from{stroke-dashoffset:var(--len,300)}to{stroke-dashoffset:0}}
+// @keyframes mnscan{0%{top:-30%}100%{top:110%}}
+// @keyframes mnorbit{to{transform:rotate(360deg)}}
+// @keyframes mnrad{to{transform:rotate(360deg)}}
+// @keyframes mnbreathe{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.1);opacity:1}}
+// @keyframes mnfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+// @keyframes mnflash{0%{box-shadow:0 0 0 0 ${c('warn', 0.55)}}100%{box-shadow:0 0 0 22px ${c('warn', 0)}}}
+// @keyframes mnpulseRed{0%,100%{box-shadow:inset 3px 0 0 ${c('error', 0.9)},0 0 0 0 ${c('error', 0)}}50%{box-shadow:inset 3px 0 0 ${c('error', 0.9)},0 0 14px 0 ${c('error', 0.25)}}}
+// @keyframes mnpop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+// @keyframes mnringout{0%{transform:scale(.5);opacity:.85}100%{transform:scale(2.6);opacity:0}}
+// @keyframes mnslide{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+// @media (max-width:1100px){.mn .rail-toggle{display:inline-flex}}
+// @media (max-width:800px){
+//   .mn .bnav{position:fixed;left:12px;right:12px;bottom:12px;z-index:50;border-radius:24px;padding:8px 10px;background:rgba(17,17,29,.68);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid ${c('border')};box-shadow:0 16px 40px -12px rgba(0,0,0,.7)}
+//   .mn main{padding-bottom:84px}
+// }
+// @media (prefers-reduced-motion:reduce){.mn *{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+// `;
+
+// // ===== Helpers =====
+// function rng(seed: number): () => number {
+//   let a = seed;
+//   return () => {
+//     a = (a + 0x6d2b79f5) | 0;
+//     let t = Math.imul(a ^ (a >>> 15), 1 | a);
+//     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+//     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+//   };
+// }
+// const rand = rng(20260613);
+// const int = (a: number, b: number): number => Math.floor(rand() * (b - a + 1)) + a;
+// const pick = <T,>(arr: T[]): T => arr[Math.floor(rand() * arr.length)];
+// const chance = (p: number): boolean => rand() < p;
+// const NOW = Date.now();
+// const ago = (h: number): string => new Date(NOW - h * 3600000).toISOString();
+// const digits = (n: number): string => Array.from({ length: n }, () => int(0, 9)).join('');
+// const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+// const secretOf = (n: number): string => Array.from({ length: n }, () => B32[int(0, 31)]).join('');
+// let seq = 0;
+// const uid = (p: string): string => `${p}_${++seq}`;
+
+// function timeAgo(iso: string): string {
+//   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+//   if (m < 1) return 'vừa xong';
+//   if (m < 60) return `${m} phút trước`;
+//   const h = Math.floor(m / 60);
+//   if (h < 24) return `${h} giờ trước`;
+//   const d = Math.floor(h / 24);
+//   return d < 30 ? `${d} ngày trước` : `${Math.floor(d / 30)} tháng trước`;
+// }
+// const fmtDate = (iso: string): string => new Date(iso).toLocaleString('en-GB', { hour12: false });
+// const fmtDur = (s: number): string => (s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`);
+// const fmtClock = (s: number): string =>
+//   `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+// const hhmm = (iso: string): string =>
+//   new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+// // ===== Static meta =====
+// const SRC: SourceType[] = ['forum', 'telegram', 'x', 'facebook', 'rss', 'website', 'profile'];
+// const SRC_META: Record<SourceType, { label: string; short: string; domain: string }> = {
+//   forum: { label: '💬 Forum', short: 'Forum', domain: 'forum.x.com' },
+//   telegram: { label: '💬 Telegram', short: 'TG', domain: 't.me/sec_channel' },
+//   x: { label: '𝕏 X', short: 'X', domain: 'x.com/research' },
+//   facebook: { label: '📘 Facebook', short: 'FB', domain: 'facebook.com/groups/vn-sec' },
+//   rss: { label: '📰 RSS', short: 'RSS', domain: 'feeds.vuln.io' },
+//   website: { label: '🌐 Website', short: 'Web', domain: 'client-site.vn' },
+//   profile: { label: '👤 Profile', short: 'Profile', domain: 'x.com/@abc' },
+// };
+// const MEDIA_KINDS: MediaKind[] = ['text', 'image', 'gallery', 'audio', 'video', 'diff', 'link'];
+// const MEDIA_LABEL: Record<MediaKind, string> = {
+//   text: 'Text',
+//   image: 'Ảnh',
+//   gallery: 'Album',
+//   audio: 'Audio',
+//   video: 'Video',
+//   diff: 'Diff snapshot',
+//   link: 'Link preview',
+// };
+// const PRI_LABEL: Record<Priority, string> = { high: 'Cao', medium: 'Trung bình', low: 'Thấp' };
+// const PRI_TONE: Record<Priority, string> = { high: 'error', medium: 'warn', low: 'info' };
+// const MON_STATUS: Record<MonitorItem['status'], [string, string, string]> = {
+//   running: ['Running', 'success', '🟢'],
+//   paused: ['Paused', 'warn', '🟡'],
+//   error: ['Error', 'error', '🔴'],
+// };
+// const TAG_NAMES = ['leak', '0day', 'research', 'waf-bypass', 'ssrf', 'mobile'];
+
+// // ===== Mock data =====
+// const MOCK_MONITORS: MonitorItem[] = [
+//   { id: 'm1', name: 'Forum-A', sourceType: 'forum', schedule: '5m', hits24h: 48, alerts: 6, status: 'running', group: 'Dự án A', tags: ['leak', '0day'] },
+//   { id: 'm2', name: 'TG-Sec', sourceType: 'telegram', schedule: '5m', hits24h: 112, alerts: 9, status: 'running', group: 'Dự án A', tags: ['leak'] },
+//   { id: 'm3', name: 'Client-Web', sourceType: 'website', schedule: '1h', hits24h: 7, alerts: 2, status: 'running', group: 'Dự án B', tags: ['waf-bypass'] },
+//   { id: 'm4', name: 'RSS-Vuln', sourceType: 'rss', schedule: '15m', hits24h: 31, alerts: 4, status: 'paused', group: 'Research', tags: ['0day', 'research'] },
+//   { id: 'm5', name: 'Profile-@abc', sourceType: 'profile', schedule: '15m', hits24h: 12, alerts: 1, status: 'running', group: 'Dự án B', tags: ['mobile'] },
+//   { id: 'm6', name: 'X-Research', sourceType: 'x', schedule: '5m', hits24h: 64, alerts: 3, status: 'error', group: 'Research', tags: ['research', 'ssrf'] },
+//   { id: 'm7', name: 'FB-Group', sourceType: 'facebook', schedule: '1h', hits24h: 19, alerts: 0, status: 'paused', group: 'Dự án B', tags: ['leak'] },
+//   { id: 'm8', name: 'Web-Shopee', sourceType: 'website', schedule: '0 */2 * * *', hits24h: 5, alerts: 1, status: 'running', group: 'Dự án B', tags: ['mobile'] },
+// ];
+// const MOCK_GROUPS: MonitorGroup[] = ['Dự án A', 'Dự án B', 'Research'].map((name, i) => ({
+//   id: `g${i + 1}`,
+//   name,
+//   monitorIds: MOCK_MONITORS.filter((m) => m.group === name).map((m) => m.id),
+// }));
+// const MOCK_RULES: AlertRule[] = [
+//   { id: 'R1', name: 'keyword khẩn cấp', condition: 'body chứa "0day" HOẶC "RCE" HOẶC "leak"', channels: ['Telegram', 'Email'], enabled: true, priority: 'high' },
+//   { id: 'R2', name: 'Thay đổi trang đích', condition: 'Diff snapshot ≥ 5 dòng thay đổi', channels: ['Slack'], enabled: true, priority: 'medium' },
+//   { id: 'R3', name: 'Domain khách hàng bị nhắc', condition: 'body chứa domain trong danh sách client', channels: ['Telegram', 'Webhook'], enabled: true, priority: 'high' },
+//   { id: 'R4', name: 'Bài viết mới từ Profile', condition: 'Profile-@abc có post mới', channels: ['Email'], enabled: false, priority: 'low' },
+//   { id: 'R5', name: 'CVE mới theo RSS', condition: 'title khớp regex CVE-\\d{4}-\\d+', channels: ['Slack', 'Email'], enabled: true, priority: 'medium' },
+// ];
+// const MOCK_ALERT_HISTORY: AlertHit[] = Array.from({ length: 8 }, (_, i) => {
+//   const rule = MOCK_RULES[i % MOCK_RULES.length];
+//   const mon = MOCK_MONITORS[(i * 3) % MOCK_MONITORS.length];
+//   return {
+//     id: uid('ah'),
+//     at: ago(i * 2.7 + 0.3),
+//     ruleId: rule.id,
+//     monitor: mon.name,
+//     summary: `${rule.name} · ${mon.name}`,
+//     channel: rule.channels[0],
+//   };
+// });
+// const MOCK_REPORTS: ReportDef[] = [
+//   { id: 'rp1', name: 'Báo cáo tuần — Dự án A', cycle: 'Hằng tuần (T2 08:00)', scope: 'Dự án A', formats: ['PDF', 'CSV'], lastRun: ago(24 * 3), nextRun: ago(-24 * 4) },
+//   { id: 'rp2', name: 'Tổng hợp Alert hằng ngày', cycle: 'Hằng ngày 07:00', scope: 'Tất cả monitor', formats: ['PDF'], lastRun: ago(9), nextRun: ago(-15) },
+//   { id: 'rp3', name: 'Research digest', cycle: 'Hằng tuần (T6 17:00)', scope: 'Research', formats: ['PDF', 'CSV'], lastRun: ago(24 * 2), nextRun: ago(-24 * 5) },
+//   { id: 'rp4', name: 'Báo cáo tháng — Dự án B', cycle: 'Hằng tháng (ngày 1)', scope: 'Dự án B', formats: ['CSV'], lastRun: ago(24 * 16), nextRun: ago(-24 * 14) },
+// ];
+// const AUDIT_ACTIONS: [string, string, string, string][] = [
+//   ['Forum-A', 'crawl', 'agent:crawler-01', 'OK · 48 post'],
+//   ['Client-Web', 'snapshot saved', 'agent:crawler-02', 'OK · diff +4/-2'],
+//   ['TG-Sec', 'alert fired (R1)', 'system', 'Gửi Telegram'],
+//   ['RSS-Vuln', 'pause monitor', 'minh.nguyen', 'OK'],
+//   ['X-Research', 'crawl', 'agent:crawler-01', 'Lỗi 429 rate limit'],
+//   ['Profile-@abc', 'crawl', 'agent:crawler-03', 'OK · 3 post'],
+//   ['FB-Group', 'resume monitor', 'lan.tran', 'OK'],
+//   ['Web-Shopee', 'snapshot saved', 'agent:crawler-02', 'OK · không đổi'],
+//   ['Forum-A', 'archive post', 'hung.le', 'OK'],
+//   ['TG-Sec', 'crawl', 'agent:crawler-01', 'OK · 112 post'],
+//   ['Client-Web', 'alert fired (R2)', 'system', 'Gửi Slack'],
+//   ['RSS-Vuln', 'report generated', 'system', 'PDF 2.1MB'],
+// ];
+// const MOCK_AUDIT: AuditEntry[] = AUDIT_ACTIONS.map(([monitor, action, actor, result], i) => ({
+//   id: uid('au'),
+//   at: ago(0.15 + i * 0.9),
+//   monitor,
+//   action,
+//   actor,
+//   result,
+// }));
+
+// const TITLES = [
+//   'Mẫu credential dump mới xuất hiện',
+//   'Thread thảo luận bypass WAF qua chunked encoding',
+//   'PoC SSRF trên API gateway phổ biến',
+//   'Bản cập nhật ứng dụng mobile bị lộ API key',
+//   'Thông báo từ nhóm nghiên cứu về lỗ hổng 0day',
+//   'Rao bán database khách hàng khu vực SEA',
+//   'Cảnh báo CVE mới ảnh hưởng thư viện phổ biến',
+//   'Trang đăng nhập client thay đổi form',
+// ];
+// const BODIES = [
+//   'Thành viên mới đăng mẫu dump gồm email/hash, kèm lời mời liên hệ qua kênh riêng. Cần đối chiếu với danh sách domain của client.',
+//   'Phân tích kỹ thuật cho thấy cách chia nhỏ payload khiến rule WAF mặc định bỏ sót. Có kèm vài ví dụ request đã được ẩn bớt.',
+//   'Tác giả công bố bản mô tả luồng khai thác SSRF qua tham số callback, ghi nhận trên nhiều phiên bản gateway.',
+//   'Bản build mới chứa chuỗi cấu hình nhạy cảm trong tài nguyên ứng dụng. Nhóm mobile cần xác minh và thu hồi khóa.',
+//   'Kênh nghiên cứu công bố tóm tắt lỗ hổng chưa có bản vá, kèm nhận định về mức độ ảnh hưởng đối với hệ thống doanh nghiệp.',
+//   'Bài đăng rao bán dữ liệu với số lượng bản ghi lớn, đề cập tên một sàn thương mại điện tử quen thuộc.',
+//   'Advisory mới mô tả lỗi thực thi mã từ xa, điểm CVSS cao. Đã có patch từ nhà cung cấp.',
+//   'Snapshot mới phát hiện trường nhập liệu và đường dẫn script thay đổi so với lần crawl trước.',
+// ];
+// const DIFFS: [string[], string[]][] = [
+//   [
+//     ['<title>Đăng nhập</title>', '<form action="/login">', '<input name="user">', '<input name="pass">', '<script src="/js/app.v12.js">'],
+//     ['<title>Đăng nhập</title>', '<form action="/auth/login">', '<input name="user">', '<input name="pass">', '<input name="otp">', '<script src="/js/app.v13.js">'],
+//   ],
+//   [
+//     ['Giá: 199.000đ', 'Tồn kho: 120', 'Banner: Flash sale 11.11', 'Footer: © 2025'],
+//     ['Giá: 179.000đ', 'Tồn kho: 85', 'Banner: Flash sale 12.12', 'Footer: © 2026', 'Ghi chú: Miễn phí vận chuyển'],
+//   ],
+//   [
+//     ['Server: nginx/1.18.0', 'X-Powered-By: PHP/7.4', 'Disallow: /admin', 'Disallow: /backup'],
+//     ['Server: nginx/1.24.0', 'Disallow: /admin', 'Disallow: /backup', 'Disallow: /staging'],
+//   ],
+// ];
+// const LINKS: { title: string; description: string; domain: string }[] = [
+//   { title: 'Phân tích chuỗi khai thác SSRF-to-RCE', description: 'Bài viết chi tiết về cách kết hợp SSRF với metadata service để leo thang đặc quyền.', domain: 'blog.secresearch.io' },
+//   { title: 'Báo cáo quý: xu hướng leak dữ liệu SEA', description: 'Tổng hợp số liệu các vụ rò rỉ dữ liệu theo ngành và loại dữ liệu bị lộ.', domain: 'threatintel.example.org' },
+//   { title: 'Cập nhật bảo mật tháng này', description: 'Danh sách bản vá và CVE quan trọng cần ưu tiên triển khai.', domain: 'vendor-advisory.com' },
+// ];
+// const NOTE_AUTHORS = ['minh.nguyen', 'lan.tran', 'hung.le'];
+// const NOTE_TEXTS = ['Đã chuyển cho team xác minh.', 'Cần đối chiếu với asset của client.', 'Theo dõi thêm 24h trước khi báo cáo.'];
+
+// function toDiffLines(d: SnapshotDiff): DiffLine[] {
+//   const out: DiffLine[] = [];
+//   let i = 0;
+//   let j = 0;
+//   while (i < d.before.length || j < d.after.length) {
+//     const b = d.before[i];
+//     const a = d.after[j];
+//     if (i < d.before.length && j < d.after.length && b === a) {
+//       out.push({ kind: 'same', text: b });
+//       i++;
+//       j++;
+//     } else if (i < d.before.length && !d.after.includes(b)) {
+//       out.push({ kind: 'remove', text: b });
+//       i++;
+//     } else if (j < d.after.length) {
+//       out.push({ kind: 'add', text: a });
+//       j++;
+//     } else {
+//       i++;
+//     }
+//   }
+//   return out;
+// }
+// function makeDiff(i: number): SnapshotDiff {
+//   const [before, after] = DIFFS[i % DIFFS.length];
+//   return {
+//     before,
+//     after,
+//     addedCount: after.filter((x) => !before.includes(x)).length,
+//     removedCount: before.filter((x) => !after.includes(x)).length,
+//   };
+// }
+
+// function buildPost(i: number, ageH: number): Post {
+//   const mediaType = MEDIA_KINDS[i % 7];
+//   const sourceType = SRC[(i + Math.floor(i / 7)) % 7];
+//   const mon = MOCK_MONITORS.find((m) => m.sourceType === sourceType) as MonitorItem;
+//   const id = uid('post');
+//   const base: Post = {
+//     id,
+//     monitorId: mon.id,
+//     sourceName: mon.name,
+//     sourceType,
+//     sourceDomain: SRC_META[sourceType].domain,
+//     author: pick(['anon_0x7f', 'sec_lead', 'redteam_vn', 'admin', 'newsbot']),
+//     title: TITLES[i % TITLES.length],
+//     body: BODIES[i % BODIES.length],
+//     mediaType,
+//     tags: Array.from(new Set([pick(TAG_NAMES), pick(TAG_NAMES)])).slice(0, int(1, 2)),
+//     priority: pick<Priority>(['high', 'medium', 'low', 'medium']),
+//     createdAt: ago(ageH),
+//     isRecommended: chance(0.6),
+//     archived: i === 2 || i === 9 || chance(0.15),
+//     notes: [],
+//     viewedCount: int(0, 12),
+//     confidence: 38 + ((i * 29) % 60),
+//     stage: (['new', 'reading', 'saved', 'done'] as const)[i % 4],
+//   };
+//   if (i % 4 === 0) {
+//     const r = MOCK_RULES[(i / 4) % MOCK_RULES.length];
+//     base.ruleHit = { id: r.id, name: r.name };
+//   }
+//   if (i % 5 === 1) {
+//     base.notes = Array.from({ length: int(1, 2) }, (_, k) => ({
+//       id: uid('note'),
+//       author: NOTE_AUTHORS[k % 3],
+//       text: NOTE_TEXTS[(i + k) % 3],
+//       at: ago(ageH / 2),
+//     }));
+//   }
+//   const seed = `mn${i}`;
+//   if (mediaType === 'image') {
+//     base.mediaItems = [{ type: 'image', url: `https://picsum.photos/seed/${seed}/800/450`, alt: 'Ảnh chụp màn hình' }];
+//   } else if (mediaType === 'gallery') {
+//     base.mediaItems = Array.from({ length: int(3, 7) }, (_, k) => ({
+//       type: 'image' as const,
+//       url: `https://picsum.photos/seed/${seed}-${k}/800/450`,
+//       alt: `Ảnh ${k + 1}`,
+//     }));
+//   } else if (mediaType === 'audio') {
+//     base.mediaItems = [{ type: 'audio', url: '', durationSec: int(45, 600) }];
+//   } else if (mediaType === 'video') {
+//     base.mediaItems = [{ type: 'video', url: '', thumb: `https://picsum.photos/seed/${seed}/800/450`, durationSec: int(20, 420) }];
+//   } else if (mediaType === 'diff') {
+//     base.diff = makeDiff(i);
+//     base.title = `Thay đổi nội dung: ${mon.name}`;
+//   } else if (mediaType === 'link') {
+//     const l = LINKS[i % LINKS.length];
+//     base.linkPreview = { ...l, thumb: `https://picsum.photos/seed/${seed}/200/200` };
+//   }
+//   return base;
+// }
+// const MOCK_POSTS: Post[] = Array.from({ length: 24 }, (_, i) =>
+//   buildPost(i, i === 0 ? 0.08 : 0.4 + i * 3.1),
+// );
+// const MOCK_TAGS: TagDef[] = TAG_NAMES.map((name) => ({
+//   name,
+//   count: MOCK_POSTS.filter((p) => p.tags.includes(name)).length,
+// }));
+
+// // ===== Small UI parts =====
+// function Avatar({ name, hue, size = 30 }: { name: string; hue: number; size?: number }) {
+//   return (
+//     <div
+//       style={{
+//         width: size,
+//         height: size,
+//         flexShrink: 0,
+//         borderRadius: Math.max(6, size * 0.25),
+//         display: 'flex',
+//         alignItems: 'center',
+//         justifyContent: 'center',
+//         fontWeight: 600,
+//         color: '#fff',
+//         fontSize: size * 0.4,
+//         background: `linear-gradient(135deg, hsl(${hue} 65% 52%), hsl(${(hue + 40) % 360} 60% 40%))`,
+//       }}
+//     >
+//       {name.trim().charAt(0).toUpperCase() || '?'}
+//     </div>
+//   );
+// }
+// function Pill({ tone = 'muted', dot = true, children }: { tone?: string; dot?: boolean; children: ReactNode }) {
+//   return (
+//     <span
+//       style={{
+//         display: 'inline-flex',
+//         alignItems: 'center',
+//         gap: 6,
+//         whiteSpace: 'nowrap',
+//         borderRadius: 6,
+//         padding: '2px 8px',
+//         fontSize: 11,
+//         fontWeight: 500,
+//         background: tc(tone, 0.1),
+//         color: tc(tone),
+//       }}
+//     >
+//       {dot && <span style={{ width: 6, height: 6, borderRadius: 9, background: tc(tone) }} />}
+//       {children}
+//     </span>
+//   );
+// }
+// const StatusPill = ({ map, k }: { map: Record<string, [string, string, ...string[]]>; k: string }) => (
+//   <Pill tone={map[k][1]}>{map[k][0]}</Pill>
+// );
+// function IconBox({ icon: Icon, tone = 'muted', size = 28 }: { icon: typeof Bell; tone?: string; size?: number }) {
+//   return (
+//     <span
+//       style={{
+//         width: size,
+//         height: size,
+//         flexShrink: 0,
+//         borderRadius: 6,
+//         display: 'flex',
+//         alignItems: 'center',
+//         justifyContent: 'center',
+//         background: tc(tone, 0.1),
+//         color: tc(tone),
+//       }}
+//     >
+//       <Icon size={size * 0.5} />
+//     </span>
+//   );
+// }
+// function Section({ title, icon, tone = 'muted', action, children }: { title: string; icon?: typeof Bell; tone?: string; action?: ReactNode; children: ReactNode }) {
+//   return (
+//     <section className="sec">
+//       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+//         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+//           {icon && <IconBox icon={icon} tone={tone} size={24} />}
+//           {title}
+//         </div>
+//         {action}
+//       </header>
+//       {children}
+//     </section>
+//   );
+// }
+// const InfoRow = ({ label, children }: { label: string; children: ReactNode }) => (
+//   <div className="row">
+//     <span className="sub">{label}</span>
+//     <span style={{ textAlign: 'right' }}>{children}</span>
+//   </div>
+// );
+// const Empty = ({ text }: { text: string }) => (
+//   <div className="sub" style={{ padding: '24px 0', textAlign: 'center' }}>
+//     {text}
+//   </div>
+// );
+// function CopyText({ value, mono, children }: { value: string; mono?: boolean; children?: ReactNode }) {
+//   const [done, setDone] = useState(false);
+//   return (
+//     <button
+//       className={`tr ${mono ? 'mono' : ''}`}
+//       title="Click để copy"
+//       style={{ color: done ? c('success') : undefined }}
+//       onClick={(e) => {
+//         e.stopPropagation();
+//         navigator.clipboard?.writeText(value).catch(() => undefined);
+//         setDone(true);
+//         setTimeout(() => setDone(false), 1200);
+//       }}
+//     >
+//       {children ?? value}
+//     </button>
+//   );
+// }
+// function Modal({ title, onClose, children, footer, width = 440 }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; width?: number }) {
+//   return (
+//     <div
+//       style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(4,4,9,.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+//       onClick={onClose}
+//     >
+//       <div
+//         onClick={(e) => e.stopPropagation()}
+//         style={{ width, maxWidth: '94vw', maxHeight: '90vh', overflowY: 'auto', background: c('card'), border: `1px solid ${c('border')}`, borderRadius: 14 }}
+//       >
+//         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: `1px solid ${c('border')}`, fontSize: 13, fontWeight: 600 }}>
+//           {title}
+//           <button className="ico" style={{ width: 24, height: 24 }} onClick={onClose}>
+//             <X size={14} />
+//           </button>
+//         </div>
+//         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
+//         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '0 16px 16px' }}>
+//           <button className="soft" onClick={onClose}>
+//             Đóng
+//           </button>
+//           {footer}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+// const hueOf = (s: string): number => Array.from(s).reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
+
+// // ===== Visual language: accents, sparkline, rings, radar, signal wave, heat =====
+// type Density = 'compact' | 'cozy' | 'spacious';
+// const DENS: Record<Density, string> = { compact: '9px', cozy: '14px', spacious: '20px' };
+// const SRC_ACCENT: Record<SourceType, string> = {
+//   forum: '139,109,255',
+//   telegram: '34,211,238',
+//   x: '226,232,240',
+//   facebook: '96,165,250',
+//   rss: '251,146,60',
+//   website: '52,211,153',
+//   profile: '244,114,182',
+// };
+// const acc = (s: SourceType, a = 1): string => `rgba(${SRC_ACCENT[s]},${a})`;
+// const confTone = (v: number): string => (v >= 75 ? 'success' : v >= 55 ? 'info' : 'warn');
+// const DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+// // Mock mật độ tín hiệu 7 ngày × 24 giờ (deterministic, không dùng rng)
+// const HEAT: number[][] = Array.from({ length: 7 }, (_, d) =>
+//   Array.from({ length: 24 }, (_, h) => {
+//     const work = Math.max(0, Math.sin(((h - 6) / 24) * Math.PI * 2));
+//     return Math.max(0, Math.round(work * 9 + ((d * 17 + h * 31) % 6) - (d >= 5 ? 3 : 0)));
+//   }),
+// );
+
+// function dayLabel(iso: string): string {
+//   const sd = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+//   const diff = Math.round((sd(new Date()) - sd(new Date(iso))) / 86400000);
+//   return diff <= 0 ? 'Hôm nay' : diff === 1 ? 'Hôm qua' : `${diff} ngày trước`;
+// }
+// function timeUntil(iso: string): string {
+//   const m = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+//   if (m <= 0) return 'sắp chạy';
+//   if (m < 60) return `trong ${m} phút`;
+//   const h = Math.floor(m / 60);
+//   return h < 24 ? `trong ${h} giờ` : `trong ${Math.floor(h / 24)} ngày`;
+// }
+// function sparkSeries(key: string, base: number, n = 24): number[] {
+//   const h = hueOf(key);
+//   return Array.from({ length: n }, (_, k) =>
+//     Math.max(1, Math.round(base * (0.55 + 0.3 * Math.sin(k * 0.55 + h) + 0.18 * Math.sin(k * 1.7 + h * 2) + k / (n * 4)))),
+//   );
+// }
+// const MOCK_AUDIT_OLD: AuditEntry[] = Array.from({ length: 10 }, (_, i) => {
+//   const a = AUDIT_ACTIONS[(i * 5 + 2) % AUDIT_ACTIONS.length];
+//   return { id: `auo_${i}`, at: ago(30 + i * 58), monitor: a[0], action: a[1], actor: a[2], result: a[3] };
+// });
+
+// function Sparkline({ data, tone = 'success', w = 84, h = 24 }: { data: number[]; tone?: string; w?: number; h?: number }) {
+//   const gid = `sp${useId().replace(/:/g, '')}`;
+//   const max = Math.max(...data);
+//   const min = Math.min(...data);
+//   const pts = data.map((v, i) => [(i / (data.length - 1)) * w, h - 2 - ((v - min) / Math.max(1, max - min)) * (h - 4)]);
+//   const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+//   return (
+//     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden style={{ display: 'block', overflow: 'visible' }}>
+//       <defs>
+//         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+//           <stop offset="0" style={{ stopColor: tc(tone, 0.35) }} />
+//           <stop offset="1" style={{ stopColor: tc(tone, 0) }} />
+//         </linearGradient>
+//       </defs>
+//       <path d={`${d} L${w} ${h} L0 ${h} Z`} style={{ fill: `url(#${gid})` }} />
+//       <path
+//         d={d}
+//         fill="none"
+//         strokeWidth="1.5"
+//         strokeLinecap="round"
+//         strokeLinejoin="round"
+//         style={{ stroke: tc(tone), strokeDasharray: 400, animation: 'mndraw 1.2s ease-out both', ['--len' as string]: 400 } as CSSProperties}
+//       />
+//       <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="2" style={{ fill: tc(tone) }} />
+//     </svg>
+//   );
+// }
+// function Ring({ value, size = 36, stroke = 4, tone = 'success', label }: { value: number; size?: number; stroke?: number; tone?: string; label?: ReactNode }) {
+//   const r = (size - stroke) / 2;
+//   const circ = 2 * Math.PI * r;
+//   return (
+//     <span style={{ position: 'relative', width: size, height: size, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+//       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden>
+//         <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} style={{ stroke: c('border') }} />
+//         <circle
+//           cx={size / 2}
+//           cy={size / 2}
+//           r={r}
+//           fill="none"
+//           strokeWidth={stroke}
+//           strokeLinecap="round"
+//           strokeDasharray={circ}
+//           strokeDashoffset={circ * (1 - Math.min(100, value) / 100)}
+//           style={{ stroke: tc(tone), transition: 'stroke-dashoffset .6s ease-out', filter: `drop-shadow(0 0 3px ${tc(tone, 0.5)})` }}
+//         />
+//       </svg>
+//       {label !== undefined && (
+//         <span className="mono" style={{ position: 'absolute', fontSize: Math.max(8, size * 0.3), fontWeight: 700 }}>
+//           {label}
+//         </span>
+//       )}
+//     </span>
+//   );
+// }
+// function HealthRing({ uptime, latency, err }: { uptime: number; latency: number; err: number }) {
+//   const rings: [number, string][] = [
+//     [uptime, 'success'],
+//     [Math.max(4, 100 - latency / 12), 'info'],
+//     [Math.max(4, 100 - err * 4), 'warn'],
+//   ];
+//   return (
+//     <svg width="34" height="34" viewBox="0 0 34 34" style={{ transform: 'rotate(-90deg)' }} aria-label="Monitor health">
+//       {rings.map(([v, t], i) => {
+//         const r = 15 - i * 4.5;
+//         const circ = 2 * Math.PI * r;
+//         return (
+//           <g key={t}>
+//             <circle cx="17" cy="17" r={r} fill="none" strokeWidth="2.4" style={{ stroke: c('border') }} />
+//             <circle cx="17" cy="17" r={r} fill="none" strokeWidth="2.4" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - Math.min(100, v) / 100)} style={{ stroke: tc(t) }} />
+//           </g>
+//         );
+//       })}
+//     </svg>
+//   );
+// }
+// function SourceAvatar({ name, type, size = 36, read }: { name: string; type: SourceType; size?: number; read?: boolean }) {
+//   const a = SRC_ACCENT[type];
+//   return (
+//     <span style={{ position: 'relative', width: size, height: size, flexShrink: 0, display: 'inline-flex' }}>
+//       {read && <span title="Đã đọc" style={{ position: 'absolute', inset: -3, borderRadius: Math.max(6, size * 0.28) + 3, border: `1.5px solid rgba(${a},.5)` }} />}
+//       <span
+//         className="avs"
+//         style={{
+//           width: size,
+//           height: size,
+//           borderRadius: Math.max(6, size * 0.28),
+//           display: 'flex',
+//           alignItems: 'center',
+//           justifyContent: 'center',
+//           fontWeight: 700,
+//           color: type === 'x' ? '#0b0b14' : '#fff',
+//           fontSize: size * 0.4,
+//           backgroundImage: `linear-gradient(135deg, rgba(${a},.95), rgba(${a},.4))`,
+//           boxShadow: `0 0 14px -4px rgba(${a},.7)`,
+//         }}
+//       >
+//         {name.trim().charAt(0).toUpperCase() || '?'}
+//       </span>
+//     </span>
+//   );
+// }
+// function SignalWave({ height = 44 }: { height?: number }) {
+//   const mk = (amp: number, phase: number) => {
+//     let d = `M0 ${height / 2}`;
+//     for (let x = 0; x <= 640; x += 8) d += ` L${x} ${(height / 2 + Math.sin(x / 38 + phase) * amp * Math.sin(x / 160 + 1)).toFixed(1)}`;
+//     return d;
+//   };
+//   return (
+//     <svg width="100%" height={height} viewBox={`0 0 640 ${height}`} preserveAspectRatio="none" aria-hidden style={{ display: 'block' }}>
+//       <path d={mk(14, 0)} fill="none" strokeWidth="1.6" style={{ stroke: c('primary', 0.9), strokeDasharray: '10 6', animation: 'mnwave 6s linear infinite' }} />
+//       <path d={mk(9, 2)} fill="none" strokeWidth="1.2" style={{ stroke: c('info', 0.7), strokeDasharray: '4 8', animation: 'mnwave 9s linear infinite reverse' }} />
+//       <path d={mk(5, 4)} fill="none" strokeWidth="1" style={{ stroke: c('success', 0.5), strokeDasharray: '2 10', animation: 'mnwave 12s linear infinite' }} />
+//     </svg>
+//   );
+// }
+// function RadarMini({ active }: { active: number }) {
+//   const blips: [number, number][] = [[38, 14], [18, 30], [40, 40]];
+//   return (
+//     <div title={`${active} monitor đang quét`} style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
+//       <svg width="64" height="64" viewBox="0 0 56 56" aria-hidden>
+//         {[26, 17, 8].map((r) => (
+//           <circle key={r} cx="28" cy="28" r={r} fill="none" strokeWidth="1" style={{ stroke: c('success', 0.28) }} />
+//         ))}
+//         <line x1="2" y1="28" x2="54" y2="28" style={{ stroke: c('success', 0.18) }} />
+//         <line x1="28" y1="2" x2="28" y2="54" style={{ stroke: c('success', 0.18) }} />
+//         <g style={{ transformOrigin: '28px 28px', animation: 'mnrad 3.6s linear infinite' }}>
+//           <path d="M28 28 L28 2 A26 26 0 0 1 46 9 Z" style={{ fill: c('success', 0.3) }} />
+//         </g>
+//         {blips.map(([x, y], k) => (
+//           <circle key={k} cx={x} cy={y} r="2" style={{ fill: c('success'), animation: `mnbreathe ${2 + k * 0.7}s ease-in-out infinite` }} />
+//         ))}
+//       </svg>
+//     </div>
+//   );
+// }
+// function TimeMarker({ label }: { label: string }) {
+//   return (
+//     <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 2px' }}>
+//       <span className="div-grad" style={{ flex: 1 }} />
+//       <span className="sub" style={{ fontWeight: 500, letterSpacing: '.02em' }}>{label}</span>
+//       <span className="div-grad" style={{ flex: 1 }} />
+//     </div>
+//   );
+// }
+// function SystemCard({ icon: Icon, tone, text, cta, onClick }: { icon: typeof Bell; tone: string; text: string; cta: string; onClick: () => void }) {
+//   return (
+//     <div className="card card-pop" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: `linear-gradient(90deg, ${tc(tone, 0.1)}, transparent 70%), ${c('card')}`, border: `1px dashed ${tc(tone, 0.3)}` }}>
+//       <IconBox icon={Icon} tone={tone} size={26} />
+//       <span style={{ flex: 1, minWidth: 0 }}>{text}</span>
+//       <button className="soft" style={{ height: 26 }} onClick={onClick}>{cta}<ChevronRight size={12} /></button>
+//     </div>
+//   );
+// }
+// function EmptyArt({ title, sub, actions }: { title: string; sub: string; actions: { label: string; icon: typeof Bell; run: () => void }[] }) {
+//   const dots = ['primary', 'info', 'warn'];
+//   return (
+//     <div className="card noise" style={{ padding: '36px 20px 28px', textAlign: 'center', overflow: 'hidden', borderRadius: 14, background: `radial-gradient(80% 90% at 50% 0%, ${c('primary', 0.16)}, transparent 70%), ${c('card')}` }}>
+//       <div style={{ position: 'relative', width: 120, height: 120, margin: '0 auto 14px' }}>
+//         {[0, 1, 2].map((k) => (
+//           <span key={k} style={{ position: 'absolute', inset: k * 18, borderRadius: '50%', border: `1px dashed ${c('ts', 0.34 - k * 0.07)}`, animation: `mnorbit ${14 + k * 6}s linear infinite ${k % 2 ? 'reverse' : 'normal'}` }}>
+//             <i style={{ position: 'absolute', top: -3, left: '50%', width: 6, height: 6, borderRadius: 6, background: tc(dots[k]), boxShadow: `0 0 10px ${tc(dots[k])}` }} />
+//           </span>
+//         ))}
+//         <span style={{ position: 'absolute', inset: 42, borderRadius: '50%', background: c('primary', 0.16), color: c('primary'), display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'mnbreathe 3.4s ease-in-out infinite' }}>
+//           <Inbox size={20} />
+//         </span>
+//       </div>
+//       <div style={{ fontSize: 16, fontWeight: 600 }}>{title}</div>
+//       <div className="sub" style={{ margin: '4px auto 16px', maxWidth: 320, lineHeight: 1.5 }}>{sub}</div>
+//       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+//         {actions.map((a) => (
+//           <button key={a.label} className="soft" onClick={a.run}>
+//             <a.icon size={13} />
+//             {a.label}
+//           </button>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
+// function HeatGrid({ data, labels, tone = 'primary', hl, onHover }: { data: number[][]; labels: string[]; tone?: string; hl?: [number, number] | null; onHover?: (d: number, h: number) => void }) {
+//   const max = Math.max(1, ...data.flat());
+//   return (
+//     <div style={{ display: 'grid', gridTemplateColumns: '24px repeat(24, minmax(0, 1fr))', gap: 3, alignItems: 'center' }}>
+//       <span />
+//       {Array.from({ length: 24 }, (_, h) => (
+//         <span key={h} className="sub mono" style={{ fontSize: 9, textAlign: 'center' }}>{h % 3 === 0 ? h : ''}</span>
+//       ))}
+//       {data.map((row, d) => (
+//         <Fragment key={d}>
+//           <span className="sub mono" style={{ fontSize: 10 }}>{labels[d]}</span>
+//           {row.map((v, h) => (
+//             <span
+//               key={h}
+//               title={`${labels[d]} ${h}:00 · ${v} tín hiệu`}
+//               onMouseEnter={() => onHover?.(d, h)}
+//               style={{
+//                 aspectRatio: '1',
+//                 borderRadius: 3,
+//                 background: v ? tc(tone, 0.1 + (0.9 * v) / max) : c('ts', 0.07),
+//                 outline: hl && hl[0] === d && hl[1] === h ? `1px solid ${c('tp', 0.85)}` : 'none',
+//                 animation: `mnpop .4s ease-out ${(d * 24 + h) * 4}ms both`,
+//               }}
+//             />
+//           ))}
+//         </Fragment>
+//       ))}
+//     </div>
+//   );
+// }
+
+// // ===== Feed small parts =====
+// function PlatformBadge({ type }: { type: SourceType }) {
+//   return <span style={{ fontSize: 11, fontWeight: 500, color: acc(type) }}>{SRC_META[type].label}</span>;
+// }
+// function PriorityPill({ p }: { p: Priority }) {
+//   return (
+//     <Pill tone={PRI_TONE[p]} dot={false}>
+//       <Zap size={11} />
+//       Ưu tiên: {PRI_LABEL[p]}
+//     </Pill>
+//   );
+// }
+// function TagChip({ name, on, count, onClick }: { name: string; on?: boolean; count?: number; onClick?: () => void }) {
+//   return (
+//     <button
+//       className={`chip ${on ? 'on' : ''}`}
+//       style={on ? { background: c('primary', 0.15), color: c('primary') } : { padding: '2px 8px', fontSize: 11 }}
+//       onClick={(e) => {
+//         e.stopPropagation();
+//         onClick?.();
+//       }}
+//     >
+//       #{name}
+//       {count !== undefined && <span style={{ opacity: 0.6 }}>{count}</span>}
+//     </button>
+//   );
+// }
+// function RuleHitBadge({ hit }: { hit: { id: string; name: string } }) {
+//   return (
+//     <Pill tone="primary" dot={false}>
+//       <Target size={11} />
+//       Khớp rule: {hit.id} - {hit.name}
+//     </Pill>
+//   );
+// }
+
+// // ===== Media variants =====
+// function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+//   return (
+//     <div
+//       onClick={(e) => {
+//         e.stopPropagation();
+//         onClose();
+//       }}
+//       style={{ position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+//     >
+//       <img src={src} alt="" style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: 8 }} />
+//     </div>
+//   );
+// }
+// function ImageBlock({ item, big }: { item: MediaItem; big?: boolean }) {
+//   const [zoom, setZoom] = useState(false);
+//   return (
+//     <div style={{ position: 'relative', aspectRatio: '16 / 9', borderRadius: 8, overflow: 'hidden', background: c('ts', 0.1), maxHeight: big ? 460 : undefined }}>
+//       <img src={item.url} alt={item.alt || ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+//       <button
+//         className="ico"
+//         title="Phóng to"
+//         style={{ position: 'absolute', right: 8, top: 8, background: 'rgba(0,0,0,.55)', color: '#fff' }}
+//         onClick={() => setZoom(true)}
+//       >
+//         <Maximize2 size={14} />
+//       </button>
+//       {zoom && <Lightbox src={item.url} onClose={() => setZoom(false)} />}
+//     </div>
+//   );
+// }
+// function GalleryBlock({ items }: { items: MediaItem[] }) {
+//   const [zoom, setZoom] = useState<string | null>(null);
+//   const shown = items.slice(0, 4);
+//   const extra = items.length - 4;
+//   const cols = shown.length === 2 ? '1fr 1fr' : '2fr 1fr';
+//   const cell = (it: MediaItem, k: number, style?: CSSProperties) => (
+//     <button
+//       key={it.url}
+//       onClick={() => setZoom(it.url)}
+//       style={{ position: 'relative', overflow: 'hidden', borderRadius: 6, background: c('ts', 0.1), ...style }}
+//     >
+//       <img src={it.url} alt={it.alt || ''} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+//       {k === 3 && extra > 0 && (
+//         <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.55)', fontSize: 20, fontWeight: 600, color: '#fff' }}>
+//           +{extra} ảnh
+//         </span>
+//       )}
+//     </button>
+//   );
+//   return (
+//     <div style={{ display: 'grid', gridTemplateColumns: cols, gridTemplateRows: shown.length === 2 ? '220px' : '110px 110px', gap: 4 }}>
+//       {shown.length === 2 && shown.map((it, k) => cell(it, k))}
+//       {shown.length >= 3 && cell(shown[0], 0, { gridRow: '1 / span 2' })}
+//       {shown.length >= 3 && shown.slice(1).map((it, k) => cell(it, k + 1, shown.length === 3 && k === 1 ? {} : {}))}
+//       {zoom && <Lightbox src={zoom} onClose={() => setZoom(null)} />}
+//     </div>
+//   );
+// }
+// function useProgress(playing: boolean, speed: number, onEnd: () => void): [number, (v: number) => void] {
+//   const [p, setP] = useState(0);
+//   useEffect(() => {
+//     if (!playing) return undefined;
+//     const t = window.setInterval(() => {
+//       setP((v) => {
+//         if (v + 0.01 * speed >= 1) {
+//           onEnd();
+//           return 0;
+//         }
+//         return v + 0.01 * speed;
+//       });
+//     }, 250);
+//     return () => window.clearInterval(t);
+//   }, [playing, speed, onEnd]);
+//   return [p, setP];
+// }
+// function AudioBlock({ item, seedKey }: { item: MediaItem; seedKey: string }) {
+//   const [playing, setPlaying] = useState(false);
+//   const [speed, setSpeed] = useState(1);
+//   const [p, setP] = useProgress(playing, speed, () => setPlaying(false));
+//   const dur = item.durationSec || 60;
+//   const h = hueOf(seedKey);
+//   const bars = Array.from({ length: 56 }, (_, k) => 20 + ((k * 37 + h * 13) % 70));
+//   return (
+//     <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: c('ts', 0.08) }}>
+//       <button className="ico" style={{ width: 38, height: 38, borderRadius: 19, background: c('primary'), color: '#fff' }} onClick={() => setPlaying(!playing)}>
+//         {playing ? <Pause size={16} /> : <Play size={16} />}
+//       </button>
+//       <div style={{ flex: 1, minWidth: 0 }}>
+//         <div
+//           style={{ display: 'flex', alignItems: 'center', gap: 2, height: 36, cursor: 'pointer' }}
+//           onClick={(e) => {
+//             const r = e.currentTarget.getBoundingClientRect();
+//             setP((e.clientX - r.left) / r.width);
+//           }}
+//         >
+//           {bars.map((b, k) => (
+//             <span key={k} style={{ flex: 1, height: `${b}%`, borderRadius: 2, background: k / bars.length < p ? c('primary') : c('ts', 0.35) }} />
+//           ))}
+//         </div>
+//         <div className="sub mono" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+//           <span>{fmtClock(p * dur)}</span>
+//           <span>{fmtClock(dur)}</span>
+//         </div>
+//       </div>
+//       <button className="chip" onClick={() => setSpeed(speed === 1 ? 1.5 : speed === 1.5 ? 2 : 1)}>
+//         {speed}x
+//       </button>
+//       <button className="ico" title="Tải về">
+//         <Download size={14} />
+//       </button>
+//     </div>
+//   );
+// }
+// function VideoBlock({ item, big }: { item: MediaItem; big?: boolean }) {
+//   const [playing, setPlaying] = useState(false);
+//   const [p, setP] = useProgress(playing, 1, () => setPlaying(false));
+//   const dur = item.durationSec || 60;
+//   return (
+//     <div style={{ position: 'relative', aspectRatio: '16 / 9', maxHeight: big ? 460 : undefined, borderRadius: 8, overflow: 'hidden', background: '#000' }}>
+//       {item.thumb && <img src={item.thumb} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: playing ? 0.55 : 0.85, display: 'block' }} />}
+//       {!playing && (
+//         <button
+//           onClick={() => setPlaying(true)}
+//           style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 56, height: 56, borderRadius: 28, background: c('primary', 0.9), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+//         >
+//           <Play size={24} />
+//         </button>
+//       )}
+//       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '18px 10px 8px', background: 'linear-gradient(transparent, rgba(0,0,0,.75))', color: '#fff' }}>
+//         <div
+//           style={{ height: 4, borderRadius: 4, background: 'rgba(255,255,255,.3)', cursor: 'pointer', marginBottom: 6 }}
+//           onClick={(e) => {
+//             const r = e.currentTarget.getBoundingClientRect();
+//             setP((e.clientX - r.left) / r.width);
+//           }}
+//         >
+//           <div style={{ width: `${p * 100}%`, height: '100%', borderRadius: 4, background: c('primary') }} />
+//         </div>
+//         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+//           <button onClick={() => setPlaying(!playing)}>{playing ? <Pause size={14} /> : <Play size={14} />}</button>
+//           <span className="mono" style={{ fontSize: 11 }}>
+//             {fmtClock(p * dur)} / {fmtClock(dur)}
+//           </span>
+//           <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
+//             <Volume2 size={14} />
+//             <Maximize2 size={14} />
+//           </span>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+// function DiffBlock({ diff, split }: { diff: SnapshotDiff; split?: boolean }) {
+//   const lines = toDiffLines(diff);
+//   const col = (title: string, kinds: DiffLine['kind'][], tone: string) => (
+//     <div style={{ flex: 1, minWidth: 0, borderRadius: 6, border: `1px solid ${c('border')}`, overflow: 'hidden' }}>
+//       <div className="sub" style={{ padding: '5px 10px', background: c('ts', 0.1), fontWeight: 500 }}>
+//         {title}
+//       </div>
+//       <div className="mono" style={{ fontSize: 11 }}>
+//         {lines
+//           .filter((l) => kinds.includes(l.kind))
+//           .map((l, k) => (
+//             <div
+//               key={k}
+//               className="tr"
+//               style={{ padding: '2px 10px', background: l.kind === 'same' ? 'transparent' : tc(tone, 0.12), color: l.kind === 'same' ? c('ts') : tc(tone) }}
+//             >
+//               {l.kind === 'add' ? '+ ' : l.kind === 'remove' ? '− ' : '  '}
+//               {l.text}
+//             </div>
+//           ))}
+//       </div>
+//     </div>
+//   );
+//   return (
+//     <div style={{ position: 'relative', overflow: 'hidden' }}>
+//       <span className="scanline" />
+//       <div style={{ display: 'flex', gap: 8, flexDirection: split ? 'column' : 'row' }}>
+//         {col('Snapshot trước', ['same', 'remove'], 'error')}
+//         {col('Snapshot mới', ['same', 'add'], 'success')}
+//       </div>
+//       <div className="sub" style={{ marginTop: 6 }}>
+//         📊 Diff +{diff.addedCount} dòng · -{diff.removedCount} dòng
+//       </div>
+//     </div>
+//   );
+// }
+// function LinkBlock({ lp }: { lp: NonNullable<Post['linkPreview']> }) {
+//   return (
+//     <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: `1px solid ${c('border')}`, background: c('ts', 0.06) }}>
+//       <div style={{ width: 96, flexShrink: 0, background: c('ts', 0.15) }}>
+//         {lp.thumb && <img src={lp.thumb} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+//       </div>
+//       <div style={{ padding: '8px 12px', minWidth: 0 }}>
+//         <div className="tr" style={{ fontWeight: 600 }}>{lp.title}</div>
+//         <div style={{ color: c('ts'), margin: '2px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+//           {lp.description}
+//         </div>
+//         <div className="sub">🔗 {lp.domain}</div>
+//       </div>
+//     </div>
+//   );
+// }
+// function MediaArea({ post, big }: { post: Post; big?: boolean }) {
+//   const it = post.mediaItems?.[0];
+//   switch (post.mediaType) {
+//     case 'image':
+//       return it ? <ImageBlock item={it} big={big} /> : null;
+//     case 'gallery':
+//       return post.mediaItems ? <GalleryBlock items={post.mediaItems} /> : null;
+//     case 'audio':
+//       return it ? <AudioBlock item={it} seedKey={post.id} /> : null;
+//     case 'video':
+//       return it ? <VideoBlock item={it} big={big} /> : null;
+//     case 'diff':
+//       return post.diff ? <DiffBlock diff={post.diff} split={big} /> : null;
+//     case 'link':
+//       return post.linkPreview ? <LinkBlock lp={post.linkPreview} /> : null;
+//     default:
+//       return null;
+//   }
+// }
+
+// // ===== Post card =====
+// interface PostCardProps {
+//   post: Post;
+//   onOpen: (p: Post, tab?: 'media' | 'diff') => void;
+//   onArchive: (p: Post) => void;
+//   onAlert: (p: Post) => void;
+//   onMenu: (p: Post, x: number, y: number) => void;
+//   flashId?: string | null;
+//   seenIds?: Set<string>;
+//   relatedOf?: (p: Post) => Post[];
+// }
+// // Checkmark vẽ bằng stroke-dashoffset khi lưu Archive
+// function CheckDraw() {
+//   return (
+//     <span aria-hidden style={{ position: 'absolute', right: 56, top: 10, width: 30, height: 30, pointerEvents: 'none' }}>
+//       <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `2px solid ${c('warn')}`, animation: 'mnringout .9s ease-out forwards' }} />
+//       <svg width="30" height="30" viewBox="0 0 30 30">
+//         <circle cx="15" cy="15" r="13" style={{ fill: c('warn', 0.15), stroke: c('warn') }} strokeWidth="1.5" />
+//         <path
+//           d="M9 15.5 L13.5 20 L21.5 11"
+//           fill="none"
+//           strokeWidth="2.4"
+//           strokeLinecap="round"
+//           strokeLinejoin="round"
+//           style={{ stroke: c('warn'), strokeDasharray: 40, animation: 'mndraw .5s ease-out .15s both', ['--len' as string]: 40 } as CSSProperties}
+//         />
+//       </svg>
+//     </span>
+//   );
+// }
+// function PostCard({ post, onOpen, onArchive, onAlert, onMenu, flashId, seenIds, relatedOf }: PostCardProps) {
+//   const stop = (fn: () => void) => (e: React.MouseEvent) => {
+//     e.stopPropagation();
+//     fn();
+//   };
+//   const flash = flashId === post.id;
+//   const rel = !post.isNote && relatedOf ? relatedOf(post) : [];
+//   const high = post.priority === 'high' && !post.isNote;
+//   const rec = !!post.isRecommended && !post.isNote;
+//   return (
+//     <article
+//       className={`card post ${rec ? 'noise' : ''}`}
+//       style={{
+//         padding: 'var(--pad,14px)',
+//         cursor: 'pointer',
+//         position: 'relative',
+//         overflow: 'hidden',
+//         boxShadow: high ? `0 0 0 1px ${tc('error', 0.22)}, 0 0 26px -10px ${tc('error', 0.55)}` : undefined,
+//         animation: flash ? 'mnflash .9s ease-out' : undefined,
+//       }}
+//       onClick={() => onOpen(post)}
+//     >
+//       <span aria-hidden style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 2, borderRadius: 2, background: `linear-gradient(${acc(post.sourceType)}, transparent)` }} />
+//       {flash && <CheckDraw />}
+//       <header style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+//         <SourceAvatar name={post.sourceName} type={post.sourceType} size={36} read={seenIds?.has(post.id)} />
+//         <div style={{ flex: 1, minWidth: 0 }}>
+//           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+//             <span style={{ fontWeight: 600 }}>{post.sourceName}</span>
+//             <PlatformBadge type={post.sourceType} />
+//             {rec && (
+//               <span className="shimmer-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 500, color: c('primary') }}>
+//                 ✨ Gợi ý
+//               </span>
+//             )}
+//             {post.pinned && <Pin size={12} color={`rgb(${THEME.warn})`} />}
+//           </div>
+//           <div className="sub tr">
+//             {post.sourceDomain} · {timeAgo(post.createdAt)}
+//           </div>
+//         </div>
+//         {!post.isNote && post.confidence !== undefined && (
+//           <span title={`Độ tin cậy ${post.confidence}/100 — đối chiếu chéo nhiều nguồn`}>
+//             <Ring value={post.confidence} size={30} stroke={3} tone={confTone(post.confidence)} label={post.confidence} />
+//           </span>
+//         )}
+//         <button className="ico" aria-label="Thêm hành động" style={{ width: 28, height: 28 }} onClick={(e) => { e.stopPropagation(); onMenu(post, e.clientX, e.clientY); }}>
+//           <MoreHorizontal size={14} />
+//         </button>
+//       </header>
+//       {post.title && !post.isNote && <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-.005em', marginBottom: 4 }}>{post.title}</div>}
+//       <div style={{ lineHeight: 1.6, marginBottom: 10, color: c('tp', 0.88), fontWeight: 400 }}>{post.body}</div>
+//       <div onClick={(e) => e.stopPropagation()} style={{ marginBottom: 10 }}>
+//         <MediaArea post={post} />
+//       </div>
+//       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+//         {post.tags.map((t) => (
+//           <TagChip key={t} name={t} />
+//         ))}
+//         {!post.isNote && <PriorityPill p={post.priority} />}
+//         {post.ruleHit && <RuleHitBadge hit={post.ruleHit} />}
+//       </div>
+//       {rel.length > 0 && (
+//         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
+//           <span className="sub">🔗 Tín hiệu liên quan:</span>
+//           {rel.map((r) => (
+//             <button key={r.id} className="chip" style={{ maxWidth: 200, padding: '2px 8px', fontSize: 11 }} onClick={() => onOpen(r)}>
+//               <span className="tr">{r.title || r.sourceName}</span>
+//             </button>
+//           ))}
+//         </div>
+//       )}
+//       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 8, borderTop: `1px solid ${c('border', 0.6)}` }}>
+//         <button className="soft" aria-label="Lưu Archive" style={post.archived ? { color: c('warn'), background: c('warn', 0.1) } : undefined} onClick={stop(() => onArchive(post))}>
+//           <Star size={13} fill={post.archived ? `rgb(${THEME.warn})` : 'none'} />
+//           {post.archived ? 'Đã lưu' : 'Lưu Archive'}
+//         </button>
+//         <button className="soft" onClick={stop(() => onAlert(post))}>
+//           <BellPlus size={13} />
+//           Tạo alert
+//         </button>
+//         {post.mediaType === 'diff' && (
+//           <button className="soft" onClick={stop(() => onOpen(post, 'diff'))}>
+//             <GitCompare size={13} />
+//             Diff
+//           </button>
+//         )}
+//         <button className="soft" onClick={stop(() => onOpen(post))}>
+//           <ExternalLink size={13} />
+//           Nguồn
+//         </button>
+//       </div>
+//       <footer className="sub" style={{ display: 'flex', gap: 14, marginTop: 8 }}>
+//         <span>💬 {post.notes.length} ghi chú</span>
+//         <span>{post.pinned ? '📌 đã ghim' : '📌 ghim'}</span>
+//         <span>🕘 đã xem {post.viewedCount}</span>
+//       </footer>
+//     </article>
+//   );
+// }
+// function SkeletonCard() {
+//   return (
+//     <div className="card" style={{ padding: 14 }}>
+//       <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+//         <div className="skel" style={{ width: 36, height: 36 }} />
+//         <div style={{ flex: 1 }}>
+//           <div className="skel" style={{ height: 12, width: '40%', marginBottom: 6 }} />
+//           <div className="skel" style={{ height: 10, width: '25%' }} />
+//         </div>
+//       </div>
+//       <div className="skel" style={{ height: 12, marginBottom: 6 }} />
+//       <div className="skel" style={{ height: 12, width: '80%', marginBottom: 12 }} />
+//       <div className="skel" style={{ height: 140 }} />
+//     </div>
+//   );
+// }
+
+// // ===== Post detail drawer =====
+// interface DetailProps {
+//   post: Post;
+//   monitor?: MonitorItem;
+//   initialTab: 'media' | 'diff';
+//   onClose: () => void;
+//   onArchive: (p: Post) => void;
+//   onAlert: (p: Post) => void;
+//   onAddNote: (id: string, text: string) => void;
+//   related: Post[];
+//   onJump: (p: Post) => void;
+// }
+// function PostDetailDrawer({ post, monitor, initialTab, onClose, onArchive, onAlert, onAddNote, related, onJump }: DetailProps) {
+//   const [tab, setTab] = useState<'media' | 'diff'>(initialTab);
+//   const [text, setText] = useState('');
+//   const history: [string, string][] = [
+//     ['Crawl', post.createdAt],
+//     ['Snapshot đã lưu', new Date(new Date(post.createdAt).getTime() + 40000).toISOString()],
+//     ...(post.archived ? ([['Lưu Archive', new Date().toISOString()]] as [string, string][]) : []),
+//   ];
+//   const submit = () => {
+//     if (!text.trim()) return;
+//     onAddNote(post.id, text.trim());
+//     setText('');
+//   };
+//   return (
+//     <div style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'rgba(4,4,9,.62)', backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'flex-end' }} onClick={onClose}>
+//       <aside
+//         onClick={(e) => e.stopPropagation()}
+//         style={{ width: 'min(1040px, 100vw)', height: '100%', background: c('panel'), borderLeft: `1px solid ${c('border')}`, display: 'flex', flexDirection: 'column' }}
+//       >
+//         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderBottom: `1px solid ${c('border')}`, flexWrap: 'wrap' }}>
+//           <Avatar name={post.sourceName} hue={hueOf(post.sourceName)} size={30} />
+//           <div style={{ flex: 1, minWidth: 120 }}>
+//             <div className="tr" style={{ fontWeight: 600 }}>{post.title || post.sourceName}</div>
+//             <div className="sub">{post.sourceName} · {timeAgo(post.createdAt)}</div>
+//           </div>
+//           <button className="soft" onClick={() => onArchive(post)}>
+//             <Star size={13} fill={post.archived ? `rgb(${THEME.warn})` : 'none'} />
+//             {post.archived ? 'Đã lưu' : 'Lưu Archive'}
+//           </button>
+//           <button className="soft" onClick={() => onAlert(post)}>
+//             <BellPlus size={13} />
+//             Tạo alert
+//           </button>
+//           {post.diff && (
+//             <button className="soft" onClick={() => setTab('diff')}>
+//               <GitCompare size={13} />
+//               Diff
+//             </button>
+//           )}
+//           <button className="soft">
+//             <ExternalLink size={13} />
+//             Nguồn
+//           </button>
+//           <button className="ico" onClick={onClose}>
+//             <X size={14} />
+//           </button>
+//         </div>
+//         <div className="detail-cols scroll" style={{ flex: 1, display: 'flex', gap: 16, padding: 16, overflowY: 'auto' }}>
+//           <div style={{ flex: 1.4, minWidth: 0 }}>
+//             {post.diff && (
+//               <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+//                 <button className={`chip ${tab === 'media' ? 'on' : ''}`} onClick={() => setTab('media')}>Nội dung</button>
+//                 <button className={`chip ${tab === 'diff' ? 'on' : ''}`} onClick={() => setTab('diff')}>Diff</button>
+//               </div>
+//             )}
+//             {post.diff && tab === 'diff' ? (
+//               <DiffBlock diff={post.diff} split />
+//             ) : post.mediaType === 'gallery' && post.mediaItems ? (
+//               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+//                 {post.mediaItems.map((it) => (
+//                   <ImageBlock key={it.url} item={it} big />
+//                 ))}
+//               </div>
+//             ) : post.mediaType === 'text' ? (
+//               <div className="sec" style={{ lineHeight: 1.6 }}>{post.body}</div>
+//             ) : (
+//               <>
+//                 <MediaArea post={post} big />
+//                 {post.mediaType === 'diff' && null}
+//               </>
+//             )}
+//           </div>
+//           <div style={{ flex: 1, minWidth: 0 }}>
+//             <Section title="Nội dung" icon={FileText} tone="primary">
+//               <div style={{ lineHeight: 1.55 }}>{post.body}</div>
+//               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+//                 {post.tags.map((t) => <TagChip key={t} name={t} />)}
+//                 <PriorityPill p={post.priority} />
+//                 {post.ruleHit && <RuleHitBadge hit={post.ruleHit} />}
+//               </div>
+//             </Section>
+//             <Section title="Metadata" icon={Clock} tone="info">
+//               <InfoRow label="Monitor">{monitor?.name || post.sourceName}</InfoRow>
+//               <InfoRow label="Nền tảng">{SRC_META[post.sourceType].label}</InfoRow>
+//               <InfoRow label="Nhịp chạy">{monitor?.schedule || '—'}</InfoRow>
+//               <InfoRow label="Lần crawl">{fmtDate(post.createdAt)}</InfoRow>
+//               <InfoRow label="Tác giả">{post.author || '—'}</InfoRow>
+//               <InfoRow label="Nguồn"><span className="mono">{post.sourceDomain}</span></InfoRow>
+//             </Section>
+//             <Section title={`Ghi chú nội bộ (${post.notes.length})`} icon={MessageSquare} tone="warn">
+//               {post.notes.length === 0 && <Empty text="Chưa có ghi chú." />}
+//               {post.notes.map((n) => (
+//                 <div key={n.id} className="row" style={{ alignItems: 'flex-start' }}>
+//                   <div>
+//                     <div style={{ fontWeight: 500 }}>{n.author}</div>
+//                     <div>{n.text}</div>
+//                   </div>
+//                   <span className="sub" style={{ flexShrink: 0 }}>{timeAgo(n.at)}</span>
+//                 </div>
+//               ))}
+//               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+//                 <input className="field" value={text} placeholder="Thêm ghi chú..." onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} />
+//                 <button className="prim" onClick={submit}>
+//                   <Send size={13} />
+//                 </button>
+//               </div>
+//             </Section>
+//             {post.confidence !== undefined && (
+//               <Section title="Signal confidence" icon={Target} tone={confTone(post.confidence)}>
+//                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+//                   <Ring value={post.confidence} size={52} stroke={5} tone={confTone(post.confidence)} label={post.confidence} />
+//                   <div className="sub" style={{ lineHeight: 1.5 }}>Điểm tin cậy dựa trên mức độ trùng lặp giữa các nguồn và độ ổn định của monitor.</div>
+//                 </div>
+//               </Section>
+//             )}
+//             {related.length > 0 && (
+//               <Section title="Related signals" icon={ExternalLink} tone="info">
+//                 {related.map((r) => (
+//                   <button key={r.id} className="row" style={{ width: '100%', textAlign: 'left' }} onClick={() => onJump(r)}>
+//                     <span className="tr">{r.title || r.sourceName}</span>
+//                     <span className="sub">{SRC_META[r.sourceType].short}</span>
+//                   </button>
+//                 ))}
+//               </Section>
+//             )}
+//             <Section title="Lịch sử" icon={History} tone="success">
+//               {history.map(([label, at]) => (
+//                 <InfoRow key={label} label={label}>{fmtDate(at)}</InfoRow>
+//               ))}
+//             </Section>
+//           </div>
+//         </div>
+//       </aside>
+//     </div>
+//   );
+// }
+
+// // ===== Composer =====
+// function ComposerNote({ onPost }: { onPost: (text: string, pin: boolean, team: boolean, exp: boolean) => void }) {
+//   const [text, setText] = useState('');
+//   const [pin, setPin] = useState(false);
+//   const [team, setTeam] = useState(false);
+//   const [exp, setExp] = useState(false);
+//   const cb = (label: string, v: boolean, set: (b: boolean) => void) => (
+//     <label style={{ display: 'flex', alignItems: 'center', gap: 4, color: c('ts'), cursor: 'pointer' }}>
+//       <input type="checkbox" checked={v} onChange={(e) => set(e.target.checked)} />
+//       {label}
+//     </label>
+//   );
+//   return (
+//     <div className="card" style={{ padding: 12 }}>
+//       <input className="field" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ghi chú nhanh / nhắc nhở..." id="mn-composer" />
+//       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
+//         {cb('📌 Ghim feed', pin, setPin)}
+//         {cb('👥 Giao cho team', team, setTeam)}
+//         {cb('🕘 Hết hạn', exp, setExp)}
+//         <button
+//           className="prim"
+//           style={{ marginLeft: 'auto' }}
+//           disabled={!text.trim()}
+//           onClick={() => {
+//             onPost(text.trim(), pin, team, exp);
+//             setText('');
+//             setPin(false);
+//             setTeam(false);
+//             setExp(false);
+//           }}
+//         >
+//           Đăng note
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ===== Feed view =====
+// type Chip = 'all' | SourceType;
+// interface FeedViewProps {
+//   posts: Post[];
+//   allPosts: Post[];
+//   loading: boolean;
+//   running: number;
+//   chip: Chip;
+//   setChip: (c: Chip) => void;
+//   group: string | null;
+//   tag: string | null;
+//   setGroup: (g: string | null) => void;
+//   setTag: (t: string | null) => void;
+//   search: string;
+//   setSearch: (s: string) => void;
+//   newCount: number;
+//   onShowNew: () => void;
+//   onLoadMore: () => void;
+//   onCreateMonitor: () => void;
+//   onNote: (text: string, pin: boolean, team: boolean, exp: boolean) => void;
+//   onView: (v: ViewId) => void;
+//   onQuick: () => void;
+//   onReset: () => void;
+//   onRail: () => void;
+//   cardProps: Omit<PostCardProps, 'post'>;
+//   scrollRef: React.RefObject<HTMLDivElement>;
+// }
+// function HeroHeader({ signals, attention, running, onQuick }: { signals: number; attention: number; running: number; onQuick: () => void }) {
+//   return (
+//     <div
+//       className="noise card-pop"
+//       style={{
+//         position: 'relative',
+//         overflow: 'hidden',
+//         borderRadius: 14,
+//         padding: '20px 20px 0',
+//         border: `1px solid ${c('border')}`,
+//         background: `radial-gradient(90% 140% at 8% 0%, ${c('primary', 0.3)}, transparent 60%), radial-gradient(70% 120% at 100% 100%, ${c('info', 0.16)}, transparent 60%), ${c('card')}`,
+//       }}
+//     >
+//       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+//         <div style={{ minWidth: 0 }}>
+//           <div className="sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+//             <span className="dot-live" style={{ width: 6, height: 6, borderRadius: 6, background: c('success'), boxShadow: `0 0 10px ${c('success')}` }} />
+//             Đang lắng nghe {running} nguồn
+//           </div>
+//           <div style={{ fontSize: 22, fontWeight: 300, letterSpacing: '-.015em', margin: '6px 0 2px', lineHeight: 1.3 }}>
+//             Hôm nay có <b className="mono" style={{ fontWeight: 700 }}>{signals}</b> tín hiệu mới ·{' '}
+//             <b className="mono" style={{ fontWeight: 700, color: attention ? c('warn') : c('success') }}>{attention}</b> cần chú ý
+//           </div>
+//           <div className="sub">{attention ? 'Vài tín hiệu ưu tiên cao đang chờ bạn xem.' : 'Mọi thứ đang khá yên ổn — cứ thong thả.'}</div>
+//           <button className="prim" style={{ marginTop: 12 }} onClick={onQuick}>
+//             <Zap size={14} />
+//             Xem nhanh
+//           </button>
+//         </div>
+//         <RadarMini active={running} />
+//       </div>
+//       <div style={{ margin: '10px -20px 0' }}>
+//         <SignalWave />
+//       </div>
+//     </div>
+//   );
+// }
+// function FeedView(p: FeedViewProps) {
+//   const [more, setMore] = useState(false);
+//   const [st, setSt] = useState(0);
+//   const chips: { id: Chip; label: string }[] = [
+//     { id: 'all', label: 'All ✨' },
+//     ...(['forum', 'telegram', 'x', 'facebook', 'rss', 'website', 'profile'] as SourceType[]).map((s) => ({ id: s as Chip, label: SRC_META[s].short })),
+//   ];
+//   const filtersOn = !!(p.group || p.tag || p.search || p.chip !== 'all');
+//   const last24 = p.allPosts.filter((x) => !x.isNote && Date.now() - new Date(x.createdAt).getTime() < 86400000);
+//   const attention = last24.filter((x) => x.priority === 'high').length;
+
+//   // System cards chen giữa feed
+//   const real = p.posts.filter((x) => !x.isNote);
+//   const bySrc = SRC.map((s) => [s, real.filter((x) => x.sourceType === s).length] as [SourceType, number]).sort((a, b) => b[1] - a[1]);
+//   const topPct = real.length ? Math.round((bySrc[0][1] / real.length) * 100) : 0;
+//   const sys = (k: number): ReactNode => {
+//     const v = [
+//       { icon: Activity, tone: 'info', text: `📊 ${topPct}% post đang hiển thị đến từ ${SRC_META[bySrc[0][0]].short}`, cta: 'Xem thống kê', run: () => p.onView('heatmap') },
+//       { icon: Target, tone: 'primary', text: `🎯 ${real.filter((x) => x.ruleHit).length} post khớp rule đang bật`, cta: 'Mở Alerts', run: () => p.onView('alerts') },
+//       { icon: Star, tone: 'warn', text: `⭐ ${real.filter((x) => x.archived).length} post đã lưu Archive`, cta: 'Mở Kanban', run: () => p.onView('kanban') },
+//       { icon: Clock, tone: 'success', text: '🕘 Muốn xem lại diễn biến? Kéo thời gian trên Timeline', cta: 'Mở Timeline', run: () => p.onView('timeline') },
+//     ][k % 4];
+//     return <SystemCard key={`sys-${k}`} icon={v.icon} tone={v.tone} text={v.text} cta={v.cta} onClick={v.run} />;
+//   };
+//   const rows: ReactNode[] = [];
+//   let lastDay = '';
+//   p.posts.forEach((post, idx) => {
+//     const day = dayLabel(post.createdAt);
+//     if (day !== lastDay) {
+//       rows.push(<TimeMarker key={`day-${day}-${idx}`} label={day} />);
+//       lastDay = day;
+//     }
+//     rows.push(<PostCard key={post.id} post={post} {...p.cardProps} />);
+//     if ((idx + 1) % 4 === 0 && idx < p.posts.length - 1) rows.push(sys(Math.floor(idx / 4)));
+//   });
+
+//   return (
+//     <div ref={p.scrollRef} className="scroll" onScroll={(e) => setSt(e.currentTarget.scrollTop)} style={{ flex: 1, minWidth: 0, padding: 'var(--pad,16px)', position: 'relative' }}>
+//       <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+//         <HeroHeader signals={last24.length} attention={attention} running={p.running} onQuick={p.onQuick} />
+//         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+//           <div style={{ position: 'relative', flex: 1 }}>
+//             <Search size={14} style={{ position: 'absolute', left: 12, top: 10, color: c('ts') }} />
+//             <input id="mn-search" className="field" style={{ paddingLeft: 34 }} value={p.search} onChange={(e) => p.setSearch(e.target.value)} placeholder="Tìm tín hiệu, tag, nguồn…   ( / )" aria-label="Tìm trong feed" />
+//           </div>
+//           <button className="soft rail-toggle" style={{ height: 34 }} aria-label="Mở bảng bên phải" onClick={p.onRail}>
+//             <Layers size={14} />
+//             Bộ lọc
+//           </button>
+//         </div>
+//         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+//           {chips.map((ch) => (
+//             <button key={ch.id} className={`chip ${p.chip === ch.id ? 'on' : ''}`} style={p.chip === ch.id ? { background: c('primary', 0.15), color: c('primary') } : undefined} onClick={() => p.setChip(ch.id)}>
+//               {ch.label}
+//             </button>
+//           ))}
+//           <button className={`chip ${more ? 'on' : ''}`} aria-label="Lọc theo dự án / tag" onClick={() => setMore(!more)}>
+//             <MoreHorizontal size={14} />
+//           </button>
+//         </div>
+//         {more && (
+//           <div className="card card-pop" style={{ padding: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+//             {MOCK_GROUPS.map((g) => (
+//               <button key={g.id} className={`chip ${p.group === g.name ? 'on' : ''}`} onClick={() => p.setGroup(p.group === g.name ? null : g.name)}>
+//                 📁 {g.name}
+//               </button>
+//             ))}
+//             {MOCK_TAGS.map((t) => (
+//               <TagChip key={t.name} name={t.name} on={p.tag === t.name} onClick={() => p.setTag(p.tag === t.name ? null : t.name)} />
+//             ))}
+//           </div>
+//         )}
+//         {(p.group || p.tag) && (
+//           <div className="sub">
+//             Đang lọc: {p.group && <b>📁 {p.group} </b>}
+//             {p.tag && <b>#{p.tag} </b>}
+//             <button style={{ color: c('primary') }} onClick={() => { p.setGroup(null); p.setTag(null); }}>
+//               Xóa lọc
+//             </button>
+//           </div>
+//         )}
+//         {p.newCount > 0 && (
+//           <button className="prim card-pop" style={{ position: 'sticky', top: 0, zIndex: 5, justifyContent: 'center', background: c('primary', 0.92), color: '#fff', height: 34, boxShadow: `0 8px 24px -8px ${c('primary', 0.7)}` }} onClick={p.onShowNew}>
+//             <ArrowUp size={14} />⬆ {p.newCount} post mới · bấm để xem
+//           </button>
+//         )}
+//         <ComposerNote onPost={p.onNote} />
+//         {p.loading && (
+//           <>
+//             <div className="sub" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+//               <span className="dot-live" style={{ width: 6, height: 6, borderRadius: 6, background: c('info') }} />
+//               Đang lắng nghe các nguồn…
+//             </div>
+//             {[1, 2, 3].map((k) => <SkeletonCard key={k} />)}
+//           </>
+//         )}
+//         {!p.loading && p.posts.length === 0 && (
+//           <EmptyArt
+//             title={filtersOn ? 'Không có tín hiệu nào khớp' : 'Chưa có gì để xem'}
+//             sub={filtersOn ? 'Thử mở rộng bộ lọc — hoặc xem lại toàn bộ nguồn nhé.' : 'Tạo monitor đầu tiên và Monitor sẽ bắt đầu lắng nghe giúp bạn.'}
+//             actions={[
+//               { label: 'Xóa bộ lọc', icon: X, run: p.onReset },
+//               { label: '+ Tạo monitor', icon: Plus, run: p.onCreateMonitor },
+//               { label: 'Xem Heatmap', icon: Flame, run: () => p.onView('heatmap') },
+//             ]}
+//           />
+//         )}
+//         {!p.loading && rows}
+//         {!p.loading && p.posts.length > 0 && (
+//           <button className="soft" style={{ justifyContent: 'center', height: 36 }} onClick={p.onLoadMore}>
+//             ⬇ Tải thêm post
+//           </button>
+//         )}
+//       </div>
+//       <div style={{ position: 'sticky', bottom: 8, height: 0, display: 'flex', justifyContent: 'flex-end', pointerEvents: 'none' }}>
+//         {st > 500 ? (
+//           <button className="prim" aria-label="Lên đầu feed" style={{ pointerEvents: 'auto', position: 'relative', top: -44, borderRadius: 18, height: 36, background: c('primary', 0.92), color: '#fff', boxShadow: `0 8px 24px -8px ${c('primary', 0.8)}` }} onClick={() => p.scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}>
+//             <ArrowUp size={14} />
+//             Lên đầu feed
+//           </button>
+//         ) : (
+//           <button className="prim" aria-label="Note nhanh" style={{ pointerEvents: 'auto', position: 'relative', top: -44, borderRadius: 18, height: 36 }} onClick={() => { document.getElementById('mn-composer')?.focus(); }}>
+//             <Plus size={14} />
+//             Note nhanh
+//           </button>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ===== Rails =====
+// const NAV: { id: ViewId; label: string; icon: typeof Home; lens?: boolean }[] = [
+//   { id: 'feed', label: 'Feed', icon: Home },
+//   { id: 'monitors', label: 'Monitors', icon: List },
+//   { id: 'alerts', label: 'Alerts', icon: Bell },
+//   { id: 'reports', label: 'Reports', icon: FileText },
+//   { id: 'audit', label: 'Audit', icon: History },
+//   { id: 'timeline', label: 'Timeline', icon: Clock, lens: true },
+//   { id: 'kanban', label: 'Kanban', icon: LayoutGrid, lens: true },
+//   { id: 'heatmap', label: 'Heatmap', icon: Flame, lens: true },
+// ];
+// interface LeftRailProps {
+//   view: ViewId;
+//   setView: (v: ViewId) => void;
+//   group: string | null;
+//   tag: string | null;
+//   setGroup: (g: string | null) => void;
+//   setTag: (t: string | null) => void;
+//   monitors: MonitorItem[];
+//   accent: string;
+//   setAccent: (a: string) => void;
+//   density: Density;
+//   setDensity: (d: Density) => void;
+//   onFocus: () => void;
+//   onPalette: () => void;
+//   archivePct: number;
+//   queue: number;
+// }
+// function LeftRail({ view, setView, group, tag, setGroup, setTag, monitors, accent, setAccent, density, setDensity, onFocus, onPalette, archivePct, queue }: LeftRailProps) {
+//   const label = (t: string) => <div className="sub" style={{ fontWeight: 600, margin: '16px 10px 6px' }}>{t}</div>;
+//   const hr = new Date().getHours();
+//   const bars = HEAT[0];
+//   const mx = Math.max(...bars, 1);
+//   const navBtn = (n: (typeof NAV)[number]) => (
+//     <button key={n.id} className={`nav ${view === n.id ? 'on' : ''}`} onClick={() => setView(n.id)}>
+//       <n.icon size={15} />
+//       {n.label}
+//     </button>
+//   );
+//   return (
+//     <aside className="lr scroll" style={{ width: 240, flexShrink: 0, padding: 12, borderRight: `1px solid ${c('border')}`, backgroundColor: c('panel'), backgroundImage: NOISE, display: 'flex', flexDirection: 'column' }}>
+//       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px 12px', borderRadius: 10, marginBottom: 8, background: `linear-gradient(135deg, ${c('primary', 0.14)}, transparent 70%)` }}>
+//         <span style={{ position: 'relative' }}>
+//           <Avatar name="Minh Nguyễn" hue={262} size={34} />
+//           <span className="dot-live" style={{ position: 'absolute', right: -2, bottom: -2, width: 9, height: 9, borderRadius: 9, background: c('success'), border: `2px solid ${c('panel')}` }} />
+//         </span>
+//         <div style={{ minWidth: 0 }}>
+//           <div className="tr" style={{ fontWeight: 600 }}>Minh Nguyễn</div>
+//           <div className="sub tr">Analyst · SOC-A</div>
+//         </div>
+//       </div>
+//       {NAV.filter((n) => !n.lens).map(navBtn)}
+//       {label('Góc nhìn')}
+//       {NAV.filter((n) => n.lens).map(navBtn)}
+//       {label('Nhóm / Dự án')}
+//       {MOCK_GROUPS.map((g) => (
+//         <button key={g.id} className={`nav ${group === g.name ? 'on' : ''}`} onClick={() => { setGroup(group === g.name ? null : g.name); setView('feed'); }}>
+//           📁 {g.name}
+//           <span className="sub mono" style={{ marginLeft: 'auto' }}>{g.monitorIds.length}</span>
+//         </button>
+//       ))}
+//       {label('Tag')}
+//       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 6px' }}>
+//         {MOCK_TAGS.map((t) => (
+//           <TagChip key={t.name} name={t.name} count={t.count} on={tag === t.name} onClick={() => { setTag(tag === t.name ? null : t.name); setView('feed'); }} />
+//         ))}
+//       </div>
+//       {label('Monitor')}
+//       {monitors.map((m) => (
+//         <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px' }}>
+//           <span className={m.status === 'running' ? 'dot-live' : undefined} style={{ width: 7, height: 7, borderRadius: 7, background: tc(MON_STATUS[m.status][1]), boxShadow: m.status === 'running' ? `0 0 8px ${c('success', 0.7)}` : 'none' }} />
+//           <span className="tr" style={{ flex: 1 }}>{m.name}</span>
+//           <span className="sub mono">{m.schedule}</span>
+//         </div>
+//       ))}
+//       {label('Tín hiệu hôm nay')}
+//       <div style={{ padding: '0 10px' }}>
+//         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 34 }}>
+//           {bars.map((v, h) => (
+//             <span key={h} title={`${h}:00 · ${v} tín hiệu`} style={{ flex: 1, height: `${14 + (v / mx) * 86}%`, borderRadius: 2, background: h === hr ? c('primary') : tc('success', 0.22 + (0.5 * v) / mx), boxShadow: h === hr ? `0 0 10px ${c('primary', 0.8)}` : 'none' }} />
+//           ))}
+//         </div>
+//         <div className="sub" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+//           <span className="mono">0h</span>
+//           <span>giờ này sôi động hơn trung bình</span>
+//           <span className="mono">23h</span>
+//         </div>
+//       </div>
+//       {label('Pipeline')}
+//       <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+//         {[['Archive', archivePct, 'primary'], ['Queue', Math.min(100, queue * 12), 'info']].map(([l, v, t]) => (
+//           <div key={String(l)}>
+//             <div className="sub" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+//               <span>{l}</span>
+//               <span className="mono">{l === 'Archive' ? `${v}%` : `${queue} chờ`}</span>
+//             </div>
+//             <div style={{ height: 4, borderRadius: 4, background: c('border'), overflow: 'hidden' }}>
+//               <div style={{ width: `${v}%`, height: '100%', borderRadius: 4, background: `linear-gradient(90deg, ${tc(String(t), 0.5)}, ${tc(String(t))})`, transition: 'width .5s ease-out' }} />
+//             </div>
+//           </div>
+//         ))}
+//       </div>
+//       <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+//         <div className="div-grad" style={{ marginBottom: 10 }} />
+//         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 6px', marginBottom: 8 }}>
+//           <Palette size={13} color={`rgb(${THEME.ts})`} />
+//           {ACCENTS.slice(0, 6).map((a) => (
+//             <button key={a} aria-label={`Accent ${a}`} onClick={() => setAccent(a)} style={{ width: 16, height: 16, borderRadius: 16, background: `rgb(${a})`, boxShadow: accent === a ? `0 0 0 2px ${c('panel')}, 0 0 0 3px rgb(${a}), 0 0 12px rgb(${a})` : 'none' }} />
+//           ))}
+//         </div>
+//         <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 6, background: c('ts', 0.1), marginBottom: 8 }}>
+//           {([['compact', 'Gọn'], ['cozy', 'Vừa'], ['spacious', 'Rộng']] as [Density, string][]).map(([d, l]) => (
+//             <button key={d} onClick={() => setDensity(d)} style={{ flex: 1, padding: '4px 0', borderRadius: 5, fontSize: 11, background: density === d ? c('card') : 'transparent', color: density === d ? c('tp') : c('ts') }}>{l}</button>
+//           ))}
+//         </div>
+//         <div style={{ display: 'flex', gap: 6 }}>
+//           <button className="soft" style={{ flex: 1, height: 28, justifyContent: 'center' }} onClick={onPalette}><Command size={12} />K</button>
+//           <button className="soft" style={{ flex: 1, height: 28, justifyContent: 'center' }} onClick={onFocus}>Focus <kbd>F</kbd></button>
+//         </div>
+//         <div className="sub" style={{ textAlign: 'center', marginTop: 8, fontSize: 10 }}>Monitor v0.9.2 · VioletAbyss</div>
+//       </div>
+//     </aside>
+//   );
+// }
+// interface RightRailProps {
+//   media: Set<MediaKind>;
+//   toggleMedia: (k: MediaKind) => void;
+//   priority: 'all' | Priority;
+//   setPriority: (p: 'all' | Priority) => void;
+//   monitors: MonitorItem[];
+//   posts: Post[];
+//   recent: Post[];
+//   tag: string | null;
+//   setTag: (t: string | null) => void;
+//   onOpen: (p: Post) => void;
+//   open: boolean;
+//   onClose: () => void;
+// }
+// function RightRail({ media, toggleMedia, priority, setPriority, monitors, posts, recent, tag, setTag, onOpen, open, onClose }: RightRailProps) {
+//   const high24 = posts.filter((p) => !p.isNote && p.priority === 'high' && Date.now() - new Date(p.createdAt).getTime() < 86400000).length;
+//   const errs = monitors.filter((m) => m.status === 'error').length;
+//   const score = high24 + errs * 2;
+//   const wx = score <= 2 ? { e: '☀️', t: 'Yên ổn', d: 'Chưa thấy gì bất thường.', tone: 'success' } : score <= 6 ? { e: '⛅', t: 'Có bất thường', d: 'Một vài tín hiệu đáng để mắt tới.', tone: 'warn' } : { e: '🌩', t: 'Nhiều cảnh báo', d: 'Nên xử lý các alert ưu tiên cao.', tone: 'error' };
+//   const movers = monitors
+//     .map((m) => {
+//       const prev = m.hits24h * (0.6 + (hueOf(m.id) % 30) / 100);
+//       return { m, delta: Math.round(((m.hits24h - prev) / Math.max(1, prev)) * 100) };
+//     })
+//     .sort((a, b) => b.delta - a.delta)
+//     .slice(0, 3);
+//   const maxTag = Math.max(...MOCK_TAGS.map((t) => t.count), 1);
+//   return (
+//     <aside className={`rr scroll ${open ? 'open' : ''}`} style={{ width: 320, flexShrink: 0, padding: 12, borderLeft: `1px solid ${c('border')}`, backgroundColor: c('panel'), backgroundImage: NOISE }}>
+//       {open && (
+//         <button className="ico" aria-label="Đóng" style={{ marginBottom: 8 }} onClick={onClose}>
+//           <X size={14} />
+//         </button>
+//       )}
+//       <section className="sec noise" style={{ borderRadius: 10, background: `radial-gradient(100% 120% at 0% 0%, ${tc(wx.tone, 0.18)}, transparent 70%), ${c('card')}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+//         <span style={{ fontSize: 34, animation: 'mnfloat 4s ease-in-out infinite' }}>{wx.e}</span>
+//         <div>
+//           <div className="sub">Signal weather</div>
+//           <div style={{ fontWeight: 600, fontSize: 14, color: tc(wx.tone) }}>{wx.t}</div>
+//           <div className="sub">{wx.d}</div>
+//           <div className="sub mono" style={{ marginTop: 2 }}>{high24} ưu tiên cao · {errs} nguồn lỗi</div>
+//         </div>
+//       </section>
+//       <Section title="Bộ lọc media" icon={Search} tone="primary">
+//         {MEDIA_KINDS.map((k) => (
+//           <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
+//             <input type="checkbox" checked={media.has(k)} onChange={() => toggleMedia(k)} />
+//             {MEDIA_LABEL[k]}
+//           </label>
+//         ))}
+//       </Section>
+//       <Section title="Ưu tiên" icon={Zap} tone="warn">
+//         {(['all', 'high', 'medium', 'low'] as const).map((p) => (
+//           <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
+//             <input type="radio" name="mn-priority" checked={priority === p} onChange={() => setPriority(p)} />
+//             {p === 'all' ? 'Tất cả' : PRI_LABEL[p]}
+//           </label>
+//         ))}
+//       </Section>
+//       <Section title="Top movers" icon={Flame} tone="success">
+//         {movers.map(({ m, delta }) => (
+//           <div key={m.id} className="row">
+//             <div style={{ minWidth: 0 }}>
+//               <div className="tr" style={{ fontWeight: 500 }}>{m.name}</div>
+//               <div className="sub mono">{m.hits24h} hit / 24h</div>
+//             </div>
+//             <Sparkline data={sparkSeries(m.id, m.hits24h)} tone="success" w={64} h={22} />
+//             <span className="mono" style={{ color: c('success'), fontWeight: 700, width: 44, textAlign: 'right' }}>+{delta}%</span>
+//           </div>
+//         ))}
+//       </Section>
+//       <Section title="Monitor" icon={List} tone="info">
+//         {monitors.map((m) => (
+//           <div key={m.id} className="row" style={m.status === 'error' ? { animation: 'mnpulseRed 2.4s ease-in-out infinite', borderRadius: 6, padding: '7px 6px' } : undefined}>
+//             <span>{MON_STATUS[m.status][2]} {m.name}</span>
+//             <Sparkline data={sparkSeries(m.name, m.hits24h + 4)} tone={m.status === 'error' ? 'error' : m.status === 'paused' ? 'warn' : 'info'} w={56} h={18} />
+//           </div>
+//         ))}
+//       </Section>
+//       <Section title="Quick jump" icon={Search} tone="primary">
+//         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+//           {MOCK_TAGS.map((t) => (
+//             <button key={t.name} className={`chip ${tag === t.name ? 'on' : ''}`} style={{ fontSize: 10 + Math.round((t.count / maxTag) * 4), padding: '3px 9px' }} onClick={() => setTag(tag === t.name ? null : t.name)}>
+//               #{t.name}
+//             </button>
+//           ))}
+//         </div>
+//       </Section>
+//       <Section title="Vừa xem" icon={Eye} tone="muted">
+//         {recent.length === 0 ? (
+//           <div className="sub">Bài bạn vừa đọc sẽ hiện ở đây để quay lại nhanh.</div>
+//         ) : (
+//           <div style={{ display: 'flex', alignItems: 'center' }}>
+//             {recent.slice(0, 5).map((p, i) => (
+//               <button key={p.id} title={p.title || p.sourceName} aria-label={`Mở ${p.title || p.sourceName}`} onClick={() => onOpen(p)} style={{ marginLeft: i ? -8 : 0, zIndex: 5 - i, borderRadius: 10, boxShadow: `0 0 0 2px ${c('card')}` }}>
+//                 <SourceAvatar name={p.sourceName} type={p.sourceType} size={30} />
+//               </button>
+//             ))}
+//           </div>
+//         )}
+//       </Section>
+//       <Section title="Hoạt động gần đây" icon={Clock} tone="success">
+//         {MOCK_AUDIT.slice(0, 5).map((a) => (
+//           <div key={a.id} className="row">
+//             <span className="tr"><span className="mono sub">{hhmm(a.at)}</span> {a.action} {a.monitor}</span>
+//           </div>
+//         ))}
+//       </Section>
+//       <div className="sub" style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', opacity: 0.8, paddingBottom: 8 }}>
+//         <span><kbd>⌘K</kbd> lệnh</span>
+//         <span><kbd>F</kbd> focus</span>
+//         <span><kbd>/</kbd> tìm</span>
+//       </div>
+//     </aside>
+//   );
+// }
+
+// // ===== Tables =====
+
+// const TH: CSSProperties = { padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 500, color: c('ts'), whiteSpace: 'nowrap' };
+// const TD: CSSProperties = { padding: '10px 12px', verticalAlign: 'middle' };
+// const THead = ({ cols }: { cols: string[] }) => (
+//   <thead style={{ position: 'sticky', top: 0, background: c('thead'), zIndex: 1 }}>
+//     <tr>
+//       {cols.map((h) => (
+//         <th key={h} style={TH}>{h}</th>
+//       ))}
+//     </tr>
+//   </thead>
+// );
+// const ViewShell = ({ title, subtitle, accent = 'primary', actions, children }: { title: string; subtitle?: string; accent?: string; actions?: ReactNode; children: ReactNode }) => (
+//   <div className="scroll" style={{ flex: 1, minWidth: 0, padding: 'var(--pad,16px)' }}>
+//     <div
+//       className="noise card-pop"
+//       style={{
+//         borderRadius: 14,
+//         padding: '16px 18px',
+//         marginBottom: 16,
+//         overflow: 'hidden',
+//         border: `1px solid ${c('border')}`,
+//         background: `radial-gradient(70% 160% at 0% 0%, ${tc(accent, 0.2)}, transparent 65%), ${c('card')}`,
+//         display: 'flex',
+//         alignItems: 'center',
+//         justifyContent: 'space-between',
+//         gap: 12,
+//         flexWrap: 'wrap',
+//       }}
+//     >
+//       <div>
+//         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 300, letterSpacing: '-.015em' }}>{title}</h2>
+//         {subtitle && <div className="sub" style={{ marginTop: 4 }}>{subtitle}</div>}
+//       </div>
+//       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>{actions}</div>
+//     </div>
+//     {children}
+//   </div>
+// );
+// const StatCard = ({ label, value, tone = 'primary', hint }: { label: string; value: ReactNode; tone?: string; hint?: string }) => (
+//   <div className="card" style={{ flex: 1, minWidth: 130, padding: '12px 14px', background: `linear-gradient(160deg, ${tc(tone, 0.1)}, transparent 70%), ${c('card')}` }}>
+//     <div className="mono" style={{ fontSize: 22, fontWeight: 700, color: tc(tone) }}>{value}</div>
+//     <div style={{ fontWeight: 500 }}>{label}</div>
+//     {hint && <div className="sub">{hint}</div>}
+//   </div>
+// );
+
+// // ===== Monitors view =====
+// const nextRunOf = (m: MonitorItem): string => {
+//   if (m.status !== 'running') return m.status === 'paused' ? 'Đang tạm dừng' : 'Chờ khôi phục';
+//   const s = m.schedule;
+//   const mins = /m$/.test(s) ? parseInt(s, 10) : /h$/.test(s) ? parseInt(s, 10) * 60 : 120;
+//   return `trong ${(hueOf(m.id) % mins) + 1} phút`;
+// };
+// const healthOf = (m: MonitorItem) => {
+//   const h = hueOf(m.id);
+//   return {
+//     uptime: m.status === 'error' ? 72 : m.status === 'paused' ? 91 : 99 - (h % 3),
+//     latency: 120 + (h % 380) + (m.status === 'error' ? 900 : 0),
+//     err: m.status === 'error' ? 18 : h % 3,
+//   };
+// };
+// interface MonitorsViewProps {
+//   monitors: MonitorItem[];
+//   setMonitors: (fn: (m: MonitorItem[]) => MonitorItem[]) => void;
+//   say: (m: string) => void;
+//   onCreate: () => void;
+// }
+// function MonitorsView({ monitors, setMonitors, say, onCreate }: MonitorsViewProps) {
+//   const [sel, setSel] = useState<Set<string>>(new Set());
+//   const toggle = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+//   const setStatus = (ids: string[], status: MonitorItem['status']) => {
+//     setMonitors((ms) => ms.map((m) => (ids.includes(m.id) ? { ...m, status } : m)));
+//     say(status === 'running' ? 'Đã resume monitor' : 'Đã pause monitor');
+//   };
+//   const ids = Array.from(sel);
+//   const run = monitors.filter((m) => m.status === 'running').length;
+//   const drift = monitors.filter((m) => m.status === 'error');
+//   return (
+//     <ViewShell
+//       title="Monitors"
+//       subtitle={`${run}/${monitors.length} nguồn đang chạy · ${monitors.reduce((a, m) => a + m.hits24h, 0)} hit trong 24h`}
+//       accent="info"
+//       actions={
+//         <>
+//           <Ring value={monitors.length ? Math.round((run / monitors.length) * 100) : 0} size={46} stroke={4} tone="success" label={`${run}/${monitors.length}`} />
+//           <button className="prim" onClick={onCreate}><Plus size={14} />Tạo monitor</button>
+//         </>
+//       }
+//     >
+//       {drift.length > 0 && (
+//         <div className="card" style={{ padding: '10px 14px', marginBottom: 12, borderRadius: 10, border: `1px solid ${c('error', 0.3)}`, background: `linear-gradient(90deg, ${c('error', 0.12)}, transparent)` }}>
+//           ⚠️ <b>Source drift:</b> {drift.map((d) => d.name).join(', ')} crawl lỗi liên tục — cấu trúc nguồn có thể đã thay đổi.
+//         </div>
+//       )}
+//       {ids.length > 0 && (
+//         <div className="card card-pop" style={{ display: 'flex', gap: 6, alignItems: 'center', padding: 8, marginBottom: 10, border: `1px dashed ${c('primary')}`, flexWrap: 'wrap' }}>
+//           <b>{ids.length} đã chọn</b>
+//           <button className="soft" onClick={() => setStatus(ids, 'running')}><Play size={13} />Resume</button>
+//           <button className="soft" onClick={() => setStatus(ids, 'paused')}><Pause size={13} />Pause</button>
+//           <button className="soft" onClick={() => say('Đang chạy ngay…')}><RefreshCw size={13} />Run-now</button>
+//           <button className="soft" onClick={() => say('Đã gắn tag')}>Tag</button>
+//           <button className="dng" onClick={() => { setMonitors((ms) => ms.filter((m) => !ids.includes(m.id))); setSel(new Set()); say('Đã xóa monitor'); }}>
+//             <Trash2 size={13} />Delete
+//           </button>
+//         </div>
+//       )}
+//       <div className="card" style={{ overflow: 'auto' }}>
+//         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+//           <THead cols={['', 'Tên', 'Nguồn', 'Nhịp', 'Next run', 'Hit 24h', 'Sparkline 24h', 'Health', 'Alert', 'Trạng thái', 'Thao tác']} />
+//           <tbody>
+//             {monitors.length === 0 && (
+//               <tr><td colSpan={11}><Empty text="Chưa có monitor nào — tạo cái đầu tiên để bắt đầu lắng nghe." /></td></tr>
+//             )}
+//             {monitors.map((m) => {
+//               const hl = healthOf(m);
+//               return (
+//                 <tr key={m.id} style={{ borderBottom: `1px solid ${c('border')}`, background: m.status === 'error' ? c('error', 0.06) : undefined, animation: m.status === 'error' ? 'mnpulseRed 2.4s ease-in-out infinite' : undefined }}>
+//                   <td style={TD}><input type="checkbox" aria-label={`Chọn ${m.name}`} checked={sel.has(m.id)} onChange={() => toggle(m.id)} /></td>
+//                   <td style={{ ...TD, fontWeight: 500 }}>{m.name}<div className="sub">{m.group}</div></td>
+//                   <td style={TD}><PlatformBadge type={m.sourceType} /></td>
+//                   <td style={TD} className="mono">{m.schedule}</td>
+//                   <td style={TD} className="sub">{nextRunOf(m)}</td>
+//                   <td style={{ ...TD, fontWeight: 700 }} className="mono">{m.hits24h}</td>
+//                   <td style={TD}><Sparkline data={sparkSeries(m.id, m.hits24h + 3)} tone={m.hits24h > 40 ? 'success' : m.status === 'error' ? 'error' : 'info'} /></td>
+//                   <td style={TD}>
+//                     <span title={`Uptime ${hl.uptime}% · ${hl.latency}ms · lỗi ${hl.err}%`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+//                       <HealthRing uptime={hl.uptime} latency={hl.latency} err={hl.err} />
+//                       <span className="sub mono">{hl.latency}ms</span>
+//                     </span>
+//                   </td>
+//                   <td style={TD}>{m.alerts}</td>
+//                   <td style={TD}><StatusPill map={MON_STATUS} k={m.status} /></td>
+//                   <td style={TD}>
+//                     <div style={{ display: 'flex', gap: 4 }}>
+//                       {m.status === 'running' ? (
+//                         <button className="ico" aria-label="Pause" onClick={() => setStatus([m.id], 'paused')}><Pause size={14} /></button>
+//                       ) : (
+//                         <button className="ico" aria-label="Resume" onClick={() => setStatus([m.id], 'running')}><Play size={14} /></button>
+//                       )}
+//                       <button className="ico" aria-label="Run-now" onClick={() => say(`Run-now ${m.name}`)}><RefreshCw size={14} /></button>
+//                     </div>
+//                   </td>
+//                 </tr>
+//               );
+//             })}
+//           </tbody>
+//         </table>
+//       </div>
+//     </ViewShell>
+//   );
+// }
+
+// // ===== Alerts view =====
+// interface AlertsViewProps {
+//   rules: AlertRule[];
+//   setRules: (fn: (r: AlertRule[]) => AlertRule[]) => void;
+// }
+// function AlertsView({ rules, setRules }: AlertsViewProps) {
+//   const [selId, setSelId] = useState<string | null>(rules[0]?.id ?? null);
+//   const [hoverId, setHoverId] = useState<string | null>(null);
+//   const focusId = hoverId ?? selId;
+//   const sel = rules.find((r) => r.id === focusId);
+//   const counts = MOCK_RULES.map((r) => [r, MOCK_ALERT_HISTORY.filter((h) => h.ruleId === r.id).length] as [AlertRule, number]).sort((a, b) => b[1] - a[1]);
+//   const hot = counts.slice(0, 2).map(([r]) => r.id);
+//   const previews = (r: AlertRule) => Array.from({ length: 5 }, (_, k) => ({ at: ago(k * 3.4 + (hueOf(r.id) % 5) / 3 + 0.3), mon: MOCK_MONITORS[(hueOf(r.id) + k) % MOCK_MONITORS.length].name }));
+//   return (
+//     <ViewShell title="Alerts" subtitle={`${rules.filter((r) => r.enabled).length}/${rules.length} rule đang bật`} accent="warn">
+//       <div className="card" style={{ padding: '10px 14px', marginBottom: 12, borderRadius: 10, border: `1px solid ${c('warn', 0.3)}`, background: `linear-gradient(90deg, ${c('warn', 0.12)}, transparent)` }}>
+//         🔥 <b>{hot.length} rule</b> ({hot.join(', ')}) đang bắn nhiều hơn bình thường trong 24 giờ qua.
+//       </div>
+//       <div className="card" style={{ padding: 14, marginBottom: 12 }}>
+//         <div style={{ fontWeight: 600, marginBottom: 8 }}>Alert theo giờ</div>
+//         <HeatGrid data={[HEAT[3]]} labels={['24h']} tone="warn" />
+//       </div>
+//       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+//         <div className="card" style={{ flex: 2, minWidth: 340, overflow: 'auto' }}>
+//           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+//             <THead cols={['Rule', 'Điều kiện', 'Kênh gửi', 'Ưu tiên', 'Bật/tắt']} />
+//             <tbody>
+//               {rules.map((r) => (
+//                 <tr key={r.id} onClick={() => setSelId(r.id)} onMouseEnter={() => setHoverId(r.id)} onMouseLeave={() => setHoverId(null)} style={{ cursor: 'pointer', borderBottom: `1px solid ${c('border')}`, background: selId === r.id ? c('ts', 0.1) : undefined, opacity: r.enabled ? 1 : 0.6 }}>
+//                   <td style={{ ...TD, fontWeight: 500 }}>{r.id} - {r.name}</td>
+//                   <td style={{ ...TD, maxWidth: 220 }} className="tr">{r.condition}</td>
+//                   <td style={TD}>{r.channels.join(', ')}</td>
+//                   <td style={TD}><Pill tone={PRI_TONE[r.priority]}>{PRI_LABEL[r.priority]}</Pill></td>
+//                   <td style={TD} onClick={(e) => e.stopPropagation()}>
+//                     <button className={r.enabled ? 'prim' : 'soft'} onClick={() => setRules((rs) => rs.map((x) => (x.id === r.id ? { ...x, enabled: !x.enabled } : x)))}>
+//                       {r.enabled ? 'Bật' : 'Tắt'}
+//                     </button>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         </div>
+//         <div style={{ flex: 1, minWidth: 260 }}>
+//           {sel ? (
+//             <>
+//               <Section title={`Chi tiết ${sel.id}`} icon={Target} tone="primary">
+//                 <InfoRow label="Tên">{sel.name}</InfoRow>
+//                 <InfoRow label="Điều kiện"><span className="mono">{sel.condition}</span></InfoRow>
+//                 <InfoRow label="Kênh">{sel.channels.join(', ')}</InfoRow>
+//                 <InfoRow label="Ưu tiên">{PRI_LABEL[sel.priority]}</InfoRow>
+//                 <InfoRow label="Trạng thái">{sel.enabled ? 'Đang bật' : 'Đang tắt'}</InfoRow>
+//               </Section>
+//               <Section title="Alert preview · 5 lần gần nhất" icon={Bell} tone="warn">
+//                 {previews(sel).map((v, i) => (
+//                   <InfoRow key={i} label={timeAgo(v.at)}>{v.mon}</InfoRow>
+//                 ))}
+//               </Section>
+//             </>
+//           ) : (
+//             <Empty text="Chọn một rule để xem chi tiết." />
+//           )}
+//         </div>
+//       </div>
+//       <h3 style={{ fontSize: 13, margin: '16px 0 8px', fontWeight: 600 }}>Lịch sử alert</h3>
+//       <div className="card" style={{ overflow: 'auto' }}>
+//         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+//           <THead cols={['Thời gian', 'Rule', 'Monitor', 'Nội dung', 'Kênh']} />
+//           <tbody>
+//             {MOCK_ALERT_HISTORY.map((h) => (
+//               <tr key={h.id} style={{ borderBottom: `1px solid ${c('border')}` }}>
+//                 <td style={TD}>{timeAgo(h.at)}</td>
+//                 <td style={TD}>{h.ruleId}</td>
+//                 <td style={TD}>{h.monitor}</td>
+//                 <td style={TD}>{h.summary}</td>
+//                 <td style={TD}>{h.channel}</td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+//     </ViewShell>
+//   );
+// }
+
+// // ===== Reports view =====
+// function ReportsView({ say }: { say: (m: string) => void }) {
+//   const [digest, setDigest] = useState(false);
+//   const upcoming = [...MOCK_REPORTS].sort((a, b) => new Date(a.nextRun).getTime() - new Date(b.nextRun).getTime());
+//   const latest = [...MOCK_REPORTS].sort((a, b) => new Date(b.lastRun).getTime() - new Date(a.lastRun).getTime())[0];
+//   const top = [...MOCK_POSTS].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0)).slice(0, 3);
+//   return (
+//     <ViewShell title="Reports" subtitle={`${MOCK_REPORTS.length} báo cáo định kỳ · kế tiếp ${timeUntil(upcoming[0].nextRun)}`} accent="success">
+//       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+//         <div className="card" style={{ flex: 1, minWidth: 260, padding: 14 }}>
+//           <div style={{ fontWeight: 600, marginBottom: 10 }}>Sắp chạy</div>
+//           <div style={{ borderLeft: `1px dashed ${c('border')}`, marginLeft: 5, paddingLeft: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+//             {upcoming.map((r, i) => (
+//               <div key={r.id} style={{ position: 'relative' }}>
+//                 <span style={{ position: 'absolute', left: -20, top: 4, width: 9, height: 9, borderRadius: 9, background: i === 0 ? c('success') : c('ts', 0.5), boxShadow: i === 0 ? `0 0 10px ${c('success', 0.8)}` : 'none' }} />
+//                 <div style={{ fontWeight: 500 }}>{r.name}</div>
+//                 <div className="sub">{timeUntil(r.nextRun)} · {r.cycle}</div>
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+//         <div className="card noise" style={{ flex: 1.4, minWidth: 300, padding: 14, borderRadius: 14, background: `radial-gradient(90% 130% at 100% 0%, ${c('success', 0.14)}, transparent 65%), ${c('card')}` }}>
+//           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+//             <div>
+//               <div style={{ fontWeight: 600 }}>{latest.name}</div>
+//               <div className="sub">Chạy gần nhất {timeAgo(latest.lastRun)} · {latest.scope}</div>
+//             </div>
+//             <button className="prim" onClick={() => setDigest(!digest)}><FileText size={13} />{digest ? 'Ẩn digest' : 'Digest preview'}</button>
+//           </div>
+//           <div style={{ display: 'flex', gap: 10 }}>
+//             <StatCard label="Tín hiệu" value={MOCK_POSTS.length} tone="info" />
+//             <StatCard label="Alert" value={MOCK_ALERT_HISTORY.length} tone="warn" />
+//             <StatCard label="Archive" value={MOCK_POSTS.filter((p) => p.archived).length} tone="success" />
+//           </div>
+//           {digest && (
+//             <div className="card-pop" style={{ marginTop: 12 }}>
+//               <div className="sub" style={{ marginBottom: 6 }}>Top 3 tín hiệu đáng tin nhất sẽ gửi trong bản tuần này</div>
+//               {top.map((p) => (
+//                 <div key={p.id} className="row">
+//                   <span className="tr">{p.title}</span>
+//                   <Pill tone={confTone(p.confidence ?? 0)} dot={false}>{p.confidence}/100</Pill>
+//                 </div>
+//               ))}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//       <div className="card" style={{ overflow: 'auto' }}>
+//         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+//           <THead cols={['Tên báo cáo', 'Chu kỳ', 'Phạm vi', 'Định dạng', 'Lần chạy', 'Thao tác']} />
+//           <tbody>
+//             {MOCK_REPORTS.map((r) => (
+//               <tr key={r.id} style={{ borderBottom: `1px solid ${c('border')}` }}>
+//                 <td style={{ ...TD, fontWeight: 500 }}>{r.name}</td>
+//                 <td style={TD}>{r.cycle}</td>
+//                 <td style={TD}>{r.scope}</td>
+//                 <td style={TD}>{r.formats.join(' / ')}</td>
+//                 <td style={TD}>
+//                   <div>Gần nhất: {timeAgo(r.lastRun)}</div>
+//                   <div className="sub">Kế tiếp: {fmtDate(r.nextRun)}</div>
+//                 </td>
+//                 <td style={TD}>
+//                   <div style={{ display: 'flex', gap: 4 }}>
+//                     {r.formats.includes('PDF') && <button className="soft" onClick={() => say(`Mở PDF: ${r.name}`)}>Xem PDF</button>}
+//                     {r.formats.includes('CSV') && <button className="soft" onClick={() => say(`Tải CSV: ${r.name}`)}>CSV</button>}
+//                     <button className="prim" onClick={() => say(`Đã gửi báo cáo "${r.name}"`)}><Send size={13} />Gửi ngay</button>
+//                   </div>
+//                 </td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+//     </ViewShell>
+//   );
+// }
+
+// // ===== Audit view =====
+// const RANGES: { id: string; label: string; ms: number }[] = [
+//   { id: 'd1', label: 'Hôm nay', ms: 86400000 },
+//   { id: 'd7', label: '7 ngày', ms: 7 * 86400000 },
+//   { id: 'd30', label: '30 ngày', ms: 30 * 86400000 },
+// ];
+// function AuditView({ say }: { say: (m: string) => void }) {
+//   const [range, setRange] = useState('d1');
+//   const ms = RANGES.find((r) => r.id === range)?.ms ?? 86400000;
+//   const list = [...MOCK_AUDIT, ...MOCK_AUDIT_OLD].filter((a) => Date.now() - new Date(a.at).getTime() <= ms);
+//   return (
+//     <ViewShell title="Audit" subtitle={`${list.length} sự kiện trong khoảng đã chọn`} accent="info" actions={<button className="soft" onClick={() => say('Đã xuất CSV audit')}><Download size={14} />Xuất CSV</button>}>
+//       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+//         {RANGES.map((r) => (
+//           <button key={r.id} className={`chip ${range === r.id ? 'on' : ''}`} onClick={() => setRange(r.id)}>{r.label}</button>
+//         ))}
+//       </div>
+//       <div className="card" style={{ padding: 14, marginBottom: 12 }}>
+//         <div style={{ fontWeight: 600, marginBottom: 8 }}>Nhịp hoạt động</div>
+//         <HeatGrid data={HEAT} labels={DAYS} tone="info" />
+//       </div>
+//       <div className="card" style={{ overflow: 'auto' }}>
+//         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+//           <THead cols={['Thời gian', 'Monitor', 'Hành động', 'Người / Agent', 'Kết quả']} />
+//           <tbody>
+//             {list.map((a) => (
+//               <tr key={a.id} style={{ borderBottom: `1px solid ${c('border')}` }}>
+//                 <td style={TD} className="mono">{fmtDate(a.at)}</td>
+//                 <td style={TD}>{a.monitor}</td>
+//                 <td style={TD}>{a.action}</td>
+//                 <td style={TD}>{a.actor}</td>
+//                 <td style={{ ...TD, color: a.result.startsWith('Lỗi') ? c('error') : c('tp') }}>{a.result}</td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+//     </ViewShell>
+//   );
+// }
+
+// // ===== Timeline view (có Time machine) =====
+// function TimelineView({ posts, onOpen }: { posts: Post[]; onOpen: (p: Post) => void }) {
+//   const [cursor, setCursor] = useState(0);
+//   const shown = posts.filter((p) => !p.isNote && (Date.now() - new Date(p.createdAt).getTime()) / 3600000 >= cursor);
+//   return (
+//     <ViewShell title="Timeline" subtitle="Kéo thanh bên dưới để quay về quá khứ — feed sẽ hiện đúng như lúc đó." accent="info">
+//       <div className="card" style={{ padding: 14, marginBottom: 14, position: 'sticky', top: 0, zIndex: 4 }}>
+//         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+//           <span style={{ fontWeight: 600 }}>⏱ Time machine</span>
+//           <span className="mono sub">{cursor === 0 ? 'Bây giờ' : `${cursor} giờ trước`} · {shown.length} tín hiệu</span>
+//         </div>
+//         <input type="range" min={0} max={72} step={1} value={cursor} aria-label="Time machine" onChange={(e) => setCursor(Number(e.target.value))} />
+//       </div>
+//       <div style={{ position: 'relative', paddingLeft: 86 }}>
+//         <span aria-hidden style={{ position: 'absolute', left: 74, top: 0, bottom: 0, width: 1, background: `linear-gradient(${c('primary')}, ${c('border')} 30%, transparent)` }} />
+//         <div style={{ position: 'relative', marginBottom: 14 }}>
+//           <span className="dot-live" style={{ position: 'absolute', left: -17, top: 3, width: 9, height: 9, borderRadius: 9, background: c('primary'), boxShadow: `0 0 12px ${c('primary')}` }} />
+//           <span style={{ position: 'absolute', left: -86, top: 0 }} className="mono sub">{cursor === 0 ? 'NOW' : `-${cursor}h`}</span>
+//           <span style={{ fontWeight: 500 }}>{cursor === 0 ? 'Bây giờ' : 'Điểm quan sát'}</span>
+//         </div>
+//         {shown.length === 0 && <Empty text="Chưa có tín hiệu nào tính đến thời điểm này." />}
+//         {shown.map((p) => (
+//           <div key={p.id} style={{ position: 'relative', marginBottom: 10 }}>
+//             <span className="mono sub" style={{ position: 'absolute', left: -86, top: 10, width: 60, textAlign: 'right' }}>{hhmm(p.createdAt)}</span>
+//             <span style={{ position: 'absolute', left: -16, top: 14, width: 7, height: 7, borderRadius: 7, background: acc(p.sourceType), boxShadow: `0 0 8px ${acc(p.sourceType, 0.8)}` }} />
+//             <button className="card post" onClick={() => onOpen(p)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'center' }}>
+//               <SourceAvatar name={p.sourceName} type={p.sourceType} size={28} />
+//               <div style={{ flex: 1, minWidth: 0 }}>
+//                 <div className="tr" style={{ fontWeight: 600 }}>{p.title || p.sourceName}</div>
+//                 <div className="sub tr">{SRC_META[p.sourceType].label} · {timeAgo(p.createdAt)} · {p.tags.map((t) => `#${t}`).join(' ')}</div>
+//               </div>
+//               <PriorityPill p={p.priority} />
+//             </button>
+//           </div>
+//         ))}
+//       </div>
+//     </ViewShell>
+//   );
+// }
+
+// // ===== Kanban view =====
+// const STAGES: { id: NonNullable<Post['stage']>; label: string; tone: string; hint: string }[] = [
+//   { id: 'new', label: 'Mới', tone: 'info', hint: 'Tín hiệu vừa về' },
+//   { id: 'reading', label: 'Đang xem', tone: 'warn', hint: 'Đang điều tra' },
+//   { id: 'saved', label: 'Đã lưu', tone: 'primary', hint: 'Trong Archive' },
+//   { id: 'done', label: 'Đã xử lý', tone: 'success', hint: 'Xong việc' },
+// ];
+// const stageOf = (p: Post): NonNullable<Post['stage']> => p.stage ?? (p.archived ? 'saved' : 'new');
+// function KanbanView({ posts, onStage, onOpen }: { posts: Post[]; onStage: (id: string, s: NonNullable<Post['stage']>) => void; onOpen: (p: Post) => void }) {
+//   return (
+//     <ViewShell title="Kanban" subtitle="Điều tra theo luồng: Mới → Đang xem → Đã lưu → Đã xử lý." accent="primary">
+//       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(220px, 1fr))', gap: 12, overflowX: 'auto', alignItems: 'start' }}>
+//         {STAGES.map((col, ci) => {
+//           const items = posts.filter((p) => stageOf(p) === col.id).slice(0, 12);
+//           return (
+//             <div key={col.id} className="card" style={{ padding: 10, background: `linear-gradient(180deg, ${tc(col.tone, 0.1)}, transparent 40%), ${c('card')}` }}>
+//               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px 8px' }}>
+//                 <div>
+//                   <div style={{ fontWeight: 600, color: tc(col.tone) }}>{col.label}</div>
+//                   <div className="sub">{col.hint}</div>
+//                 </div>
+//                 <span className="mono" style={{ fontWeight: 700, fontSize: 16 }}>{items.length}</span>
+//               </div>
+//               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+//                 {items.length === 0 && <div className="sub" style={{ textAlign: 'center', padding: '18px 0', border: `1px dashed ${c('border')}`, borderRadius: 6 }}>Chưa có thẻ nào ở đây</div>}
+//                 {items.map((p) => (
+//                   <div key={p.id} className="card post" style={{ padding: 10, background: c('cardHover') }}>
+//                     <button onClick={() => onOpen(p)} style={{ display: 'flex', gap: 8, textAlign: 'left', width: '100%' }}>
+//                       <SourceAvatar name={p.sourceName} type={p.sourceType} size={24} />
+//                       <span style={{ minWidth: 0 }}>
+//                         <span className="tr" style={{ display: 'block', fontWeight: 500 }}>{p.title || p.sourceName}</span>
+//                         <span className="sub">{SRC_META[p.sourceType].short} · {timeAgo(p.createdAt)}</span>
+//                       </span>
+//                     </button>
+//                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+//                       <PriorityPill p={p.priority} />
+//                       <span style={{ display: 'flex', gap: 4 }}>
+//                         <button className="ico" aria-label="Chuyển cột trước" style={{ width: 24, height: 24 }} disabled={ci === 0} onClick={() => onStage(p.id, STAGES[ci - 1].id)}><ChevronLeft size={12} /></button>
+//                         <button className="ico" aria-label="Chuyển cột sau" style={{ width: 24, height: 24 }} disabled={ci === 3} onClick={() => onStage(p.id, STAGES[ci + 1].id)}><ChevronRight size={12} /></button>
+//                       </span>
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+//           );
+//         })}
+//       </div>
+//     </ViewShell>
+//   );
+// }
+
+// // ===== Heatmap view =====
+// function HeatmapView({ posts, monitors, onTag }: { posts: Post[]; monitors: MonitorItem[]; onTag: (t: string) => void }) {
+//   const [hl, setHl] = useState<[number, number] | null>(null);
+//   const total = HEAT.flat().reduce((a, b) => a + b, 0);
+//   let peak: [number, number] = [0, 0];
+//   HEAT.forEach((row, d) => row.forEach((v, h) => { if (v > HEAT[peak[0]][peak[1]]) peak = [d, h]; }));
+//   const dayTotals = HEAT.map((r) => r.reduce((a, b) => a + b, 0));
+//   const busiest = dayTotals.indexOf(Math.max(...dayTotals));
+//   const real = posts.filter((p) => !p.isNote);
+//   const mix = SRC.map((s) => [s, real.filter((p) => p.sourceType === s).length] as [SourceType, number]);
+//   const mixTotal = Math.max(1, mix.reduce((a, [, n]) => a + n, 0));
+//   const cur = hl ?? peak;
+//   return (
+//     <ViewShell title="Heatmap" subtitle="Mật độ tín hiệu 7 ngày × 24 giờ — chỗ nào sáng là chỗ đó đang nóng." accent="error">
+//       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+//         <StatCard label="Tín hiệu 7 ngày" value={total} tone="primary" hint={`${monitors.length} nguồn theo dõi`} />
+//         <StatCard label="Giờ cao điểm" value={`${peak[1]}:00`} tone="warn" hint={`${DAYS[peak[0]]} · ${HEAT[peak[0]][peak[1]]} tín hiệu`} />
+//         <StatCard label="Ngày sôi động" value={DAYS[busiest]} tone="success" hint={`${dayTotals[busiest]} tín hiệu`} />
+//         <StatCard label="Đang chọn" value={HEAT[cur[0]][cur[1]]} tone="info" hint={`${DAYS[cur[0]]} · ${cur[1]}:00`} />
+//       </div>
+//       <div className="card noise" style={{ padding: 16, marginBottom: 12, borderRadius: 14 }}>
+//         <HeatGrid data={HEAT} labels={DAYS} tone="primary" hl={cur} onHover={(d, h) => setHl([d, h])} />
+//       </div>
+//       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+//         <div className="card" style={{ flex: 1.4, minWidth: 280, padding: 14 }}>
+//           <div style={{ fontWeight: 600, marginBottom: 10 }}>Cơ cấu nguồn</div>
+//           <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', gap: 2, marginBottom: 10 }}>
+//             {mix.map(([s, n]) => <span key={s} title={`${SRC_META[s].short}: ${n}`} style={{ width: `${(n / mixTotal) * 100}%`, background: acc(s), minWidth: n ? 4 : 0 }} />)}
+//           </div>
+//           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+//             {mix.map(([s, n]) => <span key={s} className="sub"><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 8, background: acc(s), marginRight: 4 }} />{SRC_META[s].short} <b className="mono">{n}</b></span>)}
+//           </div>
+//         </div>
+//         <div className="card" style={{ flex: 1, minWidth: 240, padding: 14 }}>
+//           <div style={{ fontWeight: 600, marginBottom: 10 }}>Tag nóng</div>
+//           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+//             {MOCK_TAGS.map((t) => <TagChip key={t.name} name={t.name} count={t.count} onClick={() => onTag(t.name)} />)}
+//           </div>
+//         </div>
+//       </div>
+//     </ViewShell>
+//   );
+// }
+
+// // ===== Modals: wizard + quick alert =====
+
+// function WizardModal({ onClose, onDone }: { onClose: () => void; onDone: (m: MonitorItem) => void }) {
+//   const [step, setStep] = useState(0);
+//   const [type, setType] = useState<SourceType>('forum');
+//   const [url, setUrl] = useState('');
+//   const [profile, setProfile] = useState('Profile-01');
+//   const [proxy, setProxy] = useState('Không dùng');
+//   const [track, setTrack] = useState('Nội dung mới');
+//   const [kw, setKw] = useState('');
+//   const [sched, setSched] = useState('15m');
+//   const [rule, setRule] = useState(MOCK_RULES[0].id);
+//   const steps = ['Loại nguồn', 'URL & Proxy', 'Theo dõi & lịch', 'Alert rule'];
+//   const done = () => {
+//     onDone({
+//       id: uid('m'),
+//       name: `${SRC_META[type].short}-${url.replace(/^https?:\/\//, '').split('/')[0] || 'new'}`,
+//       sourceType: type,
+//       schedule: sched,
+//       hits24h: 0,
+//       alerts: 0,
+//       status: 'running',
+//       group: 'Dự án A',
+//       tags: [],
+//     });
+//   };
+//   return (
+//     <Modal
+//       title={`Tạo monitor · Bước ${step + 1}/4 — ${steps[step]}`}
+//       onClose={onClose}
+//       footer={
+//         <>
+//           <button className="soft" disabled={step === 0} onClick={() => setStep(step - 1)}><ChevronLeft size={14} />Back</button>
+//           {step < 3 ? (
+//             <button className="prim" onClick={() => setStep(step + 1)}>Next<ChevronRight size={14} /></button>
+//           ) : (
+//             <button className="prim" onClick={done}><Check size={14} />Tạo</button>
+//           )}
+//         </>
+//       }
+//     >
+//       {step === 0 && (
+//         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+//           {SRC.map((s) => (
+//             <button key={s} className={`chip ${type === s ? 'on' : ''}`} onClick={() => setType(s)}>{SRC_META[s].label}</button>
+//           ))}
+//         </div>
+//       )}
+//       {step === 1 && (
+//         <>
+//           <input className="field" placeholder="URL nguồn, vd https://forum.x.com" value={url} onChange={(e) => setUrl(e.target.value)} />
+//           <select className="field" value={profile} onChange={(e) => setProfile(e.target.value)}>
+//             {['Profile-01', 'Profile-02', 'Profile-03'].map((x) => <option key={x}>{x}</option>)}
+//           </select>
+//           <select className="field" value={proxy} onChange={(e) => setProxy(e.target.value)}>
+//             {['Không dùng', 'Proxy VN residential', 'Proxy SG datacenter'].map((x) => <option key={x}>{x}</option>)}
+//           </select>
+//         </>
+//       )}
+//       {step === 2 && (
+//         <>
+//           <select className="field" value={track} onChange={(e) => setTrack(e.target.value)}>
+//             {['Nội dung mới', 'Thay đổi (Diff)', 'Keyword'].map((x) => <option key={x}>{x}</option>)}
+//           </select>
+//           <input className="field" placeholder="Keyword (phân tách bằng dấu phẩy)" value={kw} onChange={(e) => setKw(e.target.value)} />
+//           <select className="field" value={sched} onChange={(e) => setSched(e.target.value)}>
+//             {['5m', '15m', '1h', '0 */2 * * *'].map((x) => <option key={x}>{x}</option>)}
+//           </select>
+//         </>
+//       )}
+//       {step === 3 && (
+//         <select className="field" value={rule} onChange={(e) => setRule(e.target.value)}>
+//           {MOCK_RULES.map((r) => <option key={r.id} value={r.id}>{r.id} - {r.name}</option>)}
+//         </select>
+//       )}
+//     </Modal>
+//   );
+// }
+// function AlertModal({ post, onClose, onSave }: { post: Post; onClose: () => void; onSave: (r: AlertRule) => void }) {
+//   const [name, setName] = useState(post.title || `Alert ${post.sourceName}`);
+//   const [cond, setCond] = useState(`tag in [${post.tags.map((t) => `#${t}`).join(', ')}] tại ${post.sourceName}`);
+//   const [channel, setChannel] = useState('Telegram');
+//   const [prio, setPrio] = useState<Priority>(post.priority);
+//   return (
+//     <Modal
+//       title="Tạo alert nhanh"
+//       onClose={onClose}
+//       footer={
+//         <button
+//           className="prim"
+//           onClick={() => onSave({ id: `R${int(10, 99)}`, name, condition: cond, channels: [channel], enabled: true, priority: prio })}
+//         >
+//           <BellPlus size={14} />
+//           Lưu rule
+//         </button>
+//       }
+//     >
+//       <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
+//       <textarea className="field" rows={3} value={cond} onChange={(e) => setCond(e.target.value)} />
+//       <select className="field" value={channel} onChange={(e) => setChannel(e.target.value)}>
+//         {['Telegram', 'Email', 'Slack', 'Webhook'].map((x) => <option key={x}>{x}</option>)}
+//       </select>
+//       <select className="field" value={prio} onChange={(e) => setPrio(e.target.value as Priority)}>
+//         {(['high', 'medium', 'low'] as Priority[]).map((p) => <option key={p} value={p}>Ưu tiên: {PRI_LABEL[p]}</option>)}
+//       </select>
+//     </Modal>
+//   );
+// }
+
+// // ===== Command Palette (⌘K) =====
+// interface Cmd {
+//   id: string;
+//   label: string;
+//   hint?: string;
+//   group: string;
+//   icon: typeof Bell;
+//   run: () => void;
+// }
+// function CommandPalette({ cmds, onClose }: { cmds: Cmd[]; onClose: () => void }) {
+//   const [q, setQ] = useState('');
+//   const [idx, setIdx] = useState(0);
+//   const list = useMemo(() => cmds.filter((x) => `${x.label} ${x.group} ${x.hint || ''}`.toLowerCase().includes(q.trim().toLowerCase())), [cmds, q]);
+//   useEffect(() => setIdx(0), [q]);
+//   const exec = (x: Cmd) => {
+//     onClose();
+//     x.run();
+//   };
+//   return (
+//     <div style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(4,4,9,.55)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', paddingTop: '12vh' }} onClick={onClose}>
+//       <div
+//         className="card-pop"
+//         onClick={(e) => e.stopPropagation()}
+//         style={{ width: 'min(580px, 94vw)', alignSelf: 'flex-start', borderRadius: 16, overflow: 'hidden', background: 'rgba(17,17,29,.78)', backdropFilter: 'blur(18px)', border: `1px solid ${c('border')}`, boxShadow: `0 30px 80px -20px rgba(0,0,0,.8), 0 0 60px -20px ${c('primary', 0.5)}` }}
+//       >
+//         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${c('border')}` }}>
+//           <Command size={16} color={`rgb(${THEME.primary})`} />
+//           <input
+//             autoFocus
+//             value={q}
+//             onChange={(e) => setQ(e.target.value)}
+//             placeholder="Gõ lệnh, view, tag, nguồn…"
+//             aria-label="Command palette"
+//             style={{ flex: 1, background: 'transparent', border: 0, fontSize: 14 }}
+//             onKeyDown={(e) => {
+//               if (e.key === 'ArrowDown') { e.preventDefault(); setIdx((i) => Math.min(list.length - 1, i + 1)); }
+//               else if (e.key === 'ArrowUp') { e.preventDefault(); setIdx((i) => Math.max(0, i - 1)); }
+//               else if (e.key === 'Enter' && list[idx]) exec(list[idx]);
+//               else if (e.key === 'Escape') onClose();
+//             }}
+//           />
+//           <kbd>esc</kbd>
+//         </div>
+//         <div className="scroll" style={{ maxHeight: 360, padding: 6 }}>
+//           {list.length === 0 && <Empty text="Không có tín hiệu nào khớp — thử từ khóa khác nhé." />}
+//           {list.map((x, i) => (
+//             <Fragment key={x.id}>
+//               {(i === 0 || list[i - 1].group !== x.group) && <div className="sub" style={{ padding: '8px 10px 4px', fontWeight: 600 }}>{x.group}</div>}
+//               <button
+//                 onMouseEnter={() => setIdx(i)}
+//                 onClick={() => exec(x)}
+//                 style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, textAlign: 'left', background: i === idx ? c('primary', 0.14) : 'transparent' }}
+//               >
+//                 <IconBox icon={x.icon} tone={i === idx ? 'primary' : 'muted'} size={24} />
+//                 <span style={{ flex: 1 }}>{x.label}</span>
+//                 {x.hint && <kbd>{x.hint}</kbd>}
+//               </button>
+//             </Fragment>
+//           ))}
+//         </div>
+//         <div className="sub" style={{ display: 'flex', gap: 12, padding: '8px 16px', borderTop: `1px solid ${c('border')}` }}>
+//           <span><kbd>↑↓</kbd> chọn</span>
+//           <span><kbd>↵</kbd> chạy</span>
+//           <span><kbd>⌘K</kbd> đóng</span>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ===== Main =====
+// export function Monitor() {
+//   const [view, setView] = useState<ViewId>('feed');
+//   const [chip, setChip] = useState<Chip>('all');
+//   const [group, setGroup] = useState<string | null>(null);
+//   const [tag, setTag] = useState<string | null>(null);
+//   const [search, setSearch] = useState('');
+//   const [media, setMedia] = useState<Set<MediaKind>>(new Set(MEDIA_KINDS));
+//   const [priority, setPriority] = useState<'all' | Priority>('all');
+//   const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
+//   const [hidden, setHidden] = useState<Set<string>>(new Set());
+//   const [monitors, setMonitors] = useState<MonitorItem[]>(MOCK_MONITORS);
+//   const [rules, setRules] = useState<AlertRule[]>(MOCK_RULES);
+//   const [loading, setLoading] = useState(true);
+//   const [newCount, setNewCount] = useState(0);
+//   const [detail, setDetail] = useState<{ id: string; tab: 'media' | 'diff' } | null>(null);
+//   const [alertPost, setAlertPost] = useState<Post | null>(null);
+//   const [wizard, setWizard] = useState(false);
+//   const [menu, setMenu] = useState<{ post: Post; x: number; y: number } | null>(null);
+//   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([]);
+//   const [focus, setFocus] = useState(false);
+//   const [density, setDensity] = useState<Density>('cozy');
+//   const [accent, setAccent] = useState(ACCENTS[0]);
+//   const [palette, setPalette] = useState(false);
+//   const [railOpen, setRailOpen] = useState(false);
+//   const [flashId, setFlashId] = useState<string | null>(null);
+//   const [burst, setBurst] = useState(false);
+//   const [seen, setSeen] = useState<string[]>([]);
+//   const scrollRef = useRef<HTMLDivElement>(null);
+//   const extra = useRef(24);
+//   const toastSeq = useRef(0);
+
+//   const say = (text: string) => {
+//     const id = ++toastSeq.current;
+//     setToasts((t) => [...t.slice(-3), { id, text }]);
+//     window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2200);
+//   };
+//   useEffect(() => {
+//     const t1 = window.setTimeout(() => setLoading(false), 900);
+//     const t2 = window.setTimeout(() => setNewCount(2), 9000);
+//     return () => {
+//       window.clearTimeout(t1);
+//       window.clearTimeout(t2);
+//     };
+//   }, []);
+
+//   const monitorOf = (id: string) => monitors.find((m) => m.id === id);
+//   const visible = useMemo(() => {
+//     const q = search.trim().toLowerCase();
+//     const list = posts.filter((p) => {
+//       if (hidden.has(p.id)) return false;
+//       if (p.isNote) return true;
+//       if (chip !== 'all' && p.sourceType !== chip) return false;
+//       if (group && monitors.find((m) => m.id === p.monitorId)?.group !== group) return false;
+//       if (tag && !p.tags.includes(tag)) return false;
+//       if (!media.has(p.mediaType)) return false;
+//       if (priority !== 'all' && p.priority !== priority) return false;
+//       if (q && !`${p.title || ''} ${p.body} ${p.sourceName} ${p.tags.join(' ')}`.toLowerCase().includes(q)) return false;
+//       return true;
+//     });
+//     return [...list.filter((p) => p.pinned), ...list.filter((p) => !p.pinned)];
+//   }, [posts, hidden, chip, group, tag, media, priority, monitors, search]);
+
+//   const patch = (id: string, fn: (p: Post) => Post) => setPosts((ps) => ps.map((p) => (p.id === id ? fn(p) : p)));
+//   const archive = (post: Post) => {
+//     patch(post.id, (p) => ({ ...p, archived: !p.archived, stage: !p.archived ? 'saved' : 'new' }));
+//     if (!post.archived) {
+//       setFlashId(post.id);
+//       window.setTimeout(() => setFlashId(null), 1100);
+//     }
+//     say(post.archived ? 'Đã bỏ khỏi Archive' : 'Đã lưu vào Archive');
+//   };
+//   const openPost = (post: Post, tab: 'media' | 'diff' = 'media') => {
+//     patch(post.id, (p) => ({ ...p, viewedCount: p.viewedCount + 1 }));
+//     setSeen((s) => [post.id, ...s.filter((x) => x !== post.id)].slice(0, 12));
+//     setDetail({ id: post.id, tab });
+//   };
+//   const addNote = (id: string, text: string) =>
+//     patch(id, (p) => ({ ...p, notes: [...p.notes, { id: uid('note'), author: 'bạn', text, at: new Date().toISOString() }] }));
+//   const composeNote = (text: string, pin: boolean, team: boolean, exp: boolean) => {
+//     const note: Post = {
+//       id: uid('post'),
+//       monitorId: 'note',
+//       sourceType: 'profile',
+//       sourceName: 'Ghi chú của tôi',
+//       sourceDomain: 'nội bộ',
+//       body: text,
+//       mediaType: 'text',
+//       tags: [],
+//       priority: 'low',
+//       createdAt: new Date().toISOString(),
+//       archived: false,
+//       notes: [],
+//       viewedCount: 0,
+//       isNote: true,
+//       pinned: pin,
+//       assigned: team,
+//       expires: exp,
+//     };
+//     setPosts((ps) => [note, ...ps]);
+//     say('Đã đăng note');
+//   };
+//   const showNew = () => {
+//     const fresh = [buildPost(extra.current++, 0.01), buildPost(extra.current++, 0.02)];
+//     setPosts((ps) => [...fresh, ...ps]);
+//     setNewCount(0);
+//     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+//   };
+//   const loadMore = () => {
+//     const oldest = 72 + (extra.current - 24) * 3;
+//     const more = Array.from({ length: 4 }, (_, k) => buildPost(extra.current++, oldest + k * 3));
+//     setPosts((ps) => [...ps, ...more]);
+//   };
+//   const toggleMedia = (k: MediaKind) =>
+//     setMedia((s) => {
+//       const n = new Set(s);
+//       if (n.has(k)) n.delete(k);
+//       else n.add(k);
+//       return n;
+//     });
+//   const resetFilters = () => {
+//     setChip('all');
+//     setGroup(null);
+//     setTag(null);
+//     setSearch('');
+//     setPriority('all');
+//     setMedia(new Set(MEDIA_KINDS));
+//   };
+//   const relatedOf = (post: Post): Post[] =>
+//     posts
+//       .filter((o) => !o.isNote && o.id !== post.id)
+//       .map((o) => ({ o, score: o.tags.filter((t) => post.tags.includes(t)).length * 2 + (o.monitorId === post.monitorId ? 1 : 0) }))
+//       .filter((x) => x.score >= 2)
+//       .sort((a, b) => b.score - a.score)
+//       .slice(0, 2)
+//       .map((x) => x.o);
+//   const detailPost = detail ? posts.find((p) => p.id === detail.id) : undefined;
+//   const seenIds = useMemo(() => new Set(seen), [seen]);
+//   const recent = seen.map((id) => posts.find((p) => p.id === id)).filter((p): p is Post => !!p);
+//   const running = monitors.filter((m) => m.status === 'running').length;
+//   const archivePct = posts.length ? Math.round((posts.filter((p) => p.archived).length / posts.length) * 100) : 0;
+
+//   // Phím tắt: ⌘K, F, /, Esc
+//   useEffect(() => {
+//     const onKey = (e: KeyboardEvent) => {
+//       const typing = e.target instanceof HTMLElement && !!e.target.closest('input,textarea,select');
+//       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+//         e.preventDefault();
+//         setPalette((p) => !p);
+//         return;
+//       }
+//       if (e.key === 'Escape') {
+//         if (palette) setPalette(false);
+//         else if (alertPost) setAlertPost(null);
+//         else if (wizard) setWizard(false);
+//         else if (detail) setDetail(null);
+//         else if (menu) setMenu(null);
+//         else if (railOpen) setRailOpen(false);
+//         else if (focus) setFocus(false);
+//         return;
+//       }
+//       if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+//       if (e.key === 'f' || e.key === 'F') {
+//         setView('feed');
+//         setFocus((f) => !f);
+//       } else if (e.key === '/') {
+//         e.preventDefault();
+//         setView('feed');
+//         window.setTimeout(() => document.getElementById('mn-search')?.focus(), 30);
+//       }
+//     };
+//     window.addEventListener('keydown', onKey);
+//     return () => window.removeEventListener('keydown', onKey);
+//   }, [palette, alertPost, wizard, detail, menu, railOpen, focus]);
+
+//   const cmds: Cmd[] = [
+//     ...NAV.map((n) => ({ id: `v-${n.id}`, label: `Đi tới ${n.label}`, group: 'Điều hướng', icon: n.icon, run: () => setView(n.id) })),
+//     { id: 'a-focus', label: 'Bật/tắt Focus mode', hint: 'F', group: 'Hành động', icon: Minimize2, run: () => { setView('feed'); setFocus((f) => !f); } },
+//     { id: 'a-monitor', label: 'Tạo monitor mới', group: 'Hành động', icon: Plus, run: () => setWizard(true) },
+//     { id: 'a-note', label: 'Viết note nhanh', group: 'Hành động', icon: MessageSquare, run: () => { setView('feed'); window.setTimeout(() => document.getElementById('mn-composer')?.focus(), 30); } },
+//     { id: 'a-new', label: 'Tải post mới', group: 'Hành động', icon: RefreshCw, run: () => { setView('feed'); showNew(); } },
+//     { id: 'a-high', label: 'Chỉ xem ưu tiên Cao', group: 'Hành động', icon: Zap, run: () => { setView('feed'); setPriority('high'); } },
+//     { id: 'a-reset', label: 'Xóa mọi bộ lọc', group: 'Hành động', icon: X, run: resetFilters },
+//     ...(['compact', 'cozy', 'spacious'] as Density[]).map((d) => ({ id: `d-${d}`, label: `Mật độ: ${d}`, group: 'Giao diện', icon: Layers, run: () => setDensity(d) })),
+//     ...ACCENTS.slice(0, 4).map((a, i) => ({ id: `ac-${i}`, label: `Accent #${i + 1}`, group: 'Giao diện', icon: Palette, run: () => setAccent(a) })),
+//     ...SRC.map((s) => ({ id: `s-${s}`, label: `Lọc nền tảng: ${SRC_META[s].short}`, group: 'Nền tảng', icon: Search, run: () => { setView('feed'); setChip(s); } })),
+//     ...MOCK_GROUPS.map((g) => ({ id: `g-${g.id}`, label: `Dự án: ${g.name}`, group: 'Nhóm / Tag', icon: FileText, run: () => { setView('feed'); setGroup(g.name); } })),
+//     ...MOCK_TAGS.map((t) => ({ id: `t-${t.name}`, label: `Tag #${t.name}`, group: 'Nhóm / Tag', icon: Search, run: () => { setView('feed'); setTag(t.name); } })),
+//   ];
+
+//   return (
+//     <div
+//       className={`mn ${focus ? 'focus' : ''}`}
+//       style={{ ['--pad' as string]: DENS[density], ['--primary' as string]: accent } as CSSProperties}
+//       onClick={() => setMenu(null)}
+//     >
+//       <style>{CSS}{CSS_EXTRA}</style>
+//       <LeftRail view={view} setView={setView} group={group} tag={tag} setGroup={setGroup} setTag={setTag} monitors={monitors} accent={accent} setAccent={setAccent} density={density} setDensity={setDensity} onFocus={() => { setView('feed'); setFocus(true); }} onPalette={() => setPalette(true)} archivePct={archivePct} queue={3 + newCount} />
+//       <main style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex' }}>
+//         {view === 'feed' && (
+//           <FeedView
+//             posts={visible}
+//             allPosts={posts}
+//             loading={loading}
+//             running={running}
+//             chip={chip}
+//             setChip={setChip}
+//             group={group}
+//             tag={tag}
+//             setGroup={setGroup}
+//             setTag={setTag}
+//             search={search}
+//             setSearch={setSearch}
+//             newCount={newCount}
+//             onShowNew={showNew}
+//             onLoadMore={loadMore}
+//             onCreateMonitor={() => setWizard(true)}
+//             onNote={composeNote}
+//             onView={setView}
+//             onQuick={() => setPriority('high')}
+//             onReset={resetFilters}
+//             onRail={() => setRailOpen(true)}
+//             scrollRef={scrollRef}
+//             cardProps={{ onOpen: openPost, onArchive: archive, onAlert: setAlertPost, onMenu: (post, x, y) => setMenu({ post, x, y }), flashId, seenIds, relatedOf }}
+//           />
+//         )}
+//         {view === 'monitors' && <MonitorsView monitors={monitors} setMonitors={setMonitors} say={say} onCreate={() => setWizard(true)} />}
+//         {view === 'alerts' && <AlertsView rules={rules} setRules={setRules} />}
+//         {view === 'reports' && <ReportsView say={say} />}
+//         {view === 'audit' && <AuditView say={say} />}
+//         {view === 'timeline' && <TimelineView posts={visible} onOpen={openPost} />}
+//         {view === 'kanban' && <KanbanView posts={posts.filter((p) => !p.isNote && !hidden.has(p.id))} onStage={(id, s) => patch(id, (p) => ({ ...p, stage: s, archived: s === 'saved' ? true : p.archived }))} onOpen={openPost} />}
+//         {view === 'heatmap' && <HeatmapView posts={posts} monitors={monitors} onTag={(t) => { setTag(t); setView('feed'); }} />}
+//       </main>
+//       {view === 'feed' && (
+//         <RightRail media={media} toggleMedia={toggleMedia} priority={priority} setPriority={setPriority} monitors={monitors} posts={posts} recent={recent} tag={tag} setTag={setTag} onOpen={openPost} open={railOpen} onClose={() => setRailOpen(false)} />
+//       )}
+
+//       <nav className="bnav" aria-label="Điều hướng chính">
+//         {NAV.filter((n) => !n.lens).map((n) => (
+//           <button key={n.id} className={`nav ${view === n.id ? 'on' : ''}`} aria-label={n.label} style={{ width: 'auto', position: 'relative', flexDirection: 'column', gap: 2, fontSize: 10, borderRadius: 16 }} onClick={() => setView(n.id)}>
+//             <n.icon size={17} />
+//             {n.label}
+//             {n.id === 'feed' && newCount > 0 && <span className="mono" style={{ position: 'absolute', top: 2, right: 4, minWidth: 14, height: 14, borderRadius: 7, fontSize: 9, background: c('primary'), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{newCount}</span>}
+//             {n.id === 'alerts' && <span className="mono" style={{ position: 'absolute', top: 2, right: 4, minWidth: 14, height: 14, borderRadius: 7, fontSize: 9, background: c('error'), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{rules.filter((r) => r.enabled).length}</span>}
+//           </button>
+//         ))}
+//         <button className="ico" aria-label="Command palette" style={{ borderRadius: 16 }} onClick={() => setPalette(true)}><Command size={16} /></button>
+//       </nav>
+
+//       {focus && (
+//         <button className="soft card-pop" style={{ position: 'fixed', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 59, borderRadius: 18, background: 'rgba(17,17,29,.8)', backdropFilter: 'blur(10px)' }} onClick={() => setFocus(false)}>
+//           <Minimize2 size={13} />
+//           Focus mode · thoát <kbd>F</kbd>
+//         </button>
+//       )}
+
+//       {menu && (
+//         <div className="menu" style={{ top: Math.min(menu.y, window.innerHeight - 340), left: Math.max(8, Math.min(menu.x - 160, window.innerWidth - 210)) }} onClick={(e) => e.stopPropagation()}>
+//           <button onClick={() => { archive(menu.post); setMenu(null); }}><Star size={14} />Lưu Archive</button>
+//           <button onClick={() => { setAlertPost(menu.post); setMenu(null); }}><BellPlus size={14} />Tạo alert</button>
+//           {menu.post.diff && <button onClick={() => { openPost(menu.post, 'diff'); setMenu(null); }}><GitCompare size={14} />Diff</button>}
+//           <button onClick={() => { openPost(menu.post); setMenu(null); }}><ExternalLink size={14} />Nguồn</button>
+//           <button onClick={() => { say('Đã gắn tag #research'); setMenu(null); }}>#  Gắn tag</button>
+//           <button onClick={() => { setHidden((h) => new Set(h).add(menu.post.id)); setMenu(null); say('Đã ẩn post'); }}><Trash2 size={14} />Ẩn post</button>
+//           <button onClick={() => { setView('monitors'); setMenu(null); }}><List size={14} />Xem monitor</button>
+//           <button onClick={() => { say('Xem thêm…'); setMenu(null); }}><MoreHorizontal size={14} />Xem thêm</button>
+//         </div>
+//       )}
+
+//       {detailPost && detail && (
+//         <PostDetailDrawer
+//           key={detail.id + detail.tab}
+//           post={detailPost}
+//           monitor={monitorOf(detailPost.monitorId)}
+//           initialTab={detail.tab}
+//           related={relatedOf(detailPost)}
+//           onJump={(p) => openPost(p)}
+//           onClose={() => setDetail(null)}
+//           onArchive={archive}
+//           onAlert={setAlertPost}
+//           onAddNote={addNote}
+//         />
+//       )}
+//       {alertPost && (
+//         <AlertModal
+//           post={alertPost}
+//           onClose={() => setAlertPost(null)}
+//           onSave={(r) => {
+//             setRules((rs) => [r, ...rs]);
+//             setAlertPost(null);
+//             setBurst(true);
+//             window.setTimeout(() => setBurst(false), 1100);
+//             say(`Đã tạo rule ${r.id}`);
+//           }}
+//         />
+//       )}
+//       {wizard && (
+//         <WizardModal
+//           onClose={() => setWizard(false)}
+//           onDone={(m) => {
+//             setMonitors((ms) => [m, ...ms]);
+//             setWizard(false);
+//             say(`Đã tạo monitor ${m.name}`);
+//           }}
+//         />
+//       )}
+//       {palette && <CommandPalette cmds={cmds} onClose={() => setPalette(false)} />}
+//       {burst && (
+//         <>
+//           {[0, 0.18].map((d) => (
+//             <span key={d} aria-hidden style={{ position: 'fixed', left: '50%', top: '45%', width: 90, height: 90, marginLeft: -45, marginTop: -45, borderRadius: '50%', border: `2px solid ${c('primary')}`, animation: `mnringout .9s ease-out ${d}s both`, zIndex: 95, pointerEvents: 'none' }} />
+//           ))}
+//         </>
+//       )}
+//       <div aria-live="polite" style={{ position: 'fixed', top: 16, right: 16, zIndex: 100, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
+//         {toasts.map((t) => (
+//           <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: 10, background: 'rgba(17,17,29,.85)', backdropFilter: 'blur(10px)', border: `1px solid ${c('primary', 0.4)}`, boxShadow: `0 10px 30px -10px ${c('primary', 0.5)}`, animation: 'mnslide .25s ease-out both' }}>
+//             <Check size={14} color={`rgb(${THEME.success})`} />
+//             {t.text}
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default Monitor;

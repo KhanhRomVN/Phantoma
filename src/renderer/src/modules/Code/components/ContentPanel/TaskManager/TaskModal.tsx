@@ -425,7 +425,7 @@ export const TaskModal = memo(function TaskModal({
   return (
     <>
     <Modal isOpen={open} onClose={handleClose} className="max-w-7xl w-[94vw] h-[85vh]">
-      <div className="px-5 py-3.5 border-b border-divider shrink-0 flex items-center gap-3 bg-sidebar-background/50">
+      <div className="px-5 py-3.5 border-b border-border shrink-0 flex items-center gap-3 bg-panel-background/50">
         {!isEdit && (
           <>
             <span
@@ -678,7 +678,7 @@ export const TaskModal = memo(function TaskModal({
                   {visibleAttachments.map((a) => (
                     <div
                       key={a.path}
-                      className="group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-divider bg-card-background hover:bg-card-hover transition-colors min-w-0"
+                      className="group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-border bg-card-background hover:bg-card-hover transition-colors min-w-0"
                       title={a.path}
                     >
                       <span className="w-8 h-8 shrink-0 rounded-md bg-card-hover flex items-center justify-center">
@@ -710,7 +710,7 @@ export const TaskModal = memo(function TaskModal({
             </Section>
           </div>
 
-          <div className="p-5 flex flex-col gap-5 border-t md:border-t-0 md:border-l border-divider bg-sidebar-background/50">
+          <div className="p-5 flex flex-col gap-5 border-t md:border-t-0 md:border-l border-border bg-panel-background/50">
             <Section icon={<GitBranch className="w-3.5 h-3.5" />} label="Assigned branch">
               <Dropdown trigger="click" align="start">
                 <DropdownTrigger asChild>
@@ -867,7 +867,7 @@ export const TaskModal = memo(function TaskModal({
       </ModalBody>
 
       {!isEdit && (
-        <div className="px-5 py-3 border-t border-divider shrink-0 flex items-center justify-end bg-sidebar-background/50">
+        <div className="px-5 py-3 border-t border-border shrink-0 flex items-center justify-end bg-panel-background/50">
           <button
             type="button"
             disabled={!canSubmit}
@@ -883,7 +883,7 @@ export const TaskModal = memo(function TaskModal({
       )}
     </Modal>
     <Modal isOpen={workflowOpen} onClose={() => setWorkflowOpen(false)} className="max-w-3xl w-[90vw] h-[75vh]">
-      <div className="px-5 py-3.5 border-b border-divider shrink-0 flex items-center gap-3 bg-sidebar-background/50">
+      <div className="px-5 py-3.5 border-b border-border shrink-0 flex items-center gap-3 bg-panel-background/50">
         <WorkflowIcon className="w-4 h-4 text-text-secondary" />
         <h3 className="flex-1 min-w-0 truncate text-sm font-bold text-text-primary">
           Workflow - {title.trim() || 'Untitled task'}
@@ -1179,7 +1179,7 @@ function TaskCard({
         }
       }}
       title={task.title}
-      className="group relative flex flex-col gap-1.5 px-3 py-2 rounded-lg border border-divider bg-card-background hover:bg-card-hover transition-colors cursor-pointer outline-none min-w-0"
+      className="group relative flex flex-col gap-1.5 px-3 py-2 rounded-lg border border-border bg-card-background hover:bg-card-hover transition-colors cursor-pointer outline-none min-w-0"
     >
       <div className="flex items-center gap-2 min-w-0">
         {StatusIcon && (
@@ -1283,7 +1283,7 @@ function TaskPicker({
       {adding && (
         <div
           onMouseDown={(e) => e.preventDefault()}
-          className="flex flex-col gap-1.5 max-h-56 overflow-y-auto custom-scrollbar p-1.5 rounded-lg border border-divider bg-card-background/50"
+          className="flex flex-col gap-1.5 max-h-56 overflow-y-auto custom-scrollbar p-1.5 rounded-lg border border-border bg-card-background/50"
         >
           {filtered.length === 0 ? (
             <p className="text-xs text-text-secondary text-center py-2">No tasks available</p>

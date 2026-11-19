@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
 import { logger } from '../utils/logger';
+import { projectStorage } from './ProjectStorage';
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ export interface UpdateTaskInput extends Partial<TaskExtras> {
 // ─── Helpers ──────────────────────────────────────────────────────
 
 export function getProjectSlug(projectPath: string): string {
-  return Buffer.from(path.resolve(projectPath)).toString('base64url');
+  return projectStorage.getProjectId(projectPath);
 }
 
 function getTasksFilePath(projectPath: string): string {

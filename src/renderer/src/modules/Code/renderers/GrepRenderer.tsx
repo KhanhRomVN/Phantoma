@@ -317,7 +317,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
                     className="flex items-start gap-2 px-1 py-0.5 rounded-[3px] cursor-pointer font-mono text-[11px] leading-[1.4] transition-colors duration-[0.1s]"
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor =
-                        $('--sidebar-item-hover') || 'rgba(255,255,255,0.05)';
+                        $('--card-background-hover') || 'rgba(255,255,255,0.05)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';

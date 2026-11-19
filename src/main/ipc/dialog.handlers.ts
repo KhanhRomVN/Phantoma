@@ -190,8 +190,8 @@ export function setupDialogHandlers(): void {
         const win = getMainWindow();
         if (!win) return { success: false, canceled: true, error: 'No window' };
 
-        const properties: Array<'openFile' | 'openDirectory' | 'multiSelections'> =
-          options.kind === 'folder' ? ['openDirectory'] : ['openFile'];
+        const properties: Array<'openFile' | 'openDirectory' | 'multiSelections' | 'createDirectory'> =
+          options.kind === 'folder' ? ['openDirectory', 'createDirectory'] : ['openFile'];
         if (options.multiple) properties.push('multiSelections');
 
         const result = await dialog.showOpenDialog(win, { properties, filters: options.filters });

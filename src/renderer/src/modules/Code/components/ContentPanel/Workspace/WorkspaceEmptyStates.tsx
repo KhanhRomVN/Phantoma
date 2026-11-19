@@ -93,7 +93,7 @@ function Hints({ items }: { items: [key: string, label: string][] }) {
 function CardStackArt({ children }: { children: ReactNode }) {
   return (
     <div className="relative w-[92px] h-[92px] mb-5">
-      <i className="absolute inset-0 rounded-[22px] border border-divider bg-card-background transform rotate-[-8deg]" />
+      <i className="absolute inset-0 rounded-[22px] border border-border bg-card-background transform rotate-[-8deg]" />
       <i className="absolute inset-0 rounded-[22px] border border-transparent bg-card-hover transform rotate-[5deg]" />
       <i className="absolute inset-0 rounded-[22px] border border-primary/50 bg-card-background shadow-[0_8px_30px_rgba(255,106,31,0.2)] grid place-items-center text-primary">
         {children}

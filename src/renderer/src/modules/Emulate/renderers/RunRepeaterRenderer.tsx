@@ -185,7 +185,7 @@ function CollapsibleSection({
               e.stopPropagation();
               handleCopy();
             }}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] hover:bg-sidebar-item-hover transition-colors"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] hover:bg-card-hover transition-colors"
             title="Copy"
           >
             {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}

@@ -30,7 +30,7 @@ import {
 import { cn } from '@renderer/utils/cn';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
-import { Input } from '@renderer/components/ui/Input';
+
 
 // ─── Available Icons for Groups ──────────────────────────────────────
 export const GROUP_ICONS = [
@@ -96,7 +96,7 @@ export const GroupPickerForm = memo(function GroupPickerForm({
 
       <ModalBody className="flex flex-col gap-4 py-4">
         {/* Live preview */}
-        <div className="flex items-center gap-2.5 px-3 h-11 rounded-lg border border-divider bg-card-background">
+        <div className="flex items-center gap-2.5 px-3 h-11 rounded-lg border border-border bg-card-background">
           <span className="w-7 h-7 rounded-md grid place-items-center shrink-0 bg-[rgba(255,71,87,0.12)] text-[#ff4757]">
             {currentIcon.icon}
           </span>
@@ -111,21 +111,24 @@ export const GroupPickerForm = memo(function GroupPickerForm({
         </div>
 
         {/* Name */}
-        <Input
-          label="Name"
-          autoFocus
-          value={name}
-          maxLength={MAX_NAME_LENGTH}
-          placeholder="e.g. Backend services"
-          hint={`${name.length}/${MAX_NAME_LENGTH}`}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleSubmit();
-            }
-          }}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-text-primary">Name</label>
+          <input
+            autoFocus
+            value={name}
+            maxLength={MAX_NAME_LENGTH}
+            placeholder="e.g. Backend services"
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            className="w-full rounded-lg border border-border bg-input-background px-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary/60"
+          />
+          <span className="text-xs text-text-secondary">{`${name.length}/${MAX_NAME_LENGTH}`}</span>
+        </div>
 
         {/* Icon grid */}
         <div className="flex flex-col gap-1.5">
@@ -143,7 +146,7 @@ export const GroupPickerForm = memo(function GroupPickerForm({
                     'h-10 rounded-lg border flex items-center justify-center cursor-pointer transition-colors',
                     active
                       ? 'border-[#ff6a1f]/60 bg-[rgba(255,106,31,0.1)] text-[#ff6a1f]'
-                      : 'border-divider bg-card-background text-text-secondary hover:bg-card-hover hover:text-text-primary',
+                      : 'border-border bg-card-background text-text-secondary hover:bg-card-hover hover:text-text-primary',
                   )}
                 >
                   {g.icon}

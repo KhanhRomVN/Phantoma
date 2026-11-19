@@ -35,4 +35,11 @@ export interface FlatAccount extends Account {
   is_active_cli?: boolean;
   user_data_dir?: string;
   auth_method?: string | null;
+  is_api_account?: boolean;
+  base_url?: string;
+  api_type?: string;
+  label?: string;
+  website?: string;
+  config?: Record<string, any> | null;
+  expires_at?: string | null;
 }

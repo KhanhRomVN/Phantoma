@@ -100,7 +100,7 @@ function HexViewer({ data, className }: HexViewerProps) {
         </div>
 
         {/* ASCII Column */}
-        <div className="flex flex-col text-success border-l border-divider pl-4 whitespace-pre">
+        <div className="flex flex-col text-success border-l border-border pl-4 whitespace-pre">
           {asciiLines.map((line, i) => (
             <div key={i}>{line}</div>
           ))}
@@ -288,7 +288,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full overflow-hidden">
           {/* Request Body */}
           <div className="flex flex-col h-full space-y-1.5 overflow-hidden">
-            <div className="flex justify-between items-center border-b border-divider/50 pb-1.5 flex-shrink-0">
+            <div className="flex justify-between items-center border-b border-border/50 pb-1.5 flex-shrink-0">
               <h3 className="text-[10px] font-bold text-text-secondary uppercase">Request Body</h3>
               <div className="flex gap-1.5 text-[10px] items-center">
                 <button
@@ -298,7 +298,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                 >
                   <AlignLeft className="w-3 h-3" />
                 </button>
-                <div className="w-[1px] h-3 bg-divider/50 mx-1" />
+                <div className="w-[1px] h-3 bg-border/50 mx-1" />
                 {body?.request?.compression && body?.request?.compression !== 'none' && (
                   <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold uppercase">
                     {body?.request?.compression}
@@ -329,7 +329,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
 
           {/* Response Body */}
           <div className="flex flex-col h-full space-y-1.5 overflow-hidden">
-            <div className="flex justify-between items-center border-b border-divider/50 pb-1.5 flex-shrink-0">
+            <div className="flex justify-between items-center border-b border-border/50 pb-1.5 flex-shrink-0">
               <h3 className="text-[10px] font-bold text-text-secondary uppercase">Response Body</h3>
               <div className="flex gap-1.5 text-[10px] items-center">
                 {!isResponseBinary && (
@@ -341,7 +341,7 @@ export const BodyDetails = forwardRef<BodyDetailsRef, BodyDetailsProps>(
                     <AlignLeft className="w-3 h-3" />
                   </button>
                 )}
-                <div className="w-[1px] h-3 bg-divider/50 mx-1" />
+                <div className="w-[1px] h-3 bg-border/50 mx-1" />
                 {isResponseBinary && (
                   <span className="bg-info/10 text-info px-1.5 py-0.5 rounded font-bold uppercase">
                     BINARY

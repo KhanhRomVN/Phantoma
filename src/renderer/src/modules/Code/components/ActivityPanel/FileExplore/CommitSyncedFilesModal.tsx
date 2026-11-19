@@ -203,12 +203,12 @@ export function CommitSyncedFilesModal({
         <button
           onClick={onClose}
           disabled={busy}
-          className="h-8 px-3 rounded text-[13px] bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background transition-colors"
+          className="h-8 px-3 rounded text-[13px] bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15 hover:text-text-primary active:bg-text-secondary/20 disabled:hover:bg-text-secondary/10 transition-colors"
         >
           Cancel
         </button>
         <Button
-          className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+          className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
           onClick={handleSubmit}
           disabled={busy || files.length === 0 || !message.trim()}
         >

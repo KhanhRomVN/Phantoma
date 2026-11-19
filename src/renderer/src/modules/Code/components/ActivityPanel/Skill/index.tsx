@@ -14,7 +14,7 @@ export function Skill() {
           <SettingsProvider>
             <SkillPanel
               header={
-                <div className="flex items-center justify-between h-9 px-2 border-b border-divider flex-shrink-0 bg-sidebar-background">
+                <div className="flex items-center justify-between h-9 px-2 border-b border-border flex-shrink-0 bg-panel-background">
                   <span className="text-[11px] font-medium uppercase tracking-wide text-text-secondary truncate">
                     Skills
                   </span>

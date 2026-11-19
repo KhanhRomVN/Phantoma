@@ -100,10 +100,10 @@ export function ConfirmDeleteFileModal({
       </ModalBody>
 
       {/* Two buttons split at 1/2 width each */}
-      <ModalFooter className="gap-0 p-0 border-t border-divider">
+      <ModalFooter className="gap-0 p-0 border-t border-border">
         <button
           onClick={onClose}
-          className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-divider"
+          className="flex-1 h-[42px] text-xs font-medium text-text-secondary hover:bg-white/[0.03] hover:text-text-primary transition-colors border-r border-border"
         >
           Cancel
         </button>

@@ -65,14 +65,11 @@ export function ThemeProvider({
       dropdownBackground: '--dropdown-background',
       dropdownItemHover: '--dropdown-item-hover',
       tooltipBackground: '--tooltip-background',
-      sidebarBackground: '--sidebar-background',
-      sidebarItemHover: '--sidebar-item-hover',
+      panelBackground: '--panel-background',
       tableHeaderBackground: '--table-header-background',
       tableFooterBackground: '--table-footer-background',
       tableRowHover: '--table-row-hover',
-      buttonSolidBackground: '--button-solid-background',
-      buttonSolidText: '--button-solid-text',
-      buttonSoftBackground: '--button-soft-background',
+
     };
 
     const themeData = preset.tailwind;

@@ -754,6 +754,40 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     return () => window.removeEventListener('phantoma:orchestrator-go-home', onGoHome);
   }, []);
 
+  // ─── Design panel integration ────────────────────────────────────────
+
+  useEffect(() => {
+    const handleOpenDesign = (e: Event) => {
+      const { designId } = (e as CustomEvent<{ designId: string }>).detail;
+      if (!designId) return;
+
+      // Check if design panel already exists
+      const existingPanel = panelsRef.current.find(
+        (p) => p.type === 'design' && p.content === designId,
+      );
+
+      if (existingPanel) {
+        // Focus existing panel
+        const pane = findPaneOfPanel(existingPanel.id, state);
+        if (pane) {
+          dispatch({ type: 'setActive', pane, panelId: existingPanel.id });
+        }
+      } else {
+        // Create new design panel
+        const newPanel: WorkspacePanel = {
+          id: createPanelId('design'),
+          type: 'design',
+          title: 'Design',
+          content: designId,
+        };
+        dispatch({ type: 'add', panel: newPanel, pane: resolvePaneForType('design') });
+      }
+    };
+
+    window.addEventListener('workspace:open-design', handleOpenDesign);
+    return () => window.removeEventListener('workspace:open-design', handleOpenDesign);
+  }, [state]);
+
   const confirmGoHome = useCallback(() => {
     if (!pendingHome) return;
     panelsRef.current

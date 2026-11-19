@@ -320,7 +320,7 @@ const TargetListPanel: React.FC<TargetListPanelProps> = ({
                 placeholder="Search targets..."
                 value={targetSearchQuery}
                 onChange={(e) => setTargetSearchQuery(e.target.value)}
-                className="flex-1 h-10 bg-input-background border border-border rounded-lg pl-3 pr-3 text-sm text-text-primary placeholder:text-text-secondary outline-none focus:border-primary/50"
+                className="flex-1 h-10 bg-input-background border border-border rounded-lg pl-3 pr-3 text-sm text-text-primary placeholder:text-text-secondary outline-none"
               />
               <button
                 title="Add target"

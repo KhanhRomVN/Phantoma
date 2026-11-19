@@ -55,7 +55,7 @@ export default function FileViewer({ file, onClose, canDownload = true }: FileVi
             type='button'
             title='Download'
             onClick={() => downloadFile(file)}
-            className='w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors'
+            className='w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors'
           >
             <Download className='w-4 h-4' strokeWidth={1.5} />
           </button>
@@ -64,7 +64,7 @@ export default function FileViewer({ file, onClose, canDownload = true }: FileVi
           type='button'
           title='Close'
           onClick={onClose}
-          className='w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors'
+          className='w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors'
         >
           <X className='w-4 h-4' strokeWidth={1.5} />
         </button>

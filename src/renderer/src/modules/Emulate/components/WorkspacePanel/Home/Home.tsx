@@ -119,7 +119,7 @@ function TextSelectionMenu({
 
   return (
     <div
-      className="fixed z-50 bg-dropdown-background border border-divider rounded-md shadow-lg py-1 min-w-[160px]"
+      className="fixed z-50 bg-dropdown-background border border-border rounded-md shadow-lg py-1 min-w-[160px]"
       style={{
         left: `${x}px`,
         top: `${y}px`,
@@ -516,8 +516,8 @@ export const RequestDetails = React.memo(function RequestDetails({
 
   return (
     <div className="h-full">
-      <div className="h-full flex flex-col border-t border-divider/50">
-        <div className="flex h-10 items-center border-b border-divider/50 bg-table-header-background">
+      <div className="h-full flex flex-col border-t border-border/50">
+        <div className="flex h-10 items-center border-b border-border/50 bg-table-header-background">
           <div className="flex-1 overflow-x-auto no-scrollbar flex items-center h-full">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -617,7 +617,7 @@ export const RequestDetails = React.memo(function RequestDetails({
             })}
           </div>
           {onToggleFilter && (
-            <div className="flex h-full border-l border-divider/50">
+            <div className="flex h-full border-l border-border/50">
               <button
                 onClick={onToggleFilter}
                 className={cn(

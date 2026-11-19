@@ -390,9 +390,9 @@ export function Search() {
 
   // ── Render ──
   return (
-    <div className="flex flex-col h-full bg-sidebar-background">
+    <div className="flex flex-col h-full bg-panel-background">
       {/* HeaderBar */}
-      <div className="flex items-center justify-between h-9 px-2 border-b border-divider flex-shrink-0 bg-sidebar-background">
+      <div className="flex items-center justify-between h-9 px-2 border-b border-border flex-shrink-0 bg-panel-background">
         <span className="text-[11px] font-medium uppercase tracking-wide text-text-secondary truncate">
           Search
         </span>
@@ -421,7 +421,7 @@ export function Search() {
       </div>
 
       {/* Search form — full width, no left gutter (panel lives on the right edge) */}
-      <div className="shrink-0 p-2 space-y-1.5 border-b border-divider">
+      <div className="shrink-0 p-2 space-y-1.5 border-b border-border">
         <div className={INPUT_WRAP_CLASS}>
           <AutoTextarea
             inputRef={inputRef}
@@ -528,7 +528,7 @@ export function Search() {
       </div>
 
       {errorText && (
-        <div className="shrink-0 px-3 py-1.5 border-b border-divider text-[11px] flex items-center gap-2">
+        <div className="shrink-0 px-3 py-1.5 border-b border-border text-[11px] flex items-center gap-2">
           <AlertCircle className="w-3 h-3 text-error shrink-0" strokeWidth={1.5} />
           <span className="truncate text-error">{errorText}</span>
         </div>
@@ -585,7 +585,7 @@ export function Search() {
         <ModalFooter>
           <button
             onClick={() => setIsReplaceModalOpen(false)}
-            className="px-4 py-2 rounded-lg bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary transition-colors text-[13px] outline-none"
+            className="px-4 py-2 rounded-lg bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15 hover:text-text-primary transition-colors text-[13px] outline-none"
           >
             Hủy
           </button>

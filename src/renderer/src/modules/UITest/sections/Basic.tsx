@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Search, Eye, Mail, Copy, Trash2 } from 'lucide-react';
+
 import Badge from '@renderer/components/ui/Badge/Badge';
 import Kbd from '@renderer/components/ui/Kbd/Kbd';
 import Checkbox from '@renderer/components/ui/Checkbox/Checkbox';
-import { Input, InputField, InputAction } from '@renderer/components/ui/Input';
 import { Demo, Section } from '../shared';
 
 export function BadgeDemo() {
@@ -85,76 +84,5 @@ export function CheckboxDemo() {
         <Checkbox defaultChecked className="p-1" inputClassName="rounded-full" />
       </Demo>
     </Section>
-  );
-}
-
-export function InputDemo() {
-  const [value, setValue] = useState('');
-
-  return (
-    <>
-      <Section
-        title="Input"
-        description="Props: label, error, hint, leftIcon, rightIcon, containerClassName, labelClassName, inputClassName, + input attributes"
-      >
-        <Demo label="label + hint + controlled value" column>
-          <Input
-            label="Name"
-            hint="Gợi ý hiển thị khi không có lỗi"
-            placeholder="Type something..."
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
-        </Demo>
-        <Demo label="error (ẩn hint)" column>
-          <Input label="Email" error="Email không hợp lệ" hint="không hiển thị" defaultValue="abc" />
-        </Demo>
-        <Demo label="leftIcon" column>
-          <Input leftIcon={<Search className="h-4 w-4" />} placeholder="Search..." />
-        </Demo>
-        <Demo label="rightIcon + type=password" column>
-          <Input
-            type="password"
-            rightIcon={<Eye className="h-4 w-4" />}
-            placeholder="Password"
-          />
-        </Demo>
-        <Demo label="leftIcon + rightIcon" column>
-          <Input
-            leftIcon={<Mail className="h-4 w-4" />}
-            rightIcon={<Copy className="h-4 w-4" />}
-            placeholder="mail@example.com"
-          />
-        </Demo>
-        <Demo label="disabled" column>
-          <Input label="Disabled" disabled defaultValue="read only" />
-        </Demo>
-        <Demo label="containerClassName / labelClassName / inputClassName" column>
-          <Input
-            label="Custom"
-            containerClassName="max-w-xs"
-            labelClassName="text-primary"
-            inputClassName="font-mono"
-            placeholder="max-w-xs, mono"
-          />
-        </Demo>
-      </Section>
-
-      <Section title="InputField" description="Props: className + input attributes">
-        <InputField placeholder="InputField" />
-        <InputField placeholder="InputField disabled" disabled />
-      </Section>
-
-      <Section title="InputAction" description="Props: children, onClick, disabled, className">
-        <Demo label="default">
-          <InputAction onClick={() => setValue('')}>
-            <Trash2 className="h-4 w-4" />
-          </InputAction>
-          <InputAction disabled>
-            <Copy className="h-4 w-4" />
-          </InputAction>
-        </Demo>
-      </Section>
-    </>
   );
 }

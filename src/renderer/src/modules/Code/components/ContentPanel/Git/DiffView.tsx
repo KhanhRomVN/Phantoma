@@ -104,7 +104,7 @@ export const DiffView = memo(function DiffView({
         </span>
         <span
           className={
-            'shrink-0 inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-card-background border border-divider text-text-secondary'
+            'shrink-0 inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-card-background border border-border text-text-secondary'
           }
         >
           {localBranch && <GitBranch className={'w-3 h-3'} />}

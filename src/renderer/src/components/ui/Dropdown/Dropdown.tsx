@@ -55,9 +55,7 @@ export const Dropdown = React.memo(function Dropdown({
   const contentRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<Position>({ top: 0, left: 0, width: undefined });
   const [isPositioned, setIsPositioned] = useState(false);
-  const [contextMenuPos, setContextMenuPos] = useState<{ top: number; left: number } | null>(
-    null,
-  );
+  const [contextMenuPos, setContextMenuPos] = useState<{ top: number; left: number } | null>(null);
 
   // Calculate position for fixed strategy
   const calculateFixedPosition = (): Position | null => {
@@ -168,10 +166,7 @@ export const Dropdown = React.memo(function Dropdown({
 
   // Calculate position for context menu at cursor, clamped to viewport.
   // Width is independent of trigger: uses the `width` prop if set, otherwise auto (undefined).
-  const calculateContextMenuPosition = (mousePos: {
-    top: number;
-    left: number;
-  }): Position => {
+  const calculateContextMenuPosition = (mousePos: { top: number; left: number }): Position => {
     if (!contentRef.current) return { top: mousePos.top, left: mousePos.left, width };
 
     const contentRect = contentRef.current.getBoundingClientRect();
@@ -404,7 +399,7 @@ export const Dropdown = React.memo(function Dropdown({
               createPortal(
                 <div
                   ref={contentRef}
-                  className="fixed z-[9999] bg-background border border-border rounded-lg min-w-[200px]"
+className="fixed z-[9999] bg-dropdown-background border border-border rounded-lg min-w-[200px]"
                   style={{
                     top: position.top,
                     left: position.left,
@@ -441,7 +436,7 @@ export const Dropdown = React.memo(function Dropdown({
                 ref={contentRef}
                 className={cn(
                   getRelativePositionClasses(),
-                  'bg-background border border-border rounded-lg min-w-[200px]',
+'bg-dropdown-background border border-border rounded-lg min-w-[200px]',
                 )}
                 style={{
                   opacity: isPositioned ? 1 : 0,

@@ -137,7 +137,7 @@ export function FileContentSection({ selectedContent }: FileContentSectionProps)
 
   return (
     <div className="h-full overflow-hidden flex flex-col">
-      <div className="h-10 px-3 border-b border-divider flex items-center justify-between shrink-0 bg-muted/10">
+      <div className="h-10 px-3 border-b border-border flex items-center justify-between shrink-0 bg-muted/10">
         <div className="flex items-center gap-2">
           <img
             src={getFileIconPath(selectedContent?.fileName || '')}

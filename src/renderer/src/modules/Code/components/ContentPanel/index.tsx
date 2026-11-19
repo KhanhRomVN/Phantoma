@@ -47,7 +47,6 @@ import { WorkspaceViews, EmptyState } from './Workspace';
 import { ContentHeaderBar } from './Headerbar';
 import { GitView } from './Git';
 import { PullRequestView } from './PullRequest';
-import { DesignView } from './Design';
 import { AgentWorkflow } from './AgentWorkflow';
 import { SettingsView } from './Setting';
 
@@ -177,7 +176,7 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
       </div>
       <button
         onClick={handleOpenExternal}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary transition-colors"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors"
       >
         <ExternalLink className="w-4 h-4" />
         Open with default app
@@ -463,7 +462,6 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         {contentViewMode === 'tasks' && <TaskManager />}
         {contentViewMode === 'git' && <GitView />}
         {contentViewMode === 'pullrequests' && <PullRequestView />}
-        {contentViewMode === 'design' && <DesignView />}
         {contentViewMode === 'agents' && <AgentWorkflow />}
         {contentViewMode === 'settings' && <SettingsView />}
       </>

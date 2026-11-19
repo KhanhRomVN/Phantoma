@@ -5,51 +5,41 @@
  * thay vì mount/unmount, giúp giữ nguyên state, UI và data của mỗi module
  */
 
-import { useState, useEffect, ReactNode } from 'react';
-
-// Import all modules
-import Setting from '../modules/Setting';
-import UITest from '../modules/UITest';
-import { Recon } from '../modules/Recon';
-import Code from '../modules/Code/Code';
-import Emulate from '@renderer/modules/Emulate/Emulate';
-
-// -- Hooks --
+import { useState, useEffect, Suspense } from 'react';
 import { useActiveModule } from '@renderer/hooks/useActiveModule';
-
-export type ModuleId = 'recon' | 'emulate' | 'code' | 'settings' | 'preview' | 'uitest';
+import {
+  MODULE_DEFINITIONS,
+  getDefaultModuleId,
+  type ModuleId,
+} from '@renderer/config/module-registry';
 
 interface ModuleConfig {
   id: ModuleId;
-  component: ReactNode;
   initialized: boolean;
 }
 
 export const ViewContainer = () => {
-  const { activeModule } = useActiveModule('recon');
+  const defaultModuleId = getDefaultModuleId();
+  const { activeModule } = useActiveModule(defaultModuleId);
 
-  // Khởi tạo tất cả modules một lần duy nhất
+  // Track which modules have been initialized (for lazy loading)
   const [modules, setModules] = useState<Map<ModuleId, ModuleConfig>>(() => {
     const map = new Map<ModuleId, ModuleConfig>();
-
-    // Khởi tạo module mặc định (recon)
-    map.set('recon', {
-      id: 'recon',
-      component: <Recon />,
+    // Initialize default module
+    map.set(defaultModuleId, {
+      id: defaultModuleId,
       initialized: true,
     });
-
     return map;
   });
 
-  // Lazy initialize modules when first accessed.
+  // Lazy initialize modules when first accessed
   useEffect(() => {
     if (!modules.has(activeModule as ModuleId)) {
       setModules((prev) => {
         const next = new Map(prev);
         next.set(activeModule as ModuleId, {
           id: activeModule as ModuleId,
-          component: getModuleComponent(activeModule as ModuleId),
           initialized: true,
         });
         return next;
@@ -58,37 +48,35 @@ export const ViewContainer = () => {
   }, [activeModule, modules]);
 
   return (
-    <div className="relative w-full h-full">
-      {Array.from(modules.entries()).map(([id, config]) => (
-        <div
-          key={id}
-          className="absolute inset-0 w-full h-full"
-          style={{
-            display: activeModule === id ? 'block' : 'none',
-            zIndex: activeModule === id ? 1 : 0,
-          }}
-        >
-          {config.component}
-        </div>
-      ))}
+    <div className="relative h-full w-full">
+      {MODULE_DEFINITIONS.map((moduleDef) => {
+        const isInitialized = modules.has(moduleDef.id);
+        const isActive = activeModule === moduleDef.id;
+
+        // Don't render until initialized
+        if (!isInitialized) return null;
+
+        return (
+          <div
+            key={moduleDef.id}
+            className="absolute inset-0 h-full w-full"
+            style={{
+              display: isActive ? 'block' : 'none',
+              zIndex: isActive ? 1 : 0,
+            }}
+          >
+            <Suspense
+              fallback={
+                <div className="flex h-full w-full items-center justify-center bg-background">
+                  <div className="text-sm text-text-secondary">Loading {moduleDef.title}...</div>
+                </div>
+              }
+            >
+              {moduleDef.component}
+            </Suspense>
+          </div>
+        );
+      })}
     </div>
   );
 };
-
-// Helper function to get module component
-function getModuleComponent(moduleId: ModuleId): ReactNode {
-  switch (moduleId) {
-    case 'recon':
-      return <Recon />;
-    case 'emulate':
-      return <Emulate />;
-    case 'code':
-      return <Code />;
-    case 'settings':
-      return <Setting />;
-    case 'uitest':
-      return <UITest />;
-    default:
-      return <Recon />;
-  }
-}

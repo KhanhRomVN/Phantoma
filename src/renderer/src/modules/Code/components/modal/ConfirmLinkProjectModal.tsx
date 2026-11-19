@@ -71,10 +71,10 @@ export function ConfirmLinkProjectModal({
         </div>
       </ModalBody>
 
-      <ModalFooter className="gap-0 border-t border-divider p-0">
+      <ModalFooter className="gap-0 border-t border-border p-0">
         <button
           onClick={onClose}
-          className="h-[42px] flex-1 border-r border-divider text-xs font-medium text-text-secondary transition-colors hover:bg-white/[0.03] hover:text-text-primary"
+          className="h-[42px] flex-1 border-r border-border text-xs font-medium text-text-secondary transition-colors hover:bg-white/[0.03] hover:text-text-primary"
         >
           Keep separate
         </button>

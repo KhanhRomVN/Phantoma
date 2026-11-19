@@ -7,7 +7,13 @@
  * ------------------------------------------------------------------
  */
 
-import { DEV_PORTS, RuntimePorts, serverBaseUrl, emulateBaseUrl } from '@app/ports';
+import {
+  DEV_PORTS,
+  RuntimePorts,
+  serverBaseUrl,
+  emulateBaseUrl,
+  profileBaseUrl,
+} from '@renderer/config/ports';
 
 let cached: RuntimePorts | null = null;
 let pending: Promise<RuntimePorts> | null = null;
@@ -44,4 +50,9 @@ export async function getServerBaseUrl(): Promise<string> {
 export async function getEmulateBaseUrl(): Promise<string> {
   const p = await fetchPorts();
   return emulateBaseUrl(p.emulate);
+}
+
+export async function getProfileBaseUrl(): Promise<string> {
+  const p = await fetchPorts();
+  return profileBaseUrl(p.profile);
 }

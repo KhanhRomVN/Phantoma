@@ -163,28 +163,13 @@ export const PhantomNight: ThemeConfig = {
     warn: 'rgb(251, 191, 36)',
     info: 'rgb(34, 211, 238)',
     //
-    blue: 'rgb(96, 165, 250)',
-    green: 'rgb(52, 211, 153)',
-    red: 'rgb(244, 63, 94)',
-    yellow: 'rgb(251, 191, 36)',
-    purple: 'rgb(139, 109, 255)',
-    pink: 'rgb(244, 114, 182)',
-    navy: 'rgb(23, 23, 40)',
-    teal: 'rgb(34, 211, 238)',
-    violet: 'rgb(167, 139, 250)',
-    //
     background: 'rgb(7, 7, 13)',
     //
     textPrimary: 'rgb(244, 244, 251)',
     textSecondary: 'rgb(154, 154, 184)',
     textForeground: 'rgb(255, 255, 255)',
     //
-    buttonSolidBackground: 'rgb(139, 109, 255)',
-    buttonSolidText: 'rgb(255, 255, 255)',
-    buttonSoftBackground: 'rgb(36, 30, 72)',
-    //
     border: 'rgb(38, 38, 58)',
-    divider: 'rgb(29, 29, 45)',
     //
     cardBackground: 'rgb(15, 15, 26)',
     cardBackgroundHover: 'rgb(23, 23, 40)',
@@ -193,13 +178,12 @@ export const PhantomNight: ThemeConfig = {
     //
     modalBackground: 'rgb(15, 15, 26)',
     //
-    dropdownBackground: 'rgb(15, 15, 26)',
-    dropdownItemHover: 'rgb(23, 23, 40)',
+    dropdownBackground: 'rgb(17, 17, 29)',
+    dropdownItemHover: 'rgb(26, 26, 45)',
     //
     tooltipBackground: 'rgb(23, 23, 40)',
     //
-    sidebarBackground: 'rgb(7, 7, 13)',
-    sidebarItemHover: 'rgb(15, 15, 26)',
+    panelBackground: 'rgb(10, 10, 18)',
     //
     tableHeaderBackground: 'rgb(15, 15, 26)',
     tableFooterBackground: 'rgb(15, 15, 26)',

@@ -99,7 +99,7 @@ export function RequestBar({
         onChange={(e) => onUrlChange(e.target.value)}
         readOnly={readOnly}
         placeholder="Enter URL..."
-        className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono read-only:opacity-60 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+        className="flex-1 h-9 bg-input-background border border-input-border-default px-3 text-sm font-mono read-only:opacity-60 outline-none"
       />
 
       <Tooltip

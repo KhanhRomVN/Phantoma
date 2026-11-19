@@ -35,7 +35,7 @@ const SORT_LABEL: Record<SortKey, string> = {
 };
 
 const ICON_BTN =
-  'h-7 rounded-md flex items-center justify-center gap-1.5 px-2 text-xs transition-colors text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover';
+  'h-7 rounded-md flex items-center justify-center gap-1.5 px-2 text-xs transition-colors text-text-secondary hover:text-text-primary hover:bg-card-hover';
 
 export default function FileManager({ config, className }: FileManagerProps) {
   const features = useMemo(() => ({ ...DEFAULT_FEATURES, ...config?.features }), [config?.features]);
@@ -180,7 +180,7 @@ export default function FileManager({ config, className }: FileManagerProps) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder='Search files...'
-                className='w-44 h-7 bg-input-background border border-input-border-default rounded-md pl-8 pr-2 text-xs text-text-primary placeholder:text-text-secondary/50 focus:border-primary/50 outline-none transition-colors'
+                className='w-44 h-7 bg-input-background border border-input-border-default rounded-md pl-8 pr-2 text-xs text-text-primary placeholder:text-text-secondary/50 outline-none transition-colors'
               />
             </div>
           )}
@@ -236,7 +236,7 @@ export default function FileManager({ config, className }: FileManagerProps) {
                   type='button'
                   title={label}
                   onClick={() => setView(key)}
-                  className={cn('w-7 h-7 flex items-center justify-center transition-colors', view === key ? 'bg-primary/15 text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover')}
+                  className={cn('w-7 h-7 flex items-center justify-center transition-colors', view === key ? 'bg-primary/15 text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-card-hover')}
                 >
                   <Icon className='w-3.5 h-3.5' strokeWidth={1.75} />
                 </button>

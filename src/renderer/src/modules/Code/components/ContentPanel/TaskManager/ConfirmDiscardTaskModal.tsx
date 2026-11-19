@@ -36,16 +36,16 @@ export function ConfirmDiscardTaskModal({
         </div>
       </ModalBody>
 
-      <ModalFooter className="gap-0 p-0 border-t border-divider">
+      <ModalFooter className="gap-0 p-0 border-t border-border">
         <Button
           onClick={onClose}
-          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-divider rounded-none"
+          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-border rounded-none"
         >
           Cancel
         </Button>
         <Button
           onClick={onDiscard}
-          className="flex-1 h-[42px] text-xs font-medium bg-error/10 text-error hover:bg-error hover:text-text-primary active:bg-error/80 transition-colors border-r border-divider rounded-none"
+          className="flex-1 h-[42px] text-xs font-medium bg-error/10 text-error hover:bg-error hover:text-text-primary active:bg-error/80 transition-colors border-r border-border rounded-none"
         >
           Discard
         </Button>

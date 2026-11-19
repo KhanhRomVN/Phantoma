@@ -92,7 +92,7 @@ type FaviconStatus = 'idle' | 'loading' | 'success' | 'error';
 
 // ─── Shared Styles ──────────────────────────────────────────────────────
 const INPUT =
-  'w-full bg-input-background border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary/50 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none transition-colors';
+  'w-full bg-input-background border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-secondary/50 outline-none transition-colors';
 const FORM_SCROLL = 'flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-6';
 
 const PLATFORM_RGB: Record<AppPlatform, string> = {
@@ -274,7 +274,7 @@ const FolderInput: React.FC<{
     />
     <Button
       title="Choose folder"
-      className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+      className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
       onClick={async () => {
         const folder = await pickFolder();
         if (folder) onChange(folder);
@@ -681,7 +681,7 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
           disabled={loading}
           onClick={loadDevices}
           title="Rescan devices"
-          className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+          className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
         >
           <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
         </Button>
@@ -765,7 +765,7 @@ const AndroidForm = forwardRef<BodyRef, FormProps>(function AndroidForm(
         </div>
       )}
 
-      <div className="shrink-0 space-y-3 border-t border-divider px-6 py-4">
+      <div className="shrink-0 space-y-3 border-t border-border px-6 py-4">
         <Field label="Package name" optional hint="Launch this app once the session starts">
           <input
             type="text"
@@ -902,7 +902,7 @@ const PCForm = forwardRef<BodyRef, FormProps>(function PCForm(
           <Button
             title="Rescan apps"
             onClick={loadPcApps}
-            className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+            className="h-[42px] w-[42px] shrink-0 px-0 py-0 bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
           >
             <RefreshCw className={cn('h-4 w-4 text-text-secondary', pcLoading && 'animate-spin')} />
           </Button>
@@ -1149,7 +1149,7 @@ const MODAL_SIZE: Record<'select' | AppPlatform, string> = {
 };
 
 const CANCEL_CLASS =
-  'bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background';
+  'bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 disabled:hover:bg-text-secondary/10';
 
 // ─── Main Modal ─────────────────────────────────────────────────────────
 export const TargetModal: React.FC<TargetModalProps> = ({
@@ -1236,7 +1236,7 @@ export const TargetModal: React.FC<TargetModalProps> = ({
             Cancel
           </Button>
           <Button
-            className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+            className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
             onClick={handleSubmit}
             disabled={!canSubmit}
           >

@@ -62,7 +62,7 @@ export function GeneralTab({ project, onChange }: GeneralTabProps) {
                   setName(project.name);
                 }
               }}
-              className='h-9 min-w-0 flex-1 rounded-lg border border-divider bg-input-background/40 px-3 text-[13px] text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 focus:border-text-secondary/60'
+              className='h-9 min-w-0 flex-1 rounded-lg border border-border bg-input-background/40 px-3 text-[13px] text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 focus:border-text-secondary/60'
             />
             {saved ? (
               <span className='inline-flex h-9 items-center gap-1.5 px-2 text-xs text-primary'>
@@ -74,7 +74,7 @@ export function GeneralTab({ project, onChange }: GeneralTabProps) {
                 type='button'
                 disabled={!dirty}
                 onClick={commit}
-                className='h-9 cursor-pointer rounded-lg bg-button-soft-background px-4 text-xs font-medium text-primary transition-colors hover:bg-button-soft-background/80 disabled:pointer-events-none disabled:opacity-40'
+                className='h-9 cursor-pointer rounded-lg bg-primary/10 px-4 text-xs font-medium text-primary transition-colors hover:bg-primary/20 disabled:pointer-events-none disabled:opacity-40'
               >
                 Save
               </button>
