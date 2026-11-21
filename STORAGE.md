@@ -39,6 +39,9 @@
 8. [Browsers (toàn cục)](#8-browsers-toàn-cục)
 9. [Phụ lục: Bản đồ mã nguồn liên quan](#9-phụ-lục-bản-đồ-mã-nguồn-liên-quan)
 10. [Các điểm cần xác nhận](#10-các-điểm-cần-xác-nhận)
+6. [Skills (toàn cục)](#6-skills-toàn-cục)
+7. [Phụ lục: Bản đồ mã nguồn liên quan](#7-phụ-lục-bản-đồ-mã-nguồn-liên-quan)
+8. [Các điểm cần xác nhận](#8-các-điểm-cần-xác-nhận)
 
 ---
 
@@ -102,6 +105,7 @@ Phantoma lưu toàn bộ dữ liệu người dùng trong một thư mục ẩn 
 | Profile | Toàn cục (profile-server) | `{profileId}` |
 | Skills | Toàn cục | `{slug}` |
 | Browsers | Toàn cục | `{browserName}/{version}` |
+| Skills | Toàn cục | `{slug}` |
 
 
 ### 1.3 Quy ước đặt tên
@@ -259,6 +263,33 @@ Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
 
 #### Lược đồ SQL tham chiếu
 
+
+Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
+
+### 5.3 Tasks
+
+#### Tổng quan
+
+`tasks.json` là một **mảng JSON** các task, kiểu `StoredTask` (định nghĩa tại `src/renderer/src/modules/Code/services/task.service.ts`). File được ghi theo kiểu **atomic** bởi `src/main/storage/TaskStorage.ts`.
+
+#### Lược đồ trường
+
+| Trường | Kiểu | Bắt buộc | Mặc định | Mô tả |
+|---|---|:---:|---|---|
+| `id` | TEXT (PK) | ✅ | — | Định danh task |
+| `title` | TEXT | ✅ | — | Tiêu đề |
+| `description` | TEXT | | `''` | Mô tả |
+| `status` | TEXT | | `'todo'` | Trạng thái: `todo`, `progress`, `review`, `done` |
+| `priority` | TEXT | | `'medium'` | Độ ưu tiên: `low`, `medium`, `high` |
+| `session_id` | TEXT | | `NULL` | Khoá ngoại mềm tới conversation/session id |
+| `workflow_id` | TEXT | | `NULL` | `workflow_{taskId}`; `NULL` nghĩa là task chưa có workflow |
+| `branch_name` | TEXT | | `NULL` | Tên git branch liên kết |
+| `due_date` | INTEGER | | `NULL` | Hạn chót, Unix timestamp (ms) |
+| `created_at` | INTEGER | ✅ | — | Thời điểm tạo, Unix timestamp (ms) |
+| `updated_at` | INTEGER | ✅ | — | Thời điểm cập nhật, Unix timestamp (ms) |
+
+#### Lược đồ SQL tham chiếu
+
 ```sql
 CREATE TABLE IF NOT EXISTS tasks (
   id          TEXT PRIMARY KEY,
@@ -292,6 +323,23 @@ Handler: `src/main/ipc/task.handlers.ts`.
 ### 5.4 Workflows
 
 Mỗi task có **tối đa 1 workflow**, lưu thành file Markdown tại `workflows/workflow_{taskId}.md`.
+
+- Trường `workflowId` của task (`workflow_{taskId}`, hoặc `null` nếu chưa có) cho biết task đã có workflow hay chưa.
+- File được ghi atomic bởi `src/main/storage/WorkflowStorage.ts`.
+- Renderer gọi qua `services/workflow.service.ts`.
+
+| IPC channel | Chức năng |
+|---|---|
+| `workflow:get` | Đọc workflow của task |
+| `workflow:create` | Tạo file workflow và gán `workflowId` cho task |
+| `workflow:update` | Cập nhật workflow bằng cách thay thế **exact-match** |
+
+Handler: `src/main/ipc/workflow.handlers.ts`.
+
+### 5.5 Designs
+
+Lưu trữ các design UI **tạm thời** (dùng `mockData`) theo từng project của module Code. Mỗi design là một thư mục `design_{id}` chứa `meta.json` và các file page `.tsx` được tạo từ template.
+
 
 - Trường `workflowId` của task (`workflow_{taskId}`, hoặc `null` nếu chưa có) cho biết task đã có workflow hay chưa.
 - File được ghi atomic bởi `src/main/storage/WorkflowStorage.ts`.
@@ -419,6 +467,45 @@ Tiền tố `/api/v1`; phản hồi dạng `{ success, data }` hoặc `{ success
 
 ## 7. Skills (toàn cục)
 
+#### Cấu trúc `meta.json`
+
+| Trường | Mô tả |
+|---|---|
+| `id` | Định danh design |
+| `name` | Tên design |
+| `description` | Mô tả |
+| `nodes` | Danh sách node (xem bảng dưới) |
+| `createdAt` | Thời điểm tạo |
+| `updatedAt` | Thời điểm cập nhật |
+
+Mỗi phần tử trong `nodes` tương ứng **một page** (`file`) và được hiển thị dưới dạng diagram:
+
+| Trường node | Mô tả |
+|---|---|
+| `id` | Định danh node |
+| `name` | Tên page |
+| `route` | Route của page |
+| `file` | File `.tsx` tương ứng |
+| `x`, `y` | Toạ độ node trên diagram |
+
+#### Biên dịch và quản lý
+
+- Page `.tsx` được **biên dịch lúc chạy bằng esbuild** ở main process, sau đó nạp vào `iframe`.
+- Lưu trữ: `src/main/storage/DesignStorage.ts`.
+- Handler: `src/main/ipc/design.handlers.ts`.
+
+| IPC channel | Chức năng |
+|---|---|
+| `design:list` | Liệt kê design |
+| `design:create` | Tạo design |
+| `design:update` | Cập nhật design |
+| `design:delete` | Xoá design |
+| `design:compile-page` | Biên dịch một page |
+
+---
+
+## 6. Skills (toàn cục)
+
 Skill tải từ **mcp.directory**, lưu **toàn cục** (không theo project hay module) để dùng ở mọi nơi trong Phantoma.
 
 Mỗi skill là một thư mục `{slug}/` chứa toàn bộ gói skill: luôn có `SKILL.md` ở gốc, có thể kèm `scripts/`, `references/`, `assets/`..., cùng metadata `{slug}.json`.
@@ -490,3 +577,23 @@ Binary browser tải về, lưu **toàn cục** (không theo project hay module)
 - Nguồn tải: bản **Portable Linux 64-bit** của ungoogled-chromium (`.tar.xz` trên GitHub Releases của `ungoogled-chromium-portablelinux`).
 - Cài đặt: tải về thư mục tạm, giải nén với `--strip-components=1` vào `{version}/`, rồi xoá file tạm; nếu `{version}/chrome` đã tồn tại thì bỏ qua.
 - Script tham khảo: `temp/ungoogled-chromium/fetch-versions.js` (`--installed`, `--latest`, `--list`, `--search`, `--install`).
+
+---
+
+## 7. Phụ lục: Bản đồ mã nguồn liên quan
+| Chức năng | Storage | IPC handler | Renderer service |
+|---|---|---|---|
+| Tasks | `src/main/storage/TaskStorage.ts` | `src/main/ipc/task.handlers.ts` | `src/renderer/src/modules/Code/services/task.service.ts` |
+| Workflows | `src/main/storage/WorkflowStorage.ts` | `src/main/ipc/workflow.handlers.ts` | `services/workflow.service.ts` |
+| Designs | `src/main/storage/DesignStorage.ts` | `src/main/ipc/design.handlers.ts` | — |
+| Skills | `src/main/storage/SkillStorage.ts` | `src/main/ipc/skill.handlers.ts` | — (marketplace: `src/main/services/skill-marketplace.ts`) |
+
+---
+
+## 8. Các điểm cần xác nhận
+
+- [ ] `phantoma.sql`, `phantoma.sql-shm`, `phantoma.sql-wal` vẫn giữ ở thư mục gốc `~/.phantoma/`?
+- [ ] Thư mục `conversations/` trong `recon/{targetId}` và `code/{system_path}` dùng số nhiều (`conversations/`) đúng không?
+- [ ] File `reportId.md` nằm cùng cấp với `code/` trong `report:{reportId}/`?
+- [ ] Mục [5.3](#53-tasks): `tasks.json` lưu dạng mảng JSON nhưng tài liệu gốc mô tả bằng lược đồ SQL (`CREATE TABLE`). Đây chỉ là lược đồ tham chiếu cho các trường, hay `tasks` thực sự còn nằm trong `phantoma.sql`?
+- [ ] Tên file `reportId.md` là tên cố định, hay sẽ được thay bằng giá trị `{reportId}` thực tế (ví dụ `{reportId}.md`)?
