@@ -1,23 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import {
   AlertCircle,
-  Check,
-  ChevronDown,
-  FileDiff,
   Folder,
   GitBranch,
-  GitCommit,
   Loader2,
 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownContent,
-  DropdownItem,
-} from '@renderer/components/ui/Dropdown';
+
 import { Button } from '@renderer/components/ui/Button/Button';
 import {
   ConfirmCreateBranchModal,
@@ -30,16 +21,6 @@ import { TreeUIPreview } from './TreeUIPreview';
 import { codeApi } from '../../services/code-api.service';
 
 type CopyMode = 'latest-commit' | 'local' | 'commit';
-
-interface CommitItem {
-  hash: string;
-  subject: string;
-  author: string;
-  date: number;
-}
-
-const CARD =
-  'flex w-full items-center gap-3 rounded-md border-l-2 border-transparent bg-input-background px-3 py-2.5 text-left outline-none transition-colors';
 
 export interface CreatedBranchResult {
   branch: string;
@@ -86,7 +67,7 @@ export function CreateBranchModal({
   const [name, setName] = useState('');
   const [source, setSource] = useState('');
   const [currentBranch, setCurrentBranch] = useState('');
-  const [changedFiles, setChangedFiles] = useState(0);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -94,13 +75,6 @@ export function CreateBranchModal({
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [progress, setProgress] = useState<BranchProgress | null>(null);
   const [targetDir, setTargetDir] = useState('');
-  const [copyMode, setCopyMode] = useState<'local' | 'commit'>('local');
-  const [commits, setCommits] = useState<CommitItem[]>([]);
-  const [commitsLoading, setCommitsLoading] = useState(false);
-  const [selectedHash, setSelectedHash] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [commitQuery, setCommitQuery] = useState('');
-
 
   const nameId = useId();
   const sourceId = useId();
@@ -118,24 +92,25 @@ export function CreateBranchModal({
     setConfirmOpen(false);
     setPreview(null);
     setSelectedPaths([]);
-    setChangedFiles(0);
-    setCopyMode('local');
-    setPickerOpen(false);
-    setCommitQuery('');
 
     setSource(
       defaultSource && sourceOptions.includes(defaultSource)
         ? defaultSource
         : (sourceOptions[0] ?? ''),
     );
+    // ASSUMED: nguồn cố định = default branch của origin
+    codeApi.git
+      .defaultBranch(projectPath)
+      .then((res) => {
+        const n = (res?.name ?? '').replace(/^origin\//, '');
+        if (n) setSource(n);
+      })
+      .catch(() => {});
     codeApi.git
       .status(projectPath)
       .then((res: any) => setCurrentBranch(res?.branch ?? ''))
       .catch(() => setCurrentBranch(''));
-    (window as any).api
-      .invoke('git:worktree-preview', projectPath, undefined, false)
-      .then((res: any) => setChangedFiles(res?.changedFiles ?? 0))
-      .catch(() => setChangedFiles(0));
+
   }, [isOpen]);
 
   const trimmedName = name.trim();
@@ -146,53 +121,12 @@ export function CreateBranchModal({
   const takenLocal =
     !existingBranch && bareName !== '' && !takenRemote && localNames.includes(bareName);
   const nameTaken = takenLocal || takenRemote;
-  const sourceRef = remoteBranches.includes(source) ? `origin/${source}` : source;
-  const localAvailable = source !== '' && source === currentBranch;
-  useEffect(() => {
-    if (!isOpen || existingBranch || !sourceRef) return;
-    let cancelled = false;
-    setCommitsLoading(true);
-    setSelectedHash(null);
-    codeApi.git
-      .log(projectPath, 100, sourceRef)
-      .then((res: any) => {
-        if (!cancelled) setCommits(res?.commits ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setCommits([]);
-      })
-      .finally(() => {
-        if (!cancelled) setCommitsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, sourceRef, projectPath, existingBranch]);
-
-  const activeCommit = commits.find((c) => c.hash === selectedHash) ?? commits[0] ?? null;
-  const pickerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!pickerOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPickerOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPickerOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [pickerOpen]);
-  const effectiveMode: CopyMode =
-    copyMode === 'local' && localAvailable ? 'local' : activeCommit ? 'commit' : 'latest-commit';
+  const sourceRef = source ? `origin/${source.replace(/^origin\//, '')}` : '';
+  const effectiveMode: CopyMode = 'latest-commit';
   const folderName = `${projectName}-${slug || 'branch-name'}`;
   const canSubmit = trimmedName !== '' && !nameTaken && source !== '' && !submitting;
 
-  const actionTitle = existingBranch ? 'Create Project As Remote Branch' : 'Create Local Branch';
+  const actionTitle = existingBranch ? 'Create Project As Remote Branch' : 'Create Branch';
 
   const worktreeFolder = `${targetDir || '..'}/`;
 
@@ -205,24 +139,6 @@ export function CreateBranchModal({
     }
   };
 
-  const localDetail = localAvailable
-    ? changedFiles > 0
-      ? `Latest commit of ${source} plus ${changedFiles} uncommitted file${changedFiles > 1 ? 's' : ''} and untracked files.`
-      : `${source} is checked out and clean, so this equals its latest commit.`
-    : `Only available when ${source || 'the source branch'} is checked out${
-        currentBranch ? ` (currently ${currentBranch})` : ''
-      }.`;
-  const commitDetail = activeCommit
-    ? `${activeCommit.hash.slice(0, 7)} · ${activeCommit.subject}`
-    : commitsLoading
-      ? 'Loading commits…'
-      : 'No commits found on this branch.';
-  const commitQueryLower = commitQuery.trim().toLowerCase();
-  const filteredCommits = commitQueryLower
-    ? commits.filter((c) =>
-        `${c.hash} ${c.subject} ${c.author}`.toLowerCase().includes(commitQueryLower),
-      )
-    : commits;
 
   const [scanProgress, setScanProgress] = useState<ScanProgress | null>(null);
   const scanIdRef = useRef<string | null>(null);
@@ -284,7 +200,7 @@ export function CreateBranchModal({
         selectedPaths,
         targetDir || undefined,
         !!existingBranch,
-        effectiveMode === 'commit' ? activeCommit?.hash : undefined,
+        undefined,
       );
       if (res?.error) {
         setError(res.error);
@@ -328,32 +244,12 @@ export function CreateBranchModal({
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div className="min-w-0">
-                  <label htmlFor={sourceId} className="mb-1.5 block text-[12px] text-text-secondary">
-                    From
-                  </label>
-                  <Dropdown align="start" sideOffset={4} className="w-full">
-                    <DropdownTrigger>
-                      <button
-                        id={sourceId}
-                        type="button"
-                        className={cn(FIELD, 'flex items-center justify-between gap-2 px-3 text-left')}
-                      >
-                        <span className="truncate">{source || 'Select branch'}</span>
-                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
-                      </button>
-                    </DropdownTrigger>
-                    <DropdownContent className="max-h-[220px] overflow-y-auto">
-                      {sourceOptions.map((b) => (
-                        <DropdownItem
-                          key={b}
-                          icon={<Check className={cn('h-3.5 w-3.5 text-primary', b !== source && 'invisible')} />}
-                          onClick={() => setSource(b)}
-                        >
-                          <span className="truncate">{b}</span>
-                        </DropdownItem>
-                      ))}
-                    </DropdownContent>
-                  </Dropdown>
+                  <div className="mb-1.5 text-[12px] text-text-secondary">From</div>
+                  <div id={sourceId} className={cn(FIELD, 'flex items-center px-3')}>
+                    <span className="truncate font-mono text-[13.5px] text-text-primary">
+                      {sourceRef || 'origin/…'}
+                    </span>
+                  </div>
                 </div>
                 <div className="min-w-0">
                   <label htmlFor={nameId} className="mb-1.5 block text-[12px] text-text-secondary">
@@ -397,133 +293,6 @@ export function CreateBranchModal({
                       </button>
                     </>
                   )}
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <div className="mb-1.5 text-[12px] text-text-secondary">Copy As...</div>
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    disabled={!localAvailable}
-                    onClick={() => setCopyMode('local')}
-                    className={cn(
-                      CARD,
-                      effectiveMode === 'local' && 'rounded-l-none border-primary',
-                      localAvailable ? 'hover:bg-white/[0.04]' : 'cursor-not-allowed opacity-50',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'grid h-9 w-9 shrink-0 place-items-center rounded-md',
-                        effectiveMode === 'local' ? 'bg-primary/15' : 'bg-white/[0.04]',
-                      )}
-                    >
-                      <FileDiff
-                        className={cn(
-                          'h-5 w-5',
-                          effectiveMode === 'local' ? 'text-primary' : 'text-text-secondary',
-                        )}
-                      />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-medium text-text-primary">Local</div>
-                      <p className="mt-0.5 text-[13px] leading-relaxed text-text-secondary">
-                        {localDetail}
-                      </p>
-                    </div>
-                    {effectiveMode === 'local' && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                  </button>
-
-                  <div ref={pickerRef}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCopyMode('commit');
-                        setPickerOpen((o) => !o);
-                      }}
-                      className={cn(
-                        CARD,
-                        effectiveMode !== 'local' && 'rounded-l-none border-primary',
-                        'hover:bg-white/[0.04]',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'grid h-9 w-9 shrink-0 place-items-center rounded-md',
-                          effectiveMode !== 'local' ? 'bg-primary/15' : 'bg-white/[0.04]',
-                        )}
-                      >
-                        <GitCommit
-                          className={cn(
-                            'h-5 w-5',
-                            effectiveMode !== 'local' ? 'text-primary' : 'text-text-secondary',
-                          )}
-                        />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[13px] font-medium text-text-primary">Selected commit</div>
-                        <p className="mt-0.5 truncate text-[13px] leading-relaxed text-text-secondary">
-                          {commitDetail}
-                        </p>
-                      </div>
-                      {commitsLoading ? (
-                        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-text-secondary" />
-                      ) : (
-                        <ChevronDown
-                          className={cn(
-                            'h-4 w-4 shrink-0 text-text-secondary transition-transform',
-                            pickerOpen && 'rotate-180',
-                          )}
-                        />
-                      )}
-                    </button>
-
-                    {pickerOpen && (
-                      <div className="mt-2 overflow-hidden rounded-md bg-input-background">
-                        <input
-                          value={commitQuery}
-                          onChange={(e) => setCommitQuery(e.target.value)}
-                          placeholder="Search by message, author or hash"
-                          spellCheck={false}
-                          className="h-9 w-full bg-white/[0.04] px-3 text-[13px] text-text-primary outline-none placeholder:text-text-secondary/40"
-                        />
-                        <div className="max-h-[220px] overflow-y-auto">
-                          {filteredCommits.length === 0 ? (
-                            <p className="px-3 py-4 text-center text-[13px] text-text-secondary">
-                              No matching commits
-                            </p>
-                          ) : (
-                            filteredCommits.map((c) => (
-                              <button
-                                key={c.hash}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedHash(c.hash);
-                                  setCopyMode('commit');
-                                  setPickerOpen(false);
-                                }}
-                                className="flex w-full items-center gap-3 px-3 py-2 text-left outline-none transition-colors hover:bg-white/[0.04]"
-                              >
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-[13px] text-text-primary">
-                                    {c.subject}
-                                  </span>
-                                  <span className="block truncate text-[12px] text-text-secondary">
-                                    <span className="font-mono text-primary">{c.hash.slice(0, 7)}</span>
-                                    {` · ${c.author} · ${new Date(c.date).toLocaleDateString()}`}
-                                  </span>
-                                </span>
-                                {activeCommit?.hash === c.hash && (
-                                  <Check className="h-4 w-4 shrink-0 text-primary" />
-                                )}
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </>
@@ -573,7 +342,7 @@ export function CreateBranchModal({
                 disabled={submitting}
                 className="mt-2 h-8 cursor-pointer rounded-lg bg-text-secondary/10 px-3 text-[12.5px] font-medium text-text-secondary outline-none transition-colors hover:bg-text-secondary/15 hover:text-text-primary active:bg-text-secondary/20 disabled:opacity-50"
               >
-                Back to Create Local Branch
+                Back to Create Branch
               </button>
             )}
           </div>

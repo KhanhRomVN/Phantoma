@@ -1884,22 +1884,9 @@ exit 0
         if (await fs.lstat(targetPath).catch(() => null)) {
           return { error: `Thư mục "${targetPath}" đã tồn tại` };
         }
-        const add = await runGit(
-          useExisting
-            ? remoteRef
-              ? ['worktree', 'add', '--track', '-b', name, targetPath, remoteRef]
-              : ['worktree', 'add', targetPath, name]
-            : [
-                'worktree',
-                'add',
-                '-b',
-                name,
-                targetPath,
-                mode === 'commit' && commitSha ? commitSha.trim() : sourceBranch,
-              ],
-          cwd,
-        );
-        if (add.error) return { error: add.stderr || add.error.message };
+        // ASSUMED: cả 'Create branch' và 'Create project as remote branch' đều clone độc lập có .git riêng, origin trỏ về remote thật của project
+        const cloneRemoteUrl = (await runGit(['config', '--get', 'remote.origin.url'], cwd)).stdout.trim();
+        await fs.mkdir(baseDir, { recursive: true });
 
         rollback = async () => {
           const prevNoAsar = process.noAsar;
@@ -1909,9 +1896,35 @@ exit 0
           } finally {
             process.noAsar = prevNoAsar;
           }
-          await runGit(['worktree', 'prune'], cwd);
-          if (!useExisting || remoteRef) await runGit(['branch', '-D', name], cwd);
         };
+
+        const cloned = await runGit(['clone', '--no-checkout', cwd, targetPath], baseDir);
+        if (cloned.error) {
+          await rollback();
+          return { error: cloned.stderr || cloned.error.message };
+        }
+        if (remoteRef || (!useExisting && sourceBranch.startsWith('origin/'))) {
+          await runGit(['fetch', 'origin', '+refs/remotes/origin/*:refs/remotes/origin/*'], targetPath);
+        }
+        const startRef =
+          mode === 'commit' && commitSha
+            ? commitSha.trim()
+            : sourceBranch.startsWith('origin/')
+              ? sourceBranch
+              : `origin/${sourceBranch}`;
+        const checkout = await runGit(
+          useExisting
+            ? remoteRef
+              ? ['checkout', '--track', '-b', name, remoteRef]
+              : ['checkout', name]
+            : ['checkout', '--no-track', '-b', name, startRef],
+          targetPath,
+        );
+        if (checkout.error) {
+          await rollback();
+          return { error: checkout.stderr || checkout.error.message };
+        }
+        if (cloneRemoteUrl) await runGit(['remote', 'set-url', 'origin', cloneRemoteUrl], targetPath);
 
         if (mode === 'local') {
           report({ step: 'local' });
@@ -1966,7 +1979,27 @@ exit 0
           }
         }
 
-        return { branch: name, path: targetPath };
+        let warning: string | undefined;
+        if (!useExisting) {
+          // ASSUMED: template commit message cố định; lỗi commit/push không rollback folder, chỉ trả về warning
+          await runGit(['add', '-A'], targetPath);
+          const staged = await runGit(['diff', '--cached', '--quiet'], targetPath);
+          if (staged.error) {
+            const commit = await runGit(
+              ['commit', '-m', `chore: create branch ${name} from ${sourceBranch}`],
+              targetPath,
+            );
+            if (commit.error) warning = commit.stderr || commit.error.message;
+          }
+          if (!warning && cloneRemoteUrl) {
+            const push = await runGit(['push', '-u', 'origin', name], targetPath);
+            if (push.error) warning = push.stderr || push.error.message;
+            else await runGit(['fetch', 'origin', `+refs/heads/${name}:refs/remotes/origin/${name}`], cwd);
+          }
+          if (warning) logger.warn('[git:create-branch-worktree] commit/push failed:', warning);
+        }
+
+        return { branch: name, path: targetPath, warning };
       } catch (e: any) {
         logger.error('[git:create-branch-worktree] Error:', e);
         await rollback?.().catch((re) =>

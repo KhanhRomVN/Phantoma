@@ -3,12 +3,12 @@
 > **Tài liệu kỹ thuật** · Data Storage Architecture
 > Mô tả cấu trúc thư mục, định dạng file và cách quản lý dữ liệu cục bộ của ứng dụng Phantoma.
 
-| Thuộc tính | Giá trị |
-|---|---|
-| **Thư mục gốc** | `~/.phantoma/` |
-| **Cơ sở dữ liệu chính** | SQLite (chế độ WAL) |
-| **Định dạng dữ liệu phụ** | JSON, Markdown, TSX |
-| **Phạm vi** | Theo module (Emulate, Recon, Code) và toàn cục (Skills) |
+| Thuộc tính                | Giá trị                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| **Thư mục gốc**           | `~/.phantoma/`                                          |
+| **Cơ sở dữ liệu chính**   | SQLite (chế độ WAL)                                     |
+| **Định dạng dữ liệu phụ** | JSON, Markdown, TSX                                     |
+| **Phạm vi**               | Theo module (Emulate, Recon, Code) và toàn cục (Skills) |
 
 ---
 
@@ -22,7 +22,7 @@
 3. [Module Emulate](#3-module-emulate)
    - [3.1 Cấu trúc tổng thể](#31-cấu-trúc-tổng-thể)
    - [3.2 Repeaters](#32-repeaters)
-   - [3.3 Reports](#33-reports)
+   - [3.3 Reports](#33-reports)`
 4. [Module Recon](#4-module-recon)
 5. [Module Code](#5-module-code)
    - [5.1 Cấu trúc tổng thể](#51-cấu-trúc-tổng-thể)
@@ -39,9 +39,9 @@
 8. [Browsers (toàn cục)](#8-browsers-toàn-cục)
 9. [Phụ lục: Bản đồ mã nguồn liên quan](#9-phụ-lục-bản-đồ-mã-nguồn-liên-quan)
 10. [Các điểm cần xác nhận](#10-các-điểm-cần-xác-nhận)
-6. [Skills (toàn cục)](#6-skills-toàn-cục)
-7. [Phụ lục: Bản đồ mã nguồn liên quan](#7-phụ-lục-bản-đồ-mã-nguồn-liên-quan)
-8. [Các điểm cần xác nhận](#8-các-điểm-cần-xác-nhận)
+11. [Skills (toàn cục)](#6-skills-toàn-cục)
+12. [Phụ lục: Bản đồ mã nguồn liên quan](#7-phụ-lục-bản-đồ-mã-nguồn-liên-quan)
+13. [Các điểm cần xác nhận](#8-các-điểm-cần-xác-nhận)
 
 ---
 
@@ -96,30 +96,29 @@ Phantoma lưu toàn bộ dữ liệu người dùng trong một thư mục ẩn 
 
 ### 1.2 Phạm vi lưu trữ
 
-| Thành phần | Phạm vi | Khoá phân vùng |
-|---|---|---|
-| Cơ sở dữ liệu SQLite | Toàn cục | — |
-| Emulate | Theo target | `{targetId}` |
-| Recon | Theo target | `{targetId}` |
-| Code | Theo project | `{system_path}` (base64url) |
-| Profile | Toàn cục (profile-server) | `{profileId}` |
-| Skills | Toàn cục | `{slug}` |
-| Browsers | Toàn cục | `{browserName}/{version}` |
-| Skills | Toàn cục | `{slug}` |
-
+| Thành phần           | Phạm vi                   | Khoá phân vùng              |
+| -------------------- | ------------------------- | --------------------------- |
+| Cơ sở dữ liệu SQLite | Toàn cục                  | —                           |
+| Emulate              | Theo target               | `{targetId}`                |
+| Recon                | Theo target               | `{targetId}`                |
+| Code                 | Theo project              | `{system_path}` (base64url) |
+| Profile              | Toàn cục (profile-server) | `{profileId}`               |
+| Skills               | Toàn cục                  | `{slug}`                    |
+| Browsers             | Toàn cục                  | `{browserName}/{version}`   |
+| Skills               | Toàn cục                  | `{slug}`                    |
 
 ### 1.3 Quy ước đặt tên
 
-| Mẫu | Ý nghĩa |
-|---|---|
-| `emulate/{targetId}` | Thư mục dữ liệu Emulate của một target |
-| `recon/{targetId}` | Thư mục dữ liệu Recon của một target |
-| `code/{system_path}` | Thư mục dữ liệu Code của một project |
-| `repeater_{requestId}` | Một request lặp lại |
-| `report:{reportId}` | Một báo cáo |
-| `workflow_{taskId}.md` | File workflow của một task |
-| `design_{id}` | Một design UI |
-| `{conversationId}.json` | Một cuộc hội thoại |
+| Mẫu                     | Ý nghĩa                                |
+| ----------------------- | -------------------------------------- |
+| `emulate/{targetId}`    | Thư mục dữ liệu Emulate của một target |
+| `recon/{targetId}`      | Thư mục dữ liệu Recon của một target   |
+| `code/{system_path}`    | Thư mục dữ liệu Code của một project   |
+| `repeater_{requestId}`  | Một request lặp lại                    |
+| `report:{reportId}`     | Một báo cáo                            |
+| `workflow_{taskId}.md`  | File workflow của một task             |
+| `design_{id}`           | Một design UI                          |
+| `{conversationId}.json` | Một cuộc hội thoại                     |
 
 ---
 
@@ -127,10 +126,10 @@ Phantoma lưu toàn bộ dữ liệu người dùng trong một thư mục ẩn 
 
 Ba file nằm trực tiếp ở thư mục gốc `~/.phantoma/`:
 
-| File | Vai trò |
-|---|---|
-| `phantoma.sql` | File cơ sở dữ liệu SQLite chính |
-| `phantoma.sql-shm` | Vùng nhớ chia sẻ (shared memory) của SQLite |
+| File               | Vai trò                                        |
+| ------------------ | ---------------------------------------------- |
+| `phantoma.sql`     | File cơ sở dữ liệu SQLite chính                |
+| `phantoma.sql-shm` | Vùng nhớ chia sẻ (shared memory) của SQLite    |
 | `phantoma.sql-wal` | Nhật ký ghi trước (write-ahead log) của SQLite |
 
 > Hai file `-shm` và `-wal` do SQLite tự quản lý khi bật chế độ WAL, **không** chỉnh sửa hoặc xoá thủ công khi ứng dụng đang chạy.
@@ -150,11 +149,11 @@ Lưu trữ dữ liệu phiên emulate: hội thoại, request lặp lại và b�
 └── reports/
 ```
 
-| Thư mục | Nội dung |
-|---|---|
-| `conversations/` | Hội thoại của phiên emulate |
-| `repeaters/` | Các request lặp lại, phân nhóm theo `repeater_{requestId}` |
-| `reports/` | Các báo cáo, mỗi báo cáo một thư mục `report:{reportId}` |
+| Thư mục          | Nội dung                                                   |
+| ---------------- | ---------------------------------------------------------- |
+| `conversations/` | Hội thoại của phiên emulate                                |
+| `repeaters/`     | Các request lặp lại, phân nhóm theo `repeater_{requestId}` |
+| `reports/`       | Các báo cáo, mỗi báo cáo một thư mục `report:{reportId}`   |
 
 ### 3.2 Repeaters
 
@@ -172,11 +171,11 @@ Mỗi request lặp lại được lưu trong một thư mục riêng, đặt t�
     └── body.json
 ```
 
-| File | Nội dung |
-|---|---|
-| `params.json` | Tham số của request |
-| `headers.json` | Header của request |
-| `body.json` | Nội dung body của request |
+| File           | Nội dung                  |
+| -------------- | ------------------------- |
+| `params.json`  | Tham số của request       |
+| `headers.json` | Header của request        |
+| `body.json`    | Nội dung body của request |
 
 ### 3.3 Reports
 
@@ -192,10 +191,10 @@ Mỗi report gồm một file markdown mô tả báo cáo và một thư mục `
         └── script.js
 ```
 
-| Thành phần | Mô tả |
-|---|---|
-| `reportId.md` | Báo cáo ở dạng markdown |
-| `code/` | Các file code khác (HTML, CSS, JS...) |
+| Thành phần    | Mô tả                                 |
+| ------------- | ------------------------------------- |
+| `reportId.md` | Báo cáo ở dạng markdown               |
+| `code/`       | Các file code khác (HTML, CSS, JS...) |
 
 ---
 
@@ -234,8 +233,8 @@ Lưu trữ dữ liệu của module Code **theo từng project**.
 `{system_path}` là **base64url** của đường dẫn tuyệt đối tới project.
 
 | Đường dẫn project | Giá trị `{system_path}` |
-|---|---|
-| `/home/user/proj` | `L2hvbWUvdXNlci9wcm9q` |
+| ----------------- | ----------------------- |
+| `/home/user/proj` | `L2hvbWUvdXNlci9wcm9q`  |
 
 Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
 
@@ -247,23 +246,22 @@ Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
 
 #### Lược đồ trường
 
-| Trường | Kiểu | Bắt buộc | Mặc định | Mô tả |
-|---|---|:---:|---|---|
-| `id` | TEXT (PK) | ✅ | — | Định danh task |
-| `title` | TEXT | ✅ | — | Tiêu đề |
-| `description` | TEXT | | `''` | Mô tả |
-| `status` | TEXT | | `'todo'` | Trạng thái: `todo`, `progress`, `review`, `done` |
-| `priority` | TEXT | | `'medium'` | Độ ưu tiên: `low`, `medium`, `high` |
-| `session_id` | TEXT | | `NULL` | Khoá ngoại mềm tới conversation/session id |
-| `workflow_id` | TEXT | | `NULL` | `workflow_{taskId}`; `NULL` nghĩa là task chưa có workflow |
-| `branch_name` | TEXT | | `NULL` | Tên git branch liên kết |
-| `due_date` | INTEGER | | `NULL` | Hạn chót, Unix timestamp (ms) |
-| `created_at` | INTEGER | ✅ | — | Thời điểm tạo, Unix timestamp (ms) |
-| `updated_at` | INTEGER | ✅ | — | Thời điểm cập nhật, Unix timestamp (ms) |
+| Trường        | Kiểu      | Bắt buộc | Mặc định   | Mô tả                                                      |
+| ------------- | --------- | :------: | ---------- | ---------------------------------------------------------- |
+| `id`          | TEXT (PK) |    ✅    | —          | Định danh task                                             |
+| `title`       | TEXT      |    ✅    | —          | Tiêu đề                                                    |
+| `description` | TEXT      |          | `''`       | Mô tả                                                      |
+| `status`      | TEXT      |          | `'todo'`   | Trạng thái: `todo`, `progress`, `review`, `done`           |
+| `priority`    | TEXT      |          | `'medium'` | Độ ưu tiên: `low`, `medium`, `high`                        |
+| `session_id`  | TEXT      |          | `NULL`     | Khoá ngoại mềm tới conversation/session id                 |
+| `workflow_id` | TEXT      |          | `NULL`     | `workflow_{taskId}`; `NULL` nghĩa là task chưa có workflow |
+| `branch_name` | TEXT      |          | `NULL`     | Tên git branch liên kết                                    |
+| `due_date`    | INTEGER   |          | `NULL`     | Hạn chót, Unix timestamp (ms)                              |
+| `created_at`  | INTEGER   |    ✅    | —          | Thời điểm tạo, Unix timestamp (ms)                         |
+| `updated_at`  | INTEGER   |    ✅    | —          | Thời điểm cập nhật, Unix timestamp (ms)                    |
 
 #### Lược đồ SQL tham chiếu
 
-
 Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
 
 ### 5.3 Tasks
@@ -274,19 +272,19 @@ Thư mục tương ứng: `~/.phantoma/code:L2hvbWUvdXNlci9wcm9q/`
 
 #### Lược đồ trường
 
-| Trường | Kiểu | Bắt buộc | Mặc định | Mô tả |
-|---|---|:---:|---|---|
-| `id` | TEXT (PK) | ✅ | — | Định danh task |
-| `title` | TEXT | ✅ | — | Tiêu đề |
-| `description` | TEXT | | `''` | Mô tả |
-| `status` | TEXT | | `'todo'` | Trạng thái: `todo`, `progress`, `review`, `done` |
-| `priority` | TEXT | | `'medium'` | Độ ưu tiên: `low`, `medium`, `high` |
-| `session_id` | TEXT | | `NULL` | Khoá ngoại mềm tới conversation/session id |
-| `workflow_id` | TEXT | | `NULL` | `workflow_{taskId}`; `NULL` nghĩa là task chưa có workflow |
-| `branch_name` | TEXT | | `NULL` | Tên git branch liên kết |
-| `due_date` | INTEGER | | `NULL` | Hạn chót, Unix timestamp (ms) |
-| `created_at` | INTEGER | ✅ | — | Thời điểm tạo, Unix timestamp (ms) |
-| `updated_at` | INTEGER | ✅ | — | Thời điểm cập nhật, Unix timestamp (ms) |
+| Trường        | Kiểu      | Bắt buộc | Mặc định   | Mô tả                                                      |
+| ------------- | --------- | :------: | ---------- | ---------------------------------------------------------- |
+| `id`          | TEXT (PK) |    ✅    | —          | Định danh task                                             |
+| `title`       | TEXT      |    ✅    | —          | Tiêu đề                                                    |
+| `description` | TEXT      |          | `''`       | Mô tả                                                      |
+| `status`      | TEXT      |          | `'todo'`   | Trạng thái: `todo`, `progress`, `review`, `done`           |
+| `priority`    | TEXT      |          | `'medium'` | Độ ưu tiên: `low`, `medium`, `high`                        |
+| `session_id`  | TEXT      |          | `NULL`     | Khoá ngoại mềm tới conversation/session id                 |
+| `workflow_id` | TEXT      |          | `NULL`     | `workflow_{taskId}`; `NULL` nghĩa là task chưa có workflow |
+| `branch_name` | TEXT      |          | `NULL`     | Tên git branch liên kết                                    |
+| `due_date`    | INTEGER   |          | `NULL`     | Hạn chót, Unix timestamp (ms)                              |
+| `created_at`  | INTEGER   |    ✅    | —          | Thời điểm tạo, Unix timestamp (ms)                         |
+| `updated_at`  | INTEGER   |    ✅    | —          | Thời điểm cập nhật, Unix timestamp (ms)                    |
 
 #### Lược đồ SQL tham chiếu
 
@@ -310,13 +308,13 @@ CREATE INDEX idx_tasks_session ON tasks(session_id);
 
 #### IPC channels
 
-| Channel | Chức năng |
-|---|---|
-| `task:list` | Lấy danh sách task |
-| `task:get` | Lấy một task |
-| `task:create` | Tạo task |
-| `task:update` | Cập nhật task |
-| `task:delete` | Xoá task |
+| Channel       | Chức năng          |
+| ------------- | ------------------ |
+| `task:list`   | Lấy danh sách task |
+| `task:get`    | Lấy một task       |
+| `task:create` | Tạo task           |
+| `task:update` | Cập nhật task      |
+| `task:delete` | Xoá task           |
 
 Handler: `src/main/ipc/task.handlers.ts`.
 
@@ -328,10 +326,10 @@ Mỗi task có **tối đa 1 workflow**, lưu thành file Markdown tại `workfl
 - File được ghi atomic bởi `src/main/storage/WorkflowStorage.ts`.
 - Renderer gọi qua `services/workflow.service.ts`.
 
-| IPC channel | Chức năng |
-|---|---|
-| `workflow:get` | Đọc workflow của task |
-| `workflow:create` | Tạo file workflow và gán `workflowId` cho task |
+| IPC channel       | Chức năng                                            |
+| ----------------- | ---------------------------------------------------- |
+| `workflow:get`    | Đọc workflow của task                                |
+| `workflow:create` | Tạo file workflow và gán `workflowId` cho task       |
 | `workflow:update` | Cập nhật workflow bằng cách thay thế **exact-match** |
 
 Handler: `src/main/ipc/workflow.handlers.ts`.
@@ -340,15 +338,14 @@ Handler: `src/main/ipc/workflow.handlers.ts`.
 
 Lưu trữ các design UI **tạm thời** (dùng `mockData`) theo từng project của module Code. Mỗi design là một thư mục `design_{id}` chứa `meta.json` và các file page `.tsx` được tạo từ template.
 
-
 - Trường `workflowId` của task (`workflow_{taskId}`, hoặc `null` nếu chưa có) cho biết task đã có workflow hay chưa.
 - File được ghi atomic bởi `src/main/storage/WorkflowStorage.ts`.
 - Renderer gọi qua `services/workflow.service.ts`.
 
-| IPC channel | Chức năng |
-|---|---|
-| `workflow:get` | Đọc workflow của task |
-| `workflow:create` | Tạo file workflow và gán `workflowId` cho task |
+| IPC channel       | Chức năng                                            |
+| ----------------- | ---------------------------------------------------- |
+| `workflow:get`    | Đọc workflow của task                                |
+| `workflow:create` | Tạo file workflow và gán `workflowId` cho task       |
 | `workflow:update` | Cập nhật workflow bằng cách thay thế **exact-match** |
 
 Handler: `src/main/ipc/workflow.handlers.ts`.
@@ -368,24 +365,24 @@ Lưu trữ các design UI **tạm thời** (dùng `mockData`) theo từng projec
 
 #### Cấu trúc `meta.json`
 
-| Trường | Mô tả |
-|---|---|
-| `id` | Định danh design |
-| `name` | Tên design |
-| `description` | Mô tả |
-| `nodes` | Danh sách node (xem bảng dưới) |
-| `createdAt` | Thời điểm tạo |
-| `updatedAt` | Thời điểm cập nhật |
+| Trường        | Mô tả                          |
+| ------------- | ------------------------------ |
+| `id`          | Định danh design               |
+| `name`        | Tên design                     |
+| `description` | Mô tả                          |
+| `nodes`       | Danh sách node (xem bảng dưới) |
+| `createdAt`   | Thời điểm tạo                  |
+| `updatedAt`   | Thời điểm cập nhật             |
 
 Mỗi phần tử trong `nodes` tương ứng **một page** (`file`) và được hiển thị dưới dạng diagram:
 
-| Trường node | Mô tả |
-|---|---|
-| `id` | Định danh node |
-| `name` | Tên page |
-| `route` | Route của page |
-| `file` | File `.tsx` tương ứng |
-| `x`, `y` | Toạ độ node trên diagram |
+| Trường node | Mô tả                    |
+| ----------- | ------------------------ |
+| `id`        | Định danh node           |
+| `name`      | Tên page                 |
+| `route`     | Route của page           |
+| `file`      | File `.tsx` tương ứng    |
+| `x`, `y`    | Toạ độ node trên diagram |
 
 #### Biên dịch và quản lý
 
@@ -393,12 +390,12 @@ Mỗi phần tử trong `nodes` tương ứng **một page** (`file`) và đư�
 - Lưu trữ: `src/main/storage/DesignStorage.ts`.
 - Handler: `src/main/ipc/design.handlers.ts`.
 
-| IPC channel | Chức năng |
-|---|---|
-| `design:list` | Liệt kê design |
-| `design:create` | Tạo design |
-| `design:update` | Cập nhật design |
-| `design:delete` | Xoá design |
+| IPC channel           | Chức năng          |
+| --------------------- | ------------------ |
+| `design:list`         | Liệt kê design     |
+| `design:create`       | Tạo design         |
+| `design:update`       | Cập nhật design    |
+| `design:delete`       | Xoá design         |
 | `design:compile-page` | Biên dịch một page |
 
 ---
@@ -409,35 +406,33 @@ Dữ liệu module Profile do **profile-server** (`profile-server/`, Express + b
 
 ### 6.1 Cấu trúc tổng thể
 
-
 ~/.phantoma/profile/
-├── profile.sql                   # SQLite chính của profile-server (WAL)
+├── profile.sql # SQLite chính của profile-server (WAL)
 └── profiles/
-    └── {emailId}/                # Mỗi email một thư mục
-        ├── email.json            # Dữ liệu email (field:value)
-        ├── service_email.sql     # Bảng service_emails
-        ├── chrome/               # user-data-dir của Google Chrome
-        ├── chromium/             # user-data-dir của (ungoogled-)Chromium
-        ├── passwords.db          # Mật khẩu, dùng chung cho cả 2 browser
-        └── fp-ip-history.db      # Lịch sử fingerprint + IP, dùng chung cho cả 2 browser
+└── {emailId}/ # Mỗi email một thư mục
+├── email.json # Dữ liệu email (field:value)
+├── service_email.sql # Bảng service_emails
+├── chrome/ # user-data-dir của Google Chrome
+├── chromium/ # user-data-dir của (ungoogled-)Chromium
+├── passwords.db # Mật khẩu, dùng chung cho cả 2 browser
+└── fp-ip-history.db # Lịch sử fingerprint + IP, dùng chung cho cả 2 browser
 
-
-| Thành phần | Mô tả |
-|---|---|
-| `profile.sql` | Bảng `sources`, `services` |
-| `profiles/{emailId}/` | `email.json`, `service_email.sql`, dữ liệu browser; xoá khi xoá email |
+| Thành phần                         | Mô tả                                                                                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profile.sql`                      | Bảng `sources`, `services`                                                                                                                     |
+| `profiles/{emailId}/`              | `email.json`, `service_email.sql`, dữ liệu browser; xoá khi xoá email                                                                          |
 | `passwords.db`, `fp-ip-history.db` | Nằm ở **cấp base** để `chrome/` và `chromium/` cùng thấy một dữ liệu; bản cũ nằm trong sub-folder được tự động chuyển lên khi truy cập lần đầu |
 
 ### 6.2 Cơ sở dữ liệu profile.sql
 
 Schema được áp dụng một lần qua `PRAGMA user_version` (hiện là `6`), `foreign_keys = ON`. Thời gian lưu dạng Unix timestamp (ms); API trả về chuỗi ISO.
 
-| Bảng | Lưu ở | Nội dung |
-|---|---|---|
-| `sources` | `profile.sql` | `id`, `name`, `path`; source (kể cả `local` Chrome) có folder không còn tồn tại bị xoá khi đọc |
-| `services` | `profile.sql` | `id`, `name`, `website_url`, `auth_methods` (JSON), `custom_fields` (JSON mảng `{ id, name, kind, required? }`) |
-| email | `profiles/{emailId}/email.json` | `email`, `display_name`, `avatar_hue`, `avatar_url`, `recovery_email`, `phone_number`, `totp`, `backup_codes`, `created_at`, `updated_at` |
-| `service_emails` | `profiles/{emailId}/service_email.sql` | `id`, `service_id`, `totps`, `backup_codes`, `auth_methods`, `custom_fields` (JSON mảng `{ name, value }`) |
+| Bảng             | Lưu ở                                  | Nội dung                                                                                                                                  |
+| ---------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `sources`        | `profile.sql`                          | `id`, `name`, `path`; source (kể cả `local` Chrome) có folder không còn tồn tại bị xoá khi đọc                                            |
+| `services`       | `profile.sql`                          | `id`, `name`, `website_url`, `auth_methods` (JSON), `custom_fields` (JSON mảng `{ id, name, kind, required? }`)                           |
+| email            | `profiles/{emailId}/email.json`        | `email`, `display_name`, `avatar_hue`, `avatar_url`, `recovery_email`, `phone_number`, `totp`, `backup_codes`, `created_at`, `updated_at` |
+| `service_emails` | `profiles/{emailId}/service_email.sql` | `id`, `service_id`, `totps`, `backup_codes`, `auth_methods`, `custom_fields` (JSON mảng `{ name, value }`)                                |
 
 ### 6.3 Thư mục browser của profile
 
@@ -449,19 +444,19 @@ Schema được áp dụng một lần qua `PRAGMA user_version` (hiện là `6`
 
 Tiền tố `/api/v1`; phản hồi dạng `{ success, data }` hoặc `{ success: false, error }`. Health check: `GET /health`.
 
-| Nhóm | Endpoint |
-|---|---|
-| Source | `GET/POST /sources`, `GET/PUT/DELETE /sources/:id` |
-| Profile | `GET/POST /profiles`, `POST /profiles/bulk`, `POST /profiles/bulk-delete`, `GET/PUT/DELETE /profiles/:id` (`?full=true` kèm dữ liệu liên quan) |
-| Service | `GET/POST /services`, `GET/PUT/DELETE /services/:id` |
-| Service-email | `GET/POST /profiles/:profileId/service-emails`, `GET/PUT/DELETE /service-emails/:id` |
-| Footprint | `GET/POST /profiles/:profileId/footprints`, `GET/PUT/DELETE /footprints/:id` |
-| Activity | `GET/POST /profiles/:profileId/activity`, `GET/PUT/DELETE /activity/:id`; `GET/DELETE /profiles/:profileId/browsing` |
-| Script / Device | `/profiles/:profileId/scripts`, `/scripts/:id`, `/profiles/:profileId/devices`, `/devices/:id` (cùng dạng CRUD) |
-| Thư mục browser | `GET/POST/DELETE /profiles/:id/folder`, `GET /browser/executables` |
-| Đọc dữ liệu browser | `GET /profiles/:id/{avatar,google-login,domain-session,saved-logins,extension-state,history}` (tham số `?browser=chrome\|chromium`) |
-| Mật khẩu | `GET/POST /profiles/:id/passwords`, `PUT/DELETE /profiles/:id/passwords/:passwordId` |
-| Fingerprint history | `GET /profiles/:id/fingerprint-history`, `DELETE /profiles/:id/fingerprint-history/:entryId` |
+| Nhóm                | Endpoint                                                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source              | `GET/POST /sources`, `GET/PUT/DELETE /sources/:id`                                                                                             |
+| Profile             | `GET/POST /profiles`, `POST /profiles/bulk`, `POST /profiles/bulk-delete`, `GET/PUT/DELETE /profiles/:id` (`?full=true` kèm dữ liệu liên quan) |
+| Service             | `GET/POST /services`, `GET/PUT/DELETE /services/:id`                                                                                           |
+| Service-email       | `GET/POST /profiles/:profileId/service-emails`, `GET/PUT/DELETE /service-emails/:id`                                                           |
+| Footprint           | `GET/POST /profiles/:profileId/footprints`, `GET/PUT/DELETE /footprints/:id`                                                                   |
+| Activity            | `GET/POST /profiles/:profileId/activity`, `GET/PUT/DELETE /activity/:id`; `GET/DELETE /profiles/:profileId/browsing`                           |
+| Script / Device     | `/profiles/:profileId/scripts`, `/scripts/:id`, `/profiles/:profileId/devices`, `/devices/:id` (cùng dạng CRUD)                                |
+| Thư mục browser     | `GET/POST/DELETE /profiles/:id/folder`, `GET /browser/executables`                                                                             |
+| Đọc dữ liệu browser | `GET /profiles/:id/{avatar,google-login,domain-session,saved-logins,extension-state,history}` (tham số `?browser=chrome\|chromium`)            |
+| Mật khẩu            | `GET/POST /profiles/:id/passwords`, `PUT/DELETE /profiles/:id/passwords/:passwordId`                                                           |
+| Fingerprint history | `GET /profiles/:id/fingerprint-history`, `DELETE /profiles/:id/fingerprint-history/:entryId`                                                   |
 
 ---
 
@@ -469,24 +464,24 @@ Tiền tố `/api/v1`; phản hồi dạng `{ success, data }` hoặc `{ success
 
 #### Cấu trúc `meta.json`
 
-| Trường | Mô tả |
-|---|---|
-| `id` | Định danh design |
-| `name` | Tên design |
-| `description` | Mô tả |
-| `nodes` | Danh sách node (xem bảng dưới) |
-| `createdAt` | Thời điểm tạo |
-| `updatedAt` | Thời điểm cập nhật |
+| Trường        | Mô tả                          |
+| ------------- | ------------------------------ |
+| `id`          | Định danh design               |
+| `name`        | Tên design                     |
+| `description` | Mô tả                          |
+| `nodes`       | Danh sách node (xem bảng dưới) |
+| `createdAt`   | Thời điểm tạo                  |
+| `updatedAt`   | Thời điểm cập nhật             |
 
 Mỗi phần tử trong `nodes` tương ứng **một page** (`file`) và được hiển thị dưới dạng diagram:
 
-| Trường node | Mô tả |
-|---|---|
-| `id` | Định danh node |
-| `name` | Tên page |
-| `route` | Route của page |
-| `file` | File `.tsx` tương ứng |
-| `x`, `y` | Toạ độ node trên diagram |
+| Trường node | Mô tả                    |
+| ----------- | ------------------------ |
+| `id`        | Định danh node           |
+| `name`      | Tên page                 |
+| `route`     | Route của page           |
+| `file`      | File `.tsx` tương ứng    |
+| `x`, `y`    | Toạ độ node trên diagram |
 
 #### Biên dịch và quản lý
 
@@ -494,12 +489,12 @@ Mỗi phần tử trong `nodes` tương ứng **một page** (`file`) và đư�
 - Lưu trữ: `src/main/storage/DesignStorage.ts`.
 - Handler: `src/main/ipc/design.handlers.ts`.
 
-| IPC channel | Chức năng |
-|---|---|
-| `design:list` | Liệt kê design |
-| `design:create` | Tạo design |
-| `design:update` | Cập nhật design |
-| `design:delete` | Xoá design |
+| IPC channel           | Chức năng          |
+| --------------------- | ------------------ |
+| `design:list`         | Liệt kê design     |
+| `design:create`       | Tạo design         |
+| `design:update`       | Cập nhật design    |
+| `design:delete`       | Xoá design         |
 | `design:compile-page` | Biên dịch một page |
 
 ---
@@ -522,25 +517,24 @@ Mỗi skill là một thư mục `{slug}/` chứa toàn bộ gói skill: luôn c
 
 Lưu tại `~/.phantoma/skills/groups.json`:
 
-
 {
-  "groups": [
-    {
-      "name": "string",
-      "slugs": ["string"],
-      "icon": "string (tuỳ chọn)",
-      "color": "string (tuỳ chọn)",
-      "description": "string (tuỳ chọn)"
-    }
-  ]
+"groups": [
+{
+"name": "string",
+"slugs": ["string"],
+"icon": "string (tuỳ chọn)",
+"color": "string (tuỳ chọn)",
+"description": "string (tuỳ chọn)"
+}
+]
 }
 
-
-| Trường | Mô tả |
-|---|---|
+| Trường   | Mô tả                                                                              |
+| -------- | ---------------------------------------------------------------------------------- |
 | `groups` | Danh sách nhóm skill (`name`, `slugs`, và tuỳ chọn `icon`, `color`, `description`) |
 
 File chỉ quản lý việc gán skill vào nhóm. Nếu chưa có `groups.json`, app đọc `groups` từ file cũ `~/.phantoma/skill-workspace-state.json` (nếu còn) và lần lưu kế tiếp sẽ ghi sang `groups.json`.
+
 ### Cài đặt skill
 
 1. Tải file zip của skill.
@@ -549,11 +543,11 @@ File chỉ quản lý việc gán skill vào nhóm. Nếu chưa có `groups.json
 
 Quy trình này đảm bảo **không để lại skill dở dang** nếu quá trình cài đặt bị gián đoạn.
 
-| Thành phần | Vị trí |
-|---|---|
-| Lưu trữ | `src/main/storage/SkillStorage.ts` |
+| Thành phần      | Vị trí                                   |
+| --------------- | ---------------------------------------- |
+| Lưu trữ         | `src/main/storage/SkillStorage.ts`       |
 | API marketplace | `src/main/services/skill-marketplace.ts` |
-| IPC `skill:*` | `src/main/ipc/skill.handlers.ts` |
+| IPC `skill:*`   | `src/main/ipc/skill.handlers.ts`         |
 
 ---
 
@@ -561,18 +555,16 @@ Quy trình này đảm bảo **không để lại skill dở dang** nếu quá t
 
 Binary browser tải về, lưu **toàn cục** (không theo project hay module). Mỗi browser một thư mục con theo tên, bên trong là các thư mục theo version.
 
-
 ~/.phantoma/browsers/
-└── {browserName}/                # vd: ungoogled-chromium
-    └── {version}/                # vd: 156.0.8078.79-1
-        ├── chrome                # File thực thi
-        └── ...                   # Các file còn lại của bản portable
+└── {browserName}/ # vd: ungoogled-chromium
+└── {version}/ # vd: 156.0.8078.79-1
+├── chrome # File thực thi
+└── ... # Các file còn lại của bản portable
 
-
-| Thành phần | Mô tả |
-|---|---|
-| `{browserName}` | Tên browser, hiện có `ungoogled-chromium` |
-| `{version}` | Chuỗi version đầy đủ (gồm revision `-1`), nhiều version có thể cùng tồn tại |
+| Thành phần      | Mô tả                                                                       |
+| --------------- | --------------------------------------------------------------------------- |
+| `{browserName}` | Tên browser, hiện có `ungoogled-chromium`                                   |
+| `{version}`     | Chuỗi version đầy đủ (gồm revision `-1`), nhiều version có thể cùng tồn tại |
 
 - Nguồn tải: bản **Portable Linux 64-bit** của ungoogled-chromium (`.tar.xz` trên GitHub Releases của `ungoogled-chromium-portablelinux`).
 - Cài đặt: tải về thư mục tạm, giải nén với `--strip-components=1` vào `{version}/`, rồi xoá file tạm; nếu `{version}/chrome` đã tồn tại thì bỏ qua.
@@ -581,12 +573,13 @@ Binary browser tải về, lưu **toàn cục** (không theo project hay module)
 ---
 
 ## 7. Phụ lục: Bản đồ mã nguồn liên quan
-| Chức năng | Storage | IPC handler | Renderer service |
-|---|---|---|---|
-| Tasks | `src/main/storage/TaskStorage.ts` | `src/main/ipc/task.handlers.ts` | `src/renderer/src/modules/Code/services/task.service.ts` |
-| Workflows | `src/main/storage/WorkflowStorage.ts` | `src/main/ipc/workflow.handlers.ts` | `services/workflow.service.ts` |
-| Designs | `src/main/storage/DesignStorage.ts` | `src/main/ipc/design.handlers.ts` | — |
-| Skills | `src/main/storage/SkillStorage.ts` | `src/main/ipc/skill.handlers.ts` | — (marketplace: `src/main/services/skill-marketplace.ts`) |
+
+| Chức năng | Storage                               | IPC handler                         | Renderer service                                          |
+| --------- | ------------------------------------- | ----------------------------------- | --------------------------------------------------------- |
+| Tasks     | `src/main/storage/TaskStorage.ts`     | `src/main/ipc/task.handlers.ts`     | `src/renderer/src/modules/Code/services/task.service.ts`  |
+| Workflows | `src/main/storage/WorkflowStorage.ts` | `src/main/ipc/workflow.handlers.ts` | `services/workflow.service.ts`                            |
+| Designs   | `src/main/storage/DesignStorage.ts`   | `src/main/ipc/design.handlers.ts`   | —                                                         |
+| Skills    | `src/main/storage/SkillStorage.ts`    | `src/main/ipc/skill.handlers.ts`    | — (marketplace: `src/main/services/skill-marketplace.ts`) |
 
 ---
 

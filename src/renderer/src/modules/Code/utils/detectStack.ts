@@ -231,30 +231,24 @@ export async function detectRemoteStack(url: string): Promise<StackInfo> {
 }
 
 export async function detectProjectStack(path: string): Promise<StackInfo> {
-  const files = await getProjectFiles(path);
-  if (!files.length) return { frameworks: [], languages: [], contributors: [], branches: [] };
+  const [files, languageStats, gitInfo] = await Promise.all([
+    getProjectFiles(path),
+    codeApi.git
+      .languageStats(path)
+      .then((res): LanguageStat[] => (Array.isArray(res) ? res : []))
+      .catch((err) => {
+        console.error('[ERROR DetectStack] Failed to fetch language stats:', err);
+        return [] as LanguageStat[];
+      }),
+    codeApi.git.repoInfo(path).catch((err) => {
+      console.error('[ERROR DetectStack] Failed to fetch git info:', err);
+      return null;
+    }),
+  ]);
 
   const baseInfo = detectFromManifest(files);
 
   const estimatedSize = files.length * 1024 * 50;
-
-  let languageStats: LanguageStat[] = [];
-  try {
-    const res = await codeApi.git.languageStats(path);
-    if (Array.isArray(res)) languageStats = res;
-  } catch (err) {
-    console.error('[ERROR DetectStack] Failed to fetch language stats via IPC:', err);
-  }
-
-  // FETCH REAL GIT INFO VIA IPC
-  let gitInfo: any = null;
-  try {
-    // Assumes 'git:get-repo-info' handler exists in Main Process
-    gitInfo = await codeApi.git.repoInfo(path);
-  } catch (err) {
-    console.error('[ERROR DetectStack] Failed to fetch git info via IPC:', err);
-    // Fallback to empty/null values if IPC fails (not a git repo or handler missing)
-  }
 
   return {
     ...baseInfo,

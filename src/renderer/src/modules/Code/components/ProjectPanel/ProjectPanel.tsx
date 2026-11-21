@@ -771,11 +771,13 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 const existing = existingBranchMap.get(gitBranch.name);
                 if (existing) {
                   // Keep existing sessions and visibility settings
+                  const linkedPath = gitBranch.path ?? existing.path;
                   return {
                     ...gitBranch,
                     sessions: existing.sessions,
                     visible: existing.visible,
-                    path: gitBranch.path ?? existing.path,
+                    path: linkedPath,
+                    remote: linkedPath ? undefined : gitBranch.remote,
                   };
                 }
                 // New branch from Git, start with empty sessions
@@ -1276,7 +1278,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const exists = project.branches.some((b) => b.name === result.branch);
       const newBranches: BranchInfo[] = exists
         ? project.branches.map((b) =>
-            b.name === result.branch ? { ...b, path: result.path, visible: true } : b,
+            b.name === result.branch
+              ? { ...b, path: result.path, visible: true, remote: undefined }
+              : b,
           )
         : [
             ...project.branches,
@@ -2593,7 +2597,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     closeDropdown();
                   }}
                 >
-                  Create local branch...
+                  Create branch...
                   {gitRepoByProject[activeProject.id] === false && (
                     <span className="ml-2 text-[10px] text-text-secondary/60">
                       No git repository
