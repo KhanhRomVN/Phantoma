@@ -5,6 +5,7 @@ import { cn } from '@renderer/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { useCodeStore, type StoredWorkspacePanel } from '../../hooks/useCodeStore';
 import { useGitFileStatus } from '../../hooks/useGitFileStatus';
+import { codeApi } from '../../services/code-api.service';
 import { getPanelMeta } from '../ContentPanel/Workspace/WorkspacePanes';
 
 const MAX_RESULTS = 100;
@@ -122,10 +123,10 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     }
     let cancelled = false;
     setLoading(true);
-    window.api
-      .invoke('workspace:list-files', projectPath)
-      .then((res: { success: boolean; files: string[] }) => {
-        if (!cancelled) setFiles(res?.success ? res.files : []);
+    codeApi.fs
+      .listProjectFiles(projectPath)
+      .then((res) => {
+        if (!cancelled) setFiles(res?.files ?? []);
       })
       .catch((err: unknown) => {
         console.error('[QuickOpenModal] List files failed:', err);

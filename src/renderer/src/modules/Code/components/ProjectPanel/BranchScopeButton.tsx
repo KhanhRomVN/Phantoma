@@ -4,6 +4,7 @@ import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { useBranchScope, useBranchScopeStore } from '../../stores/useBranchScopeStore';
 import { BranchScopeModal } from './BranchScopeModal';
+import { codeApi } from '../../services/code-api.service';
 
 const gitRepoCache = new Map<string, boolean>();
 
@@ -41,8 +42,7 @@ export const BranchScopeButton = memo(function BranchScopeButton({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await window.api.invoke('git:is-repo', root);
-        const ok = res === true || !!res?.isRepo;
+        const ok = await codeApi.git.isRepo(root);
         gitRepoCache.set(root, ok);
         if (!cancelled) setIsRepo(ok);
       } catch (err) {

@@ -5,6 +5,7 @@ import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { Button } from '@renderer/components/ui/Button/Button';
 import { cn } from '@renderer/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+import { codeApi } from '../../services/code-api.service';
 
 const HIDDEN_NAMES = new Set(['.git', 'node_modules']);
 
@@ -48,8 +49,9 @@ const highlight = (text: string, re: RegExp | null): React.ReactNode => {
 const sortEntries = (list: Entry[]): Entry[] =>
   list
     .filter((e) => !HIDDEN_NAMES.has(e.name))
-    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'folder' ? -1 : 1));
-
+    .sort((a, b) =>
+      a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'folder' ? -1 : 1,
+    );
 
 const NodeIcon = memo(function NodeIcon({
   name,
@@ -133,13 +135,25 @@ export const BranchScopeModal = memo(function BranchScopeModal({
   const branchColor = (branch: string) => {
     const palette = [
       { solid: 'bg-sky-500/15 text-sky-400', outline: 'border-sky-500/40 text-sky-400/80' },
-      { solid: 'bg-emerald-500/15 text-emerald-400', outline: 'border-emerald-500/40 text-emerald-400/80' },
-      { solid: 'bg-violet-500/15 text-violet-400', outline: 'border-violet-500/40 text-violet-400/80' },
+      {
+        solid: 'bg-emerald-500/15 text-emerald-400',
+        outline: 'border-emerald-500/40 text-emerald-400/80',
+      },
+      {
+        solid: 'bg-violet-500/15 text-violet-400',
+        outline: 'border-violet-500/40 text-violet-400/80',
+      },
       { solid: 'bg-rose-500/15 text-rose-400', outline: 'border-rose-500/40 text-rose-400/80' },
       { solid: 'bg-cyan-500/15 text-cyan-400', outline: 'border-cyan-500/40 text-cyan-400/80' },
-      { solid: 'bg-fuchsia-500/15 text-fuchsia-400', outline: 'border-fuchsia-500/40 text-fuchsia-400/80' },
+      {
+        solid: 'bg-fuchsia-500/15 text-fuchsia-400',
+        outline: 'border-fuchsia-500/40 text-fuchsia-400/80',
+      },
       { solid: 'bg-lime-500/15 text-lime-400', outline: 'border-lime-500/40 text-lime-400/80' },
-      { solid: 'bg-orange-500/15 text-orange-400', outline: 'border-orange-500/40 text-orange-400/80' },
+      {
+        solid: 'bg-orange-500/15 text-orange-400',
+        outline: 'border-orange-500/40 text-orange-400/80',
+      },
     ];
     let h = 0;
     for (let i = 0; i < branch.length; i++) h = (h * 31 + branch.charCodeAt(i)) >>> 0;
@@ -156,7 +170,9 @@ export const BranchScopeModal = memo(function BranchScopeModal({
       a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
     return otherScopes.flatMap((o) =>
       [...selected].flatMap((mine) =>
-        o.paths.filter((theirs) => overlaps(mine, theirs)).map((theirs) => ({ branch: o.branch, mine, theirs })),
+        o.paths
+          .filter((theirs) => overlaps(mine, theirs))
+          .map((theirs) => ({ branch: o.branch, mine, theirs })),
       ),
     );
   }, [otherScopes, selected]);
@@ -166,8 +182,8 @@ export const BranchScopeModal = memo(function BranchScopeModal({
   const getIgnored = useCallback((): Promise<string[]> => {
     if (!ignoredRef.current) {
       const base = projectRoot.replace(/\/+$/, '');
-      ignoredRef.current = window.api
-        .invoke('git:ignored-paths', projectRoot)
+      ignoredRef.current = codeApi.git
+        .ignoredPaths(projectRoot)
         .then((res: unknown) =>
           Array.isArray(res) ? res.map((p) => String(p).slice(base.length + 1)) : [],
         )
@@ -184,8 +200,7 @@ export const BranchScopeModal = memo(function BranchScopeModal({
       requestedDirs.add(rel);
       let list: Entry[] = [];
       try {
-        const res: Entry[] = await window.api.invoke(
-          'fs:read-dir',
+        const res: Entry[] = await codeApi.fs.readDir(
           rel ? `${projectRoot}/${rel}` : projectRoot,
         );
         const ignored = await getIgnored();
@@ -259,7 +274,6 @@ export const BranchScopeModal = memo(function BranchScopeModal({
       return next;
     });
   }, []);
-
 
   const [matchCase, setMatchCase] = useState(false);
   const [wholeWord, setWholeWord] = useState(false);
@@ -335,7 +349,10 @@ export const BranchScopeModal = memo(function BranchScopeModal({
       };
       const groups = new Map<string, { best: number; items: typeof scored }>();
       for (const s of tops) {
-        const g: { best: number; items: typeof scored } = groups.get(s.dir) ?? { best: 0, items: [] };
+        const g: { best: number; items: typeof scored } = groups.get(s.dir) ?? {
+          best: 0,
+          items: [],
+        };
         g.best = Math.max(g.best, s.score);
         g.items.push(s);
         groups.set(s.dir, g);
@@ -355,10 +372,7 @@ export const BranchScopeModal = memo(function BranchScopeModal({
                 },
               ]
             : [];
-          return [
-            ...header,
-            ...g.items.flatMap((s) => emit(s, dir ? 1 : 0, s.row.entry.name)),
-          ];
+          return [...header, ...g.items.flatMap((s) => emit(s, dir ? 1 : 0, s.row.entry.name))];
         })
         .slice(0, 300);
     }
@@ -379,7 +393,9 @@ export const BranchScopeModal = memo(function BranchScopeModal({
         if (q && !inMatch && !selfMatch && !matches(rel, e)) continue;
         out.push({ rel, entry: e, depth, label });
         const hasChildMatch =
-          !!q && e.type === 'folder' && (cache[rel] ?? []).some((c) => matches(`${rel}/${c.name}`, c));
+          !!q &&
+          e.type === 'folder' &&
+          (cache[rel] ?? []).some((c) => matches(`${rel}/${c.name}`, c));
         if (e.type === 'folder' && (expanded.has(rel) || hasChildMatch || selfMatch))
           walk(rel, depth + 1, inMatch || selfMatch);
       }
@@ -433,7 +449,6 @@ export const BranchScopeModal = memo(function BranchScopeModal({
     return info;
   })();
 
-
   return (
     <Modal
       isOpen
@@ -472,154 +487,175 @@ export const BranchScopeModal = memo(function BranchScopeModal({
           </div>
         )}
 
-
-          <div className="relative shrink-0 rounded-lg bg-text-secondary/10">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search files and folders..."
-              className={cn(
-                'w-full h-9 pl-9 pr-28 text-[12.5px] bg-transparent placeholder:text-text-secondary outline-none',
-                useRegex && q && !matcher ? 'text-error' : 'text-text-primary',
-              )}
-            />
-            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
-              {(
-                [
-                  ['Aa', 'Match case', matchCase, setMatchCase],
-                  ['ab', 'Match whole word', wholeWord, setWholeWord],
-                  ['.*', 'Use regular expression', useRegex, setUseRegex],
-                ] as const
-              ).map(([label, title, on, set]) => (
-                <button
-                  key={title}
-                  type="button"
-                  title={title}
-                  aria-pressed={on}
-                  onClick={() => set((v) => !v)}
-                  className={cn(
-                    'h-6 min-w-6 cursor-pointer rounded px-1 font-mono text-[11px] outline-none transition-colors',
-                    on
-                      ? 'bg-primary/20 text-primary'
-                      : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  className="ml-1 cursor-pointer text-text-secondary hover:text-text-primary"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-text-secondary/20 p-1.5">
-            {rows.length === 0 && (
-              <div className="py-8 text-center text-[12px] text-text-secondary">
-                {q ? 'No matches in loaded folders' : 'Empty'}
-              </div>
+        <div className="relative shrink-0 rounded-lg bg-text-secondary/10">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search files and folders..."
+            className={cn(
+              'w-full h-9 pl-9 pr-28 text-[12.5px] bg-transparent placeholder:text-text-secondary outline-none',
+              useRegex && q && !matcher ? 'text-error' : 'text-text-primary',
             )}
-            {rows.map(({ rel, entry, depth, label, header, open: rowOpen }) => {
-              if (header) {
-                return (
-                  <div
-                    key={rel}
-                    title={label}
-                    className="flex items-center gap-2 py-1 pr-2 text-[12.5px]"
-                    style={{ paddingLeft: '6px' }}
-                  >
-                    <ChevronRight className="w-3.5 h-3.5 shrink-0 rotate-90 text-text-secondary" />
-                    <NodeIcon name={label.split('/').pop() ?? label} isFolder open />
-                    <span className="truncate text-text-primary">{highlight(label, matcher)}</span>
-                  </div>
-                );
-              }
-              const isFolder = entry.type === 'folder';
-              const covered = [...selected].some((p) => rel.startsWith(`${p}/`));
-              const direct = selected.has(rel);
-              const partial = !direct && !covered && [...selected].some((p) => p.startsWith(`${rel}/`));
-              const state: CheckState = direct || covered ? 'checked' : 'unchecked';
-              const isOpen = isFolder && (q ? !!rowOpen : expanded.has(rel));
-              const run = runInfo.get(rel);
+          />
+          <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+            {(
+              [
+                ['Aa', 'Match case', matchCase, setMatchCase],
+                ['ab', 'Match whole word', wholeWord, setWholeWord],
+                ['.*', 'Use regular expression', useRegex, setUseRegex],
+              ] as const
+            ).map(([label, title, on, set]) => (
+              <button
+                key={title}
+                type="button"
+                title={title}
+                aria-pressed={on}
+                onClick={() => set((v) => !v)}
+                className={cn(
+                  'h-6 min-w-6 cursor-pointer rounded px-1 font-mono text-[11px] outline-none transition-colors',
+                  on
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="ml-1 cursor-pointer text-text-secondary hover:text-text-primary"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-text-secondary/20 p-1.5">
+          {rows.length === 0 && (
+            <div className="py-8 text-center text-[12px] text-text-secondary">
+              {q ? 'No matches in loaded folders' : 'Empty'}
+            </div>
+          )}
+          {rows.map(({ rel, entry, depth, label, header, open: rowOpen }) => {
+            if (header) {
               return (
                 <div
                   key={rel}
-                  onClick={() => {
-                    if (isFolder && q) toggleSearchCollapse(rel);
-                    else if (isFolder) toggleExpand(rel);
-                    else if (!covered) toggle(rel);
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!covered) toggle(rel);
-                  }}
-                  className={cn(
-                    'relative flex items-center gap-2 py-1 pr-2 rounded-md border border-transparent text-[12.5px] cursor-pointer hover:bg-card-hover transition-colors',
-                    run && run.pos !== 'single' && (state !== 'unchecked' || partial ? 'border-dashed border-error' : 'border-dashed border-warn'),
-                    run?.pos === 'first' && 'rounded-b-none border-b-transparent',
-                    run?.pos === 'mid' && 'rounded-none border-y-transparent',
-                    run?.pos === 'last' && 'rounded-t-none border-t-transparent',
-                  )}
-                  style={{ paddingLeft: `${6 + depth * 16}px` }}
+                  title={label}
+                  className="flex items-center gap-2 py-1 pr-2 text-[12.5px]"
+                  style={{ paddingLeft: '6px' }}
                 >
-                  {run?.pos === 'first' && (
-                    <span className={cn('pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 z-10 h-4 rounded-md px-1.5 font-mono text-[10px] leading-4', branchColor(run.owner).solid)}>
-                      {run.owner}
-                    </span>
-                  )}
-                  <ChevronRight
-                    className={cn(
-                      'w-3.5 h-3.5 shrink-0 text-text-secondary transition-transform',
-                      isOpen && 'rotate-90',
-                      !isFolder && 'invisible',
-                    )}
-                  />
-                  <NodeIcon name={entry.name} isFolder={isFolder} open={isOpen} />
+                  <ChevronRight className="w-3.5 h-3.5 shrink-0 rotate-90 text-text-secondary" />
+                  <NodeIcon name={label.split('/').pop() ?? label} isFolder open />
+                  <span className="truncate text-text-primary">{highlight(label, matcher)}</span>
+                </div>
+              );
+            }
+            const isFolder = entry.type === 'folder';
+            const covered = [...selected].some((p) => rel.startsWith(`${p}/`));
+            const direct = selected.has(rel);
+            const partial =
+              !direct && !covered && [...selected].some((p) => p.startsWith(`${rel}/`));
+            const state: CheckState = direct || covered ? 'checked' : 'unchecked';
+            const isOpen = isFolder && (q ? !!rowOpen : expanded.has(rel));
+            const run = runInfo.get(rel);
+            return (
+              <div
+                key={rel}
+                onClick={() => {
+                  if (isFolder && q) toggleSearchCollapse(rel);
+                  else if (isFolder) toggleExpand(rel);
+                  else if (!covered) toggle(rel);
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!covered) toggle(rel);
+                }}
+                className={cn(
+                  'relative flex items-center gap-2 py-1 pr-2 rounded-md border border-transparent text-[12.5px] cursor-pointer hover:bg-card-hover transition-colors',
+                  run &&
+                    run.pos !== 'single' &&
+                    (state !== 'unchecked' || partial
+                      ? 'border-dashed border-error'
+                      : 'border-dashed border-warn'),
+                  run?.pos === 'first' && 'rounded-b-none border-b-transparent',
+                  run?.pos === 'mid' && 'rounded-none border-y-transparent',
+                  run?.pos === 'last' && 'rounded-t-none border-t-transparent',
+                )}
+                style={{ paddingLeft: `${6 + depth * 16}px` }}
+              >
+                {run?.pos === 'first' && (
                   <span
                     className={cn(
-                      'truncate flex-1',
-                      direct ? 'text-primary font-medium' : covered ? 'text-text-secondary' : 'text-text-primary',
+                      'pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 z-10 h-4 rounded-md px-1.5 font-mono text-[10px] leading-4',
+                      branchColor(run.owner).solid,
                     )}
                   >
-                    {highlight(label, matcher)}
+                    {run.owner}
                   </span>
+                )}
+                <ChevronRight
+                  className={cn(
+                    'w-3.5 h-3.5 shrink-0 text-text-secondary transition-transform',
+                    isOpen && 'rotate-90',
+                    !isFolder && 'invisible',
+                  )}
+                />
+                <NodeIcon name={entry.name} isFolder={isFolder} open={isOpen} />
+                <span
+                  className={cn(
+                    'truncate flex-1',
+                    direct
+                      ? 'text-primary font-medium'
+                      : covered
+                        ? 'text-text-secondary'
+                        : 'text-text-primary',
+                  )}
+                >
+                  {highlight(label, matcher)}
+                </span>
 
-                  {(!run || run.pos === 'single') && ownersOf(rel).map((b) => (
+                {(!run || run.pos === 'single') &&
+                  ownersOf(rel).map((b) => (
                     <span
                       key={b}
-                      className={cn('shrink-0 rounded px-1.5 py-[2px] font-mono text-[10.5px]', branchColor(b).solid)}
+                      className={cn(
+                        'shrink-0 rounded px-1.5 py-[2px] font-mono text-[10.5px]',
+                        branchColor(b).solid,
+                      )}
                     >
                       {b}
                     </span>
                   ))}
-                  {isFolder && !isOpen &&
-                    innerOwnersOf(rel).map((b) => (
-                      <span
-                        key={`in:${b}`}
-                        title={`${b} has files selected inside this folder`}
-                        className={cn('shrink-0 rounded border px-1.5 py-[1px] font-mono text-[10.5px]', branchColor(b).outline)}
-                      >
-                        {b}
-                      </span>
-                    ))}
-                  {partial && !isOpen && (
+                {isFolder &&
+                  !isOpen &&
+                  innerOwnersOf(rel).map((b) => (
                     <span
-                      title="Has selected items inside"
-                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-                    />
-                  )}
-                  <ScopeCheckbox state={state} disabled={covered} onClick={() => toggle(rel)} />
-                </div>
-              );
-            })}
-          </div>
+                      key={`in:${b}`}
+                      title={`${b} has files selected inside this folder`}
+                      className={cn(
+                        'shrink-0 rounded border px-1.5 py-[1px] font-mono text-[10.5px]',
+                        branchColor(b).outline,
+                      )}
+                    >
+                      {b}
+                    </span>
+                  ))}
+                {partial && !isOpen && (
+                  <span
+                    title="Has selected items inside"
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+                  />
+                )}
+                <ScopeCheckbox state={state} disabled={covered} onClick={() => toggle(rel)} />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex items-center justify-end gap-2 px-5 py-4 shrink-0">

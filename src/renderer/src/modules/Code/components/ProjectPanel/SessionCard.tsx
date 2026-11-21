@@ -31,6 +31,7 @@ import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { useWorkflowSubTasks } from '../../hooks/useWorkflowSubTasks';
 import type { StoredTask } from '../../services/task.service';
 import { TASK_DRAG_TYPE } from '../ContentPanel/TaskManager/taskDrag';
+import { codeApi } from '../../services/code-api.service';
 
 export function getTempSessionName(
   sessionId: string,
@@ -541,8 +542,8 @@ function GitDots({ path }: { path: string }) {
   useEffect(() => {
     if (!path) return;
     let cancelled = false;
-    window.api
-      .invoke('git:status', path)
+    codeApi.git
+      .status(path)
       .then((res: any) => {
         if (cancelled || !res || res.error) return;
         let unstaged = 0;

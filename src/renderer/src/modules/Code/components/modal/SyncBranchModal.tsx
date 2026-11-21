@@ -35,6 +35,7 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { Button } from '@renderer/components/ui/Button/Button';
+import { codeApi } from '../../services/code-api.service';
 import { Tooltip } from '@renderer/components/ui/Tooltip/Tooltip';
 import { useBranchScope, useBranchScopeStore, isInScope } from '../../stores/useBranchScopeStore';
 import type { ScopeCategory } from '../../stores/useScopeStatsStore';
@@ -469,11 +470,11 @@ export function SyncBranchModal({
       return;
     }
     setRawBranches(null);
-    (window as any).api
-      .invoke('git:prune-orphan-branches', targetPath)
+    codeApi.git
+      .pruneOrphanBranches(targetPath)
       .catch(() => null)
       .then(() => {
-        return (window as any).api.invoke('git:list-branches', targetPath);
+        return codeApi.git.branches(targetPath);
       })
       .then((res: any) => {
         setRawBranches(res?.branches ?? []);
@@ -600,8 +601,8 @@ export function SyncBranchModal({
     setDirty(new Set());
     if (!isOpen || !isRemote || !targetPath) return;
     let cancelled = false;
-    (window as any).api
-      .invoke('git:status', targetPath)
+    codeApi.git
+      .status(targetPath)
       .then((res: any) => {
         if (cancelled || res?.error) return;
         setDirty(new Set(parseGitStatusOutput(String(res?.output ?? '')).map((e: any) => e.path)));
@@ -655,8 +656,8 @@ export function SyncBranchModal({
         .invoke('git:diff-vs-remote', targetPath, outside)
         .then((res: any) => (res && Array.isArray(res.files) ? new Set<string>(res.files) : null))
         .catch(() => null),
-      (window as any).api
-        .invoke('git:changed-in-other-branches', targetPath)
+      codeApi.git
+        .changedInOtherBranches(targetPath)
         .then((res: any) => new Set<string>(Object.keys(res?.files ?? {})))
         .catch(() => new Set<string>()),
     ]).then(([diff, other]) => {

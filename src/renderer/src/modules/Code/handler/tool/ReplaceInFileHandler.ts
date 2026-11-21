@@ -23,6 +23,9 @@ import { resolveWorkspacePath } from '../../utils/pathResolver';
 // ── Managers ──
 import { FileLockManager } from '../../managers/FileLockManager';
 
+// ── Services ──
+import { codeApi } from '../../services/code-api.service';
+
 // ─── Interfaces ─────────────────────────────────────────────────────────
 import type { ReplaceInFileParams } from '../../types/tool-params';
 
@@ -115,7 +118,7 @@ export class ReplaceInFileHandler {
     // Đọc nội dung file
     let content: string;
     try {
-      content = await api.invoke('fs:read-file', pathValue);
+      content = await codeApi.fs.readFile(pathValue);
     } catch {
       return {
         command: 'replaceInFileResult',
@@ -180,7 +183,7 @@ export class ReplaceInFileHandler {
     // Acquire lock và ghi file
     const release = await this.fileLockManager.acquire(pathValue);
     try {
-      await api.invoke('fs:write-file', pathValue, newContent);
+      await codeApi.fs.writeFile(pathValue, newContent);
 
       // TODO: Lấy diagnostics
       const diagnostics: any[] = [];
@@ -228,7 +231,7 @@ export class ReplaceInFileHandler {
     const search = clean(match[1]);
 
     try {
-      const content: string = await api.invoke('fs:read-file', message.path);
+      const content: string = await codeApi.fs.readFile(message.path);
       const normalized = content.replace(/\r\n/g, '\n');
       const exact = normalized.indexOf(search);
 

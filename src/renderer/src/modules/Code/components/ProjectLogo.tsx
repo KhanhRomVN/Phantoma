@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import { codeApi } from '../services/code-api.service';
+
 const MAX_CACHE = 200;
 const cache = new Map<string, string | null>();
 const pending = new Map<string, Promise<string | null>>();
@@ -10,7 +12,8 @@ function loadLogo(filePath: string, side: number): Promise<string | null> {
 
   let promise = pending.get(key);
   if (!promise) {
-    promise = (window.api.invoke('fs:read-image-data-url', filePath, side) as Promise<string | null>)
+    promise = codeApi.fs
+      .image(filePath, side)
       .catch(() => null)
       .then((url) => {
         if (cache.size >= MAX_CACHE) cache.clear();

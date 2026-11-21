@@ -49,6 +49,7 @@ export const useSessionTasks = create<SessionTasksState>((set, get) => ({
   load: async (projectPath) => {
     if (!projectPath) return;
     try {
+
       const list = await taskService.list(projectPath);
       const byPath = { ...get().byPath, [projectPath]: list };
       set({ byPath, bySession: indexBySession(byPath) });

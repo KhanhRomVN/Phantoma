@@ -9,6 +9,7 @@ import {
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
 import { parseRefs, type Commit } from './graph';
+import { codeApi } from '../../../services/code-api.service';
 
 interface CommitContextMenuProps {
   commit: Commit;
@@ -53,8 +54,8 @@ export const CommitContextMenu = memo(function CommitContextMenu({
 
   useEffect(() => {
     let cancelled = false;
-    window.api
-      .invoke('git:remote-url', projectPath)
+    codeApi.git
+      .remoteUrl(projectPath)
       .then((res: { url?: string }) => {
         if (!cancelled) setWebBase(res?.url ? toWebBase(res.url) : null);
       })
@@ -76,9 +77,7 @@ export const CommitContextMenu = memo(function CommitContextMenu({
   };
 
   const copyMessage = async () => {
-    const res = await window.api
-      .invoke('git:commit-body', projectPath, commit.hash)
-      .catch(() => null);
+    const res = await codeApi.git.commitBody(projectPath, commit.hash).catch(() => null);
     copy(res?.message || commit.subject, 'commit message');
   };
 

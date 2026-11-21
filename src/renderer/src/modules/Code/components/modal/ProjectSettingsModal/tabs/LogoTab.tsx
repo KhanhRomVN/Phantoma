@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, FolderOpen, Link2, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
+import { codeApi } from '../../../../services/code-api.service';
 import { ProjectLogoImage } from '../../../ProjectLogo';
 import {
   Panel,
@@ -33,8 +34,8 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
     setCandidates([]);
     if (!projectPath) return;
     setScanning(true);
-    window.api
-      .invoke('fs:scan-square-images', projectPath)
+    codeApi.fs
+      .scanSquareImages(projectPath)
       .then((res: unknown) => {
         if (alive) setCandidates(Array.isArray(res) ? (res as LogoCandidate[]) : []);
       })
@@ -65,7 +66,7 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
     setUrlBusy(true);
     setError('');
     try {
-      const res = await window.api.invoke('fs:download-project-logo', url);
+      const res = await codeApi.fs.downloadLogo(url);
       if (res?.success && res.path) {
         onChange({ logoPath: res.path });
         setUrlInput('');

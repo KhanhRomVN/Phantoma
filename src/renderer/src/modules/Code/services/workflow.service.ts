@@ -1,4 +1,5 @@
 import { TASKS_CHANGED_EVENT } from './task.service';
+import { codeApi, type CodeWorkflow } from './code-api.service';
 
 export interface WorkflowInfo {
   workflowId: string;
@@ -11,34 +12,40 @@ export interface WorkflowRef {
   taskId: string;
 }
 
-interface IpcResult<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-async function call<T>(channel: string, ...args: any[]): Promise<T> {
-  const res: IpcResult<T> = await window.api.invoke(channel, ...args);
-  if (!res.success) throw new Error(res.error || `IPC ${channel} failed`);
-  return res.data as T;
-}
-
-const notifyChanged =
-  <T>(projectPath: string) =>
-  (value: T): T => {
-    window.dispatchEvent(new CustomEvent(TASKS_CHANGED_EVENT, { detail: projectPath }));
-    return value;
+function mapCodeWorkflowToInfo(workflow: CodeWorkflow): WorkflowInfo {
+  return {
+    workflowId: workflow.id,
+    taskId: workflow.taskId,
+    content: workflow.content,
   };
+}
+
+function mapCodeWorkflowToRef(workflow: CodeWorkflow): WorkflowRef {
+  return {
+    workflowId: workflow.id,
+    taskId: workflow.taskId,
+  };
+}
+
+const notifyChanged = (projectPath: string) => {
+  window.dispatchEvent(new CustomEvent(TASKS_CHANGED_EVENT, { detail: projectPath }));
+};
 
 export const workflowService = {
-  get: (projectPath: string, taskId: string) =>
-    call<WorkflowInfo>('workflow:get', projectPath, taskId),
-  create: (projectPath: string, taskId: string, content: string) =>
-    call<WorkflowRef>('workflow:create', projectPath, taskId, content).then(
-      notifyChanged(projectPath),
-    ),
-  update: (projectPath: string, taskId: string, oldContent: string, newContent: string) =>
-    call<WorkflowInfo>('workflow:update', projectPath, taskId, oldContent, newContent).then(
-      notifyChanged(projectPath),
-    ),
+  get: async (projectPath: string, taskId: string): Promise<WorkflowInfo> => {
+    const workflow = await codeApi.workflows.get(taskId);
+    return mapCodeWorkflowToInfo(workflow);
+  },
+
+  create: async (projectPath: string, taskId: string, content: string): Promise<WorkflowRef> => {
+    const workflow = await codeApi.workflows.create(taskId, content);
+    notifyChanged(projectPath);
+    return mapCodeWorkflowToRef(workflow);
+  },
+
+  update: async (projectPath: string, taskId: string, oldContent: string, newContent: string): Promise<WorkflowInfo> => {
+    const workflow = await codeApi.workflows.update(taskId, oldContent, newContent);
+    notifyChanged(projectPath);
+    return mapCodeWorkflowToInfo(workflow);
+  },
 };

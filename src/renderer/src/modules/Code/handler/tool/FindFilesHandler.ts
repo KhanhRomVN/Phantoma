@@ -7,6 +7,7 @@
  */
 
 import { resolveWorkspacePath } from '../../utils/pathResolver';
+import { codeApi } from '../../services/code-api.service';
 
 interface BaseParams {
   requestId?: string;
@@ -36,15 +37,15 @@ export class FindFilesHandler {
     }
 
     try {
-      const api = (window as any).api;
-      if (!api?.invoke) throw new Error('IPC not available');
 
       // Resolve relative folder against workspace root so search hits the project.
       const resolvedFolder = await resolveWorkspacePath(
         folderPath || '.',
         (message as any).basePath,
       );
-      const results = await api.invoke('fs:find-files', resolvedFolder, fileName);
+      const results = await codeApi.fs.findFiles(resolvedFolder, fileName, {
+        exclude: ['node_modules', '.git'],
+      });
 
       return {
         command: 'findFilesResult',

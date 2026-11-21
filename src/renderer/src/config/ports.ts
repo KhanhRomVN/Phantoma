@@ -12,12 +12,14 @@ export const DEFAULT_SERVER_PORT = 8080;
 export const DEFAULT_EMULATE_PORT = 3002;
 export const DEFAULT_PROFILE_PORT = 3033;
 export const DEFAULT_PROXY_PORT = 3044;
+export const DEFAULT_CODE_PORT = 3055;
 
 export interface RuntimePorts {
   server: number;
   emulate: number;
   profile: number;
   proxy?: number;
+  code?: number;
 }
 
 // Dev: port cố định. Build: sẽ được main điền sau khi spawn.
@@ -26,6 +28,7 @@ export const DEV_PORTS: RuntimePorts = {
   emulate: DEFAULT_EMULATE_PORT,
   profile: DEFAULT_PROFILE_PORT,
   proxy: DEFAULT_PROXY_PORT,
+  code: DEFAULT_CODE_PORT,
 };
 
 export function serverBaseUrl(port: number): string {
@@ -41,5 +44,9 @@ export function profileBaseUrl(port: number): string {
 }
 
 export function proxyBaseUrl(port: number): string {
+  return `http://localhost:${port}`;
+}
+
+export function codeBaseUrl(port: number): string {
   return `http://localhost:${port}`;
 }

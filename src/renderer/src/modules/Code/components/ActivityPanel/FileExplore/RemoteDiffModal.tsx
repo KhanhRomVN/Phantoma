@@ -10,6 +10,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 import { memo, useEffect, useMemo, useState } from 'react';
 import { Loader, GitBranch } from 'lucide-react';
+import { codeApi } from '../../../services/code-api.service';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
@@ -85,9 +86,9 @@ export function RemoteDiffModal({ isOpen, onClose, projectPath, filePath }: Remo
     if (!isOpen || !filePath) return;
     let cancelled = false;
     setPanel({ loading: true, error: null, diff: '' });
-    window.api
-      .invoke('git:file-diff-vs-remote', projectPath, filePath)
-      .then((res: { diff?: string; remoteRef?: string; error?: string }) => {
+    codeApi.git
+      .fileDiffVsRemote(projectPath, filePath)
+      .then((res) => {
         if (cancelled) return;
         if (res?.remoteRef) setRemoteRef(res.remoteRef);
         setPanel(

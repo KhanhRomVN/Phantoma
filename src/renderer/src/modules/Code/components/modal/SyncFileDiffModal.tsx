@@ -9,6 +9,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search } from 'lucide-react';
+import { codeApi } from '../../services/code-api.service';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
@@ -190,8 +191,8 @@ export function SyncFileDiffModal({
         .invoke('git:diff-vs-remote', projectPath, outside)
         .then((res: any) => (res && Array.isArray(res.files) ? new Set<string>(res.files) : null))
         .catch(() => null),
-      (window as any).api
-        .invoke('git:changed-in-other-branches', projectPath)
+      codeApi.git
+        .changedInOtherBranches(projectPath)
         .then((res: any) => new Set<string>(Object.keys(res?.files ?? {})))
         .catch(() => new Set<string>()),
     ]).then(([diff, other]) => {

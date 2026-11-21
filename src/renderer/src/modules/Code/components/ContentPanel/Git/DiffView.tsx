@@ -10,6 +10,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, ArrowLeft, GitBranch, Loader2 } from 'lucide-react';
+import { codeApi } from '../../../services/code-api.service';
 
 import {
   FileSection,
@@ -48,8 +49,10 @@ export const DiffView = memo(function DiffView({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    window.api
-      .invoke(localBranch ? 'git:local-diff' : 'git:commit-diff', projectPath, localBranch ?? hash)
+    (localBranch
+      ? codeApi.git.localDiff(projectPath, localBranch)
+      : codeApi.git.commitDiff(projectPath, hash ?? '')
+    )
       .then((res: { diff?: string; error?: string }) => {
         if (cancelled) return;
         if (res?.error) {

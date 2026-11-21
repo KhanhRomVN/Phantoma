@@ -22,6 +22,7 @@ import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } f
 import { useCodeStore, type StoredWorkspacePanel } from '../../../hooks/useCodeStore';
 import { useWorkflowStore } from '../../../hooks/useWorkflowStore';
 import { useDebugStore } from '../../../stores/useDebugStore';
+import { codeApi, type CodeWorkspacePanel } from '../../../services/code-api.service';
 import {
   attachAgentToProject,
   removeAgentFromProject,
@@ -278,6 +279,37 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     storedLayouts,
     isActive,
   ]);
+
+  // Local → DB (workspace_panels + sessions.layout), debounced
+  // ASSUMED: sessionId trùng với sessions.id ở code server; lỗi (vd. 404) bị bỏ qua
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const body: CodeWorkspacePanel[] = withoutDebugTerminals(panels).map((p) => ({
+        id: p.id,
+        type: p.type,
+        title: p.title,
+        content: p.content ?? null,
+        filePath: p.filePath ?? null,
+        cwd: p.cwd ?? null,
+        providerId: p.providerId ?? null,
+        zencliConversationId: p.zencliConversationId ?? null,
+        zencliLastActiveAt: p.zencliLastActiveAt ?? null,
+        agentConversationId: p.agentConversationId ?? null,
+        agentTitle: p.agentTitle ?? null,
+        workflowAgentId: p.workflowAgentId ?? null,
+        pinned: !!p.pinned,
+      }));
+      codeApi.sessions
+        .saveWorkspace(sessionId, {
+          panels: body,
+          layout: { paneTabs, paneActive, focusedPane, sizes },
+          activePanelId: focusedActiveId,
+        })
+        .then((res) => console.log('[DEBUG] saveWorkspace OK, server panels:', res.panels?.length))
+        .catch((err) => console.error('[DEBUG] saveWorkspace FAILED', sessionId, err));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [sessionId, panels, paneTabs, paneActive, focusedPane, sizes, focusedActiveId]);
 
   // ─── Derived layout ─────────────────────────────────────────────────
 
@@ -559,7 +591,6 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     },
     [currentProjectPath],
   );
-
 
   const [pendingAdd, setPendingAdd] = useState<{
     type: PanelType;
@@ -1159,13 +1190,19 @@ export const WorkspaceViews = memo(function WorkspaceViews({
           .catch((err) => console.error('[Workspace] Open file failed:', err));
         return;
       }
-
-
     };
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [isActive, isViewVisible, addPanel, currentProjectPath, panels, openActivityTab, setContentViewMode]);
+  }, [
+    isActive,
+    isViewVisible,
+    addPanel,
+    currentProjectPath,
+    panels,
+    openActivityTab,
+    setContentViewMode,
+  ]);
 
   useEffect(() => {
     const onTempFileSaved = (e: Event) => {

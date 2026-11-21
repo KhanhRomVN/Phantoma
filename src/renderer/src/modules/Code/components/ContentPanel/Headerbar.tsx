@@ -35,6 +35,7 @@ import {
 import { useAccentColors } from '@renderer/hooks/useAccentColors';
 
 import { useSessionTasks } from '../../hooks/useSessionTasks';
+import { codeApi } from '../../services/code-api.service';
 import { getTempSessionName } from '../ProjectPanel/SessionCard';
 import { getProjectIdentity, ProjectIcon } from '../ProjectPanel/ProjectCard';
 import { ArchivedTasksModal } from './ArchivedTasksModal';
@@ -106,7 +107,7 @@ export function ContentHeaderBar() {
     (async () => {
       try {
         const gitHead = projectPath.replace(/\/$/, '') + '/.git/HEAD';
-        const content: string = await window.api.invoke('fs:read-file', gitHead);
+        const content: string = await codeApi.fs.readFile(gitHead, true);
         const match = content?.match(/^ref: refs\/heads\/(.+)$/m);
         if (!cancelled) setBranch(match ? match[1].trim() : null);
       } catch {

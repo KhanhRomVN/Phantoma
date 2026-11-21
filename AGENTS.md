@@ -114,6 +114,12 @@
 
 - `modules/Setting/components/Backup/index.tsx` backup thư mục `~/.phantoma` lên repo GitHub private của user; main handler ở `src/main/ipc/backup.handlers.ts` (`backup:status|enable|list-dir|set-ignore|push`, đăng ký `setupBackupHandlers` ở `main/index.ts`). `git add .` / `git commit` dùng lại `git:stage-all` / `git:commit` với projectPath = `~/.phantoma`; set/unset `.gitignore` theo từng path dạng `/rel/path`.
 
+## Setting module UI
+
+- `modules/Setting/` không còn searchbar/breadcrumb: sidebar rộng `w-72` có hero (`phantoma-logo.png` qua `window.__zenImagesUri || '/images'`). Mỗi tab có tone riêng trong `TAB_TONE` (`nav.ts`), truyền qua `TabToneContext` (`components/shared`) cho `PageHeader`/`Section`/`Toggle`/`Segmented`; không dùng mỗi `primary`.
+- `tailwind.config.js` đã có thêm màu accent `blue/green/red/yellow/purple/pink/navy/teal/violet` (CSS var do `ThemeProvider` set); `Tone` trong `shared` gồm cả các màu này (`TONE/BAR/TEXT/BORDER/GLOW`).
+- Interface: `ThemeCard.tsx` (card mới), `fakeThemes.ts` (theme preview giả, không persist qua reload), `FontPicker.tsx` (lưới font + sample text). Backup: `index.tsx` (status, sync theo bước) + `FileTree.tsx` (cây ignore + tab Ignored). SqlViewer: 3 panel `index.tsx` (file) / `TablesPanel.tsx` / `DataPanel.tsx`.
+
 ## Widgets folder
 
 - `components/Widgets/` (trước đây là `RightPanel`) chỉ là folder chứa module UI (`Zen/`, `AgentTools/`), KHÔNG còn `index.tsx`. Mỗi module tự dựng panel riêng: Recon dùng `modules/Recon/components/ReconPanel` (tabBar Zen/Agent Tools, tab lưu theo target trong `stores/useReconPanelStore.ts`), Emulate dùng `modules/Emulate/components/EmulatePanel`; `MainLayout.tsx` render theo `activeModule`.
@@ -170,6 +176,16 @@
 - `npm run test:latest` — chỉ chạy bản build gần nhất trong `release-build/` (tự tìm version cao nhất), KHÔNG build lại.
 - Cả 2 đều tự `delete ELECTRON_RUN_AS_NODE` — shell môi trường của dev có set biến này (`ELECTRON_RUN_AS_NODE=1`) khiến binary chạy như Node thay vì mở app.
 - Không cần nén AppImage cho việc test logic — chỉ nén khi thực sự phát hành.
+
+## Code server (`code/`)
+
+- `utils/guard.ts` có `safePath(value, field, { write?, withinProject? })`: chặn file nhạy cảm (`.env`, `.pem`, `id_rsa`...), ghi vào `/etc /usr /sbin /boot /sys /proc`, và path ngoài worktree đã đăng ký. Mọi route fs/git mới phải đi qua nó.
+- `services/git-runner.ts` là helper git async duy nhất (`runGit(args, cwd)` không throw, `gitText(cwd, args)` throw), đã set `GIT_CEILING_DIRECTORIES`. Không dùng `execFileSync`.
+- `fs.service.ts` dùng `fs.promises`; `writeFile` tự `mkdir -p` thư mục cha. `GET /git/status` trả `{ files, output, diffStats, unpushedCommits, committedFiles, branch }`.
+- `codeApi.fs.readDir` là adapter trả `{ name, type, size }` cho nơi gọi cũ của IPC `fs:read-dir`.
+- `POST /fs/grep` (`fsReadService.grep`, body `searchTerm/filePath/folderPath/maxFiles/maxFileSize/exclude`) và `GET /fs/read-file?start=&end=` (0-based, end inclusive) là nơi `GrepHandler`/`ReadFileHandler` gọi qua `codeApi.fs.grep|readFile`; `ListFilesHandler` dùng `codeApi.fs.tree`.
+- PR (gh CLI) nằm ở `services/pr.service.ts` + `routes/pr.route.ts` (`/pr/status|list|login-token|login-web|login-web/cancel`, `/pr/:number[/diff|merge|close|reopen|ready|comment|review]`, `POST /pr` tạo PR; body/query dùng `root`); renderer gọi qua `codeApi.pr.*`, riêng `pr:open-external` vẫn là IPC.
+- Git ghi nằm ở `services/git-write.service.ts` (`gitWriteService`, `resolveDefaultBranch` dùng chung với `git-remote.service.ts`): `POST /git/checkout|commit|stage|stage-all|unstage|unstage-all|prune-orphan-branches|clone|protect-enable|protect-disable`, `GET /git/protect-status|check-ready`; body dùng `root`. `Setting/Backup` vẫn gọi IPC `git:stage-all|commit` vì `~/.phantoma` không nằm trong worktree đã đăng ký (`withinProject` sẽ chặn).
 
 ## Module registry
 

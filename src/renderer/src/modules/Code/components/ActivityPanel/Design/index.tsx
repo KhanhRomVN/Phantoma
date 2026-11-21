@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Palette, Plus } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { useDesignStore } from '../../../hooks/useDesignStore';
 import { DesignModal } from './DesignModal';
@@ -24,8 +24,6 @@ export function Design() {
     if (projectPath) void loadDesigns(projectPath);
   }, [projectPath, loadDesigns]);
 
-
-
   const handleOpen = (designId: string) => {
     openTab(designId);
     // ASSUMED: Mở Design tab trong Workspace thay vì contentViewMode
@@ -38,7 +36,11 @@ export function Design() {
     );
   };
 
-  const handleCreate = async (name: string, description: string, platform: 'website' | 'mobile') => {
+  const handleCreate = async (
+    name: string,
+    description: string,
+    platform: 'website' | 'mobile',
+  ) => {
     if (!projectPath) return;
     const design = await createDesign(projectPath, {
       name,
@@ -93,11 +95,7 @@ export function Design() {
         )}
       </div>
 
-      <DesignModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleCreate}
-      />
+      <DesignModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onSubmit={handleCreate} />
     </div>
   );
 }

@@ -34,6 +34,7 @@ import {
 import { cn } from '@renderer/utils/cn';
 import { Tooltip } from '@renderer/components/ui/Tooltip';
 import { useCodeStore } from '../hooks/useCodeStore';
+import { codeApi } from '../services/code-api.service';
 import { useDebugStore } from '../stores/useDebugStore';
 import { SCOPE_DIFF_DOT, useScopeStats } from '../stores/useScopeStatsStore';
 import type { GitChangeKind } from '../services/git-status-parser';
@@ -157,8 +158,8 @@ export function FooterBar({ className }: FooterBarProps) {
     }
     setLoading(true);
     try {
-      const res = await window.api.invoke('git:status', projectPath);
-      if (!res || res.error) {
+      const res = await codeApi.git.status(projectPath).catch(() => null);
+      if (!res) {
         setGit(null);
         return;
       }

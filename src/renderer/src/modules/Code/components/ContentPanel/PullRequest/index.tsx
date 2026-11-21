@@ -17,6 +17,7 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { GitPullRequest } from 'lucide-react';
 
 import { useCodeStore } from '../../../hooks/useCodeStore';
+import { codeApi } from '../../../services/code-api.service';
 import { PullRequestPanel } from './PullRequestPanel';
 
 // ─── Main Component ─────────────────────────────────────────────────────
@@ -36,11 +37,14 @@ export const PullRequestView = memo(function PullRequestView() {
 
   useEffect(() => {
     if (!projectPath) return;
-    window.api.invoke('git:default-branch', projectPath).then((def: { name?: string }) => {
-      setDefaultBranch(def?.name ?? '');
-    });
-    window.api
-      .invoke('git:log', projectPath, 1, 'HEAD')
+    codeApi.git
+      .defaultBranch(projectPath)
+      .then((def: { name?: string }) => {
+        setDefaultBranch(def?.name ?? '');
+      })
+      .catch(() => undefined);
+    codeApi.git
+      .log(projectPath, 1, 'HEAD')
       .then((res: { commits?: { refs: string[] }[] }) => {
         const ref = res?.commits?.[0]?.refs.find((r) => r.startsWith('HEAD -> '));
         setCurrentBranch(ref ? ref.slice(8) : null);

@@ -9,6 +9,7 @@ import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/cons
 // ── Hooks ──
 import { useCodeStore } from '../hooks/useCodeStore';
 import { GitCommitHandler } from '../handler/tool/GitHandlers';
+import { codeApi } from '../services/code-api.service';
 
 // ── Types ──
 import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
@@ -84,8 +85,8 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
   React.useEffect(() => {
     if (branch || !projectPath) return;
     let cancelled = false;
-    window.api
-      .invoke('git:status', projectPath)
+    codeApi.git
+      .status(projectPath)
       .then((res: any) => {
         if (!cancelled && res && !res.error && res.branch) setFetchedBranch(res.branch);
       })

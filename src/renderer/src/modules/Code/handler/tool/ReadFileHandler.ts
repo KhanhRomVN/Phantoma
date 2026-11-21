@@ -15,6 +15,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
 import { SecurityValidator } from '../../utils/security';
+import { codeApi } from '../../services/code-api.service';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 import type { ReadFileParams } from '../../types/tool-params';
@@ -87,21 +88,16 @@ export class ReadFileHandler {
         };
       }
 
-      const api = (window as any).api;
-      if (!api?.invoke) {
-        throw new Error('IPC not available');
-      }
-
-      let content: string = await api.invoke('fs:read-file', resolvedPath);
-
-      // Xử lý start_line / end_line
+      // start_line / end_line được server cắt (cùng ngữ nghĩa cũ: 0-based, end inclusive)
       const startLine = message.start_line ?? message.startLine;
       const endLine = message.end_line ?? message.endLine;
-      if (startLine !== undefined) {
-        const lines = content.split(/\r?\n/);
-        const end = endLine !== undefined ? endLine + 1 : lines.length;
-        content = lines.slice(startLine || 0, end).join('\n');
-      }
+      const content: string = await codeApi.fs.readFile(
+        resolvedPath,
+        false,
+        startLine !== undefined
+          ? { start: Number(startLine) || 0, end: endLine !== undefined ? Number(endLine) : undefined }
+          : undefined,
+      );
 
       // LSP removed — diagnostics always empty
       const diagnostics: any[] = [];

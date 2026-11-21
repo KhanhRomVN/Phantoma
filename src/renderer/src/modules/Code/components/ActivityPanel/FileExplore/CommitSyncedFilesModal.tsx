@@ -6,6 +6,7 @@ import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
+import { codeApi } from '../../../services/code-api.service';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
 interface CommitSyncedFilesModalProps {
@@ -107,12 +108,7 @@ export function CommitSyncedFilesModal({
     setBusy(true);
     setError(null);
     try {
-      const res = await window.api.invoke(
-        'git:commit-push-files',
-        projectPath,
-        files,
-        message.trim(),
-      );
+      const res = await codeApi.git.commitPushFiles(projectPath, files, message.trim());
       if (res?.error) {
         setError(res.committed ? `Committed, but push failed: ${res.error}` : res.error);
         if (res.committed) onDone();
