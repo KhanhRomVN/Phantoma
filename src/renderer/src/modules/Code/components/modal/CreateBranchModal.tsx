@@ -27,6 +27,7 @@ import {
   type WorktreePreview,
 } from './ConfirmCreateBranchModal';
 import { TreeUIPreview } from './TreeUIPreview';
+import { codeApi } from '../../services/code-api.service';
 
 type CopyMode = 'latest-commit' | 'local' | 'commit';
 
@@ -127,8 +128,8 @@ export function CreateBranchModal({
         ? defaultSource
         : (sourceOptions[0] ?? ''),
     );
-    (window as any).api
-      .invoke('git:status', projectPath)
+    codeApi.git
+      .status(projectPath)
       .then((res: any) => setCurrentBranch(res?.branch ?? ''))
       .catch(() => setCurrentBranch(''));
     (window as any).api
@@ -152,8 +153,8 @@ export function CreateBranchModal({
     let cancelled = false;
     setCommitsLoading(true);
     setSelectedHash(null);
-    (window as any).api
-      .invoke('git:log', projectPath, 100, sourceRef)
+    codeApi.git
+      .log(projectPath, 100, sourceRef)
       .then((res: any) => {
         if (!cancelled) setCommits(res?.commits ?? []);
       })

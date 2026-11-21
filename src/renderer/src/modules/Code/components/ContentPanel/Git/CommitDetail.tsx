@@ -12,6 +12,7 @@ import { memo, useEffect, useMemo, useState } from 'react';
 import { FolderTree, GitCommit, List, Loader2, Search } from 'lucide-react';
 
 import { cn } from '@renderer/utils/cn';
+import { codeApi } from '../../../services/code-api.service';
 import { Avatar } from './Avatar';
 import { ChangedFiles, type FileActions, type FilesView } from './ChangedFiles';
 import { RefPill } from './GraphCell';
@@ -52,8 +53,8 @@ export const CommitDetail = memo(function CommitDetail({
   useEffect(() => {
     if (!commitHash || body !== null) return;
     let cancelled = false;
-    window.api
-      .invoke('git:commit-body', projectPath, commitHash)
+    codeApi.git
+      .commitBody(projectPath, commitHash)
       .then((res: { message?: string }) => {
         if (!cancelled) setBody(res?.message ?? '');
       })

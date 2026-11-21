@@ -111,6 +111,23 @@ export function ThemeProvider({
         }
       }
     });
+    const ACCENT_FALLBACK: Record<string, string> = {
+      blue: '96 165 250',
+      green: '74 222 128',
+      red: '248 113 113',
+      yellow: '250 204 21',
+      purple: '192 132 252',
+      pink: '244 114 182',
+      navy: '59 130 246',
+      teal: '45 212 191',
+      violet: '167 139 250',
+    };
+    Object.entries(ACCENT_FALLBACK).forEach(([key, triplet]) => {
+      if ((themeData as unknown as Record<string, unknown>)[key]) return;
+      const cssVar = cssVarMap[key];
+      root.style.setProperty(cssVar, triplet);
+      root.style.setProperty(`${cssVar}-rgb`, `rgb(${triplet.split(' ').join(', ')})`);
+    });
   };
 
   const applyPresetTheme = (preset: ThemeConfig) => {

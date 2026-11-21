@@ -138,6 +138,30 @@ export function startProfileServer(): Promise<RuntimePorts> {
   });
 }
 
+let codeProc: UtilityProcess | null = null;
+let codeStarting: Promise<RuntimePorts> | null = null;
+
+/** Spawn code server theo yêu cầu (packaged only). Idempotent. */
+export function startCodeServer(): Promise<RuntimePorts> {
+  if (!app.isPackaged) return Promise.resolve(currentPorts);
+  if (codeProc) return Promise.resolve(currentPorts);
+  if (codeStarting) return codeStarting;
+
+  codeStarting = (async () => {
+    const codePort = await findFreePort();
+    currentPorts = { ...currentPorts, code: codePort };
+
+    const codeEntry = resolveServerEntry(path.join(resourcesRoot(), 'code'));
+    codeProc = fork(codeEntry, { CODE_PORT: String(codePort), ENV: 'production' }, 'code');
+    await waitHealthy(`http://127.0.0.1:${codePort}`);
+    return currentPorts;
+  })();
+
+  return codeStarting.finally(() => {
+    codeStarting = null;
+  });
+}
+
 export function getPorts(): RuntimePorts {
   return currentPorts;
 }
@@ -146,6 +170,8 @@ export function stopServers(): void {
   if (serverProc) serverProc.kill();
   if (emulateProc) emulateProc.kill();
   if (profileProc) profileProc.kill();
+  if (codeProc) codeProc.kill();
+  codeProc = null;
   serverProc = null;
   emulateProc = null;
   profileProc = null;

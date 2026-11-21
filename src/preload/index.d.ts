@@ -12,6 +12,7 @@ interface API {
     getPorts(): Promise<{ server: number; emulate: number; profile: number }>;
     startEmulate(): Promise<{ server: number; emulate: number; profile: number }>;
     startProfile(): Promise<{ server: number; emulate: number; profile: number }>;
+    startCode(): Promise<{ server: number; emulate: number; profile: number; code?: number }>;
     getChromeDefaultDir(): Promise<string>;
     getDeviceFingerprint(): Promise<{
       family: 'windows' | 'macos' | 'linux';

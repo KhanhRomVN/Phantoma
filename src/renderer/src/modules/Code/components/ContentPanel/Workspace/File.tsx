@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import CodeBlock from '@renderer/components/common/CodeBlock';
+import { codeApi } from '../../../services/code-api.service';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { FileBreadcrumb } from './FileBreadcrumb';
 
@@ -28,8 +29,8 @@ export const CodeFile = memo(function CodeFile({ filePath, fileId, cwd }: CodeFi
     }
     let cancelled = false;
     setCode(null);
-    window.api
-      .invoke('fs:read-file', filePath)
+    codeApi.fs
+      .readFile(filePath, true)
       .then((content: string) => {
         if (!cancelled) setCode(content ?? '');
       })

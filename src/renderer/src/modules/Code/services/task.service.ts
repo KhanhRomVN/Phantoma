@@ -203,36 +203,82 @@ export function getDescendantIds(taskId: string, all: DependencyNode[]): Set<str
   return seen;
 }
 
-// ─── IPC ─────────────────────────────────────────────────────────────
+// ─── API integration ─────────────────────────────────────────────────
 
-interface IpcResult<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-async function call<T>(channel: string, ...args: any[]): Promise<T> {
-  const res: IpcResult<T> = await window.api.invoke(channel, ...args);
-  if (!res.success) throw new Error(res.error || `IPC ${channel} failed`);
-  return res.data as T;
-}
+import { codeApi, type CodeTask } from './code-api.service';
+import { useCodeStore } from '../hooks/useCodeStore';
 
 export const TASKS_CHANGED_EVENT = 'phantoma:tasks-changed';
 
-const notifyChanged =
-  <T>(projectPath: string) =>
-  (value: T): T => {
-    window.dispatchEvent(new CustomEvent(TASKS_CHANGED_EVENT, { detail: projectPath }));
-    return value;
+function mapCodeTaskToStored(task: CodeTask): StoredTask {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    priority: task.priority,
+    sessionId: task.sessionId,
+    branchName: task.branchName,
+    startDate: task.startDate,
+    startTime: task.startTime,
+    endDate: task.endDate,
+    endTime: task.endTime,
+    dependsOn: task.dependsOn,
+    archived: task.archived,
+    workflowId: task.workflowId,
+    order: task.sortOrder,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    tags: task.tags,
+    checklist: task.checklist,
+    attachments: task.attachments,
   };
+}
+
+async function getProjectIdByPath(projectPath: string): Promise<string> {
+  // ASSUMED: id server = id localStorage (useProjectSync tạo project với id local), nên map path -> id qua store thay vì so khớp worktree.path
+  const local = useCodeStore.getState().projects.find((p) => p.path === projectPath);
+  if (local) return local.id;
+  const projects = await codeApi.projects.list();
+  const project = projects.find((p) => p.worktrees.some((w) => w.path === projectPath));
+  if (!project) throw new Error(`Project not found for path: ${projectPath}`);
+  return project.id;
+}
+
+const notifyChanged = (projectPath: string) => {
+  window.dispatchEvent(new CustomEvent(TASKS_CHANGED_EVENT, { detail: projectPath }));
+};
 
 export const taskService = {
-  list: (projectPath: string) => call<StoredTask[]>('task:list', projectPath),
-  get: (projectPath: string, taskId: string) => call<StoredTask>('task:get', projectPath, taskId),
-  create: (projectPath: string, input: CreateTaskInput) =>
-    call<StoredTask>('task:create', projectPath, input).then(notifyChanged(projectPath)),
-  update: (projectPath: string, taskId: string, updates: UpdateTaskInput) =>
-    call<StoredTask>('task:update', projectPath, taskId, updates).then(notifyChanged(projectPath)),
-  delete: (projectPath: string, taskId: string) =>
-    call<void>('task:delete', projectPath, taskId).then(notifyChanged(projectPath)),
+  list: async (projectPath: string): Promise<StoredTask[]> => {
+    const projectId = await getProjectIdByPath(projectPath);
+    const tasks = await codeApi.tasks.list(projectId);
+    return tasks.map(mapCodeTaskToStored);
+  },
+
+  get: async (projectPath: string, taskId: string): Promise<StoredTask> => {
+    const projectId = await getProjectIdByPath(projectPath);
+    const task = await codeApi.tasks.get(projectId, taskId);
+    return mapCodeTaskToStored(task);
+  },
+
+  create: async (projectPath: string, input: CreateTaskInput): Promise<StoredTask> => {
+    const projectId = await getProjectIdByPath(projectPath);
+    const task = await codeApi.tasks.create(projectId, input);
+    notifyChanged(projectPath);
+    return mapCodeTaskToStored(task);
+  },
+
+  update: async (projectPath: string, taskId: string, updates: UpdateTaskInput): Promise<StoredTask> => {
+    const projectId = await getProjectIdByPath(projectPath);
+    const task = await codeApi.tasks.update(projectId, taskId, updates);
+    notifyChanged(projectPath);
+    return mapCodeTaskToStored(task);
+  },
+
+  delete: async (projectPath: string, taskId: string): Promise<void> => {
+    const projectId = await getProjectIdByPath(projectPath);
+    await codeApi.tasks.remove(projectId, taskId);
+    notifyChanged(projectPath);
+  },
 };

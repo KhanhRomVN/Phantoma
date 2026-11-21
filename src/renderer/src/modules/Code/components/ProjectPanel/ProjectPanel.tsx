@@ -52,6 +52,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { SyncBranchModal } from '../modal/SyncBranchModal';
+import { codeApi } from '../../services/code-api.service';
 import { ProjectSettingsModal } from '../modal/ProjectSettingsModal';
 import { ProjectLogoImage } from '../ProjectLogo';
 import { Settings as SettingsIcon } from 'lucide-react';
@@ -183,7 +184,6 @@ type DropdownTarget =
   | { kind: 'header-config'; pos: MenuPosition }
   | { kind: 'task'; sessionId: string; pos: MenuPosition }
   | { kind: 'session'; sessionId: string; projectId: string; pos: MenuPosition }
-
   | { kind: 'process'; sessionId: string; index: number; pos: MenuPosition }
   | { kind: 'move-to-group'; projectId: string; pos: MenuPosition };
 
@@ -204,8 +204,8 @@ const mkSum = (
 async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
   try {
     // ASSUMED: prune ref remote đã xóa trên GitHub; bỏ qua lỗi khi offline
-    await (window as any).api.invoke('git:fetch', projectPath).catch(() => null);
-    const res = await (window as any).api.invoke('git:list-branches', projectPath);
+    await codeApi.git.fetch(projectPath).catch(() => null);
+    const res = await codeApi.git.branches(projectPath);
 
     if (res?.error) {
       console.warn('[ProjectPanel] Failed to list branches', res.error);
@@ -214,6 +214,8 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
 
     const rawBranches: string[] = res.branches || [];
     const worktreePaths: Record<string, string> = res.worktreePaths || {};
+    const status = await codeApi.git.status(projectPath).catch(() => null);
+    const currentBranch: string = status?.branch ?? '';
 
     // Common remote names that might appear as standalone entries due to parsing quirks
     const COMMON_REMOTES = ['origin', 'upstream'];
@@ -262,7 +264,7 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
     return [
       ...uniqueBranches.map((name) => ({
         name,
-        visible: true,
+        visible: !currentBranch || name === currentBranch,
         sessions: [],
         path: worktreePaths[name],
       })),
@@ -430,7 +432,7 @@ function GroupHeader({
 
 // ── Main Component ─────────────────────────────────────────────────────
 
-const LAYOUT_STORAGE_KEY = 'phantoma_project_layout_v1';
+const LAYOUT_STORAGE_KEY = 'phantoma_code_project_layout_v2';
 
 function applyProjectLayout(list: ProjectExtended[]): ProjectExtended[] {
   try {
@@ -475,7 +477,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   // ── Group Persistence Key ──
-  const GROUP_STORAGE_KEY = 'phantoma_project_groups_v1';
+  const GROUP_STORAGE_KEY = 'phantoma_code_project_groups_v2';
 
   // Helper to load groups from storage safely
   const loadGroupsFromStorage = (): GroupInfo[] => {
@@ -653,7 +655,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
   const [ungroupedOpen, setUngroupedOpen] = useState(true);
   const UNGROUP_ID = '__ungroup__';
-  const UNGROUP_INDEX_KEY = 'phantoma_ungroup_index_v1';
+  const UNGROUP_INDEX_KEY = 'phantoma_code_ungroup_index_v2';
   const [ungroupIndex, setUngroupIndex] = useState<number>(() => {
     try {
       const v = parseInt(window.localStorage.getItem(UNGROUP_INDEX_KEY) ?? '', 10);
@@ -799,10 +801,10 @@ export const ProjectPanel = memo(function ProjectPanel() {
             });
           } else {
             // ASSUMED: có .git nhưng chưa có commit → branch tạm 'no-branch'; project không có git do seedNoGit xử lý ('no-git')
-            const repoRes = await (window as any).api
-              .invoke('git:is-repo', proj.path)
+            const repoRes = await codeApi.git
+              .isRepo(proj.path)
               .catch(() => false);
-            if (repoRes === true || repoRes?.isRepo) {
+            if (repoRes) {
               patchProject(proj.id, (p) => {
                 if (p.branches.length > 0) return p;
                 const newBranches: BranchInfo[] = [
@@ -930,6 +932,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
           prev.map((p) => (p.id === projectId ? { ...p, branches: newBranches } : p)),
         );
         updateProject(projectId, { branches: newBranches });
+        if (proj.path) {
+          codeApi.sessions
+            .create({ id: fresh.id, projectId, worktreePath: proj.path, title: fresh.title })
+            .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
+        }
       }
       setSelectedSessionId(sessionId);
       setExplorerRoot(projectId, proj.path ?? null);
@@ -986,7 +993,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
       }
 
       if (targetBranch && parentProject.defaultBranch !== targetBranch.name) {
-        const scoped = useBranchScopeStore.getState().scopes[toScopeKey(parentProject.id, targetBranch.name)];
+        const scoped =
+          useBranchScopeStore.getState().scopes[toScopeKey(parentProject.id, targetBranch.name)];
         if (!scoped || scoped.length === 0) {
           const detail = {
             projectId: parentProject.id,
@@ -1130,9 +1138,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
     (projectId: string, branchName: string, visible?: boolean) => {
       const storeProject = useCodeStore.getState().projects.find((p) => p.id === projectId);
       const apply = (branches: BranchInfo[]) =>
-        branches.map((b) =>
-          b.name === branchName ? { ...b, visible: visible ?? !b.visible } : b,
-        );
+        branches.map((b) => (b.name === branchName ? { ...b, visible: visible ?? !b.visible } : b));
       if (storeProject) updateProject(projectId, { branches: apply(storeProject.branches ?? []) });
       patchProject(projectId, (p) => ({ ...p, branches: apply(p.branches) }));
     },
@@ -1188,16 +1194,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   const detectSameRepo = useCallback(async (newId: string) => {
-    const api = (window as any).api;
     const all = useCodeStore.getState().projects;
     const added = all.find((p) => p.id === newId);
     if (!added?.path || (added.branches?.length ?? 0) > 0) return;
-    const mine = await api.invoke('git:repo-identity', added.path).catch(() => null);
+    const mine = await codeApi.git.repoIdentity(added.path).catch(() => null);
     if (!mine) return;
     const candidates: MergeCandidate[] = [];
     for (const p of all) {
       if (p.id === newId || !p.path) continue;
-      const other = await api.invoke('git:repo-identity', p.path).catch(() => null);
+      const other = await codeApi.git.repoIdentity(p.path).catch(() => null);
       if (
         other &&
         (other.commonDir === mine.commonDir ||
@@ -1284,31 +1289,34 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [patchProject, updateProject, showToast],
   );
 
-  const confirmDeleteBranch = useCallback(async ({ deleteRemote }: { deleteRemote: boolean }) => {
-    if (!confirmDeleteBranchTarget) return {};
-    const { project, branchName } = confirmDeleteBranchTarget;
-    const res = await (window as any).api.invoke(
-      'git:delete-branch',
-      project.path,
-      branchName,
-      deleteRemote,
-    );
-    if (res?.error) return { error: res.error as string };
-    const removed = project.branches.find((b) => b.name === branchName);
-    const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
-    const newBranches = project.branches.filter((b) => b.name !== branchName);
-    patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
-    updateProject(project.id, { branches: newBranches } as any);
-    setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
-    showToast(
-      res?.remoteError
-        ? `Deleted folder of "${branchName}", but remote delete failed: ${res.remoteError}`
-        : deleteRemote
-          ? `Deleted folder and remote branch of "${branchName}"`
-          : `Deleted folder of branch "${branchName}"`,
-    );
-    return {};
-  }, [confirmDeleteBranchTarget, patchProject, updateProject, showToast]);
+  const confirmDeleteBranch = useCallback(
+    async ({ deleteRemote }: { deleteRemote: boolean }) => {
+      if (!confirmDeleteBranchTarget) return {};
+      const { project, branchName } = confirmDeleteBranchTarget;
+      const res = await (window as any).api.invoke(
+        'git:delete-branch',
+        project.path,
+        branchName,
+        deleteRemote,
+      );
+      if (res?.error) return { error: res.error as string };
+      const removed = project.branches.find((b) => b.name === branchName);
+      const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
+      const newBranches = project.branches.filter((b) => b.name !== branchName);
+      patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
+      updateProject(project.id, { branches: newBranches } as any);
+      setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
+      showToast(
+        res?.remoteError
+          ? `Deleted folder of "${branchName}", but remote delete failed: ${res.remoteError}`
+          : deleteRemote
+            ? `Deleted folder and remote branch of "${branchName}"`
+            : `Deleted folder of branch "${branchName}"`,
+      );
+      return {};
+    },
+    [confirmDeleteBranchTarget, patchProject, updateProject, showToast],
+  );
 
   const [deleteBranchHasRemote, setDeleteBranchHasRemote] = useState(false);
 
@@ -1365,7 +1373,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
         return next;
       };
       const storeProject = useCodeStore.getState().projects.find((p) => p.id === projectId);
-      if (storeProject) updateProject(projectId, { branches: reorder(storeProject.branches ?? []) });
+      if (storeProject)
+        updateProject(projectId, { branches: reorder(storeProject.branches ?? []) });
       patchProject(projectId, (p) => ({ ...p, branches: reorder(p.branches) }));
     },
     [patchProject, updateProject],
@@ -1403,8 +1412,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
           procs,
           summary: mkSum(0, 0, 0, 0, 0, '—'),
         };
-        const older = prevNewest ? [{ ...prevNewest, procs: [] }, ...b.sessions.slice(1)] : [];
-        return { ...b, sessions: [fresh, ...older] };
+        return { ...b, sessions: [fresh] };
       });
 
       // 3. Cập nhật Local State để UI phản hồi ngay lập tức
@@ -1415,6 +1423,20 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       // 4. Đồng bộ ngược lên Store (Zustand) để kích hoạt persist mechanism
       updateProject(projectId, { branches: newBranches });
+
+      // 5. Lưu session mới lên server
+      const targetBranch = newBranches.find((b) => b.name === branchName);
+      const created = targetBranch?.sessions[0];
+      if (created && targetBranch?.path) {
+        codeApi.sessions
+          .create({
+            id: created.id,
+            projectId,
+            worktreePath: targetBranch.path,
+            title: created.title,
+          })
+          .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
+      }
     },
     [projects, updateProject],
   );
@@ -1446,6 +1468,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
             // BUT, standard UX suggests removing the active/latest one or providing a selector.
             // Given the constraint of the existing function signature `(projectId, branchName)`,
             // I will implement it to clear ALL sessions for that branch, effectively resetting it.
+            b.sessions.forEach((s) => {
+              codeApi.sessions.remove(s.id).catch(() => {});
+            });
             return { ...b, sessions: [] };
           });
 
@@ -1533,7 +1558,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const path = findSessionProjectPath(sessionId);
       if (!task || !path) return;
       const all = tasksByPath[path] ?? [];
-      
+
       // Unlink: clear sessionId but keep branchName when changing to 'todo'
       // Un-assign: clear both sessionId and branchName when changing to 'done'
       const updates: UpdateTaskInput = { status };
@@ -1543,7 +1568,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
         updates.sessionId = null; // Un-assign completely
         updates.branchName = null;
       }
-      
+
       if (status !== 'todo' && status !== task.status && getBlockers(task, all).length > 0) {
         setForceStart({
           path,
@@ -1897,11 +1922,16 @@ export const ProjectPanel = memo(function ProjectPanel() {
       ];
       setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, branches: newBranches } : x)));
       updateProject(p.id, { branches: newBranches });
+      if (p.path) {
+        codeApi.sessions
+          .create({ id: fresh.id, projectId: p.id, worktreePath: p.path, title: fresh.title })
+          .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
+      }
     };
     for (const p of projects) {
       if (!p.path || gitRepoByProject[p.id] !== undefined) continue;
-      (window as any).api
-        .invoke('git:is-repo', p.path)
+      codeApi.git
+        .isRepo(p.path)
         .then((ok: boolean) => {
           if (cancelled) return;
           setGitRepoByProject((prev) => ({ ...prev, [p.id]: !!ok }));
@@ -2746,7 +2776,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
                 {activeBranch.name !== activeProject.defaultBranch &&
                   (() => {
                     const scopeUnset =
-                      (branchScopes[toScopeKey(activeProject.id, activeBranch.name)] ?? []).length === 0;
+                      (branchScopes[toScopeKey(activeProject.id, activeBranch.name)] ?? [])
+                        .length === 0;
                     return (
                       <DropdownItem
                         icon={
@@ -2758,9 +2789,14 @@ export const ProjectPanel = memo(function ProjectPanel() {
                         }
                         variant={scopeUnset ? 'error' : undefined}
                         onClick={() => {
-                          const detail = { projectId: activeProject.id, branchName: activeBranch.name };
+                          const detail = {
+                            projectId: activeProject.id,
+                            branchName: activeBranch.name,
+                          };
                           closeDropdown();
-                          window.dispatchEvent(new CustomEvent('phantoma:open-branch-scope', { detail }));
+                          window.dispatchEvent(
+                            new CustomEvent('phantoma:open-branch-scope', { detail }),
+                          );
                         }}
                       >
                         Set scope
@@ -2783,7 +2819,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
                             void taskService.update(path, assigned.id, {
                               sessionId: null,
                               branchName: null,
-                              ...(assigned.status === 'progress' ? { status: 'todo' as const } : {}),
+                              ...(assigned.status === 'progress'
+                                ? { status: 'todo' as const }
+                                : {}),
                             });
                           },
                         });
@@ -3002,7 +3040,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
               </>
             )}
 
-
             {/* PROCESS CONTEXT MENU */}
             {dropdownTarget.kind === 'process' && (
               <>
@@ -3084,6 +3121,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   variant="error"
                   onClick={() => {
                     const sessionId = dropdownTarget.sessionId;
+                    codeApi.sessions
+                      .remove(sessionId)
+                      .catch((err) =>
+                        console.error('[ProjectPanel] Failed to delete session:', err),
+                      );
                     setProjects((prev) => {
                       const updatedProjects = prev.map((p) => {
                         if (p.id !== dropdownTarget.projectId) return p;
@@ -3373,7 +3415,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
           void (async () => {
             try {
               for (const t of pending.chain) {
-                await taskService.update(pending.path, t.id, { status: 'done', sessionId: null, branchName: null });
+                await taskService.update(pending.path, t.id, {
+                  status: 'done',
+                  sessionId: null,
+                  branchName: null,
+                });
               }
               await pending.proceed();
             } catch (e: any) {

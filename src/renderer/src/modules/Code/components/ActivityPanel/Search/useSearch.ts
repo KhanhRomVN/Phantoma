@@ -1,4 +1,5 @@
 import { useEffect, useState, startTransition } from 'react';
+import { codeApi } from '../../../services/code-api.service';
 
 export interface SearchMatch {
   lineNumber: number;
@@ -20,19 +21,6 @@ export interface SearchOptions {
 }
 
 export type SearchStatus = 'idle' | 'searching' | 'done' | 'error';
-
-interface ChunkPayload {
-  searchId: string;
-  results: FileResult[];
-}
-
-interface DonePayload {
-  searchId: string;
-  totalMatches: number;
-  totalFiles: number;
-  truncated: boolean;
-  error?: string;
-}
 
 const DEBOUNCE_MS = 120;
 let searchCounter = 0;
@@ -61,7 +49,6 @@ export function useSearch(
       return;
     }
 
-    const api = (window as any).api;
     const searchId = `s${++searchCounter}`;
     let active = true;
     let gotChunk = false;
@@ -70,38 +57,51 @@ export function useSearch(
     setError(null);
     setTruncated(false);
 
-    const offChunk = api.on('fs:search-chunk', (_e: unknown, p: ChunkPayload) => {
-      if (!active || p.searchId !== searchId) return;
-      const first = !gotChunk;
-      gotChunk = true;
-      startTransition(() => {
-        if (first) setSession((s) => s + 1);
-        setResults((prev) => (first ? p.results : prev.concat(p.results)));
-      });
-    });
-
-    const offDone = api.on('fs:search-done', (_e: unknown, p: DonePayload) => {
-      if (!active || p.searchId !== searchId) return;
-      startTransition(() => {
-        if (!gotChunk) {
-          setSession((s) => s + 1);
-          setResults([]);
-        }
-        setTruncated(p.truncated);
-        setError(p.error ?? null);
-        setStatus(p.error ? 'error' : 'done');
-      });
-    });
-
     const timer = setTimeout(() => {
-      api
-        .invoke('fs:search-start', searchId, projectPath, trimmed, {
-          caseSensitive: matchCase,
-          wholeWord,
-          isRegex,
-          includePattern: include.trim() || undefined,
-          excludePattern: exclude.trim() || undefined,
-        })
+      codeApi.search
+        .stream(
+          searchId,
+          projectPath,
+          trimmed,
+          {
+            caseSensitive: matchCase,
+            wholeWord,
+            isRegex,
+            includePattern: include.trim() || undefined,
+            excludePattern: exclude.trim() || undefined,
+          },
+          (chunk) => {
+            if (!active) return;
+            const first = !gotChunk;
+            gotChunk = true;
+            startTransition(() => {
+              if (first) setSession((s) => s + 1);
+              setResults((prev) => {
+                const byFile = new Map((first ? [] : prev).map((r) => [r.file, r]));
+                for (const r of chunk) {
+                  const existing = byFile.get(r.file);
+                  byFile.set(
+                    r.file,
+                    existing ? { ...existing, matches: existing.matches.concat(r.matches) } : r,
+                  );
+                }
+                return Array.from(byFile.values());
+              });
+            });
+          },
+          (done) => {
+            if (!active) return;
+            startTransition(() => {
+              if (!gotChunk) {
+                setSession((s) => s + 1);
+                setResults([]);
+              }
+              setTruncated(done.truncated);
+              setError(done.error ?? null);
+              setStatus(done.error ? 'error' : 'done');
+            });
+          },
+        )
         .catch((e: any) => {
           if (!active) return;
           setError(e?.message || 'Search failed');
@@ -112,9 +112,7 @@ export function useSearch(
     return () => {
       active = false;
       clearTimeout(timer);
-      offChunk?.();
-      offDone?.();
-      api.invoke('fs:search-cancel', searchId);
+      codeApi.search.cancel(searchId).catch(() => {});
     };
   }, [projectPath, query, matchCase, wholeWord, isRegex, include, exclude, refreshKey]);
 

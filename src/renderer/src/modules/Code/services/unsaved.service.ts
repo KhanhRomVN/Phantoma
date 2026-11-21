@@ -3,6 +3,7 @@ import {
   type UnsavedItem,
 } from '@renderer/providers/UnsavedProvider';
 import { useCodeStore } from '../hooks/useCodeStore';
+import { codeApi } from './code-api.service';
 
 const baseName = (p: string) => p.split('/').pop() || p;
 
@@ -33,7 +34,7 @@ registerUnsavedProvider({
     const model = monaco?.editor.getModel(monaco.Uri.parse('file://' + node.path));
     const content: string | undefined = model ? model.getValue() : node.content;
     if (content === undefined) return;
-    await window.api.invoke('fs:write-file', node.path, content);
+    await codeApi.fs.writeFile(node.path, content, true);
     useCodeStore.setState((state) => ({
       projects: state.projects.map((p) => {
         if (p.id !== project.id) return p;

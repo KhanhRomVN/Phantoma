@@ -7,6 +7,7 @@
  */
 
 import { resolveWorkspacePath } from '../../utils/pathResolver';
+import { codeApi } from '../../services/code-api.service';
 
 interface BaseResult {
   command: string;
@@ -23,12 +24,9 @@ export class DeleteFileHandler {
     }
 
     try {
-      const api = (window as any).api;
-      if (!api?.invoke) throw new Error('IPC not available');
-
       // Resolve relative path against workspace root (same as ReadFileHandler).
       const pathValue = await resolveWorkspacePath(inputPath, message.basePath);
-      await api.invoke('fs:delete-file', pathValue);
+      await codeApi.fs.deleteFile(pathValue);
       return { command: 'deleteFileResult', requestId: message.requestId, success: true };
     } catch (e: any) {
       return { command: 'deleteFileResult', requestId: message.requestId, error: e.message || String(e) };

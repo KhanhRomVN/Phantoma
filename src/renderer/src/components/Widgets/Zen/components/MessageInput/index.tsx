@@ -987,9 +987,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
         );
 
         if (!provider) {
-          console.warn(
-            `[MessageInput] Provider ${currentModel.providerId} not found - resetting model`,
-          );
           needsReset = true;
         } else {
           const modelExists = provider.models?.some(
@@ -997,9 +994,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
           );
 
           if (!modelExists) {
-            console.warn(
-              `[MessageInput] Model ${currentModel.id} not found in provider ${currentModel.providerId} - resetting model`,
-            );
             needsReset = true;
           }
         }
@@ -2221,7 +2215,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       }
 
                       if (!currentModel) {
-                        console.warn('[Zen] MessageInput send: no model selected, aborting');
                         return;
                       }
                       onSendMessage();

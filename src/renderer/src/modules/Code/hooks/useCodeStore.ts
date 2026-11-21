@@ -37,9 +37,10 @@ import type { MCP, MCPInput } from '../types/mcp';
 // ─── Interfaces ────────────────────────────────────────────────────────
 import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
 import { useBranchScopeStore } from '../stores/useBranchScopeStore';
+import { codeApi, type CodeProject } from '../services/code-api.service';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
-export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent' | 'agenttools';
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent' | 'agenttools' | 'design';
 
 export interface StoredWorkspacePanel {
   sessionId?: string;
@@ -72,6 +73,7 @@ export interface Project {
   template: string;
   /** Đường dẫn ảnh vuông do user chọn làm logo project (null/undefined = dùng icon mặc định). */
   logoPath?: string | null;
+  repositoryUrl?: string | null;
   services: Service[];
   files: FileNode[];
   designs: Design[];
@@ -163,27 +165,106 @@ export interface FileNode {
   path?: string;
 }
 
-// ─── Persistence (file-based via IPC: ~/.phantoma/code/{uuid}/project.json) ─
+// ─── Persistence (code server API: /api/v1/projects) ─
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+// saveAll deletes projects missing from the payload — never save before a successful load
+let projectsLoaded = false;
 
+function fromServerProject(p: CodeProject) {
+  return {
+    ...createDefaultPerProject(),
+    id: p.id,
+    name: p.name,
+    logoPath: p.logo,
+    repositoryUrl: p.repositoryUrl ?? null,
+    path: p.worktrees[0]?.path ?? '',
+    branches: p.worktrees.map((w) => ({
+      name: w.branch,
+      visible: w.visible,
+      sessions: w.session
+        ? [
+            {
+              id: w.session.id,
+              title: w.session.title,
+              status: 'idle' as const,
+              time: new Date(w.session.updatedAt).toLocaleString(),
+              agents: [],
+              procs: [],
+              summary: { tokens: 0, cost: 0, added: 0, removed: 0, files: 0, duration: '—' },
+            },
+          ]
+        : [],
+      path: w.path,
+    })),
+    color: '',
+    template: '',
+    services: [],
+    files: [],
+    agentGroups: [],
+    mcps: [],
+    workspacePanels: p.worktrees.flatMap((w) =>
+      (w.session?.panels ?? []).map((panel) => ({
+        ...panel,
+        title: panel.title ?? '',
+        sessionId: w.session!.id,
+      })),
+    ) as StoredWorkspacePanel[],
+    activeWorkspacePanelId: null,
+    activeWorkspacePanelIds: Object.fromEntries(
+      p.worktrees.filter((w) => w.session).map((w) => [w.session!.id, w.session!.activePanelId]),
+    ),
+    workspaceLayouts: Object.fromEntries(
+      p.worktrees
+        .filter((w) => w.session?.layout)
+        .map((w) => [w.session!.id, w.session!.layout]),
+    ) as NonNullable<Project['workspaceLayouts']>,
+  };
+}
+
+function toWorktreeInputs(p: Project) {
+  if (!p.path) return [];
+  const linked = (p.branches ?? []).filter((b) => b.path && b.visible);
+  const main = linked.find((b) => b.path === p.path);
+  return [
+    { path: p.path, branch: main?.name, visible: true },
+    ...linked
+      .filter((b) => b.path !== p.path)
+      .map((b) => ({ path: b.path as string, branch: b.name, visible: true })),
+  ];
+}
+
+// ASSUMED: per-project UI state (workspace panels, open files...) is not stored by the server yet, so it is not persisted
 const projectFileStorage: StateStorage = {
   getItem: async () => {
-    const res = await window.api.invoke('project:load');
-    if (!res?.success) return null;
-    const projects = res.projects ?? [];
-    const settings = res.settings ?? {};
-    if (projects.length === 0 && Object.keys(settings).length === 0) return null;
-    return JSON.stringify({ state: { ...settings, projects }, version: 0 });
+    try {
+      const list = await codeApi.projects.list();
+      projectsLoaded = true;
+      if (list.length === 0) return null;
+      return JSON.stringify({ state: { projects: list.map(fromServerProject) }, version: 0 });
+    } catch (err) {
+      console.error('[DEBUG][CodeStore] getItem failed (projectsLoaded stays false):', err);
+      return null;
+    }
   },
   setItem: (_name, value) => {
+    if (!projectsLoaded) return;
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       saveTimer = null;
       try {
         const { state } = JSON.parse(value);
-        const { projects, ...settings } = state;
-        window.api.invoke('project:save', projects ?? [], settings);
+        const inputs = (state.projects ?? []).map((p: Project, index: number) => ({
+          id: p.id,
+          name: p.name,
+          logo: p.logoPath ?? null,
+          repositoryUrl: p.repositoryUrl ?? null,
+          sortOrder: index + 1,
+          worktrees: toWorktreeInputs(p),
+        }));
+        codeApi.projects.saveAll(inputs).catch((err) => {
+          console.error('[CodeStore] Failed to save projects:', err);
+        });
       } catch (err) {
         console.error('[CodeStore] Failed to save projects:', err);
       }
@@ -774,11 +855,19 @@ export const useCodeStore = create<CodeState>()(
         },
 
         setAccountPanelOpen: (open) => {
-          set(open ? { isAccountPanelOpen: true, isSkillPanelOpen: false } : { isAccountPanelOpen: false });
+          set(
+            open
+              ? { isAccountPanelOpen: true, isSkillPanelOpen: false }
+              : { isAccountPanelOpen: false },
+          );
         },
 
         setSkillPanelOpen: (open) => {
-          set(open ? { isSkillPanelOpen: true, isAccountPanelOpen: false } : { isSkillPanelOpen: false });
+          set(
+            open
+              ? { isSkillPanelOpen: true, isAccountPanelOpen: false }
+              : { isSkillPanelOpen: false },
+          );
         },
 
         setActivityPanelWidth: (width) => {
@@ -916,7 +1005,7 @@ export const useCodeStore = create<CodeState>()(
           if (!fileNode || !fileNode.path || fileNode.content === undefined) return;
 
           try {
-            await window.api.invoke('fs:write-file', fileNode.path, fileNode.content);
+            await codeApi.fs.writeFile(fileNode.path, fileNode.content, true);
             get().setOriginalContent(fileId, fileNode.content);
             get().markFileAsSaved(fileId);
           } catch (err) {
@@ -1360,5 +1449,3 @@ export const useCodeStore = create<CodeState>()(
     },
   ),
 );
-
-

@@ -8,6 +8,7 @@
 
 import { resolveWorkspacePath } from '../../utils/pathResolver';
 import { SecurityValidator } from '../../utils/security';
+import { codeApi } from '../../services/code-api.service';
 
 interface BaseParams {
   requestId?: string;
@@ -37,9 +38,6 @@ export class MoveFileHandler {
     }
 
     try {
-      const api = (window as any).api;
-      if (!api?.invoke) throw new Error('IPC not available');
-
       const source = await resolveWorkspacePath(message.file_path, message.basePath);
       const targetFolder = await resolveWorkspacePath(message.target_folder_path, message.basePath);
       const fileName = source.split(/[\\/]/).pop() as string;
@@ -56,7 +54,7 @@ export class MoveFileHandler {
         }
       }
 
-      await api.invoke('fs:rename', source, destination);
+      await codeApi.fs.rename(source, destination);
       return {
         command: 'moveFileResult',
         requestId: message.requestId,

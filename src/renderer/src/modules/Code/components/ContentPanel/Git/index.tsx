@@ -25,6 +25,7 @@ import {
 
 import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../../hooks/useCodeStore';
+import { codeApi } from '../../../services/code-api.service';
 import { BranchSidebar } from './BranchSidebar';
 import { CommitContextMenu } from './CommitContextMenu';
 import { SyncBranchModal } from '../../modal/SyncBranchModal';
@@ -249,9 +250,12 @@ export const GitView = memo(function GitView() {
 
   useEffect(() => {
     if (!projectPath) return;
-    window.api.invoke('git:default-branch', projectPath).then((def: { name?: string }) => {
-      setDefaultBranch(def?.name ?? '');
-    });
+    codeApi.git
+      .defaultBranch(projectPath)
+      .then((def: { name?: string }) => {
+        setDefaultBranch(def?.name ?? '');
+      })
+      .catch(() => undefined);
   }, [projectPath]);
 
   useEffect(() => {
@@ -272,10 +276,10 @@ export const GitView = memo(function GitView() {
     setError(null);
     try {
       const [logRes, branchRes, changeRes, tagRes] = await Promise.all([
-        window.api.invoke('git:log', projectPath, 300),
-        window.api.invoke('git:list-branches', projectPath),
-        window.api.invoke('git:local-changes', projectPath),
-        window.api.invoke('git:list-tags', projectPath),
+        codeApi.git.log(projectPath, 300),
+        codeApi.git.branches(projectPath),
+        codeApi.git.localChanges(projectPath),
+        codeApi.git.tags(projectPath),
       ]);
       setLocalChanges(changeRes?.branches ?? []);
       setTags(tagRes?.tags ?? []);
@@ -314,8 +318,8 @@ export const GitView = memo(function GitView() {
     }
     let cancelled = false;
     setFilesLoading(true);
-    window.api
-      .invoke('git:commit-files', projectPath, selectedHash)
+    codeApi.git
+      .commitFiles(projectPath, selectedHash)
       .then((res: { files?: CommitFile[] }) => {
         if (!cancelled) setFiles(res?.files ?? []);
       })
@@ -444,7 +448,7 @@ export const GitView = memo(function GitView() {
       }
       setBusyBranch(name);
       try {
-        const res = await window.api.invoke('git:resolve-ref', projectPath, name);
+        const res = await codeApi.git.resolveRef(projectPath, name);
         if (res?.error || !res?.hash) {
           showNotice(`Cannot resolve "${name}"`);
           return;
@@ -466,7 +470,9 @@ export const GitView = memo(function GitView() {
     async (name: string) => {
       setBusyBranch(name);
       try {
-        const res = await window.api.invoke('git:checkout', projectPath, name);
+        const res = await codeApi.git
+          .checkout(projectPath, name)
+          .catch((e: any) => ({ error: e?.message || String(e) }));
         if (res?.error) {
           showNotice(String(res.error).split('\n')[0]);
         } else {

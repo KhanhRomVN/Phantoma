@@ -14,11 +14,15 @@
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
+import { codeApi } from '../../services/code-api.service';
+
 interface BaseParams {
   requestId?: string;
 }
 
-interface GitStatusParams extends BaseParams {}
+interface GitStatusParams extends BaseParams {
+  projectPath?: string;
+}
 
 interface GitDiffParams extends BaseParams {
   filePath?: string;
@@ -37,10 +41,13 @@ interface BaseResult {
 export class GitStatusHandler {
   public async handle(message: GitStatusParams): Promise<BaseResult> {
     try {
-      const api = (window as any).api;
-      if (!api?.invoke) throw new Error('IPC not available');
+      const { useCodeStore } = await import('../../hooks/useCodeStore');
+      const state = useCodeStore.getState();
+      const project = state.projects.find((p) => p.id === state.currentProjectId);
+      const projectPath = message.projectPath ?? project?.explorerRoot ?? project?.path;
+      if (!projectPath) throw new Error('No active project');
 
-      const result = await api.invoke('git:status');
+      const result = await codeApi.git.status(projectPath);
       return {
         command: 'gitStatusResult',
         requestId: message.requestId,
@@ -64,11 +71,7 @@ export class GitDiffHandler {
       const api = (window as any).api;
       if (!api?.invoke) throw new Error('IPC not available');
 
-      const result = await api.invoke(
-        'git:file-diff',
-        message.projectPath || '',
-        message.filePath || '',
-      );
+      const result = await codeApi.git.fileDiff(message.projectPath || '', message.filePath || '');
       return {
         command: 'gitDiffResult',
         requestId: message.requestId,
@@ -97,10 +100,7 @@ export class GitCommitHandler {
     }
 
     try {
-      const api = (window as any).api;
-      if (!api?.invoke) throw new Error('IPC not available');
-
-      const result = await api.invoke('git:commit', message.projectPath, message.message);
+      const result = await codeApi.git.commit(message.projectPath || '', message.message);
       return {
         command: 'gitCommitResult',
         requestId: message.requestId,

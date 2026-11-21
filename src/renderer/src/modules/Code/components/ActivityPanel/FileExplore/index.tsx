@@ -55,12 +55,14 @@ import {
 
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../../hooks/useCodeStore';
-import { parseGitStatusOutput } from '../../../services/git-status-parser';
 import {
   useBranchScope,
   useBranchScopeStore,
   isInScope,
 } from '../../../stores/useBranchScopeStore';
+import { codeApi } from '../../../services/code-api.service';
+import { useWorktreeForBranch } from '../../../hooks/useWorktreeForBranch';
+import { useScopeSync, useLoadScopeFromServer } from '../../../hooks/useScopeSync';
 
 const nameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
@@ -76,7 +78,7 @@ const compareDirEntries = (
 async function scanDirectory(dirPath: string): Promise<FileNode[]> {
   let entries: Array<{ name: string; path: string; isDirectory: boolean }> = [];
   try {
-    entries = await window.api.invoke('fs:list-dir', dirPath);
+    entries = await codeApi.fs.listDir(dirPath);
   } catch {
     return [];
   }
@@ -138,7 +140,7 @@ const dirEntryToFileNode = (entry: DirEntry): FileNode => {
 
 const fetchDirChildren = async (dirPath: string): Promise<FileNode[]> => {
   try {
-    const entries: DirEntry[] = await window.api.invoke('fs:list-dir', dirPath);
+    const entries = await codeApi.fs.listDir(dirPath);
     if (!entries || !Array.isArray(entries)) return [];
 
     return [...entries].sort(compareDirEntries).map(dirEntryToFileNode);
@@ -359,9 +361,9 @@ function InlineNewInput({ type, parentPath, depth, onCreated, onCancel }: Inline
     try {
       const fullPath = `${parentPath}/${name}`;
       if (type === 'file') {
-        await window.api.invoke('fs:write-file', fullPath, '');
+        await codeApi.fs.writeFile(fullPath, '');
       } else {
-        await window.api.invoke('fs:mkdir', fullPath);
+        await codeApi.fs.mkdir(fullPath);
       }
       onCreated();
     } catch (err) {
@@ -424,10 +426,7 @@ function InlineRenameInput({ node, depth, projectId, onDone }: InlineRenameInput
     if (commit && newName && newName !== node.name && node.path && !newName.includes('/')) {
       try {
         const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
-        await window.api.invoke('fs:rename', {
-          oldPath: node.path,
-          newPath: `${parentPath}/${newName}`,
-        });
+        await codeApi.fs.rename(node.path, `${parentPath}/${newName}`);
         const state = useCodeStore.getState();
         state.invalidateDir(projectId, parentPath);
         const p = state.projects.find((pr) => pr.id === projectId);
@@ -704,6 +703,8 @@ const TreeNode = memo(function TreeNode({
   }, [node.path, selectedNodeIds, onCopyAbsolutePath]);
 
   const handleCopyRelativePathLocal = useCallback(() => {
+    const dbgP = getProject();
+    console.log('[DEBUG] CopyRelativePath click:', { selected: selectedNodeIds.size, nodePath: node.path, projectId: dbgP?.id, projectPath: dbgP?.path, explorerRoot: dbgP?.explorerRoot, filesLen: dbgP?.files.length });
     if (selectedNodeIds.size > 0) {
       onCopyRelativePath();
     } else if (node.path) {
@@ -764,7 +765,8 @@ const TreeNode = memo(function TreeNode({
   const handleOpenFolder = useCallback(async () => {
     if (!node.path) return;
     try {
-      const err = await window.api.invoke('shell:open-path', node.path);
+      // shell:open-path is a system-level operation, keep IPC for now
+      const err = await window.api.invoke('shell:open-path', node.path); // Keep IPC: shell operation không thuộc code server
       if (err) console.error('[FileExplore] Cannot open folder:', err);
     } catch (err) {
       console.error('[FileExplore] Failed to open folder:', err);
@@ -1276,9 +1278,9 @@ function ScopeBlocks({
   useEffect(() => {
     if (!root) return;
     let cancelled = false;
-    window.api
-      .invoke('git:default-branch', root)
-      .then((r: { name?: string }) => {
+    codeApi.git
+      .defaultBranch(root)
+      .then((r) => {
         if (!cancelled) setDefaultBranch(r?.name ?? '');
       })
       .catch(() => {});
@@ -1321,7 +1323,7 @@ function ScopeBlocks({
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await window.api.invoke('git:changed-in-other-branches', root);
+        const res = await codeApi.git.changedInOtherBranches(root);
         if (cancelled) return;
         const files: Record<string, string[]> = res && res.files ? res.files : {};
         setOtherMap((prev) => (JSON.stringify(prev) === JSON.stringify(files) ? prev : files));
@@ -1416,8 +1418,8 @@ function ScopeBlocks({
     if (!root || !active) return;
     let cancelled = false;
     const t = setInterval(() => {
-      void window.api
-        .invoke('git:fetch', root)
+      void codeApi.git
+        .fetch(root)
         .catch(() => undefined)
         .finally(() => {
           if (!cancelled) setRemoteTick((n) => n + 1);
@@ -1437,23 +1439,25 @@ function ScopeBlocks({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await window.api.invoke(
-          'git:diff-vs-remote',
-          root,
-          candidatesKey ? candidatesKey.split('\n') : [],
-        );
-        if (cancelled) return;
-        const ok = res && Array.isArray(res.files);
-        const only: string[] = ok && Array.isArray(res.remoteOnly) ? res.remoteOnly : [];
-        const next = ok ? new Set<string>([...res.files, ...only]) : null;
-        if (ok && res.remoteHash) {
-          remoteHashByRoot.set(root, res.remoteHash);
-          remoteDiffCache.set(`${root}\n${res.remoteHash}`, next as Set<string>);
+        // ASSUMED: git:diff-vs-remote được thay bằng git/remote-diff với remoteHash từ git status
+        // Nếu không có remoteHash, bỏ qua remote diff
+        const remoteHash = remoteHashByRoot.get(root);
+        if (!remoteHash) {
+          if (cancelled) return;
+          setRemoteDiff(null);
+          return;
         }
-        const key = ok ? [...(next as Set<string>)].sort().join('\n') : '\0null';
+        const res = await codeApi.git.remoteDiff(root, remoteHash);
+        if (cancelled) return;
+        const next = res && res.files ? res.files : null;
+        if (next && remoteHash) {
+          remoteHashByRoot.set(root, remoteHash);
+          remoteDiffCache.set(`${root}\n${remoteHash}`, next as Set<string>);
+        }
+        const key = next ? [...(next as Set<string>)].sort().join('\n') : '\0null';
         if (key === lastDiffKeyRef.current) return;
         lastDiffKeyRef.current = key;
-        setRemoteOnly(only);
+        setRemoteOnly([]);
         setRemoteDiff(next);
       } catch {
         if (!cancelled) setRemoteDiff(null);
@@ -1617,33 +1621,39 @@ function ScopeBlocks({
 }
 
 export function FileExplore() {
-  const { projects, currentProjectId, collapseAllFolders, expandFolders } = useCodeStore();
-  const project = projects.find((p) => p.id === currentProjectId);
-  const projectPathRef = useRef<string | null>(null);
+  const currentProjectId = useCodeStore((s) => s.currentProjectId);
+  const project = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId));
+  const setProjectFiles = useCodeStore((s) => s.setProjectFiles);
+  const expandFolders = useCodeStore((s) => s.expandFolders);
+  const collapseAllFolders = useCodeStore((s) => s.collapseAllFolders);
 
-  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  // ── Scope sync: query worktreeId và sync localStorage ↔ server ──
+  const activeBranchName = useCodeStore((s) => {
+    const p = s.projects.find((x) => x.id === s.currentProjectId);
+    return (
+      p?.branches?.find((b) => b.sessions.some((ss) => ss.id === s.activeWorkspaceSessionId))
+        ?.name ?? ''
+    );
+  });
+  const worktreeId = useWorktreeForBranch(currentProjectId, activeBranchName);
+  useLoadScopeFromServer(currentProjectId ?? '', activeBranchName, worktreeId);
+  useScopeSync(currentProjectId ?? '', activeBranchName, worktreeId);
 
-  const nodeMetaRef = useRef<Map<string, NodeMeta>>(new Map());
-  const [lastClickedId, setLastClickedId] = useState<string | null>(null);
-  const [creating, setCreating] = useState<{
-    nodeId: string;
-    parentPath: string;
-    type: 'file' | 'folder';
-  } | null>(null);
-
-  // Delete modal state
+  const [creating, setCreating] = useState<CreatingState | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [errorPaths, setErrorPaths] = useState<Set<string>>(new Set());
-  const [remoteDiffTarget, setRemoteDiffTarget] = useState<string | null>(null);
-  const handleViewRemoteDiff = useCallback((p: string) => setRemoteDiffTarget(p), []);
-
-  // Clipboard nội bộ cho cut/copy/paste file
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [lastClickedId, setLastClickedId] = useState<string | null>(null);
   const [clipboard, setClipboard] = useState<{ paths: string[]; operation: 'copy' | 'cut' } | null>(
     null,
   );
-
+  const [deleteTargetIds, setDeleteTargetIds] = useState<string[]>([]);
+  const [errorPaths, setErrorPaths] = useState<Set<string>>(new Set());
+  const [viewRemoteDiffPath, setViewRemoteDiffPath] = useState<string | null>(null);
+  const handleViewRemoteDiff = useCallback((path: string) => setViewRemoteDiffPath(path), []);
+  const treeScanning = useTreeScanning();
+  const nodeMetaRef = useRef<Map<string, NodeMeta>>(new Map());
+  const contextMenuTriggerPathRef = useRef<string | null>(null);
   // Double-press C detection
   const lastCKeyTimeRef = useRef<number>(0);
   const cKeyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1655,6 +1665,7 @@ export function FileExplore() {
   // Ref cho handlers để tránh dependency array thay đổi liên tục
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handlersRef = useRef<any>({});
+  const projectPathRef = useRef<string | null>(null);
 
   // ── File watcher subscription ──────────────────────────────────────────────
   useEffect(() => {
@@ -1662,6 +1673,7 @@ export function FileExplore() {
     if (!projectPath || projectPath === projectPathRef.current) return;
     projectPathRef.current = projectPath;
 
+    // fs:watch-dir is a file system watcher, keep IPC for now (needs main process file watcher)
     window.api.invoke('fs:watch-dir', projectPath).catch((err) => {
       console.error('[FileExplore] Failed to start watcher:', err);
     });
@@ -1791,9 +1803,9 @@ export function FileExplore() {
     for (const item of items) {
       try {
         if (item.isFolder) {
-          await window.api.invoke('fs:remove-dir', item.path);
+          await codeApi.fs.removeDir(item.path);
         } else {
-          await window.api.invoke('fs:delete-file', item.path);
+          await codeApi.fs.deleteFile(item.path);
         }
       } catch (err) {
         console.error(`[FileExplore] Failed to delete ${item.path}:`, err);
@@ -1836,6 +1848,7 @@ export function FileExplore() {
 
   const handleCopyRelativePath = useCallback(() => {
     const p = getProject();
+    console.log('[DEBUG] handleCopyRelativePath:', { projectPath: p?.path, explorerRoot: p?.explorerRoot, selected: Array.from(selectedNodeIds), filesLen: p?.files.length });
     if (!p?.path) return;
     const ids = selectedNodeIds.size > 0 ? Array.from(selectedNodeIds) : [];
     if (ids.length === 0) return;
@@ -1844,14 +1857,19 @@ export function FileExplore() {
     const paths: string[] = [];
     for (const id of ids) {
       const found = findNodeById(p.files, id);
+      console.log('[DEBUG] handleCopyRelativePath node lookup:', { id, found: !!found, foundPath: found?.path, rootPath, inFiles: !!findNodeInTree(p.files, id), inRegistry: lazyNodeRegistry.has(id), topFiles: p.files.slice(0, 5).map((f) => f.path) });
       if (found?.path && found.path.startsWith(rootPath)) {
         paths.push(found.path.substring(rootPath.length));
       } else if (found?.path) {
         paths.push(found.path);
       }
     }
+    console.log('[DEBUG] handleCopyRelativePath paths:', paths);
     if (paths.length > 0) {
-      navigator.clipboard.writeText(paths.join('\n')).catch(() => {});
+      navigator.clipboard.writeText(paths.join('\n')).then(
+        () => console.log('[DEBUG] clipboard write OK'),
+        (err) => console.error('[DEBUG] clipboard write FAILED:', err),
+      );
     }
   }, [selectedNodeIds]);
 
@@ -1921,9 +1939,9 @@ export function FileExplore() {
         const destPath = `${destDir}/${name}`;
 
         if (clipboard.operation === 'cut') {
-          await window.api.invoke('fs:rename', { oldPath: srcPath, newPath: destPath });
+          await codeApi.fs.rename(srcPath, destPath);
         } else {
-          await window.api.invoke('fs:copy', { src: srcPath, dest: destPath });
+          await codeApi.fs.copy(srcPath, destPath);
         }
       } catch (err) {
         console.error(`[FileExplore] Failed to paste ${srcPath}:`, err);
@@ -2082,7 +2100,7 @@ export function FileExplore() {
     let cancelled = false;
     const load = async () => {
       try {
-        const res: string[] = await window.api.invoke('git:ignored-paths', gitRoot);
+        const res = await codeApi.git.ignoredPaths(gitRoot);
         const next = Array.isArray(res) ? res : [];
         ignoredPathsCache.set(gitRoot, next);
         if (!cancelled) setIgnoredPaths(next);
@@ -2106,23 +2124,18 @@ export function FileExplore() {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await window.api.invoke('git:status', gitRoot);
+        const res = await codeApi.git.status(gitRoot);
         if (cancelled) return;
-        if (!res || res.error) {
-          setGitStatus({});
-          return;
-        }
         const base = gitRoot.replace(/\/+$/, '');
         const map: Record<string, GitFileStatus> = {};
-        for (const { path: rel, kind: status } of parseGitStatusOutput(String(res.output ?? ''))) {
-          let abs = `${base}/${rel}`;
+        for (const [abs, status] of Object.entries(res.files)) {
           map[abs] = status;
           const ancestorStatus: GitFileStatus = status === 'added' ? 'added' : 'modified';
           let idx = abs.lastIndexOf('/');
           while (idx > base.length) {
-            abs = abs.slice(0, idx);
-            if (ancestorStatus === 'modified' || !map[abs]) map[abs] = ancestorStatus;
-            idx = abs.lastIndexOf('/');
+            const parent = abs.slice(0, idx);
+            if (ancestorStatus === 'modified' || !map[parent]) map[parent] = ancestorStatus;
+            idx = parent.lastIndexOf('/');
           }
         }
         gitStatusCache.set(gitRoot, map);
@@ -2503,10 +2516,10 @@ export function FileExplore() {
         />
 
         <RemoteDiffModal
-          isOpen={remoteDiffTarget !== null}
-          onClose={() => setRemoteDiffTarget(null)}
+          isOpen={viewRemoteDiffPath !== null}
+          onClose={() => setViewRemoteDiffPath(null)}
           projectPath={gitRoot ?? ''}
-          filePath={remoteDiffTarget}
+          filePath={viewRemoteDiffPath}
         />
       </div>
     </FileExploreContext.Provider>

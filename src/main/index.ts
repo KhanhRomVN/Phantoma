@@ -58,6 +58,7 @@ import {
   setupConversationHandlers,
   setupRuntimeHandlers,
   setupDebugHandlers,
+  setupSqlViewerHandlers,
 } from './ipc';
 import { registerAgentToolHandlers } from './ipc/agent-tool.handlers';
 
@@ -94,6 +95,7 @@ app.whenReady().then(() => {
   setupTerminalHandlers();
   setupGitHandlers();
   setupBackupHandlers();
+  setupSqlViewerHandlers();
   setupPullRequestHandlers();
   setupProjectHandlers();
   setupTaskHandlers();

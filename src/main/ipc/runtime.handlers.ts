@@ -13,7 +13,12 @@ import { constants } from 'fs';
 import { access, stat } from 'fs/promises';
 import { homedir } from 'os';
 import { isAbsolute, join } from 'path';
-import { getPorts, startEmulateServer, startProfileServer } from '../services/server-spawner';
+import {
+  getPorts,
+  startCodeServer,
+  startEmulateServer,
+  startProfileServer,
+} from '../services/server-spawner';
 import { getDeviceFingerprint } from '../services/device-fingerprint';
 
 function chromeDefaultDir(): string {
@@ -48,5 +53,6 @@ export function setupRuntimeHandlers(): void {
   ipcMain.handle('runtime:get-ports', () => getPorts());
   ipcMain.handle('runtime:start-emulate', () => startEmulateServer());
   ipcMain.handle('runtime:start-profile', () => startProfileServer());
+  ipcMain.handle('runtime:start-code', () => startCodeServer());
   ipcMain.handle('runtime:get-device-fingerprint', () => getDeviceFingerprint());
 }

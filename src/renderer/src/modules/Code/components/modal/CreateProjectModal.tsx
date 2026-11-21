@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@renderer/components/ui/Button';
+import { codeApi } from '../../services/code-api.service';
 import {
   Loader2,
   Folder,
@@ -219,7 +220,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     setLoading(true);
     try {
       const fullPath = `${newProjLoc}/${newProjName}`;
-      await window.api.invoke('fs:mkdir', fullPath);
+      await codeApi.fs.mkdir(fullPath);
       addProject({
         name: newProjName,
         path: fullPath,

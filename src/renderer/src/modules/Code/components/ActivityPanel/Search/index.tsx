@@ -65,7 +65,14 @@ interface AutoTextareaProps {
   onEscape?: () => void;
 }
 
-function AutoTextarea({ value, placeholder, inputRef, onChange, onEnter, onEscape }: AutoTextareaProps) {
+function AutoTextarea({
+  value,
+  placeholder,
+  inputRef,
+  onChange,
+  onEnter,
+  onEscape,
+}: AutoTextareaProps) {
   const localRef = useRef<HTMLTextAreaElement | null>(null);
 
   const setRefs = (el: HTMLTextAreaElement | null) => {
@@ -184,7 +191,8 @@ export function Search() {
         if (!branchKey) return;
         const state = useActivityPanelStore.getState();
         const prev = { ...DEFAULT_SEARCH_FORM, ...state.search[branchKey] }[key];
-        const next = typeof v === 'function' ? (v as (p: SearchFormState[K]) => SearchFormState[K])(prev) : v;
+        const next =
+          typeof v === 'function' ? (v as (p: SearchFormState[K]) => SearchFormState[K])(prev) : v;
         state.patchSearch(branchKey, { [key]: next } as Partial<SearchFormState>);
       },
     [branchKey],
@@ -439,7 +447,9 @@ export function Search() {
             title="Match Whole Word"
             onClick={() => setMatchWholeWord((v) => !v)}
           >
-            <span className="text-[10px] font-bold font-mono tracking-[-0.5px] leading-none">ab</span>
+            <span className="text-[10px] font-bold font-mono tracking-[-0.5px] leading-none">
+              ab
+            </span>
           </IconToggle>
           <IconToggle
             active={useRegex}
@@ -472,10 +482,11 @@ export function Search() {
 
           {showSummary && (
             <div className="ml-auto min-w-0 flex items-center gap-1 text-[11px] text-text-secondary/70">
-              {searching && (
-                <Loader2 className="w-3 h-3 animate-spin shrink-0" strokeWidth={1.5} />
-              )}
-              <span className="truncate tabular-nums" title={truncated ? 'Đã giới hạn số kết quả' : undefined}>
+              {searching && <Loader2 className="w-3 h-3 animate-spin shrink-0" strokeWidth={1.5} />}
+              <span
+                className="truncate tabular-nums"
+                title={truncated ? 'Đã giới hạn số kết quả' : undefined}
+              >
                 {visibleMatches} in {visible.length} file{visible.length !== 1 ? 's' : ''}
                 {truncated && !searching ? '+' : ''}
               </span>
@@ -485,11 +496,7 @@ export function Search() {
 
         {showReplace && (
           <div className={INPUT_WRAP_CLASS}>
-            <AutoTextarea
-              placeholder="Replace"
-              value={replaceQuery}
-              onChange={setReplaceQuery}
-            />
+            <AutoTextarea placeholder="Replace" value={replaceQuery} onChange={setReplaceQuery} />
             <button
               onClick={handleReplaceAllClick}
               disabled={!hasQuery || visible.length === 0}
@@ -536,10 +543,7 @@ export function Search() {
 
       {/* Results — flex column so the empty state can center vertically */}
       <div
-        className={cn(
-          'flex-1 min-h-0 flex flex-col overflow-y-auto',
-          !emptyVariant && 'py-1 px-1',
-        )}
+        className={cn('flex-1 min-h-0 flex flex-col overflow-y-auto', !emptyVariant && 'py-1 px-1')}
       >
         {emptyVariant ? (
           <SearchEmptyState variant={emptyVariant} message={error} />

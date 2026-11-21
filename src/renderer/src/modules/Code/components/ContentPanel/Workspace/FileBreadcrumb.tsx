@@ -4,6 +4,7 @@ import { Dropdown, DropdownTrigger, DropdownContent } from '@renderer/components
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../../hooks/useCodeStore';
+import { codeApi } from '../../../services/code-api.service';
 
 interface DirEntry {
   name: string;
@@ -20,7 +21,7 @@ const sortEntries = (a: DirEntry, b: DirEntry): number => {
 
 async function listDir(dirPath: string): Promise<DirEntry[]> {
   try {
-    const entries = await window.api.invoke('fs:list-dir', dirPath);
+    const entries = await codeApi.fs.listDir(dirPath);
     return Array.isArray(entries) ? [...entries].sort(sortEntries) : [];
   } catch {
     return [];
