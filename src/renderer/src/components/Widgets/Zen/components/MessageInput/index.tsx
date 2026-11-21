@@ -52,7 +52,6 @@ import { useAccountStats } from '../../feature/Chat/hooks/api/useAccountStats';
 import { useAccountAgents, useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 import { useMultiAgentControl } from '../../context/MultiAgentContext';
 import { Workflow as WorkflowIcon } from 'lucide-react';
-import { ZenCliHintBar } from './ZenCliHintBar';
 import { SimpleTooltip, TooltipRow, TooltipCard } from './SimpleTooltip';
 import { buildAcceptString } from '../../feature/Chat/utils/file-operations';
 
@@ -2288,8 +2287,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             onRefresh={refreshGitRepos}
             onSelect={handleGitRepoSelect}
           />
-
-          {!isConversationStarted && <ZenCliHintBar />}
         </div>
       </div>
     );

@@ -3,15 +3,15 @@
  * Target Repository
  * ------------------------------------------------------------------
  * Ported from internal/repository/emulate/emulate_target.go. Uses Kysely
- * for typed SQLite queries against emulate_targets.
+ * for typed SQLite queries against targets.
  * ------------------------------------------------------------------
  */
 
 // ─── Imports ───────────────────────────────────────────────────────────
 // ── Local
-import { getDb } from '../database/connection';
-import type { Target, CreateTargetInput, UpdateTargetInput } from '../domain/emulate';
-import { createLogger, F } from '../utils/logger';
+import { getDb } from '../database/sqlite.connection';
+import type { Target, CreateTargetInput, UpdateTargetInput } from '../domain';
+import { createLogger, F } from '../utils/logger.util';
 
 // ─── Constants ─────────────────────────────────────────────────────────
 const logger = createLogger('TargetRepository');
@@ -26,7 +26,7 @@ export class TargetRepository {
   async getAll(): Promise<Target[]> {
     const db = getDb();
     const rows = await db
-      .selectFrom('emulate_targets')
+      .selectFrom('targets')
       .selectAll()
       .orderBy('updated_at', 'desc')
       .execute();
@@ -36,7 +36,7 @@ export class TargetRepository {
   async getByID(id: string): Promise<Target | null> {
     const db = getDb();
     const row = await db
-      .selectFrom('emulate_targets')
+      .selectFrom('targets')
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst();
@@ -47,7 +47,7 @@ export class TargetRepository {
     const db = getDb();
     const id = input.id && input.id !== '' ? input.id : generateID();
     await db
-      .insertInto('emulate_targets')
+      .insertInto('targets')
       .values({
         id,
         title: input.title,
@@ -81,7 +81,7 @@ export class TargetRepository {
     if (input.environment !== undefined) patch.environment = input.environment;
 
     const res = await db
-      .updateTable('emulate_targets')
+      .updateTable('targets')
       .set(patch as any)
       .where('id', '=', id)
       .executeTakeFirst();
@@ -92,14 +92,14 @@ export class TargetRepository {
 
   async delete(id: string): Promise<boolean> {
     const db = getDb();
-    const res = await db.deleteFrom('emulate_targets').where('id', '=', id).executeTakeFirst();
+    const res = await db.deleteFrom('targets').where('id', '=', id).executeTakeFirst();
     return Number(res.numDeletedRows || 0) > 0;
   }
 
   async updateLastUsed(id: string, timestamp: number): Promise<void> {
     const db = getDb();
     const res = await db
-      .updateTable('emulate_targets')
+      .updateTable('targets')
       .set({ last_used_at: timestamp, updated_at: timestamp })
       .where('id', '=', id)
       .executeTakeFirst();

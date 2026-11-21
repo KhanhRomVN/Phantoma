@@ -14,6 +14,10 @@ import { Router } from 'express';
 // ── Controllers 
 import { handler as healthHandler } from '../controllers/health.controller';
 
+// ── Routes 
+import { registerBrowserRoutes } from './browser.routes';
+import { registerSystemRoutes } from './system.routes';
+
 // ─── Factory ────────────────────────────────────────────────────────────
 
 export function createApiRouter(): Router {
@@ -21,6 +25,8 @@ export function createApiRouter(): Router {
 
   // Health check lives at the root.
   router.get('/health', healthHandler);
+  router.use('/api/v1', registerBrowserRoutes());
+  router.use('/api/v1', registerSystemRoutes());
 
   return router;
 }

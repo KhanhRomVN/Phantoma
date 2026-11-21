@@ -14,7 +14,11 @@ export type WorkflowAgentId =
   | 'recon_web'
   | 'recon_local'
   | 'recon_verifier'
-  | 'recon_synthesizer';
+  | 'recon_synthesizer'
+  | 'emulate_planner'
+  | 'emulate_browser'
+  | 'emulate_cli'
+  | 'emulate_analyzer';
 
 export const CODE_WORKFLOW_AGENT_IDS: WorkflowAgentId[] = [
   'orchestrator',

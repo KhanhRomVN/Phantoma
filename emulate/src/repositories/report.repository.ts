@@ -13,8 +13,8 @@
 import crypto from 'crypto';
 
 // ── Local
-import type { Report, CreateReportInput, UpdateReportInput } from '../domain/emulate';
-import { ReportFileStorage } from './report-file-storage';
+import type { Report, CreateReportInput, UpdateReportInput } from '../domain';
+import { ReportFileStorage } from '../storage/report-file.storage';
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
