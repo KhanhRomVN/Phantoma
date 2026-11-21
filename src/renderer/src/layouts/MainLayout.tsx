@@ -20,16 +20,9 @@ import { useEffect, useState } from 'react';
 
 // ── UI ──
 import { motion } from 'framer-motion';
-import {
-  LayoutDashboard,
-  Radar,
-  Antenna,
-  Wrench,
-  Gamepad2,
-  Wifi,
-  Code2,
-  Settings,
-} from 'lucide-react';
+
+// ── Config ──
+import { getModulesForQuickNav } from '@renderer/config/module-registry';
 
 // ── Hooks ──
 import { useCodeStore } from '../modules/Code/hooks/useCodeStore';
@@ -103,7 +96,7 @@ const MainLayoutContent = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         setIsQuickNavOpen(true);
       }
@@ -145,99 +138,17 @@ const MainLayoutContent = () => {
   }, [activeModule, setActiveModule]);
 
   // ── Derived ──
-
-  const quickNavItems = [
-    {
-      id: 'dashboard',
-      title: 'Dashboard',
-      description: 'Overview and statistics',
-      icon: <LayoutDashboard className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-blue-400',
-      action: () => {
-        setActiveModule('dashboard' as PhantomModule);
-      },
+  const quickNavItems = getModulesForQuickNav().map((m) => ({
+    id: m.id,
+    title: m.title,
+    description: m.description,
+    icon: <m.icon className="h-4 w-4" strokeWidth={1.3} />,
+    color: m.color,
+    action: () => {
+      setActiveModule(m.id as PhantomModule);
+      setIsQuickNavOpen(false);
     },
-    {
-      id: 'recon',
-      title: 'Reconnaissance',
-      description: 'Domain, IP, and person reconnaissance',
-      icon: <Radar className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-emerald-400',
-      action: () => {
-        setActiveModule('recon' as PhantomModule);
-      },
-    },
-    {
-      id: 'scanner',
-      title: 'Scanner',
-      description: 'Domain, network, and website scanning',
-      icon: <Antenna className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-purple-400',
-      action: () => {
-        setActiveModule('scanner' as PhantomModule);
-      },
-    },
-    {
-      id: 'tools',
-      title: 'Tools',
-      description: 'Collection of security tools',
-      icon: <Wrench className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-amber-400',
-      action: () => {
-        setActiveModule('tools' as PhantomModule);
-      },
-    },
-    {
-      id: 'emulate',
-      title: 'Emulate',
-      description: 'Emulation and simulation environment',
-      icon: <Gamepad2 className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-rose-400',
-      action: () => {
-        setActiveModule('emulate' as PhantomModule);
-      },
-    },
-    {
-      id: 'wireless',
-      title: 'Wireless',
-      description: 'Wireless network analysis',
-      icon: <Wifi className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-cyan-400',
-      action: () => {
-        setActiveModule('wireless' as PhantomModule);
-      },
-    },
-    {
-      id: 'code',
-      title: 'Code',
-      description: 'Code analysis and review',
-      icon: <Code2 className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-indigo-400',
-      action: () => {
-        setActiveModule('code' as PhantomModule);
-      },
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      description: 'Application settings',
-      icon: <Settings className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-gray-400',
-      action: () => {
-        setActiveModule('settings' as PhantomModule);
-      },
-    },
-    {
-      id: 'uitest',
-      title: 'UI Test',
-      description: 'Preview UI components and their props',
-      icon: <Wrench className="w-4 h-4" strokeWidth={1.3} />,
-      color: 'text-teal-400',
-      action: () => {
-        setActiveModule('uitest' as PhantomModule);
-      },
-    },
-  ];
+  }));
 
   // ── Render ──
   return (
@@ -254,7 +165,6 @@ const MainLayoutContent = () => {
               <ViewContainer />
             </ServerHealthGuard>
           </div>
-
         </div>
       </div>
       <QuickNavModal

@@ -52,6 +52,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { SyncBranchModal } from '../modal/SyncBranchModal';
+import { codeApi } from '../../services/code-api.service';
 import { ProjectSettingsModal } from '../modal/ProjectSettingsModal';
 import { ProjectLogoImage } from '../ProjectLogo';
 import { Settings as SettingsIcon } from 'lucide-react';
@@ -64,6 +65,7 @@ import {
   getBlockers,
   getUnfinishedChain,
   type StoredTask,
+  type UpdateTaskInput,
 } from '../../services/task.service';
 import { ConfirmForceStartTaskModal } from '../ContentPanel/TaskManager/ConfirmForceStartTaskModal';
 import {
@@ -122,6 +124,8 @@ import {
   StatusDot,
   TaskIcon,
 } from './SessionCard';
+import { AssignTaskModal } from './AssignTaskModal';
+import { ConfirmUnassignTaskModal } from './ConfirmUnassignTaskModal';
 
 // ── Accent Colors Hook (Simple implementation for stable random colors) ──
 const ACCENT_PALETTE = [
@@ -180,7 +184,6 @@ type DropdownTarget =
   | { kind: 'header-config'; pos: MenuPosition }
   | { kind: 'task'; sessionId: string; pos: MenuPosition }
   | { kind: 'session'; sessionId: string; projectId: string; pos: MenuPosition }
-  | { kind: 'assign-task'; sessionId: string; projectId: string; pos: MenuPosition }
   | { kind: 'process'; sessionId: string; index: number; pos: MenuPosition }
   | { kind: 'move-to-group'; projectId: string; pos: MenuPosition };
 
@@ -201,8 +204,8 @@ const mkSum = (
 async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
   try {
     // ASSUMED: prune ref remote đã xóa trên GitHub; bỏ qua lỗi khi offline
-    await (window as any).api.invoke('git:fetch', projectPath).catch(() => null);
-    const res = await (window as any).api.invoke('git:list-branches', projectPath);
+    await codeApi.git.fetch(projectPath).catch(() => null);
+    const res = await codeApi.git.branches(projectPath);
 
     if (res?.error) {
       console.warn('[ProjectPanel] Failed to list branches', res.error);
@@ -211,6 +214,8 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
 
     const rawBranches: string[] = res.branches || [];
     const worktreePaths: Record<string, string> = res.worktreePaths || {};
+    const status = await codeApi.git.status(projectPath).catch(() => null);
+    const currentBranch: string = status?.branch ?? '';
 
     // Common remote names that might appear as standalone entries due to parsing quirks
     const COMMON_REMOTES = ['origin', 'upstream'];
@@ -259,7 +264,7 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
     return [
       ...uniqueBranches.map((name) => ({
         name,
-        visible: true,
+        visible: !currentBranch || name === currentBranch,
         sessions: [],
         path: worktreePaths[name],
       })),
@@ -372,7 +377,7 @@ function GroupHeader({
       onDrop={onDrop}
       className={cn(
         // Removed 'uppercase' and 'tracking-[0.05em]' to preserve raw case
-        'group/gh flex items-center gap-[7px] px-3 py-[7px] border-b border-divider cursor-pointer select-none font-mono text-[14px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
+        'group/gh flex items-center gap-[7px] px-3 py-[7px] border-b border-border cursor-pointer select-none font-mono text-[14px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
         group.open ? 'bg-white/[0.02]' : 'bg-card-background',
         draggable && 'hover:bg-card-hover',
       )}
@@ -427,7 +432,7 @@ function GroupHeader({
 
 // ── Main Component ─────────────────────────────────────────────────────
 
-const LAYOUT_STORAGE_KEY = 'phantoma_project_layout_v1';
+const LAYOUT_STORAGE_KEY = 'phantoma_code_project_layout_v2';
 
 function applyProjectLayout(list: ProjectExtended[]): ProjectExtended[] {
   try {
@@ -472,7 +477,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   // ── Group Persistence Key ──
-  const GROUP_STORAGE_KEY = 'phantoma_project_groups_v1';
+  const GROUP_STORAGE_KEY = 'phantoma_code_project_groups_v2';
 
   // Helper to load groups from storage safely
   const loadGroupsFromStorage = (): GroupInfo[] => {
@@ -623,6 +628,14 @@ export const ProjectPanel = memo(function ProjectPanel() {
     branchName: string;
     branchPath: string;
   } | null>(null);
+  const [assignTaskTarget, setAssignTaskTarget] = useState<{
+    projectId: string;
+    sessionId: string | null;
+    branchName: string | null;
+  } | null>(null);
+  const [confirmUnassign, setConfirmUnassign] = useState<{ title: string; run: () => void } | null>(
+    null,
+  );
   const [toast, setToast] = useState<{ msg: string; on: boolean }>({ msg: '', on: false });
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -642,7 +655,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
   const [ungroupedOpen, setUngroupedOpen] = useState(true);
   const UNGROUP_ID = '__ungroup__';
-  const UNGROUP_INDEX_KEY = 'phantoma_ungroup_index_v1';
+  const UNGROUP_INDEX_KEY = 'phantoma_code_ungroup_index_v2';
   const [ungroupIndex, setUngroupIndex] = useState<number>(() => {
     try {
       const v = parseInt(window.localStorage.getItem(UNGROUP_INDEX_KEY) ?? '', 10);
@@ -774,15 +787,33 @@ export const ProjectPanel = memo(function ProjectPanel() {
               const linkedOnly = p.branches.filter(
                 (b) => b.path && !mergedBranches.some((m) => m.name === b.name),
               );
-              const finalBranches = [...mergedBranches, ...linkedOnly];
+              const orderOf = (name: string) => {
+                const idx = p.branches.findIndex((b) => b.name === name);
+                return idx < 0 ? p.branches.length : idx;
+              };
+              const finalBranches = [...mergedBranches, ...linkedOnly].sort(
+                (a, b) => orderOf(a.name) - orderOf(b.name),
+              );
 
               updateProject(proj.id, { branches: finalBranches });
 
               return { ...p, branches: finalBranches };
             });
           } else {
-            // If no branches found (e.g., empty repo or not a git repo), we still consider it "fetched"
-            // so we don't retry endlessly. We can optionally set a flag on the project later if needed.
+            // ASSUMED: có .git nhưng chưa có commit → branch tạm 'no-branch'; project không có git do seedNoGit xử lý ('no-git')
+            const repoRes = await codeApi.git
+              .isRepo(proj.path)
+              .catch(() => false);
+            if (repoRes) {
+              patchProject(proj.id, (p) => {
+                if (p.branches.length > 0) return p;
+                const newBranches: BranchInfo[] = [
+                  { name: 'no-branch', visible: true, sessions: [], path: p.path },
+                ];
+                updateProject(proj.id, { branches: newBranches });
+                return { ...p, branches: newBranches };
+              });
+            }
           }
         } catch (err) {
           console.error('[ProjectPanel] Error fetching branches', { id: proj.id, err });
@@ -895,12 +926,17 @@ export const ProjectPanel = memo(function ProjectPanel() {
         };
         sessionId = fresh.id;
         const newBranches: BranchInfo[] = [
-          { name: 'no-branch', visible: true, sessions: [fresh], path: proj.path },
+          { name: 'no-git', visible: true, sessions: [fresh], path: proj.path },
         ];
         setProjects((prev) =>
           prev.map((p) => (p.id === projectId ? { ...p, branches: newBranches } : p)),
         );
         updateProject(projectId, { branches: newBranches });
+        if (proj.path) {
+          codeApi.sessions
+            .create({ id: fresh.id, projectId, worktreePath: proj.path, title: fresh.title })
+            .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
+        }
       }
       setSelectedSessionId(sessionId);
       setExplorerRoot(projectId, proj.path ?? null);
@@ -956,6 +992,20 @@ export const ProjectPanel = memo(function ProjectPanel() {
         return;
       }
 
+      if (targetBranch && parentProject.defaultBranch !== targetBranch.name) {
+        const scoped =
+          useBranchScopeStore.getState().scopes[toScopeKey(parentProject.id, targetBranch.name)];
+        if (!scoped || scoped.length === 0) {
+          const detail = {
+            projectId: parentProject.id,
+            branchName: targetBranch.name,
+            handled: false,
+            onSaved: () => handleSelectSession(sessionId, force),
+          };
+          window.dispatchEvent(new CustomEvent('phantoma:open-branch-scope', { detail }));
+          if (detail.handled) return;
+        }
+      }
 
       // Highlight the card in ProjectPanel
       setSelectedSessionId(sessionId);
@@ -982,17 +1032,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       setActiveWorkspaceSessionId(sessionId);
       setContentViewMode('workspace');
-
-      if (targetBranch && parentProject.defaultBranch !== targetBranch.name) {
-        const scoped = useBranchScopeStore.getState().scopes[toScopeKey(parentProject.id, targetBranch.name)];
-        if (!scoped || scoped.length === 0) {
-          window.dispatchEvent(
-            new CustomEvent('phantoma:open-branch-scope', {
-              detail: { projectId: parentProject.id, branchName: targetBranch.name },
-            }),
-          );
-        }
-      }
     },
     [
       projects,
@@ -1095,16 +1134,20 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   // ── Project actions ──
-  const toggleBranchVisibility = useCallback(
-    (projectId: string, branchName: string) => {
-      patchProject(projectId, (p) => ({
-        ...p,
-        branches: p.branches.map((b) =>
-          b.name === branchName ? { ...b, visible: !b.visible } : b,
-        ),
-      }));
+  const setBranchVisible = useCallback(
+    (projectId: string, branchName: string, visible?: boolean) => {
+      const storeProject = useCodeStore.getState().projects.find((p) => p.id === projectId);
+      const apply = (branches: BranchInfo[]) =>
+        branches.map((b) => (b.name === branchName ? { ...b, visible: visible ?? !b.visible } : b));
+      if (storeProject) updateProject(projectId, { branches: apply(storeProject.branches ?? []) });
+      patchProject(projectId, (p) => ({ ...p, branches: apply(p.branches) }));
     },
-    [patchProject],
+    [patchProject, updateProject],
+  );
+
+  const toggleBranchVisibility = useCallback(
+    (projectId: string, branchName: string) => setBranchVisible(projectId, branchName),
+    [setBranchVisible],
   );
 
   const moveProject = useCallback((projectId: string, dir: -1 | 1) => {
@@ -1151,16 +1194,15 @@ export const ProjectPanel = memo(function ProjectPanel() {
   );
 
   const detectSameRepo = useCallback(async (newId: string) => {
-    const api = (window as any).api;
     const all = useCodeStore.getState().projects;
     const added = all.find((p) => p.id === newId);
     if (!added?.path || (added.branches?.length ?? 0) > 0) return;
-    const mine = await api.invoke('git:repo-identity', added.path).catch(() => null);
+    const mine = await codeApi.git.repoIdentity(added.path).catch(() => null);
     if (!mine) return;
     const candidates: MergeCandidate[] = [];
     for (const p of all) {
       if (p.id === newId || !p.path) continue;
-      const other = await api.invoke('git:repo-identity', p.path).catch(() => null);
+      const other = await codeApi.git.repoIdentity(p.path).catch(() => null);
       if (
         other &&
         (other.commonDir === mine.commonDir ||
@@ -1247,31 +1289,34 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [patchProject, updateProject, showToast],
   );
 
-  const confirmDeleteBranch = useCallback(async ({ deleteRemote }: { deleteRemote: boolean }) => {
-    if (!confirmDeleteBranchTarget) return {};
-    const { project, branchName } = confirmDeleteBranchTarget;
-    const res = await (window as any).api.invoke(
-      'git:delete-branch',
-      project.path,
-      branchName,
-      deleteRemote,
-    );
-    if (res?.error) return { error: res.error as string };
-    const removed = project.branches.find((b) => b.name === branchName);
-    const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
-    const newBranches = project.branches.filter((b) => b.name !== branchName);
-    patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
-    updateProject(project.id, { branches: newBranches } as any);
-    setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
-    showToast(
-      res?.remoteError
-        ? `Deleted folder of "${branchName}", but remote delete failed: ${res.remoteError}`
-        : deleteRemote
-          ? `Deleted folder and remote branch of "${branchName}"`
-          : `Deleted folder of branch "${branchName}"`,
-    );
-    return {};
-  }, [confirmDeleteBranchTarget, patchProject, updateProject, showToast]);
+  const confirmDeleteBranch = useCallback(
+    async ({ deleteRemote }: { deleteRemote: boolean }) => {
+      if (!confirmDeleteBranchTarget) return {};
+      const { project, branchName } = confirmDeleteBranchTarget;
+      const res = await (window as any).api.invoke(
+        'git:delete-branch',
+        project.path,
+        branchName,
+        deleteRemote,
+      );
+      if (res?.error) return { error: res.error as string };
+      const removed = project.branches.find((b) => b.name === branchName);
+      const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
+      const newBranches = project.branches.filter((b) => b.name !== branchName);
+      patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
+      updateProject(project.id, { branches: newBranches } as any);
+      setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
+      showToast(
+        res?.remoteError
+          ? `Deleted folder of "${branchName}", but remote delete failed: ${res.remoteError}`
+          : deleteRemote
+            ? `Deleted folder and remote branch of "${branchName}"`
+            : `Deleted folder of branch "${branchName}"`,
+      );
+      return {};
+    },
+    [confirmDeleteBranchTarget, patchProject, updateProject, showToast],
+  );
 
   const [deleteBranchHasRemote, setDeleteBranchHasRemote] = useState(false);
 
@@ -1317,26 +1362,27 @@ export const ProjectPanel = memo(function ProjectPanel() {
   // ── Branch actions ──
   const moveBranch = useCallback(
     (projectId: string, branchName: string, dir: -1 | 1) => {
-      patchProject(projectId, (p) => {
-        const i = p.branches.findIndex((b) => b.name === branchName);
-        const j = i + dir;
-        if (i < 0 || j < 0 || j >= p.branches.length) return p;
-        const branches = [...p.branches];
-        [branches[i], branches[j]] = [branches[j], branches[i]];
-        return { ...p, branches };
-      });
+      const reorder = (branches: BranchInfo[]) => {
+        const i = branches.findIndex((b) => b.name === branchName);
+        if (i < 0) return branches;
+        let j = i + dir;
+        while (j >= 0 && j < branches.length && !branches[j].visible) j += dir;
+        if (j < 0 || j >= branches.length) return branches;
+        const next = [...branches];
+        [next[i], next[j]] = [next[j], next[i]];
+        return next;
+      };
+      const storeProject = useCodeStore.getState().projects.find((p) => p.id === projectId);
+      if (storeProject)
+        updateProject(projectId, { branches: reorder(storeProject.branches ?? []) });
+      patchProject(projectId, (p) => ({ ...p, branches: reorder(p.branches) }));
     },
-    [patchProject],
+    [patchProject, updateProject],
   );
 
   const hideBranch = useCallback(
-    (projectId: string, branchName: string) => {
-      patchProject(projectId, (p) => ({
-        ...p,
-        branches: p.branches.map((b) => (b.name === branchName ? { ...b, visible: false } : b)),
-      }));
-    },
-    [patchProject],
+    (projectId: string, branchName: string) => setBranchVisible(projectId, branchName, false),
+    [setBranchVisible],
   );
 
   const handleNewSession = useCallback(
@@ -1366,8 +1412,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
           procs,
           summary: mkSum(0, 0, 0, 0, 0, '—'),
         };
-        const older = prevNewest ? [{ ...prevNewest, procs: [] }, ...b.sessions.slice(1)] : [];
-        return { ...b, sessions: [fresh, ...older] };
+        return { ...b, sessions: [fresh] };
       });
 
       // 3. Cập nhật Local State để UI phản hồi ngay lập tức
@@ -1378,6 +1423,20 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
       // 4. Đồng bộ ngược lên Store (Zustand) để kích hoạt persist mechanism
       updateProject(projectId, { branches: newBranches });
+
+      // 5. Lưu session mới lên server
+      const targetBranch = newBranches.find((b) => b.name === branchName);
+      const created = targetBranch?.sessions[0];
+      if (created && targetBranch?.path) {
+        codeApi.sessions
+          .create({
+            id: created.id,
+            projectId,
+            worktreePath: targetBranch.path,
+            title: created.title,
+          })
+          .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
+      }
     },
     [projects, updateProject],
   );
@@ -1409,6 +1468,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
             // BUT, standard UX suggests removing the active/latest one or providing a selector.
             // Given the constraint of the existing function signature `(projectId, branchName)`,
             // I will implement it to clear ALL sessions for that branch, effectively resetting it.
+            b.sessions.forEach((s) => {
+              codeApi.sessions.remove(s.id).catch(() => {});
+            });
             return { ...b, sessions: [] };
           });
 
@@ -1496,16 +1558,27 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const path = findSessionProjectPath(sessionId);
       if (!task || !path) return;
       const all = tasksByPath[path] ?? [];
+
+      // Unlink: clear sessionId but keep branchName when changing to 'todo'
+      // Un-assign: clear both sessionId and branchName when changing to 'done'
+      const updates: UpdateTaskInput = { status };
+      if (status === 'todo') {
+        updates.sessionId = null; // Unlink only
+      } else if (status === 'done') {
+        updates.sessionId = null; // Un-assign completely
+        updates.branchName = null;
+      }
+
       if (status !== 'todo' && status !== task.status && getBlockers(task, all).length > 0) {
         setForceStart({
           path,
           title: task.title,
           chain: getUnfinishedChain(task, all),
-          proceed: () => taskService.update(path, task.id, { status }),
+          proceed: () => taskService.update(path, task.id, updates),
         });
         return;
       }
-      void taskService.update(path, task.id, { status });
+      void taskService.update(path, task.id, updates);
     },
     [bySession, tasksByPath, findSessionProjectPath],
   );
@@ -1515,7 +1588,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
       const task = bySession[sessionId];
       const path = findSessionProjectPath(sessionId);
       if (task && path)
-        void taskService.update(path, task.id, { sessionId: null, branchName: null });
+        void taskService.update(path, task.id, {
+          sessionId: null,
+          branchName: null,
+          ...(task.status === 'progress' ? { status: 'todo' as const } : {}),
+        });
     },
     [bySession, findSessionProjectPath],
   );
@@ -1598,7 +1675,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
           const ghost = row.cloneNode(true) as HTMLElement;
           ghost.querySelectorAll('[data-drag-hide]').forEach((n) => n.remove());
           ghost.className =
-            'flex items-center gap-2 px-3 py-2 rounded-none bg-card-background border-y border-divider text-text-primary';
+            'flex items-center gap-2 px-3 py-2 rounded-none bg-card-background border-y border-border text-text-primary';
           Object.assign(ghost.style, {
             position: 'fixed',
             top: '-1000px',
@@ -1841,15 +1918,20 @@ export const ProjectPanel = memo(function ProjectPanel() {
         summary: mkSum(0, 0, 0, 0, 0, '—'),
       };
       const newBranches: BranchInfo[] = [
-        { name: 'no-branch', visible: true, sessions: [fresh], path: p.path },
+        { name: 'no-git', visible: true, sessions: [fresh], path: p.path },
       ];
       setProjects((prev) => prev.map((x) => (x.id === p.id ? { ...x, branches: newBranches } : x)));
       updateProject(p.id, { branches: newBranches });
+      if (p.path) {
+        codeApi.sessions
+          .create({ id: fresh.id, projectId: p.id, worktreePath: p.path, title: fresh.title })
+          .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
+      }
     };
     for (const p of projects) {
       if (!p.path || gitRepoByProject[p.id] !== undefined) continue;
-      (window as any).api
-        .invoke('git:is-repo', p.path)
+      codeApi.git
+        .isRepo(p.path)
         .then((ok: boolean) => {
           if (cancelled) return;
           setGitRepoByProject((prev) => ({ ...prev, [p.id]: !!ok }));
@@ -2106,9 +2188,9 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
   // ── Render ──
   return (
-    <div className="flex flex-col h-full w-[340px] shrink-0 min-h-0 bg-sidebar-background border-r border-border overflow-hidden">
+    <div className="flex flex-col h-full w-[340px] shrink-0 min-h-0 bg-panel-background border-r border-border overflow-hidden">
       {/* Header */}
-      <div className="relative px-3 h-[44px] flex items-center justify-between border-b border-divider shrink-0">
+      <div className="relative px-3 h-[44px] flex items-center justify-between border-b border-border shrink-0">
         <b className="text-[13px] font-semibold text-text-primary font-display">
           Projects
           <span className="font-medium text-[10.5px] font-mono text-text-secondary/50 ml-1.5">
@@ -2128,7 +2210,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
             {treeOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setTreeOpen(false)} />
-                <div className="absolute right-3 top-full mt-1 z-50 w-[260px] max-h-[320px] overflow-y-auto rounded-lg border border-border bg-sidebar-background p-1 shadow-lg">
+                <div className="absolute right-3 top-full mt-1 z-50 w-[260px] max-h-[320px] overflow-y-auto rounded-lg border border-border bg-panel-background p-1 shadow-lg">
                   {[
                     ...groups.map((g) => ({ id: g.id, name: g.name })),
                     { id: '', name: 'Ungrouped' },
@@ -2244,7 +2326,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
       </div>
 
       {/* Search */}
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-divider px-3">
+      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3">
         <SearchIcon className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
         <input
           value={query}
@@ -2300,7 +2382,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   style={{ order: gi < ungroupPos ? gi + 1 : gi + 2 }}
                 >
                   {editingGroupId === g.id ? (
-                    <div className="px-2 py-1.5 bg-sidebar-background/50">
+                    <div className="px-2 py-1.5 bg-panel-background/50">
                       <GroupPickerForm
                         initialIconId={g.iconId || 'folder'}
                         initialName={g.name}
@@ -2357,7 +2439,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   onDrop={handleDrop}
                   onClick={() => setUngroupedOpen((o) => !o)}
                   className={cn(
-                    'flex items-center gap-[7px] px-3 py-[7px] border-b border-divider cursor-pointer select-none font-mono text-[14px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
+                    'flex items-center gap-[7px] px-3 py-[7px] border-b border-border cursor-pointer select-none font-mono text-[14px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
                     ungroupedOpen ? 'bg-white/[0.02]' : 'bg-card-background',
                   )}
                 >
@@ -2615,7 +2697,26 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     closeDropdown();
                   }}
                 >
-                  Project settings
+                  Setting
+                </DropdownItem>
+                <DropdownItem
+                  icon={<Folder className="w-3.5 h-3.5" />}
+                  onClick={async () => {
+                    const projectId = activeProject.id;
+                    closeDropdown();
+                    try {
+                      const home = await (window as any).api.invoke('fs:get-homedir');
+                      const err = await (window as any).api.invoke(
+                        'shell:open-path',
+                        `${home}/.phantoma/code/${projectId}`,
+                      );
+                      if (err) showToast(`Cannot open folder: ${err}`);
+                    } catch (e) {
+                      console.error('[DEBUG] open-data-folder invoke failed', e);
+                    }
+                  }}
+                >
+                  Open data folder
                 </DropdownItem>
 
                 <DropdownSeparator />
@@ -2661,12 +2762,22 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     closeDropdown();
                   }}
                 >
-                  Sync from...
+                  {activeBranch.name === activeProject.defaultBranch ? (
+                    'Sync from local branch'
+                  ) : (
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">Sync from {activeProject.defaultBranch}</span>
+                      <span className="shrink-0 rounded bg-success/15 px-1.5 py-[3px] text-[10.5px] font-semibold leading-none tracking-wide text-success">
+                        DEFAULT
+                      </span>
+                    </span>
+                  )}
                 </DropdownItem>
                 {activeBranch.name !== activeProject.defaultBranch &&
                   (() => {
                     const scopeUnset =
-                      (branchScopes[toScopeKey(activeProject.id, activeBranch.name)] ?? []).length === 0;
+                      (branchScopes[toScopeKey(activeProject.id, activeBranch.name)] ?? [])
+                        .length === 0;
                     return (
                       <DropdownItem
                         icon={
@@ -2678,28 +2789,63 @@ export const ProjectPanel = memo(function ProjectPanel() {
                         }
                         variant={scopeUnset ? 'error' : undefined}
                         onClick={() => {
-                          const detail = { projectId: activeProject.id, branchName: activeBranch.name };
+                          const detail = {
+                            projectId: activeProject.id,
+                            branchName: activeBranch.name,
+                          };
                           closeDropdown();
-                          window.dispatchEvent(new CustomEvent('phantoma:open-branch-scope', { detail }));
+                          window.dispatchEvent(
+                            new CustomEvent('phantoma:open-branch-scope', { detail }),
+                          );
                         }}
                       >
                         Set scope
                       </DropdownItem>
                     );
                   })()}
-                <DropdownItem
-                  icon={<GitBranch className="w-3.5 h-3.5" />}
-                  onClick={() => {
-                    const cwd = activeBranch.path ?? activeProject.path;
-                    const branchName = activeBranch.name;
-                    closeDropdown();
-                    (window as any).api
-                      .invoke('git:diff-diagnostics', cwd, branchName)
-                      .catch((e: unknown) => console.error('[DEBUG][diff-diagnostics] invoke failed', e));
-                  }}
-                >
-                  Diff diagnostics
-                </DropdownItem>
+
+                {(() => {
+                  const path = activeProject.path;
+                  const assigned = (tasksByPath[path] ?? []).find(
+                    (t) => !t.archived && t.branchName === activeBranch.name,
+                  );
+                  return assigned ? (
+                    <DropdownItem
+                      icon={<Unlink className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        setConfirmUnassign({
+                          title: assigned.title,
+                          run: () => {
+                            void taskService.update(path, assigned.id, {
+                              sessionId: null,
+                              branchName: null,
+                              ...(assigned.status === 'progress'
+                                ? { status: 'todo' as const }
+                                : {}),
+                            });
+                          },
+                        });
+                        closeDropdown();
+                      }}
+                    >
+                      Unassign task
+                    </DropdownItem>
+                  ) : (
+                    <DropdownItem
+                      icon={<Link2 className="w-3.5 h-3.5" />}
+                      onClick={() => {
+                        setAssignTaskTarget({
+                          projectId: activeProject.id,
+                          sessionId: null,
+                          branchName: activeBranch.name,
+                        });
+                        closeDropdown();
+                      }}
+                    >
+                      Assign task...
+                    </DropdownItem>
+                  );
+                })()}
 
                 <DropdownSeparator />
 
@@ -2894,46 +3040,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
               </>
             )}
 
-            {/* ASSIGN TASK PICKER */}
-            {dropdownTarget.kind === 'assign-task' &&
-              (() => {
-                const proj = projects.find((p) => p.id === dropdownTarget.projectId);
-                const path = proj?.path ?? '';
-                const branchName =
-                  proj?.branches.find((b) =>
-                    b.sessions.some((s) => s.id === dropdownTarget.sessionId),
-                  )?.name ?? null;
-                const candidates = (tasksByPath[path] ?? []).filter(
-                  (t) => !t.archived && !t.sessionId,
-                );
-                if (candidates.length === 0) {
-                  return (
-                    <span className="block px-2 py-1 text-xs text-text-secondary/60">
-                      No unlinked tasks
-                    </span>
-                  );
-                }
-                return (
-                  <>
-                    {candidates.map((t) => (
-                      <DropdownItem
-                        key={t.id}
-                        icon={<TaskIcon status={t.status} />}
-                        onClick={() => {
-                          void taskService.update(path, t.id, {
-                            sessionId: dropdownTarget.sessionId,
-                            branchName,
-                          });
-                          closeDropdown();
-                        }}
-                      >
-                        {t.title}
-                      </DropdownItem>
-                    ))}
-                  </>
-                );
-              })()}
-
             {/* PROCESS CONTEXT MENU */}
             {dropdownTarget.kind === 'process' && (
               <>
@@ -2960,7 +3066,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     <DropdownItem
                       icon={<Unlink className="w-3 h-3" />}
                       onClick={() => {
-                        removeTask(dropdownTarget.sessionId);
+                        const sessionId = dropdownTarget.sessionId;
+                        setConfirmUnassign({
+                          title: bySession[sessionId]?.title ?? '',
+                          run: () => removeTask(sessionId),
+                        });
                         closeDropdown();
                       }}
                     >
@@ -2992,12 +3102,12 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   <DropdownItem
                     icon={<Link2 className="w-3 h-3" />}
                     onClick={() => {
-                      setDropdownTarget({
-                        kind: 'assign-task',
-                        sessionId: dropdownTarget.sessionId,
+                      setAssignTaskTarget({
                         projectId: dropdownTarget.projectId,
-                        pos: dropdownTarget.pos,
+                        sessionId: dropdownTarget.sessionId,
+                        branchName: null,
                       });
+                      closeDropdown();
                     }}
                   >
                     Assign Task...
@@ -3011,6 +3121,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
                   variant="error"
                   onClick={() => {
                     const sessionId = dropdownTarget.sessionId;
+                    codeApi.sessions
+                      .remove(sessionId)
+                      .catch((err) =>
+                        console.error('[ProjectPanel] Failed to delete session:', err),
+                      );
                     setProjects((prev) => {
                       const updatedProjects = prev.map((p) => {
                         if (p.id !== dropdownTarget.projectId) return p;
@@ -3171,6 +3286,62 @@ export const ProjectPanel = memo(function ProjectPanel() {
         hasRemote={deleteBranchHasRemote}
       />
 
+      {(() => {
+        const proj = projects.find((p) => p.id === assignTaskTarget?.projectId);
+        const path = proj?.path ?? '';
+        const sessionBranch = assignTaskTarget?.sessionId
+          ? proj?.branches.find((b) => b.sessions.some((s) => s.id === assignTaskTarget.sessionId))
+          : undefined;
+        const targetBranchName = assignTaskTarget?.branchName ?? sessionBranch?.name ?? null;
+        // ASSUMED: ngoài task chưa gán, modal cũng liệt kê task todo đã gán cho chính branch này (giống tooltip)
+        const candidates = (tasksByPath[path] ?? []).filter(
+          (t) =>
+            !t.archived &&
+            t.status === 'todo' &&
+            ((!t.sessionId && !t.branchName) ||
+              (!!targetBranchName && t.branchName === targetBranchName)),
+        );
+        const inProgressTasks = (tasksByPath[path] ?? []).filter(
+          (t) =>
+            !t.archived &&
+            t.status === 'progress' &&
+            (targetBranchName
+              ? t.branchName === targetBranchName
+              : !!assignTaskTarget?.sessionId && t.sessionId === assignTaskTarget.sessionId),
+        );
+        return (
+          <AssignTaskModal
+            isOpen={!!assignTaskTarget}
+            onClose={() => setAssignTaskTarget(null)}
+            tasks={candidates}
+            inProgressTasks={inProgressTasks}
+            projectName={proj?.name ?? ''}
+            branchName={targetBranchName}
+            onSelect={(t) => {
+              if (!assignTaskTarget) return;
+              void taskService.update(path, t.id, {
+                sessionId: targetBranchName ? null : assignTaskTarget.sessionId,
+                branchName: targetBranchName,
+                ...(inProgressTasks.length === 0 ? { status: 'progress' as const } : {}),
+              });
+              setAssignTaskTarget(null);
+            }}
+            onSwitchProgress={(t, action) => {
+              if (!assignTaskTarget) return;
+              inProgressTasks.forEach((p) => {
+                void taskService.update(path, p.id, { status: action });
+              });
+              void taskService.update(path, t.id, {
+                sessionId: targetBranchName ? null : assignTaskTarget.sessionId,
+                branchName: targetBranchName,
+                status: 'progress' as const,
+              });
+              setAssignTaskTarget(null);
+            }}
+          />
+        );
+      })()}
+
       <ConfirmUnlinkBranchModal
         isOpen={!!confirmUnlinkBranchTarget}
         onClose={() => setConfirmUnlinkBranchTarget(null)}
@@ -3226,6 +3397,13 @@ export const ProjectPanel = memo(function ProjectPanel() {
         />
       )}
 
+      <ConfirmUnassignTaskModal
+        isOpen={!!confirmUnassign}
+        taskTitle={confirmUnassign?.title ?? ''}
+        onClose={() => setConfirmUnassign(null)}
+        onConfirm={() => confirmUnassign?.run()}
+      />
+
       <ConfirmForceStartTaskModal
         isOpen={!!forceStart}
         taskTitle={forceStart?.title ?? ''}
@@ -3237,7 +3415,11 @@ export const ProjectPanel = memo(function ProjectPanel() {
           void (async () => {
             try {
               for (const t of pending.chain) {
-                await taskService.update(pending.path, t.id, { status: 'done' });
+                await taskService.update(pending.path, t.id, {
+                  status: 'done',
+                  sessionId: null,
+                  branchName: null,
+                });
               }
               await pending.proceed();
             } catch (e: any) {

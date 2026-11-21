@@ -13,8 +13,8 @@
 import crypto from 'crypto';
 
 // ── Local
-import type { Report, CreateReportInput, UpdateReportInput } from '../domain/emulate';
-import { ReportFileStorage } from './report-file-storage';
+import type { Report, CreateReportInput, UpdateReportInput } from '../domain';
+import { ReportFileStorage } from '../storage/report-file.storage';
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ export class ReportRepository {
       emulate_target_id: targetID,
       title: extractTitle(content),
       content,
-      file_path: `~/.phantoma/emulate:${targetID}/reports/report:${reportID}/${reportID}.md`,
+      file_path: `~/.phantoma/emulate/${targetID}/reports/report:${reportID}/${reportID}.md`,
       created_at: 0,
       updated_at: 0,
     };
@@ -55,7 +55,7 @@ export class ReportRepository {
       emulate_target_id: input.emulate_target_id,
       title: extractTitle(input.content),
       content: input.content,
-      file_path: `~/.phantoma/emulate:${input.emulate_target_id}/reports/report:${reportID}/${reportID}.md`,
+      file_path: `~/.phantoma/emulate/${input.emulate_target_id}/reports/report:${reportID}/${reportID}.md`,
       created_at: 0,
       updated_at: 0,
     };

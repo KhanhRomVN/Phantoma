@@ -12,6 +12,7 @@ import { memo, useEffect, useMemo, useState } from 'react';
 import { FolderTree, GitCommit, List, Loader2, Search } from 'lucide-react';
 
 import { cn } from '@renderer/utils/cn';
+import { codeApi } from '../../../services/code-api.service';
 import { Avatar } from './Avatar';
 import { ChangedFiles, type FileActions, type FilesView } from './ChangedFiles';
 import { RefPill } from './GraphCell';
@@ -52,8 +53,8 @@ export const CommitDetail = memo(function CommitDetail({
   useEffect(() => {
     if (!commitHash || body !== null) return;
     let cancelled = false;
-    window.api
-      .invoke('git:commit-body', projectPath, commitHash)
+    codeApi.git
+      .commitBody(projectPath, commitHash)
       .then((res: { message?: string }) => {
         if (!cancelled) setBody(res?.message ?? '');
       })
@@ -95,7 +96,7 @@ export const CommitDetail = memo(function CommitDetail({
   const chips = commit ? parseRefs(commit.refs) : [];
 
   return (
-    <aside className={'w-[340px] shrink-0 border-l border-border flex flex-col min-h-0 bg-sidebar-background/40'}>
+    <aside className={'w-[340px] shrink-0 border-l border-border flex flex-col min-h-0 bg-panel-background/40'}>
       {commit && (
       <div className={'p-4 border-b border-border'}>
         <div className={'flex items-start gap-2.5'}>
@@ -131,7 +132,7 @@ export const CommitDetail = memo(function CommitDetail({
         <div className={'mt-3 flex flex-wrap gap-1.5'}>
           <span
             title={commit.hash}
-            className={'inline-flex items-center h-[20px] px-1.5 rounded font-mono text-[11px] bg-card-background border border-divider text-text-secondary'}
+            className={'inline-flex items-center h-[20px] px-1.5 rounded font-mono text-[11px] bg-card-background border border-border text-text-secondary'}
           >
             {commit.hash.slice(0, 7)}
           </span>

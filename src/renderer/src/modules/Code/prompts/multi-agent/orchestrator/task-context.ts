@@ -12,9 +12,13 @@ const listLine = (task: StoredTask): string =>
 const pickCurrentTask = (
   tasks: StoredTask[],
   sessionId: string | null,
+  branchName: string | null,
 ): StoredTask | undefined => {
   if (!sessionId) return undefined;
-  const linked = tasks.filter((task) => task.sessionId === sessionId);
+  const linked = tasks.filter(
+    (task) =>
+      task.sessionId === sessionId || (!!branchName && task.branchName === branchName),
+  );
   return linked.find((task) => task.status !== "done") ?? linked[0];
 };
 
@@ -47,6 +51,7 @@ const currentTaskBlock = (task: StoredTask): string =>
 export const buildOrchestratorTaskContext = (
   tasks: StoredTask[],
   sessionId: string | null,
+  branchName: string | null = null,
 ): string => {
   const active = tasks.filter((task) => !task.archived);
   const list =
@@ -57,7 +62,7 @@ export const buildOrchestratorTaskContext = (
     active.length > MAX_LISTED_TASKS
       ? `\n(${active.length - MAX_LISTED_TASKS} more tasks not shown: call list_tasks)`
       : "";
-  const current = pickCurrentTask(active, sessionId);
+  const current = pickCurrentTask(active, sessionId, branchName);
 
   return `\n\n# TASKS (snapshot taken when the conversation started; call list_tasks / get_task for fresh data)
 ## Project tasks (id | title | time | priority)

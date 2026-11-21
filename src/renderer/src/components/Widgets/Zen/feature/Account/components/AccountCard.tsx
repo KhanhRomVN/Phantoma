@@ -132,9 +132,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
     };
   }, []);
 
-  const providerIconUrl = providerConfig?.website
-    ? getFaviconUrl(providerConfig.website)
-    : null;
+  const providerSiteUrl = providerConfig?.website || account.base_url;
+  const providerIconUrl = providerSiteUrl ? getFaviconUrl(providerSiteUrl) : null;
 
   /** Format ISO/SQLite date string theo timezone của người dùng */
   const formatIsoDate = (iso: string) => {
@@ -383,7 +382,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                   }}
                 >
                   <span style={{ fontWeight: 600 }}>
-                    {providerConfig?.provider_name || account.provider_id}
+                    {(providerConfig?.provider_name || account.provider_id).replace(/^api:/, '')}
                   </span>
                   <span style={{ color: 'var(--text-secondary)', margin: '0 4px' }}>|</span>
                   <span style={{ color: 'var(--text-secondary)' }}>
@@ -682,7 +681,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
               )}
 
               {/* Active badge */}
-              {account.is_active_cli === true && (
+              {account.is_active_cli === true && !account.is_api_account && (
                 <div
                   style={{
                     padding: '4px 8px',

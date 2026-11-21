@@ -25,6 +25,7 @@ import { getConfig } from './config/server.config';
 import { createApp } from './app';
 import { createLogger, F } from './utils/logger';
 import { showWelcome, printStarted } from './utils/welcome';
+import { browserUpdateService } from './services/browser-update.service';
 
 // ─── Constants ─────────────────────────────────────────────────────────
 const logger = createLogger('Startup');
@@ -64,6 +65,10 @@ async function main(): Promise<void> {
 
   // Print started message
   printStarted(host, port);
+
+  browserUpdateService
+    .autoInstallIfMissing()
+    .catch((err) => logger.warn('Auto-install browser failed', F('error', String(err))));
 
   // Graceful shutdown
   const shutdown = () => {

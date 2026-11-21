@@ -202,7 +202,7 @@ const buildXtermTheme = () => ({
   brightWhite: getCSSVar('--terminal-ansiBrightWhite', '#e5e5e5'),
 });
 
-const TerminalBlock: React.FC<TerminalBlockProps> = ({
+export const TerminalBlock: React.FC<TerminalBlockProps> = ({
   logs,
   status,
   maxHeight = 400,
@@ -349,7 +349,7 @@ const TerminalBlock: React.FC<TerminalBlockProps> = ({
             onMouseEnter={(e) => {
               if (canExpand)
                 e.currentTarget.style.backgroundColor =
-                  $('--sidebar-item-hover') || $('--background') || '';
+                  $('--card-background-hover') || $('--background') || '';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = $('--background') || '#1e1e1e';

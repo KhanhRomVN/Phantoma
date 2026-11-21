@@ -80,17 +80,17 @@ export function DuplicateRepoModal({
               <input
                 value={linkName}
                 onChange={(e) => setLinkName(e.target.value)}
-                className="w-full h-8 px-2.5 rounded-md bg-button-soft-background text-xs text-text-primary outline-none border border-divider focus:border-[#ff6a1f]/50"
+                className="w-full h-8 px-2.5 rounded-md bg-text-secondary/10 text-xs text-text-primary outline-none border border-border focus:border-[#ff6a1f]/50"
               />
             </div>
           )}
         </div>
       </ModalBody>
 
-      <ModalFooter className="gap-0 p-0 border-t border-divider">
+      <ModalFooter className="gap-0 p-0 border-t border-border">
         <Button
           onClick={onClose}
-          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-divider rounded-none"
+          className="flex-1 h-[42px] text-xs font-medium bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30 border-r border-border rounded-none"
         >
           Cancel
         </Button>

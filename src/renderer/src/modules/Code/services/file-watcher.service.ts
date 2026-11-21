@@ -30,6 +30,8 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 
+import { codeApi } from './code-api.service';
+
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface WatchedFile {
   filePath: string;
@@ -159,7 +161,7 @@ class FileWatcherService {
 
         try {
           // Read new content
-          const newContent = await window.api.invoke('fs:read-file', filePath);
+          const newContent = await codeApi.fs.readFile(filePath, true);
 
           const watched = this.watchedFiles.get(filePath);
           if (!watched) return;

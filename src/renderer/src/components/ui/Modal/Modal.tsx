@@ -39,7 +39,7 @@ export const Modal: React.FC<ModalProps> = ({
       className="fixed inset-0 z-[9999] flex items-center justify-center"
       onClick={handleBackdropClick}
     >
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div
         className={cn(
           'relative z-10 bg-background border border-border rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200',

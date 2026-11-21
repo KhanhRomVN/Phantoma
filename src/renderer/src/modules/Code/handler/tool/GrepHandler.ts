@@ -3,15 +3,18 @@
  * Grep Handler
  * ------------------------------------------------------------------
  * Executes regex search across files and folders within the workspace.
- * Adapted from Zen's vscode.workspace.findFiles to window.api.invoke IPC.
- * Includes security validation, file size limits, and exclusion patterns.
+ * The search itself runs on the code server (POST /fs/grep); this handler
+ * only validates the path and resolves relative paths against the project.
  *
  * Main functions:
- * - handle() : Validate path, execute grep, return matches grouped by file
+ * - handle() : Validate path, call codeApi.fs.grep, return matches grouped by file
  * ------------------------------------------------------------------
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+
+// ── Services ──
+import { codeApi } from '../../services/code-api.service';
 
 // ── Utils ──
 import { SecurityValidator } from '../../utils/security';
@@ -53,11 +56,6 @@ interface GrepAction {
   file_path?: string;
   folder_path?: string;
   requestId: string;
-}
-
-interface MatchResult {
-  lineNumber: number;
-  lineContent: string;
 }
 
 interface GrepResult {
@@ -112,100 +110,12 @@ export class GrepHandler {
       throw new Error('Provide only one of file_path or folder_path, not both');
     }
 
-    let regex: RegExp;
-    try {
-      regex = new RegExp(searchTerm, 'i');
-    } catch (regexError) {
-      throw new Error(
-        `Invalid regex pattern: ${searchTerm} - ${
-          regexError instanceof Error ? regexError.message : String(regexError)
-        }`,
-      );
-    }
-
-    const api = (window as any).api;
-    if (!api?.invoke) throw new Error('IPC not available');
-
-    let filesToSearch: string[] = [];
-
-    if (filePath) {
-      filesToSearch = [filePath];
-    } else if (folderPath) {
-      try {
-        // Dùng IPC để tìm files (main process xử lý glob)
-        const result = await api.invoke('fs:find-files', folderPath, '*', {
-          maxFiles: MAX_GREP_FILES,
-          exclude: EXCLUDE_PATTERNS,
-        });
-        filesToSearch = Array.isArray(result) ? result.map((f: any) => f.path || f) : [];
-      } catch {
-        throw new Error(`Folder not found: ${folderPath}`);
-      }
-    }
-
-    const results: Record<string, { matches: MatchResult[] }> = {};
-    let filesWithMatches = 0;
-    let filesSkippedSize = 0;
-
-    for (const file of filesToSearch) {
-      try {
-        // Kiểm tra kích thước file
-        const stat = await api.invoke('fs:stat', file).catch(() => null);
-        if (stat && stat.size > MAX_FILE_SIZE_BYTES) {
-          filesSkippedSize++;
-          continue;
-        }
-      } catch {
-        continue;
-      }
-
-      const { matches } = await this.searchInFile(file, regex, api);
-      if (matches.length > 0) {
-        results[file] = { matches };
-        filesWithMatches++;
-      }
-    }
-
-    const totalMatches = Object.values(results).reduce(
-      (sum, fileResult) => sum + fileResult.matches.length,
-      0,
+    const data = await codeApi.fs.grep(
+      searchTerm,
+      { filePath, folderPath },
+      { maxFiles: MAX_GREP_FILES, maxFileSize: MAX_FILE_SIZE_BYTES, exclude: EXCLUDE_PATTERNS },
     );
 
-    return {
-      success: true,
-      data: {
-        searchTerm,
-        pattern: regex.source,
-        results,
-        totalFilesSearched: filesToSearch.length,
-        totalMatches,
-        ...(filesSkippedSize > 0 ? { filesSkippedSize } : {}),
-      },
-    };
-  }
-
-  private async searchInFile(
-    filePath: string,
-    regex: RegExp,
-    api: any,
-  ): Promise<{ matches: MatchResult[] }> {
-    const matches: MatchResult[] = [];
-
-    try {
-      const content: string = await api.invoke('fs:read-file', filePath);
-      const lines = content.split(/\r?\n/);
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (regex.test(line)) {
-          matches.push({
-            lineNumber: i + 1,
-            lineContent: line.trim(),
-          });
-        }
-      }
-    } catch (e) {}
-
-    return { matches };
+    return { success: true, data };
   }
 }

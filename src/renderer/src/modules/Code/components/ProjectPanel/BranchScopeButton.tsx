@@ -1,9 +1,10 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../hooks/useCodeStore';
 import { useBranchScope, useBranchScopeStore } from '../../stores/useBranchScopeStore';
 import { BranchScopeModal } from './BranchScopeModal';
+import { codeApi } from '../../services/code-api.service';
 
 const gitRepoCache = new Map<string, boolean>();
 
@@ -28,6 +29,7 @@ export const BranchScopeButton = memo(function BranchScopeButton({
       .sort((a, b) => a.branch.localeCompare(b.branch));
   }, [allScopes, projectId, branchName]);
   const [open, setOpen] = useState(false);
+  const onSavedRef = useRef<(() => void) | null>(null);
   const [isRepo, setIsRepo] = useState<boolean>(gitRepoCache.get(root) ?? false);
 
   useEffect(() => {
@@ -40,8 +42,7 @@ export const BranchScopeButton = memo(function BranchScopeButton({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await window.api.invoke('git:is-repo', root);
-        const ok = res === true || !!res?.isRepo;
+        const ok = await codeApi.git.isRepo(root);
         gitRepoCache.set(root, ok);
         if (!cancelled) setIsRepo(ok);
       } catch (err) {
@@ -56,14 +57,26 @@ export const BranchScopeButton = memo(function BranchScopeButton({
   useEffect(() => {
     if (!isRepo) return;
     const onOpen = (e: Event) => {
-      const d = (e as CustomEvent<{ projectId: string; branchName: string }>).detail;
-      if (d?.projectId === projectId && d?.branchName === branchName) setOpen(true);
+      const d = (
+        e as CustomEvent<{
+          projectId: string;
+          branchName: string;
+          handled?: boolean;
+          onSaved?: () => void;
+        }>
+      ).detail;
+      if (d?.projectId === projectId && d?.branchName === branchName) {
+        onSavedRef.current = d.onSaved ?? null;
+        d.handled = !!d.onSaved;
+        setOpen(true);
+      }
     };
     window.addEventListener('phantoma:open-branch-scope', onOpen);
     return () => window.removeEventListener('phantoma:open-branch-scope', onOpen);
   }, [isRepo, projectId, branchName]);
 
-  if (!isRepo) {
+  // ASSUMED: branch tạm ('no-branch' / 'no-git') không phải git branch thật nên không cần scope
+  if (!isRepo || branchName === 'no-branch' || branchName === 'no-git') {
     return null;
   }
 
@@ -97,8 +110,14 @@ export const BranchScopeButton = memo(function BranchScopeButton({
             onSave={(paths) => {
               setScope(projectId, branchName, paths);
               setOpen(false);
+              const onSaved = onSavedRef.current;
+              onSavedRef.current = null;
+              onSaved?.();
             }}
-            onClose={() => setOpen(false)}
+            onClose={() => {
+              onSavedRef.current = null;
+              setOpen(false);
+            }}
           />
         </span>
       )}

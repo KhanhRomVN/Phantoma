@@ -88,7 +88,7 @@ export const PrConversation = memo(function PrConversation({
         <div key={`c-${i}`} className={'flex gap-3'}>
           <PrAvatar login={c.author?.login} size={28} />
           <div className={'min-w-0 flex-1 rounded-lg border border-border overflow-hidden'}>
-            <div className={'flex items-center gap-2 px-3 py-1.5 bg-button-soft-background/60 text-[11.5px]'}>
+            <div className={'flex items-center gap-2 px-3 py-1.5 bg-text-secondary/10 text-[11.5px]'}>
               <span className={'font-semibold text-text-primary'}>{c.author?.login ?? 'unknown'}</span>
               <span className={'text-text-secondary'}>{`commented ${timeAgo(c.createdAt)}`}</span>
             </div>

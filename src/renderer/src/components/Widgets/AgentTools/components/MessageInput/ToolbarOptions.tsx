@@ -263,7 +263,7 @@ const AgentDropdown = memo<{
             <button
               key={row.key}
               onClick={() => onChange(row.value)}
-              className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors cursor-pointer hover:bg-sidebar-item-hover ${
+              className={`w-full px-3 py-2 flex items-center gap-2.5 text-left transition-colors cursor-pointer hover:bg-card-hover ${
                 isSelected
                   ? 'bg-primary/10 border-l-2 border-l-primary'
                   : 'border-l-2 border-l-transparent'

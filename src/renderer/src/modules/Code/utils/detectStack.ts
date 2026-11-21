@@ -15,6 +15,8 @@
  * ------------------------------------------------------------------
  */
 
+import { codeApi } from '../services/code-api.service';
+
 export interface ContributorInfo {
   username: string;
   avatarUrl?: string; // Fallback to GitHub favicon if not provided
@@ -130,7 +132,7 @@ async function getProjectFiles(path: string): Promise<string[]> {
     // For safety, returning empty implies "unknown".
     // NOTE: This requires a corresponding main-process handler.
     // If not present, this will fail gracefully.
-    const res = await window.api.invoke('fs:list-dir', path);
+    const res = await codeApi.fs.listDir(path);
     if (Array.isArray(res)) return res.map((f: any) => f.name || f);
     return [];
   } catch {
@@ -238,7 +240,7 @@ export async function detectProjectStack(path: string): Promise<StackInfo> {
 
   let languageStats: LanguageStat[] = [];
   try {
-    const res = await window.api.invoke('git:get-language-stats', path);
+    const res = await codeApi.git.languageStats(path);
     if (Array.isArray(res)) languageStats = res;
   } catch (err) {
     console.error('[ERROR DetectStack] Failed to fetch language stats via IPC:', err);
@@ -248,7 +250,7 @@ export async function detectProjectStack(path: string): Promise<StackInfo> {
   let gitInfo: any = null;
   try {
     // Assumes 'git:get-repo-info' handler exists in Main Process
-    gitInfo = await window.api.invoke('git:get-repo-info', path);
+    gitInfo = await codeApi.git.repoInfo(path);
   } catch (err) {
     console.error('[ERROR DetectStack] Failed to fetch git info via IPC:', err);
     // Fallback to empty/null values if IPC fails (not a git repo or handler missing)

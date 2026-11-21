@@ -10,7 +10,7 @@ import {
   TuiAgentId,
 } from '../../../utils/ai-agent-detector';
 
-/** Resolve a CSS custom property like "--sidebar-background: R G B" to "#RRGGBB". */
+/** Resolve a CSS custom property like "--panel-background: R G B" to "#RRGGBB". */
 const resolveCssRgbVarToHex = (varName: string, fallback: string): string => {
   if (typeof window === 'undefined') return fallback;
   const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -140,7 +140,7 @@ export const CodeTerminal = ({
     cleanupFunctions.push(() => window.removeEventListener('beforeunload', saveHistory));
 
     const createTerminalInstance = () => {
-      const sidebarBg = resolveCssRgbVarToHex('--sidebar-background', '#1a1b1e');
+      const sidebarBg = resolveCssRgbVarToHex('--panel-background', '#1a1b1e');
       term = new XTerm({
         cursorBlink: true,
         fontSize: 13,
@@ -563,7 +563,7 @@ export const CodeTerminal = ({
   return (
     <div
       className="relative w-full h-full px-3"
-      style={{ backgroundColor: 'rgb(var(--sidebar-background))' }}
+      style={{ backgroundColor: 'rgb(var(--panel-background))' }}
     >
       <div ref={termRef} className="w-full h-full" onContextMenu={handleContextMenu} />
 

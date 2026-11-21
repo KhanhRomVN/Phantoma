@@ -19,10 +19,12 @@ export const PANEL_TYPES: PanelType[] = [
   'website',
   'terminal',
   'emulator',
+  'agenttools',
 ];
 
 export const DEFAULT_RULES: PanelRules = {
   agent: 'tl',
+  agenttools: 'tl',
   file: 'tr',
   website: 'tr',
   terminal: 'br',
@@ -46,6 +48,7 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
       website: 'tr',
       terminal: 'bl',
       emulator: 'br',
+      agenttools: 'tr',
     },
   },
   {
@@ -58,6 +61,7 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
       website: 'tl',
       terminal: 'bl',
       emulator: 'bl',
+      agenttools: 'tl',
     },
   },
   {
@@ -70,6 +74,7 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
       website: 'tl',
       terminal: 'tl',
       emulator: 'tl',
+      agenttools: 'tl',
     },
   },
 ];

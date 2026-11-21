@@ -13,6 +13,7 @@ import { AlertCircle, ExternalLink, Globe, KeyRound, Loader2, RefreshCw } from '
 import { Button } from '@renderer/components/ui/Button';
 import type { StatusInfo } from './types';
 import { FIELD } from './utils';
+import { codeApi } from '../../../services/code-api.service';
 
 interface PrBlockerProps {
   projectPath: string;
@@ -56,7 +57,7 @@ export const PrBlocker = memo(function PrBlocker({
     setLoginBusy(true);
     setLoginError(null);
     try {
-      const res = await window.api.invoke('pr:login-token', projectPath, token);
+      const res = await codeApi.pr.loginToken(projectPath, token);
       if (res?.error) {
         setLoginError(String(res.error));
         return;
@@ -73,7 +74,7 @@ export const PrBlocker = memo(function PrBlocker({
     setLoginBusy(true);
     setLoginError(null);
     try {
-      const res = await window.api.invoke('pr:login-web', projectPath);
+      const res = (await codeApi.pr.loginWeb(projectPath)) as { code: string; url: string; error?: string };
       if (res?.error) {
         setLoginError(String(res.error));
         return;
@@ -87,7 +88,7 @@ export const PrBlocker = memo(function PrBlocker({
   };
 
   const cancelWebLogin = () => {
-    void window.api.invoke('pr:login-web-cancel');
+    void codeApi.pr.cancelLoginWeb();
     setWebLogin(null);
   };
 

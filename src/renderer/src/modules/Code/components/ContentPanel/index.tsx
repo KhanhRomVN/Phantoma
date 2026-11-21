@@ -47,12 +47,12 @@ import { WorkspaceViews, EmptyState } from './Workspace';
 import { ContentHeaderBar } from './Headerbar';
 import { GitView } from './Git';
 import { PullRequestView } from './PullRequest';
-import { DesignView } from './Design';
 import { AgentWorkflow } from './AgentWorkflow';
 import { SettingsView } from './Setting';
 
 // ── Services ─
 import { fileWatcherService } from '../../services/file-watcher.service';
+import { codeApi } from '../../services/code-api.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -177,7 +177,7 @@ function BinaryPreview({ name, path }: { name: string; path: string }) {
       </div>
       <button
         onClick={handleOpenExternal}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-sidebar-item-hover hover:text-text-primary transition-colors"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors"
       >
         <ExternalLink className="w-4 h-4" />
         Open with default app
@@ -259,8 +259,8 @@ const ContentPanelInner = memo(function ContentPanelInner() {
     const fileId = activeFileTabId;
     const fileName = fileNode.name;
 
-    window.api
-      .invoke('fs:stat', filePath)
+    codeApi.fs
+      .stat(filePath, true)
       .then((stat: { mtime: number }) => {
         const cachedMtime = fileMtimes[fileId];
 
@@ -273,8 +273,8 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         }
 
         const doRead = (attempt: number) => {
-          window.api
-            .invoke('fs:read-file', filePath)
+          codeApi.fs
+            .readFile(filePath, true)
             .then((content: string) => {
               if (content.length === 0 && attempt < 2) {
                 setTimeout(() => doRead(attempt + 1), 300);
@@ -359,8 +359,8 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         setLoadedContents((prev) => ({ ...prev, [fileId]: fileNode.content ?? '' }));
         // Lấy mtime từ disk nếu có path
         if (fileNode.path) {
-          window.api
-            .invoke('fs:stat', fileNode.path)
+          codeApi.fs
+            .stat(fileNode.path, true)
             .then((stat: { mtime: number }) => {
               setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
             })
@@ -371,8 +371,8 @@ const ContentPanelInner = memo(function ContentPanelInner() {
 
       if (fileNode.path) {
         setLoadingFiles((prev) => new Set(prev).add(fileId));
-        window.api
-          .invoke('fs:read-file', fileNode.path)
+        codeApi.fs
+          .readFile(fileNode.path, true)
           .then((content: string) => {
             setLoadedContents((prev) => ({ ...prev, [fileId]: content || '' }));
             setLoadingFiles((prev) => {
@@ -381,7 +381,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
               return next;
             });
             // Lưu mtime sau khi load thành công
-            return window.api.invoke('fs:stat', fileNode.path);
+            return codeApi.fs.stat(fileNode.path as string, true);
           })
           .then((stat: { mtime: number }) => {
             if (stat) setFileMtimes((prev) => ({ ...prev, [fileId]: stat.mtime }));
@@ -463,7 +463,6 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         {contentViewMode === 'tasks' && <TaskManager />}
         {contentViewMode === 'git' && <GitView />}
         {contentViewMode === 'pullrequests' && <PullRequestView />}
-        {contentViewMode === 'design' && <DesignView />}
         {contentViewMode === 'agents' && <AgentWorkflow />}
         {contentViewMode === 'settings' && <SettingsView />}
       </>

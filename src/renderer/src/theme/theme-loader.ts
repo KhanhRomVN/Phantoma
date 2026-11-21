@@ -39,14 +39,11 @@ export interface ThemeConfig {
     inputBackground: string;
     dropdownContentBackground: string;
     dropdownItemHover: string;
-    sidebarBackground: string;
-    sidebarItemHover: string;
+    panelBackground: string;
     tableHeaderBackground: string;
     tableFooterBackground: string;
     tableRowHover: string;
-    buttonSolidBackground: string;
-    buttonSolidText: string;
-    buttonSoftBackground: string;
+
   };
   accentColors: string[];
   typography?: {

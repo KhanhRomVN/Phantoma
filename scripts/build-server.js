@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * Build 1 server con (server/ hoặc emulate/) ra dist/ của chính nó.
- * Dùng: node scripts/build-server.js <server|emulate>
+ * Build 1 server con (server/, emulate/ hoặc profile-server/) ra dist/ của chính nó.
+ * Dùng: node scripts/build-server.js <server|emulate|profile-server>
  */
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 
 const name = process.argv[2];
-if (name !== 'server' && name !== 'emulate') {
-  console.error('[build-server] usage: node scripts/build-server.js <server|emulate>');
+if (name !== 'server' && name !== 'emulate' && name !== 'profile-server') {
+  console.error('[build-server] usage: node scripts/build-server.js <server|emulate|profile-server>');
   process.exit(1);
 }
 

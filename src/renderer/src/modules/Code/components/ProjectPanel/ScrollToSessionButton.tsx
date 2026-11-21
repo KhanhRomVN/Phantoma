@@ -8,7 +8,7 @@
  * ------------------------------------------------------------------
  */
 
-import { memo, useEffect, useState, useRef } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { ChevronsDown } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 
@@ -24,15 +24,9 @@ export const ScrollToSessionButton = memo(function ScrollToSessionButton({
   scrollContainerRef,
 }: ScrollToSessionButtonProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const checkIntervalRef = useRef<number>();
-
   useEffect(() => {
     if (!selectedSessionId || !scrollContainerRef.current) {
       setIsVisible(false);
-      if (checkIntervalRef.current) {
-        clearInterval(checkIntervalRef.current);
-        checkIntervalRef.current = undefined;
-      }
       return;
     }
 
@@ -56,16 +50,25 @@ export const ScrollToSessionButton = memo(function ScrollToSessionButton({
       setIsVisible(!isInView);
     };
 
-    // Check immediately
     checkVisibility();
 
-    // Then check periodically (handles dynamic content changes, animations, etc.)
-    checkIntervalRef.current = window.setInterval(checkVisibility, 200);
+    const container = scrollContainerRef.current;
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(checkVisibility);
+    };
+    container.addEventListener('scroll', schedule, { passive: true });
+    const resizeObserver = new ResizeObserver(schedule);
+    resizeObserver.observe(container);
+    const mutationObserver = new MutationObserver(schedule);
+    mutationObserver.observe(container, { childList: true, subtree: true });
 
     return () => {
-      if (checkIntervalRef.current) {
-        clearInterval(checkIntervalRef.current);
-      }
+      cancelAnimationFrame(raf);
+      container.removeEventListener('scroll', schedule);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
     };
   }, [selectedSessionId, scrollContainerRef]);
 
@@ -100,10 +103,10 @@ export const ScrollToSessionButton = memo(function ScrollToSessionButton({
         'w-10 h-10 rounded-full',
         'flex items-center justify-center',
         'border-2 border-dashed border-border',
-        'bg-sidebar-item-hover/80 backdrop-blur-sm',
+        'bg-card-hover/80 backdrop-blur-sm',
         'text-text-secondary hover:text-text-primary',
         'transition-all duration-200',
-        'hover:bg-sidebar-item-hover',
+        'hover:bg-card-hover',
         'cursor-pointer',
         'shadow-lg',
       )}

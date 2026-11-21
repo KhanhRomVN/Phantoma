@@ -313,8 +313,8 @@ export const AgentWorkflow = memo(function AgentWorkflow({}: AgentWorkflowProps)
 
   return (
     <div className="flex flex-1 h-full w-full min-h-0 bg-background text-text-primary">
-      <aside className="w-64 shrink-0 border-r border-divider bg-sidebar-background flex flex-col min-h-0">
-        <div className="h-9 shrink-0 px-3 flex items-center border-b border-divider text-xs font-semibold uppercase tracking-wide text-text-secondary">
+      <aside className="w-64 shrink-0 border-r border-border bg-panel-background flex flex-col min-h-0">
+        <div className="h-9 shrink-0 px-3 flex items-center border-b border-border text-xs font-semibold uppercase tracking-wide text-text-secondary">
           Agents
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
@@ -331,7 +331,7 @@ export const AgentWorkflow = memo(function AgentWorkflow({}: AgentWorkflowProps)
       </aside>
 
       <section className="flex-1 min-w-0 flex flex-col min-h-0">
-        <div className="h-9 shrink-0 px-3 flex items-center border-b border-divider text-xs font-semibold uppercase tracking-wide text-text-secondary">
+        <div className="h-9 shrink-0 px-3 flex items-center border-b border-border text-xs font-semibold uppercase tracking-wide text-text-secondary">
           Conversation
         </div>
         {messages.length === 0 ? (

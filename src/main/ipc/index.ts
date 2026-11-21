@@ -20,6 +20,8 @@ export { setupWindowHandlers } from './window.handlers';
 export { setupTargetLockHandlers } from './target-lock.handlers';
 export { setupTerminalHandlers } from './terminal.handlers';
 export { setupGitHandlers } from './git.handlers';
+export { setupBackupHandlers } from './backup.handlers';
+export { setupSqlViewerHandlers } from './sql-viewer.handlers';
 export { setupPullRequestHandlers } from './pullrequest.handlers';
 export { setupTaskHandlers } from './task.handlers';
 export { setupWorkflowHandlers } from './workflow.handlers';

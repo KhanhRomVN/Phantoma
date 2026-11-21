@@ -30,6 +30,8 @@ setupLogger();
 import { windowManager } from './core/window/WindowManager';
 import { startShellServer, stopServers } from './services/server-spawner';
 import { killAllTerminals } from './ipc/terminal.handlers';
+import { migrateModuleDirs } from './storage/migrateModuleDirs';
+import { setupProjectHandlers } from './ipc/project.handlers';
 import { stopAllDebug } from './ipc/debug.handlers';
 
 // Import IPC handlers
@@ -41,6 +43,7 @@ import {
   setupTargetLockHandlers,
   setupTerminalHandlers,
   setupGitHandlers,
+  setupBackupHandlers,
   setupPullRequestHandlers,
   setupTaskHandlers,
   setupWorkflowHandlers,
@@ -55,8 +58,17 @@ import {
   setupConversationHandlers,
   setupRuntimeHandlers,
   setupDebugHandlers,
+  setupSqlViewerHandlers,
 } from './ipc';
 import { registerAgentToolHandlers } from './ipc/agent-tool.handlers';
+
+import { createHash } from 'crypto';
+
+if (!app.isPackaged) {
+  const projectHash = createHash('md5').update(process.cwd()).digest('hex').slice(0, 8);
+  app.setPath('userData', path.join(app.getPath('appData'), `${app.getName()}-dev-${projectHash}`));
+  app.commandLine.appendSwitch('remote-debugging-port', String(40000 + (parseInt(projectHash, 16) % 20000)));
+}
 
 // Ensure certificate directory exists for http-mitm-proxy
 const certDir = path.join(process.cwd(), '.http-mitm-proxy', 'certs');
@@ -71,6 +83,8 @@ try {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
+  migrateModuleDirs();
+
   // Setup all IPC handlers
   setupLoggerHandlers();
   setupAppHandlers();
@@ -80,7 +94,10 @@ app.whenReady().then(() => {
   setupTargetLockHandlers();
   setupTerminalHandlers();
   setupGitHandlers();
+  setupBackupHandlers();
+  setupSqlViewerHandlers();
   setupPullRequestHandlers();
+  setupProjectHandlers();
   setupTaskHandlers();
   setupWorkflowHandlers();
   registerWorkspaceHandlers();

@@ -9,7 +9,7 @@ interface ActiveModuleState {
 // ASSUMED: cửa sổ mới (Ctrl+Shift+N) truyền module khởi tạo qua hash `#module=<name>`
 const getInitialModule = (): PhantomModule => {
   const match = window.location.hash.match(/module=(\w+)/);
-  return (match?.[1] as PhantomModule | undefined) ?? 'recon';
+  return (match?.[1] as PhantomModule | undefined) ?? 'monitor';
 };
 
 // Store dùng chung cho toàn bộ renderer — mọi component gọi useActiveModule

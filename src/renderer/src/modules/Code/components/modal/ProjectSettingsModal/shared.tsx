@@ -46,7 +46,7 @@ export function Section({
 
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('rounded-xl border border-divider bg-card-background', className)}>
+    <div className={cn('rounded-xl border border-border bg-card-background', className)}>
       {children}
     </div>
   );
@@ -131,7 +131,7 @@ export function ProjectMark({
   );
   return (
     <span
-      className='block shrink-0 overflow-hidden border border-divider bg-white/[0.04]'
+      className='block shrink-0 overflow-hidden border border-border bg-white/[0.04]'
       style={{ width: size, height: size, borderRadius: Math.round(size * 0.26) }}
     >
       {logoPath ? (

@@ -16,8 +16,11 @@ import {
   Search,
   X,
   AlertCircle,
+  Sparkles,
+  FolderGit2,
 } from 'lucide-react';
 import { Button } from '@renderer/components/ui/Button';
+import { codeApi } from '../../services/code-api.service';
 import { cn } from '@renderer/utils/cn';
 import { Favicon, getFaviconUrl } from '@renderer/utils/favicon';
 import { getFileIconPath } from '@renderer/utils/file-icon';
@@ -82,6 +85,46 @@ const TECH_DOMAIN_MAP: Record<string, string> = {
 
 const LANG_COLORS = ['#4fa8e0', '#e0a84f', '#6fcf97', '#bb6bd9', '#eb5757', '#56ccf2'];
 
+type Tone = 'blue' | 'green' | 'purple' | 'pink' | 'teal' | 'yellow' | 'violet';
+
+const TONES: Tone[] = ['blue', 'purple', 'teal', 'pink', 'green', 'yellow', 'violet'];
+
+const TONE_SOFT: Record<Tone, string> = {
+  blue: 'bg-blue/10 text-blue',
+  green: 'bg-green/10 text-green',
+  purple: 'bg-purple/10 text-purple',
+  pink: 'bg-pink/10 text-pink',
+  teal: 'bg-teal/10 text-teal',
+  yellow: 'bg-yellow/10 text-yellow',
+  violet: 'bg-violet/10 text-violet',
+};
+
+const TONE_DOT: Record<Tone, string> = {
+  blue: 'bg-blue',
+  green: 'bg-green',
+  purple: 'bg-purple',
+  pink: 'bg-pink',
+  teal: 'bg-teal',
+  yellow: 'bg-yellow',
+  violet: 'bg-violet',
+};
+
+const TONE_BAR: Record<Tone, string> = {
+  blue: 'border-l-blue',
+  green: 'border-l-green',
+  purple: 'border-l-purple',
+  pink: 'border-l-pink',
+  teal: 'border-l-teal',
+  yellow: 'border-l-yellow',
+  violet: 'border-l-violet',
+};
+
+const hashTone = (seed: string): Tone => {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return TONES[h % TONES.length];
+};
+
 export const shortenPath = (path: string): string => {
   if (!path) return '';
   const parts = path.split('/').filter(Boolean);
@@ -121,18 +164,54 @@ const getTechIconUrl = (id: string): string => {
   return domain ? getFaviconUrl(domain) : '';
 };
 
-function SectionTitle({ children }: { children: ReactNode }) {
+function SectionTitle({
+  children,
+  tone = 'blue',
+  count,
+}: {
+  children: ReactNode;
+  tone?: Tone;
+  count?: number;
+}) {
   return (
-    <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2.5 text-left">
+    <h4 className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-text-secondary mb-2 text-left">
+      <span className={cn('w-1.5 h-1.5 rounded-full', TONE_DOT[tone])} />
       {children}
+      {count !== undefined && (
+        <span className={cn('px-1.5 py-0.5 rounded-md font-mono leading-none', TONE_SOFT[tone])}>
+          {count}
+        </span>
+      )}
     </h4>
+  );
+}
+
+function EmptyState({
+  icon,
+  title,
+  description,
+  tone = 'blue',
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  tone?: Tone;
+}) {
+  return (
+    <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
+      <div className={cn('w-12 h-12 rounded-2xl grid place-items-center', TONE_SOFT[tone])}>{icon}</div>
+      <div>
+        <p className="text-sm font-medium text-text-primary">{title}</p>
+        <p className="text-xs text-text-secondary mt-1 leading-relaxed max-w-[220px]">{description}</p>
+      </div>
+    </div>
   );
 }
 
 function DetailSkeleton() {
   return (
-    <div className="animate-pulse space-y-6 pt-5">
-      <div className="rounded-lg border border-border/60 divide-y divide-border/40">
+    <div className="animate-pulse space-y-5 pt-4">
+      <div className="rounded-xl bg-white/[0.03] divide-y divide-border/30">
         {[0, 1].map((i) => (
           <div key={i} className="flex items-center gap-3 px-3 py-2.5">
             <div className="h-3 w-3 rounded bg-white/[0.06]" />
@@ -147,14 +226,6 @@ function DetailSkeleton() {
         <div className="flex gap-2">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-5 w-20 rounded-md bg-white/[0.06]" />
-          ))}
-        </div>
-      </div>
-      <div>
-        <div className="h-3 w-24 rounded bg-white/[0.06] mb-3" />
-        <div className="flex gap-2">
-          {[0, 1].map((i) => (
-            <div key={i} className="h-7 w-24 rounded-md bg-white/[0.06]" />
           ))}
         </div>
       </div>
@@ -174,23 +245,18 @@ export function ProjectDetailPanel({
   const currentLabel = onBranchSelect ? 'Default' : 'Current';
   if (!target) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
-        <div className="w-12 h-12 rounded-xl border border-dashed border-border grid place-items-center text-text-secondary/40">
-          <FileText className="w-5 h-5" strokeWidth={1.5} />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-text-primary/80">No project selected</p>
-          <p className="text-xs text-text-secondary/60 mt-1 leading-relaxed max-w-[220px]">
-            Pick a project on the left to preview its stack, contributors and branches.
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={<FileText className="w-5 h-5" strokeWidth={1.5} />}
+        title="No project selected"
+        description="Pick a project on the left to preview its stack, contributors and branches."
+        tone="purple"
+      />
     );
   }
 
   const { name, path } = target;
   const currentLogoSrc = logoCandidates.find((c) => c.path === logoCurrent)?.src;
-
+  const headTone = hashTone(name);
 
   const overviewRows: {
     icon: ReactNode;
@@ -198,6 +264,7 @@ export function ProjectDetailPanel({
     value: string;
     title?: string;
     mono?: boolean;
+    tone: Tone;
   }[] = [];
   if (stackInfo?.repoUrl) {
     overviewRows.push({
@@ -206,6 +273,7 @@ export function ProjectDetailPanel({
       value: formatRepoUrl(stackInfo.repoUrl),
       title: stackInfo.repoUrl,
       mono: true,
+      tone: 'blue',
     });
   }
   if (stackInfo?.author) {
@@ -213,6 +281,7 @@ export function ProjectDetailPanel({
       icon: <User className="w-3.5 h-3.5" />,
       label: 'Author',
       value: stackInfo.author,
+      tone: 'purple',
     });
   }
   if (stackInfo?.sizeBytes) {
@@ -220,6 +289,7 @@ export function ProjectDetailPanel({
       icon: <HardDrive className="w-3.5 h-3.5" />,
       label: 'Size',
       value: formatBytes(stackInfo.sizeBytes),
+      tone: 'teal',
     });
   }
 
@@ -235,10 +305,12 @@ export function ProjectDetailPanel({
     branches.length > 0;
 
   return (
-    <div className="flex flex-col p-5 select-text">
-      <div className="pb-5 border-b border-border/60">
-        <div className="flex items-start gap-3">
-          <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/[0.05] border border-border overflow-hidden">
+    <div className="flex flex-col select-text">
+      <div className="relative px-5 pt-5 pb-4 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-purple/10 to-transparent pointer-events-none" />
+        <span className={cn('absolute top-0 left-0 h-0.5 w-full opacity-60', TONE_DOT[headTone])} />
+        <div className="relative flex items-start gap-3">
+          <div className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-background/60 border border-border/60 overflow-hidden">
             {logoCurrent && currentLogoSrc ? (
               <img src={currentLogoSrc} alt="" className="w-full h-full object-contain" draggable={false} />
             ) : logoCurrent ? (
@@ -249,19 +321,14 @@ export function ProjectDetailPanel({
           </div>
           <div className="flex-1 min-w-0 text-left">
             <h3 className="text-base font-semibold text-text-primary truncate">{name}</h3>
-            <p
-              className="mt-0.5 w-full text-[11px] font-mono text-text-secondary/60 truncate"
-              title={path}
-            >
+            <p className="mt-0.5 w-full text-[11px] font-mono text-text-secondary truncate" title={path}>
               {path}
             </p>
           </div>
         </div>
         {logoCandidates.length > 0 && (
-          <div className="mt-4 text-left">
-            <div className="text-[10px] uppercase tracking-[0.08em] text-text-secondary/50 mb-1.5">
-              Logo
-            </div>
+          <div className="relative mt-4 text-left">
+            <div className="text-[10px] uppercase tracking-[0.1em] text-text-secondary mb-1.5">Logo</div>
             <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
               {logoCandidates.map((c) => (
                 <button
@@ -270,10 +337,10 @@ export function ProjectDetailPanel({
                   title={`${c.name} (${c.width}×${c.height})`}
                   onClick={() => onLogoPick?.(logoCurrent === c.path ? null : c.path)}
                   className={cn(
-                    'w-10 h-10 shrink-0 rounded-lg border overflow-hidden grid place-items-center bg-white/[0.05] transition-colors',
+                    'w-10 h-10 shrink-0 rounded-lg border overflow-hidden grid place-items-center bg-background/60 transition-colors',
                     logoCurrent === c.path
                       ? 'border-dashed border-primary'
-                      : 'border-border hover:border-text-secondary/60',
+                      : 'border-border/60 hover:border-text-secondary/60',
                   )}
                 >
                   {c.src ? (
@@ -288,161 +355,166 @@ export function ProjectDetailPanel({
         )}
       </div>
 
-      {!stackInfo ? (
-        <DetailSkeleton />
-      ) : !hasDetails ? (
-        <p className="text-xs text-text-secondary/60 pt-5 leading-relaxed">
-          No stack information detected for this folder.
-        </p>
-      ) : (
-        <div className="space-y-6 pt-5">
-          {overviewRows.length > 0 && (
-            <div>
-              <SectionTitle>Overview</SectionTitle>
-              <div className="rounded-lg border border-border/60 bg-white/[0.02] divide-y divide-border/40">
-                {overviewRows.map((row) => (
-                  <div key={row.label} className="flex items-center gap-3 px-3 py-2.5 text-xs">
-                    <span className="text-text-secondary/60 shrink-0">{row.icon}</span>
-                    <span className="text-text-secondary/70 shrink-0">{row.label}</span>
-                    <span
-                      className={`flex-1 min-w-0 truncate text-right text-text-primary ${row.mono ? 'font-mono' : ''}`}
-                      title={row.title}
-                    >
-                      {row.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {languages.length > 0 && (
-            <div>
-              <SectionTitle>Languages</SectionTitle>
-              <div className="flex h-1.5 rounded-full overflow-hidden bg-white/[0.05] gap-px">
-                {languages.map((lang, idx) => (
-                  <div
-                    key={lang.id}
-                    style={{
-                      width: `${lang.percentage}%`,
-                      backgroundColor: LANG_COLORS[idx % LANG_COLORS.length],
-                    }}
-                  />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
-                {languages.map((lang, idx) => (
-                  <div key={lang.id} className="flex items-center gap-1.5 text-[11px]">
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: LANG_COLORS[idx % LANG_COLORS.length] }}
-                    />
-                    <span className="text-text-primary">{lang.name}</span>
-                    <span className="text-text-secondary/60 font-mono">{lang.percentage}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {frameworks.length > 0 && (
-            <div>
-              <SectionTitle>Frameworks</SectionTitle>
-              <div className="flex flex-wrap gap-2">
-                {frameworks.map((fwk) => {
-                  const iconUrl = getTechIconUrl(fwk);
-                  return (
-                    <div
-                      key={fwk}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/[0.06] border border-primary/20"
-                    >
-                      {iconUrl ? (
-                        <Favicon url={iconUrl} size={14} alt="" className="object-contain" />
-                      ) : (
-                        <FileText className="w-3.5 h-3.5 text-primary" />
-                      )}
-                      <span className="text-[11px] text-primary font-medium capitalize">{fwk}</span>
+      <div className="px-5 pb-5">
+        {!stackInfo ? (
+          <DetailSkeleton />
+        ) : !hasDetails ? (
+          <p className="text-xs text-text-secondary pt-4 leading-relaxed">
+            No stack information detected for this folder.
+          </p>
+        ) : (
+          <div className="space-y-5 pt-4">
+            {overviewRows.length > 0 && (
+              <div>
+                <SectionTitle tone="blue">Overview</SectionTitle>
+                <div className="rounded-xl bg-white/[0.03] divide-y divide-border/30">
+                  {overviewRows.map((row) => (
+                    <div key={row.label} className="flex items-center gap-3 px-3 py-2.5 text-xs">
+                      <span className={cn('w-6 h-6 rounded-md grid place-items-center shrink-0', TONE_SOFT[row.tone])}>
+                        {row.icon}
+                      </span>
+                      <span className="text-text-secondary shrink-0">{row.label}</span>
+                      <span
+                        className={`flex-1 min-w-0 truncate text-right text-text-primary ${row.mono ? 'font-mono' : ''}`}
+                        title={row.title}
+                      >
+                        {row.value}
+                      </span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {contributors.length > 0 && (
-            <div>
-              <SectionTitle>Contributors</SectionTitle>
-              <div className="flex flex-wrap gap-2">
-                {contributors.slice(0, 5).map((c) => (
-                  <div
-                    key={c.username}
-                    className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-md bg-white/[0.03] border border-border/60"
-                  >
-                    <img
-                      src={`https://avatars.githubusercontent.com/${c.username}?s=28`}
-                      alt={c.username}
-                      className="w-5 h-5 rounded object-cover"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = getTechIconUrl('github');
+            {languages.length > 0 && (
+              <div>
+                <SectionTitle tone="yellow">Languages</SectionTitle>
+                <div className="flex h-2 rounded-full overflow-hidden bg-white/[0.05] gap-px">
+                  {languages.map((lang, idx) => (
+                    <div
+                      key={lang.id}
+                      style={{
+                        width: `${lang.percentage}%`,
+                        backgroundColor: LANG_COLORS[idx % LANG_COLORS.length],
                       }}
                     />
-                    <span className="text-xs text-text-primary font-medium">{c.username}</span>
-                  </div>
-                ))}
-                {contributors.length > 5 && (
-                  <span className="self-center text-[10px] text-text-secondary/60">
-                    +{contributors.length - 5} more
-                  </span>
-                )}
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
+                  {languages.map((lang, idx) => (
+                    <div key={lang.id} className="flex items-center gap-1.5 text-[11px]">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: LANG_COLORS[idx % LANG_COLORS.length] }}
+                      />
+                      <span className="text-text-primary">{lang.name}</span>
+                      <span className="text-text-secondary font-mono">{lang.percentage}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {branches.length > 0 && (
-            <div>
-              <SectionTitle>Branches</SectionTitle>
-              <div className="space-y-1.5">
-                {branches.slice(0, 6).map((br) => (
-                  <div
-                    key={br.name}
-                    role={onBranchSelect ? 'button' : undefined}
-                    onClick={onBranchSelect ? () => onBranchSelect(br.name) : undefined}
-                    className={cn(
-                      'flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-white/[0.02] border transition-colors',
-                      onBranchSelect && 'cursor-pointer',
-                      onBranchSelect && selectedBranch === br.name
-                        ? 'border-dashed border-primary'
-                        : 'border-border/40 hover:border-border',
-                    )}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <GitBranch className="w-3.5 h-3.5 text-text-secondary shrink-0" />
-                      <span className="text-xs text-text-primary font-mono truncate">
-                        {br.name}
-                      </span>
-                      {br.isCurrent && (
-                        <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md bg-success/10 text-[9px] leading-none font-semibold uppercase tracking-[0.06em] text-success">
-                          {currentLabel}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 text-[10px] text-text-secondary/60 font-mono">
-                      {br.lastCommitDate ? <span>{timeAgo(br.lastCommitDate)}</span> : null}
-                      {br.commitCount !== undefined && <span>{br.commitCount} commits</span>}
-                    </div>
-                  </div>
-                ))}
-                {branches.length > 6 && (
-                  <p className="text-[10px] text-text-secondary/50 pl-1">
-                    +{branches.length - 6} more branches
-                  </p>
-                )}
+            {frameworks.length > 0 && (
+              <div>
+                <SectionTitle tone="purple">Frameworks</SectionTitle>
+                <div className="flex flex-wrap gap-2">
+                  {frameworks.map((fwk) => {
+                    const iconUrl = getTechIconUrl(fwk);
+                    const tone = hashTone(fwk);
+                    return (
+                      <div
+                        key={fwk}
+                        className={cn('flex items-center gap-1.5 px-2 py-1 rounded-md', TONE_SOFT[tone])}
+                      >
+                        {iconUrl ? (
+                          <Favicon url={iconUrl} size={14} alt="" className="object-contain" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5" />
+                        )}
+                        <span className="text-[11px] font-medium capitalize">{fwk}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+
+            {contributors.length > 0 && (
+              <div>
+                <SectionTitle tone="pink" count={contributors.length}>
+                  Contributors
+                </SectionTitle>
+                <div className="flex flex-wrap gap-2">
+                  {contributors.slice(0, 5).map((c) => (
+                    <div
+                      key={c.username}
+                      className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-md bg-white/[0.04]"
+                    >
+                      <img
+                        src={`https://avatars.githubusercontent.com/${c.username}?s=28`}
+                        alt={c.username}
+                        className="w-5 h-5 rounded object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = getTechIconUrl('github');
+                        }}
+                      />
+                      <span className="text-xs text-text-primary font-medium">{c.username}</span>
+                    </div>
+                  ))}
+                  {contributors.length > 5 && (
+                    <span className="self-center text-[10px] text-text-secondary">
+                      +{contributors.length - 5} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {branches.length > 0 && (
+              <div>
+                <SectionTitle tone="green" count={branches.length}>
+                  Branches
+                </SectionTitle>
+                <div className="space-y-1.5">
+                  {branches.slice(0, 6).map((br) => (
+                    <div
+                      key={br.name}
+                      role={onBranchSelect ? 'button' : undefined}
+                      onClick={onBranchSelect ? () => onBranchSelect(br.name) : undefined}
+                      className={cn(
+                        'flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg bg-white/[0.03] border transition-colors',
+                        onBranchSelect && 'cursor-pointer',
+                        onBranchSelect && selectedBranch === br.name
+                          ? 'border-dashed border-primary'
+                          : 'border-transparent hover:bg-white/[0.06]',
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <GitBranch className="w-3.5 h-3.5 text-green shrink-0" />
+                        <span className="text-xs text-text-primary font-mono truncate">{br.name}</span>
+                        {br.isCurrent && (
+                          <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-md bg-success/10 text-[9px] leading-none font-semibold uppercase tracking-[0.06em] text-success">
+                            {currentLabel}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-[10px] text-text-secondary font-mono">
+                        {br.lastCommitDate ? <span>{timeAgo(br.lastCommitDate)}</span> : null}
+                        {br.commitCount !== undefined && <span>{br.commitCount} commits</span>}
+                      </div>
+                    </div>
+                  ))}
+                  {branches.length > 6 && (
+                    <p className="text-[10px] text-text-secondary pl-1">+{branches.length - 6} more branches</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -453,7 +525,7 @@ export const deriveFolderName = (url: string): string =>
   url.trim().match(/[/:]([^/:]+?)(?:\.git)?\/?$/)?.[1] ?? '';
 
 const inputClass =
-  'w-full h-10 rounded-lg bg-sidebar-item-hover border border-transparent px-3 text-sm font-mono text-text-primary outline-none focus:outline-none focus:ring-0 placeholder:text-text-secondary/40 transition-all';
+  'w-full h-9 rounded-lg bg-input-background border border-transparent px-3 text-sm font-mono text-text-primary outline-none focus:outline-none focus:ring-0 focus:border-primary/40 placeholder:text-text-secondary transition-colors';
 
 interface NewRepositoryFormProps {
   url: string;
@@ -509,7 +581,7 @@ export function NewRepositoryForm({
   const folderInvalid = /[\\/]/.test(folderName);
 
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
       <Field
         label="Repository URL"
         hint={
@@ -524,7 +596,7 @@ export function NewRepositoryForm({
         }
       >
         <div className="relative">
-          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary/50 pointer-events-none" />
+          <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue pointer-events-none" />
           <input
             type="text"
             autoFocus
@@ -532,12 +604,12 @@ export function NewRepositoryForm({
             value={url}
             onChange={(e) => onUrlChange(e.target.value)}
             placeholder="https://github.com/owner/repo.git"
-            className={`${inputClass} pl-9 ${showUrlError ? 'border-error/50 focus:border-error/60 focus:ring-error/15' : ''}`}
+            className={`${inputClass} pl-9 ${showUrlError ? 'border-error/50 focus:border-error/60' : ''}`}
           />
         </div>
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <Field
           label="Folder name"
           hint={
@@ -583,7 +655,7 @@ export function NewRepositoryForm({
               type="button"
               onClick={onBrowseDest}
               title="Choose destination folder"
-              className="h-10 w-10 shrink-0 rounded-lg border border-border bg-sidebar-item-hover text-text-secondary hover:text-text-primary hover:bg-sidebar-item-active grid place-items-center transition-colors"
+              className="h-9 w-9 shrink-0 rounded-lg bg-teal/10 text-teal hover:bg-teal/20 active:bg-teal/30 grid place-items-center transition-colors outline-none focus:outline-none"
             >
               <FolderOpen className="w-4 h-4" />
             </button>
@@ -591,10 +663,9 @@ export function NewRepositoryForm({
         </Field>
       </div>
 
-
-      <div className="flex items-center gap-4 text-[11px] text-text-secondary/60">
+      <div className="flex items-center gap-4 text-[11px] text-text-secondary">
         <span className="flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5" />
+          <ShieldCheck className="w-3.5 h-3.5 text-green" />
           HTTPS and SSH supported, credentials use your system keychain
         </span>
         <span className="flex items-center gap-1.5 ml-auto shrink-0">
@@ -649,74 +720,74 @@ export function RecentClones({ onReuse }: RecentClonesProps) {
 
   if (groups.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
-        <div className="w-12 h-12 rounded-xl border border-dashed border-border grid place-items-center text-text-secondary/40">
-          <GitBranch className="w-5 h-5" strokeWidth={1.5} />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-text-primary/80">No recent clones</p>
-          <p className="text-xs text-text-secondary/60 mt-1 leading-relaxed max-w-[220px]">
-            Repositories you clone will show up here for quick reuse.
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={<GitBranch className="w-5 h-5" strokeWidth={1.5} />}
+        title="No recent clones"
+        description="Repositories you clone will show up here for quick reuse."
+        tone="teal"
+      />
     );
   }
 
   return (
     <div className="flex flex-col p-5">
-      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-4">
-        <Clock className="w-3 h-3" />
+      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-text-secondary mb-4">
+        <Clock className="w-3 h-3 text-teal" />
         Recent clones
-        {history.length > 0 && <span className="font-mono text-text-secondary/40">{history.length}</span>}
+        <span className="px-1.5 py-0.5 rounded-md bg-teal/10 text-teal font-mono leading-none">
+          {history.length}
+        </span>
       </div>
 
-      {(
-        <div className="space-y-5">
-          {groups.map((group) => (
-            <div key={group.label}>
-              <h5 className="text-[10px] font-mono uppercase tracking-widest text-text-secondary/40 mb-1.5 pl-1">
-                {group.label}
-              </h5>
-              <div className="space-y-1">
-                {group.items.map((repo) => (
+      <div className="space-y-4">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <h5 className="text-[10px] font-mono uppercase tracking-widest text-text-secondary mb-1.5 pl-1">
+              {group.label}
+            </h5>
+            <div className="space-y-1">
+              {group.items.map((repo) => (
+                <div
+                  key={repo.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onReuse(repo)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onReuse(repo);
+                    }
+                  }}
+                  title="Click to reuse this URL"
+                  className="group flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-white/[0.05] focus:outline-none transition-colors"
+                >
                   <div
-                    key={repo.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => onReuse(repo)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onReuse(repo);
-                      }
-                    }}
-                    title="Click to reuse this URL"
-                    className="group flex items-center gap-3 p-2 rounded-lg cursor-pointer border border-transparent hover:bg-white/[0.04] hover:border-border focus:outline-none focus-visible:border-primary/40 transition-all"
+                    className={cn(
+                      'w-8 h-8 rounded-lg grid place-items-center shrink-0',
+                      TONE_SOFT[hashTone(repo.name)],
+                    )}
                   >
-                    <div className="w-8 h-8 rounded-md grid place-items-center shrink-0 bg-white/[0.05] border border-border text-text-secondary">
-                      <GitBranch className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <div className="font-medium text-xs text-text-primary truncate">{repo.name}</div>
-                      <small className="block text-[10px] font-mono text-text-secondary/50 truncate">
-                        {shortenPath(repo.dest)}
-                      </small>
-                    </div>
-                    <button
-                      onClick={(e) => handleRemove(e, repo.id)}
-                      title="Remove from history"
-                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-6 h-6 rounded grid place-items-center text-text-secondary/50 hover:text-error hover:bg-error/10 transition-all shrink-0"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    <GitBranch className="w-3.5 h-3.5" />
                   </div>
-                ))}
-              </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="font-medium text-xs text-text-primary truncate">{repo.name}</div>
+                    <small className="block text-[10px] font-mono text-text-secondary truncate">
+                      {shortenPath(repo.dest)}
+                    </small>
+                  </div>
+                  <button
+                    onClick={(e) => handleRemove(e, repo.id)}
+                    title="Remove from history"
+                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-6 h-6 rounded grid place-items-center text-text-secondary hover:text-error hover:bg-error/10 transition-all shrink-0"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -828,8 +899,8 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       return;
     }
     let cancelled = false;
-    window.api
-      .invoke('fs:list-dir', dir)
+    codeApi.fs
+      .listDir(dir)
       .then((res) => {
         if (!cancelled) setDestEntries(Array.isArray(res) ? res.map((f: any) => f.name || f) : null);
       })
@@ -963,8 +1034,8 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     const p = target?.path;
     if (!p || logoScan[p] || scanningLogoRef.current.has(p)) return;
     scanningLogoRef.current.add(p);
-    window.api
-      .invoke('fs:scan-square-images', p)
+    codeApi.fs
+      .scanSquareImages(p)
       .then((res) => setLogoScan((prev) => ({ ...prev, [p]: Array.isArray(res) ? res : [] })))
       .catch(() => setLogoScan((prev) => ({ ...prev, [p]: [] })))
       .finally(() => scanningLogoRef.current.delete(p));
@@ -1039,6 +1110,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     existingBranch: string;
     newBranch: string;
     defaultLinkName: string;
+    repositoryUrl: string;
   } | null>(null);
 
   const repoNameFromUrl = (url: string) =>
@@ -1049,11 +1121,11 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       .pop() || '';
 
   const findSameRepoProject = async (path: string, name: string) => {
-    const self = await window.api.invoke('git:repo-identity', path);
+    const self = await codeApi.git.repoIdentity(path);
     if (!self) return null;
     for (const p of projects) {
       if (p.path === path || p.name.toLowerCase() !== name.toLowerCase()) continue;
-      const other = await window.api.invoke('git:repo-identity', p.path);
+      const other = await codeApi.git.repoIdentity(p.path);
       if (!other) continue;
       const same =
         other.commonDir === self.commonDir ||
@@ -1063,7 +1135,12 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     return null;
   };
 
-  const addFolderProject = (path: string, linkName?: string, existingId?: string) => {
+  const addFolderProject = (
+    path: string,
+    linkName?: string,
+    existingId?: string,
+    repositoryUrl?: string,
+  ) => {
     const name = path.split('/').pop() || 'Untitled';
     const newId = addProject({
       name,
@@ -1071,6 +1148,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       color: '#4fa8e0',
       template: 'blank',
       logoPath: logoChoice[path] ?? null,
+      repositoryUrl: repositoryUrl || null,
     });
     if (linkName && existingId) {
       updateProject(newId, { repoLinkName: linkName } as any);
@@ -1082,7 +1160,12 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   const handleDupConfirm = (linkName: string) => {
     if (!pendingDup || !browsePath) return;
     const isLink = pendingDup.kind === 'different-branch';
-    addFolderProject(browsePath, isLink ? linkName : undefined, pendingDup.existingId);
+    addFolderProject(
+      browsePath,
+      isLink ? linkName : undefined,
+      pendingDup.existingId,
+      pendingDup.repositoryUrl,
+    );
     setPendingDup(null);
     onClose();
   };
@@ -1096,7 +1179,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         const url = cloneUrl.trim();
         const folderName = cloneFolderName.trim();
         const dest = `${cloneDest.trim().replace(/\/+$/, '')}/${folderName}`;
-        await window.api.invoke('git:clone', { url, dest, branch: effectiveBranch || undefined });
+        await codeApi.git.clone(url, dest, effectiveBranch || undefined);
         addCloneEntry(url, folderName, dest);
         const newId = addProject({
           name: folderName,
@@ -1104,6 +1187,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           color: '#4fa8e0',
           template: 'blank',
           logoPath: effectiveCloneLogo ? `${dest}/${effectiveCloneLogo}` : null,
+          repositoryUrl: url,
         });
         onProjectAdded?.(newId);
       } else if (selection?.type === 'folder' && browsePath) {
@@ -1118,10 +1202,12 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
             existingBranch: dup.other.branch,
             newBranch: dup.self.branch,
             defaultLinkName: repoNameFromUrl(dup.self.remoteUrl) || dup.project.name,
+            repositoryUrl: dup.self.remoteUrl || '',
           });
           return;
         }
-        addFolderProject(browsePath);
+        const identity = await codeApi.git.repoIdentity(browsePath);
+        addFolderProject(browsePath, undefined, undefined, identity?.remoteUrl || '');
       } else if (selection?.type === 'project') {
         setCurrentProject(selection.id);
         onProjectAdded?.(selection.id);
@@ -1184,11 +1270,14 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       : 'Pick a recent project or browse your filesystem';
 
   const renderTabs = () => (
-    <div className="relative grid grid-cols-2 items-center h-10 p-1 rounded-lg bg-sidebar-item-hover shrink-0">
+    <div
+      role="tablist"
+      className="relative grid grid-cols-2 items-center h-9 p-0.5 rounded-lg bg-input-background shrink-0 w-[184px]"
+    >
       <span
         aria-hidden
         className={cn(
-          'absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-md bg-white/[0.09] shadow-sm transition-transform duration-200 ease-out',
+          'absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-gradient-to-br from-primary/20 to-purple/15 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
           mode === 'clone' && 'translate-x-full',
         )}
       />
@@ -1200,12 +1289,12 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       ).map(({ id, label, icon: Icon }) => (
         <button
           key={id}
+          role="tab"
+          aria-selected={mode === id}
           onClick={() => switchMode(id)}
           className={cn(
-            'relative z-10 h-8 px-4 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 outline-none focus:outline-none transition-colors',
-            mode === id
-              ? 'text-text-primary'
-              : 'text-text-secondary hover:text-text-primary',
+            'relative z-10 h-8 px-3 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 outline-none focus:outline-none transition-colors',
+            mode === id ? 'text-primary' : 'text-text-secondary hover:text-text-primary',
           )}
         >
           <Icon className="w-3.5 h-3.5" />
@@ -1216,11 +1305,11 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   );
 
   const renderToolbar = () => (
-    <div className="flex items-center gap-2.5 mb-4">
+    <div className="flex items-center gap-2 mb-4">
       {renderTabs()}
       {mode === 'local' && (
         <>
-          <div className="flex-1 min-w-0 flex items-center gap-2.5 h-10 bg-sidebar-item-hover rounded-lg px-3 border border-transparent transition-all">
+          <div className="flex-1 min-w-0 flex items-center gap-2.5 h-9 bg-input-background rounded-lg px-3 border border-transparent focus-within:border-primary/40 transition-colors">
             <Search className="w-4 h-4 text-text-secondary shrink-0" strokeWidth={1.5} />
             <input
               type="text"
@@ -1229,7 +1318,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
               placeholder="Search projects, or paste a Git URL..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="flex-1 min-w-0 bg-transparent outline-none text-text-primary placeholder:text-text-secondary/50 text-sm"
+              className="flex-1 min-w-0 bg-transparent outline-none text-text-primary placeholder:text-text-secondary text-sm"
             />
             {searchQuery && (
               <button
@@ -1242,7 +1331,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           </div>
           <button
             onClick={handleBrowseFolder}
-            className="h-10 w-10 rounded-lg bg-sidebar-item-hover text-text-secondary hover:bg-sidebar-item-active hover:text-text-primary flex items-center justify-center transition-all border border-dashed border-border outline-none focus:outline-none shrink-0"
+            className="h-9 w-9 rounded-lg bg-teal/10 text-teal hover:bg-teal/20 active:bg-teal/30 flex items-center justify-center transition-colors outline-none focus:outline-none shrink-0"
             title="Browse"
             aria-label="Browse folder"
           >
@@ -1281,81 +1370,75 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     onSelect: () => void;
     onOpen?: () => void;
     onRemove?: (e: React.MouseEvent) => void;
-  }) => (
-    <div key={opts.key}>
-    <div
-      role="button"
-      tabIndex={0}
-      style={{ outline: 'none', boxShadow: 'none' }}
-      onClick={opts.onSelect}
-      onDoubleClick={opts.onOpen}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          opts.onSelect();
-        }
-      }}
-      className={cn(
-        'group flex items-center gap-3 p-2.5 cursor-pointer transition-colors border-l-2 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:shadow-none',
-        opts.selected
-          ? 'rounded-l-none rounded-r-lg bg-text-secondary/[0.08] border-l-text-secondary'
-          : 'rounded-lg border-l-transparent hover:bg-white/[0.04]',
-      )}
-    >
+  }) => {
+    const tone = hashTone(opts.name);
+    return (
       <div
+        key={opts.key}
+        role="button"
+        tabIndex={0}
+        style={{ outline: 'none', boxShadow: 'none' }}
+        onClick={opts.onSelect}
+        onDoubleClick={opts.onOpen}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            opts.onSelect();
+          }
+        }}
         className={cn(
-          'w-9 h-9 rounded-lg grid place-items-center shrink-0 border border-border transition-colors',
+          'group flex items-center gap-3 px-2.5 py-2 cursor-pointer transition-colors border-l-2 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:shadow-none',
           opts.selected
-            ? 'bg-text-secondary/15 text-text-primary'
-            : 'bg-white/[0.05] text-text-secondary',
+            ? cn('rounded-l-none rounded-r-lg bg-white/[0.06]', TONE_BAR[tone])
+            : 'rounded-lg border-l-transparent hover:bg-white/[0.04]',
         )}
       >
-        {opts.logoSrc ? (
-          <img src={opts.logoSrc} alt="" className="w-full h-full object-contain" draggable={false} />
-        ) : opts.logoPath ? (
-          <ProjectLogoImage path={opts.logoPath} side={64} className="w-full h-full object-contain" />
-        ) : (
-          <LanguageBadgeIcon stack={opts.stack} />
+        <div
+          className={cn(
+            'w-9 h-9 rounded-lg grid place-items-center shrink-0 overflow-hidden transition-colors',
+            opts.selected ? TONE_SOFT[tone] : 'bg-white/[0.05] text-text-secondary',
+          )}
+        >
+          {opts.logoSrc ? (
+            <img src={opts.logoSrc} alt="" className="w-full h-full object-contain" draggable={false} />
+          ) : opts.logoPath ? (
+            <ProjectLogoImage path={opts.logoPath} side={64} className="w-full h-full object-contain" />
+          ) : (
+            <LanguageBadgeIcon stack={opts.stack} />
+          )}
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <div className="font-medium text-[13px] text-text-primary truncate">{opts.name}</div>
+          <small className="block text-[11px] font-mono text-text-secondary truncate" title={opts.path}>
+            {opts.path}
+          </small>
+        </div>
+        {opts.onRemove && (
+          <button
+            onClick={opts.onRemove}
+            className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-7 h-7 rounded-md grid place-items-center text-text-secondary hover:text-error hover:bg-error/10 transition-all shrink-0"
+            title="Remove from recent"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         )}
       </div>
-      <div className="flex-1 min-w-0 text-left">
-        <div className="font-medium text-sm text-text-primary truncate">{opts.name}</div>
-        <small className="block text-[11px] font-mono text-text-secondary/60 truncate" title={opts.path}>
-          {opts.path}
-        </small>
-      </div>
-      {opts.onRemove && (
-        <button
-          onClick={opts.onRemove}
-          className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-7 h-7 rounded-md grid place-items-center text-text-secondary/50 hover:text-error hover:bg-error/10 transition-all shrink-0"
-          title="Remove from recent"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      )}
-    </div>
-
-    </div>
-  );
+    );
+  };
 
   const renderLocalList = () => {
     if (recentProjects.length === 0 && linkedRecent.length === 0 && !browsePath) {
       return (
-        <div className="h-full flex flex-col items-center justify-center p-6 text-center gap-4">
-          <div className="w-14 h-14 rounded-2xl border border-dashed border-border grid place-items-center text-text-secondary/40">
-            <FolderOpen className="w-6 h-6" strokeWidth={1.5} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-text-primary/90 mb-1">
-              {searchQuery ? 'No matching projects' : 'No recent projects yet'}
-            </p>
-            <p className="text-xs text-text-secondary/60 max-w-[240px] mx-auto leading-relaxed">
-              {searchQuery
-                ? 'Try a different keyword, or browse for a folder.'
-                : 'Browse a folder or clone a repository to get started.'}
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={<FolderGit2 className="w-6 h-6" strokeWidth={1.5} />}
+          title={searchQuery ? 'No matching projects' : 'No recent projects yet'}
+          description={
+            searchQuery
+              ? 'Try a different keyword, or browse for a folder.'
+              : 'Browse a folder or clone a repository to get started.'
+          }
+          tone="blue"
+        />
       );
     }
 
@@ -1363,9 +1446,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       <div className="space-y-5">
         {browsePath && (
           <div>
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2 pl-1 text-left">
-              Selected folder
-            </h4>
+            <SectionTitle tone="teal">Selected folder</SectionTitle>
             {renderRow({
               key: 'browse',
               name: browsePath.split('/').pop() || 'Untitled',
@@ -1379,11 +1460,10 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         )}
         {recentProjects.length > 0 && (
           <div>
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2 pl-1 text-left">
+            <SectionTitle tone="blue" count={recentProjects.length}>
               Recent projects
-              <span className="ml-2 font-mono text-text-secondary/40">{recentProjects.length}</span>
-            </h4>
-            <div className="space-y-1">
+            </SectionTitle>
+            <div className="space-y-0.5">
               {recentProjects.map((proj) =>
                 renderRow({
                   key: proj.id,
@@ -1402,11 +1482,10 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
         )}
         {linkedRecent.length > 0 && (
           <div>
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2 pl-1 text-left">
+            <SectionTitle tone="purple" count={linkedRecent.length}>
               Linked folders
-              <span className="ml-2 font-mono text-text-secondary/40">{linkedRecent.length}</span>
-            </h4>
-            <div className="space-y-1">
+            </SectionTitle>
+            <div className="space-y-0.5">
               {linkedRecent.map((l) =>
                 renderRow({
                   key: l.key,
@@ -1432,22 +1511,25 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-[1080px] h-[820px] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl flex flex-col bg-background"
+      className="max-w-[980px] h-[680px] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl flex flex-col bg-background"
     >
-      <ModalHeader
-        title={headerTitle}
-        description={headerDesc}
-        onClose={onClose}
-        className="[&_h3]:text-left [&_p]:text-left px-6 py-4 border-b border-border bg-background"
-      />
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-purple/5 to-transparent pointer-events-none" />
+        <ModalHeader
+          title={headerTitle}
+          description={headerDesc}
+          onClose={onClose}
+          className="relative [&_h3]:text-left [&_p]:text-left px-5 py-3.5 border-b border-border bg-transparent"
+        />
+      </div>
       <ModalBody className="p-0 flex-1 min-h-0 overflow-hidden bg-background">
         <div
-          className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] h-full w-full overflow-hidden"
+          className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] h-full w-full overflow-hidden"
           onKeyDown={handleKeyDown}
         >
-          <div className="flex flex-col min-w-0 h-full overflow-hidden p-5 pb-0">
+          <div className="flex flex-col min-w-0 h-full overflow-hidden p-4 pb-0">
             {renderToolbar()}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 pb-5">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 pb-4">
               {mode === 'local' ? (
                 renderLocalList()
               ) : (
@@ -1464,10 +1546,8 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
                     suggestedName={suggestedFolderName}
                   />
                   {cloneUrlValid && cloneFolderName.trim() && (
-                    <div className="mt-6">
-                      <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary/60 mb-2 pl-1 text-left">
-                        Repository
-                      </h4>
+                    <div className="mt-5">
+                      <SectionTitle tone="teal">Repository</SectionTitle>
                       {renderRow({
                         key: 'clone-preview',
                         name: cloneFolderName.trim(),
@@ -1511,23 +1591,19 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
           </div>
         </div>
       </ModalBody>
-      <ModalFooter className="items-center px-5 py-3.5 bg-sidebar-background/50 border-t border-border">
+      <ModalFooter className="items-center px-5 py-3 bg-panel-background/50 border-t border-border">
         <div className="flex-1 mr-auto min-w-0 text-[11.5px]">
-          {error ? (
+          {error && (
             <span className="flex items-center gap-1.5 text-error truncate" title={error}>
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{error}</span>
-            </span>
-          ) : (
-            <span className="text-text-secondary/60 truncate block">
-              {mode === 'local' && 'Double-click a recent project to open it instantly'}
             </span>
           )}
         </div>
         <div className="flex gap-2.5">
           <Button
             onClick={onClose}
-            className="h-8 px-4 text-xs font-medium rounded-lg bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/20 hover:text-text-primary active:bg-text-secondary/30"
+            className="h-8 px-4 text-xs font-medium rounded-lg bg-primary/10 text-text-secondary hover:bg-primary/20 hover:text-text-primary active:bg-primary/30"
           >
             Cancel
           </Button>
@@ -1537,11 +1613,11 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
             className={cn(
               'h-8 px-4 text-xs font-semibold rounded-lg flex items-center gap-2 transition-colors',
               canSubmit && !loading
-                ? 'bg-primary/10 text-primary hover:bg-primary hover:text-text-primary active:bg-primary/80'
-                : 'bg-text-secondary/10 text-text-secondary/50 cursor-not-allowed hover:bg-text-secondary/10',
+                ? 'bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30'
+                : 'bg-primary/10 text-primary/40 cursor-not-allowed hover:bg-primary/10',
             )}
           >
-            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
             {actionLabel}
           </Button>
         </div>

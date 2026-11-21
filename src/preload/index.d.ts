@@ -9,8 +9,23 @@ interface API {
   on(channel: string, func: (...args: any[]) => void): (...args: any[]) => void;
   off(channel: string, func: (...args: any[]) => void): void;
   runtime: {
-    getPorts(): Promise<{ server: number; emulate: number }>;
-    startEmulate(): Promise<{ server: number; emulate: number }>;
+    getPorts(): Promise<{ server: number; emulate: number; profile: number }>;
+    startEmulate(): Promise<{ server: number; emulate: number; profile: number }>;
+    startProfile(): Promise<{ server: number; emulate: number; profile: number }>;
+    startCode(): Promise<{ server: number; emulate: number; profile: number; code?: number }>;
+    getChromeDefaultDir(): Promise<string>;
+    getDeviceFingerprint(): Promise<{
+      family: 'windows' | 'macos' | 'linux';
+      os: string;
+      browser: string;
+      screen: string;
+      gpu: string;
+      cores: number;
+      memory: number;
+      lang: string;
+      tz: string;
+      cc: string;
+    }>;
   };
   agentTool: {
     discover(config: any): Promise<any>;

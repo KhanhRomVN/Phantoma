@@ -1,13 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@renderer/components/ui/Button';
 import Checkbox from '@renderer/components/ui/Checkbox/Checkbox';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableCell,
-} from '@renderer/components/ui/Table';
+
 import { CANCEL_BUTTON_CLASS, Field, JsxPreview, Panel, Segmented, Stage, Toggle } from './shared';
 
 const SIZES = ['sm', 'md', 'lg'] as const;
@@ -92,7 +86,7 @@ export default function CheckboxTab() {
               style={{ width: `${todos.length ? (doneCount / todos.length) * 100 : 0}%` }}
             />
           </div>
-          <div className="flex items-center gap-2 border-b border-divider pb-2 text-xs font-medium text-text-primary">
+          <div className="flex items-center gap-2 border-b border-border pb-2 text-xs font-medium text-text-primary">
             <Checkbox
               checked={allDone && todos.length > 0}
               onChange={(value) => setTodos((prev) => prev.map((todo) => ({ ...todo, done: value })))}
@@ -116,7 +110,7 @@ export default function CheckboxTab() {
       </Panel>
 
       <Panel title="Settings rows" description="Checkbox ở cuối hàng, inputClassName rounded-full">
-        <div className="flex flex-col divide-y divide-divider">
+        <div className="flex flex-col divide-y divide-border">
           {SETTINGS.map((item) => (
             <div key={item.key} className="flex items-center justify-between gap-4 py-3">
               <div>
@@ -135,37 +129,37 @@ export default function CheckboxTab() {
       </Panel>
 
       <Panel title="Permission matrix" description="Checkbox trong Table" className="xl:col-span-2">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableCell as="th">Role</TableCell>
+        <table className="w-full border-collapse text-sm">
+          <thead className="bg-table-header-background">
+            <tr>
+              <th className="px-3 py-2 text-left font-medium text-text-primary">Role</th>
               {ACTIONS.map((action) => (
-                <TableCell key={action} as="th" className="text-center">
+                <th key={action} className="px-3 py-2 text-center font-medium text-text-primary">
                   {action}
-                </TableCell>
+                </th>
               ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+            </tr>
+          </thead>
+          <tbody>
             {ROLES.map((role) => (
-              <TableRow key={role}>
-                <TableCell>{role}</TableCell>
+              <tr key={role} className="border-b border-border hover:bg-table-row-hover">
+                <td className="px-3 py-2 text-text-primary">{role}</td>
                 {ACTIONS.map((action) => {
                   const key = `${role}-${action}`;
                   return (
-                    <TableCell key={key} className="text-center">
+                    <td key={key} className="px-3 py-2 text-center">
                       <Checkbox
                         size="sm"
                         checked={!!perms[key]}
                         onChange={(value) => setPerms((prev) => ({ ...prev, [key]: value }))}
                       />
-                    </TableCell>
+                    </td>
                   );
                 })}
-              </TableRow>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </Panel>
 
       <Panel title="Form (id + name)" description="Submit để đọc FormData">
@@ -179,7 +173,7 @@ export default function CheckboxTab() {
             </div>
           ))}
           <div className="flex items-center gap-3">
-            <Button className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70">
+            <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
               Submit
             </Button>
             <code className="truncate font-mono text-[11px] text-text-secondary">

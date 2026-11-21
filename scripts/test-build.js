@@ -18,7 +18,8 @@ function run(cmd, args, opts = {}) {
 function serverDistExists() {
   return (
     fs.existsSync(path.join(root, 'server', 'dist', 'index.js')) &&
-    fs.existsSync(path.join(root, 'emulate', 'dist', 'index.js'))
+    fs.existsSync(path.join(root, 'emulate', 'dist', 'index.js')) &&
+    fs.existsSync(path.join(root, 'profile-server', 'dist', 'index.js'))
   );
 }
 
@@ -44,8 +45,10 @@ async function main() {
     run('node', ['scripts/build-server.js', 'server']);
     console.log('\u2192 emulate build');
     run('node', ['scripts/build-server.js', 'emulate']);
+    console.log('\u2192 profile-server build');
+    run('node', ['scripts/build-server.js', 'profile-server']);
   } else {
-    console.log('\u2192 Reusing existing server/emulate dist');
+    console.log('\u2192 Reusing existing server/emulate/profile-server dist');
   }
 
   console.log('\u2192 electron-vite build');

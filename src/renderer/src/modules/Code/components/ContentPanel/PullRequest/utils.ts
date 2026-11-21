@@ -85,9 +85,9 @@ export const CHECK_COLOR: Record<CheckKind, string> = {
 
 // ─── Shared class names ─────────────────────────────────────────────────
 export const BTN =
-  'h-7 px-2.5 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-7 px-2.5 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15 hover:text-text-primary outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
 export const BTN_PRIMARY =
-  'h-7 px-2.5 rounded-md text-[12px] font-semibold inline-flex items-center gap-1.5 bg-button-soft-background text-primary hover:bg-button-soft-background/80 outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+  'h-7 px-2.5 rounded-md text-[12px] font-semibold inline-flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
 export const BTN_DANGER =
   'h-7 px-2.5 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 bg-error/10 text-error hover:bg-error/20 outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
 export const FIELD =

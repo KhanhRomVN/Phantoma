@@ -40,7 +40,7 @@ export const PrCommits = memo(function PrCommits({ commits, onCopy }: PrCommitsP
           <button
             onClick={() => onCopy(c.oid)}
             title={'Copy full hash'}
-            className={'shrink-0 inline-flex items-center gap-1 rounded bg-button-soft-background px-1.5 py-[1px] font-mono text-[10.5px] text-text-secondary hover:text-text-primary cursor-pointer outline-none transition-colors'}
+            className={'shrink-0 inline-flex items-center gap-1 rounded bg-text-secondary/10 px-1.5 py-[1px] font-mono text-[10.5px] text-text-secondary hover:text-text-primary cursor-pointer outline-none transition-colors'}
           >
             {c.oid.slice(0, 7)}
             <Copy className={'w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity'} />

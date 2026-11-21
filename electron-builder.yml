@@ -43,6 +43,15 @@ extraResources:
     to: emulate/node_modules
     filter:
       - '**/*'
+  # profile-server (Profile module backend) — dist + package.json + node_modules
+  - from: profile-server/dist
+    to: profile-server/dist
+  - from: profile-server/package.json
+    to: profile-server/package.json
+  - from: profile-server/node_modules
+    to: profile-server/node_modules
+    filter:
+      - '**/*'
 
 # Windows Configuration
 # artifactName ở cấp win áp dụng cho target zip (portable); nsis có artifactName riêng bên dưới

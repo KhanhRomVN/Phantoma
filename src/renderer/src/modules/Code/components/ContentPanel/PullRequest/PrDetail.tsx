@@ -59,7 +59,7 @@ const TONE_ICON: Record<PrTone, typeof GitPullRequest> = {
 const Branch = ({ name, dim }: { name: string; dim?: boolean }) => (
   <span
     className={cn(
-      'inline-flex items-center gap-1 rounded bg-button-soft-background px-1.5 py-[1px] font-mono text-[11px]',
+      'inline-flex items-center gap-1 rounded bg-text-secondary/10 px-1.5 py-[1px] font-mono text-[11px]',
       dim ? 'text-text-secondary' : 'text-text-primary',
     )}
   >
@@ -197,7 +197,7 @@ export const PrDetail = memo(function PrDetail({
                 value={mergeMethod}
                 onChange={(e) => onMergeMethodChange(e.target.value as MergeMethod)}
                 disabled={busy}
-                className={'h-7 cursor-pointer rounded-md bg-button-soft-background px-2 text-[12px] text-text-secondary outline-none'}
+                className={'h-7 cursor-pointer rounded-md bg-text-secondary/10 px-2 text-[12px] text-text-secondary outline-none'}
               >
                 <option value={'squash'}>Squash and merge</option>
                 <option value={'merge'}>Create a merge commit</option>
@@ -247,7 +247,7 @@ export const PrDetail = memo(function PrDetail({
             >
               {t.label}
               {t.count > 0 && (
-                <span className={'rounded-full bg-button-soft-background px-1.5 text-[10.5px] font-semibold text-text-secondary'}>
+                <span className={'rounded-full bg-text-secondary/10 px-1.5 text-[10.5px] font-semibold text-text-secondary'}>
                   {t.count}
                 </span>
               )}
@@ -271,7 +271,7 @@ export const PrDetail = memo(function PrDetail({
               )}
 
               <div className={'rounded-lg border border-border overflow-hidden'}>
-                <div className={'flex items-center gap-2 px-3 py-1.5 bg-button-soft-background/60 text-[11.5px] text-text-secondary'}>
+                <div className={'flex items-center gap-2 px-3 py-1.5 bg-text-secondary/10 text-[11.5px] text-text-secondary'}>
                   <PrAvatar login={detail.author?.login} size={18} />
                   <span className={'font-semibold text-text-primary'}>{detail.author?.login ?? 'unknown'}</span>
                   {`opened this ${timeAgo(detail.createdAt)}`}

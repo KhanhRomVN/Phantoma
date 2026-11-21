@@ -14,12 +14,14 @@ import { app, utilityProcess, UtilityProcess } from 'electron';
 import net from 'net';
 import path from 'path';
 import { logger } from '../utils/logger';
-import { RuntimePorts, DEV_PORTS } from '../../shared/ports';
+import { RuntimePorts, DEV_PORTS } from '../../renderer/src/config/ports';
 
 let currentPorts: RuntimePorts = { ...DEV_PORTS };
 let serverProc: UtilityProcess | null = null;
 let emulateProc: UtilityProcess | null = null;
 let emulateStarting: Promise<RuntimePorts> | null = null;
+let profileProc: UtilityProcess | null = null;
+let profileStarting: Promise<RuntimePorts> | null = null;
 
 function findFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -111,6 +113,55 @@ export function startEmulateServer(): Promise<RuntimePorts> {
   });
 }
 
+/** Spawn profile server theo yêu cầu (packaged only). Idempotent. */
+export function startProfileServer(): Promise<RuntimePorts> {
+  if (!app.isPackaged) return Promise.resolve(currentPorts);
+  if (profileProc) return Promise.resolve(currentPorts);
+  if (profileStarting) return profileStarting;
+
+  profileStarting = (async () => {
+    const profilePort = await findFreePort();
+    currentPorts = { ...currentPorts, profile: profilePort };
+
+    const profileEntry = resolveServerEntry(path.join(resourcesRoot(), 'profile-server'));
+    profileProc = fork(
+      profileEntry,
+      { PROFILE_PORT: String(profilePort), ENV: 'production' },
+      'profile-server',
+    );
+    await waitHealthy(`http://127.0.0.1:${profilePort}`);
+    return currentPorts;
+  })();
+
+  return profileStarting.finally(() => {
+    profileStarting = null;
+  });
+}
+
+let codeProc: UtilityProcess | null = null;
+let codeStarting: Promise<RuntimePorts> | null = null;
+
+/** Spawn code server theo yêu cầu (packaged only). Idempotent. */
+export function startCodeServer(): Promise<RuntimePorts> {
+  if (!app.isPackaged) return Promise.resolve(currentPorts);
+  if (codeProc) return Promise.resolve(currentPorts);
+  if (codeStarting) return codeStarting;
+
+  codeStarting = (async () => {
+    const codePort = await findFreePort();
+    currentPorts = { ...currentPorts, code: codePort };
+
+    const codeEntry = resolveServerEntry(path.join(resourcesRoot(), 'code'));
+    codeProc = fork(codeEntry, { CODE_PORT: String(codePort), ENV: 'production' }, 'code');
+    await waitHealthy(`http://127.0.0.1:${codePort}`);
+    return currentPorts;
+  })();
+
+  return codeStarting.finally(() => {
+    codeStarting = null;
+  });
+}
+
 export function getPorts(): RuntimePorts {
   return currentPorts;
 }
@@ -118,6 +169,10 @@ export function getPorts(): RuntimePorts {
 export function stopServers(): void {
   if (serverProc) serverProc.kill();
   if (emulateProc) emulateProc.kill();
+  if (profileProc) profileProc.kill();
+  if (codeProc) codeProc.kill();
+  codeProc = null;
   serverProc = null;
   emulateProc = null;
+  profileProc = null;
 }

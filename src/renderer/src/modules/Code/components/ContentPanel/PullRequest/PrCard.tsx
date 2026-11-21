@@ -88,12 +88,12 @@ export const PrCard = memo(function PrCard({ pr, selected, onSelect }: PrCardPro
           </div>
 
           <div className={'mt-2 flex items-center gap-1.5 min-w-0'}>
-            <span className={'inline-flex items-center gap-1 min-w-0 max-w-[45%] rounded bg-button-soft-background px-1.5 py-[1px] font-mono text-[10.5px] text-text-primary'}>
+            <span className={'inline-flex items-center gap-1 min-w-0 max-w-[45%] rounded bg-text-secondary/10 px-1.5 py-[1px] font-mono text-[10.5px] text-text-primary'}>
               <GitBranch className={'w-3 h-3 shrink-0 text-text-secondary'} />
               <span className={'truncate'}>{pr.headRefName}</span>
             </span>
             <ArrowRight className={'w-3 h-3 shrink-0 text-text-secondary/60'} />
-            <span className={'inline-flex items-center min-w-0 max-w-[40%] rounded bg-button-soft-background px-1.5 py-[1px] font-mono text-[10.5px] text-text-secondary'}>
+            <span className={'inline-flex items-center min-w-0 max-w-[40%] rounded bg-text-secondary/10 px-1.5 py-[1px] font-mono text-[10.5px] text-text-secondary'}>
               <span className={'truncate'}>{pr.baseRefName}</span>
             </span>
             <span className={'flex-1'} />

@@ -6,6 +6,8 @@
  * ------------------------------------------------------------------
  */
 
+import { codeApi } from '../../services/code-api.service';
+
 interface BaseParams {
   requestId?: string;
 }
@@ -25,6 +27,20 @@ interface ListFilesParams extends BaseParams {
   recursive?: boolean | string;
 }
 
+interface ListedNode {
+  name: string;
+  type: 'file' | 'folder';
+  size?: number;
+  children?: ListedNode[];
+}
+
+const toListed = (nodes: Array<{ name: string; type: 'file' | 'folder'; size?: number; children?: any[] }>): ListedNode[] =>
+  nodes.map((n) =>
+    n.type === 'folder'
+      ? { name: n.name, type: 'folder', children: toListed(n.children ?? []) }
+      : { name: n.name, type: 'file', size: n.size },
+  );
+
 export class ListFilesHandler {
   public async handle(message: ListFilesParams): Promise<BaseResult> {
     const pathValue = message.path || message.folder_path || message.filePath || '.';
@@ -40,9 +56,6 @@ export class ListFilesHandler {
     }
 
     try {
-      const api = (window as any).api;
-      if (!api?.invoke) throw new Error('IPC not available');
-
       let resolvedPath = pathValue;
       if (!/^([A-Za-z]:[\\/]|\/|file:\/\/)/.test(pathValue)) {
         let projectPath: string | undefined = (message as any).basePath;
@@ -59,42 +72,9 @@ export class ListFilesHandler {
         }
       }
 
-      const buildTree = async (
-        dirPath: string,
-        currentDepth: number,
-      ): Promise<any[]> => {
-        if (currentDepth > maxDepth) return [];
-
-        let dirEntries: Array<{ name: string; type: 'file' | 'folder'; size?: number }>;
-        try {
-          dirEntries = await api.invoke('fs:read-dir', dirPath);
-        } catch {
-          return [];
-        }
-
-        dirEntries.sort((a, b) => {
-          const aIsDir = a.type === 'folder' ? 0 : 1;
-          const bIsDir = b.type === 'folder' ? 0 : 1;
-          if (aIsDir !== bIsDir) return aIsDir - bIsDir;
-          return a.name.localeCompare(b.name);
-        });
-
-        const results: any[] = [];
-        for (const entry of dirEntries) {
-          if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
-
-          if (entry.type === 'folder') {
-            const fullPath = dirPath.replace(/\/$/, '') + '/' + entry.name;
-            const children = await buildTree(fullPath, currentDepth + 1);
-            results.push({ name: entry.name, type: 'folder', children });
-          } else {
-            results.push({ name: entry.name, type: 'file', size: entry.size });
-          }
-        }
-        return results;
-      };
-
-      const tree = await buildTree(resolvedPath, 1);
+      const tree = toListed(
+        await codeApi.fs.tree(resolvedPath, maxDepth, { exclude: ['node_modules'], hidden: false }),
+      );
 
       return {
         command: 'listFilesResult',

@@ -6,6 +6,7 @@ import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
+import { codeApi } from '../../../services/code-api.service';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
 interface CommitSyncedFilesModalProps {
@@ -90,12 +91,10 @@ export function CommitSyncedFilesModal({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const tree = useMemo(
-    () =>
-      buildTree(files.map((p) => (p.startsWith(`${base}/`) ? p.slice(base.length + 1) : p))),
+    () => buildTree(files.map((p) => (p.startsWith(`${base}/`) ? p.slice(base.length + 1) : p))),
     [files, base],
   );
   const rows = useMemo(() => flattenTree(tree, collapsed), [tree, collapsed]);
-
   const toggleFolder = (key: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -109,12 +108,7 @@ export function CommitSyncedFilesModal({
     setBusy(true);
     setError(null);
     try {
-      const res = await window.api.invoke(
-        'git:commit-push-files',
-        projectPath,
-        files,
-        message.trim(),
-      );
+      const res = await codeApi.git.commitPushFiles(projectPath, files, message.trim());
       if (res?.error) {
         setError(res.committed ? `Committed, but push failed: ${res.error}` : res.error);
         if (res.committed) onDone();
@@ -168,12 +162,16 @@ export function CommitSyncedFilesModal({
                   strokeWidth={1.5}
                 />
                 <img
-                  src={isFolder ? getFolderIconPath(node.name, expanded) : getFileIconPath(node.name)}
+                  src={
+                    isFolder ? getFolderIconPath(node.name, expanded) : getFileIconPath(node.name)
+                  }
                   alt=""
                   className="w-4 h-4 shrink-0"
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
-                    const fallback = isFolder ? '/images/icon/folder-base.svg' : '/images/icon/file.svg';
+                    const fallback = isFolder
+                      ? '/images/icon/folder-base.svg'
+                      : '/images/icon/file.svg';
                     if (img.src.endsWith(fallback)) img.style.display = 'none';
                     else img.src = fallback;
                   }}
@@ -201,12 +199,12 @@ export function CommitSyncedFilesModal({
         <button
           onClick={onClose}
           disabled={busy}
-          className="h-8 px-3 rounded text-[13px] bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background transition-colors"
+          className="h-8 px-3 rounded text-[13px] bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15 hover:text-text-primary active:bg-text-secondary/20 disabled:hover:bg-text-secondary/10 transition-colors"
         >
           Cancel
         </button>
         <Button
-          className="bg-button-soft-background text-primary hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+          className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30"
           onClick={handleSubmit}
           disabled={busy || files.length === 0 || !message.trim()}
         >

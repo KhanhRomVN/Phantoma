@@ -17,6 +17,10 @@ const api = {
   runtime: {
     getPorts: () => electronAPI.ipcRenderer.invoke('runtime:get-ports'),
     startEmulate: () => electronAPI.ipcRenderer.invoke('runtime:start-emulate'),
+    startProfile: () => electronAPI.ipcRenderer.invoke('runtime:start-profile'),
+    startCode: () => electronAPI.ipcRenderer.invoke('runtime:start-code'),
+    getDeviceFingerprint: () => electronAPI.ipcRenderer.invoke('runtime:get-device-fingerprint'),
+    getChromeDefaultDir: () => electronAPI.ipcRenderer.invoke('runtime:get-chrome-default-dir'),
   },
   agentTool: {
     discover: (config: any) => electronAPI.ipcRenderer.invoke('agent-tool:discover', config),

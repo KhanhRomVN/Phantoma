@@ -17,7 +17,7 @@ import {
   type StoredTask,
   type TaskPriority,
 } from '../../services/task.service';
-import { STATUS_META } from './TaskManager/kanban/KanbanTaskCard';
+import { STATUS_META } from './TaskManager/statusMeta';
 
 const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string }> = {
   high: { label: 'High', color: '--error' },
@@ -62,7 +62,7 @@ export const ArchivedTaskCard = memo(function ArchivedTaskCard({
           onOpen(task);
         }
       }}
-      className="group flex flex-col gap-3 p-4 rounded-xl border border-divider bg-card-background hover:bg-card-hover hover:border-border transition-colors cursor-pointer outline-none"
+      className="group flex flex-col gap-3 p-4 rounded-xl border border-border bg-card-background hover:bg-card-hover hover:border-border transition-colors cursor-pointer outline-none"
     >
       <div className="flex items-center gap-2">
         <span
@@ -168,7 +168,7 @@ export const ArchivedTaskCard = memo(function ArchivedTaskCard({
         </div>
       )}
 
-      <div className="mt-auto flex items-center gap-3 pt-3 border-t border-divider">
+      <div className="mt-auto flex items-center gap-3 pt-3 border-t border-border">
         <span className="inline-flex items-center gap-1.5 text-[11px] text-text-secondary min-w-0 truncate">
           <Archive className="w-3 h-3 shrink-0" />
           Archived {new Date(task.updatedAt).toLocaleDateString()}

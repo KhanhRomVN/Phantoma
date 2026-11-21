@@ -2,9 +2,9 @@
 
 ## 1. Không dùng màu background thiên về đỏ, xanh lá, xanh biển, vàng
 
-Các màu này là màu ngữ nghĩa của UI (`--error`, `--success`, `--info`/`--primary`, `--warn`) và các màu trạng thái khác. Nếu dùng cho background (`--background`, `--card-background`, `--sidebar-background`, `--input-background`, `--dropdown-background`, `--button-soft-background`...) thì sẽ lẫn với trạng thái và làm mất tác dụng báo hiệu.
+Các màu này là màu ngữ nghĩa của UI (`--error`, `--success`, `--info`/`--primary`, `--warn`) và các màu trạng thái khác. Nếu dùng cho background (`--background`, `--card-background`, `--panel-background`, `--input-background`, `--dropdown-background`...) thì sẽ lẫn với trạng thái và làm mất tác dụng báo hiệu.
 
-- Background, surface, sidebar, input, dropdown, table, button soft nên là màu trung tính (đen, xám, xám ngả tím/than nhạt).
+- Background, surface, sidebar, input, dropdown, table nên là màu trung tính (đen, xám, xám ngả tím/than nhạt).
 - Màu đỏ / xanh lá / xanh biển / vàng chỉ dùng cho semantic colors và base palette.
 
 ## 2. Theme chủ đạo là dark

@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react';
 // ── Hooks ─
 import { useActiveModule } from '@renderer/hooks/useActiveModule';
 
+
 // ── UI ─
 import {
   Bell,
@@ -38,6 +39,7 @@ import {
 
 // ── Components ──
 import { SystemStatsModal } from './SystemStatsModal';
+import { BrowserUpdate } from './BrowserUpdate';
 
 // ── Utils ─
 import { cn } from '@renderer/utils/cn';
@@ -72,6 +74,7 @@ export function HeaderBar({
   // ── Derived
   const ToggleIcon = isRightPanelOpen ? PanelRightClose : PanelRightOpen;
   const isEmulateMode = activeModule === 'emulate';
+
 
   // Load emulate URL from localStorage and check health
   useEffect(() => {
@@ -155,27 +158,9 @@ export function HeaderBar({
   // ── Render ──
   return (
     <>
-      <div className="h-10 w-full shrink-0 border-b border-border bg-sidebar-background/80 backdrop-blur-sm px-4 flex items-center select-none">
+      <div className="h-10 w-full shrink-0 border-b border-border bg-panel-background/80 backdrop-blur-sm px-4 flex items-center select-none">
         {/* Left Section */}
         <div className="flex items-center gap-3 flex-1">
-          <div className="flex items-center gap-2">
-            <img
-              src={`${(window as any).__zenImagesUri || '/images'}/phantoma-dark-logo.png`}
-              alt="Phantoma"
-              className="w-6 h-6 shrink-0 object-contain dark:hidden"
-              draggable={false}
-            />
-            <img
-              src={`${(window as any).__zenImagesUri || '/images'}/phantoma-light-logo.png`}
-              alt="Phantoma"
-              className="w-6 h-6 shrink-0 object-contain hidden dark:block"
-              draggable={false}
-            />
-            <span className="text-[13px] font-semibold tracking-tight text-text-primary">Phantoma</span>
-            <span className="text-[10px] font-mono text-text-secondary bg-border/30 px-1.5 py-0.5 rounded-full">
-              1.2.34
-            </span>
-          </div>
 
           {/* Emulate Service Status & Config - Only visible in Emulate module */}
           {isEmulateMode && (
@@ -200,10 +185,11 @@ export function HeaderBar({
 
         {/* Right Section */}
         <div className="flex items-center gap-3 flex-1 justify-end">
+          <BrowserUpdate />
           {/* System Monitors */}
           <button
             onClick={() => setIsStatsModalOpen(true)}
-            className="flex items-center gap-2 mr-2 px-2 py-1 rounded-md bg-background/50 hover:bg-sidebar-item-hover transition-colors cursor-pointer"
+            className="flex items-center gap-2 mr-2 px-2 py-1 rounded-md bg-background/50 hover:bg-card-hover transition-colors cursor-pointer"
           >
             {/* CPU */}
             <div className="flex items-center gap-1">
@@ -237,15 +223,15 @@ export function HeaderBar({
             </div>
           </button>
 
-          <button className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors">
+          <button className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors">
             <Bell className="w-4 h-4" strokeWidth={1.5} />
           </button>
-          <button className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors">
+          <button className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors">
             <Settings className="w-4 h-4" strokeWidth={1.5} />
           </button>
           <button
             onClick={onToggleRightPanel}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
           >
             <ToggleIcon className="w-4 h-4" strokeWidth={1.5} />
           </button>
@@ -256,14 +242,14 @@ export function HeaderBar({
           <div className="flex items-center gap-1 ml-1 border-l border-border/50 pl-2">
             <button
               onClick={handleMinimize}
-              className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors"
+              className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
               title="Minimize"
             >
               <Minus className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
             <button
               onClick={handleMaximize}
-              className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors"
+              className="w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors"
               title={isMaximized ? 'Restore' : 'Maximize'}
             >
               <Square className="w-3.5 h-3.5" strokeWidth={1.5} />

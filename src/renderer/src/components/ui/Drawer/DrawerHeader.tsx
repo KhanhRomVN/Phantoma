@@ -14,7 +14,7 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
   return (
     <div
       className={cn(
-        'px-4 pt-2 pb-2 border-b border-divider shrink-0 flex items-center gap-3',
+        'px-4 pt-2 pb-2 border-b border-border shrink-0 flex items-center gap-3',
         className,
       )}
     >

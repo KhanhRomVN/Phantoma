@@ -48,8 +48,7 @@
     --dropdown-item-hover: 248 250 252;
     --dropdown-border: 226 232 240;
     --dropdown-border-hover: 203 213 225;
-    --sidebar-background: 249 250 251;
-    --sidebar-item-hover: 243 244 246;
+    --panel-background: 249 250 251;
     --sidebar-item-focus: 229 231 235;
     --button-bg: 54 134 255;
     --button-bg-hover: 29 78 216;
@@ -114,8 +113,7 @@
     --dropdown-item-hover: 45 45 45;
     --dropdown-border: 63 63 63;
     --dropdown-border-hover: 65 141 254;
-    --sidebar-background: 19 19 19;
-    --sidebar-item-hover: 30 30 30;
+    --panel-background: 19 19 19;
     --sidebar-item-focus: 51 51 51;
     --button-bg: 54 134 255;
     --button-bg-hover: 65 141 254;

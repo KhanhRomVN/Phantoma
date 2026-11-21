@@ -55,7 +55,7 @@ function Section({
         {open ? <ChevronDown className={'w-3 h-3'} /> : <ChevronRight className={'w-3 h-3'} />}
         {icon}
         {title}
-        <span className={'ml-auto font-mono text-[10px] px-1.5 rounded-full bg-card-background border border-divider'}>
+        <span className={'ml-auto font-mono text-[10px] px-1.5 rounded-full bg-card-background border border-border'}>
           {count}
         </span>
       </button>
@@ -134,7 +134,7 @@ export const BranchSidebar = memo(function BranchSidebar({
   };
 
   return (
-    <aside className={'w-[230px] shrink-0 border-r border-border flex flex-col min-h-0 bg-sidebar-background/40'}>
+    <aside className={'w-[230px] shrink-0 border-r border-border flex flex-col min-h-0 bg-panel-background/40'}>
       <div className={'h-11 shrink-0 px-4 flex items-center border-b border-border'}>
         <span className={'text-[13px] font-semibold text-text-primary truncate'}>{title}</span>
       </div>

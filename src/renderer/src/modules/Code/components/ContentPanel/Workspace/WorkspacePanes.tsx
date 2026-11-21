@@ -29,6 +29,7 @@ import {
   X,
   Circle,
   Pin,
+  Palette,
 } from 'lucide-react';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { cn } from '@renderer/utils/cn';
@@ -37,6 +38,8 @@ import { CodeBrowser } from './Browser';
 
 import { CodeFile } from './File';
 import { CodeAgent } from './Zen';
+import { CodeAgentTools } from './AgentTools';
+import { Design as CodeDesign } from './Design';
 
 import {
   Dropdown,
@@ -48,6 +51,7 @@ import {
 import { getFileIconPath } from '@renderer/utils/file-icon';
 import { useGitFileStatus } from '../../../hooks/useGitFileStatus';
 import { getAgentFavicon } from '../../../constants/workspaceAgents';
+import { getConversation } from '@renderer/components/Widgets/AgentTools/services/conversationStorage';
 import type { SessionStatus } from '../../ProjectPanel/SessionCard';
 import {
   TABBAR_HEIGHT,
@@ -81,6 +85,35 @@ function buildZenCliCommand(panel: WorkspacePanel): string | null {
   return `zen-cli --resume ${panel.zencliConversationId}`;
 }
 
+const CLI_AGENT_IDS = ['claude', 'opencode', 'codex'];
+
+function CliAgentsIcon({ iconClass }: { iconClass: string }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setIndex((i) => (i + 1) % CLI_AGENT_IDS.length), 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span className={cn('relative inline-block shrink-0', iconClass)}>
+      {CLI_AGENT_IDS.map((id, i) => (
+        <img
+          key={id}
+          src={getAgentFavicon(id)}
+          alt={id}
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-contain transition-all duration-500"
+          style={{
+            opacity: i === index ? 1 : 0,
+            transform: i === index ? 'scale(1)' : 'scale(0.6)',
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function getPanelMeta(
   type: PanelType,
   iconClass = 'w-3.5 h-3.5',
@@ -95,7 +128,7 @@ export function getPanelMeta(
       return { icon: <Globe className={cn(iconClass, 'text-sky-400')} />, label: 'Browser' };
 
     case 'file':
-      return { icon: <FileText className={cn(iconClass, 'text-slate-400')} />, label: 'File' };
+      return { icon: <FileText className={cn(iconClass, 'text-emerald-400')} />, label: 'File' };
     case 'agent':
       return {
         icon: (
@@ -108,10 +141,20 @@ export function getPanelMeta(
         ),
         label: 'Zen',
       };
+    case 'agenttools':
+      return {
+        icon: <CliAgentsIcon iconClass={iconClass} />,
+        label: 'CLI Agents',
+      };
     case 'emulator':
       return {
         icon: <MonitorPlay className={cn(iconClass, 'text-pink-400')} />,
         label: 'Emulator',
+      };
+    case 'design':
+      return {
+        icon: <Palette className={cn(iconClass, 'text-purple-400')} />,
+        label: 'Design',
       };
 
     default:
@@ -120,9 +163,35 @@ export function getPanelMeta(
 }
 
 /** Panel types offered by the "+" dropdown. */
-const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent'];
+const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent', 'agenttools'];
 
 // ─── Tab ──────────────────────────────────────────────────────────────
+
+const AGENT_TOOLS_NAMES: Record<string, string> = {
+  claude: 'Claude Code',
+  codex: 'Codex',
+  opencode: 'OpenCode',
+};
+
+// ASSUMED: panel chưa có conversation thì lấy agent đang chọn gần nhất trong MessageInput
+function getAgentToolsInfo(panel: WorkspacePanel): { providerId?: string; title: string } {
+  let providerId: string | undefined;
+  let conversationTitle: string | undefined;
+  if (panel.agentConversationId) {
+    const conversation = getConversation(panel.agentConversationId);
+    providerId = conversation?.provider;
+    conversationTitle = conversation?.title;
+  }
+  if (!providerId) {
+    try {
+      providerId = JSON.parse(localStorage.getItem('agent-tools:last-selection') ?? 'null')?.providerId;
+    } catch {
+      providerId = undefined;
+    }
+  }
+  const name = providerId ? (AGENT_TOOLS_NAMES[providerId] ?? providerId) : 'CLI Agents';
+  return { providerId, title: conversationTitle ? `${name}|${conversationTitle}` : name };
+}
 
 function getPanelTitle(panel: WorkspacePanel): string {
   const label = getPanelMeta(panel.type).label;
@@ -130,8 +199,22 @@ function getPanelTitle(panel: WorkspacePanel): string {
     if (panel.workflowAgentId) return panel.title;
     return panel.agentTitle ? `Zen|${panel.agentTitle}` : 'Zen';
   }
+  if (panel.type === 'agenttools') return getAgentToolsInfo(panel).title;
   if (panel.type === 'website') return panel.browserTitle || panel.title || label;
   if (panel.type === 'terminal') return panel.terminalProcess || panel.title || label;
+  if (panel.type === 'design') {
+    // ASSUMED: Design title lấy từ store dựa vào content (designId)
+    const designId = panel.content;
+    if (designId) {
+      try {
+        const designs = (window as any).__designStore?.getState?.()?.designs || [];
+        const design = designs.find((d: any) => d.id === designId);
+        if (design) return design.name;
+      } catch {
+        // Fallback to panel.title or label
+      }
+    }
+  }
   return panel.title || label;
 }
 
@@ -183,6 +266,8 @@ function WorkspaceTab({
   const isAgentTab = panel.type === 'agent';
   const zenLogoUrl = `${(window as any).__zenImagesUri || '/images'}/zen-logo.png`;
   const displayTitle = getPanelTitle(panel);
+  const agentToolsFavicon =
+    panel.type === 'agenttools' ? getAgentFavicon(getAgentToolsInfo(panel).providerId) : undefined;
   const showAgentBadge = !!agentId && panel.type === 'terminal';
 
   return (
@@ -204,10 +289,10 @@ function WorkspaceTab({
       }}
       className={cn(
         'group/tab h-9 px-3 flex items-center gap-2 shrink-0 transition-colors text-[13px] relative',
-        'border-r border-divider',
+        'border-r border-border',
         isActive
           ? 'bg-card-background text-text-primary border-b-2 border-b-primary/80' // Added bottom border
-          : 'bg-sidebar-background text-text-secondary hover:bg-white/[0.03]',
+          : 'bg-panel-background text-text-secondary hover:bg-white/[0.03]',
       )}
       style={{ cursor: 'grab', userSelect: 'none' }}
     >
@@ -216,6 +301,17 @@ function WorkspaceTab({
           src={faviconUrl}
           alt=""
           className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : agentToolsFavicon ? (
+        <img
+          src={agentToolsFavicon}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
           onError={(e) => {
             e.currentTarget.style.display = 'none';
           }}
@@ -260,7 +356,7 @@ function WorkspaceTab({
 
       <span
         className={cn(
-          isAgentTab && 'max-w-[180px] truncate',
+          (isAgentTab || panel.type === 'agenttools') && 'max-w-[180px] truncate',
           panel.preview && !isDirty && 'italic',
           fileGitStatus === 'added' && 'text-emerald-500',
           fileGitStatus === 'modified' && 'text-orange-400',
@@ -453,7 +549,7 @@ export function TabBar({
   return (
     <div
       ref={tabBarRef}
-      className="h-9 w-full shrink-0 flex items-end bg-sidebar-background border-b border-divider"
+      className="h-9 w-full shrink-0 flex items-end bg-panel-background border-b border-border"
     >
       <div
         ref={scrollRef}
@@ -731,7 +827,7 @@ const PanelBody = memo(function PanelBody({
         />
       );
     case 'file':
-      return <CodeFile filePath={panel.filePath} fileId={panel.id} />;
+      return <CodeFile filePath={panel.filePath} fileId={panel.id} cwd={panel.cwd} />;
 
     case 'agent':
       return (
@@ -744,11 +840,24 @@ const PanelBody = memo(function PanelBody({
         />
       );
 
+    case 'agenttools':
+      return (
+        <CodeAgentTools
+          initialConversationId={panel.agentConversationId}
+          onConversationChange={handleAgentConversation}
+          cwd={panel.cwd ?? cwd}
+        />
+      );
+
     case 'emulator':
       return (
         <div className="flex-1 h-full flex items-center justify-center bg-black text-gray-500">
           Emulator View Placeholder
         </div>
+      );
+    case 'design':
+      return (
+        <CodeDesign designId={panel.content} />
       );
     default:
       return null;
@@ -798,7 +907,7 @@ function Divider({
     >
       <div
         className={cn(
-          'absolute bg-divider group-hover:bg-primary transition-colors',
+          'absolute bg-border group-hover:bg-primary transition-colors',
           isVertical
             ? 'inset-y-0 left-1/2 w-[2px] -translate-x-1/2'
             : 'inset-x-0 top-1/2 h-[2px] -translate-y-1/2',

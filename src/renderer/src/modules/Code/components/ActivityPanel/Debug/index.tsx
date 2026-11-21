@@ -85,7 +85,7 @@ function IconButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-sidebar-item-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-secondary',
+        'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-secondary',
         className,
       )}
     >
@@ -99,7 +99,7 @@ function StatusBadge({ status }: { status: Exclude<DebugStatus, 'idle' | 'starti
   return (
     <span
       className={cn(
-        'flex shrink-0 items-center gap-1.5 rounded-full bg-sidebar-background px-2 py-0.5 text-[10px] font-medium',
+        'flex shrink-0 items-center gap-1.5 rounded-full bg-panel-background px-2 py-0.5 text-[10px] font-medium',
         badge.text,
       )}
     >
@@ -203,7 +203,7 @@ function ConfigCard({
         </svg>
       )}
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-background text-text-secondary transition-colors"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-panel-background text-text-secondary transition-colors"
         style={active ? { backgroundColor: `${accent}26`, color: accent } : undefined}
       >
         <Icon className="h-4 w-4" />
@@ -330,7 +330,7 @@ export function Debug() {
           {launchExists && launchVersion && (
             <span
               title="launch.json version"
-              className="shrink-0 rounded-full bg-sidebar-background px-2 py-0.5 text-[10px] font-medium text-text-secondary"
+              className="shrink-0 rounded-full bg-panel-background px-2 py-0.5 text-[10px] font-medium text-text-secondary"
             >
               v{launchVersion}
             </span>

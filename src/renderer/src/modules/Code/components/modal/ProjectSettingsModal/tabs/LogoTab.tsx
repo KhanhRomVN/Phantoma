@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, FolderOpen, Link2, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
+import { codeApi } from '../../../../services/code-api.service';
 import { ProjectLogoImage } from '../../../ProjectLogo';
 import {
   Panel,
@@ -33,8 +34,8 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
     setCandidates([]);
     if (!projectPath) return;
     setScanning(true);
-    window.api
-      .invoke('fs:scan-square-images', projectPath)
+    codeApi.fs
+      .scanSquareImages(projectPath)
       .then((res: unknown) => {
         if (alive) setCandidates(Array.isArray(res) ? (res as LogoCandidate[]) : []);
       })
@@ -65,7 +66,7 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
     setUrlBusy(true);
     setError('');
     try {
-      const res = await window.api.invoke('fs:download-project-logo', url);
+      const res = await codeApi.fs.downloadLogo(url);
       if (res?.success && res.path) {
         onChange({ logoPath: res.path });
         setUrlInput('');
@@ -107,7 +108,7 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
               <button
                 type='button'
                 onClick={() => void pickFile()}
-                className='flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-button-soft-background px-3.5 text-xs font-medium text-primary transition-colors hover:bg-button-soft-background/80'
+                className='flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-primary/10 px-3.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20'
               >
                 <FolderOpen className='h-3.5 w-3.5' />
                 Choose from computer
@@ -139,14 +140,14 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
               disabled={urlBusy}
               spellCheck={false}
               placeholder='https://example.com/logo.png'
-              className='h-9 w-full rounded-lg border border-divider bg-input-background/40 pl-9 pr-3 font-mono text-xs text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 focus:border-text-secondary/60 disabled:opacity-50'
+              className='h-9 w-full rounded-lg border border-border bg-input-background/40 pl-9 pr-3 font-mono text-xs text-text-primary outline-none transition-colors placeholder:text-text-secondary/40 focus:border-text-secondary/60 disabled:opacity-50'
             />
           </div>
           <button
             type='button'
             onClick={() => void applyUrl()}
             disabled={!urlInput.trim() || urlBusy}
-            className='flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-button-soft-background px-4 text-xs font-medium text-primary transition-colors hover:bg-button-soft-background/80 disabled:pointer-events-none disabled:opacity-40'
+            className='flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-primary/10 px-4 text-xs font-medium text-primary transition-colors hover:bg-primary/20 disabled:pointer-events-none disabled:opacity-40'
           >
             {urlBusy && <Loader2 className='h-3.5 w-3.5 animate-spin' />}
             Use URL
@@ -173,7 +174,7 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
                     'relative aspect-square cursor-pointer overflow-hidden rounded-xl border bg-white/[0.04] p-2 transition-all',
                     active
                       ? 'border-primary ring-2 ring-primary/30'
-                      : 'border-divider hover:border-text-secondary/60 hover:bg-card-hover',
+                      : 'border-border hover:border-text-secondary/60 hover:bg-card-hover',
                   )}
                 >
                   <ProjectLogoImage

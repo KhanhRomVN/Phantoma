@@ -97,7 +97,7 @@ const TAB_ACCENTS: Record<string, string> = {
 const TAB_ACCENT_DEFAULT = '#a855f7';
 
 const ARROW_BTN =
-  'shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-default';
+  'shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-card-hover transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-default';
 
 /** Định dạng thời điểm sửa đổi; nếu không parse được thì giữ nguyên chuỗi gốc. */
 function formatUpdated(raw: string): string {
@@ -128,7 +128,7 @@ function HeaderIconButton({
       title={title}
       onClick={onClick}
       className={cn(
-        'w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-sidebar-item-hover',
+        'w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-card-hover',
         highlighted ? 'text-amber-400' : 'text-text-secondary hover:text-text-primary',
       )}
     >
@@ -481,7 +481,7 @@ export default function ContentPanel({ files: sourceFiles, onOpenSettings }: Con
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm trong hồ sơ..."
-                className="w-52 h-7 bg-input-background border border-input-border-default rounded-md pl-8 pr-2 text-xs text-text-primary placeholder:text-text-secondary/50 focus:border-primary/50 outline-none transition-colors"
+                className="w-52 h-7 bg-input-background border border-input-border-default rounded-md pl-8 pr-2 text-xs text-text-primary placeholder:text-text-secondary/50 outline-none transition-colors"
               />
             </div>
 
@@ -492,7 +492,7 @@ export default function ContentPanel({ files: sourceFiles, onOpenSettings }: Con
                 'h-7 rounded-md flex items-center gap-1.5 px-2 text-xs font-medium transition-colors',
                 editing
                   ? 'bg-primary text-white hover:bg-primary/90'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-sidebar-item-hover',
+                  : 'text-text-secondary hover:text-text-primary hover:bg-card-hover',
               )}
             >
               {editing ? (

@@ -3,9 +3,7 @@
  * HomeBanner
  * ------------------------------------------------------------------
  * Banner thống nhất cho màn Home: mất kết nối backend, có bản cập nhật
- * Zen / AIWeb2API, và gợi ý thêm account khi chưa có account nào.
- * Màu sắc lấy từ MidnightBlue theme; mỗi variant chỉ đổi bộ biến --zb-*.
- * ------------------------------------------------------------------
+ * Zen / AIWeb2API, và gợi ý thêm account khi chưa có account nào. * ------------------------------------------------------------------
  */
 
 // ─── Imports ───────────────────────────────────────────────────────────
@@ -260,26 +258,13 @@ const ExternalLink: React.FC<{ href: string; children: React.ReactNode }> = ({
   href,
   children,
 }) => (
-  <a
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="zen-banner-link"
-  >
+  <a href={href} target="_blank" rel="noopener noreferrer" className="zen-banner-link">
     {children}
   </a>
 );
 
-const ActionLink: React.FC<{ href: string; children: React.ReactNode }> = ({
-  href,
-  children,
-}) => (
-  <a
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="zen-banner-action"
-  >
+const ActionLink: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => (
+  <a href={href} target="_blank" rel="noopener noreferrer" className="zen-banner-action">
     {children}
   </a>
 );
@@ -292,14 +277,7 @@ const VersionBadge: React.FC<{ info: UpdateInfo }> = ({ info }) => (
   </span>
 );
 
-const Banner: React.FC<BannerProps> = ({
-  variant,
-  icon,
-  title,
-  badge,
-  children,
-  action,
-}) => (
+const Banner: React.FC<BannerProps> = ({ variant, icon, title, badge, children, action }) => (
   <div
     className={`zen-banner zen-banner--${variant}`}
     role={variant === 'error' ? 'alert' : 'status'}
@@ -353,11 +331,8 @@ const HomeBanner: React.FC<HomeBannerProps> = ({
             }
           >
             Zen requires{' '}
-            <ExternalLink href="https://github.com/KhanhRomVN/AIWeb2API">
-              AIWeb2API
-            </ExternalLink>{' '}
-            backend running. Make sure AIWeb2API is installed and running before
-            using Zen.
+            <ExternalLink href="https://github.com/KhanhRomVN/AIWeb2API">AIWeb2API</ExternalLink>{' '}
+            backend running. Make sure AIWeb2API is installed and running before using Zen.
           </Banner>
         )}
 
@@ -377,8 +352,7 @@ const HomeBanner: React.FC<HomeBannerProps> = ({
             <ExternalLink href="https://github.com/KhanhRomVN/Zen/releases/latest">
               Zen
             </ExternalLink>{' '}
-            is available. Download the latest release to get the newest features
-            and fixes.
+            is available. Download the latest release to get the newest features and fixes.
           </Banner>
         )}
 
@@ -398,8 +372,8 @@ const HomeBanner: React.FC<HomeBannerProps> = ({
             <ExternalLink href="https://github.com/KhanhRomVN/AIWeb2API/releases/latest">
               AIWeb2API
             </ExternalLink>{' '}
-            is available. Download and replace the current binary to get the
-            latest features and fixes.
+            is available. Download and replace the current binary to get the latest features and
+            fixes.
           </Banner>
         )}
 
@@ -411,11 +385,7 @@ const HomeBanner: React.FC<HomeBannerProps> = ({
             badge="Setup required"
             action={
               onOpenAccounts && (
-                <button
-                  type="button"
-                  className="zen-banner-action"
-                  onClick={onOpenAccounts}
-                >
+                <button type="button" className="zen-banner-action" onClick={onOpenAccounts}>
                   Add account
                 </button>
               )

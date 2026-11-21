@@ -34,6 +34,7 @@ import {
   type StatusInfo,
 } from './types';
 import { BTN } from './utils';
+import { codeApi } from '../../../services/code-api.service';
 
 interface PullRequestPanelProps {
   projectPath: string;
@@ -72,7 +73,7 @@ export const PullRequestPanel = memo(function PullRequestPanel({
   const loadStatus = useCallback(async (): Promise<StatusInfo> => {
     let next: StatusInfo;
     try {
-      const res = await window.api.invoke('pr:status', projectPath);
+      const res = (await codeApi.pr.status(projectPath)) as StatusInfo;
       next = res ?? { installed: false, authenticated: false };
     } catch (e: any) {
       next = { installed: true, authenticated: true, error: e?.message ?? String(e) };
@@ -85,7 +86,7 @@ export const PullRequestPanel = memo(function PullRequestPanel({
     setLoading(true);
     setError(null);
     try {
-      const res = await window.api.invoke('pr:list', projectPath, filter, 50);
+      const res = await codeApi.pr.list(projectPath, filter, 50);
       if (res?.error) {
         setError(String(res.error));
         setPrs([]);
@@ -104,7 +105,7 @@ export const PullRequestPanel = memo(function PullRequestPanel({
     async (n: number) => {
       setDetailLoading(true);
       try {
-        const res = await window.api.invoke('pr:view', projectPath, n);
+        const res = await codeApi.pr.view(projectPath, n);
         if (res?.error) {
           onNotice(String(res.error).split('\n')[0]);
           setDetail(null);
@@ -146,7 +147,7 @@ export const PullRequestPanel = memo(function PullRequestPanel({
       if (selected === null) return;
       setBusy(true);
       try {
-        const res = await window.api.invoke(channel, projectPath, selected, ...args);
+        const res = await codeApi.pr.action(projectPath, selected, channel.replace(/^pr:/, ''), args);
         if (res?.error) {
           onNotice(String(res.error).split('\n')[0]);
           return;
@@ -172,7 +173,7 @@ export const PullRequestPanel = memo(function PullRequestPanel({
     if (!canCreate) return;
     setBusy(true);
     try {
-      const res = await window.api.invoke('pr:create', projectPath, {
+      const res = await codeApi.pr.create(projectPath, {
         title: form.title,
         body: form.body,
         base: baseBranch || undefined,
@@ -301,7 +302,7 @@ export const PullRequestPanel = memo(function PullRequestPanel({
               className={cn(
                 'h-7 px-2.5 rounded-md text-[12px] font-medium outline-none cursor-pointer transition-colors inline-flex items-center gap-1.5',
                 filter === f.id
-                  ? 'bg-button-soft-background text-primary'
+                  ? 'bg-primary/10 text-primary'
                   : 'text-text-secondary hover:text-text-primary hover:bg-card-hover',
               )}
             >

@@ -6,23 +6,20 @@ import { toRgb } from './themeColor';
 interface ThemeCardProps {
   theme: ThemeConfig;
   selected: boolean;
+  preview?: boolean;
   onSelect: (theme: ThemeConfig) => void;
 }
 
-const Line: React.FC<{ color: string; width: string; opacity?: number }> = ({
-  color,
-  width,
-  opacity = 1,
-}) => (
-  <span
-    className="block h-1.5 rounded-full"
-    style={{ background: color, width, opacity }}
-  />
+const ACCENTS = ['blue', 'green', 'purple', 'pink', 'teal', 'yellow'] as const;
+
+const Bar: React.FC<{ color: string; w: string; o?: number }> = ({ color, w, o = 1 }) => (
+  <span className="block h-1 rounded-full" style={{ background: color, width: w, opacity: o }} />
 );
 
-const ThemeCard: React.FC<ThemeCardProps> = ({ theme, selected, onSelect }) => {
-  const c = (key: keyof ThemeConfig['tailwind']) => toRgb(theme.tailwind[key]);
-  const border = `1px solid ${c('border')}`;
+const ThemeCard: React.FC<ThemeCardProps> = ({ theme, selected, preview, onSelect }) => {
+  const c = (key: string) => toRgb((theme.tailwind as unknown as Record<string, string>)[key]);
+  const primary = c('primary');
+  const line = c('border');
   const TypeIcon = theme.type === 'dark' ? Moon : Sun;
 
   return (
@@ -30,101 +27,81 @@ const ThemeCard: React.FC<ThemeCardProps> = ({ theme, selected, onSelect }) => {
       type="button"
       aria-pressed={selected}
       onClick={() => onSelect(theme)}
-      className={`group relative text-left rounded-2xl border p-2.5 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-        selected
-          ? 'border-primary ring-2 ring-primary/40 bg-primary/5 shadow-lg'
-          : 'border-border bg-card-background hover:border-primary/60'
-      }`}
+      className="group relative flex flex-col overflow-hidden rounded-xl text-left outline-none transition-all duration-200 hover:-translate-y-0.5"
+      style={{
+        background: c('background'),
+        border: `1px solid ${selected ? primary : line}`,
+        boxShadow: selected ? `0 0 0 2px ${primary}55` : undefined,
+      }}
     >
-      <div
-        className="relative overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.015]"
-        style={{ background: c('background'), border }}
-      >
+      <div className="relative flex h-[84px]">
         <div
-          className="flex h-5 items-center gap-1 px-2"
-          style={{ background: c('sidebarBackground'), borderBottom: border }}
+          className="flex w-[22%] flex-col gap-1.5 p-2"
+          style={{ background: c('panelBackground'), borderRight: `1px solid ${line}` }}
         >
-          {(['red', 'yellow', 'green'] as const).map((k) => (
-            <span key={k} className="h-1.5 w-1.5 rounded-full" style={{ background: c(k) }} />
-          ))}
-          <span className="ml-2">
-            <Line color={c('textSecondary')} width="40px" opacity={0.4} />
-          </span>
+          <span className="h-2 w-2 rounded-sm" style={{ background: primary }} />
+          <Bar color={c('textSecondary')} w="80%" o={0.4} />
+          <Bar color={c('textSecondary')} w="60%" o={0.4} />
+          <Bar color={c('textSecondary')} w="70%" o={0.4} />
         </div>
-
-        <div className="flex h-24">
-          <div
-            className="w-1/4 space-y-1.5 p-2"
-            style={{ background: c('sidebarBackground'), borderRight: border }}
-          >
-            <Line color={c('primary')} width="100%" />
-            <Line color={c('textSecondary')} width="75%" opacity={0.35} />
-            <Line color={c('textSecondary')} width="60%" opacity={0.35} />
-            <Line color={c('textSecondary')} width="85%" opacity={0.35} />
+        <div className="flex flex-1 flex-col gap-2 p-2.5">
+          <div className="flex flex-col gap-1">
+            <Bar color={c('textPrimary')} w="45%" />
+            <Bar color={c('textSecondary')} w="70%" o={0.5} />
           </div>
-
-          <div className="flex-1 space-y-2 p-2.5">
-            <div className="space-y-1.5">
-              <Line color={c('textPrimary')} width="50%" />
-              <Line color={c('textSecondary')} width="75%" opacity={0.5} />
-            </div>
-            <div
-              className="space-y-1.5 rounded-md p-2"
-              style={{ background: c('cardBackground'), border }}
-            >
-              <Line color={c('blue')} width="45%" />
-              <Line color={c('green')} width="65%" />
-              <Line color={c('purple')} width="35%" />
-              <div className="flex gap-1.5 pt-1">
-                <span
-                  className="h-2.5 w-8 rounded-full"
-                  style={{ background: c('buttonSolidBackground') }}
-                />
-                <span
-                  className="h-2.5 w-8 rounded-full"
-                  style={{ background: c('buttonSoftBackground'), border }}
-                />
-              </div>
-            </div>
+          <div className="flex gap-1.5">
+            {(['blue', 'green', 'purple', 'pink'] as const).map((k) => (
+              <span
+                key={k}
+                className="h-5 flex-1 rounded-md"
+                style={{ background: `${c(k)}33`, border: `1px solid ${c(k)}66` }}
+              />
+            ))}
+          </div>
+          <div className="flex gap-1.5">
+            <span className="h-2.5 w-9 rounded-full" style={{ background: primary }} />
+            <span
+              className="h-2.5 w-9 rounded-full"
+              style={{ background: c('cardBackground'), border: `1px solid ${line}` }}
+            />
           </div>
         </div>
-
-        <div
-          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          style={{
-            background: `radial-gradient(120% 80% at 100% 0%, ${c('primary')}22, transparent 60%)`,
-          }}
-        />
       </div>
 
-      <div className="flex items-center justify-between gap-3 px-1.5 pb-1 pt-3">
+      <div className="flex h-1.5">
+        {[primary, ...ACCENTS.map((k) => c(k))].map((color, i) => (
+          <span key={`${color}-${i}`} className="h-full flex-1" style={{ background: color }} />
+        ))}
+      </div>
+
+      <div
+        className="flex items-center justify-between gap-2 px-3 py-2.5"
+        style={{ background: c('cardBackground'), borderTop: `1px solid ${line}` }}
+      >
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold tracking-tight text-text-primary">
+          <div className="truncate text-[12.5px] font-semibold" style={{ color: c('textPrimary') }}>
             {theme.name}
           </div>
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] uppercase tracking-wider text-text-secondary">
+          <div
+            className="mt-0.5 flex items-center gap-1 text-[10.5px] uppercase tracking-wider"
+            style={{ color: c('textSecondary') }}
+          >
             <TypeIcon className="h-3 w-3" />
             {theme.type}
+            {preview && <span style={{ color: primary }}>· preview</span>}
           </div>
         </div>
-        <div className="flex shrink-0 -space-x-1.5">
-          {[c('primary'), ...(theme.accentColors || []).slice(0, 4)].map((color, i) => (
-            <span
-              key={`${color}-${i}`}
-              className="h-4 w-4 rounded-full border-2 border-card-background"
-              style={{ background: color }}
-            />
-          ))}
-        </div>
+        <span
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white transition-all duration-200"
+          style={{
+            background: primary,
+            opacity: selected ? 1 : 0,
+            transform: selected ? 'scale(1)' : 'scale(0.5)',
+          }}
+        >
+          <Check className="h-3 w-3" strokeWidth={3} />
+        </span>
       </div>
-
-      <span
-        className={`absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow-md transition-all duration-300 ${
-          selected ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
-        }`}
-      >
-        <Check className="h-3 w-3" strokeWidth={3} />
-      </span>
     </button>
   );
 };

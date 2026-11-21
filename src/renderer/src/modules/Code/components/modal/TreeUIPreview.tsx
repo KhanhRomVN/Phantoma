@@ -148,7 +148,7 @@ export function TreeUIPreview({
       {groups.map((rows, gi) => (
         <div
           key={gi}
-          className="rounded-md border border-divider bg-input-background/40 px-3 py-2 font-mono text-[12.5px]"
+          className="rounded-md border border-border bg-input-background/40 px-3 py-2 font-mono text-[12.5px]"
         >
           {rows.map((row, ri) => (
             <div

@@ -1,181 +1,105 @@
 # Database Schema
 
-**File:** `/home/khanhromvn/.phantoma/phantoma.sql`  
+**File:** `~/.phantoma/emulate/emulate.sql` (SQLite, override bằng `EMULATE_DB_PATH`)
+
+Nguồn sự thật: `src/database/migrations/` (`0001_initial_schema.sql`, `0002_rename_targets.sql`, `0003_drop_repeater_tables.sql`), chạy tăng dần theo `PRAGMA user_version` trong `src/database/migration.runner.ts` (version hiện tại = 8). Timestamp là UNIX giây (`strftime('%s','now')`).
 
 ---
 
-## Table: `emulate_targets`
+## Table: `targets`
 
-Bảng lưu thông tin các target (mục tiêu) trong feature Emulate.
+Bảng lưu các target (mục tiêu) trong feature Emulate.
 
-### Columns
+| Column | Type | Constraint | Description |
+|---|---|---|---|
+| `id` | TEXT | PK | Mã định danh target (chỉ gồm `[A-Za-z0-9_-]`, dùng làm tên folder) |
+| `title` | TEXT | NOT NULL | Tên target |
+| `url` | TEXT | | URL của target |
+| `icon` | TEXT | | Icon của target |
+| `platform` | TEXT | | Nền tảng: `website`, `application`, `terminal` |
+| `last_used_at` | INTEGER | | Lần sử dụng cuối |
+| `executable_path` | TEXT | | Đường dẫn executable (terminal: toàn bộ command line) |
+| `startup_args` | TEXT | | Tham số khởi chạy |
+| `environment` | TEXT | | Môi trường |
+| `created_at` | INTEGER | DEFAULT now | Thời gian tạo |
+| `updated_at` | INTEGER | DEFAULT now | Thời gian cập nhật cuối |
 
-- **`id`** (TEXT, PRIMARY KEY) — Mã định danh duy nhất của target
-- **`title`** (TEXT, NOT NULL) — Tiêu đề/tên của target
-- **`url`** (TEXT) — URL của target
-- **`platform`** (TEXT) — Nền tảng (ví dụ: web, mobile, ...)
-- **`status`** (TEXT, DEFAULT 'stored') — Trạng thái: stored, running, completed, ...
-- **`last_used_at`** (INTEGER) — Thời gian sử dụng lần cuối (timestamp)
-- **`executable_path`** (TEXT) — Đường dẫn đến executable
-- **`startup_args`** (TEXT) — Tham số khởi chạy
-- **`environment`** (TEXT) — Môi trường (development, production, ...)
-- **`created_at`** (INTEGER, DEFAULT (strftime('%s', 'now'))) — Thời gian tạo (timestamp)
-- **`updated_at`** (INTEGER, DEFAULT (strftime('%s', 'now'))) — Thời gian cập nhật lần cuối (timestamp)
-- **`icon`** (TEXT) — Icon của target
+**Indexes:** `idx_targets_updated` — `updated_at`
 
-### Indexes
+Ghi chú platform:
 
-- **`idx_emulate_targets_status`** — `status`
-- **`idx_emulate_targets_platform`** — `platform`
-- **`idx_emulate_targets_updated_at`** — `updated_at`
-- **`idx_emulate_targets_last_used`** — `last_used_at`
-
----
-
-## Table: `emulate_target_filters`
-
-Bảng lưu filter settings cho từng emulate target (dùng cho Filter.tsx).
-
-### Columns
-
-- **`id`** (TEXT, PRIMARY KEY) — Mã định danh duy nhất của filter
-- **`emulate_target_id`** (TEXT, NOT NULL) — FK đến `emulate_targets.id`
-- **`method`** (TEXT) — HTTP method filter (GET, POST, PUT, DELETE...)
-- **`host`** (TEXT) — Host filter
-- **`status`** (TEXT) — Status code filter
-- **`type`** (TEXT) — Resource type filter (xhr, js, css, img, doc, fetch...)
-
-### Indexes
-
-- **`idx_emulate_target_filters_target_id`** — `emulate_target_id`
+- Giá trị cũ `web` / `pc` / `cli` được migration 0002 đổi thành `website` / `application` / `terminal`.
+- `android` KHÔNG còn là platform của target (mobile đi theo luồng device). Migration 0003 xoá các target `android` cùng folder file của chúng.
 
 ---
 
-## Table: `emulate_reports`
+## Table: `target_http_filters`
 
-Bảng lưu thông tin report cho từng emulate target. Nội dung report (markdown + title) được lưu trong file `.md` ở folder tương ứng, xác định qua `id`.
+Filter settings cho từng target (mỗi target tối đa 1 filter).
 
-### Columns
+| Column | Type | Constraint | Description |
+|---|---|---|---|
+| `id` | TEXT | PK | |
+| `target_id` | TEXT | NOT NULL, FK → `targets.id` ON DELETE CASCADE | |
+| `method` | TEXT | NOT NULL, DEFAULT '' | HTTP method filter |
+| `host` | TEXT | NOT NULL, DEFAULT '' | Host filter |
+| `status` | TEXT | NOT NULL, DEFAULT '' | Status code filter |
+| `type` | TEXT | NOT NULL, DEFAULT '' | Resource type filter |
 
-- **`id`** (TEXT, PRIMARY KEY) — Mã định danh duy nhất của report
-- **`emulate_target_id`** (TEXT, NOT NULL) — FK đến `emulate_targets.id`
-- **`created_at`** (INTEGER, DEFAULT (strftime('%s','now'))) — Thời gian tạo
-- **`updated_at`** (INTEGER, DEFAULT (strftime('%s','now'))) — Thời gian cập nhật cuối
-
-### Indexes
-
-- **`idx_emulate_reports_target_id`** — `emulate_target_id`
-- **`idx_emulate_reports_updated_at`** — `updated_at`
-
----
+**Indexes:** `idx_target_http_filters_target` — `target_id` UNIQUE
 
 ---
 
-### Table: `emulate_repeater_requests`
+## Reports (không có bảng)
 
-Lưu cấu hình request (method, url, body, params, headers) cho từng target.
-
-| # | Column | Type | Constraint | Description |
-|---|---|---|---|---|
-| 1 | `id` | TEXT | PK | UUID |
-| 2 | `emulate_target_id` | TEXT | NOT NULL, FK → `emulate_targets.id` | Thuộc target nào |
-| 3 | `method` | TEXT | NOT NULL, DEFAULT 'GET' | GET, POST, PUT, DELETE... |
-| 4 | `url` | TEXT | NOT NULL | URL gốc (chưa có query string) |
-| 8 | `created_at` | INTEGER | DEFAULT (strftime('%s','now')) | Thời gian tạo |
-| 9 | `updated_at` | INTEGER | DEFAULT (strftime('%s','now')) | Thời gian cập nhật cuối |
-
-**⚠️ LƯU Ý:** Từ version mới, `params`, `headers`, và `body` chỉ lưu metadata trong database (để giữ tương thích), còn nội dung thực tế được lưu trong file system tại `~/.phantoma/repeaters/{targetId}/repeater_{id}/`. Xem thêm `data-storage.md` để biết chi tiết.
-
-**Indexes:**
-- `idx_emulate_repeater_requests_target` — `emulate_target_id`
-- `idx_emulate_repeater_requests_updated` — `updated_at`
+Report lưu hoàn toàn bằng file (markdown + title) theo `targetId` và `reportId` (`src/storage/report-file.storage.ts`). Bảng `emulate_reports` cũ bị `DROP TABLE IF EXISTS` trong migration.
 
 ---
 
-### Table: `emulate_repeater_payloads`
+## Fuzzers (không có bảng)
 
-Lưu danh sách payload. Mỗi payload thuộc về 1 request, được xác định qua tên biến (vd: `test1` cho `${test1}` trong params/headers/body).
+Fuzzer lưu hoàn toàn bằng file JSON (`src/storage/fuzzer-file.storage.ts`), thay cho 4 bảng `emulate_repeater_*` đã bị xoá ở migration 0003 (dữ liệu repeater cũ bị bỏ, không chuyển đổi).
 
-| # | Column | Type | Constraint | Description |
-|---|---|---|---|---|
-| 1 | `id` | TEXT | PK | UUID |
-| 2 | `emulate_repeater_request_id` | TEXT | NOT NULL, FK → `emulate_repeater_requests.id` | Thuộc request nào |
-| 3 | `name` | TEXT | NOT NULL | Tên biến payload (vd: `test1` cho `${test1}`) |
-| 4 | `payload_values` | TEXT (JSON) | NOT NULL, DEFAULT '[]' | Mảng giá trị: `["val1","val2","val3"]` |
-| 5 | `enabled` | INTEGER | NOT NULL, DEFAULT 1 | 0 = tắt, 1 = bật |
-| 6 | `created_at` | INTEGER | DEFAULT (strftime('%s','now')) | |
+Gốc dữ liệu của target: `~/.phantoma/emulate/<targetId>/` (helper `getTargetDir`, fuzzers qua `getFuzzersDir`).
 
-**Indexes:**
-- `idx_emulate_repeater_payloads_request` — `emulate_repeater_request_id`
-- `idx_emulate_repeater_payloads_name_request` — `(emulate_repeater_request_id, name)` UNIQUE
+```
+~/.phantoma/emulate/<targetId>/fuzzers/<fuzzerId>/
+├── fuzzer.json
+└── history/<historyId>/
+    ├── history.json
+    └── runs.json
+```
 
----
+### `fuzzer.json`
 
-### Table: `emulate_repeater_history`
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Mã fuzzer |
+| `method` | string | HTTP method |
+| `url` | string | URL gốc (chưa có query string) |
+| `body` | string | Body request |
+| `params` | array | Query params (mảng thật, không phải chuỗi JSON) |
+| `headers` | array | Headers (mảng thật) |
+| `payloads` | array | Payload của request, xác định qua tên biến `${name}` |
+| `created_at` / `updated_at` | number | UNIX giây |
 
-Lưu lịch sử mỗi lần chạy (một lần chạy có thể gồm nhiều payload runs).
+Mỗi phần tử `payloads`: `id`, `name`, `payload_values` (string[]), `enabled` (boolean), `created_at`.
 
-| # | Column | Type | Constraint | Description |
-|---|---|---|---|---|
-| 1 | `id` | TEXT | PK | UUID |
-| 2 | `emulate_repeater_request_id` | TEXT | NULLABLE, FK → `emulate_repeater_requests.id` | Request được chạy (NULL nếu request đã bị xóa) |
-| 3 | `method` | TEXT | NOT NULL | Phương thức lúc chạy |
-| 4 | `url` | TEXT | NOT NULL | URL gốc lúc chạy |
-| 5 | `status` | INTEGER | | Status code của request đầu tiên (đại diện) |
-| 6 | `statuses` | TEXT (JSON) | DEFAULT '{}' | Thống kê: `{"200":3,"404":1}` |
-| 7 | `timestamp` | INTEGER | NOT NULL | Thời điểm bắt đầu chạy |
-| 8 | `end_time` | INTEGER | | Thời điểm kết thúc |
-| 9 | `duration` | INTEGER | DEFAULT 0 | Tổng thời gian chạy (ms) |
-| 10 | `payload_count` | INTEGER | DEFAULT 0 | Tổng số payload đã chạy |
-| 11 | `payload_summary` | TEXT | DEFAULT '' | Chuỗi tóm tắt payload values (vd: `"1, 2, 3"`) |
-| 12 | `request_headers` | TEXT (JSON) | DEFAULT '{}' | Headers request lúc chạy: `{"Authorization":"..."}` |
-| 13 | `request_body` | TEXT | DEFAULT '' | Body request lúc chạy |
-| 14 | `created_at` | INTEGER | DEFAULT (strftime('%s','now')) | |
+### `history.json`
 
-**Indexes:**
-- `idx_emulate_repeater_history_request` — `emulate_repeater_request_id`
-- `idx_emulate_repeater_history_timestamp` — `timestamp DESC`
+Một lần chạy (có thể gồm nhiều payload runs): `id`, `fuzzer_id`, `method`, `url`, `status` (status của request đầu tiên, hoặc null), `statuses` (`{"200":3,"404":1}`), `timestamp`, `end_time`, `duration` (ms), `payload_count`, `payload_summary`, `request_headers`, `request_body`, `created_at`.
+
+### `runs.json`
+
+Mảng kết quả chi tiết từng payload value: `id`, `payload_name`, `payload_value`, `status`, `duration`, `method`, `url`, `params`, `request_headers`, `request_body`, `response_headers`, `response_body`, `created_at`.
 
 ---
 
-### Table: `emulate_repeater_history_runs`
+## Ghi chú thiết kế
 
-Lưu kết quả chi tiết từng payload value trong một lần chạy history.
-
-| # | Column | Type | Constraint | Description |
-|---|---|---|---|---|
-| 1 | `id` | TEXT | PK | UUID |
-| 2 | `history_id` | TEXT | NOT NULL, FK → `emulate_repeater_history.id` ON DELETE CASCADE | Thuộc history nào |
-| 3 | `payload_name` | TEXT | NOT NULL | Tên payload |
-| 4 | `payload_value` | TEXT | NOT NULL | Giá trị payload đã substitute |
-| 5 | `status` | INTEGER | | HTTP status code |
-| 6 | `duration` | INTEGER | | Thời gian request (ms) |
-| 7 | `method` | TEXT | | Phương thức |
-| 8 | `url` | TEXT | | URL thực tế đã gửi (đã build query string) |
-| 9 | `params` | TEXT (JSON) | DEFAULT '{}' | Params lúc chạy (đã substitute): `{"q":"test"}` |
-| 10 | `request_headers` | TEXT (JSON) | DEFAULT '{}' | Headers request lúc chạy (đã substitute) |
-| 11 | `request_body` | TEXT | DEFAULT '' | Body request lúc chạy (đã substitute) |
-| 12 | `response_headers` | TEXT (JSON) | DEFAULT '{}' | Headers response |
-| 13 | `response_body` | TEXT | DEFAULT '' | Body response |
-| 14 | `created_at` | INTEGER | DEFAULT (strftime('%s','now')) | |
-
-**Indexes:**
-- `idx_emulate_repeater_history_runs_history` — `history_id`
-- `idx_emulate_repeater_history_runs_payload` — `(history_id, payload_name)`
-
----
-
-### Ghi chú thiết kế
-
-1. **`emulate_target_id` chỉ có trong `emulate_repeater_requests`**. Các bảng `emulate_repeater_payloads`, `emulate_repeater_history`, `emulate_repeater_history_runs` đều truy ngược target qua chuỗi FK: `... → emulate_repeater_request_id → emulate_repeater_requests.emulate_target_id`. Không cần lặp lại `emulate_target_id` ở các bảng con.
-
-2. **JSON columns** (`params`, `headers`, `values`, `statuses`, `request_headers`, `response_headers`): chọn JSON thay vì bảng con riêng vì:
-   - Repeater không cần query/sort/filter theo từng param/header riêng lẻ.
-   - Giảm số lượng JOIN, code persistence đơn giản hơn.
-   - SQLite có `json_extract()` nếu sau này cần query sâu.
-
-3. **`emulate_repeater_payloads`**: mỗi payload luôn thuộc về 1 request (`emulate_repeater_request_id` NOT NULL). Tên payload (`name`) là tên biến xuất hiện trong params/headers/body dưới dạng `${name}`. Unique constraint `(emulate_repeater_request_id, name)` đảm bảo mỗi request chỉ có 1 payload cho mỗi biến.
-
-4. **Cascade delete**: `emulate_repeater_history_runs.history_id` có `ON DELETE CASCADE` để tự động xóa runs khi xóa history. Các FK khác không cascade để tránh mất dữ liệu khi xóa target/request.
-
-5. **Timestamp**: dùng UNIX timestamp (giây) qua `strftime('%s','now')` của SQLite, đồng bộ với `Date.now() / 1000` ở frontend.
+1. `targets.id` là gốc duy nhất cho dữ liệu file của target (reports, fuzzers). Xoá target phải xoá luôn folder `<targetId>/`.
+2. Mọi id dùng làm tên folder (`targetId`, `fuzzerId`, `historyId`) được validate chỉ gồm `[A-Za-z0-9_-]` để chống path traversal.
+3. Ghi file là đồng bộ, ghi vào file tạm rồi rename (atomic); mỗi fuzzer giữ tối đa 30 history (`MAX_HISTORY_PER_FUZZER`).
+4. Cascade delete chỉ có ở `target_http_filters` (theo target).
+5. Cấu trúc code: mỗi bảng có 1 repository trong `src/repositories/`; fuzzer/report đi qua `src/storage/`.
+6. API: `/api/v1/targets/**` (target, filter, reports) và `/api/v1/targets/:targetId/fuzzers/**`.

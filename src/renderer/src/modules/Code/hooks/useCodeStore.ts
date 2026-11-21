@@ -26,7 +26,7 @@
 
 // ── Store ──
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 
 // ── Types ──
 import type { Design, DesignInput } from '../types/design';
@@ -37,9 +37,10 @@ import type { MCP, MCPInput } from '../types/mcp';
 // ─── Interfaces ────────────────────────────────────────────────────────
 import type { BranchInfo } from '../components/ProjectPanel/SessionCard';
 import { useBranchScopeStore } from '../stores/useBranchScopeStore';
+import { codeApi, type CodeProject } from '../services/code-api.service';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
-export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent';
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent' | 'agenttools' | 'design';
 
 export interface StoredWorkspacePanel {
   sessionId?: string;
@@ -72,6 +73,7 @@ export interface Project {
   template: string;
   /** Đường dẫn ảnh vuông do user chọn làm logo project (null/undefined = dùng icon mặc định). */
   logoPath?: string | null;
+  repositoryUrl?: string | null;
   services: Service[];
   files: FileNode[];
   designs: Design[];
@@ -101,7 +103,8 @@ export interface Project {
     | 'extension'
     | 'lsp'
     | 'account'
-    | 'debug';
+    | 'debug'
+    | 'skill';
   // ── Unsaved changes tracking ──
   unsavedFiles: Set<string>;
   originalContents: Record<string, string>;
@@ -162,6 +165,114 @@ export interface FileNode {
   path?: string;
 }
 
+// ─── Persistence (code server API: /api/v1/projects) ─
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+// saveAll deletes projects missing from the payload — never save before a successful load
+let projectsLoaded = false;
+
+function fromServerProject(p: CodeProject) {
+  return {
+    ...createDefaultPerProject(),
+    id: p.id,
+    name: p.name,
+    logoPath: p.logo,
+    repositoryUrl: p.repositoryUrl ?? null,
+    path: p.worktrees[0]?.path ?? '',
+    branches: p.worktrees.map((w) => ({
+      name: w.branch,
+      visible: w.visible,
+      sessions: w.session
+        ? [
+            {
+              id: w.session.id,
+              title: w.session.title,
+              status: 'idle' as const,
+              time: new Date(w.session.updatedAt).toLocaleString(),
+              agents: [],
+              procs: [],
+              summary: { tokens: 0, cost: 0, added: 0, removed: 0, files: 0, duration: '—' },
+            },
+          ]
+        : [],
+      path: w.path,
+    })),
+    color: '',
+    template: '',
+    services: [],
+    files: [],
+    agentGroups: [],
+    mcps: [],
+    workspacePanels: p.worktrees.flatMap((w) =>
+      (w.session?.panels ?? []).map((panel) => ({
+        ...panel,
+        title: panel.title ?? '',
+        sessionId: w.session!.id,
+      })),
+    ) as StoredWorkspacePanel[],
+    activeWorkspacePanelId: null,
+    activeWorkspacePanelIds: Object.fromEntries(
+      p.worktrees.filter((w) => w.session).map((w) => [w.session!.id, w.session!.activePanelId]),
+    ),
+    workspaceLayouts: Object.fromEntries(
+      p.worktrees
+        .filter((w) => w.session?.layout)
+        .map((w) => [w.session!.id, w.session!.layout]),
+    ) as NonNullable<Project['workspaceLayouts']>,
+  };
+}
+
+function toWorktreeInputs(p: Project) {
+  if (!p.path) return [];
+  const linked = (p.branches ?? []).filter((b) => b.path && b.visible);
+  const main = linked.find((b) => b.path === p.path);
+  return [
+    { path: p.path, branch: main?.name, visible: true },
+    ...linked
+      .filter((b) => b.path !== p.path)
+      .map((b) => ({ path: b.path as string, branch: b.name, visible: true })),
+  ];
+}
+
+// ASSUMED: per-project UI state (workspace panels, open files...) is not stored by the server yet, so it is not persisted
+const projectFileStorage: StateStorage = {
+  getItem: async () => {
+    try {
+      const list = await codeApi.projects.list();
+      projectsLoaded = true;
+      if (list.length === 0) return null;
+      return JSON.stringify({ state: { projects: list.map(fromServerProject) }, version: 0 });
+    } catch (err) {
+      console.error('[DEBUG][CodeStore] getItem failed (projectsLoaded stays false):', err);
+      return null;
+    }
+  },
+  setItem: (_name, value) => {
+    if (!projectsLoaded) return;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      try {
+        const { state } = JSON.parse(value);
+        const inputs = (state.projects ?? []).map((p: Project, index: number) => ({
+          id: p.id,
+          name: p.name,
+          logo: p.logoPath ?? null,
+          repositoryUrl: p.repositoryUrl ?? null,
+          sortOrder: index + 1,
+          worktrees: toWorktreeInputs(p),
+        }));
+        codeApi.projects.saveAll(inputs).catch((err) => {
+          console.error('[CodeStore] Failed to save projects:', err);
+        });
+      } catch (err) {
+        console.error('[CodeStore] Failed to save projects:', err);
+      }
+    }, 300);
+  },
+  removeItem: () => {},
+};
+
 // ─── Helpers ────────────────────────────────────────────────────────────
 
 function createDefaultPerProject() {
@@ -202,6 +313,7 @@ interface CodeState {
   activityPanelWidth: number;
   /** Account tab độc lập với project (không lưu theo project) */
   isAccountPanelOpen: boolean;
+  isSkillPanelOpen: boolean;
   forceShowLSPOverlay: boolean;
   pendingAction: (() => void) | null;
   isSaveConfirmModalOpen: boolean;
@@ -236,13 +348,15 @@ interface CodeState {
       | 'extension'
       | 'lsp'
       | 'account'
-      | 'debug',
+      | 'debug'
+      | 'skill',
   ) => void;
   setProjectManagerOpen: (open: boolean) => void;
   setNewProjectOpen: (open: boolean) => void;
   setProjectFiles: (projectId: string, files: FileNode[]) => void;
   setActivityPanelWidth: (width: number) => void;
   setAccountPanelOpen: (open: boolean) => void;
+  setSkillPanelOpen: (open: boolean) => void;
   setForceShowLSPOverlay: (show: boolean) => void;
   toggleFolderExpand: (projectId: string, folderId: string) => void;
   collapseAllFolders: (projectId: string) => void;
@@ -530,6 +644,7 @@ export const useCodeStore = create<CodeState>()(
         isNewProjectOpen: false,
         activityPanelWidth: 320,
         isAccountPanelOpen: false,
+        isSkillPanelOpen: false,
         forceShowLSPOverlay: false,
         pendingAction: null,
         isSaveConfirmModalOpen: false,
@@ -549,7 +664,7 @@ export const useCodeStore = create<CodeState>()(
         addProject: (project) => {
           const newProject: Project = {
             ...project,
-            id: `project_${Date.now()}`,
+            id: crypto.randomUUID(),
             services: [],
             files: [],
             ...createDefaultPerProject(),
@@ -740,7 +855,19 @@ export const useCodeStore = create<CodeState>()(
         },
 
         setAccountPanelOpen: (open) => {
-          set({ isAccountPanelOpen: open });
+          set(
+            open
+              ? { isAccountPanelOpen: true, isSkillPanelOpen: false }
+              : { isAccountPanelOpen: false },
+          );
+        },
+
+        setSkillPanelOpen: (open) => {
+          set(
+            open
+              ? { isSkillPanelOpen: true, isAccountPanelOpen: false }
+              : { isSkillPanelOpen: false },
+          );
         },
 
         setActivityPanelWidth: (width) => {
@@ -878,7 +1005,7 @@ export const useCodeStore = create<CodeState>()(
           if (!fileNode || !fileNode.path || fileNode.content === undefined) return;
 
           try {
-            await window.api.invoke('fs:write-file', fileNode.path, fileNode.content);
+            await codeApi.fs.writeFile(fileNode.path, fileNode.content, true);
             get().setOriginalContent(fileId, fileNode.content);
             get().markFileAsSaved(fileId);
           } catch (err) {
@@ -1276,6 +1403,7 @@ export const useCodeStore = create<CodeState>()(
     },
     {
       name: 'code-store',
+      storage: createJSONStorage(() => projectFileStorage),
       partialize: (state) => {
         const partializedProjects = state.projects.map((p) => ({
           ...p,
@@ -1299,6 +1427,7 @@ export const useCodeStore = create<CodeState>()(
         return {
           ...state,
           projects: partializedProjects,
+          currentProjectId: null,
           focusPanelRequest: null,
           isProjectManagerOpen: false,
           isNewProjectOpen: false,
@@ -1320,20 +1449,3 @@ export const useCodeStore = create<CodeState>()(
     },
   ),
 );
-
-// [DEBUG] — log mỗi khi projects thay đổi, kèm danh sách field bị thay đổi
-// Xóa sau khi xác định được nguyên nhân
-useCodeStore.subscribe((state, prevState) => {
-  if (state.projects === prevState.projects) return;
-
-  const prevProj = prevState.projects.find((p) => p.id === prevState.currentProjectId);
-  const currProj = state.projects.find((p) => p.id === state.currentProjectId);
-  if (!prevProj || !currProj) return;
-
-  const changedFields: string[] = [];
-  for (const key of Object.keys(currProj) as (keyof typeof currProj)[]) {
-    if (prevProj[key] !== currProj[key]) {
-      changedFields.push(key);
-    }
-  }
-});

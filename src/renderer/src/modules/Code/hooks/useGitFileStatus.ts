@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { codeApi } from '../services/code-api.service';
 
 export type GitFileStatus = 'added' | 'modified';
 export type GitStatusMap = Record<string, GitFileStatus>;
 
-const POLL_MS = 5000;
+const POLL_MS = 15000;
 const EMPTY: GitStatusMap = {};
 
 interface Entry {
@@ -42,8 +43,8 @@ function parseStatus(root: string, output: string): GitStatusMap {
 async function load(root: string, entry: Entry): Promise<void> {
   let next: GitStatusMap = EMPTY;
   try {
-    const res = await window.api.invoke('git:status', root);
-    if (res && !res.error) next = parseStatus(root, String(res.output ?? ''));
+    const res = await codeApi.git.status(root);
+    if (res) next = parseStatus(root, String(res.output ?? ''));
   } catch {
     next = EMPTY;
   }

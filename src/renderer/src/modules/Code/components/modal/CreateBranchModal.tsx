@@ -27,6 +27,7 @@ import {
   type WorktreePreview,
 } from './ConfirmCreateBranchModal';
 import { TreeUIPreview } from './TreeUIPreview';
+import { codeApi } from '../../services/code-api.service';
 
 type CopyMode = 'latest-commit' | 'local' | 'commit';
 
@@ -127,8 +128,8 @@ export function CreateBranchModal({
         ? defaultSource
         : (sourceOptions[0] ?? ''),
     );
-    (window as any).api
-      .invoke('git:status', projectPath)
+    codeApi.git
+      .status(projectPath)
       .then((res: any) => setCurrentBranch(res?.branch ?? ''))
       .catch(() => setCurrentBranch(''));
     (window as any).api
@@ -152,8 +153,8 @@ export function CreateBranchModal({
     let cancelled = false;
     setCommitsLoading(true);
     setSelectedHash(null);
-    (window as any).api
-      .invoke('git:log', projectPath, 100, sourceRef)
+    codeApi.git
+      .log(projectPath, 100, sourceRef)
       .then((res: any) => {
         if (!cancelled) setCommits(res?.commits ?? []);
       })
@@ -390,7 +391,7 @@ export function CreateBranchModal({
                           setName(bareName);
                           setError('');
                         }}
-                        className="mt-2 h-8 cursor-pointer rounded-lg bg-button-soft-background px-3 text-[12.5px] font-medium text-primary outline-none transition-colors hover:bg-button-soft-background/80 active:bg-button-soft-background/70"
+                        className="mt-2 h-8 cursor-pointer rounded-lg bg-primary/10 px-3 text-[12.5px] font-medium text-primary outline-none transition-colors hover:bg-primary/20 active:bg-primary/30"
                       >
                         Create project as remote branch
                       </button>
@@ -570,7 +571,7 @@ export function CreateBranchModal({
                 type="button"
                 onClick={() => setRemoteOverride(null)}
                 disabled={submitting}
-                className="mt-2 h-8 cursor-pointer rounded-lg bg-button-soft-background px-3 text-[12.5px] font-medium text-text-secondary outline-none transition-colors hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:opacity-50"
+                className="mt-2 h-8 cursor-pointer rounded-lg bg-text-secondary/10 px-3 text-[12.5px] font-medium text-text-secondary outline-none transition-colors hover:bg-text-secondary/15 hover:text-text-primary active:bg-text-secondary/20 disabled:opacity-50"
               >
                 Back to Create Local Branch
               </button>
@@ -598,7 +599,7 @@ export function CreateBranchModal({
           )}
         </div>
 
-        <div className="mt-6 flex items-center justify-end gap-2 border-t border-divider px-6 py-4">
+        <div className="mt-6 flex items-center justify-end gap-2 border-t border-border px-6 py-4">
           <Button
             onClick={handleClose}
             disabled={submitting}

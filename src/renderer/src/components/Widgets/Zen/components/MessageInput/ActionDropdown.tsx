@@ -188,7 +188,7 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
     }
   };
 
-  const rowClass = "w-full px-3 py-2.5 flex items-center gap-2.5 transition-colors hover:bg-sidebar-item-hover cursor-pointer";
+  const rowClass = "w-full px-3 py-2.5 flex items-center gap-2.5 transition-colors hover:bg-card-hover cursor-pointer";
   const badgeClass = () => 
     "inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0";
   

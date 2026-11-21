@@ -79,7 +79,7 @@ export function ProjectSettingsModal({
       className='w-[960px] max-w-[960px] h-[640px] max-h-[640px] overflow-hidden'
     >
       <div className='flex min-h-0 flex-1'>
-        <aside className='flex w-[240px] shrink-0 flex-col border-r border-divider bg-sidebar-background/60 p-3'>
+        <aside className='flex w-[240px] shrink-0 flex-col border-r border-border bg-panel-background/60 p-3'>
           <div className='flex items-center gap-3 px-2 pb-4 pt-2'>
             <ProjectMark
               name={project.name}
@@ -122,7 +122,7 @@ export function ProjectSettingsModal({
         </aside>
 
         <div className='flex min-w-0 flex-1 flex-col'>
-          <header className='flex h-14 shrink-0 items-center justify-between border-b border-divider px-7'>
+          <header className='flex h-14 shrink-0 items-center justify-between border-b border-border px-7'>
             <h3 className='text-[15px] font-semibold text-text-primary'>{active.label}</h3>
             <button
               type='button'

@@ -362,7 +362,7 @@ export function ConfirmCreateBranchModal({
                     )}
                   </div>
 
-                  <ul className="max-h-72 divide-y divide-divider overflow-y-auto rounded-lg border border-border bg-input-background">
+                  <ul className="max-h-72 divide-y divide-border overflow-y-auto rounded-lg border border-border bg-input-background">
                     {visible.length === 0 && (
                       <li className="flex h-16 items-center justify-center text-[13px] text-text-secondary">
                         No items match “{query.trim()}”
@@ -390,7 +390,7 @@ export function ConfirmCreateBranchModal({
                               }
                             }}
                             className={cn(
-                              'group flex h-10 cursor-pointer items-center gap-3 px-3 outline-none transition-colors hover:bg-button-soft-background/50 focus-visible:bg-button-soft-background/50',
+                              'group flex h-10 cursor-pointer items-center gap-3 px-3 outline-none transition-colors hover:bg-text-secondary/10 focus-visible:bg-text-secondary/10',
                               on && 'bg-primary/[0.06]',
                             )}
                           >
@@ -454,7 +454,7 @@ export function ConfirmCreateBranchModal({
 
       <ModalFooter className="gap-2 px-6 py-4">
         <Button
-          className="h-8 bg-button-soft-background text-text-secondary hover:bg-button-soft-background/80 hover:text-text-primary active:bg-button-soft-background/70 disabled:hover:bg-button-soft-background"
+          className="h-8 bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15 hover:text-text-primary active:bg-text-secondary/20 disabled:hover:bg-text-secondary/10"
           onClick={handleClose}
           disabled={submitting}
         >

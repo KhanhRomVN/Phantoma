@@ -83,7 +83,7 @@ export function ArchivedTasksModal({ isOpen, onClose, projectPath }: ArchivedTas
     try {
       const updated: StoredTask[] = [];
       for (const t of forceChain ?? []) {
-        updated.push(await taskService.update(projectPath, t.id, { status: 'done' }));
+        updated.push(await taskService.update(projectPath, t.id, { status: 'done', sessionId: null, branchName: null }));
       }
       const saved = await taskService.update(projectPath, target.id, payload as UpdateTaskInput);
       updated.push(saved);

@@ -48,8 +48,10 @@ import {
   formatTaskRange,
 } from '../../../services/task.service';
 import { ConfirmForceStartTaskModal } from './ConfirmForceStartTaskModal';
+import { ConfirmDiscardTaskModal } from './ConfirmDiscardTaskModal';
 import { useCodeStore } from '../../../hooks/useCodeStore';
 import { workflowService } from '../../../services/workflow.service';
+
 
 interface SelectOption {
   value: string;
@@ -61,7 +63,6 @@ interface SelectOption {
 const STATUSES: SelectOption[] = [
   { value: 'todo', label: 'Todo', icon: Circle, color: '--text-secondary' },
   { value: 'progress', label: 'In Progress', icon: Loader, color: '--info' },
-  { value: 'review', label: 'In Review', icon: Eye, color: '--warn' },
   { value: 'done', label: 'Done', icon: CheckCircle2, color: '--success' },
 ];
 
@@ -137,6 +138,12 @@ export const TaskModal = memo(function TaskModal({
   const [nextIds, setNextIds] = useState<string[]>([]);
   const [pendingStatus, setPendingStatus] = useState<TaskStatus | null>(null);
   const [forced, setForced] = useState(false);
+  const [branchName, setBranchName] = useState<string | null>(null);
+  const setDescRef = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+  };
   const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId)?.path);
   const [workflowOpen, setWorkflowOpen] = useState(false);
   const [workflowText, setWorkflowText] = useState<string | null>(null);
@@ -197,6 +204,7 @@ export const TaskModal = memo(function TaskModal({
       tags: task?.tags ?? [],
       checklist: task?.checklist ?? [],
       attachments: task?.attachments ?? [],
+      branchName: task?.branchName ?? null,
     };
     baselineRef.current = JSON.stringify(init);
     setTitle(init.title);
@@ -214,6 +222,7 @@ export const TaskModal = memo(function TaskModal({
     setTags(init.tags);
     setChecklist(init.checklist);
     setAttachments(init.attachments);
+    setBranchName(init.branchName);
     setTagInput('');
     setCheckInput('');
     setIsDragging(false);
@@ -292,6 +301,8 @@ export const TaskModal = memo(function TaskModal({
         tags,
         checklist,
         attachments,
+        branchName,
+        ...(branchName !== (task?.branchName ?? null) ? { sessionId: null } : {}),
       },
       nextIds,
       forced && status !== 'todo'
@@ -323,11 +334,22 @@ export const TaskModal = memo(function TaskModal({
       (t.status === 'todo' || status === 'done'),
   );
 
+  const currentProject = useCodeStore
+    .getState()
+    .projects.find((p) => p.id === useCodeStore.getState().currentProjectId);
+  const defaultBranchName: string = (currentProject as any)?.defaultBranch ?? 'main';
+  const branchOptions = (currentProject?.branches ?? []).map((b) => b.name);
+  const defaultBadge = (
+    <span className="inline-flex items-center h-[16px] px-1.5 rounded-[5px] shrink-0 text-[9.5px] font-medium text-primary bg-primary/10">
+      default
+    </span>
+  );
+
   const doneCount = checklist.filter((c) => c.done).length;
   const canSubmit = !!title.trim() && !rangeInvalid;
   const statusMeta = STATUSES.find((s) => s.value === status);
   const StatusMetaIcon = statusMeta?.icon;
-  const priorityMeta = PRIORITIES.find(([k]) => k === priority);
+
   const statusLocked = !forced && getBlockers({ dependsOn }, everyTask).length > 0;
   const requestStatus = (v: string) => {
     const next = v as TaskStatus;
@@ -350,6 +372,7 @@ export const TaskModal = memo(function TaskModal({
     tags,
     checklist,
     attachments,
+    branchName,
   });
 
   const commitEdit = () => {
@@ -361,7 +384,27 @@ export const TaskModal = memo(function TaskModal({
     if (isEdit && canSubmit && formSnapshot !== baselineRef.current) commitEdit();
   };
 
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+
+  const hasDraftContent =
+    !isEdit &&
+    !!(
+      title.trim() ||
+      description.trim() ||
+      startDateStr ||
+      endDateStr ||
+      dependsOn.length ||
+      nextIds.length ||
+      tags.length ||
+      checklist.length ||
+      attachments.length
+    );
+
   const handleClose = () => {
+    if (hasDraftContent) {
+      setConfirmCloseOpen(true);
+      return;
+    }
     flushEdit();
     onClose();
   };
@@ -382,7 +425,7 @@ export const TaskModal = memo(function TaskModal({
   return (
     <>
     <Modal isOpen={open} onClose={handleClose} className="max-w-7xl w-[94vw] h-[85vh]">
-      <div className="px-5 py-3.5 border-b border-divider shrink-0 flex items-center gap-3 bg-sidebar-background/50">
+      <div className="px-5 py-3.5 border-b border-border shrink-0 flex items-center gap-3 bg-panel-background/50">
         {!isEdit && (
           <>
             <span
@@ -411,14 +454,7 @@ export const TaskModal = memo(function TaskModal({
           </>
         )}
         <div className="hidden 2xl:flex items-center gap-2 text-xs shrink-0">
-          {priorityMeta && (
-            <span
-              className="rounded-lg px-3 py-1.5 font-medium"
-              style={{ color: $(priorityMeta[2]), backgroundColor: $(priorityMeta[2], 0.15) }}
-            >
-              {priorityMeta[1]}
-            </span>
-          )}
+
           {checklist.length > 0 && (
             <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-card-hover text-text-secondary font-mono">
               <ListChecks className="w-4 h-4" />
@@ -467,11 +503,12 @@ export const TaskModal = memo(function TaskModal({
             />
 
             <textarea
+              ref={setDescRef}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add a description..."
               rows={4}
-              className={cn(INPUT_CLASS, 'resize-none')}
+              className={cn(INPUT_CLASS, 'resize-none shrink-0 max-h-[50vh] overflow-y-auto custom-scrollbar')}
             />
 
             <div className="flex flex-col gap-2">
@@ -641,7 +678,7 @@ export const TaskModal = memo(function TaskModal({
                   {visibleAttachments.map((a) => (
                     <div
                       key={a.path}
-                      className="group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-divider bg-card-background hover:bg-card-hover transition-colors min-w-0"
+                      className="group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-border bg-card-background hover:bg-card-hover transition-colors min-w-0"
                       title={a.path}
                     >
                       <span className="w-8 h-8 shrink-0 rounded-md bg-card-hover flex items-center justify-center">
@@ -673,44 +710,82 @@ export const TaskModal = memo(function TaskModal({
             </Section>
           </div>
 
-          <div className="p-5 flex flex-col gap-5 border-t md:border-t-0 md:border-l border-divider bg-sidebar-background/50">
-            {isEdit && (
-              <Section icon={<GitBranch className="w-3.5 h-3.5" />} label="Assigned branch">
-                <div className="flex items-center gap-2 rounded-lg bg-card-hover px-3 py-2 text-sm">
-                  <GitBranch className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
-                  {task?.branchName ? (
-                    <span className="font-mono text-text-primary truncate" title={task.branchName}>
-                      {task.branchName}
-                    </span>
-                  ) : (
-                    <span className="text-text-secondary">Not assigned to any branch</span>
-                  )}
-                </div>
-                {task?.workflowId ? (
+          <div className="p-5 flex flex-col gap-5 border-t md:border-t-0 md:border-l border-border bg-panel-background/50">
+            <Section icon={<GitBranch className="w-3.5 h-3.5" />} label="Assigned branch">
+              <Dropdown trigger="click" align="start">
+                <DropdownTrigger asChild>
                   <button
                     type="button"
-                    onClick={openWorkflow}
                     className={cn(
-                      'flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg outline-none',
-                      SOFT_BUTTON,
+                      INPUT_CLASS,
+                      'flex items-center justify-between gap-2 cursor-pointer text-left',
                     )}
                   >
-                    <WorkflowIcon className="w-3.5 h-3.5" />
-                    View workflow
+                    <span className="flex items-center gap-2 min-w-0">
+                      <GitBranch className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
+                      {branchName ? (
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-mono text-text-primary truncate" title={branchName}>
+                            {branchName}
+                          </span>
+                          {branchName === defaultBranchName && defaultBadge}
+                        </span>
+                      ) : (
+                        <span className="text-text-secondary">Not assigned to any branch</span>
+                      )}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
                   </button>
-                ) : (
-                  <p className="text-xs text-text-secondary">No workflow linked</p>
-                )}
+                </DropdownTrigger>
+                <DropdownContent className="max-h-[240px] overflow-y-auto custom-scrollbar">
+                  <DropdownItem
+                    closeOnSelect
+                    icon={branchName === null ? <Check className="w-3.5 h-3.5" /> : undefined}
+                    onClick={() => setBranchName(null)}
+                  >
+                    <span className="text-text-secondary">Not assigned</span>
+                  </DropdownItem>
+                  {branchOptions.map((name) => (
+                    <DropdownItem
+                      key={name}
+                      closeOnSelect
+                      icon={branchName === name ? <Check className="w-3.5 h-3.5" /> : undefined}
+                      onClick={() => setBranchName(name)}
+                    >
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-mono truncate">{name}</span>
+                        {name === defaultBranchName && defaultBadge}
+                      </span>
+                    </DropdownItem>
+                  ))}
+                </DropdownContent>
+              </Dropdown>
+              {isEdit && task?.workflowId ? (
+                <button
+                  type="button"
+                  onClick={openWorkflow}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg outline-none',
+                    SOFT_BUTTON,
+                  )}
+                >
+                  <WorkflowIcon className="w-3.5 h-3.5" />
+                  View workflow
+                </button>
+              ) : isEdit ? (
+                <p className="text-xs text-text-secondary">No workflow linked</p>
+              ) : null}
+            </Section>
+
+            {isEdit && (
+              <Section label="Status" extra={statusLocked ? 'Blocked' : undefined}>
+                <Select
+                  value={status}
+                  options={STATUSES}
+                  onChange={requestStatus}
+                />
               </Section>
             )}
-
-            <Section label="Status" extra={statusLocked ? 'Blocked' : undefined}>
-              <Select
-                value={status}
-                options={STATUSES}
-                onChange={requestStatus}
-              />
-            </Section>
 
             <Section label="Priority">
               <div className="flex gap-1.5">
@@ -792,7 +867,7 @@ export const TaskModal = memo(function TaskModal({
       </ModalBody>
 
       {!isEdit && (
-        <div className="px-5 py-3 border-t border-divider shrink-0 flex items-center justify-end bg-sidebar-background/50">
+        <div className="px-5 py-3 border-t border-border shrink-0 flex items-center justify-end bg-panel-background/50">
           <button
             type="button"
             disabled={!canSubmit}
@@ -808,7 +883,7 @@ export const TaskModal = memo(function TaskModal({
       )}
     </Modal>
     <Modal isOpen={workflowOpen} onClose={() => setWorkflowOpen(false)} className="max-w-3xl w-[90vw] h-[75vh]">
-      <div className="px-5 py-3.5 border-b border-divider shrink-0 flex items-center gap-3 bg-sidebar-background/50">
+      <div className="px-5 py-3.5 border-b border-border shrink-0 flex items-center gap-3 bg-panel-background/50">
         <WorkflowIcon className="w-4 h-4 text-text-secondary" />
         <h3 className="flex-1 min-w-0 truncate text-sm font-bold text-text-primary">
           Workflow - {title.trim() || 'Untitled task'}
@@ -841,6 +916,19 @@ export const TaskModal = memo(function TaskModal({
       onConfirm={() => {
         if (pendingStatus) setStatus(pendingStatus);
         setForced(true);
+      }}
+    />
+    <ConfirmDiscardTaskModal
+      isOpen={confirmCloseOpen}
+      canSave={canSubmit}
+      onClose={() => setConfirmCloseOpen(false)}
+      onDiscard={() => {
+        setConfirmCloseOpen(false);
+        onClose();
+      }}
+      onSave={() => {
+        setConfirmCloseOpen(false);
+        handleSubmit();
       }}
     />
     </>
@@ -1091,7 +1179,7 @@ function TaskCard({
         }
       }}
       title={task.title}
-      className="group relative flex flex-col gap-1.5 px-3 py-2 rounded-lg border border-divider bg-card-background hover:bg-card-hover transition-colors cursor-pointer outline-none min-w-0"
+      className="group relative flex flex-col gap-1.5 px-3 py-2 rounded-lg border border-border bg-card-background hover:bg-card-hover transition-colors cursor-pointer outline-none min-w-0"
     >
       <div className="flex items-center gap-2 min-w-0">
         {StatusIcon && (
@@ -1195,7 +1283,7 @@ function TaskPicker({
       {adding && (
         <div
           onMouseDown={(e) => e.preventDefault()}
-          className="flex flex-col gap-1.5 max-h-56 overflow-y-auto custom-scrollbar p-1.5 rounded-lg border border-divider bg-card-background/50"
+          className="flex flex-col gap-1.5 max-h-56 overflow-y-auto custom-scrollbar p-1.5 rounded-lg border border-border bg-card-background/50"
         >
           {filtered.length === 0 ? (
             <p className="text-xs text-text-secondary text-center py-2">No tasks available</p>

@@ -271,7 +271,7 @@ export const MessageInput = memo<MessageInputProps>(
               </DropdownTrigger>
               <DropdownContent>
                 <DropdownItem onClick={() => fileInputRef.current?.click()} noPadding>
-                  <div className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-colors hover:bg-sidebar-item-hover cursor-pointer">
+                  <div className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-colors hover:bg-card-hover cursor-pointer">
                     <span
                       className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
                       style={{

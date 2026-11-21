@@ -50,7 +50,13 @@ interface DesignState {
   reset: () => void;
 }
 
-export const useDesignStore = create<DesignState>((set, get) => ({
+export const useDesignStore = create<DesignState>((set, get) => {
+  // Expose store globally for WorkspacePanes to access design names
+  if (typeof window !== 'undefined') {
+    (window as any).__designStore = { getState: get };
+  }
+
+  return {
   designs: [],
   openTabIds: [],
   activeDesignId: null,
@@ -132,5 +138,6 @@ export const useDesignStore = create<DesignState>((set, get) => ({
 
   clearActive: () => set({ activeDesignId: null }),
 
-  reset: () => set({ designs: [], openTabIds: [], activeDesignId: null, loading: false }),
-}));
+  reset: () => set({ designs: [], openTabIds: [], activeDesignId: null }),
+  };
+});

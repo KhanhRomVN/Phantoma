@@ -20,6 +20,9 @@ import { SecurityValidator } from '../../utils/security';
 // ── Managers ──
 import { FileLockManager } from '../../managers/FileLockManager';
 
+// ── Services ──
+import { codeApi } from '../../services/code-api.service';
+
 // ─── Helpers ────────────────────────────────────────────────────────────
 
 function isAbsolute(p: string): boolean {
@@ -120,10 +123,7 @@ export class WriteToFileHandler {
 
       const release = await this.fileLockManager.acquire(resolvedPath);
       try {
-        const api = (window as any).api;
-        if (!api?.invoke) throw new Error('IPC not available');
-
-        await api.invoke('fs:write-file', resolvedPath, message.content || '');
+        await codeApi.fs.writeFile(resolvedPath, message.content || '');
 
         // TODO: Lấy diagnostics từ LSP client
         const diagnostics: any[] = [];

@@ -26,6 +26,7 @@ import { useEffect, useRef, useState } from 'react';
 // ── Hooks & Types ──
 import { useCodeStore, type FileNode } from './hooks/useCodeStore';
 
+
 // ── Components ──
 import { ContentPanel } from './components/ContentPanel';
 import { ActivityPanel } from './components/ActivityPanel';
@@ -34,6 +35,7 @@ import { FooterBar } from './components/FooterBar';
 import { ProjectPanel } from './components/ProjectPanel/ProjectPanel';
 import { QuickOpenModal } from './components/modal/QuickOpenModal';
 import './services/unsaved.service';
+import { codeApi } from './services/code-api.service';
 
 // ─── Directory Scanner ─────────────────────────────────────────────────
 
@@ -52,7 +54,7 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   if (depth > 8) return []; // safety cap against runaway recursion
   let entries: DirEntry[];
   try {
-    entries = await window.api.invoke('fs:list-dir', dirPath);
+    entries = await codeApi.fs.listDir(dirPath);
   } catch {
     return [];
   }
@@ -78,6 +80,7 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
 
 // ─── Component ──────────────────────────────────────────────────────────
 export function Code() {
+
   // ── Store ──
   const { setProjectManagerOpen, setNewProjectOpen, projects, hydrateProjectFiles } =
     useCodeStore();
