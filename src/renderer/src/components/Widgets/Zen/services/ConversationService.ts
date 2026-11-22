@@ -16,7 +16,7 @@
  * ------------------------------------------------------------------
  */
 
-import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
+import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
 import type { WorkflowAgentId } from '../feature/Chat/types/workflow-agents';
 
 // Lazy accessor — defer evaluation tới lúc call thật sự.

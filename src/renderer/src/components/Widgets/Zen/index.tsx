@@ -27,8 +27,8 @@ import SettingsPanel from './feature/Setting';
 // CONTEXT
 import { ProjectProvider } from './context/ProjectContext';
 import { useAgentFeature, type AgentFeature } from './context/FeatureContext';
-import { useDesignStore } from '@renderer/modules/Code/hooks/useDesignStore';
-import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
+import { useDesignStore } from '@renderer/modules/Code/features/design/stores/design.store';
+import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
 
 // ── Types ──
 import { ChatSession } from './feature/Chat/types/chat';

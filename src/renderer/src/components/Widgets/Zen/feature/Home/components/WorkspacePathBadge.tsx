@@ -17,7 +17,7 @@
 // ─── Imports ───────────────────────────────────────────────────────────
 import React, { useMemo, useState } from 'react';
 import { Folder, Check, Copy } from 'lucide-react';
-import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
+import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
 import { $ } from '@renderer/utils/color';
 
 // ─── Helpers ───────────────────────────────────────────────────────────

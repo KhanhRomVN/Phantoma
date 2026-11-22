@@ -15,7 +15,7 @@
 import type { Message } from '../types/message';
 import type { RevertFileEntry, RevertGroupKey } from '../types/revert';
 import { parseAIResponse } from '../services/responseParser';
-import { FILE_MUTATING_TOOLS } from '@renderer/modules/Code/constants/file-mutating-tools';
+import { FILE_MUTATING_TOOLS } from '@renderer/modules/Code/shared/constants/file-mutating-tools.constants';
 import { checkToolMutation } from './tool-mutation-registry';
 
 /**

@@ -31,7 +31,7 @@ import { windowManager } from './core/window/WindowManager';
 import { startShellServer, stopServers } from './services/server-spawner';
 import { killAllTerminals } from './ipc/terminal.handlers';
 import { migrateModuleDirs } from './storage/migrateModuleDirs';
-import { setupProjectHandlers } from './ipc/project.handlers';
+
 import { stopAllDebug } from './ipc/debug.handlers';
 
 // Import IPC handlers
@@ -45,15 +45,12 @@ import {
   setupGitHandlers,
   setupBackupHandlers,
   setupPullRequestHandlers,
-  setupTaskHandlers,
-  setupWorkflowHandlers,
   setupLoggerHandlers,
   registerWorkspaceHandlers,
   setupReconHandlers,
   setupMemoryHandlers,
   setupSkillHandlers,
   setupTitleHandlers,
-  setupWorkspaceDataHandlers,
   setupDesignHandlers,
   setupConversationHandlers,
   setupRuntimeHandlers,
@@ -97,15 +94,11 @@ app.whenReady().then(() => {
   setupBackupHandlers();
   setupSqlViewerHandlers();
   setupPullRequestHandlers();
-  setupProjectHandlers();
-  setupTaskHandlers();
-  setupWorkflowHandlers();
   registerWorkspaceHandlers();
   setupReconHandlers(); // Browser automation via recon server
   setupMemoryHandlers();
   setupSkillHandlers();
   setupTitleHandlers();
-  setupWorkspaceDataHandlers();
   setupDesignHandlers();
   setupConversationHandlers();
   setupRuntimeHandlers();

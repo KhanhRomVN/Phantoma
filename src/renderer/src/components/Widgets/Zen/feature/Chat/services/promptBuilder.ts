@@ -173,7 +173,7 @@ export class PromptBuilder {
                 if (typeof agentsContent === 'string') {
                   // Import buildAgentsMdSection directly from code prompts
                   const { buildAgentsMdSection } =
-                    await import('@renderer/modules/Code/prompts/code/agents-md');
+                    await import('@renderer/modules/Code/agent/prompts/code/agents-md');
                   systemPrompt += buildAgentsMdSection(agentsContent);
                 }
               }
@@ -185,7 +185,7 @@ export class PromptBuilder {
 
         if (feature === 'code' && (!workflowAgentId || workflowAgentId === 'orchestrator')) {
           const { loadOrchestratorTaskContext } =
-            await import('@renderer/modules/Code/services/orchestrator-task-context');
+            await import('@renderer/modules/Code/agent/services/orchestrator-task-context.service');
           systemPrompt += await loadOrchestratorTaskContext();
         }
       }
@@ -270,8 +270,8 @@ export class PromptBuilder {
     // Load branch tasks for Code module
     if (feature === 'code' || !feature) {
       try {
-        const { useCodeStore } = await import('@renderer/modules/Code/hooks/useCodeStore');
-        const { taskService } = await import('@renderer/modules/Code/services/task.service');
+        const { useCodeStore } = await import('@renderer/modules/Code/shared/stores/code.store');
+        const { taskService } = await import('@renderer/modules/Code/shared/services/task.service');
         const codeState = useCodeStore.getState();
         const currentProject = codeState.projects.find((p) => p.id === codeState.currentProjectId);
         

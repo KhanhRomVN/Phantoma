@@ -40,7 +40,7 @@
   - `foreignNotice?: string` — warning message when foreign format detected
 - **Parser scope**: Format parsers (`XMLFormat.ts`, `JSONFormat.ts`, `DSMLFormat.ts`) handle **format-level parsing** (XML tags, JSON fences, DSML blocks). They delegate **content parsing** to:
   - `services/parsers/` — UI/display tag content (conversation_title, markdown, question, thinking)
-  - `modules/Code/parsers/` — Tool-specific params (read_file, write_to_file, grep, etc.)
+  - `modules/Code/agent/tools/<tool>/*.parser.ts` — Tool-specific params (read_file, write_to_file, grep, etc.)
 - **ResponseParser.ts** (144 lines) — thin dispatcher: `getToolFormat(id).parse(content, base, feature)` — NO inline parsing logic.
 - **Foreign format conversion**: `convertForeignToolCalls(content, targetFormat)` from registry handles DSML → XML/JSON uniformly, NOT per-provider hardcoded logic.
 - **System prompt integration**: System prompts in `src/renderer/src/modules/Code/prompts/` declare supported formats via `config.ts` → `CAPABILITIES.toolFormats` (default `['xml', 'json']`). Workflow agents may support only a subset (e.g. orchestrator/planner/executor/reviewer/tester support `['xml', 'json']`, main `code` prompt supports all three `['xml', 'json', 'dsml']`).
@@ -202,9 +202,9 @@
 - Main type-check: `npx tsc --noEmit -p tsconfig.node.json --composite false`.
 - Renderer type-check: `npx tsc --noEmit -p tsconfig.web.json` (a pre-existing error in `RunCommandExecutor.ts` — unused `spawnResult` — is unrelated).
 - `tsconfig.web.json` không kế thừa `tsconfig.base.json`: phải tự khai báo path `@app/*` → `src/shared/*` và include `src/shared/**/*`.
-- AgentWorkflow agents keep model + account in `modules/Code/hooks/useWorkflowStore.ts`; a Zen tab with `workflowAgentId` syncs to it through `WorkflowAgentContext` (read by `useModelAccount`).
+- AgentWorkflow agents keep model + account in `modules/Code/agent/stores/workflow.store.ts`; a Zen tab with `workflowAgentId` syncs to it through `WorkflowAgentContext` (read by `useModelAccount`).
 - Zen `TagRouter` must not import module renderers directly: renderers come from `ModuleRegistry` (`getModuleRenderers()`, declared in each module's module file (e.g. `CodeModule.ts`) via `renderers`). TagRouter passes the same full props set to every renderer; each renderer picks what it needs.
 - Unsaved changes are app-scoped: a module registers a provider via `registerUnsavedProvider` (`shared/unsaved/unsavedRegistry.ts`, e.g. `modules/Code/services/unsaved.service.ts`); `shared/unsaved/UnsavedGuard.tsx` (mounted in `App.tsx`) owns the reload shortcut/beforeunload guard and renders `components/UnsavedChangesModal.tsx`. Do not add per-module reload modals.
 - `fs:watch-dir` / `fs:unwatch-dir` (`src/main/ipc/fs.handlers.ts`) dùng ref-count theo `projectPath`: mỗi `watch-dir` phải có đúng 1 `unwatch-dir` ở cleanup (FileExplore, Debug...), watcher chỉ đóng khi về 0.
 - Mở terminal tab từ ngoài Workspace: `window.dispatchEvent(new CustomEvent('phantoma:open-terminal-panel', { detail: { sessionId, title, cwd, command } }))` (listener ở `ContentPanel/Workspace/index.tsx`, lệnh chạy qua `WorkspacePanel.initialCommand`). Debug dùng nó cho DAP `runInTerminal`.
-- Module Code: chỉ `modules/Code/handler/**` được gọi IPC (`window.api`). `executors/` không đụng `window.api` trực tiếp mà gọi qua handler (vd `TerminalIpc` trong `handler/terminal/TerminalHandlers.ts`, `MoveFileHandler` trong `handler/tool`).
+- Module Code: chỉ `modules/Code/agent/tools/**/*.handler.ts` được gọi IPC (`window.api`). `*.executor.ts` không đụng `window.api` trực tiếp mà gọi qua handler (vd `TerminalIpc` trong `agent/tools/run-command/run-command.handler.ts`, `MoveFileHandler` trong `agent/tools/move-file/move-file.handler.ts`).

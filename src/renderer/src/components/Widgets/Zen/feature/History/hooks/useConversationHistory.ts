@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { ConversationItem } from '../types';
 import ConversationService, { getWorkspaceFolderPath } from '../../../services/ConversationService';
-import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
+import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
 
 /**
  * Get moduleId from current context

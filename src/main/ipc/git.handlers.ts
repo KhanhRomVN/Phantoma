@@ -2013,14 +2013,21 @@ exit 0
   // ── Delete Branch (branch + worktree) ──
   ipcMain.handle(
     'git:delete-branch',
-    async (_event, projectPath: string, branchName: string, deleteRemote?: boolean) => {
+    async (
+      _event,
+      projectPath: string,
+      branchName: string,
+      deleteRemote?: boolean,
+      branchPath?: string,
+    ) => {
       try {
         const cwd = projectPath || process.cwd();
         const name = (branchName || '').trim();
         if (!name) return { error: 'Thiếu tên branch' };
 
         const exists = await runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`], cwd);
-        if (exists.error) return { error: `Branch "${name}" không tồn tại` };
+        const localExists = !exists.error;
+        if (!localExists && !deleteRemote) return { error: `Branch "${name}" không tồn tại` };
 
         const current = await runGit(['branch', '--show-current'], cwd);
         if (current.stdout.trim() === name) {
@@ -2043,20 +2050,31 @@ exit 0
           if (remove.error) return { error: remove.stderr || remove.error.message };
         }
 
-        const del = await runGit(['branch', '-D', name], cwd);
-        if (del.error) return { error: del.stderr || del.error.message };
+        const folder = (branchPath || '').trim();
+        if (folder) {
+          const target = resolve(folder);
+          const root = resolve(cwd);
+          if (target === root || root.startsWith(`${target}/`) || target === dirname(target)) {
+            return { error: `Từ chối xóa thư mục không an toàn: ${target}` };
+          }
+          await runGit(['worktree', 'remove', '--force', target], cwd);
+          try {
+            await fs.rm(target, { recursive: true, force: true });
+          } catch (e: any) {
+            return { error: `Không xóa được thư mục ${target}: ${e?.message || String(e)}` };
+          }
+        }
+
+        const del = localExists ? await runGit(['branch', '-D', name], cwd) : null;
+        if (del?.error) return { error: del.stderr || del.error.message };
 
         await runGit(['worktree', 'prune'], cwd);
 
         let remoteError: string | undefined;
         if (deleteRemote) {
-          const remoteRef = await runGit(
-            ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${name}`],
-            cwd,
-          );
-          if (!remoteRef.error) {
-            const pushed = await runGit(['push', 'origin', '--delete', name], cwd);
-            if (pushed.error) remoteError = pushed.stderr || pushed.error.message;
+          const pushed = await runGit(['push', 'origin', '--delete', name], cwd);
+          if (pushed.error && !/remote ref does not exist/i.test(pushed.stderr || '')) {
+            remoteError = pushed.stderr || pushed.error.message;
           }
         }
         return { branch: name, remoteError };

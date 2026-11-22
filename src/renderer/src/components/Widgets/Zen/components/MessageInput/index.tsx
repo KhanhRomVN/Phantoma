@@ -14,14 +14,14 @@ import EffortDropdown, { getModelEffortInfo } from './EffortDropdown';
 import type { EffortLevel } from './EffortDropdown';
 import GitRepoPickerModal from './GitRepoPickerModal';
 import { useGitRepoScanner } from '../../feature/Chat/hooks/workspace/useGitRepoScanner';
-import { getCommitMessagePrompt } from '@renderer/modules/Code/prompts/code';
+import { getCommitMessagePrompt } from '@renderer/modules/Code/agent/prompts/code';
 
 import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
 import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
 import { useAgentFeature } from '@renderer/components/Widgets/Zen/context/FeatureContext';
 import { useProject } from '../../context/ProjectContext';
-import { combinePromptsForMode } from '@renderer/modules/Code/prompts/code';
-import type { SystemInfo } from '@renderer/modules/Code/prompts/code';
+import { combinePromptsForMode } from '@renderer/modules/Code/agent/prompts/code';
+import type { SystemInfo } from '@renderer/modules/Code/agent/prompts/code';
 import {
   getPromptCapabilities,
   resolvePromptLength,

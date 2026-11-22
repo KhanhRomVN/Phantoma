@@ -3,7 +3,7 @@ import type { Message } from '@renderer/components/Widgets/AgentTools/services/c
 import type { ToolCall } from '@renderer/components/Widgets/AgentTools/types'
 import { getWorkingPath } from '@renderer/components/Widgets/AgentTools/shared/workingPath'
 import { getFolderIconPath } from '@renderer/utils/file-icon'
-import { TerminalBlock } from '@renderer/modules/Code/renderers/RunCommandRenderer'
+import { TerminalBlock } from '@renderer/modules/Code/agent/tools/run-command/run-command.renderer'
 import { ToolCallFrame } from './ToolCallFrame'
 
 export const ExecRenderer = memo<{ message: Message; call: Extract<ToolCall, { type: 'exec' }> }>(

@@ -25,6 +25,7 @@ import { lazy } from 'react';
 const Recon = lazy(() => import('../modules/Recon'));
 const Emulate = lazy(() => import('../modules/Emulate/Emulate'));
 const Code = lazy(() => import('../modules/Code/Code'));
+import { CodeSkeleton } from '../modules/Code/CodeSkeleton';
 const Setting = lazy(() => import('../modules/Setting'));
 const UITest = lazy(() => import('../modules/UITest'));
 const Profile = lazy(() => import('../modules/Profile/Profile'));
@@ -42,6 +43,8 @@ export interface ModuleDefinition {
   description: string;
   icon: LucideIcon;
   component: ReactNode;
+  /** Fallback shown while the lazy component loads */
+  skeleton?: ReactNode;
   color?: string;
   /** Show in quick nav modal */
   showInQuickNav?: boolean;
@@ -80,6 +83,7 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     description: 'AI-powered development environment',
     icon: CodeIcon,
     component: <Code />,
+    skeleton: <CodeSkeleton />,
     color: 'text-blue-400',
     showInQuickNav: true,
     showInActivityBar: true,

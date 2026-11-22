@@ -8,7 +8,7 @@ import {
 import { openFileInWorkspace } from '@renderer/components/Widgets/AgentTools/shared/openFile'
 import { getFileIconPath } from '@renderer/utils/file-icon'
 import { TreeBlock } from '@renderer/components/common/TreeBlock'
-import { buildTreeFromPaths } from '@renderer/modules/Code/utils/tree-builder'
+import { buildTreeFromPaths } from '@renderer/modules/Code/shared/utils/tree-builder.util'
 import { ToolCallFrame } from './ToolCallFrame'
 
 const parseRawPaths = (output?: string): string[] =>
