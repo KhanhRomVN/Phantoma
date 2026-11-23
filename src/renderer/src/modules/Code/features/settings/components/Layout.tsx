@@ -13,10 +13,10 @@ import {
   LAYOUT_PRESETS,
   PANEL_TYPES,
   useWorkspaceSettings,
+  getPanelMeta,
   type PaneRule,
   type PanelRules,
-} from '../../workspace/hooks/useWorkspaceSettings';
-import { getPanelMeta } from '../../workspace/components/WorkspacePanes';
+} from '../../workspace';
 
 const PANES: { id: PaneId; label: string }[] = [
   { id: 'tl', label: 'Top left' },

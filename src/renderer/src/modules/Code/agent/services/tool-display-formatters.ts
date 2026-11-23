@@ -10,7 +10,7 @@ import type {
   ActionDisplayFormatter,
   CompletedTooltipFormatter,
 } from '@renderer/components/Widgets/Zen/shared/tool-display';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
 
 /**
  * Format action display string cho Code tools.

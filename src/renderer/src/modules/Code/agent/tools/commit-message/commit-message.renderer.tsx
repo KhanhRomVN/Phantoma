@@ -4,7 +4,7 @@ import { $ } from '@renderer/utils/color';
 
 // ── Constants ──
 import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
 
 // ── Hooks ──
 import { useCodeStore } from '../../../shared/stores/code.store';
@@ -12,10 +12,10 @@ import { GitCommitHandler } from '../shared/git.handler';
 import { codeApi } from '../../../shared/api/code.api';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
+import { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
 
 interface CommitMessageRendererProps {
   action: ToolAction;
@@ -156,7 +156,6 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
                 {commitError}
               </div>
             )}
-
           </div>
           {!isCommitted && !isRejected && (
             <div className="flex gap-1.5 py-2 justify-end">

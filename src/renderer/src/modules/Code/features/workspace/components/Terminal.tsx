@@ -1,3 +1,4 @@
+import { terminalIpc } from '../../../shared/ipc/terminal.ipc';
 import { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -8,7 +9,7 @@ import {
   detectAgentFromTitle,
   extractOscTitles,
   TuiAgentId,
-} from '../../../shared/utils/ai-agent-detector.util';
+} from '../utils/ai-agent-detector.util';
 
 /** Resolve a CSS custom property like "--panel-background: R G B" to "#RRGGBB". */
 const resolveCssRgbVarToHex = (varName: string, fallback: string): string => {
@@ -95,9 +96,9 @@ export const CodeTerminal = ({
     lastRunNonceRef.current = runNonce;
     if (!initialCommand) return;
     const terminalId = terminalIdRef.current;
-    window.api?.send('terminal:write', { terminalId, data: '\x03' });
+    terminalIpc.send('terminal:write', { terminalId, data: '\x03' });
     const timer = setTimeout(() => {
-      window.api?.send('terminal:write', { terminalId, data: initialCommand + '\n' });
+      terminalIpc.send('terminal:write', { terminalId, data: initialCommand + '\n' });
     }, 150);
     return () => clearTimeout(timer);
   }, [runNonce, initialCommand]);
@@ -125,7 +126,7 @@ export const CodeTerminal = ({
     const saveHistory = () => {
       if (!persistHistory || !historyReady || !term) return;
       if (term.buffer.active.type === 'alternate') return;
-      window.api?.send('terminal:history-save', {
+      terminalIpc.send('terminal:history-save', {
         panelId: panelIdRef.current,
         data: serializeAddon.serialize({ scrollback: HISTORY_SCROLLBACK }),
       });
@@ -175,10 +176,10 @@ export const CodeTerminal = ({
 
       try {
         fitAddon.fit();
-        if (window.api?.send) {
+        if (terminalIpc.canSend()) {
           const { cols, rows } = term;
           if (cols > 0 && rows > 0) {
-            window.api.send('terminal:resize', {
+            terminalIpc.send('terminal:resize', {
               terminalId: terminalIdRef.current,
               cols,
               rows,
@@ -194,7 +195,7 @@ export const CodeTerminal = ({
       if (!term || !fitAddon) return;
 
       // Setup IPC listeners
-      if (window.api?.on) {
+      if (terminalIpc.canListen()) {
         const onData = (_event: any, payload: { terminalId: string; data: string }) => {
           if (payload.terminalId === terminalIdRef.current && term) {
             term.write(payload.data);
@@ -275,12 +276,12 @@ export const CodeTerminal = ({
           }
         };
 
-        window.api.on('terminal:data', onData);
-        window.api.on('terminal:exit', onExit);
+        terminalIpc.listen('terminal:data', onData);
+        terminalIpc.listen('terminal:exit', onExit);
 
         cleanupFunctions.push(() => {
-          window.api.off('terminal:data', onData);
-          window.api.off('terminal:exit', onExit);
+          terminalIpc.unlisten('terminal:data', onData);
+          terminalIpc.unlisten('terminal:exit', onExit);
         });
       }
 
@@ -289,8 +290,8 @@ export const CodeTerminal = ({
       let inputBuffer = '';
 
       const inputDisposable = term.onData((data: string | number) => {
-        if (window.api?.send) {
-          window.api.send('terminal:write', {
+        if (terminalIpc.canSend()) {
+          terminalIpc.send('terminal:write', {
             terminalId: terminalIdRef.current,
             data,
           });
@@ -330,7 +331,7 @@ export const CodeTerminal = ({
 
       // --- Strategy 2: Process Name Detection via IPC (Requires Main Process Support) ---
       // Listen for foreground process updates from the backend
-      if (window.api?.on) {
+      if (terminalIpc.canListen()) {
         const onForegroundProcess = (
           _event: any,
           payload: { terminalId: string; processName: string },
@@ -347,15 +348,15 @@ export const CodeTerminal = ({
         };
 
         // NOTE: Ensure your Main process emits 'terminal:foreground-process' with { terminalId, processName }
-        window.api.on('terminal:foreground-process', onForegroundProcess);
+        terminalIpc.listen('terminal:foreground-process', onForegroundProcess);
         cleanupFunctions.push(() => {
-          window.api.off('terminal:foreground-process', onForegroundProcess);
+          terminalIpc.unlisten('terminal:foreground-process', onForegroundProcess);
         });
       }
 
       // Spawn shell
       const spawnShell = async () => {
-        if (!window.api?.invoke || !isMounted || hasSpawnedRef.current) {
+        if (!terminalIpc.canInvoke() || !isMounted || hasSpawnedRef.current) {
           return;
         }
 
@@ -378,15 +379,14 @@ export const CodeTerminal = ({
         try {
           hasSpawnedRef.current = true;
           if (persistHistory) {
-            const saved: string = await window.api
-              .invoke('terminal:history-load', panelIdRef.current)
+            const saved: string = await terminalIpc.invoke('terminal:history-load', panelIdRef.current)
               .catch(() => '');
             if (!isMounted || !term) return;
             term.loadAddon(serializeAddon);
             if (saved) term.write(saved + '\r\n');
           }
           historyReady = true;
-          const info: any = await window.api.invoke('terminal:spawn', {
+          const info: any = await terminalIpc.invoke('terminal:spawn', {
             panelId: panelIdRef.current,
             terminalId: terminalIdRef.current,
             cwd: effectiveCwd,
@@ -398,10 +398,10 @@ export const CodeTerminal = ({
               if (isMounted && isOpened) {
                 safeFit();
 
-                if (initialCommand && window.api?.send) {
+                if (initialCommand && terminalIpc.canSend()) {
                   setTimeout(() => {
                     if (isMounted && term) {
-                      window.api.send('terminal:write', {
+                      terminalIpc.send('terminal:write', {
                         terminalId: terminalIdRef.current,
                         data: initialCommand + '\n', // Thêm newline để execute
                       });
@@ -478,8 +478,8 @@ export const CodeTerminal = ({
       cleanupFunctions.forEach((fn) => fn());
       cleanupFunctions = [];
 
-      if (window.api?.invoke) {
-        window.api.invoke('terminal:kill', terminalIdRef.current).catch(() => {});
+      if (terminalIpc.canInvoke()) {
+        terminalIpc.invoke('terminal:kill', terminalIdRef.current).catch(() => {});
       }
 
       if (term) {
@@ -518,8 +518,8 @@ export const CodeTerminal = ({
     navigator.clipboard
       .readText()
       .then((text) => {
-        if (window.api?.send && text) {
-          window.api.send('terminal:write', {
+        if (terminalIpc.canSend() && text) {
+          terminalIpc.send('terminal:write', {
             terminalId: terminalIdRef.current,
             data: text,
           });
@@ -545,8 +545,8 @@ export const CodeTerminal = ({
   };
 
   const handleKill = async () => {
-    if (window.api?.invoke) {
-      await window.api.invoke('terminal:kill', terminalIdRef.current).catch(() => {});
+    if (terminalIpc.canInvoke()) {
+      await terminalIpc.invoke('terminal:kill', terminalIdRef.current).catch(() => {});
       if (xtermRef.current) {
         xtermRef.current.dispose();
         xtermRef.current = null;

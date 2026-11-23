@@ -24,7 +24,7 @@
 
 ## Tool format parser architecture
 
-- **Module structure**: `src/renderer/src/components/Widgets/Zen/feature/Chat/services/tool-formats/` contains 3 self-contained format files + registry:
+- **Module structure**: `src/renderer/src/components/Widgets/Zen/screens/Chat/services/tool-formats/` contains 3 self-contained format files + registry:
   - `XMLFormat.ts` (444 lines) — XML tag scanner + serializer
   - `JSONFormat.ts` (320 lines) — JSON fenced block scanner + normalizer
   - `DSMLFormat.ts` (127 lines) — DSML calls block parser + foreign converter
@@ -49,6 +49,9 @@
 
 ## FileExplore scope filter
 
+- Thanh filter scope của FileExplore (`file-explorer/components/ExplorerSearch.tsx`) dùng lại `git/components/ScopeFilterTabs.tsx` y hệt tab Git (All / Outside + hàng con / Inside + chip branch khác). Store `shared/stores/scope-stats.store.ts` có `ScopeFilter = ScopeCategory | 'outside'` và `branchFilterByProject`; `stats` từ server là đường dẫn TUYỆT ĐỐI còn scope branch (`useBranchScopeStore`) là đường dẫn TƯƠNG ĐỐI nên phải quy đổi theo root trước khi `isInScope`.
+- FileExplore không hiển thị file/folder đã xóa (ghost): `ghostIndex` luôn rỗng, `res.ghosts` bị bỏ qua.
+
 - Tooltip hover file/folder đã bị xóa hoàn toàn (không còn `FileHoverTooltip.tsx`).
 - Filter scope: `stores/useScopeStatsStore.ts` (`stats` primary/warn/error + `filter` theo project), `ScopeFilterButton` ở toolbar (đang lọc thì chỉ hiện dot viền dashed, click để hủy), `TreeNodeGate` ẩn node không khớp filter. UI FileExplore dùng tiếng Anh.
 
@@ -63,7 +66,7 @@
 ## Skills (toàn cục)
 
 - Skill lưu toàn cục ở `~/.phantoma/skills/{slug}/` (SKILL.md + `{slug}.json`), gán skill vào group ở `~/.phantoma/skills/groups.json` (không còn bật/tắt skill hay trạng thái expand/collapse group) — dùng chung mọi module, không theo project. Logic ở `src/main/storage/SkillStorage.ts` + `src/main/services/skill-marketplace.ts`, IPC `skill:*` ở `src/main/ipc/skill.handlers.ts`.
-- UI/hook/service nằm ở `components/Widgets/Zen/feature/Marketplace` (`SkillPanel`); tab Skills của module Code (`ActivityPanel/Skill`) chỉ bọc lại `SkillPanel`.
+- UI/hook/service nằm ở `components/Widgets/Zen/screens/Marketplace` (`SkillPanel`); tab Skills của module Code (`ActivityPanel/Skill`) chỉ bọc lại `SkillPanel`.
 
 ## UITest module
 
@@ -124,6 +127,10 @@
 
 - `components/Widgets/` (trước đây là `RightPanel`) chỉ là folder chứa module UI (`Zen/`, `AgentTools/`), KHÔNG còn `index.tsx`. Mỗi module tự dựng panel riêng: Recon dùng `modules/Recon/components/ReconPanel` (tabBar Zen/Agent Tools, tab lưu theo target trong `stores/useReconPanelStore.ts`), Emulate dùng `modules/Emulate/components/EmulatePanel`; `MainLayout.tsx` render theo `activeModule`.
 
+## SystemStatsModal
+
+- `components/SystemStatsModal.tsx` lấy dữ liệu thật từ server `/api/v1/system/*` qua `services/system-monitor.service.ts` (`systemMonitorApi` + `openMetricsStream` SSE) và kiểu ở `types/system-monitor.ts` (mirror `server/src/types/system.type.ts`). Hook `useMetrics` (SSE, 60 mẫu) và `useApi` (poll REST) nằm trong file modal; không còn mockData.
+
 ## Task & Workflow
 
 - Task lưu ở `~/.phantoma/code/{slug}/tasks.json` (`src/main/storage/TaskStorage.ts`); workflow của task là file `workflows/workflow_{taskId}.md` (`src/main/storage/WorkflowStorage.ts`, IPC `workflow:get|create|update` ở `src/main/ipc/workflow.handlers.ts`), field `workflowId` trên task.
@@ -178,6 +185,9 @@
 - Không cần nén AppImage cho việc test logic — chỉ nén khi thực sự phát hành.
 
 ## Code server (`code/`)
+
+- Đang refactor theo `docs/prompts/restructure-cleancode-code.md` (Phase 1 xong): `http/{envelope,params,guard,auth,sse}.ts` là hạ tầng HTTP (`utils/http.ts`, `utils/guard.ts` chỉ còn shim re-export), `infra/{process-runner,git-runner}.ts` chạy tiến trình (`services/git-runner.ts` là shim), `domain/api-types.ts` là nguồn type response dùng chung. Env mới: `CODE_HOST` (mặc định 127.0.0.1), `CODE_ALLOWED_ORIGINS` (CSV, rỗng = `*`), `CODE_TOKEN` (rỗng = không xác thực). `registerRootProvider` đăng ký ở `index.ts`.
+- UI `modules/Code/shared/api/`: `client.ts` (`request`), `types/*.types.ts`, `endpoints/<ns>.api.ts`; `code.api.ts` chỉ compose `codeApi` + re-export type. Type-check server: `cd code && npx tsc --noEmit`.
 
 - `utils/guard.ts` có `safePath(value, field, { write?, withinProject? })`: chặn file nhạy cảm (`.env`, `.pem`, `id_rsa`...), ghi vào `/etc /usr /sbin /boot /sys /proc`, và path ngoài worktree đã đăng ký. Mọi route fs/git mới phải đi qua nó.
 - `services/git-runner.ts` là helper git async duy nhất (`runGit(args, cwd)` không throw, `gitText(cwd, args)` throw), đã set `GIT_CEILING_DIRECTORIES`. Không dùng `execFileSync`.

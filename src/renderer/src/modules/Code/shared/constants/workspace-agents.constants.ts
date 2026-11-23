@@ -5,7 +5,7 @@
  */
 
 import { useCodeStore } from '../stores/code.store';
-import type { SessionStatus } from '../../features/projects/components/ProjectPanel/SessionCard';
+import type { SessionStatus } from '../../features/projects/types/session.types';
 import { getFaviconUrl } from '@renderer/utils/favicon';
 
 // Map AI agent IDs to their official domains for favicon fetching

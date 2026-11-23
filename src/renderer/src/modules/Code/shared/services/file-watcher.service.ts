@@ -1,3 +1,4 @@
+import { watchIpc } from '../ipc/watch.ipc';
 /**
  * ------------------------------------------------------------------
  * File Watcher Service
@@ -144,15 +145,14 @@ class FileWatcherService {
 
     // Register watcher with main process
     try {
-      await window.api.invoke('fs:watch-file', filePath);
+      await watchIpc.watchFile(filePath);
     } catch (err) {
       console.error('[FileWatcherService] ❌ Failed to start watch:', filePath, err);
       return;
     }
 
     // Listen for file changes
-    const unsubscribe = window.api.on(
-      'fs:file-changed',
+    const unsubscribe = watchIpc.onFileChanged(
       async (_event: any, data: { filePath: string; mtime: number }) => {
         if (data.filePath !== filePath) return;
 
@@ -230,7 +230,7 @@ class FileWatcherService {
 
     // Unregister from main process
     try {
-      await window.api.invoke('fs:unwatch-file', filePath);
+      await watchIpc.unwatchFile(filePath);
     } catch (err) {
       console.error('[FileWatcherService] ❌ Error unwatching:', err);
     }

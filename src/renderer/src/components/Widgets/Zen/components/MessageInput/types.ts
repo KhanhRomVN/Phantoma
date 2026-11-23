@@ -1,5 +1,5 @@
-import type { FileMutationTool } from '../../feature/Chat/constants/tag-registry';
-import type { WorkflowAgentId } from '../../feature/Chat/types/workflow-agents';
+import type { FileMutationTool } from '../../screens/Chat/constants/tag-registry';
+import type { WorkflowAgentId } from '../../screens/Chat/types/workflow-agents';
 
 export interface UploadedFile {
   id: string;

@@ -1,3 +1,4 @@
+import { gitIpc } from '../../../shared/ipc/git.ipc';
 /**
  * ------------------------------------------------------------------
  * Git View
@@ -42,343 +43,20 @@ import {
   type GraphRow,
 } from '../utils/graph.util';
 
-// ─── Virtual Row (local changes not on remote) ──────────────────────────
-interface LocalChange {
-  name: string;
-  files: CommitFile[];
-}
+import {
+  LocalChange,
+  VirtualRowProps,
+  BranchRowProps,
+  CommitRowProps,
+} from '../types/git-view.types';
 
-const VIRTUAL_PREFIX = 'virtual:';
+import { VIRTUAL_PREFIX } from '../constants/git-view.constants';
 
-interface VirtualRowProps {
-  branch: string;
-  unstagedCount: number;
-  stagedCount: number;
-  unpushedCount: number;
-  col: number;
-  lines: number[];
-  graphWidth: number;
-  selected: boolean;
-  dimmed: boolean;
-  onSelect: (key: string) => void;
-}
+import { VirtualRow } from './graph/VirtualRow';
 
-const VirtualRow = memo(function VirtualRow({
-  branch,
-  unstagedCount,
-  stagedCount,
-  unpushedCount,
-  col,
-  lines,
-  graphWidth,
-  selected,
-  dimmed,
-  onSelect,
-}: VirtualRowProps) {
-  const color = laneColor(col);
-  const x = laneX(col);
-  const mid = ROW_HEIGHT / 2;
-  const key = VIRTUAL_PREFIX + branch;
+import { BranchRow } from './graph/BranchRow';
 
-  return (
-    <div
-      id={`git-row-${key}`}
-      onClick={() => onSelect(key)}
-      style={{
-        height: ROW_HEIGHT,
-        background: selected ? `color-mix(in srgb, ${color} 20%, transparent)` : undefined,
-      }}
-      className={cn(
-        'flex items-center shrink-0 cursor-pointer transition-colors hover:brightness-125',
-        dimmed && 'opacity-30',
-      )}
-    >
-      <div
-        className={
-          'w-[200px] shrink-0 flex items-center justify-end gap-1 pl-3 pr-2 overflow-hidden'
-        }
-      >
-        <RefPill chip={{ label: branch, kind: 'local' }} />
-      </div>
-
-      <div style={{ width: graphWidth }} className={'shrink-0 overflow-hidden'}>
-        <svg width={graphWidth} height={ROW_HEIGHT}>
-          {lines
-            .filter((l) => l !== col)
-            .map((l) => (
-              <line
-                key={l}
-                x1={laneX(l)}
-                x2={laneX(l)}
-                y1={0}
-                y2={ROW_HEIGHT}
-                stroke={laneColor(l)}
-                strokeWidth={2}
-              />
-            ))}
-          <line
-            x1={x}
-            x2={x}
-            y1={mid}
-            y2={ROW_HEIGHT}
-            stroke={color}
-            strokeWidth={2}
-            strokeDasharray={'3 3'}
-          />
-          <circle
-            cx={x}
-            cy={mid}
-            r={7}
-            fill={'none'}
-            stroke={color}
-            strokeWidth={2}
-            strokeDasharray={'3 3'}
-          />
-        </svg>
-      </div>
-
-      <span className={'flex-1 min-w-0 flex items-center gap-1.5 pl-2'}>
-        {unstagedCount > 0 && (
-          <span
-            className={
-              'h-5 shrink-0 inline-flex items-center rounded-md px-2 text-[11px] font-medium bg-warn/10 text-warn'
-            }
-          >
-            {`${unstagedCount} ${unstagedCount === 1 ? 'file' : 'files'} not added`}
-          </span>
-        )}
-        {stagedCount > 0 && (
-          <span
-            className={
-              'h-5 shrink-0 inline-flex items-center rounded-md px-2 text-[11px] font-medium bg-green/10 text-green'
-            }
-          >
-            {`${stagedCount} ${stagedCount === 1 ? 'file' : 'files'} not committed`}
-          </span>
-        )}
-        {unpushedCount > 0 && (
-          <span
-            className={
-              'h-5 shrink-0 inline-flex items-center rounded-md px-2 text-[11px] font-medium bg-primary/10 text-primary'
-            }
-          >
-            {`${unpushedCount} ${unpushedCount === 1 ? 'commit' : 'commits'} not pushed`}
-          </span>
-        )}
-      </span>
-      <span className={'w-[268px] shrink-0'} />
-    </div>
-  );
-});
-
-// ─── Branch Row (local branch in sync with remote) ──────────────────────
-interface BranchRowProps {
-  hash: string;
-  names: string[];
-  col: number;
-  lines: number[];
-  graphWidth: number;
-  dimmed: boolean;
-  onSelect: (hash: string) => void;
-}
-
-const BranchRow = memo(function BranchRow({
-  hash,
-  names,
-  col,
-  lines,
-  graphWidth,
-  dimmed,
-  onSelect,
-}: BranchRowProps) {
-  const color = laneColor(col);
-  const x = laneX(col);
-  const mid = ROW_HEIGHT / 2;
-
-  return (
-    <div
-      id={`git-row-branch:${hash}`}
-      onClick={() => onSelect(hash)}
-      style={{ height: ROW_HEIGHT }}
-      className={cn(
-        'flex items-center shrink-0 cursor-pointer transition-colors hover:brightness-125',
-        dimmed && 'opacity-30',
-      )}
-    >
-      <div
-        className={
-          'w-[200px] shrink-0 flex items-center justify-end gap-1 pl-3 pr-2 overflow-hidden'
-        }
-      >
-        {names.map((n) => (
-          <RefPill key={n} chip={{ label: n, kind: 'local' }} />
-        ))}
-      </div>
-
-      <div style={{ width: graphWidth }} className={'shrink-0 overflow-hidden'}>
-        <svg width={graphWidth} height={ROW_HEIGHT}>
-          {lines
-            .filter((l) => l !== col)
-            .map((l) => (
-              <line
-                key={l}
-                x1={laneX(l)}
-                x2={laneX(l)}
-                y1={0}
-                y2={ROW_HEIGHT}
-                stroke={laneColor(l)}
-                strokeWidth={2}
-              />
-            ))}
-          <line x1={x} x2={x} y1={mid} y2={ROW_HEIGHT} stroke={color} strokeWidth={2} />
-          <circle cx={x} cy={mid} r={4} fill={color} />
-        </svg>
-      </div>
-
-      <span className={'flex-1 min-w-0 truncate pl-2 text-[12.5px] italic text-text-secondary'}>
-        {'Local branch · same commit as remote'}
-      </span>
-      <span className={'w-[268px] shrink-0'} />
-    </div>
-  );
-});
-
-// ─── Commit Row ─────────────────────────────────────────────────────────
-interface CommitRowProps {
-  commit: Commit;
-  row: GraphRow;
-  laneCount: number;
-  graphWidth: number;
-  selected: boolean;
-  dimmed: boolean;
-  hideLocals?: string[];
-  unpushed?: boolean;
-  pushing?: boolean;
-  onPush?: () => void;
-  onSelect: (hash: string) => void;
-  onContextMenu: (e: React.MouseEvent, commit: Commit) => void;
-  onHover: (e: React.MouseEvent | null, commit?: Commit) => void;
-}
-
-const CommitRow = memo(function CommitRow({
-  commit,
-  row,
-  laneCount,
-  graphWidth,
-  selected,
-  dimmed,
-  hideLocals,
-  unpushed,
-  pushing,
-  onPush,
-  onSelect,
-  onContextMenu,
-  onHover,
-}: CommitRowProps) {
-  const color = laneColor(row.col);
-  const chips = parseRefs(commit.refs).filter(
-    (c) =>
-      !(hideLocals && (c.kind === 'head' || c.kind === 'local') && hideLocals.includes(c.label)),
-  );
-  const remoteAccents = useRemoteAccents(chips);
-  const topLanes = [...new Set([...row.incoming, ...row.passThrough])];
-  const bottomLanes = [...new Set([...row.parentLanes, ...row.passThrough])];
-  const isMerge = commit.parents.length > 1;
-  const isHead = commit.refs.some((r) => r.startsWith('HEAD'));
-
-  return (
-    <div
-      id={`git-row-${commit.hash}`}
-      onClick={() => onSelect(commit.hash)}
-      onContextMenu={(e) => onContextMenu(e, commit)}
-      onMouseEnter={(e) => onHover(e, commit)}
-      onMouseMove={(e) => onHover(e, commit)}
-      onMouseLeave={() => onHover(null)}
-      style={{
-        minHeight: ROW_HEIGHT,
-        background: selected ? `color-mix(in srgb, ${color} 20%, transparent)` : undefined,
-      }}
-      className={cn(
-        'flex items-center shrink-0 cursor-pointer transition-colors hover:brightness-125',
-        dimmed && 'opacity-30',
-      )}
-    >
-      <div
-        className={'w-[200px] shrink-0 flex flex-col items-end justify-center gap-1 pl-3 pr-2 py-1'}
-      >
-        {[false, true].map((remote) => {
-          // ASSUMED: tách nhãn local và remote thành 2 dòng riêng để 'main' không dính chung dòng với origin/*
-          const group = chips
-            .map((c, i) => ({ c, i }))
-            .filter(({ c }) => (c.kind === 'remote') === remote);
-          return group.length > 0 ? (
-            <div key={String(remote)} className={'flex flex-wrap items-center justify-end gap-1'}>
-              {group.map(({ c, i }) => (
-                <RefPill key={c.kind + c.label} chip={c} color={remoteAccents[i]} />
-              ))}
-            </div>
-          ) : null;
-        })}
-      </div>
-
-      <div
-        style={{ width: graphWidth }}
-        className={'shrink-0 overflow-hidden self-stretch flex flex-col'}
-      >
-        <GraphFill lanes={topLanes} laneCount={laneCount} />
-        <GraphCell
-          row={row}
-          laneCount={laneCount}
-          author={commit.author}
-          email={commit.email}
-          isMerge={isMerge}
-          isHead={isHead}
-        />
-        <GraphFill lanes={bottomLanes} laneCount={laneCount} />
-      </div>
-
-      <span
-        title={commit.subject}
-        className={cn(
-          'flex-1 min-w-0 truncate pl-2 text-[12.5px]',
-          isMerge ? 'text-text-secondary' : 'text-text-primary',
-        )}
-      >
-        {commit.subject}
-      </span>
-      {unpushed && (
-        <button
-          type={'button'}
-          disabled={pushing}
-          title={'Committed but not pushed yet'}
-          onClick={(e) => {
-            e.stopPropagation();
-            onPush?.();
-          }}
-          className={
-            'mr-2 h-5 shrink-0 cursor-pointer rounded-md px-2 text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30 disabled:cursor-not-allowed disabled:opacity-50 transition-colors outline-dashed outline-1 -outline-offset-1 outline-primary/50'
-          }
-        >
-          {pushing ? 'Pushing…' : 'Push'}
-        </button>
-      )}
-      <span className={'w-[130px] shrink-0 truncate px-2 text-[11.5px] text-text-secondary'}>
-        {commit.author}
-      </span>
-      <span className={'w-[62px] shrink-0 font-mono text-[10.5px] text-text-secondary/50'}>
-        {commit.hash.slice(0, 7)}
-      </span>
-      <span
-        className={
-          'w-[76px] shrink-0 pr-4 text-right font-mono text-[10.5px] text-text-secondary/60'
-        }
-      >
-        {formatRelative(commit.date)}
-      </span>
-    </div>
-  );
-});
-
+import { CommitRow } from './graph/CommitRow';
 // ─── Main Component ─────────────────────────────────────────────────────
 export const GitView = memo(function GitView() {
   const projectPath = useCodeStore((s) => {
@@ -564,53 +242,68 @@ export const GitView = memo(function GitView() {
   const virtualByHash = useMemo(() => {
     const map = new Map<string, LocalChange[]>();
     localChanges.forEach((lc) => {
-      const tip = commits.find((c) =>
-        c.refs.some((r) => r === lc.name || r === `HEAD -> ${lc.name}`),
-      );
+      const tip =
+        commits.find((c) => c.refs.includes(`origin/${lc.name}`)) ??
+        commits.find((c) => c.refs.some((r) => r === lc.name || r === `HEAD -> ${lc.name}`));
       if (!tip) return;
       map.set(tip.hash, [...(map.get(tip.hash) ?? []), lc]);
     });
     return map;
   }, [commits, localChanges]);
 
-  const virtualNamesByHash = useMemo(() => {
-    const map = new Map<string, string[]>();
-    virtualByHash.forEach((list, hash) =>
-      map.set(
-        hash,
-        list.map((lc) => lc.name),
-      ),
-    );
-    return map;
-  }, [virtualByHash]);
+  const allVirtualNames = useMemo(() => new Set(localChanges.map((l) => l.name)), [localChanges]);
 
   const branchRowsByHash = useMemo(() => {
     const map = new Map<string, string[]>();
     commits.forEach((c) => {
       const chips = parseRefs(c.refs);
       if (!chips.some((x) => x.kind === 'remote')) return;
-      const virtual = virtualNamesByHash.get(c.hash) ?? [];
       const names = chips
-        .filter((x) => (x.kind === 'head' || x.kind === 'local') && !virtual.includes(x.label))
+        .filter((x) => (x.kind === 'head' || x.kind === 'local') && !allVirtualNames.has(x.label))
         .map((x) => x.label);
       if (names.length > 0) map.set(c.hash, names);
     });
     return map;
-  }, [commits, virtualNamesByHash]);
+  }, [commits, allVirtualNames]);
 
   const items = useMemo(() => {
     const list: (
       | { kind: 'commit'; commit: Commit; row: GraphRow }
-      | { kind: 'virtual'; change: LocalChange; row: GraphRow }
-      | { kind: 'branch'; hash: string; names: string[]; row: GraphRow }
+      | {
+          kind: 'virtual';
+          change: LocalChange;
+          row: GraphRow;
+          col: number;
+          hangCol: number | null;
+          hangFull: boolean;
+        }
+      | { kind: 'branch'; hash: string; names: string[]; row: GraphRow; joinTop: boolean }
     )[] = [];
     commits.forEach((c, idx) => {
-      (virtualByHash.get(c.hash) ?? []).forEach((change) =>
-        list.push({ kind: 'virtual', change, row: rows[idx] }),
-      );
+      const tipRow = rows[idx];
+      const lanes = new Set([...tipRow.incoming, ...tipRow.passThrough]);
+      const hangs = !lanes.has(tipRow.col);
+      let hanging = false;
+      (virtualByHash.get(c.hash) ?? []).forEach((change) => {
+        const col = tipRow.col;
+        const hangFull = hanging;
+        if (hangs) hanging = true;
+        list.push({
+          kind: 'virtual',
+          change,
+          row: tipRow,
+          col,
+          hangCol: hanging ? tipRow.col : null,
+          hangFull,
+        });
+      });
       const names = branchRowsByHash.get(c.hash);
-      if (names) list.push({ kind: 'branch', hash: c.hash, names, row: rows[idx] });
-      list.push({ kind: 'commit', commit: c, row: rows[idx] });
+      if (names) list.push({ kind: 'branch', hash: c.hash, names, row: tipRow, joinTop: hanging });
+      list.push({
+        kind: 'commit',
+        commit: c,
+        row: hanging ? { ...tipRow, incoming: [...tipRow.incoming, tipRow.col] } : tipRow,
+      });
     });
     return list;
   }, [commits, rows, virtualByHash, branchRowsByHash]);
@@ -782,8 +475,7 @@ export const GitView = memo(function GitView() {
 
   const runFileOp = useCallback(
     async (channel: string, payload: unknown, okMsg: string, opts?: unknown, root?: string) => {
-      const res = await window.api.invoke(
-        channel,
+      const res = await gitIpc.invoke(channel,
         root ?? projectPath,
         payload,
         ...(opts === undefined ? [] : [opts]),
@@ -1073,6 +765,7 @@ export const GitView = memo(function GitView() {
                       lines={[...it.row.incoming, ...it.row.passThrough]}
                       graphWidth={graphWidth}
                       dimmed={matchSet !== null && !matchSet.has(it.hash)}
+                      joinTop={it.joinTop}
                       onSelect={selectHash}
                     />
                   ) : it.kind === 'commit' ? (
@@ -1085,7 +778,7 @@ export const GitView = memo(function GitView() {
                       selected={it.commit.hash === selectedHash}
                       dimmed={matchSet !== null && !matchSet.has(it.commit.hash)}
                       hideLocals={[
-                        ...(virtualNamesByHash.get(it.commit.hash) ?? []),
+                        ...allVirtualNames,
                         ...(branchRowsByHash.get(it.commit.hash) ?? []),
                       ]}
                       unpushed={unpushedHashes.has(it.commit.hash)}
@@ -1110,7 +803,9 @@ export const GitView = memo(function GitView() {
                             ? unpushedHashes.size
                             : 0
                       }
-                      col={it.row.col}
+                      col={it.col}
+                      hangCol={it.hangCol}
+                      hangFull={it.hangFull}
                       lines={[...it.row.incoming, ...it.row.passThrough]}
                       graphWidth={graphWidth}
                       selected={VIRTUAL_PREFIX + it.change.name === selectedHash}

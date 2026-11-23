@@ -6,10 +6,10 @@ import { Check, X } from 'lucide-react';
 
 // ── Constants ──
 import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
+import { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
 import { GitStatusItem } from '../tool.types';
 
 // ── Utils ──
@@ -17,7 +17,7 @@ import { parseGitStatusOutput } from '@renderer/components/Widgets/Zen/shared/gi
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import { getFileIconPath } from '@renderer/utils/file-icon';
 
 interface GitStatusBlockItem {

@@ -1,365 +1,151 @@
-import express, { Router } from 'express';
-import { gitService } from '../services/git.service';
-import { gitExtraService } from '../services/git-extra.service';
-import { gitRemoteService } from '../services/git-remote.service';
-import { gitReadService } from '../services/git-read.service';
-import { gitWriteService } from '../services/git-write.service';
-import { gitExplorerService } from '../services/git-explorer.service';
-import { found, requireString, safePath } from '../utils/guard';
-import { AppError, handle, json } from '../utils/http';
+import express, { Router, type Request } from 'express';
+import { gitService } from '../services/git/git-status.service';
+import { defaultBranchName } from '../services/git/default-branch';
+import { gitRemoteService } from '../services/git/git-remote.service';
+import { gitReadService } from '../services/git/git-read.service';
+import { gitWriteService } from '../services/git/git-write.service';
+import { gitBranchService } from '../services/git/git-branch.service';
+import { gitProtectService } from '../services/git/git-protect.service';
+import { gitExplorerService } from '../services/git/git-explorer.service';
+import { found, requireString, safePath } from '../http/guard';
+import { AppError, handle, json } from '../http/envelope';
+import { queryJson } from '../http/params';
+
+type Action = (req: Request) => Promise<unknown> | unknown;
 
 const projectRoot = (value: unknown, field: string): string => safePath(value, field, { withinProject: true });
+const queryRoot = (req: Request): string => projectRoot(req.query.root, 'root');
+const bodyRoot = (req: Request): string => projectRoot(req.body?.root, 'root');
+const text = (value: unknown, field: string): string => found(value, field) as string;
+
+const lenientJson = <T>(value: unknown, field: string): T | undefined => {
+  try {
+    return queryJson<T>(value, field);
+  } catch {
+    return undefined;
+  }
+};
+
+const fileList = (value: unknown): string[] => {
+  if (!Array.isArray(value) || value.some((f) => typeof f !== 'string' || f.includes('\0'))) {
+    throw new AppError('files must be an array of strings', 400);
+  }
+  return value as string[];
+};
+
+const scopeList = (value: unknown): string[] => {
+  const parsed = lenientJson<unknown>(value, 'scope');
+  return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === 'string') : [];
+};
+
+const cloneRoots = (value: unknown): Record<string, string> => {
+  const clones: Record<string, string> = {};
+  const raw = lenientJson<Record<string, string>>(value, 'clones');
+  if (!raw || typeof raw !== 'object') return clones;
+  for (const [name, p] of Object.entries(raw)) {
+    try {
+      clones[name] = projectRoot(p, 'clones');
+    } catch {
+      continue;
+    }
+  }
+  return clones;
+};
 
 export function registerGitRoutes(): Router {
   const router = express.Router();
 
-  router.get(
-    '/git/status',
-    handle(async (req, res) => {
-      json(res, 200, await gitService.status(projectRoot(req.query.gitRoot, 'gitRoot')));
-    }),
-  );
-
-  router.get(
-    '/git/ignored-paths',
-    handle(async (req, res) => {
-      json(res, 200, await gitService.ignoredPaths(projectRoot(req.query.gitRoot, 'gitRoot')));
-    }),
-  );
-
-  router.get(
-    '/git/explorer-state',
-    handle(async (req, res) => {
-      const root = projectRoot(req.query.root, 'root');
-      let scope: string[] = [];
-      try {
-        const parsed = JSON.parse(String(req.query.scope ?? '[]'));
-        if (Array.isArray(parsed)) scope = parsed.filter((s): s is string => typeof s === 'string');
-      } catch {
-        scope = [];
-      }
-      json(res, 200, await gitExplorerService.state(root, scope, req.query.active === '1'));
-    }),
-  );
-
-  router.get(
-    '/git/changed-in-other-branches',
-    handle(async (req, res) => {
-      json(res, 200, await gitService.changedInOtherBranches(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/remote-diff',
-    handle(async (req, res) => {
-      const root = projectRoot(req.query.root, 'root');
-      const remoteHash = found(req.query.remoteHash, 'remoteHash') as string;
-      json(res, 200, await gitService.remoteDiff(root, remoteHash));
-    }),
-  );
-
-  router.get(
-    '/git/diff-vs-default',
-    handle(async (req, res) => {
-      json(res, 200, await gitExplorerService.diffVsDefault(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/default-branch',
-    handle(async (req, res) => {
-      json(res, 200, await gitExtraService.defaultBranch(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  router.post(
-    '/git/fetch',
-    handle(async (req, res) => {
-      json(res, 200, await gitRemoteService.fetch(projectRoot(req.body?.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/file-diff-vs-remote',
-    handle(async (req, res) => {
-      const root = projectRoot(req.query.root, 'root');
-      const filePath = safePath(req.query.filePath, 'filePath', { withinProject: true });
-      json(res, 200, await gitRemoteService.fileDiffVsRemote(root, filePath));
-    }),
-  );
-
-  router.post(
-    '/git/commit-push-files',
-    handle(async (req, res) => {
-      const root = projectRoot(req.body?.root, 'root');
-      const files = (req.body?.files ?? []) as string[];
-      const message = (req.body?.message ?? '') as string;
-      json(res, 200, await gitRemoteService.commitPushFiles(root, files, message));
-    }),
-  );
-
-  router.post(
-    '/git/push',
-    handle(async (req, res) => {
-      json(res, 200, await gitRemoteService.push(projectRoot(req.body?.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/staged-diff',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.stagedDiff(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/unpushed',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.unpushed(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  const text = (value: unknown, field: string): string => found(value, field) as string;
-
-  router.get(
-    '/git/log',
-    handle(async (req, res) => {
-      const limit = Number(req.query.limit) || undefined;
-      const ref = typeof req.query.ref === 'string' && req.query.ref ? req.query.ref : undefined;
-      json(res, 200, await gitReadService.log(projectRoot(req.query.root, 'root'), limit, ref));
-    }),
-  );
-
-  router.get(
-    '/git/branches',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.listBranches(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/tags',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.listTags(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/resolve-ref',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.resolveRef(projectRoot(req.query.root, 'root'), text(req.query.ref, 'ref')));
-    }),
-  );
-
-  router.get(
-    '/git/is-repo',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.isRepo(safePath(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/repo-identity',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.repoIdentity(safePath(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/commit-diff',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.commitDiff(projectRoot(req.query.root, 'root'), text(req.query.hash, 'hash')));
-    }),
-  );
-
-  router.get(
-    '/git/local-diff',
-    handle(async (req, res) => {
-      json(
-        res,
-        200,
-        await gitReadService.localDiff(
-          projectRoot(req.query.root, 'root'),
-          text(req.query.branch, 'branch'),
-          req.query.branchRoot ? projectRoot(req.query.branchRoot, 'branchRoot') : undefined,
-        ),
-      );
-    }),
-  );
-
-  router.get(
-    '/git/commit-body',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.commitBody(projectRoot(req.query.root, 'root'), text(req.query.hash, 'hash')));
-    }),
-  );
-
-  router.get(
-    '/git/commit-files',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.commitFiles(projectRoot(req.query.root, 'root'), text(req.query.hash, 'hash')));
-    }),
-  );
-
-  router.get(
-    '/git/remote-url',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.remoteUrl(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/local-changes',
-    handle(async (req, res) => {
-      const clones: Record<string, string> = {};
-      if (typeof req.query.clones === 'string' && req.query.clones) {
-        try {
-          const raw = JSON.parse(req.query.clones) as Record<string, string>;
-          for (const [name, p] of Object.entries(raw)) {
-            try {
-              clones[name] = projectRoot(p, 'clones');
-            } catch {
-              continue;
-            }
-          }
-        } catch {
-          // ignore malformed clones param
-        }
-      }
-      json(res, 200, await gitReadService.localChanges(projectRoot(req.query.root, 'root'), clones));
-    }),
-  );
-
-  router.get(
-    '/git/file-diff',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.fileDiff(projectRoot(req.query.root, 'root'), text(req.query.filePath, 'filePath')));
-    }),
-  );
-
-  router.get(
-    '/git/language-stats',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.languageStats(safePath(req.query.root, 'root')));
-    }),
-  );
-
-  router.get(
-    '/git/repo-info',
-    handle(async (req, res) => {
-      json(res, 200, await gitReadService.repoInfo(safePath(req.query.root, 'root')));
-    }),
-  );
-
-  const fileList = (value: unknown): string[] => {
-    if (!Array.isArray(value) || value.some((f) => typeof f !== 'string' || f.includes('\0'))) {
-      throw new AppError('files must be an array of strings', 400);
-    }
-    return value as string[];
+  const get = (path: string, action: Action): void => {
+    router.get(
+      path,
+      handle(async (req, res) => {
+        json(res, 200, await action(req));
+      }),
+    );
   };
-  const bodyRoot = (req: express.Request): string => projectRoot(req.body?.root, 'root');
 
-  router.post(
-    '/git/checkout',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.checkout(bodyRoot(req), requireString(req.body?.branch, 'branch')));
-    }),
-  );
+  const post = (path: string, action: Action): void => {
+    router.post(
+      path,
+      handle(async (req, res) => {
+        json(res, 200, await action(req));
+      }),
+    );
+  };
 
-  router.post(
-    '/git/commit',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.commit(bodyRoot(req), requireString(req.body?.message, 'message')));
-    }),
+  get('/git/status', (req) => gitService.status(projectRoot(req.query.gitRoot, 'gitRoot')));
+  get('/git/ignored-paths', (req) => gitService.ignoredPaths(projectRoot(req.query.gitRoot, 'gitRoot')));
+  get('/git/explorer-state', (req) =>
+    gitExplorerService.state(queryRoot(req), scopeList(req.query.scope), req.query.active === '1'),
   );
+  get('/git/changed-in-other-branches', (req) => gitService.changedInOtherBranches(queryRoot(req)));
+  get('/git/remote-diff', (req) => {
+    const root = queryRoot(req);
+    return gitService.remoteDiff(root, found(req.query.remoteHash, 'remoteHash') as string);
+  });
+  get('/git/diff-vs-default', (req) => gitExplorerService.diffVsDefault(queryRoot(req)));
+  get('/git/default-branch', (req) => defaultBranchName(queryRoot(req)));
+  post('/git/fetch', (req) => gitRemoteService.fetch(bodyRoot(req)));
+  get('/git/file-diff-vs-remote', (req) => {
+    const root = queryRoot(req);
+    return gitRemoteService.fileDiffVsRemote(root, safePath(req.query.filePath, 'filePath', { withinProject: true }));
+  });
+  post('/git/commit-push-files', (req) => {
+    const root = bodyRoot(req);
+    const files = (req.body?.files ?? []) as string[];
+    const message = (req.body?.message ?? '') as string;
+    return gitRemoteService.commitPushFiles(root, files, message);
+  });
+  post('/git/push', (req) => gitRemoteService.push(bodyRoot(req)));
 
-  router.post(
-    '/git/stage',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.stage(bodyRoot(req), fileList(req.body?.files)));
-    }),
+  get('/git/staged-diff', (req) => gitReadService.stagedDiff(queryRoot(req)));
+  get('/git/unpushed', (req) => gitReadService.unpushed(queryRoot(req)));
+  get('/git/log', (req) => {
+    const limit = Number(req.query.limit) || undefined;
+    const ref = typeof req.query.ref === 'string' && req.query.ref ? req.query.ref : undefined;
+    return gitReadService.log(queryRoot(req), limit, ref);
+  });
+  get('/git/branches', (req) => gitBranchService.listBranches(queryRoot(req)));
+  get('/git/tags', (req) => gitReadService.listTags(queryRoot(req)));
+  get('/git/resolve-ref', (req) => gitReadService.resolveRef(queryRoot(req), text(req.query.ref, 'ref')));
+  get('/git/is-repo', (req) => gitReadService.isRepo(safePath(req.query.root, 'root')));
+  get('/git/repo-identity', (req) => gitReadService.repoIdentity(safePath(req.query.root, 'root')));
+  get('/git/commit-diff', (req) => gitReadService.commitDiff(queryRoot(req), text(req.query.hash, 'hash')));
+  get('/git/local-diff', (req) =>
+    gitReadService.localDiff(
+      queryRoot(req),
+      text(req.query.branch, 'branch'),
+      req.query.branchRoot ? projectRoot(req.query.branchRoot, 'branchRoot') : undefined,
+    ),
   );
+  get('/git/commit-body', (req) => gitReadService.commitBody(queryRoot(req), text(req.query.hash, 'hash')));
+  get('/git/commit-files', (req) => gitReadService.commitFiles(queryRoot(req), text(req.query.hash, 'hash')));
+  get('/git/remote-url', (req) => gitReadService.remoteUrl(queryRoot(req)));
+  get('/git/local-changes', (req) => gitReadService.localChanges(queryRoot(req), cloneRoots(req.query.clones)));
+  get('/git/file-diff', (req) => gitReadService.fileDiff(queryRoot(req), text(req.query.filePath, 'filePath')));
+  get('/git/language-stats', (req) => gitReadService.languageStats(safePath(req.query.root, 'root')));
+  get('/git/repo-info', (req) => gitReadService.repoInfo(safePath(req.query.root, 'root')));
 
-  router.post(
-    '/git/scope-transfer',
-    handle(async (req, res) => {
-      json(
-        res,
-        200,
-        await gitWriteService.scopeTransfer(
-          bodyRoot(req),
-          projectRoot(req.body?.targetRoot, 'targetRoot'),
-          fileList(req.body?.files),
-        ),
-      );
-    }),
+  post('/git/checkout', (req) => gitWriteService.checkout(bodyRoot(req), requireString(req.body?.branch, 'branch')));
+  post('/git/commit', (req) => gitWriteService.commit(bodyRoot(req), requireString(req.body?.message, 'message')));
+  post('/git/stage', (req) => gitWriteService.stage(bodyRoot(req), fileList(req.body?.files)));
+  post('/git/scope-transfer', (req) =>
+    gitWriteService.scopeTransfer(bodyRoot(req), projectRoot(req.body?.targetRoot, 'targetRoot'), fileList(req.body?.files)),
   );
-
-  router.post(
-    '/git/stage-all',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.stageAll(bodyRoot(req)));
-    }),
-  );
-
-  router.post(
-    '/git/unstage',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.unstage(bodyRoot(req), fileList(req.body?.files)));
-    }),
-  );
-
-  router.post(
-    '/git/unstage-all',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.unstageAll(bodyRoot(req)));
-    }),
-  );
-
-  router.post(
-    '/git/prune-orphan-branches',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.pruneOrphanBranches(bodyRoot(req)));
-    }),
-  );
-
-  router.post(
-    '/git/clone',
-    handle(async (req, res) => {
-      const url = requireString(req.body?.url, 'url');
-      const dest = safePath(req.body?.dest, 'dest', { write: true });
-      const branch = typeof req.body?.branch === 'string' && req.body.branch ? req.body.branch : undefined;
-      json(res, 200, await gitWriteService.clone(url, dest, branch));
-    }),
-  );
-
-  router.get(
-    '/git/protect-status',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.protectStatus(projectRoot(req.query.root, 'root')));
-    }),
-  );
-
-  router.post(
-    '/git/protect-enable',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.protectEnable(bodyRoot(req)));
-    }),
-  );
-
-  router.post(
-    '/git/protect-disable',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.protectDisable(bodyRoot(req)));
-    }),
-  );
-
-  router.get(
-    '/git/check-ready',
-    handle(async (req, res) => {
-      json(res, 200, await gitWriteService.checkReady(projectRoot(req.query.root, 'root')));
-    }),
-  );
+  post('/git/stage-all', (req) => gitWriteService.stageAll(bodyRoot(req)));
+  post('/git/unstage', (req) => gitWriteService.unstage(bodyRoot(req), fileList(req.body?.files)));
+  post('/git/unstage-all', (req) => gitWriteService.unstageAll(bodyRoot(req)));
+  post('/git/prune-orphan-branches', (req) => gitBranchService.pruneOrphanBranches(bodyRoot(req)));
+  post('/git/clone', (req) => {
+    const url = requireString(req.body?.url, 'url');
+    const dest = safePath(req.body?.dest, 'dest', { write: true });
+    const branch = typeof req.body?.branch === 'string' && req.body.branch ? req.body.branch : undefined;
+    return gitWriteService.clone(url, dest, branch);
+  });
+  get('/git/protect-status', (req) => gitProtectService.protectStatus(queryRoot(req)));
+  post('/git/protect-enable', (req) => gitProtectService.protectEnable(bodyRoot(req)));
+  post('/git/protect-disable', (req) => gitProtectService.protectDisable(bodyRoot(req)));
+  get('/git/check-ready', (req) => gitWriteService.checkReady(queryRoot(req)));
 
   return router;
 }

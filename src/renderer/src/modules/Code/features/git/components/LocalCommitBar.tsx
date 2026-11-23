@@ -1,3 +1,5 @@
+import { fsIpc } from '../../../shared/ipc/fs.ipc';
+import { dialogIpc } from '../../../shared/ipc/dialog.ipc';
 /**
  * ------------------------------------------------------------------
  * Local Commit Bar
@@ -450,7 +452,7 @@ export const LocalCommitBox = memo(function LocalCommitBox({
   const handleExportFull = async () => {
     setWorking(true);
     try {
-      const picked = await window.api.invoke('dialog:select-paths', { kind: 'folder' });
+      const picked = await dialogIpc.selectPaths({ kind: 'folder' });
       const destDir = picked?.paths?.[0];
       if (!destDir) return;
       const status = staged
@@ -458,9 +460,7 @@ export const LocalCommitBox = memo(function LocalCommitBox({
         .join('\n');
       const diffRes = await codeApi.git.stagedDiff(projectPath).catch(() => null);
       const filePath = `${destDir}/commit-prompt-${Date.now()}.md`;
-      const wr = await window.api.invoke(
-        'fs:write-file',
-        filePath,
+      const wr = await fsIpc.writeFile(filePath,
         getCommitMessagePlainPrompt('en', status, diffRes?.diff),
       );
       onNotice(wr?.error ? String(wr.error).split('\n')[0] : `Exported ${filePath}`);

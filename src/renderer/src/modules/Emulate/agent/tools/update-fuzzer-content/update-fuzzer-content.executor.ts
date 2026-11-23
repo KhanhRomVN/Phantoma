@@ -1,11 +1,8 @@
 import type { UpdateFuzzerContentParams } from './update-fuzzer-content.parser';
-import { FuzzyMatcher } from '@renderer/modules/Code/utils/FuzzyMatcher';
-import {
-  UpdateFuzzerContentHandler,
-  type FuzzerTarget,
-} from './update-fuzzer-content.handler';
+import { UpdateFuzzerContentHandler, type FuzzerTarget } from './update-fuzzer-content.handler';
 import { resolveFuzzer } from '@renderer/modules/Emulate/shared/utils/fuzzer-resolver.util';
 import { runTool } from '@renderer/modules/Emulate/shared/utils/tool-result.util';
+import { FuzzyMatcher } from '@renderer/modules/Code/shared/utils/fuzzy-matcher.util';
 
 const handler = new UpdateFuzzerContentHandler();
 const TOOL = '[update_fuzzer_content]';

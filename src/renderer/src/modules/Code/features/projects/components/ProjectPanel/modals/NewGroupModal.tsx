@@ -4,7 +4,7 @@ import { cn } from '@renderer/utils/cn';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
 
-import { ProjectIcon, getProjectIdentity } from '../ProjectCard';
+import { ProjectIcon, getProjectIdentity } from '../../ProjectCard/ProjectIcon';
 
 const MAX_NAME_LENGTH = 30;
 

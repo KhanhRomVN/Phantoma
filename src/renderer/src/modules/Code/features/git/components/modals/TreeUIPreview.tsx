@@ -1,6 +1,6 @@
 import { Folder, GitBranch } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
-import { ProjectLogoImage } from '../../../projects/components/ProjectLogo';
+import { ProjectLogoImage } from '../../../../shared/components/ProjectLogo';
 
 interface TreeUIPreviewProps {
   projectName: string;

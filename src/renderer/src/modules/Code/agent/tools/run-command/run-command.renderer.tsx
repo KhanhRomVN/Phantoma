@@ -19,10 +19,10 @@ import {
   TERMINAL_STATUS,
   type TerminalStatus,
 } from '@renderer/components/Widgets/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
 
 // ── Types ──
-import { Message } from '@renderer/components/Widgets/Zen/feature/Chat/types/message';
+import { Message } from '@renderer/components/Widgets/Zen/screens/Chat/types/message';
 
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
@@ -30,10 +30,10 @@ import { $ } from '@renderer/utils/color';
 import { getFolderIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
 
 interface TerminalBlockProps {
   logs: string;

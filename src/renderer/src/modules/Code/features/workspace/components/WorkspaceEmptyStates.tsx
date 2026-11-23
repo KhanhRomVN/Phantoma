@@ -14,8 +14,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { getAgentFavicon } from '../../../shared/constants/workspace-agents.constants';
-import { OpenProjectModal } from '../../projects/components/modals/OpenProjectModal';
-import { CreateProjectModal } from '../../projects/components/modals/CreateProjectModal';
+import { OpenProjectModal, CreateProjectModal } from '../../projects';
 
 // ─── Shared pieces ────────────────────────────────────────────────────
 

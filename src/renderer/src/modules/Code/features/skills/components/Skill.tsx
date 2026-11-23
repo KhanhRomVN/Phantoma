@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { AgentRootContext } from '@renderer/components/Widgets/Zen/context/AgentRootContext';
 import { SettingsProvider } from '@renderer/components/Widgets/Zen/context/SettingsContext';
-import { SkillPanel } from '@renderer/components/Widgets/Zen/feature/Marketplace';
+import { SkillPanel } from '@renderer/components/Widgets/Zen/screens/Marketplace';
 
 export function Skill() {
   const [rootEl, setRootEl] = useState<HTMLElement | null>(null);
 
   return (
     <div ref={setRootEl} className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
-
       <div className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
         <AgentRootContext.Provider value={rootEl}>
           <SettingsProvider>

@@ -18,12 +18,8 @@
 import {
   ExecutorContext,
   ExecutorOptions,
-} from '@renderer/components/Widgets/Zen/feature/Chat/types/executor-types';
-import {
-  TerminalIpc,
-  TerminalDataPayload,
-  TerminalExitPayload,
-} from './run-command.handler';
+} from '@renderer/components/Widgets/Zen/screens/Chat/types/executor-types';
+import { TerminalIpc, TerminalDataPayload, TerminalExitPayload } from './run-command.handler';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 type CommandValidator = (command: string) => { safe: boolean; reason?: string };

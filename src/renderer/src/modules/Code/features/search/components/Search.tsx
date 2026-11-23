@@ -1,3 +1,4 @@
+import { fsIpc } from '../../../shared/ipc/fs.ipc';
 /**
  * ------------------------------------------------------------------
  * Search
@@ -358,8 +359,7 @@ export function Search() {
   const handleReplaceFile = useCallback(
     async (file: string) => {
       try {
-        await (window as any).api.invoke(
-          'fs:replace-all',
+        await fsIpc.replaceAll(
           [file],
           query.trim(),
           replaceQuery,
@@ -381,8 +381,7 @@ export function Search() {
   const handleConfirmReplaceAll = async () => {
     if (!projectPath || visible.length === 0) return;
     try {
-      await (window as any).api.invoke(
-        'fs:replace-all',
+      await fsIpc.replaceAll(
         visible.map((r) => r.file),
         query.trim(),
         replaceQuery,

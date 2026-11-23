@@ -1,3 +1,5 @@
+import { terminalIpc } from '../../../shared/ipc/terminal.ipc';
+import { dialogIpc } from '../../../shared/ipc/dialog.ipc';
 /**
  * ------------------------------------------------------------------
  * Workspace Views — 2x2 pane grid with tabs
@@ -21,14 +23,14 @@
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../shared/stores/code.store';
 import { useWorkflowStore } from '../../../agent/stores/workflow.store';
-import { useDebugStore } from '../../debug/stores/debug.store';
+import { useDebugStore } from '../../debug';
 import { codeApi, type CodeWorkspacePanel } from '../../../shared/api/code.api';
 import {
   attachAgentToProject,
   removeAgentFromProject,
   detachAgentFromProject,
 } from '../../../shared/constants/workspace-agents.constants';
-import type { SessionStatus } from '../../projects/components/ProjectPanel/SessionCard';
+import type { SessionStatus } from '../../projects';
 import { getPanelMeta, TabBar } from './WorkspacePanes';
 import { WorkspacePanes } from './WorkspacePanes';
 import { WorkspaceEmptyState, type EmptyWorkspaceAction } from './WorkspaceEmptyStates';
@@ -535,9 +537,9 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       setSessionProcs(currentProjectId, sessionId, procs);
     };
 
-    window.api.on('terminal:process-info', onProcessInfo);
+    const offProcessInfo = terminalIpc.onProcessInfo(onProcessInfo);
     return () => {
-      window.api.off('terminal:process-info', onProcessInfo);
+      offProcessInfo();
     };
   }, [currentProjectId, sessionId, setSessionProcs]);
 
@@ -704,7 +706,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
   const closePanel = useCallback(
     (id: string, options?: { notifyOrchestrator?: boolean; keepAgent?: boolean }) => {
-      window.api?.send('terminal:history-delete', id);
+      terminalIpc.historyDelete(id);
       useCodeStore.getState().discardFileState(id);
       const closing = panelsRef.current.find((p) => p.id === id);
       if (
@@ -1158,8 +1160,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'o') {
         e.preventDefault();
         e.stopPropagation();
-        window.api
-          .invoke('dialog:select-paths', {
+        dialogIpc.selectPaths({
             kind: 'file',
             multiple: false,
             defaultPath: currentProjectPath,

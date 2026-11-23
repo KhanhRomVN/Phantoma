@@ -17,7 +17,7 @@
  */
 
 import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
-import type { WorkflowAgentId } from '../feature/Chat/types/workflow-agents';
+import type { WorkflowAgentId } from '../screens/Chat/types/workflow-agents';
 
 // Lazy accessor — defer evaluation tới lúc call thật sự.
 // Trong dev/browser mode (Vite), window.api chưa được inject bởi preload →

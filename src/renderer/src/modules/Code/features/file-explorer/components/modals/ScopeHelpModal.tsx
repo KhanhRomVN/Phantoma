@@ -2,7 +2,7 @@ import { memo } from 'react';
 
 import { Modal } from '@renderer/components/ui/Modal';
 import { cn } from '@renderer/utils/cn';
-import { SCOPE_DOT } from '../../../git/components/scope/scopeBadges';
+import { SCOPE_DOT } from '../../../../shared/utils/scope-badges.util';
 
 interface ScopeHelpModalProps {
   isOpen: boolean;

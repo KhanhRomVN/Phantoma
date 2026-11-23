@@ -1,3 +1,4 @@
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
 import { memo, useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronDown, Replace, Folder, X } from 'lucide-react';
 import {
@@ -183,7 +184,7 @@ const FileGroup = memo(function FileGroup({
 
   const handleOpenFolder = async () => {
     try {
-      await window.api.invoke('shell:open-path', result.file.substring(0, result.file.lastIndexOf('/')));
+      await shellIpc.openPath(result.file.substring(0, result.file.lastIndexOf('/')));
     } catch (err) {
       console.error('[Search] Failed to open folder:', err);
     }

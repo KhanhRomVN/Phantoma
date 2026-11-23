@@ -11,9 +11,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
-import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
-import UserMessageBox from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/UserMessageBox';
-import type { Message } from '@renderer/components/Widgets/Zen/feature/Chat/types/message';
+import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
+import UserMessageBox from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/UserMessageBox';
+import type { Message } from '@renderer/components/Widgets/Zen/screens/Chat/types/message';
 import { getAgentFavicon } from '../../../../shared/constants/workspace-agents.constants';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../../shared/stores/code.store';
 import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../../agent/stores/workflow.store';

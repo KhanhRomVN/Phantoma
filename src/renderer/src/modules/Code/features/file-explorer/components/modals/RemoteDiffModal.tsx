@@ -15,7 +15,7 @@ import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import { FileSection, parseDiff } from '../../../git/components/DiffView';
+import { FileSection, parseDiff } from '../../../git';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface RemoteDiffModalProps {

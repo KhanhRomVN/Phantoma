@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight, FolderTree, List, Search } from 'lucide-reac
 import { cn } from '@renderer/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../../shared/stores/code.store';
-import { useGitFileStatus } from '../../../../shared/hooks/useGitFileStatus';
+import { useGitFileStatus } from '../../hooks/useGitFileStatus';
 import { codeApi } from '../../../../shared/api/code.api';
 import { getPanelMeta } from '../WorkspacePanes';
 

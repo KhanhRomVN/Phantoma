@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { cn } from '@renderer/utils/cn';
-import { ProjectIcon, getProjectIdentity } from '../ProjectCard';
+import { ProjectIcon, getProjectIdentity } from '../../ProjectCard/ProjectIcon';
 
 // ─── Target id helpers (target = branch of a project) ───────────────────
 const TARGET_SEPARATOR = '::';

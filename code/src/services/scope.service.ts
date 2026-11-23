@@ -2,7 +2,7 @@ import { scopeRepository } from '../repositories/scope.repository';
 import { worktreeRepository } from '../repositories/worktree.repository';
 import { found, requireString } from '../utils/guard';
 import { newId } from '../utils/http';
-import { resolveDefaultBranch } from './git-write.service';
+import { resolveDefaultBranch } from './git/default-branch';
 import type { Scope } from '../domain/mappers';
 
 export interface ScopeInput {

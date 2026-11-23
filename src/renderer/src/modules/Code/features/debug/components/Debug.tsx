@@ -1,3 +1,5 @@
+import { watchIpc } from '../../../shared/ipc/watch.ipc';
+import { debugIpc } from '../../../shared/ipc/debug.ipc';
 /**
  * ------------------------------------------------------------------
  * Debug Panel (Run & Debug)
@@ -278,11 +280,9 @@ export function Debug() {
   // launch.json được sửa/tạo/xóa → watcher báo `fs:dir-changed` → đọc lại ngay
   useEffect(() => {
     if (!projectPath) return;
-    const api = (window as any).api;
     const root = projectPath.replace(/\\/g, '/');
-    void api.invoke('fs:watch-dir', projectPath).catch(() => undefined);
-    const off = api.on(
-      'fs:dir-changed',
+    void watchIpc.watchDir(projectPath).catch(() => undefined);
+    const off = watchIpc.onDirChanged(
       (_e: unknown, p: { dirPath: string; projectPath: string }) => {
         if (p.projectPath !== projectPath) return;
         const dir = p.dirPath.replace(/\\/g, '/');
@@ -293,7 +293,7 @@ export function Debug() {
     );
     return () => {
       off?.();
-      void api.invoke('fs:unwatch-dir', projectPath).catch(() => undefined);
+      void watchIpc.unwatchDir(projectPath).catch(() => undefined);
     };
   }, [projectPath]);
 
@@ -302,7 +302,7 @@ export function Debug() {
     if (!projectPath) return;
     setNotice(null);
     if (!useDebugStore.getState().launchExists) {
-      const res = await (window as any).api.invoke('debug:create-launch', projectPath);
+      const res = await debugIpc.createLaunch(projectPath);
       if (!res?.ok) {
         setNotice(res?.error ?? 'Cannot create launch.json');
         return;

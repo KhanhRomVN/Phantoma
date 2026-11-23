@@ -11,9 +11,9 @@ import {
   useScopeStatsStore,
 } from '../../../shared/stores/scope-stats.store';
 import { isInScope, useBranchScopeStore } from '../../../shared/stores/branch-scope.store';
-import { ScopeFilterTabs } from '../../git/components/ScopeFilterTabs';
-import { SCOPE_DOT } from '../../git/components/scope/scopeBadges';
-import { EmptyState } from '../../git/components/EmptyState';
+import { ScopeFilterTabs } from '../../../shared/components/ScopeFilterTabs';
+import { SCOPE_DOT } from '../../../shared/utils/scope-badges.util';
+import { EmptyState } from '../../../shared/components/EmptyState';
 
 
 interface ExplorerSearchBarProps {

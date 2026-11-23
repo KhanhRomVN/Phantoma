@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AgentRootContext } from '@renderer/components/Widgets/Zen/context/AgentRootContext';
 import { SettingsProvider } from '@renderer/components/Widgets/Zen/context/SettingsContext';
-import AccountPanel from '@renderer/components/Widgets/Zen/feature/Account';
+import AccountPanel from '@renderer/components/Widgets/Zen/screens/Account';
 
 export function Account() {
   const [rootEl, setRootEl] = useState<HTMLElement | null>(null);

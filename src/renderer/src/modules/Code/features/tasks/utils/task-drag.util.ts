@@ -1,1 +1,1 @@
-export const TASK_DRAG_TYPE = 'application/x-phantoma-task';
+export * from '../../../shared/constants/dnd.constants';

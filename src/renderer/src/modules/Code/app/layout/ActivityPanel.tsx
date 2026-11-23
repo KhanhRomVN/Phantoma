@@ -39,7 +39,7 @@ import { useActivityPanelStore, useCurrentBranchKey } from '../stores/activity-p
 import Tooltip from '@renderer/components/ui/Tooltip/Tooltip';
 import { $ } from '@renderer/utils/color';
 import { useAccentColors } from '@renderer/hooks/useAccentColors';
-import { FileExplore } from '../../features/file-explorer';
+import { FileExplorer } from '../../features/file-explorer';
 import { Search } from '../../features/search';
 import { Design } from '../../features/design';
 import { Debug } from '../../features/debug';
@@ -430,7 +430,7 @@ export function ActivityPanel() {
     }
     switch (activityPanelTab) {
       case 'explore':
-        return <FileExplore />;
+        return <FileExplorer />;
       case 'search':
         return <Search />;
       case 'design':
@@ -443,7 +443,7 @@ export function ActivityPanel() {
         return <Account />;
 
       default:
-        return <FileExplore />;
+        return <FileExplorer />;
     }
   };
 

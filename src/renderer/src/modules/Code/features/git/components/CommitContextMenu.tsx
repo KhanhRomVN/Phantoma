@@ -1,3 +1,4 @@
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
 import { memo, useEffect, useMemo, useState } from 'react';
 import { Copy, Download, ExternalLink, Hash, MessageSquare, Tag, User } from 'lucide-react';
 
@@ -82,7 +83,7 @@ export const CommitContextMenu = memo(function CommitContextMenu({
   };
 
   const openUrl = (url: string) => {
-    void window.api.invoke('shell:open-external', url);
+    void shellIpc.openExternal(url);
   };
 
   return (

@@ -1,3 +1,6 @@
+import { terminalIpc } from '../../../../shared/ipc/terminal.ipc';
+import { fsIpc } from '../../../../shared/ipc/fs.ipc';
+import { shellIpc } from '../../../../shared/ipc/shell.ipc';
 /**
  * ------------------------------------------------------------------
  * Project Panel (Left Side) — aligned with ProjectPanel.html mockup
@@ -21,20 +24,14 @@
 
 // ─── Imports ───────────────────────────────────────────────────────────
 import { useState, useRef, useCallback, useMemo, useEffect, memo } from 'react';
-import type { ReactNode } from 'react';
 // ── Icons ──
 import {
   ChevronRight,
-  ChevronDown,
-  ChevronsDown,
-  ChevronsUp,
   Plus,
   Eye,
   ArrowUp,
   ArrowDown,
-  Check,
   Trash2,
-  SlidersHorizontal,
   Folder,
   FolderPlus,
   Pencil,
@@ -43,44 +40,17 @@ import {
   Link2,
   GitBranch,
   Square,
-  Settings,
   Download as DownloadIcon,
-  Search as SearchIcon,
-  EyeOff,
-  FolderTree,
   ShieldAlert,
   ShieldCheck,
 } from 'lucide-react';
-import { SyncBranchModal } from '../../../git/components/modals/SyncBranchModal';
 import { codeApi } from '../../../../shared/api/code.api';
-import { ProjectSettingsModal } from '../modals/ProjectSettingsModal';
-import { ProjectLogoImage } from '../ProjectLogo';
 import { Settings as SettingsIcon } from 'lucide-react';
 // ── Hooks & Store ──
-import { useCodeStore, type Project } from '../../../../shared/stores/code.store';
-import { useSessionTasks } from '../../hooks/useSessionTasks';
+import { useCodeStore } from '../../../../shared/stores/code.store';
 import { useBranchScopeStore, toScopeKey } from '../../../../shared/stores/branch-scope.store';
-import {
-  taskService,
-  getBlockers,
-  getUnfinishedChain,
-  type StoredTask,
-  type UpdateTaskInput,
-} from '../../../../shared/services/task.service';
-import { ConfirmForceStartTaskModal } from '../../../tasks/components/modals/ConfirmForceStartTaskModal';
-import {
-  ProjectConflictModal,
-  fromBranchTargetId,
-  toBranchTargetId,
-  type ConflictProjectOption,
-} from './modals/ProjectConflictModal';
-import {
-  useTargetLock,
-  useBusyTargetIds,
-  useIsLateClaimant,
-  forceReleaseTarget,
-  focusTargetOwner,
-} from '@renderer/hooks/useTargetLock';
+import { taskService } from '../../../../shared/services/task.service';
+import { toBranchTargetId } from './modals/ProjectConflictModal';
 
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
@@ -98,77 +68,48 @@ import {
 } from '@renderer/components/ui/Dropdown';
 
 // ── Local modals ──
-import { OpenProjectModal } from '../modals/OpenProjectModal';
-import { ConfirmDeleteProjectModal } from '../modals/ConfirmDeleteProjectModal';
-import { CreateBranchModal, type CreatedBranchResult } from '../../../git/components/modals/CreateBranchModal';
-import { ConfirmDeleteBranchModal } from '../../../git/components/modals/ConfirmDeleteBranchModal';
-import { ConfirmUnlinkBranchModal } from '../../../git/components/modals/ConfirmUnlinkBranchModal';
-import { ConfirmLinkProjectModal, type MergeCandidate } from '../modals/ConfirmLinkProjectModal';
+import type { MergeCandidate } from '../modals/ConfirmLinkProjectModal';
 
 // ── Group Picker Form ──
-import { GroupPickerForm, GROUP_ICONS } from './GroupPickerForm';
-import { NewGroupModal } from './modals/NewGroupModal';
+import { GROUP_ICONS } from './GroupPickerForm';
 
 // ── Shared definitions ──
+import { StatusDot, TaskIcon } from '../SessionCard/SessionBadges';
+import { STATUS_ORDER, STATUS_LABELS, TASK_STATUSES } from '../../constants/session.constants';
 import {
-  type SessionStatus,
   type SessionInfo,
   type BranchInfo,
-  type TaskStatus,
-  type ProcessInfo,
   type ProcessInteractHandler,
   type MenuPosition,
-  STATUS_ORDER,
-  STATUS_LABELS,
-  TASK_STATUSES,
-  StatusDot,
-  TaskIcon,
-} from './SessionCard';
-import { AssignTaskModal } from './modals/AssignTaskModal';
-import { ConfirmUnassignTaskModal } from './modals/ConfirmUnassignTaskModal';
+} from '../../types/session.types';
 
-// ── Accent Colors Hook (Simple implementation for stable random colors) ──
-const ACCENT_PALETTE = [
-  '#ff6a1f', // Orange Primary
-  '#a078ff', // Purple
-  '#3ddc84', // Green
-  '#4fa8e0', // Blue
-  '#ffb020', // Yellow
-  '#ff78aa', // Pink
-  '#32c8be', // Teal
-];
+import { mkSum } from '../../utils/session-summary.util';
+import { useProjectSelection } from '../../hooks/useProjectSelection';
+import { useProjectActions } from '../../hooks/useProjectActions';
+import { useBranchActions } from '../../hooks/useBranchActions';
+import { useProjectDnd } from '../../hooks/useProjectDnd';
+import { useProjectTaskActions } from '../../hooks/useProjectTaskActions';
+import { useProjectDialogs } from '../../hooks/useProjectDialogs';
+import { useProjectMutations } from '../../hooks/useProjectMutations';
+import { useProjectListView } from '../../hooks/useProjectListView';
+import { useProjectGroups } from '../../hooks/useProjectGroups';
+import { useProjectConflict } from '../../hooks/useProjectConflict';
+import type {
+  ProjectExtended,
+  SortMode,
+  DropdownTarget,
+} from '../../types/project-panel.types';
 
-function useAccentColors() {
-  return useMemo(() => ({ accentColors: ACCENT_PALETTE }), []);
-}
-
-// Helper to get visible branches count
-function getVisibleBranches(project: ProjectExtended): BranchInfo[] {
-  return project.branches.filter((b) => b.visible);
-}
 
 // ── Project Card Component ──
-import {
-  ProjectCard,
-  KebabButton,
-  getProjectStatus,
-  getProjectTokens,
-  type ProjectExtended as CardProject,
-} from './ProjectCard';
+import { ProjectCard } from '../ProjectCard/ProjectCard';
 import { ScrollToSessionButton } from './ScrollToSessionButton';
+import { ProjectToolbar } from './ProjectToolbar';
+import { ProjectList } from './ProjectList';
+import { ProjectDialogs } from './ProjectDialogs';
 
+import { MenuLabel, ck } from './menu-helpers';
 // ─── Local Types ────────────────────────────────────────────────────────
-
-type ProjectExtended = Project & CardProject & { defaultBranch: string };
-
-interface GroupInfo {
-  id: string;
-  name: string;
-  open: boolean;
-  iconId?: string; // New field for group icon
-}
-
-type SortMode = 'manual' | 'name' | 'status' | 'tokens';
 
 const SORTS: [SortMode, string][] = [
   ['manual', 'Manual'],
@@ -177,28 +118,9 @@ const SORTS: [SortMode, string][] = [
   ['tokens', 'Token usage'],
 ];
 
-type DropdownTarget =
-  | { kind: 'project'; projectId: string; pos: MenuPosition }
-  | { kind: 'branch'; projectId: string; branchName: string; pos: MenuPosition }
-  | { kind: 'group'; groupId: string; pos: MenuPosition }
-  | { kind: 'header-config'; pos: MenuPosition }
-  | { kind: 'task'; sessionId: string; pos: MenuPosition }
-  | { kind: 'session'; sessionId: string; projectId: string; pos: MenuPosition }
-  | { kind: 'process'; sessionId: string; index: number; pos: MenuPosition }
-  | { kind: 'move-to-group'; projectId: string; pos: MenuPosition };
 
 // ─── Constants & Helpers ────────────────────────────────────────────────
 
-const PROJECT_COLORS = ['#4fa8e0', '#ffb020', '#a078ff', '#3ddc84', '#32c8be', '#ff78aa'];
-
-const mkSum = (
-  tokens: number,
-  cost: number,
-  added: number,
-  removed: number,
-  files: number,
-  duration: string,
-) => ({ tokens, cost, added, removed, files, duration });
 
 /** Fetches real git branches for a project via IPC and maps them to BranchInfo[] */
 async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
@@ -276,188 +198,14 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
   }
 }
 
-/** Adds the UI-only fields (color, group, hidden, branches) to a store project */
-function seedProject(p: Project, index: number): ProjectExtended {
-  const raw = p as any;
-  // Use branches from store if available, otherwise empty array.
-  // Real git branches are fetched separately and merged/persisted via updateProject.
-  const branches = (raw.branches ?? []) as BranchInfo[];
-
-  return {
-    ...p,
-    defaultBranch: raw.defaultBranch ?? 'main',
-    hidden: raw.hidden ?? false,
-    color: raw.color ?? PROJECT_COLORS[index % PROJECT_COLORS.length],
-    groupId: raw.groupId ?? null,
-    branches,
-  };
-}
-
-// ─── Small UI helpers ───────────────────────────────────────────────────
-
-const MenuLabel = ({ children }: { children: ReactNode }) => (
-  <div className="px-3 pt-1.5 pb-1 text-[10.5px] text-text-secondary/50">{children}</div>
-);
-
-/** Fixed-width check column (+ optional leading icon) used as DropdownItem icon */
-const ck = (checked: boolean, extra?: ReactNode) => (
-  <span className="flex items-center gap-2">
-    <span className="w-3.5 h-3.5 flex items-center justify-center text-[#ff6a1f]">
-      {checked && <Check className="w-3.5 h-3.5" />}
-    </span>
-    {extra}
-  </span>
-);
-
-/** Group header row with inline rename and drag support */
-function GroupHeader({
-  group,
-  count,
-  renaming,
-  onToggle,
-  onOpenMenu,
-  onRenameDone,
-  onEditClick,
-  draggable,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
-}: {
-  group: GroupInfo;
-  count: number;
-  renaming: boolean;
-  onToggle: () => void;
-  onOpenMenu: (pos: MenuPosition) => void;
-  onRenameDone: (name: string | null) => void;
-  onEditClick?: () => void;
-  draggable?: boolean;
-  onDragStart?: (e: React.DragEvent) => void;
-  onDragEnd?: () => void;
-  onDragOver?: (e: React.DragEvent) => void;
-  onDrop?: (e: React.DragEvent) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const doneRef = useRef(false);
-  const { accentColors } = useAccentColors();
-
-  useEffect(() => {
-    if (renaming) {
-      doneRef.current = false;
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [renaming]);
-
-  const finish = (commit: boolean) => {
-    if (doneRef.current) return;
-    doneRef.current = true;
-    onRenameDone(commit ? (inputRef.current?.value ?? null) : null);
-  };
-
-  // Generate stable random color based on group ID/name hash
-  const groupColor = useMemo(() => {
-    let hash = 0;
-    const str = group.id + group.name;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
-    }
-    const idx = Math.abs(hash) % accentColors.length;
-    return accentColors[idx];
-  }, [group.id, group.name, accentColors]);
-
-  return (
-    <div
-      draggable={draggable}
-      data-gid={group.id}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      className={cn(
-        // Removed 'uppercase' and 'tracking-[0.05em]' to preserve raw case
-        'group/gh flex items-center gap-[7px] px-3 py-[7px] border-b border-border cursor-pointer select-none font-mono text-[14px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
-        group.open ? 'bg-white/[0.02]' : 'bg-card-background',
-        draggable && 'hover:bg-card-hover',
-      )}
-      style={
-        group.open
-          ? {
-              backgroundImage: `linear-gradient(to left, color-mix(in srgb, ${groupColor} 12%, transparent) 0%, transparent 50%)`,
-              backgroundSize: '200% 100%',
-              backgroundPosition: '100% 0',
-              backgroundRepeat: 'no-repeat',
-              animation: 'pp-group-sweep 0.6s ease-out',
-            }
-          : undefined
-      }
-      onClick={onToggle}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        onEditClick?.();
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onOpenMenu({ top: e.clientY, left: e.clientX });
-      }}
-    >
-      {group.open ? (
-        <ChevronDown className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
-      ) : (
-        <ChevronRight className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
-      )}
-
-      {renaming ? (
-        <input
-          ref={inputRef}
-          defaultValue={group.name}
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') finish(true);
-            if (e.key === 'Escape') finish(false);
-          }}
-          onBlur={() => finish(true)}
-          className="flex-1 min-w-0 bg-background border border-[#ff6a1f] rounded-[5px] text-text-primary font-mono text-[11px] font-medium normal-case tracking-normal px-1.5 py-0.5 outline-none"
-        />
-      ) : (
-        <span className="min-w-0 truncate">{group.name}</span>
-      )}
-      <span className="font-medium text-text-secondary/50">{count}</span>
-      <span className="flex-1" />
-      <KebabButton onClick={(e) => onOpenMenu({ top: e.clientY, left: e.clientX })} />
-    </div>
-  );
-}
-
 // ── Main Component ─────────────────────────────────────────────────────
 
-const LAYOUT_STORAGE_KEY = 'phantoma_code_project_layout_v2';
-
-function applyProjectLayout(list: ProjectExtended[]): ProjectExtended[] {
-  try {
-    const raw = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
-    if (!raw) return list;
-    const saved = JSON.parse(raw) as {
-      order?: string[];
-      groupIds?: Record<string, string | null>;
-    };
-    const groupIds = saved.groupIds ?? {};
-    const rank = new Map((saved.order ?? []).map((id, i) => [id, i]));
-    return list
-      .map((p, i) => ({ p, i }))
-      .sort((a, b) => (rank.get(a.p.id) ?? 1e9 + a.i) - (rank.get(b.p.id) ?? 1e9 + b.i))
-      .map(({ p }) => (p.id in groupIds ? { ...p, groupId: groupIds[p.id] } : p));
-  } catch {
-    return list;
-  }
-}
 
 export const ProjectPanel = memo(function ProjectPanel() {
   const rawProjects = useCodeStore((s) => s.projects);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
-  const setExplorerRoot = useCodeStore((s) => s.setExplorerRoot);
+
   const updateProject = useCodeStore((s) => s.updateProject);
 
   // Content View Actions
@@ -471,207 +219,89 @@ export const ProjectPanel = memo(function ProjectPanel() {
     setActiveWorkspaceSessionId(null);
   }, [setCurrentProject, setContentViewMode, setActiveWorkspaceSessionId]);
 
-  // Local state mirrors store projects but adds UI-only fields (color, group, hidden, branches)
-  const [projects, setProjects] = useState<ProjectExtended[]>(() =>
-    applyProjectLayout(rawProjects.map(seedProject)),
-  );
+  const { projects, setProjects, patchProject, patchSession } = useProjectMutations();
 
-  // ── Group Persistence Key ──
-  const GROUP_STORAGE_KEY = 'phantoma_code_project_groups_v2';
+  const {
+    groups,
+    setGroups,
+    renamingGroupId,
+    setRenamingGroupId,
+    groupFormOpen,
+    setGroupFormOpen,
+    editingGroupId,
+    setEditingGroupId,
+    ungroupedOpen,
+    setUngroupedOpen,
+    ungroupIndex,
+    setUngroupIndex,
+  } = useProjectGroups();
 
-  // Helper to load groups from storage safely
-  const loadGroupsFromStorage = (): GroupInfo[] => {
-    try {
-      const stored = window.localStorage.getItem(GROUP_STORAGE_KEY);
-      if (!stored) return [];
-      const parsed = JSON.parse(stored);
-      // Basic validation to ensure structure integrity
-      if (!Array.isArray(parsed)) return [];
-      return parsed.map((g: any) => ({
-        id: String(g.id),
-        name: String(g.name || 'Untitled'),
-        open: Boolean(g.open ?? true),
-        iconId: g.iconId ? String(g.iconId) : undefined,
-      }));
-    } catch (e) {
-      console.error('Failed to load groups from storage:', e);
-      return [];
-    }
-  };
-
-  // Initialize groups state with persisted data
-  const [groups, setGroups] = useState<GroupInfo[]>(loadGroupsFromStorage);
-
-  // Keep local edits (order, group, hidden) when the store changes.
-  // IMPORTANT: Always take `branches` from the store because it contains
-  // runtime session/agent data that must stay in sync with Workspace updates.
-  useEffect(() => {
-    setProjects((prev) => {
-      const byId = new Map(rawProjects.map((p) => [p.id, p]));
-      const kept = prev
-        .filter((p) => byId.has(p.id))
-        .map((p) => {
-          const fresh = byId.get(p.id)!;
-          return {
-            ...fresh, // Start with latest store data (includes updated branches/sessions/agents)
-            // Ensure critical fields have valid defaults if missing from store payload
-            branches: fresh.branches ?? [],
-            defaultBranch: p.defaultBranch || 'main',
-            hidden: p.hidden ?? false,
-            color: p.color || '#8b91a1',
-            groupId: p.groupId ?? null,
-            files: fresh.files ?? [],
-            services: fresh.services ?? [],
-            agentGroups: fresh.agentGroups ?? [],
-            mcps: fresh.mcps ?? [],
-            activeWorkspacePanelId: fresh.activeWorkspacePanelId ?? null,
-            workspacePanels: fresh.workspacePanels ?? [],
-            expandedFolderIds: fresh.expandedFolderIds ?? [],
-            openFiles: fresh.openFiles ?? [],
-            fileDisplayNames: fresh.fileDisplayNames ?? {},
-            fileNodeMap: fresh.fileNodeMap ?? {},
-            activeFileTabId: fresh.activeFileTabId ?? null,
-            currentServiceId: fresh.currentServiceId ?? null,
-            currentFileId: fresh.currentFileId ?? null,
-            bottomPanelTab: fresh.bottomPanelTab ?? 'output',
-            isBottomPanelOpen: fresh.isBottomPanelOpen ?? true,
-            activityPanelTab: fresh.activityPanelTab ?? 'explore',
-            unsavedFiles: new Set<string>(),
-            originalContents: {},
-            dirVersions: fresh.dirVersions ?? {},
-            designs: fresh.designs ?? [],
-          } as ProjectExtended;
-        });
-      const known = new Set(prev.map((p) => p.id));
-      const added = rawProjects
-        .map((p, i) => ({ p, i }))
-        .filter(({ p }) => !known.has(p.id))
-        .map(({ p, i }) => seedProject(p, i));
-      return [...kept, ...applyProjectLayout(added)];
-    });
-  }, [rawProjects]);
-
-  // Persist groups whenever they change
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(groups));
-    } catch (e) {
-      console.error('Failed to save groups to storage:', e);
-    }
-  }, [groups]);
-
-  // Persist project order + group assignment whenever they change
-  useEffect(() => {
-    if (projects.length === 0) return;
-    try {
-      window.localStorage.setItem(
-        LAYOUT_STORAGE_KEY,
-        JSON.stringify({
-          order: projects.map((p) => p.id),
-          groupIds: Object.fromEntries(projects.map((p) => [p.id, p.groupId ?? null])),
-        }),
-      );
-    } catch (e) {
-      console.error('Failed to save project layout to storage:', e);
-    }
-  }, [projects]);
 
   // ── UI state ──
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  /** Tracks which project's Task Manager is currently open in ContentPanel */
-  const [activeTaskManagerProjectId, setActiveTaskManagerProjectId] = useState<string | null>(null);
-  const [activeGitProjectId, setActiveGitProjectId] = useState<string | null>(null);
-  const [activePullRequestProjectId, setActivePullRequestProjectId] = useState<string | null>(null);
-  const [showHidden] = useState(false);
-  const [query, setQuery] = useState('');
+  const {
+    selectedSessionId,
+    setSelectedSessionId,
+    expandedIds,
+    setExpandedIds,
+    activeTaskManagerProjectId,
+    setActiveTaskManagerProjectId,
+    activeGitProjectId,
+    setActiveGitProjectId,
+    activePullRequestProjectId,
+    setActivePullRequestProjectId,
+    gitRepoByProject,
+    setGitRepoByProject,
+    busyTargetIds,
+    blockedTarget,
+    setBlockedTarget,
+    handleToggleProject,
+    handleOpenProject,
+    handleSelectProject,
+    handleSelectSession,
+    handleToggleGit,
+    handleTogglePullRequest,
+    handleToggleTaskManager,
+  } = useProjectSelection(projects, setProjects);
+  const {
+    query,
+    setQuery,
+    sortMode,
+    setSortMode,
+    filterStatus,
+    setFilterStatus,
+    shownProjects,
+  } = useProjectListView(projects);
   const [treeOpen, setTreeOpen] = useState(false);
-  const [sortMode, setSortMode] = useState<SortMode>('manual');
-  const [filterStatus, setFilterStatus] = useState<'all' | SessionStatus>('all');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+
   const [dropdownTarget, setDropdownTarget] = useState<DropdownTarget | null>(null);
   const isSettingsOpen = useCodeStore((s) => s.contentViewMode === 'settings');
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [addToGroupId, setAddToGroupId] = useState<string | null>(null);
-  const [pendingGroupAssign, setPendingGroupAssign] = useState<{
-    projectId: string;
-    groupId: string;
-  } | null>(null);
-  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<ProjectExtended | null>(null);
-  const [createBranchProjectId, setCreateBranchProjectId] = useState<string | null>(null);
-  const [settingsProjectId, setSettingsProjectId] = useState<string | null>(null);
-  const [mergeTarget, setMergeTarget] = useState<{
-    newProjectId: string;
-    newProjectName: string;
-    newPath: string;
-    branch: string;
-    candidates: MergeCandidate[];
-  } | null>(null);
-  const [existingBranchTarget, setExistingBranchTarget] = useState<{
-    projectId: string;
-    branchName: string;
-  } | null>(null);
-  const [gitRepoByProject, setGitRepoByProject] = useState<Record<string, boolean>>({});
-  const [syncBranchTarget, setSyncBranchTarget] = useState<{
-    project: ProjectExtended;
-    branchName: string;
-    branchPath: string;
-  } | null>(null);
-  const [confirmDeleteBranchTarget, setConfirmDeleteBranchTarget] = useState<{
-    project: ProjectExtended;
-    branchName: string;
-    branchPath: string;
-  } | null>(null);
-  const [confirmUnlinkBranchTarget, setConfirmUnlinkBranchTarget] = useState<{
-    project: ProjectExtended;
-    branchName: string;
-    branchPath: string;
-  } | null>(null);
-  const [assignTaskTarget, setAssignTaskTarget] = useState<{
-    projectId: string;
-    sessionId: string | null;
-    branchName: string | null;
-  } | null>(null);
-  const [confirmUnassign, setConfirmUnassign] = useState<{ title: string; run: () => void } | null>(
-    null,
-  );
+  const dialogs = useProjectDialogs();
+  const {
+    setAddModalOpen,
+    setAddToGroupId,
+    pendingGroupAssign,
+    setPendingGroupAssign,
+    confirmDeleteTarget,
+    setConfirmDeleteTarget,
+    createBranchProjectId,
+    setCreateBranchProjectId,
+    settingsProjectId,
+    setSettingsProjectId,
+    mergeTarget,
+    setMergeTarget,
+    existingBranchTarget,
+    setExistingBranchTarget,
+    setSyncBranchTarget,
+    confirmDeleteBranchTarget,
+    setConfirmDeleteBranchTarget,
+    setConfirmUnlinkBranchTarget,
+    setAssignTaskTarget,
+    setConfirmUnassign,
+  } = dialogs;
   const [toast, setToast] = useState<{ msg: string; on: boolean }>({ msg: '', on: false });
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // ── Group Creation State ──
-  const [groupFormOpen, setGroupFormOpen] = useState(false);
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-
-  const dragRef = useRef<{
-    type: 'project' | 'branch' | 'group';
-    projectId?: string;
-    branchName?: string;
-    groupId?: string;
-    el: HTMLElement | null;
-  } | null>(null);
-
-  // Global flag to trigger collapse-all during drag
-  const [isGlobalDragging, setIsGlobalDragging] = useState(false);
-  const [ungroupedOpen, setUngroupedOpen] = useState(true);
-  const UNGROUP_ID = '__ungroup__';
-  const UNGROUP_INDEX_KEY = 'phantoma_code_ungroup_index_v2';
-  const [ungroupIndex, setUngroupIndex] = useState<number>(() => {
-    try {
-      const v = parseInt(window.localStorage.getItem(UNGROUP_INDEX_KEY) ?? '', 10);
-      return Number.isNaN(v) ? Number.MAX_SAFE_INTEGER : v;
-    } catch {
-      return Number.MAX_SAFE_INTEGER;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(UNGROUP_INDEX_KEY, String(ungroupIndex));
-    } catch (e) {
-      console.error('Failed to save ungroup index:', e);
-    }
-  }, [ungroupIndex]);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
@@ -681,10 +311,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
     toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, on: false })), 1600);
   }, []);
 
-  // ── Immutable updaters ──
-  const patchProject = useCallback((id: string, fn: (p: ProjectExtended) => ProjectExtended) => {
-    setProjects((prev) => prev.map((p) => (p.id === id ? fn(p) : p)));
-  }, []);
 
   // Track which project IDs have already been fetched to prevent infinite loops/re-fetching
   const fetchedBranchesRef = useRef<Set<string>>(new Set());
@@ -707,7 +333,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
 
     let invalid: string[] = [];
     try {
-      const res = await (window as any).api.invoke('fs:validate-paths', Array.from(pathSet));
+      const res = await fsIpc.validatePaths(Array.from(pathSet));
       invalid = res?.invalidPaths ?? [];
     } catch {
       return;
@@ -828,34 +454,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
     fetchPendingBranches();
   }, [projects, patchProject, updateProject]);
 
-  const patchSession = useCallback((sessionId: string, fn: (s: SessionInfo) => SessionInfo) => {
-    setProjects((prev) =>
-      prev.map((p) => ({
-        ...p,
-        branches: p.branches.map((b) => ({
-          ...b,
-          sessions: b.sessions.map((s) => (s.id === sessionId ? fn(s) : s)),
-        })),
-      })),
-    );
-  }, []);
-
-  // ── Derived: filtered + sorted list ──
-  const shownProjects = useMemo(() => {
-    let list = projects.filter((p) => showHidden || !p.hidden);
-    const q = query.trim().toLowerCase();
-    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
-    if (filterStatus !== 'all') list = list.filter((p) => getProjectStatus(p) === filterStatus);
-    if (sortMode === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-    if (sortMode === 'status')
-      list = [...list].sort(
-        (a, b) =>
-          STATUS_ORDER.indexOf(getProjectStatus(a)) - STATUS_ORDER.indexOf(getProjectStatus(b)),
-      );
-    if (sortMode === 'tokens')
-      list = [...list].sort((a, b) => getProjectTokens(b) - getProjectTokens(a));
-    return list;
-  }, [projects, showHidden, filterStatus, sortMode, query]);
 
   const anyOpen = shownProjects.some((p) => expandedIds.has(p.id));
   const isDirty = sortMode !== 'manual' || filterStatus !== 'all';
@@ -886,236 +484,6 @@ export const ProjectPanel = memo(function ProjectPanel() {
     });
   }, [shownProjects, anyOpen]);
 
-  const handleToggleProject = useCallback((projectId: string) => {
-    // Chỉ toggle trạng thái mở rộng local, KHÔNG set currentProjectId trong store
-    // Vì theo yêu cầu, việc chọn project chỉ xảy ra khi chọn SessionCard
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(projectId)) next.delete(projectId);
-      else next.add(projectId);
-      return next;
-    });
-  }, []);
-
-  const handleOpenProject = useCallback((projectId: string) => {
-    // Tương tự, chỉ mở rộng UI, không kích hoạt selection logic của toàn app
-    setExpandedIds((prev) => (prev.has(projectId) ? prev : new Set(prev).add(projectId)));
-  }, []);
-
-  /** Select project without touching expanded state (used by clicking card header). */
-  const handleSelectProject = useCallback(
-    (projectId: string) => {
-      setSelectedSessionId(null);
-      setActiveGitProjectId(null);
-      setActivePullRequestProjectId(null);
-      setActiveTaskManagerProjectId(null);
-      setCurrentProject(projectId);
-
-      // ASSUMED: project không có git không có branch/session → tự tạo 1 session mặc định để mở Workspace (empty state tạo tab)
-      const proj = projects.find((p) => p.id === projectId);
-      if (!proj || gitRepoByProject[projectId] !== false) return;
-      let sessionId = proj.branches.flatMap((b) => b.sessions)[0]?.id;
-      if (!sessionId) {
-        const fresh: SessionInfo = {
-          id: `n${Date.now()}`,
-          title: 'Workspace',
-          status: 'idle',
-          time: 'now',
-          task: undefined,
-          agents: [],
-          procs: [],
-          summary: mkSum(0, 0, 0, 0, 0, '—'),
-        };
-        sessionId = fresh.id;
-        const newBranches: BranchInfo[] = [
-          { name: 'no-git', visible: true, sessions: [fresh], path: proj.path },
-        ];
-        setProjects((prev) =>
-          prev.map((p) => (p.id === projectId ? { ...p, branches: newBranches } : p)),
-        );
-        updateProject(projectId, { branches: newBranches });
-        if (proj.path) {
-          codeApi.sessions
-            .create({ id: fresh.id, projectId, worktreePath: proj.path, title: fresh.title })
-            .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
-        }
-      }
-      setSelectedSessionId(sessionId);
-      setExplorerRoot(projectId, proj.path ?? null);
-      setActiveWorkspaceSessionId(sessionId);
-      setContentViewMode('workspace');
-    },
-    [
-      projects,
-      gitRepoByProject,
-      updateProject,
-      setCurrentProject,
-      setExplorerRoot,
-      setActiveWorkspaceSessionId,
-      setContentViewMode,
-    ],
-  );
-
-  const busyTargetIds = useBusyTargetIds('code');
-  const [blockedTarget, setBlockedTarget] = useState<{
-    projectId: string;
-    branchName: string;
-  } | null>(null);
-
-  const handleSelectSession = useCallback(
-    (sessionId: string, force = false) => {
-      if (!sessionId) {
-        // Deselect logic triggered by clicking an already-selected branch row
-        setSelectedSessionId(null);
-        setCurrentProject(undefined as unknown as string); // Clear current project selection when deselecting session
-        return;
-      }
-
-      // Tìm project chứa session này từ local state
-      const parentProject = projects.find((p) =>
-        p.branches.some((b) => b.sessions.some((s) => s.id === sessionId)),
-      );
-
-      if (!parentProject) {
-        console.warn('[DEBUG_SELECT_SESSION] Session not found in any project', { sessionId });
-        return;
-      }
-
-      // ASSUMED: branch đang mở ở cửa sổ khác thì không select, chỉ hiện modal xung đột
-      const targetBranch = parentProject.branches.find((b) =>
-        b.sessions.some((s) => s.id === sessionId),
-      );
-      if (
-        !force &&
-        targetBranch &&
-        busyTargetIds.has(toBranchTargetId(parentProject.id, targetBranch.name))
-      ) {
-        setBlockedTarget({ projectId: parentProject.id, branchName: targetBranch.name });
-        return;
-      }
-
-      if (targetBranch && parentProject.defaultBranch !== targetBranch.name) {
-        const scoped =
-          useBranchScopeStore.getState().scopes[toScopeKey(parentProject.id, targetBranch.name)];
-        if (!scoped || scoped.length === 0) {
-          const detail = {
-            projectId: parentProject.id,
-            branchName: targetBranch.name,
-            handled: false,
-            onSaved: () => handleSelectSession(sessionId, force),
-          };
-          window.dispatchEvent(new CustomEvent('phantoma:open-branch-scope', { detail }));
-          if (detail.handled) return;
-        }
-      }
-
-      // Highlight the card in ProjectPanel
-      setSelectedSessionId(sessionId);
-
-      // Set current project in store ONLY when a session is selected
-      setCurrentProject(parentProject.id);
-      const parentBranch = parentProject.branches.find((b) =>
-        b.sessions.some((s) => s.id === sessionId),
-      );
-      setExplorerRoot(parentProject.id, parentBranch?.path ?? null);
-
-      // If Task Manager was open, close it when selecting a session (implicit switch back to workspace)
-      if (activeTaskManagerProjectId) {
-        setActiveTaskManagerProjectId(null);
-      }
-      if (activeGitProjectId) {
-        setActiveGitProjectId(null);
-      }
-      if (activePullRequestProjectId) {
-        setActivePullRequestProjectId(null);
-      }
-
-      // Switch ContentPanel to Workspace view for this session
-
-      setActiveWorkspaceSessionId(sessionId);
-      setContentViewMode('workspace');
-    },
-    [
-      projects,
-      setCurrentProject,
-      setExplorerRoot,
-      setActiveWorkspaceSessionId,
-      setContentViewMode,
-      activeTaskManagerProjectId,
-      activeGitProjectId,
-      activePullRequestProjectId,
-      busyTargetIds,
-    ],
-  );
-
-  /** Toggle Git view for a specific project. Clicking again closes it. */
-  const handleToggleGit = useCallback(
-    (projectId: string) => {
-      // Skip if project has no git repo — Code module still works, git view unavailable.
-      if (gitRepoByProject[projectId] === false) return;
-
-      setSelectedSessionId(null);
-      setActiveTaskManagerProjectId(null);
-
-      if (activeGitProjectId === projectId) {
-        setActiveGitProjectId(null);
-        setContentViewMode('files');
-      } else {
-        setCurrentProject(projectId);
-        setActiveGitProjectId(projectId);
-        setActivePullRequestProjectId(null);
-        setContentViewMode('git');
-      }
-    },
-    [activeGitProjectId, setContentViewMode, setCurrentProject, gitRepoByProject],
-  );
-
-  /** Toggle Pull Request view for a specific project. Clicking again closes it. */
-  const handleTogglePullRequest = useCallback(
-    (projectId: string) => {
-      if (gitRepoByProject[projectId] === false) return;
-
-      setSelectedSessionId(null);
-      setActiveTaskManagerProjectId(null);
-      setActiveGitProjectId(null);
-
-      if (activePullRequestProjectId === projectId) {
-        setActivePullRequestProjectId(null);
-        setContentViewMode('files');
-      } else {
-        setCurrentProject(projectId);
-        setActivePullRequestProjectId(projectId);
-        setContentViewMode('pullrequests');
-      }
-    },
-    [activePullRequestProjectId, setContentViewMode, setCurrentProject, gitRepoByProject],
-  );
-
-  /** Toggle Task Manager for a specific project. Clicking again closes it. */
-  const handleToggleTaskManager = useCallback(
-    (projectId: string) => {
-      setSelectedSessionId(null); // Clear any inline session selection
-
-      if (activeTaskManagerProjectId === projectId) {
-        // Already open -> close it, revert to files/workspace default or just empty state?
-        // Requirement says "click lần nữa quay về trạng thái trước đó".
-        // Safest bet is switching contentViewMode away from 'tasks'.
-        // Since we don't track previous mode explicitly here easily without more state,
-        // setting to 'files' acts as a safe fallback to the editor area if no service/session is picked.
-        setActiveTaskManagerProjectId(null);
-        setContentViewMode('files');
-      } else {
-        // Open for this project
-        setActiveGitProjectId(null);
-        setActivePullRequestProjectId(null);
-        setCurrentProject(projectId);
-        setActiveTaskManagerProjectId(projectId);
-        setContentViewMode('tasks');
-      }
-    },
-    [activeTaskManagerProjectId, setContentViewMode, setCurrentProject],
-  );
-
   const handleSessionContextMenu = useCallback(
     (e: React.MouseEvent, sessionId: string) => {
       e.preventDefault();
@@ -1135,51 +503,19 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [currentProjectId],
   );
 
-  // ── Project actions ──
-  const setBranchVisible = useCallback(
-    (projectId: string, branchName: string, visible?: boolean) => {
-      const storeProject = useCodeStore.getState().projects.find((p) => p.id === projectId);
-      const apply = (branches: BranchInfo[]) =>
-        branches.map((b) => (b.name === branchName ? { ...b, visible: visible ?? !b.visible } : b));
-      if (storeProject) updateProject(projectId, { branches: apply(storeProject.branches ?? []) });
-      patchProject(projectId, (p) => ({ ...p, branches: apply(p.branches) }));
-    },
-    [patchProject, updateProject],
-  );
-
-  const toggleBranchVisibility = useCallback(
-    (projectId: string, branchName: string) => setBranchVisible(projectId, branchName),
-    [setBranchVisible],
-  );
-
-  const moveProject = useCallback((projectId: string, dir: -1 | 1) => {
-    setProjects((prev) => {
-      const i = prev.findIndex((p) => p.id === projectId);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= prev.length) return prev;
-      const next = [...prev];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
-  }, []);
-
-  const toggleProjectHidden = useCallback(
-    (projectId: string) => patchProject(projectId, (p) => ({ ...p, hidden: !p.hidden })),
-    [patchProject],
-  );
-
-  const setProjectGroup = useCallback(
-    (projectId: string, groupId: string | null) =>
-      patchProject(projectId, (p) => ({ ...p, groupId })),
-    [patchProject],
-  );
-
-  useEffect(() => {
-    if (!pendingGroupAssign) return;
-    if (!projects.some((p) => p.id === pendingGroupAssign.projectId)) return;
-    setProjectGroup(pendingGroupAssign.projectId, pendingGroupAssign.groupId);
-    setPendingGroupAssign(null);
-  }, [pendingGroupAssign, projects, setProjectGroup]);
+  const {
+    setBranchVisible,
+    toggleBranchVisibility,
+    moveProject,
+    toggleProjectHidden,
+    setProjectGroup,
+  } = useProjectActions({
+    projects,
+    setProjects,
+    patchProject,
+    pendingGroupAssign,
+    setPendingGroupAssign,
+  });
 
   // Removed unused createGroupFromProject as logic shifted to GroupPickerForm + Drag/Drop
 
@@ -1273,220 +609,24 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [projects, existingBranchTarget],
   );
 
-  const handleBranchCreated = useCallback(
-    (project: ProjectExtended, result: CreatedBranchResult) => {
-      const exists = project.branches.some((b) => b.name === result.branch);
-      const newBranches: BranchInfo[] = exists
-        ? project.branches.map((b) =>
-            b.name === result.branch
-              ? { ...b, path: result.path, visible: true, remote: undefined }
-              : b,
-          )
-        : [
-            ...project.branches,
-            { name: result.branch, visible: true, sessions: [], path: result.path },
-          ];
-      patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
-      updateProject(project.id, { branches: newBranches } as any);
-      showToast(`Created branch "${result.branch}"`);
-    },
-    [patchProject, updateProject, showToast],
-  );
-
-  const confirmDeleteBranch = useCallback(
-    async ({ deleteRemote }: { deleteRemote: boolean }) => {
-      if (!confirmDeleteBranchTarget) return {};
-      const { project, branchName } = confirmDeleteBranchTarget;
-      const res = await (window as any).api.invoke(
-        'git:delete-branch',
-        project.path,
-        branchName,
-        deleteRemote,
-        confirmDeleteBranchTarget.branchPath,
-      );
-      if (res?.error) return { error: res.error as string };
-      const removed = project.branches.find((b) => b.name === branchName);
-      const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
-      const newBranches = project.branches.filter((b) => b.name !== branchName);
-      patchProject(project.id, (p) => ({ ...p, branches: newBranches }));
-      updateProject(project.id, { branches: newBranches } as any);
-      setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
-      showToast(
-        res?.remoteError
-          ? `Deleted folder of "${branchName}", but remote delete failed: ${res.remoteError}`
-          : deleteRemote
-            ? `Deleted folder and remote branch of "${branchName}"`
-            : `Deleted folder of branch "${branchName}"`,
-      );
-      return {};
-    },
-    [confirmDeleteBranchTarget, patchProject, updateProject, showToast],
-  );
-
-  const [deleteBranchHasRemote, setDeleteBranchHasRemote] = useState(false);
-
-  useEffect(() => {
-    if (!confirmDeleteBranchTarget) {
-      setDeleteBranchHasRemote(false);
-      return;
-    }
-    let cancelled = false;
-    (window as any).api
-      .invoke(
-        'git:remote-branch-exists',
-        confirmDeleteBranchTarget.project.path,
-        confirmDeleteBranchTarget.branchName,
-      )
-      .then((res: { exists?: boolean }) => {
-        if (!cancelled) setDeleteBranchHasRemote(!!res?.exists);
-      })
-      .catch(() => {
-        if (!cancelled) setDeleteBranchHasRemote(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [confirmDeleteBranchTarget]);
-
-  const unlinkBranch = useCallback(
-    (project: ProjectExtended, branchName: string) => {
-      const removed = project.branches.find((b) => b.name === branchName);
-      const removedSessionIds = new Set((removed?.sessions ?? []).map((s) => s.id));
-      const newBranches = project.branches.filter((b) => b.name !== branchName);
-      const unlinkedBranches = Array.from(
-        new Set<string>([...((project as any).unlinkedBranches ?? []), branchName]),
-      );
-      patchProject(project.id, (p) => ({ ...p, branches: newBranches, unlinkedBranches }) as any);
-      updateProject(project.id, { branches: newBranches, unlinkedBranches } as any);
-      setSelectedSessionId((id) => (id && removedSessionIds.has(id) ? null : id));
-      showToast(`Removed link to branch "${branchName}"`);
-    },
-    [patchProject, updateProject, showToast],
-  );
-
-  // ── Branch actions ──
-  const moveBranch = useCallback(
-    (projectId: string, branchName: string, dir: -1 | 1) => {
-      const reorder = (branches: BranchInfo[]) => {
-        const i = branches.findIndex((b) => b.name === branchName);
-        if (i < 0) return branches;
-        let j = i + dir;
-        while (j >= 0 && j < branches.length && !branches[j].visible) j += dir;
-        if (j < 0 || j >= branches.length) return branches;
-        const next = [...branches];
-        [next[i], next[j]] = [next[j], next[i]];
-        return next;
-      };
-      const storeProject = useCodeStore.getState().projects.find((p) => p.id === projectId);
-      if (storeProject)
-        updateProject(projectId, { branches: reorder(storeProject.branches ?? []) });
-      patchProject(projectId, (p) => ({ ...p, branches: reorder(p.branches) }));
-    },
-    [patchProject, updateProject],
-  );
-
-  const hideBranch = useCallback(
-    (projectId: string, branchName: string) => setBranchVisible(projectId, branchName, false),
-    [setBranchVisible],
-  );
-
-  const handleNewSession = useCallback(
-    (projectId: string, branchName: string) => {
-      // 1. Tìm project hiện tại trong local state để lấy dữ liệu gốc chính xác nhất
-      const currentLocalProject = projects.find((p) => p.id === projectId);
-      if (!currentLocalProject) {
-        console.error('[DEBUG_SESSION_CREATE_FAIL] Project not found in local state', {
-          projectId,
-        });
-        return;
-      }
-
-      // 2. Tạo cấu trúc branches mới với session vừa thêm
-      const newBranches = currentLocalProject.branches.map((b) => {
-        if (b.name !== branchName) return b;
-
-        const prevNewest = b.sessions[0];
-        const procs: ProcessInfo[] = prevNewest?.procs ?? [];
-        const fresh: SessionInfo = {
-          id: `n${Date.now()}`,
-          title: 'New session',
-          status: 'idle',
-          time: 'now',
-          task: undefined,
-          agents: [],
-          procs,
-          summary: mkSum(0, 0, 0, 0, 0, '—'),
-        };
-        return { ...b, sessions: [fresh] };
-      });
-
-      // 3. Cập nhật Local State để UI phản hồi ngay lập tức
-      setProjects((prev) => {
-        const updated = prev.map((p) => (p.id === projectId ? { ...p, branches: newBranches } : p));
-        return updated;
-      });
-
-      // 4. Đồng bộ ngược lên Store (Zustand) để kích hoạt persist mechanism
-      updateProject(projectId, { branches: newBranches });
-
-      // 5. Lưu session mới lên server
-      const targetBranch = newBranches.find((b) => b.name === branchName);
-      const created = targetBranch?.sessions[0];
-      if (created && targetBranch?.path) {
-        codeApi.sessions
-          .create({
-            id: created.id,
-            projectId,
-            worktreePath: targetBranch.path,
-            title: created.title,
-          })
-          .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
-      }
-    },
-    [projects, updateProject],
-  );
-
-  const handleRemoveSession = useCallback(
-    (projectId: string, branchName: string) => {
-      setProjects((prev) => {
-        const updatedProjects = prev.map((p) => {
-          if (p.id !== projectId) return p;
-
-          const newBranches = p.branches.map((b) => {
-            if (b.name !== branchName) return b;
-            // Remove all sessions from this branch, or just the newest?
-            // Based on UI context "Remove Session" usually implies clearing the current view's session list for that branch.
-            // However, looking at the menu structure, it seems to target the whole branch's session stack in this stub implementation.
-            // Let's assume it removes ALL sessions for that branch as per typical "clear history" behavior in simple mocks,
-            // OR we need to identify WHICH session to remove.
-            // The DropdownTarget for 'branch' doesn't carry sessionId.
-            // But wait, the user said "Remove Session". Usually this means deleting a specific one.
-            // In the provided code, `handleRemoveSession` is called from Branch Context Menu.
-            // If there are multiple sessions, which one gets removed?
-            // Looking at `SessionCard`, there isn't a direct delete button per card in the main view, only context menu on branch level?
-            // Actually, let's look at `DropdownTarget`. Kind 'session' exists.
-            // The user complained about "Remove Session" not working.
-            // Currently `handleRemoveSession(projectId, branchName)` is called from Branch menu.
-            // It likely intends to clear sessions for that branch.
-
-            // To be safe and align with "remove THE session", if we can't distinguish, we might clear all.
-            // BUT, standard UX suggests removing the active/latest one or providing a selector.
-            // Given the constraint of the existing function signature `(projectId, branchName)`,
-            // I will implement it to clear ALL sessions for that branch, effectively resetting it.
-            b.sessions.forEach((s) => {
-              codeApi.sessions.remove(s.id).catch(() => {});
-            });
-            return { ...b, sessions: [] };
-          });
-
-          updateProject(projectId, { branches: newBranches });
-          return { ...p, branches: newBranches };
-        });
-        return updatedProjects;
-      });
-    },
-    [updateProject],
-  );
+  const {
+    handleBranchCreated,
+    confirmDeleteBranch,
+    deleteBranchHasRemote,
+    unlinkBranch,
+    moveBranch,
+    hideBranch,
+    handleNewSession,
+    handleRemoveSession,
+  } = useBranchActions({
+    projects,
+    setProjects,
+    patchProject,
+    showToast,
+    setSelectedSessionId,
+    setBranchVisible,
+    confirmDeleteBranchTarget,
+  });
 
   const findProcess = useCallback(
     (sessionId: string, index: number) =>
@@ -1501,7 +641,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
     (sessionId: string, index: number) => {
       const target = findProcess(sessionId, index);
       if (target?.terminalId && target.status !== 'crashed') {
-        window.api.invoke('terminal:kill-foreground', target.terminalId).catch(() => {});
+        terminalIpc.killForeground(target.terminalId).catch(() => {});
       }
       patchSession(sessionId, (s) => ({
         ...s,
@@ -1532,75 +672,14 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [findProcess, handleSelectSession, requestFocusPanel],
   );
 
-  // ── Task actions ──
-  const bySession = useSessionTasks((s) => s.bySession);
-  const tasksByPath = useSessionTasks((s) => s.byPath);
-  const loadSessionTasks = useSessionTasks((s) => s.load);
-
-  useEffect(() => {
-    projects.forEach((p) => {
-      if (p.path) void loadSessionTasks(p.path);
-    });
-  }, [projects.map((p) => p.path).join('|'), loadSessionTasks]);
-
-  const findSessionProjectPath = useCallback(
-    (sessionId: string) =>
-      projects.find((p) => p.branches.some((b) => b.sessions.some((s) => s.id === sessionId)))
-        ?.path,
-    [projects],
-  );
-
-  const [forceStart, setForceStart] = useState<{
-    path: string;
-    title: string;
-    chain: StoredTask[];
-    proceed: () => Promise<unknown>;
-  } | null>(null);
-
-  const setTaskStatus = useCallback(
-    (sessionId: string, status: TaskStatus) => {
-      const task = bySession[sessionId];
-      const path = findSessionProjectPath(sessionId);
-      if (!task || !path) return;
-      const all = tasksByPath[path] ?? [];
-
-      // Unlink: clear sessionId but keep branchName when changing to 'todo'
-      // Un-assign: clear both sessionId and branchName when changing to 'done'
-      const updates: UpdateTaskInput = { status };
-      if (status === 'todo') {
-        updates.sessionId = null; // Unlink only
-      } else if (status === 'done') {
-        updates.sessionId = null; // Un-assign completely
-        updates.branchName = null;
-      }
-
-      if (status !== 'todo' && status !== task.status && getBlockers(task, all).length > 0) {
-        setForceStart({
-          path,
-          title: task.title,
-          chain: getUnfinishedChain(task, all),
-          proceed: () => taskService.update(path, task.id, updates),
-        });
-        return;
-      }
-      void taskService.update(path, task.id, updates);
-    },
-    [bySession, tasksByPath, findSessionProjectPath],
-  );
-
-  const removeTask = useCallback(
-    (sessionId: string) => {
-      const task = bySession[sessionId];
-      const path = findSessionProjectPath(sessionId);
-      if (task && path)
-        void taskService.update(path, task.id, {
-          sessionId: null,
-          branchName: null,
-          ...(task.status === 'progress' ? { status: 'todo' as const } : {}),
-        });
-    },
-    [bySession, findSessionProjectPath],
-  );
+  const {
+    bySession,
+    tasksByPath,
+    forceStart,
+    setForceStart,
+    setTaskStatus,
+    removeTask,
+  } = useProjectTaskActions(projects);
 
   // ── Group actions ──
   const toggleGroup = useCallback(
@@ -1621,271 +700,24 @@ export const ProjectPanel = memo(function ProjectPanel() {
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
   }, []);
 
-  // ── Drag & Drop Engine (Multi-level: Group / Project / Branch) ──
-  const clearDragMarks = () =>
-    document.querySelectorAll('.pp-dragover').forEach((el) => {
-      el.classList.remove('pp-dragover');
-      delete (el as HTMLElement).dataset.dropPos;
-    });
-
-  const handleDragStart = useCallback(
-    (
-      e: React.DragEvent,
-      type: 'project' | 'branch' | 'group',
-      idOrPid: string,
-      secondaryArg?: string, // branchName or groupId depending on type
-    ) => {
-      // --- GUARD: Block drag if fewer than 2 items of this type are visible ---
-      let count = 0;
-      if (type === 'project') {
-        count = shownProjects.length;
-      } else if (type === 'group') {
-        count = groups.length + 1; // +1: Ungroup section
-      } else if (type === 'branch') {
-        // Count branches in the specific project being dragged from
-        const proj = projects.find((p) => p.id === idOrPid);
-        count = proj ? getVisibleBranches(proj).length : 0;
-      }
-
-      if (count < 2) {
-        e.preventDefault(); // Stop native drag
-        return;
-      }
-
-      const el = e.currentTarget as HTMLElement;
-
-      // Normalize args based on type for internal storage consistency
-      let projectId: string | undefined;
-      let branchName: string | undefined;
-      let groupId: string | undefined;
-
-      if (type === 'project') {
-        projectId = idOrPid;
-      } else if (type === 'branch') {
-        projectId = idOrPid;
-        branchName = secondaryArg;
-      } else if (type === 'group') {
-        groupId = idOrPid;
-      }
-
-      dragRef.current = { type, projectId, branchName, groupId, el };
-      e.dataTransfer.setData('text/plain', idOrPid);
-      e.dataTransfer.effectAllowed = 'move';
-      e.stopPropagation();
-      el.classList.add('pp-dragging');
-
-      if (type === 'project') {
-        const row = el.querySelector('[data-drag-row]') as HTMLElement | null;
-        if (row) {
-          const ghost = row.cloneNode(true) as HTMLElement;
-          ghost.querySelectorAll('[data-drag-hide]').forEach((n) => n.remove());
-          ghost.className =
-            'flex items-center gap-2 px-3 py-2 rounded-none bg-card-background border-y border-border text-text-primary';
-          Object.assign(ghost.style, {
-            position: 'fixed',
-            top: '-1000px',
-            left: '-1000px',
-            width: `${el.offsetWidth}px`,
-            borderRadius: '0',
-            boxSizing: 'border-box',
-          });
-          document.body.appendChild(ghost);
-          e.dataTransfer.setDragImage(ghost, 16, 16);
-          setTimeout(() => ghost.remove(), 0);
-        }
-      }
-
-      if (type === 'group') {
-        const ghost = document.createElement('div');
-        ghost.textContent = el.querySelector('span')?.textContent ?? '';
-        ghost.className =
-          'px-3 py-[7px] bg-card-background text-text-primary font-mono text-[14px] font-semibold truncate';
-        // Native drag image bị OS vẽ viền trắng → ẩn nó và tự vẽ ghost bám theo con trỏ
-        const blank = document.createElement('canvas');
-        blank.width = 1;
-        blank.height = 1;
-        e.dataTransfer.setDragImage(blank, 0, 0);
-        Object.assign(ghost.style, {
-          position: 'fixed',
-          zIndex: '9999',
-          pointerEvents: 'none',
-          opacity: '0.9',
-          width: `${el.offsetWidth}px`,
-          boxSizing: 'border-box',
-          left: `${e.clientX + 12}px`,
-          top: `${e.clientY + 8}px`,
-        });
-        document.body.appendChild(ghost);
-        const move = (ev: DragEvent) => {
-          ghost.style.left = `${ev.clientX + 12}px`;
-          ghost.style.top = `${ev.clientY + 8}px`;
-        };
-        const cleanup = () => {
-          ghost.remove();
-          document.removeEventListener('dragover', move);
-          document.removeEventListener('dragend', cleanup);
-          document.removeEventListener('drop', cleanup);
-        };
-        document.addEventListener('dragover', move);
-        document.addEventListener('dragend', cleanup);
-        document.addEventListener('drop', cleanup);
-      }
-
-      // Defer collapse: changing layout inside dragstart makes the browser cancel the drag for cards below the first one
-      setTimeout(() => {
-        if (!dragRef.current) return;
-        el.style.opacity = '0.4';
-        setIsGlobalDragging(true);
-      }, 0);
-    },
-    [shownProjects, groups, projects],
-  );
-
-  const handleDragEnd = useCallback(() => {
-    dragRef.current?.el?.classList.remove('pp-dragging');
-    if (dragRef.current?.el) dragRef.current.el.style.opacity = '';
-    dragRef.current = null;
-    clearDragMarks();
-    setIsGlobalDragging(false); // Restore UI
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-
-    const target = e.currentTarget as HTMLElement;
-
-    // Walk up DOM to find closest drop-zone ancestor with data attributes
-    // This fixes the issue where dragging over child elements (like text spans inside headers) fails detection
-    const zoneEl = target.closest('[data-gid], [data-pid], [data-branch]') as HTMLElement | null;
-
-    if (!zoneEl) return;
-
-    const targetGroupId = zoneEl.dataset.gid;
-    const targetProjectId = zoneEl.dataset.pid;
-    const targetBranchName = zoneEl.dataset.branch;
-
-    let isValidDrop = false;
-
-    // Rule 2: Branch reorder only within same project
-    if (drag.type === 'branch') {
-      isValidDrop = !!targetBranchName && targetProjectId === drag.projectId && zoneEl !== drag.el;
-    }
-    // Rule 3: Project can drop on Project (reorder) or Group (assign)
-    else if (drag.type === 'project') {
-      if (targetProjectId) {
-        // Reorder projects
-        isValidDrop = zoneEl !== drag.el;
-      } else if (targetGroupId) {
-        // Dropping INTO a group header/container -> Assign project to this group
-        isValidDrop = true;
-      }
-    }
-    // Rule 4: Group reordering (only against other Groups)
-    else if (drag.type === 'group') {
-      if (targetGroupId) {
-        isValidDrop = zoneEl !== drag.el; // Reorder groups
-      }
-    }
-
-    if (!isValidDrop) return;
-
-    e.preventDefault();
-    clearDragMarks();
-    // Highlight the ZONE element, not necessarily the immediate hover target
-    zoneEl.classList.add('pp-dragover');
-    const isReorder = drag.type === 'branch' || drag.type === 'group' || !!targetProjectId;
-    if (isReorder) {
-      const r = zoneEl.getBoundingClientRect();
-      zoneEl.dataset.dropPos = e.clientY > r.top + r.height / 2 ? 'after' : 'before';
-    }
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-      e.preventDefault();
-      clearDragMarks();
-      drag.el?.classList.remove('pp-dragging');
-      if (drag.el) drag.el.style.opacity = '';
-      dragRef.current = null;
-      setIsGlobalDragging(false);
-
-      const target = e.currentTarget as HTMLElement;
-      const zoneEl = target.closest('[data-gid], [data-pid], [data-branch]') as HTMLElement | null;
-      if (!zoneEl) return;
-
-      const targetGroupId = zoneEl.dataset.gid;
-      const targetProjectId = zoneEl.dataset.pid;
-      const targetBranchName = zoneEl.dataset.branch;
-
-      const dropRect = zoneEl.getBoundingClientRect();
-      const dropAfter = e.clientY > dropRect.top + dropRect.height / 2;
-
-      // --- Logic Dispatcher ---
-
-      // 1. Branch Reorder (Same Project)
-      if (drag.type === 'branch' && targetBranchName && targetProjectId === drag.projectId) {
-        patchProject(drag.projectId!, (p) => {
-          const src = p.branches.findIndex((b) => b.name === drag.branchName);
-          const dst = p.branches.findIndex((b) => b.name === targetBranchName);
-          if (src < 0 || dst < 0 || src === dst) return p;
-          const branches = [...p.branches];
-          const [movedBranch] = branches.splice(src, 1);
-          const at = branches.findIndex((b) => b.name === targetBranchName);
-          branches.splice(at + (dropAfter ? 1 : 0), 0, movedBranch);
-          return { ...p, branches };
-        });
-        return;
-      }
-
-      // 2. Project -> Group (Assign Group)
-      if (drag.type === 'project' && targetGroupId) {
-        patchProject(drag.projectId!, (p) => ({
-          ...p,
-          groupId: targetGroupId === UNGROUP_ID ? null : targetGroupId,
-        }));
-        showToast(`Moved "${projects.find((pr) => pr.id === drag.projectId)?.name}" to group`);
-        return;
-      }
-
-      // 3. Project -> Project (Reorder)
-      if (drag.type === 'project' && targetProjectId) {
-        setProjects((prev) => {
-          const srcIdx = prev.findIndex((p) => p.id === drag.projectId);
-          const tgtIdx = prev.findIndex((p) => p.id === targetProjectId);
-
-          if (srcIdx < 0 || tgtIdx < 0 || srcIdx === tgtIdx) return prev;
-
-          const next = [...prev];
-          const [picked] = next.splice(srcIdx, 1);
-          const moved = { ...picked, groupId: prev[tgtIdx].groupId ?? null };
-          const newTgtIdx = next.findIndex((p) => p.id === targetProjectId);
-          next.splice(newTgtIdx + (dropAfter ? 1 : 0), 0, moved);
-          return next;
-        });
-        return;
-      }
-
-      // 4. Group -> Group (Reorder)
-      if (drag.type === 'group' && targetGroupId) {
-        const ids = groups.map((g) => g.id);
-        ids.splice(Math.min(Math.max(ungroupIndex, 0), ids.length), 0, UNGROUP_ID);
-        const srcIdx = ids.indexOf(drag.groupId!);
-        const tgtIdx = ids.indexOf(targetGroupId);
-        if (srcIdx < 0 || tgtIdx < 0 || srcIdx === tgtIdx) return;
-        ids.splice(srcIdx, 1);
-        const at = ids.indexOf(targetGroupId);
-        ids.splice(at + (dropAfter ? 1 : 0), 0, drag.groupId!);
-        const byId = new Map(groups.map((g) => [g.id, g]));
-        setGroups(ids.filter((id) => id !== UNGROUP_ID).map((id) => byId.get(id)!));
-        setUngroupIndex(ids.indexOf(UNGROUP_ID));
-        return;
-      }
-    },
-    [patchProject, projects, showToast, setProjects, setGroups, groups, ungroupIndex],
-  );
+  const {
+    dragRef,
+    isGlobalDragging,
+    handleDragStart,
+    handleDragEnd,
+    handleDragOver,
+    handleDrop,
+  } = useProjectDnd({
+    projects,
+    shownProjects,
+    groups,
+    setGroups,
+    setProjects,
+    patchProject,
+    showToast,
+    ungroupIndex,
+    setUngroupIndex,
+  });
 
   // ── Resolve dropdown subjects ──
   const activeProject =
@@ -1981,70 +813,21 @@ export const ProjectPanel = memo(function ProjectPanel() {
     setContentViewMode('files');
   }, [setCurrentProject, setActiveWorkspaceSessionId, setContentViewMode]);
 
-  const [conflictOpen, setConflictOpen] = useState(false);
-  // ASSUMED: cửa sổ đang hiện modal xung đột chưa thực sự giữ target nên không được claim
-  useTargetLock('code', conflictOpen ? null : currentTargetId, handleUnselectProject);
-
-  const busyBranchesByProject = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    busyTargetIds.forEach((id) => {
-      const { projectId, branchName } = fromBranchTargetId(id);
-      const set = map.get(projectId) ?? new Set<string>();
-      set.add(branchName);
-      map.set(projectId, set);
-    });
-    return map;
-  }, [busyTargetIds]);
-
-  const handleReleaseElsewhere = useCallback((projectId: string, branchName: string) => {
-    forceReleaseTarget('code', toBranchTargetId(projectId, branchName));
-  }, []);
-
-  const handleFocusElsewhere = useCallback((projectId: string, branchName: string) => {
-    focusTargetOwner('code', toBranchTargetId(projectId, branchName));
-  }, []);
-
-  const isLateClaimant = useIsLateClaimant('code', currentTargetId);
-  const conflictTriggered =
-    !!currentTargetId && isLateClaimant && busyTargetIds.has(currentTargetId);
-  useEffect(() => {
-    if (conflictOpen && currentTargetId && !busyTargetIds.has(currentTargetId)) {
-      setConflictOpen(false);
-    }
-  }, [conflictOpen, currentTargetId, busyTargetIds]);
-
-  useEffect(() => {
-    setConflictOpen(conflictTriggered);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTargetId]);
-
-  useEffect(() => {
-    if (conflictTriggered) setConflictOpen(true);
-  }, [conflictTriggered]);
-
-  const conflictProject =
-    conflictOpen && currentTargetId
-      ? (projects.find((p) => p.id === currentProjectId) ?? null)
-      : null;
-
-  const conflictOptions = useMemo<ConflictProjectOption[]>(
-    () =>
-      projects
-        .filter((p) => !p.hidden)
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          path: rawProjects.find((r) => r.id === p.id)?.path ?? '',
-          logoPath: p.logoPath,
-          branches: p.branches
-            .filter((b) => b.visible)
-            .map((b) => ({
-              name: b.name,
-              busy: busyTargetIds.has(toBranchTargetId(p.id, b.name)),
-            })),
-        })),
-    [projects, rawProjects, busyTargetIds],
-  );
+  const {
+    conflictProject,
+    conflictOptions,
+    busyBranchesByProject,
+    setConflictOpen,
+    handleReleaseElsewhere,
+    handleFocusElsewhere,
+  } = useProjectConflict({
+    projects,
+    rawProjects,
+    currentProjectId,
+    currentTargetId,
+    busyTargetIds,
+    onUnselectProject: handleUnselectProject,
+  });
 
   const handleSwitchBranch = useCallback(
     (projectId: string, branchName: string, force = false) => {
@@ -2182,288 +965,63 @@ export const ProjectPanel = memo(function ProjectPanel() {
     [showToast],
   );
 
-  const headerBtn =
-    'w-[26px] h-[26px] rounded-md flex items-center justify-center transition-colors cursor-pointer relative';
-  const headerBtnIdle = 'text-text-secondary hover:bg-card-hover hover:text-text-primary';
-  const headerBtnOn = 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]';
-
-  const ungrouped = shownProjects.filter((p) => !groups.some((g) => g.id === p.groupId));
   const draggingGroup = isGlobalDragging && dragRef.current?.type === 'group';
   const ungroupPos = Math.min(Math.max(ungroupIndex, 0), groups.length);
 
   // ── Render ──
   return (
     <div className="flex flex-col h-full w-[340px] shrink-0 min-h-0 bg-panel-background border-r border-border overflow-hidden">
-      {/* Header */}
-      <div className="relative px-3 h-[44px] flex items-center justify-between border-b border-border shrink-0">
-        <b className="text-[13px] font-semibold text-text-primary font-display">
-          Projects
-          <span className="font-medium text-[10.5px] font-mono text-text-secondary/50 ml-1.5">
-            {shownProjects.length}
-          </span>
-        </b>
-        <div className="flex gap-0.5 items-center">
-          {/* Project visibility tree */}
-          <div>
-            <button
-              onClick={() => setTreeOpen((v) => !v)}
-              className={cn(headerBtn, treeOpen ? headerBtnOn : headerBtnIdle)}
-              title="Show / hide projects"
-            >
-              <FolderTree className="w-3.5 h-3.5" />
-            </button>
-            {treeOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setTreeOpen(false)} />
-                <div className="absolute right-3 top-full mt-1 z-50 w-[260px] max-h-[320px] overflow-y-auto rounded-lg border border-border bg-panel-background p-1 shadow-lg">
-                  {[
-                    ...groups.map((g) => ({ id: g.id, name: g.name })),
-                    { id: '', name: 'Ungrouped' },
-                  ].map((g) => {
-                    const members = projects.filter((p) =>
-                      g.id ? p.groupId === g.id : !groups.some((x) => x.id === p.groupId),
-                    );
-                    if (members.length === 0) return null;
-                    return (
-                      <div key={g.id || 'ungrouped'}>
-                        <div className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary/70">
-                          <ChevronDown className="w-3 h-3" />
-                          {g.name}
-                        </div>
-                        <div className="pl-3">
-                          {members.map((p) => (
-                            <button
-                              key={p.id}
-                              onClick={() => toggleProjectHidden(p.id)}
-                              className={cn(
-                                'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-card-hover',
-                                p.hidden ? 'text-text-secondary/50' : 'text-text-primary',
-                              )}
-                            >
-                              {p.logoPath ? (
-                                <ProjectLogoImage
-                                  path={p.logoPath}
-                                  side={32}
-                                  className="w-3.5 h-3.5 shrink-0 rounded-[3px] object-contain"
-                                  fallback={<Folder className="w-3.5 h-3.5 shrink-0" />}
-                                />
-                              ) : (
-                                <Folder className="w-3.5 h-3.5 shrink-0" />
-                              )}
-                              <span className="flex-1 truncate">{p.name}</span>
-                              {p.hidden ? (
-                                <EyeOff className="w-3.5 h-3.5 shrink-0" />
-                              ) : (
-                                <Eye className="w-3.5 h-3.5 shrink-0" />
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Create New Group Button */}
-          <button
-            onClick={() => {
-              setGroupFormOpen(true);
-              setEditingGroupId(null); // Ensure we are in create mode
-            }}
-            className={cn(headerBtn, headerBtnIdle)}
-            title="Create new group"
-          >
-            <FolderPlus className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Expand / Collapse all */}
-          <button
-            onClick={toggleExpandAll}
-            className={cn(headerBtn, headerBtnIdle)}
-            title={anyOpen ? 'Collapse all' : 'Expand all'}
-          >
-            {anyOpen ? (
-              <ChevronsUp className="w-3.5 h-3.5" />
-            ) : (
-              <ChevronsDown className="w-3.5 h-3.5" />
-            )}
-          </button>
-
-          {/* Filter & sort */}
-          <button
-            onClick={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              setDropdownTarget({
-                kind: 'header-config',
-                pos: { top: r.bottom + 4, left: r.left - 130 },
-              });
-            }}
-            className={cn(headerBtn, isDirty ? headerBtnOn : headerBtnIdle)}
-            title="Filter & sort"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            {isDirty && (
-              <i className="absolute top-[3px] right-[3px] w-1.5 h-1.5 rounded-full bg-[#ff6a1f]" />
-            )}
-          </button>
-
-          {/* Add project */}
-          <button
-            onClick={() => setAddModalOpen(true)}
-            className={cn(headerBtn, headerBtnIdle)}
-            title="Add project"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Settings */}
-          <button
-            onClick={() => useCodeStore.getState().setContentViewMode('settings')}
-            className={cn(headerBtn, isSettingsOpen ? headerBtnOn : headerBtnIdle)}
-            title="Settings"
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3">
-        <SearchIcon className="w-3.5 h-3.5 shrink-0 text-text-secondary" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search projects"
-          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-text-primary outline-none ring-0 placeholder:text-text-secondary/60 focus:outline-none focus:ring-0"
-        />
-      </div>
+      <ProjectToolbar
+        shownCount={shownProjects.length}
+        projects={projects}
+        groups={groups}
+        treeOpen={treeOpen}
+        setTreeOpen={setTreeOpen}
+        closeTree={() => setTreeOpen(false)}
+        onToggleProjectHidden={toggleProjectHidden}
+        onCreateGroup={() => {
+          setGroupFormOpen(true);
+          setEditingGroupId(null);
+        }}
+        anyOpen={anyOpen}
+        onToggleExpandAll={toggleExpandAll}
+        isDirty={isDirty}
+        onOpenFilterMenu={(pos) => setDropdownTarget({ kind: 'header-config', pos })}
+        onAddProject={() => setAddModalOpen(true)}
+        isSettingsOpen={isSettingsOpen}
+        onOpenSettings={() => useCodeStore.getState().setContentViewMode('settings')}
+        query={query}
+        setQuery={setQuery}
+      />
 
       {/* Project list */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto select-none flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-sm"
-      >
-        {/* Group Creation Form */}
-        {groupFormOpen && (
-          <NewGroupModal
-            projects={projects}
-            groups={groups}
-            onSave={handleCreateGroup}
-            onCancel={() => setGroupFormOpen(false)}
-          />
-        )}
-
-        {shownProjects.length === 0 && groups.length === 0 && !groupFormOpen ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3 opacity-70">
-            <div className="w-12 h-12 rounded-xl bg-card-hover border border-border grid place-items-center text-text-secondary">
-              <Folder className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-text-primary mb-1">
-                {projects.length === 0 ? 'No projects yet' : 'No matching projects'}
-              </p>
-              <p className="text-xs text-text-secondary max-w-[200px] mx-auto leading-relaxed">
-                {projects.length === 0
-                  ? 'Create or open a project to get started.'
-                  : 'Try adjusting your filters or sort order.'}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
-            {groups.map((g, gi) => {
-              const members = shownProjects.filter((p) => p.groupId === g.id);
-              // Hide empty groups when filtering unless explicitly looking for them?
-              // For now, keep structure stable.
-
-              return (
-                <div
-                  key={g.id}
-                  data-gid={g.id}
-                  className="shrink-0"
-                  style={{ order: gi < ungroupPos ? gi + 1 : gi + 2 }}
-                >
-                  {editingGroupId === g.id ? (
-                    <div className="px-2 py-1.5 bg-panel-background/50">
-                      <GroupPickerForm
-                        initialIconId={g.iconId || 'folder'}
-                        initialName={g.name}
-                        isEditing
-                        onSave={(iconId, name) => handleUpdateGroup(g.id, iconId, name)}
-                        onCancel={() => setEditingGroupId(null)}
-                        onDragStart={(e) => handleDragStart(e, 'group', g.id)}
-                        onDragEnd={handleDragEnd}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                        isDragging={dragRef.current?.groupId === g.id}
-                      />
-                    </div>
-                  ) : (
-                    <GroupHeader
-                      group={g}
-                      count={members.length}
-                      renaming={renamingGroupId === g.id}
-                      onToggle={() => toggleGroup(g.id)}
-                      onOpenMenu={(pos) => setDropdownTarget({ kind: 'group', groupId: g.id, pos })}
-                      onRenameDone={(name) => finishRename(g.id, name)}
-                      onEditClick={() => setEditingGroupId(g.id)}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, 'group', g.id)}
-                      onDragEnd={handleDragEnd}
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                    />
-                  )}
-
-                  {g.open && !draggingGroup && (
-                    <div className="pl-2">
-                      {members.length ? (
-                        members.map(renderCard)
-                      ) : (
-                        <div className="text-center text-text-secondary/50 text-[11.5px] px-2.5 py-4 italic">
-                          Drop projects here
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {ungrouped.length > 0 && (
-              <div className="shrink-0" style={{ order: ungroupPos + 1 }}>
-                <div
-                  draggable
-                  data-gid={UNGROUP_ID}
-                  onDragStart={(e) => handleDragStart(e, 'group', UNGROUP_ID)}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onClick={() => setUngroupedOpen((o) => !o)}
-                  className={cn(
-                    'flex items-center gap-[7px] px-3 py-[7px] border-b border-border cursor-pointer select-none font-mono text-[14px] font-semibold text-text-secondary hover:text-text-primary transition-colors',
-                    ungroupedOpen ? 'bg-white/[0.02]' : 'bg-card-background',
-                  )}
-                >
-                  {ungroupedOpen ? (
-                    <ChevronDown className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
-                  ) : (
-                    <ChevronRight className="w-[11px] h-[11px] shrink-0 text-text-secondary/50" />
-                  )}
-                  <span className="min-w-0 truncate">Ungroup</span>
-                  <span className="font-medium text-text-secondary/50">{ungrouped.length}</span>
-                  <span className="flex-1" />
-                  <span className="w-5 h-5 shrink-0" />
-                </div>
-                {ungroupedOpen && !draggingGroup && ungrouped.map(renderCard)}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      <ProjectList
+        scrollContainerRef={scrollContainerRef}
+        projects={projects}
+        shownProjects={shownProjects}
+        groups={groups}
+        groupFormOpen={groupFormOpen}
+        editingGroupId={editingGroupId}
+        renamingGroupId={renamingGroupId}
+        ungroupedOpen={ungroupedOpen}
+        ungroupPos={ungroupPos}
+        draggingGroup={draggingGroup}
+        dragGroupId={dragRef.current?.groupId}
+        renderCard={renderCard}
+        onCreateGroup={handleCreateGroup}
+        onCancelCreateGroup={() => setGroupFormOpen(false)}
+        onUpdateGroup={handleUpdateGroup}
+        onCancelEditGroup={() => setEditingGroupId(null)}
+        onEditGroup={(id) => setEditingGroupId(id)}
+        onToggleGroup={toggleGroup}
+        onToggleUngrouped={() => setUngroupedOpen((o) => !o)}
+        onOpenGroupMenu={(groupId, pos) => setDropdownTarget({ kind: 'group', groupId, pos })}
+        onFinishRename={finishRename}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      />
 
       {/* ── Unified Dropdown host ── */}
       {dropdownTarget && (
@@ -2710,10 +1268,8 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     const projectId = activeProject.id;
                     closeDropdown();
                     try {
-                      const home = await (window as any).api.invoke('fs:get-homedir');
-                      const err = await (window as any).api.invoke(
-                        'shell:open-path',
-                        `${home}/.phantoma/code/${projectId}`,
+                      const home = await fsIpc.getHomedir();
+                      const err = await shellIpc.openPath(`${home}/.phantoma/code/${projectId}`,
                       );
                       if (err) showToast(`Cannot open folder: ${err}`);
                     } catch (e) {
@@ -2747,7 +1303,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     const target = activeBranch.path ?? activeProject.path;
                     closeDropdown();
                     try {
-                      const err = await (window as any).api.invoke('shell:open-path', target);
+                      const err = await shellIpc.openPath(target);
                       if (err) showToast(`Cannot open folder: ${err}`);
                     } catch (e) {
                       console.error('[DEBUG] open-folder invoke failed', e);
@@ -3170,266 +1726,36 @@ export const ProjectPanel = memo(function ProjectPanel() {
         {toast.msg}
       </div>
 
-      {/* ── Project Modals ── */}
-      <OpenProjectModal
-        isOpen={addModalOpen}
-        onClose={() => {
-          setAddModalOpen(false);
-          setAddToGroupId(null);
-        }}
-        onProjectAdded={(projectId) => {
-          if (addToGroupId) setPendingGroupAssign({ projectId, groupId: addToGroupId });
-          void detectSameRepo(projectId);
-        }}
-      />
-
-      <ConfirmLinkProjectModal
-        isOpen={!!mergeTarget}
-        onClose={() => setMergeTarget(null)}
-        onConfirm={confirmMergeProject}
-        newProjectName={mergeTarget?.newProjectName ?? ''}
-        branchName={mergeTarget?.branch ?? ''}
-        candidates={mergeTarget?.candidates ?? []}
-      />
-
-      {/* ── Confirm Delete Project Modal ── */}
-      <ConfirmDeleteProjectModal
-        isOpen={!!confirmDeleteTarget}
-        onClose={() => setConfirmDeleteTarget(null)}
-        onConfirm={confirmRemoveProject}
-        projectName={confirmDeleteTarget?.name ?? ''}
-        projectPath={confirmDeleteTarget?.path}
-      />
-
-      <ProjectSettingsModal
-        isOpen={!!settingsProject}
-        onClose={() => setSettingsProjectId(null)}
-        project={
-          settingsProject
-            ? {
-                id: settingsProject.id,
-                name: settingsProject.name,
-                path: settingsProject.path,
-                color: settingsProject.color,
-                logoPath: settingsProject.logoPath,
-                hidden: settingsProject.hidden,
-                branchCount: settingsProject.branches.length,
-                groupName: groups.find((g) => g.id === settingsProject.groupId)?.name ?? null,
-              }
-            : null
-        }
-        onChange={(id, patch) => {
-          const { hidden, ...storePatch } = patch;
-          if (Object.keys(storePatch).length > 0) updateProject(id, storePatch);
-          if (hidden !== undefined) patchProject(id, (p) => ({ ...p, hidden }));
-        }}
-      />
-
-      <CreateBranchModal
-        isOpen={!!createBranchProject}
-        onClose={() => setCreateBranchProjectId(null)}
-        projectPath={createBranchProject?.path ?? ''}
-        projectName={createBranchProject?.name ?? ''}
-        branches={(() => {
-          const bs = createBranchProject?.branches ?? [];
-          return bs.map((b) => b.name);
-        })()}
-        remoteBranches={(createBranchProject?.branches ?? [])
-          .filter((b) => b.remote)
-          .map((b) => b.name)}
-        defaultSource={createBranchProject?.defaultBranch}
-        projectLogoPath={createBranchProject?.logoPath}
-        onCreated={(result) =>
-          createBranchProject && handleBranchCreated(createBranchProject, result)
-        }
-      />
-
-      <CreateBranchModal
-        isOpen={!!existingBranchProject}
-        onClose={() => setExistingBranchTarget(null)}
-        projectPath={existingBranchProject?.path ?? ''}
-        projectName={existingBranchProject?.name ?? ''}
-        branches={(existingBranchProject?.branches ?? []).map((b) => b.name)}
-        defaultSource={existingBranchProject?.defaultBranch}
-        existingBranch={existingBranchTarget?.branchName}
-        existingBranchRemote={
-          !!existingBranchProject?.branches.find((b) => b.name === existingBranchTarget?.branchName)
-            ?.remote
-        }
-        projectLogoPath={existingBranchProject?.logoPath}
-        onCreated={(result) =>
-          existingBranchProject && handleBranchCreated(existingBranchProject, result)
-        }
-      />
-
-      <SyncBranchModal
-        isOpen={!!syncBranchTarget}
-        onClose={() => setSyncBranchTarget(null)}
-        targetPath={syncBranchTarget?.branchPath ?? ''}
-        projectName={syncBranchTarget?.project.name ?? ''}
-        currentBranch={syncBranchTarget?.branchName ?? ''}
-        projectId={syncBranchTarget?.project.id}
-        defaultBranch={syncBranchTarget?.project.defaultBranch}
-        branches={(syncBranchTarget?.project.branches ?? []).map((b) => b.name)}
-        onApplied={(count, source) =>
-          showToast(`Pulled ${count} file${count === 1 ? '' : 's'} from "${source}"`)
-        }
-      />
-
-      <ConfirmDeleteBranchModal
-        isOpen={!!confirmDeleteBranchTarget}
-        onClose={() => setConfirmDeleteBranchTarget(null)}
-        onConfirm={confirmDeleteBranch}
-        branchName={confirmDeleteBranchTarget?.branchName ?? ''}
-        projectName={confirmDeleteBranchTarget?.project.name ?? ''}
-        projectPath={confirmDeleteBranchTarget?.project.path ?? ''}
-        branchPath={confirmDeleteBranchTarget?.branchPath ?? ''}
-        logoPath={confirmDeleteBranchTarget?.project.logoPath}
-        projectBranch={confirmDeleteBranchTarget?.project.defaultBranch}
-        hasRemote={deleteBranchHasRemote}
-      />
-
-      {(() => {
-        const proj = projects.find((p) => p.id === assignTaskTarget?.projectId);
-        const path = proj?.path ?? '';
-        const sessionBranch = assignTaskTarget?.sessionId
-          ? proj?.branches.find((b) => b.sessions.some((s) => s.id === assignTaskTarget.sessionId))
-          : undefined;
-        const targetBranchName = assignTaskTarget?.branchName ?? sessionBranch?.name ?? null;
-        // ASSUMED: ngoài task chưa gán, modal cũng liệt kê task todo đã gán cho chính branch này (giống tooltip)
-        const candidates = (tasksByPath[path] ?? []).filter(
-          (t) =>
-            !t.archived &&
-            t.status === 'todo' &&
-            ((!t.sessionId && !t.branchName) ||
-              (!!targetBranchName && t.branchName === targetBranchName)),
-        );
-        const inProgressTasks = (tasksByPath[path] ?? []).filter(
-          (t) =>
-            !t.archived &&
-            t.status === 'progress' &&
-            (targetBranchName
-              ? t.branchName === targetBranchName
-              : !!assignTaskTarget?.sessionId && t.sessionId === assignTaskTarget.sessionId),
-        );
-        return (
-          <AssignTaskModal
-            isOpen={!!assignTaskTarget}
-            onClose={() => setAssignTaskTarget(null)}
-            tasks={candidates}
-            inProgressTasks={inProgressTasks}
-            projectName={proj?.name ?? ''}
-            branchName={targetBranchName}
-            onSelect={(t) => {
-              if (!assignTaskTarget) return;
-              void taskService.update(path, t.id, {
-                sessionId: targetBranchName ? null : assignTaskTarget.sessionId,
-                branchName: targetBranchName,
-                ...(inProgressTasks.length === 0 ? { status: 'progress' as const } : {}),
-              });
-              setAssignTaskTarget(null);
-            }}
-            onSwitchProgress={(t, action) => {
-              if (!assignTaskTarget) return;
-              inProgressTasks.forEach((p) => {
-                void taskService.update(path, p.id, { status: action });
-              });
-              void taskService.update(path, t.id, {
-                sessionId: targetBranchName ? null : assignTaskTarget.sessionId,
-                branchName: targetBranchName,
-                status: 'progress' as const,
-              });
-              setAssignTaskTarget(null);
-            }}
-          />
-        );
-      })()}
-
-      <ConfirmUnlinkBranchModal
-        isOpen={!!confirmUnlinkBranchTarget}
-        onClose={() => setConfirmUnlinkBranchTarget(null)}
-        onConfirm={() =>
-          confirmUnlinkBranchTarget &&
-          unlinkBranch(confirmUnlinkBranchTarget.project, confirmUnlinkBranchTarget.branchName)
-        }
-        branchName={confirmUnlinkBranchTarget?.branchName ?? ''}
-        projectName={confirmUnlinkBranchTarget?.project.name ?? ''}
-        branchPath={confirmUnlinkBranchTarget?.branchPath ?? ''}
-      />
-
-      {conflictProject && (
-        <ProjectConflictModal
-          project={{ id: conflictProject.id, name: conflictProject.name }}
-          branchName={currentBranchName ?? ''}
-          projects={conflictOptions}
-          onSelectProject={handleConflictSelectProject}
-          onUnselect={handleUnselectProject}
-          onTakeOver={() => {
-            if (currentTargetId) forceReleaseTarget('code', currentTargetId);
-            setConflictOpen(false);
-          }}
-          onFocusOther={() => currentTargetId && focusTargetOwner('code', currentTargetId)}
-        />
-      )}
-
-      {blockedTarget && !conflictProject && (
-        <ProjectConflictModal
-          project={{
-            id: blockedTarget.projectId,
-            name: projects.find((p) => p.id === blockedTarget.projectId)?.name ?? '',
-          }}
-          branchName={blockedTarget.branchName}
-          projects={conflictOptions}
-          onSelectProject={(projectId) => {
-            setBlockedTarget(null);
-            handleConflictSelectProject(projectId);
-          }}
-          onUnselect={() => setBlockedTarget(null)}
-          onTakeOver={() => {
-            const { projectId, branchName } = blockedTarget;
-            forceReleaseTarget('code', toBranchTargetId(projectId, branchName));
-            setBlockedTarget(null);
-            handleSwitchBranch(projectId, branchName, true);
-          }}
-          onFocusOther={() =>
-            focusTargetOwner(
-              'code',
-              toBranchTargetId(blockedTarget.projectId, blockedTarget.branchName),
-            )
-          }
-        />
-      )}
-
-      <ConfirmUnassignTaskModal
-        isOpen={!!confirmUnassign}
-        taskTitle={confirmUnassign?.title ?? ''}
-        onClose={() => setConfirmUnassign(null)}
-        onConfirm={() => confirmUnassign?.run()}
-      />
-
-      <ConfirmForceStartTaskModal
-        isOpen={!!forceStart}
-        taskTitle={forceStart?.title ?? ''}
-        chain={forceStart?.chain ?? []}
-        onClose={() => setForceStart(null)}
-        onConfirm={() => {
-          const pending = forceStart;
-          if (!pending) return;
-          void (async () => {
-            try {
-              for (const t of pending.chain) {
-                await taskService.update(pending.path, t.id, {
-                  status: 'done',
-                  sessionId: null,
-                  branchName: null,
-                });
-              }
-              await pending.proceed();
-            } catch (e: any) {
-              alert(`Error updating tasks: ${e.message}`);
-            }
-          })();
-        }}
+      <ProjectDialogs
+        dialogs={dialogs}
+        projects={projects}
+        groups={groups}
+        settingsProject={settingsProject}
+        createBranchProject={createBranchProject}
+        existingBranchProject={existingBranchProject}
+        deleteBranchHasRemote={deleteBranchHasRemote}
+        tasksByPath={tasksByPath}
+        forceStart={forceStart}
+        setForceStart={setForceStart}
+        blockedTarget={blockedTarget}
+        setBlockedTarget={setBlockedTarget}
+        conflictProject={conflictProject}
+        conflictOptions={conflictOptions}
+        currentBranchName={currentBranchName}
+        currentTargetId={currentTargetId}
+        setConflictOpen={setConflictOpen}
+        patchProject={patchProject}
+        updateProject={updateProject}
+        showToast={showToast}
+        detectSameRepo={detectSameRepo}
+        confirmMergeProject={confirmMergeProject}
+        confirmRemoveProject={confirmRemoveProject}
+        confirmDeleteBranch={confirmDeleteBranch}
+        handleBranchCreated={handleBranchCreated}
+        unlinkBranch={unlinkBranch}
+        handleConflictSelectProject={handleConflictSelectProject}
+        handleSwitchBranch={handleSwitchBranch}
+        handleUnselectProject={handleUnselectProject}
       />
 
       {/* Scroll to selected session button */}

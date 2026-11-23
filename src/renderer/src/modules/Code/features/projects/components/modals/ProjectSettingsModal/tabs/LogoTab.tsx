@@ -1,3 +1,4 @@
+import { dialogIpc } from '../../../../../../shared/ipc/dialog.ipc';
 import { useEffect, useState } from 'react';
 import { Check, FolderOpen, Link2, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
@@ -52,7 +53,7 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
 
   const pickFile = async () => {
     setError('');
-    const res = await window.api.invoke('dialog:select-paths', {
+    const res = await dialogIpc.selectPaths({
       kind: 'file',
       filters: [{ name: 'Images', extensions: IMAGE_EXTENSIONS }],
     });

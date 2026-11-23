@@ -1,5 +1,5 @@
-import { execFileSync } from 'child_process';
 import path from 'path';
+import { runGit } from '../infra/git-runner';
 import { projectRepository } from '../repositories/project.repository';
 import { worktreeRepository } from '../repositories/worktree.repository';
 import { found, requireString } from '../utils/guard';
@@ -12,18 +12,11 @@ export interface WorktreeInput {
   searchTerm?: string;
 }
 
-export function detectBranch(cwd: string): string {
-  try {
-    const out = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
-      cwd,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-      env: { ...process.env, GIT_CEILING_DIRECTORIES: path.dirname(cwd) },
-    }).trim();
-    return out === 'HEAD' ? '' : out;
-  } catch {
-    return '';
-  }
+export async function detectBranch(cwd: string): Promise<string> {
+  const res = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
+  if (res.error) return '';
+  const out = res.stdout.trim();
+  return out === 'HEAD' ? '' : out;
 }
 
 function ownedBy(projectId: string, id: string) {
@@ -40,15 +33,16 @@ export const worktreeService = {
 
   get: (projectId: string, id: string) => ownedBy(projectId, id),
 
-  create: (projectId: string, input: WorktreeInput) => {
+  create: async (projectId: string, input: WorktreeInput) => {
     found(projectRepository.get(projectId), 'project');
     const id = newId();
     const resolved = path.resolve(requireString(input.path, 'path'));
+    const branch = input.branch || (await detectBranch(resolved));
     worktreeRepository.insert({
       id,
       projectId,
       path: resolved,
-      branch: input.branch || detectBranch(resolved),
+      branch,
       visible: input.visible ?? true,
       searchTerm: input.searchTerm ?? '',
     });

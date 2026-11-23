@@ -1,5 +1,5 @@
 import { memo, useState, type ReactNode } from 'react'
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader'
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader'
 import type { Message } from '@renderer/components/Widgets/AgentTools/services/conversationStorage'
 import ErrorBlock from '../ErrorBlock'
 import { toRelativePath } from '@renderer/components/Widgets/AgentTools/shared/workingPath'

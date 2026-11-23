@@ -1,5 +1,5 @@
 import React from 'react';
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
+import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
 import TaskToolRendererBase from '../shared/task-tool-base.renderer';
 
 const UpdateWorkflowRenderer: React.FC<BaseRendererProps> = (props) => (

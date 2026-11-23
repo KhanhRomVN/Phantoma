@@ -1,3 +1,5 @@
+import { gitIpc } from '../../../../shared/ipc/git.ipc';
+import { dialogIpc } from '../../../../shared/ipc/dialog.ipc';
 import { useEffect, useId, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -168,7 +170,7 @@ export function CreateBranchModal({
 
   const pickFolder = async () => {
     try {
-      const res = await (window as any).api.invoke('dialog:select-paths', { kind: 'folder' });
+      const res = await dialogIpc.selectPaths({ kind: 'folder' });
       if (res?.success && res.paths?.[0]) setTargetDir(res.paths[0]);
     } catch {
       setError('Không thể mở hộp thoại chọn thư mục');
@@ -181,7 +183,7 @@ export function CreateBranchModal({
 
   const stopScan = () => {
     if (scanIdRef.current) {
-      (window as any).api.invoke('git:worktree-preview-cancel', scanIdRef.current).catch(() => {});
+      gitIpc.invoke('git:worktree-preview-cancel', scanIdRef.current).catch(() => {});
     }
   };
 
@@ -193,14 +195,14 @@ export function CreateBranchModal({
     setConfirmOpen(true);
     const requestId = `scan-${Date.now()}`;
     scanIdRef.current = requestId;
-    const off = (window as any).api.on(
+    const off = gitIpc.on(
       'git:worktree-preview-progress',
       (_e: unknown, p: ScanProgress) => {
         if (p.requestId === requestId) setScanProgress(p);
       },
     );
     try {
-      const res: WorktreePreview = await (window as any).api.invoke(
+      const res: WorktreePreview = await gitIpc.invoke(
         'git:worktree-preview',
         projectPath,
         requestId,
@@ -222,12 +224,12 @@ export function CreateBranchModal({
     setSubmitting(true);
     setError('');
     setProgress({ step: 'worktree' });
-    const off = (window as any).api.on(
+    const off = gitIpc.on(
       'git:create-branch-progress',
       (_e: unknown, p: BranchProgress) => setProgress(p),
     );
     try {
-      const res = await (window as any).api.invoke(
+      const res = await gitIpc.invoke(
         'git:create-branch-worktree',
         projectPath,
         trimmedName,

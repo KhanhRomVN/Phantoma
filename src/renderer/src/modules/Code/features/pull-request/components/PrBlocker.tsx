@@ -1,3 +1,4 @@
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
 /**
  * ------------------------------------------------------------------
  * PR Blocker
@@ -80,7 +81,7 @@ export const PrBlocker = memo(function PrBlocker({
         return;
       }
       await navigator.clipboard.writeText(res.code).catch(() => {});
-      void window.api.invoke('pr:open-external', res.url);
+      void shellIpc.openPrExternal(res.url);
       setWebLogin({ code: res.code, url: res.url });
     } finally {
       setLoginBusy(false);
@@ -141,7 +142,7 @@ export const PrBlocker = memo(function PrBlocker({
                 </span>
                 <div className={'flex items-center gap-2'}>
                   <Button
-                    onClick={() => void window.api.invoke('pr:open-external', webLogin.url)}
+                    onClick={() => void shellIpc.openPrExternal(webLogin.url)}
                     className={'h-9 px-4 text-[13px] bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30'}
                   >
                     <ExternalLink className={'w-4 h-4'} />

@@ -217,6 +217,7 @@ export const CommitDetail = memo(function CommitDetail({
     [excluded],
   );
 
+  const isLocalView = !!(localBranch && localCommit);
   const stats = useScopeStats(projectId);
   const byCategory = useMemo(() => {
     const out: Record<ScopeCategory, string[]> = { error: [], diff: [], warn: [], primary: [] };
@@ -234,7 +235,8 @@ export const CommitDetail = memo(function CommitDetail({
       warn: new Set(stats.warn),
     };
     for (const f of files) {
-      if (isInScope(f.path, scope)) out.primary.push(f.path);
+      if (isLocalView && !f.unstaged && !f.untracked) continue;
+      else if (isInScope(f.path, scope)) out.primary.push(f.path);
       else if (!f.staged && !f.unstaged && !f.untracked) continue;
       else if (has(sets.error, f.path)) out.error.push(f.path);
       else if (has(sets.diff, f.path)) out.diff.push(f.path);
@@ -246,7 +248,7 @@ export const CommitDetail = memo(function CommitDetail({
     }
 
     return out;
-  }, [scopeInfo, files, projectPath, scopeRoot, unpushedRoot, scope, stats]);
+  }, [scopeInfo, files, isLocalView, projectPath, scopeRoot, unpushedRoot, scope, stats]);
 
   const unscopedPaths = useMemo(
     () => new Set(byCategory.diff.filter((p) => !otherScopes.some((o) => isInScope(p, o.paths)))),
@@ -510,7 +512,7 @@ export const CommitDetail = memo(function CommitDetail({
         files.length > 0 &&
         (!(localBranch && localCommit) || tab === 'changes') && (
           <ScopeFilterTabs
-            total={files.length}
+            total={files.filter((f) => !isLocalView || f.unstaged || f.untracked).length}
             loaded={!!scopeInfo}
             byCategory={byCategory}
             cat={cat}
@@ -518,7 +520,11 @@ export const CommitDetail = memo(function CommitDetail({
             branchChips={otherScopes
               .map((o) => ({
                 branch: o.branch,
-                count: files.filter((f) => isInScope(f.path, o.paths)).length,
+                count: files.filter(
+                  (f) =>
+                    (!isLocalView || f.unstaged || f.untracked) &&
+                    isInScope(f.path, o.paths),
+                ).length,
                 dots: (['warn', 'diff', 'error'] as const)
                   .filter((id) => byCategory[id].some((p) => isInScope(p, o.paths)))
                   .map((id) => SCOPE_DOT[id]),

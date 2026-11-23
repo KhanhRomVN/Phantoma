@@ -1,3 +1,4 @@
+import { browserIpc } from '../../../shared/ipc/browser.ipc';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, RotateCw, Home, ExternalLink, Smartphone } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
@@ -64,7 +65,7 @@ export const CodeBrowser = ({
    */
   const syncBounds = useCallback(() => {
     const el = viewportRef.current;
-    if (!el || !window.api?.send) return;
+    if (!el || !browserIpc.canSend()) return;
     const rect = el.getBoundingClientRect();
 
     // Kiểm tra element THỰC SỰ nhìn thấy được.
@@ -94,7 +95,7 @@ export const CodeBrowser = ({
       rect.top < window.innerHeight &&
       rect.left < window.innerWidth;
 
-    window.api.send('browser:set-bounds', {
+    browserIpc.send('browser:set-bounds', {
       browserId: browserViewIdRef.current,
       bounds: isVisible
         ? { x: rect.left, y: rect.top, width: rect.width, height: rect.height }
@@ -104,9 +105,8 @@ export const CodeBrowser = ({
 
   // ── Create BrowserView + bounds sync ──────────────────────────────────────
   useEffect(() => {
-    if (window.api?.invoke) {
-      window.api
-        .invoke('browser:create', {
+    if (browserIpc.canInvoke()) {
+      browserIpc.invoke('browser:create', {
           browserId: browserViewIdRef.current,
           url: initialUrlRef.current,
         })
@@ -164,8 +164,8 @@ export const CodeBrowser = ({
   // ── Apply device metrics override trong main process ──────────────────────
   useEffect(() => {
     const preset = DEVICE_PRESETS.find((d) => d.id === deviceId) ?? DEVICE_PRESETS[0];
-    if (window.api?.send) {
-      window.api.send('browser:set-device-metrics', {
+    if (browserIpc.canSend()) {
+      browserIpc.send('browser:set-device-metrics', {
         browserId: browserViewIdRef.current,
         width: preset.width,
         height: preset.height,
@@ -177,7 +177,7 @@ export const CodeBrowser = ({
 
   // ── Navigation state listeners ────────────────────────────────────────────
   useEffect(() => {
-    if (!window.api?.on) return;
+    if (!browserIpc.canListen()) return;
 
     const onDidNavigate = (_event: any, payload: { browserId: string; url: string }) => {
       if (payload.browserId === browserViewIdRef.current) {
@@ -205,10 +205,10 @@ export const CodeBrowser = ({
       if (payload.browserId === browserViewIdRef.current) setIsLoading(false);
     };
 
-    window.api.on('browser:did-navigate', onDidNavigate);
-    window.api.on('browser:navigation-state-changed', onNavigationStateChanged);
-    window.api.on('browser:load-start', onLoadStart);
-    window.api.on('browser:load-stop', onLoadStop);
+    browserIpc.listen('browser:did-navigate', onDidNavigate);
+    browserIpc.listen('browser:navigation-state-changed', onNavigationStateChanged);
+    browserIpc.listen('browser:load-start', onLoadStart);
+    browserIpc.listen('browser:load-stop', onLoadStop);
 
     const onTitleUpdated = (_event: any, payload: { browserId: string; title: string }) => {
       if (payload.browserId === browserViewIdRef.current) {
@@ -223,16 +223,16 @@ export const CodeBrowser = ({
         onMetaChangeRef.current?.({ favicon: payload.favicon });
       }
     };
-    window.api.on('browser:title-updated', onTitleUpdated);
-    window.api.on('browser:favicon-updated', onFaviconUpdated);
+    browserIpc.listen('browser:title-updated', onTitleUpdated);
+    browserIpc.listen('browser:favicon-updated', onFaviconUpdated);
 
     return () => {
-      window.api.off('browser:did-navigate', onDidNavigate);
-      window.api.off('browser:navigation-state-changed', onNavigationStateChanged);
-      window.api.off('browser:load-start', onLoadStart);
-      window.api.off('browser:load-stop', onLoadStop);
-      window.api.off('browser:title-updated', onTitleUpdated);
-      window.api.off('browser:favicon-updated', onFaviconUpdated);
+      browserIpc.unlisten('browser:did-navigate', onDidNavigate);
+      browserIpc.unlisten('browser:navigation-state-changed', onNavigationStateChanged);
+      browserIpc.unlisten('browser:load-start', onLoadStart);
+      browserIpc.unlisten('browser:load-stop', onLoadStop);
+      browserIpc.unlisten('browser:title-updated', onTitleUpdated);
+      browserIpc.unlisten('browser:favicon-updated', onFaviconUpdated);
     };
   }, []);
 
@@ -249,8 +249,8 @@ export const CodeBrowser = ({
   useEffect(() => {
     const id = browserViewIdRef.current;
     const onOverlayOpen = () => {
-      if (window.api?.send) {
-        window.api.send('browser:set-bounds', {
+      if (browserIpc.canSend()) {
+        browserIpc.send('browser:set-bounds', {
           browserId: id,
           bounds: { x: 0, y: 0, width: 0, height: 0 },
         });
@@ -260,9 +260,9 @@ export const CodeBrowser = ({
       syncBounds();
       // Force repaint sau khi restore bounds — chống white flash do Electron
       // suspend compositor cho view có bounds 0×0 trong thời gian ngắn.
-      if (window.api?.send) {
+      if (browserIpc.canSend()) {
         setTimeout(() => {
-          window.api.send('browser:force-repaint', id);
+          browserIpc.send('browser:force-repaint', id);
         }, 50);
       }
     };
@@ -279,8 +279,8 @@ export const CodeBrowser = ({
   useEffect(() => {
     const id = browserViewIdRef.current;
     return () => {
-      if (window.api?.send) {
-        window.api.send('browser:destroy', id);
+      if (browserIpc.canSend()) {
+        browserIpc.send('browser:destroy', id);
       }
     };
   }, []);
@@ -321,8 +321,8 @@ export const CodeBrowser = ({
     if (!newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
       newUrl = 'https://' + newUrl;
     }
-    if (window.api?.send) {
-      window.api.send('browser:navigate', {
+    if (browserIpc.canSend()) {
+      browserIpc.send('browser:navigate', {
         browserId: browserViewIdRef.current,
         url: newUrl,
       });
@@ -330,27 +330,27 @@ export const CodeBrowser = ({
   };
 
   const handleGoBack = () => {
-    if (window.api?.send && canGoBack) {
-      window.api.send('browser:go-back', browserViewIdRef.current);
+    if (browserIpc.canSend() && canGoBack) {
+      browserIpc.send('browser:go-back', browserViewIdRef.current);
     }
   };
 
   const handleGoForward = () => {
-    if (window.api?.send && canGoForward) {
-      window.api.send('browser:go-forward', browserViewIdRef.current);
+    if (browserIpc.canSend() && canGoForward) {
+      browserIpc.send('browser:go-forward', browserViewIdRef.current);
     }
   };
 
   const handleReload = () => {
-    if (window.api?.send) {
-      window.api.send('browser:reload', browserViewIdRef.current);
+    if (browserIpc.canSend()) {
+      browserIpc.send('browser:reload', browserViewIdRef.current);
     }
   };
 
   const handleHome = () => handleNavigate(initialUrlRef.current);
 
   const handleOpenExternal = () => {
-    if (window.api?.send) window.api.send('browser:open-external', url);
+    if (browserIpc.canSend()) browserIpc.send('browser:open-external', url);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

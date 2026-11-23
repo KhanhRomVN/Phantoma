@@ -25,12 +25,12 @@ import { $ } from '@renderer/utils/color';
 import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
+import { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
 
 // ── Components ──
 import { getFileIconPath } from '@renderer/utils/file-icon';
 import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
 
 // ─── GitDiffBlock ───────────────────────────────────────────────────────
 interface GitDiffBlockProps {
@@ -176,7 +176,6 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
             <span className="text-error font-semibold text-[11px]">-{deleted}</span>
           </>
         )}
-
       </div>
     </div>
   );
@@ -202,7 +201,6 @@ const GitDiffBlock: React.FC<GitDiffBlockProps> = ({
           if (onFileClick) onFileClick(filePath);
         }}
       />
-
 
       {!isCollapsed && diffContent && (
         <div className="pt-1 pr-3 pb-3 pl-0">

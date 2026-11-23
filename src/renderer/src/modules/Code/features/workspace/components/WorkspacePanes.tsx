@@ -49,10 +49,10 @@ import {
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import { useGitFileStatus } from '../../../shared/hooks/useGitFileStatus';
+import { useGitFileStatus } from '../hooks/useGitFileStatus';
 import { getAgentFavicon } from '../../../shared/constants/workspace-agents.constants';
 import { getConversation } from '@renderer/components/Widgets/AgentTools/services/conversationStorage';
-import type { SessionStatus } from '../../projects/components/ProjectPanel/SessionCard';
+import type { SessionStatus } from '../../projects';
 import {
   TABBAR_HEIGHT,
   findPaneOfPanel,

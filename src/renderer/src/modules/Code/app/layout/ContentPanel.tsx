@@ -1,3 +1,4 @@
+import { shellIpc } from '../../shared/ipc/shell.ipc';
 /**
  * ------------------------------------------------------------------
  * Content Panel
@@ -164,7 +165,7 @@ function AudioPreview({ path, name }: { path: string; name: string }) {
 function BinaryPreview({ name, path }: { name: string; path: string }) {
   const handleOpenExternal = async () => {
     try {
-      await window.api.invoke('openFolder', { path });
+      await shellIpc.openFolder({ path });
     } catch (err) {
       console.error('[BinaryPreview] Failed to open:', err);
     }
@@ -443,7 +444,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         ?.name ?? null
     );
   });
-  // ASSUMED: scope-stats store chỉ được set khi FileExplore mount, nên tự lấy qua API nếu còn trống
+  // ASSUMED: scope-stats store chỉ được set khi FileExplorer mount, nên tự lấy qua API nếu còn trống
   const effectiveDefaultBranch = useScopeStatsStore((s) => s.defaultBranchByProject[currentProjectId ?? ''] ?? '');
   const setDefaultBranchName = useScopeStatsStore((s) => s.setDefaultBranch);
   const currentProjectRoot = useCodeStore(

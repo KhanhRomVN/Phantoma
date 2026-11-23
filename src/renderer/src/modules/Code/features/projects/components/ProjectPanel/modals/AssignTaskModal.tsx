@@ -18,7 +18,7 @@ import { Modal, ModalBody } from '@renderer/components/ui/Modal';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import type { StoredTask, TaskPriority, TaskStatus } from '../../../../../shared/services/task.service';
 import { STATUS_META } from '../../../../tasks/constants/status-meta.constants';
-import { TaskIcon } from '../SessionCard';
+import { TaskIcon } from '../../SessionCard/SessionBadges';
 
 interface AssignTaskModalProps {
   isOpen: boolean;

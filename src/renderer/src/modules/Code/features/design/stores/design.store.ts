@@ -1,3 +1,4 @@
+import { designIpc } from '../../../shared/ipc/design.ipc';
 import { create } from 'zustand';
 
 export interface DesignNode {
@@ -65,7 +66,7 @@ export const useDesignStore = create<DesignState>((set, get) => {
   loadDesigns: async (projectPath) => {
     set({ loading: true });
     try {
-      const res = await window.api.invoke('design:list', projectPath);
+      const res = await designIpc.list(projectPath);
       const designs: DesignMeta[] = res?.success ? res.data : [];
       const ids = new Set(designs.map((d) => d.id));
       const openTabIds = get().openTabIds.filter((id) => ids.has(id));
@@ -83,7 +84,7 @@ export const useDesignStore = create<DesignState>((set, get) => {
   },
 
   createDesign: async (projectPath, input) => {
-    const res = await window.api.invoke('design:create', projectPath, input);
+    const res = await designIpc.create(projectPath, input);
     if (!res?.success) {
       console.error('[useDesignStore] createDesign failed:', res?.error);
       return null;
@@ -98,7 +99,7 @@ export const useDesignStore = create<DesignState>((set, get) => {
   },
 
   deleteDesign: async (projectPath, designId) => {
-    const res = await window.api.invoke('design:delete', projectPath, designId);
+    const res = await designIpc.remove(projectPath, designId);
     if (!res?.success) return;
     set((s) => {
       const openTabIds = s.openTabIds.filter((id) => id !== designId);
@@ -115,7 +116,7 @@ export const useDesignStore = create<DesignState>((set, get) => {
     set((s) => ({
       designs: s.designs.map((d) => (d.id === designId ? { ...d, ...graph } : d)),
     }));
-    await window.api.invoke('design:update', projectPath, designId, graph);
+    await designIpc.update(projectPath, designId, graph);
   },
 
   openTab: (designId) =>

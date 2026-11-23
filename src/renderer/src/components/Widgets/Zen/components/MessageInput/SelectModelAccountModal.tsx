@@ -34,7 +34,7 @@ import {
   ICON_METHODS,
   authIconFile,
   splitAuthMethod,
-} from '../../feature/Account/components/addAccount.utils';
+} from '../../screens/Account/components/addAccount.utils';
 
 interface Provider {
   provider_id: string;

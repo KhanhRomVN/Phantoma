@@ -18,7 +18,7 @@ import React from 'react';
 import { cn } from '@renderer/utils/cn';
 import { parseDiff, DiffHighlight } from '../../../shared/utils/diff.util';
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/feature/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
 
 // ── Hooks ──
 
@@ -26,15 +26,15 @@ import { getNextUserMessage } from '@renderer/components/Widgets/Zen/feature/Cha
 import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
 
 // ── Types ──
-import { MergedRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
+import { MergedRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
 

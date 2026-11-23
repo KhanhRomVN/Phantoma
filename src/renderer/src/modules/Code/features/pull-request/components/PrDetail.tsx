@@ -1,3 +1,4 @@
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
 /**
  * ------------------------------------------------------------------
  * PR Detail
@@ -170,7 +171,7 @@ export const PrDetail = memo(function PrDetail({
         <div className={'flex flex-wrap items-center gap-2'}>
           <button
             className={BTN}
-            onClick={() => void window.api.invoke('pr:open-external', detail.url)}
+            onClick={() => void shellIpc.openPrExternal(detail.url)}
           >
             <ExternalLink className={'w-3.5 h-3.5'} />
             Open on GitHub

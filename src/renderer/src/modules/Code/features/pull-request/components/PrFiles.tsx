@@ -1,3 +1,4 @@
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
 /**
  * ------------------------------------------------------------------
  * PR Files
@@ -69,7 +70,7 @@ export const PrFiles = memo(function PrFiles({ files, totalFiles, url }: PrFiles
           </span>
           <button
             className={BTN}
-            onClick={() => void window.api.invoke('pr:open-external', `${url}/files`)}
+            onClick={() => void shellIpc.openPrExternal(`${url}/files`)}
           >
             <ExternalLink className={'w-3.5 h-3.5'} />
             View all

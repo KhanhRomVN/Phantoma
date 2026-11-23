@@ -35,7 +35,7 @@ import type { AgentGroup, AgentGroupInput, AgentTerminal } from '../types/agent-
 import type { MCP, MCPInput } from '../types/mcp.types';
 
 // ─── Interfaces ────────────────────────────────────────────────────────
-import type { BranchInfo } from '../../features/projects/components/ProjectPanel/SessionCard';
+import type { BranchInfo } from '../../features/projects/types/session.types';
 import { useBranchScopeStore } from './branch-scope.store';
 import { codeApi, type CodeProject } from '../api/code.api';
 

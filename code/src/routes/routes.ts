@@ -7,7 +7,7 @@ import { registerTaskRoutes } from './task.route';
 import { registerFsRoutes } from './fs.route';
 import { registerGitRoutes } from './git.route';
 import { registerSearchRoutes } from './search.route';
-import { registerPrRoutes } from './pr.route';
+import { registerPrRoutes } from './pull-request.route';
 
 export function registerRoutes(): Router {
   const router = Router();

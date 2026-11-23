@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
 import { useAgentRoot } from '../../context/AgentRootContext';
-import type { GitRepoInfo } from '../../feature/Chat/hooks/workspace/useGitRepoScanner';
+import type { GitRepoInfo } from '../../screens/Chat/hooks/workspace/useGitRepoScanner';
 
 interface GitRepoPickerModalProps {
   isOpen: boolean;

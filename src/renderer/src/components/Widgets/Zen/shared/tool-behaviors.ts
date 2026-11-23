@@ -9,7 +9,7 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolAction } from '@renderer/components/Widgets/Zen/feature/Chat/services/responseParser';
+import type { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
 
 /**
  * Check if a tool should be initially collapsed in UI.

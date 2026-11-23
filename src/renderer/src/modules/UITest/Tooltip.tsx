@@ -10,7 +10,7 @@ const ALIGNS = ['start', 'center', 'end'] as const;
 const DELAYS: number[] = [0, 300, 800];
 const OFFSETS: number[] = [4, 12, 28];
 const ALIGN_OFFSETS: number[] = [0, 10, 20];
-const LONG_TEXT = 'src/renderer/src/components/Widgets/Zen/feature/Chat/components/ChatBody/index.tsx';
+const LONG_TEXT = 'src/renderer/src/components/Widgets/Zen/screens/Chat/components/ChatBody/index.tsx';
 
 function PlacementGrid() {
   const cell = (side: (typeof SIDES)[number], className: string) => (

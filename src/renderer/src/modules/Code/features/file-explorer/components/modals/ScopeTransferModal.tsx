@@ -1,3 +1,4 @@
+import { gitIpc } from '../../../../shared/ipc/git.ipc';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -36,7 +37,7 @@ import {
   BRANCH_PILL,
   type SyncFile,
   type TreeNode,
-} from '../../../git/components/modals/SyncBranchModal';
+} from '../../../git';
 
 export interface ScopeTransferTarget {
   branch: string;
@@ -96,8 +97,7 @@ export function ScopeTransferModal({
     setDiffPath(null);
     setError('');
     setConflicts([]);
-    (window as any).api
-      .invoke('git:branch-sync-preview', targetPath, sourceBranch)
+    gitIpc.invoke('git:branch-sync-preview', targetPath, sourceBranch)
       .then((res: { files?: SyncFile[] }) => {
         if (cancelled) return;
         const byPath = new Map<string, SyncFile>((res?.files ?? []).map((f) => [f.path, f]));

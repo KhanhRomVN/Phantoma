@@ -13,7 +13,7 @@ import {
 import EffortDropdown, { getModelEffortInfo } from './EffortDropdown';
 import type { EffortLevel } from './EffortDropdown';
 import GitRepoPickerModal from './GitRepoPickerModal';
-import { useGitRepoScanner } from '../../feature/Chat/hooks/workspace/useGitRepoScanner';
+import { useGitRepoScanner } from '../../screens/Chat/hooks/workspace/useGitRepoScanner';
 import { getCommitMessagePrompt } from '@renderer/modules/Code/agent/prompts/code';
 
 import { useServerHealth } from '@renderer/providers/ServerHealthProvider';
@@ -27,7 +27,7 @@ import {
   resolvePromptLength,
   resolveStyleCode,
   resolveToolFormats,
-} from '../../feature/Chat/services/moduleRegistry';
+} from '../../screens/Chat/services/moduleRegistry';
 // Use existing Phantoma drawer component
 import SelectModelAccountModal from './SelectModelAccountModal';
 import { cacheGet, cacheSet, providersKey } from './providerModelCache';
@@ -48,12 +48,12 @@ const isBlockedNow = (_ranges: any) => false;
 const getBlockedRangeLabel = (_ranges: any) => '';
 const getBlockedHoursDescription = (_ranges: any) => '';
 
-import { useAccountStats } from '../../feature/Chat/hooks/api/useAccountStats';
+import { useAccountStats } from '../../screens/Chat/hooks/api/useAccountStats';
 import { useAccountAgents, useWorkflowAgentSync } from '../../context/WorkflowAgentContext';
 import { useMultiAgentControl } from '../../context/MultiAgentContext';
 import { Workflow as WorkflowIcon } from 'lucide-react';
 import { SimpleTooltip, TooltipRow, TooltipCard } from './SimpleTooltip';
-import { buildAcceptString } from '../../feature/Chat/utils/file-operations';
+import { buildAcceptString } from '../../screens/Chat/utils/file-operations';
 
 export type { UploadedFile };
 

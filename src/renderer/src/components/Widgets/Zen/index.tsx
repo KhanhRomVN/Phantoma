@@ -16,13 +16,13 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 // ── Components ──
-import HomePanel from './feature/Home';
-import ChatPanel from './feature/Chat';
+import HomePanel from './screens/Home';
+import ChatPanel from './screens/Chat';
 import AgentOverlay from './components/AgentOverlay';
-import AccountPanel from './feature/Account';
-import HistoryPanel from './feature/History';
-import MarketplacePanel from './feature/Marketplace';
-import SettingsPanel from './feature/Setting';
+import AccountPanel from './screens/Account';
+import HistoryPanel from './screens/History';
+import MarketplacePanel from './screens/Marketplace';
+import SettingsPanel from './screens/Setting';
 
 // CONTEXT
 import { ProjectProvider } from './context/ProjectContext';
@@ -31,7 +31,7 @@ import { useDesignStore } from '@renderer/modules/Code/features/design/stores/de
 import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
 
 // ── Types ──
-import { ChatSession } from './feature/Chat/types/chat';
+import { ChatSession } from './screens/Chat/types/chat';
 
 // ── Utils ── (icons)
 import { MousePointer } from 'lucide-react';

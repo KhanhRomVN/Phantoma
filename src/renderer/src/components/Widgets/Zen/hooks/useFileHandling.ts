@@ -22,10 +22,10 @@ import { useSettings } from '../context/SettingsContext';
 import { UploadedFile, ExternalFile, AttachedItem } from '../types/file-uploader';
 
 // UTILS
-import { isFileAllowed, readFileAsText } from '../feature/Chat/utils/file-operations';
+import { isFileAllowed, readFileAsText } from '../screens/Chat/utils/file-operations';
 
 // ── Constants ──
-import { ALLOWED_FILE_EXTENSIONS } from '../feature/Chat/constants/tag-registry';
+import { ALLOWED_FILE_EXTENSIONS } from '../screens/Chat/constants/tag-registry';
 
 interface UseFileHandlingProps {
   accountId?: string;

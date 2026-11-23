@@ -1,4 +1,4 @@
-import type { ZenModule } from '@renderer/components/Widgets/Zen/feature/Chat/services/moduleRegistry';
+import type { ZenModule } from '@renderer/components/Widgets/Zen/screens/Chat/services/moduleRegistry';
 import { CODE_TAG_REGISTRY } from './agent/tag-registry';
 import { CAPABILITIES as CODE_CAPABILITIES } from './agent/prompts/code/config';
 import { CAPABILITIES as ORCHESTRATOR_CAPABILITIES } from './agent/prompts/orchestrator/config';
@@ -6,8 +6,12 @@ import { CAPABILITIES as PLANNER_CAPABILITIES } from './agent/prompts/planner/co
 import { CAPABILITIES as EXECUTOR_CAPABILITIES } from './agent/prompts/executor/config';
 import { CAPABILITIES as REVIEWER_CAPABILITIES } from './agent/prompts/reviewer/config';
 import { CAPABILITIES as TESTER_CAPABILITIES } from './agent/prompts/tester/config';
-import type { ExecutorOptions } from '@renderer/components/Widgets/Zen/feature/Chat/types/executor-types';
-import { CommitMessageRenderer, executeCommitMessage, parseCommitMessage } from './agent/tools/commit-message';
+import type { ExecutorOptions } from '@renderer/components/Widgets/Zen/screens/Chat/types/executor-types';
+import {
+  CommitMessageRenderer,
+  executeCommitMessage,
+  parseCommitMessage,
+} from './agent/tools/commit-message';
 import { DeleteFileRenderer, executeDeleteFile, parseDeleteFile } from './agent/tools/delete-file';
 import { FindFilesRenderer, executeFindFiles, parseFindFiles } from './agent/tools/find-files';
 import { GitDiffRenderer, executeGitDiff, parseGitDiff } from './agent/tools/git-diff';
@@ -18,13 +22,42 @@ import { ReadFileRenderer, executeReadFile, parseReadFile } from './agent/tools/
 import { ReadMemoryRenderer, executeReadMemory, parseReadMemory } from './agent/tools/read-memory';
 import { ReadSkillRenderer, executeReadSkill, parseReadSkill } from './agent/tools/read-skill';
 import { ListAgentsRenderer, executeListAgents, parseListAgents } from './agent/tools/list-agents';
-import { CreateAgentRenderer, executeCreateAgent, parseCreateAgent } from './agent/tools/create-agent';
-import { SendMessageRenderer, executeSendMessage, parseSendMessage } from './agent/tools/send-message';
-import { DeleteAgentRenderer, executeDeleteAgent, parseDeleteAgent } from './agent/tools/delete-agent';
-import { ReplaceInFileRenderer, executeReplaceInFile, parseReplaceInFile } from './agent/tools/replace-in-file';
-import { RunCommandRenderer, executeRunCommand, setRunCommandValidator, parseRunCommand } from './agent/tools/run-command';
-import { UpdateMemoryRenderer, executeUpdateMemory, parseUpdateMemory } from './agent/tools/update-memory';
-import { WriteToFileRenderer, executeWriteToFile, parseWriteToFile } from './agent/tools/write-to-file';
+import {
+  CreateAgentRenderer,
+  executeCreateAgent,
+  parseCreateAgent,
+} from './agent/tools/create-agent';
+import {
+  SendMessageRenderer,
+  executeSendMessage,
+  parseSendMessage,
+} from './agent/tools/send-message';
+import {
+  DeleteAgentRenderer,
+  executeDeleteAgent,
+  parseDeleteAgent,
+} from './agent/tools/delete-agent';
+import {
+  ReplaceInFileRenderer,
+  executeReplaceInFile,
+  parseReplaceInFile,
+} from './agent/tools/replace-in-file';
+import {
+  RunCommandRenderer,
+  executeRunCommand,
+  setRunCommandValidator,
+  parseRunCommand,
+} from './agent/tools/run-command';
+import {
+  UpdateMemoryRenderer,
+  executeUpdateMemory,
+  parseUpdateMemory,
+} from './agent/tools/update-memory';
+import {
+  WriteToFileRenderer,
+  executeWriteToFile,
+  parseWriteToFile,
+} from './agent/tools/write-to-file';
 import { SecurityValidator } from './shared/utils/security.util';
 import { executeMoveFile } from './agent/tools/move-file';
 
@@ -33,18 +66,33 @@ import { executeGetTask, parseGetTask, GetTaskRenderer } from './agent/tools/get
 import { executeCreateTask, parseCreateTask, CreateTaskRenderer } from './agent/tools/create-task';
 import { executeUpdateTask, parseUpdateTask, UpdateTaskRenderer } from './agent/tools/update-task';
 import { executeAssignTask, parseAssignTask, AssignTaskRenderer } from './agent/tools/assign-task';
-import { executeCreateWorkflow, parseCreateWorkflow, CreateWorkflowRenderer } from './agent/tools/create-workflow';
-import { executeGetWorkflow, parseGetWorkflow, GetWorkflowRenderer } from './agent/tools/get-workflow';
-import { executeUpdateWorkflow, parseUpdateWorkflow, UpdateWorkflowRenderer } from './agent/tools/update-workflow';
+import {
+  executeCreateWorkflow,
+  parseCreateWorkflow,
+  CreateWorkflowRenderer,
+} from './agent/tools/create-workflow';
+import {
+  executeGetWorkflow,
+  parseGetWorkflow,
+  GetWorkflowRenderer,
+} from './agent/tools/get-workflow';
+import {
+  executeUpdateWorkflow,
+  parseUpdateWorkflow,
+  UpdateWorkflowRenderer,
+} from './agent/tools/update-workflow';
 import {
   buildPromptForMode as buildCodePrompt,
   buildToolFormatReminder as buildCodeToolFormatReminder,
   type ToolFormat as CodeToolFormat,
 } from './agent/prompts/code';
-import { formatCodeAction, formatCodeCompletedTooltip } from './agent/services/tool-display-formatters';
-import { registerActionDisplayFormatter } from '@renderer/components/Widgets/Zen/feature/Chat/utils/action-display-formatter';
-import { registerCompletedTooltipFormatter as registerTooltipFormatter } from '@renderer/components/Widgets/Zen/feature/Chat/utils/status-tooltip-builder';
-import { registerToolStatusChecker } from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-status-registry';
+import {
+  formatCodeAction,
+  formatCodeCompletedTooltip,
+} from './agent/services/tool-display-formatters';
+import { registerActionDisplayFormatter } from '@renderer/components/Widgets/Zen/screens/Chat/utils/action-display-formatter';
+import { registerCompletedTooltipFormatter as registerTooltipFormatter } from '@renderer/components/Widgets/Zen/screens/Chat/utils/status-tooltip-builder';
+import { registerToolStatusChecker } from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-status-registry';
 import { checkCodeToolStatus } from './agent/services/tool-status-checker';
 import {
   checkCodeToolCollapse,
@@ -57,16 +105,16 @@ import {
   registerToolDangerChecker,
   registerToolMarkdownFormatter,
   registerToolOutputTransformer,
-} from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-behavior-registry';
-import { registerToolOutputFormatter } from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-output-registry';
-import { registerStreamingTool } from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-streaming-registry';
+} from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-behavior-registry';
+import { registerToolOutputFormatter } from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-output-registry';
+import { registerStreamingTool } from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-streaming-registry';
 import {
   registerMutationChecker,
   registerFilePathExtractor,
   registerSingleLineReviewChecker,
   registerDiffCalculator,
   registerRawContentDiffExtractor,
-} from '@renderer/components/Widgets/Zen/feature/Chat/utils/tool-mutation-registry';
+} from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-mutation-registry';
 import { formatCodeToolOutput } from './agent/services/tool-output-formatter';
 import {
   checkCodeToolMutation,

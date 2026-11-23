@@ -1,4 +1,4 @@
-import { extractParamValue } from '@renderer/components/Widgets/Zen/feature/Chat/utils/toolParser';
+import { extractParamValue } from '@renderer/components/Widgets/Zen/screens/Chat/utils/toolParser';
 import type { ReadFileParams } from '../tool.types';
 
 export const parseReadFile = (innerContent: string): ReadFileParams => {

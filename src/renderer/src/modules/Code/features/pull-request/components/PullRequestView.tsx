@@ -14,7 +14,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 import { memo, useCallback, useEffect, useState } from 'react';
-import { ProjectIcon, getProjectIdentity } from '../../projects/components/ProjectPanel/ProjectCard';
+import { ProjectIcon, getProjectIdentity } from '../../projects';
 
 import { useCodeStore } from '../../../shared/stores/code.store';
 import { codeApi } from '../../../shared/api/code.api';

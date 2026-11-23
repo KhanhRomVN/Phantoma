@@ -42,7 +42,16 @@ function withWorktrees(id: string): ProjectWithWorktrees {
   return { ...project, worktrees: attachSessions(worktreeRepository.listByProject(id)) };
 }
 
-function syncWorktrees(projectId: string, items: WorktreeInput[]): void {
+async function detectBranches(items: WorktreeInput[]): Promise<Map<string, string>> {
+  const branches = new Map<string, string>();
+  for (const item of items) {
+    const resolved = path.resolve(requireString(item.path, 'worktree.path'));
+    if (!item.branch) branches.set(resolved, await detectBranch(resolved));
+  }
+  return branches;
+}
+
+function syncWorktrees(projectId: string, items: WorktreeInput[], branches: Map<string, string>): void {
   const keep = new Set<string>();
   for (const item of items) {
     const resolved = path.resolve(requireString(item.path, 'worktree.path'));
@@ -50,7 +59,7 @@ function syncWorktrees(projectId: string, items: WorktreeInput[]): void {
     if (existing && existing.projectId !== projectId) continue;
     if (existing) {
       worktreeRepository.update(existing.id, {
-        branch: item.branch ?? (existing.branch || detectBranch(resolved)),
+        branch: item.branch ?? (existing.branch || branches.get(resolved) || ''),
         visible: item.visible,
         searchTerm: item.searchTerm,
       });
@@ -61,7 +70,7 @@ function syncWorktrees(projectId: string, items: WorktreeInput[]): void {
         id,
         projectId,
         path: resolved,
-        branch: item.branch || detectBranch(resolved),
+        branch: item.branch || branches.get(resolved) || '',
         visible: item.visible ?? true,
         searchTerm: item.searchTerm ?? '',
       });
@@ -93,8 +102,9 @@ export const projectService = {
 
   get: (id: string) => withWorktrees(id),
 
-  create: (input: ProjectInput) => {
+  create: async (input: ProjectInput) => {
     const id = input.id ?? newId();
+    const branches = await detectBranches(input.worktrees ?? []);
     projectRepository.transaction(() => {
       projectRepository.insert({
         id,
@@ -104,21 +114,23 @@ export const projectService = {
         groupId: input.groupId ?? null,
         sortOrder: input.sortOrder ?? projectRepository.nextSortOrder(),
       });
-      if (input.worktrees?.length) syncWorktrees(id, input.worktrees);
+      if (input.worktrees?.length) syncWorktrees(id, input.worktrees, branches);
     });
     return withWorktrees(id);
   },
 
-  update: (id: string, input: ProjectInput) => {
+  update: async (id: string, input: ProjectInput) => {
     found(projectRepository.get(id), 'project');
+    const branches = await detectBranches(input.worktrees ?? []);
     projectRepository.transaction(() => {
       projectRepository.update(id, { name: input.name, logo: input.logo, repositoryUrl: input.repositoryUrl, groupId: input.groupId, sortOrder: input.sortOrder });
-      if (input.worktrees) syncWorktrees(id, input.worktrees);
+      if (input.worktrees) syncWorktrees(id, input.worktrees, branches);
     });
     return withWorktrees(id);
   },
 
-  saveAll: (items: ProjectInput[]) => {
+  saveAll: async (items: ProjectInput[]) => {
+    const branches = await detectBranches(items.flatMap((item) => item.worktrees ?? []));
     projectRepository.transaction(() => {
       const keep = new Set<string>();
       items.forEach((item, index) => {
@@ -127,7 +139,7 @@ export const projectService = {
         const patch = { name: item.name, logo: item.logo, repositoryUrl: item.repositoryUrl, groupId: item.groupId, sortOrder: item.sortOrder ?? index + 1 };
         if (projectRepository.exists(id)) projectRepository.update(id, patch);
         else projectRepository.insert({ id, name: requireString(item.name, 'name'), logo: item.logo ?? null, repositoryUrl: item.repositoryUrl ?? null, groupId: item.groupId ?? null, sortOrder: patch.sortOrder });
-        if (item.worktrees) syncWorktrees(id, item.worktrees);
+        if (item.worktrees) syncWorktrees(id, item.worktrees, branches);
       });
       for (const p of projectRepository.list()) {
         if (keep.has(p.id)) continue;

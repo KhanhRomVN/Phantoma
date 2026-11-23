@@ -1,3 +1,4 @@
+import { debugIpc } from '../../../shared/ipc/debug.ipc';
 /**
  * ------------------------------------------------------------------
  * Debug Store (DAP Client)
@@ -90,7 +91,7 @@ let startToken = 0;
 // ASSUMED: shell POSIX (Linux/macOS) nên dùng single-quote để truyền tham số an toàn
 const quote = (s: unknown) => "'" + String(s).replace(/'/g, "'\\''") + "'";
 
-const getApi = () => (window as any).api;
+const getApi = () => debugIpc.raw();
 
 // ASSUMED: activeWorkspaceSessionId có thể thuộc project khác sau khi đổi project → chọn session đầu tiên của project hiện tại
 function resolveWorkspaceSessionId(): string | null {

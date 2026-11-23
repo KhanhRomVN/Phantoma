@@ -1,3 +1,5 @@
+import { fsIpc } from '../../../shared/ipc/fs.ipc';
+import { dialogIpc } from '../../../shared/ipc/dialog.ipc';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import { codeApi } from '../../../shared/api/code.api';
@@ -46,12 +48,12 @@ export const CodeFile = memo(function CodeFile({ filePath, fileId, cwd }: CodeFi
     if (savingRef.current) return;
     savingRef.current = true;
     try {
-      const result = await window.api.invoke('dialog:show-save', {
+      const result = await dialogIpc.showSave({
         defaultPath: cwd ? `${cwd}/Untitled.md` : 'Untitled.md',
       });
       if (!result || result.canceled || !result.filePath) return;
       const content: string = editorRef.current?.getValue() ?? '';
-      await window.api.invoke('fs:write-file', result.filePath, content);
+      await fsIpc.writeFile(result.filePath, content);
       if (fileId) {
         markFileAsSaved(fileId);
         setOriginalContent(fileId, content);

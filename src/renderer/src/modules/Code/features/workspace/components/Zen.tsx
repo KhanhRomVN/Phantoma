@@ -4,7 +4,7 @@ import { AgentPanel } from '@renderer/components/Widgets/Zen';
 import { SettingsProvider } from '@renderer/components/Widgets/Zen/context/SettingsContext';
 import { useAgentFeature } from '@renderer/components/Widgets/Zen/context/FeatureContext';
 import { useCodeStore } from '../../../shared/stores/code.store';
-import { useDesignStore } from '../../design/stores/design.store';
+import { useDesignStore } from '../../design';
 import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../agent/stores/workflow.store';
 import { USER_ID } from '../../../shared/types/agents.types';
 import AgentMessageBox from '../../../agent/components/AgentMessageBox/AgentMessageBox';

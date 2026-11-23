@@ -8,7 +8,7 @@
 
 import { memo, useState } from 'react';
 
-import { avatarColor, avatarUrl, initials } from '../../git/utils/graph.util';
+import { avatarColor, avatarUrl, initials } from '../../git';
 
 interface PrAvatarProps {
   login?: string | null;

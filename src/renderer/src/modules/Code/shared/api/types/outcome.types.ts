@@ -1,0 +1,1 @@
+export type Outcome<T = object> = ({ ok: true } & T) | { ok: false; error: string; code?: string };

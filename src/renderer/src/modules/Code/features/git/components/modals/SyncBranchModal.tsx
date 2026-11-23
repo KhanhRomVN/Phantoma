@@ -1,3 +1,4 @@
+import { gitIpc } from '../../../../shared/ipc/git.ipc';
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import {
   AlertCircle,
@@ -54,310 +55,23 @@ import {
   groupScopeBlocks,
 } from '../scope/scopeTree';
 
-type FileStatus = 'added' | 'modified' | 'deleted';
-type SourceKind = 'local' | 'remote';
+import {
+  FileStatus,
+  SourceOption,
+  SyncFile,
+  TreeNode,
+  SyncBranchModalProps,
+} from '../../types/sync-branch.types';
 
-interface SourceOption {
-  name: string;
-  kind: SourceKind;
-}
+import { BRANCH_PILL, STATUS_META, WARNING_TONES } from '../../constants/sync-branch.constants';
 
-interface SyncFile {
-  path: string;
-  status: FileStatus;
-  added: number;
-  deleted: number;
-}
+import { stripOrigin, refOf, buildTree, flatten } from '../../utils/sync-branch.util';
 
-interface TreeNode {
-  name: string;
-  path: string;
-  isDir: boolean;
-  children: TreeNode[];
-  file?: SyncFile;
-  added: number;
-  deleted: number;
-  files: string[];
-}
+import { RemoteBadge, DefaultBadge } from './SyncBranch/SyncBranchBadges';
 
-interface SyncBranchModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  targetPath: string;
-  projectName: string;
-  currentBranch: string;
-  branches: string[];
-  onApplied: (count: number, source: string) => void;
-  fixedSource?: { ref: string; label: string };
-  targets?: { name: string; path: string }[];
-  projectId?: string;
-  defaultBranch?: string;
-}
+import { SyncDiffPanel, WarningBox } from './SyncBranch/SyncDiffPanel';
 
-const BRANCH_PILL =
-  'flex h-9 max-w-full cursor-pointer items-center gap-2 rounded-md bg-transparent px-2 text-left text-[14px] text-text-primary transition-colors hover:bg-text-secondary/10 disabled:cursor-default disabled:hover:bg-transparent';
-
-const STATUS_META: Record<FileStatus, { icon: typeof FileDiff; cls: string; label: string }> = {
-  added: { icon: FilePlus2, cls: 'text-success', label: 'Added' },
-  modified: { icon: FileDiff, cls: 'text-warn', label: 'Modified' },
-  deleted: { icon: FileMinus2, cls: 'text-error', label: 'Deleted' },
-};
-
-const stripOrigin = (n: string) => n.replace(/^origin\//, '');
-
-const refOf = (o: SourceOption | null) =>
-  !o ? '' : o.kind === 'remote' ? `origin/${o.name}` : o.name;
-
-function RemoteBadge() {
-  return (
-    <span className="shrink-0 rounded bg-primary/15 px-1.5 py-[3px] text-[10.5px] font-semibold leading-none tracking-wide text-primary">
-      REMOTE
-    </span>
-  );
-}
-
-function DefaultBadge() {
-  return (
-    <span className="shrink-0 rounded bg-success/15 px-1.5 py-[3px] text-[10.5px] font-semibold leading-none tracking-wide text-success">
-      DEFAULT
-    </span>
-  );
-}
-
-const WARNING_TONES = {
-  primary: { badge: 'bg-primary/20 text-primary', title: 'text-primary', icon: FileDiff },
-  warn: { badge: 'bg-warn/20 text-warn', title: 'text-warn', icon: AlertCircle },
-  error: { badge: 'bg-error/20 text-error', title: 'text-error', icon: FileMinus2 },
-};
-
-function SyncDiffPanel({
-  projectPath,
-  sourceRef,
-  sourcePath,
-  filePath,
-  file,
-  paths,
-  onNavigate,
-}: {
-  projectPath: string;
-  sourceRef: string;
-  sourcePath?: string;
-  filePath: string | null;
-  file: SyncFile | null;
-  paths: string[];
-  onNavigate: (path: string) => void;
-}) {
-  const [state, setState] = useState<{ loading: boolean; error: string | null; diff: string }>({
-    loading: true,
-    error: null,
-    diff: '',
-  });
-
-  useEffect(() => {
-    if (!sourceRef || !filePath) return;
-    let cancelled = false;
-    setState({ loading: true, error: null, diff: '' });
-    (window as any).api
-      .invoke(
-        sourcePath ? 'git:worktree-file-diff' : 'git:branch-sync-file-diff',
-        projectPath,
-        sourcePath ?? sourceRef,
-        filePath,
-      )
-      .then((res: { diff?: string; error?: string }) => {
-        if (cancelled) return;
-        setState({ loading: false, error: res?.error ?? null, diff: res?.diff ?? '' });
-      })
-      .catch((e: any) => {
-        if (!cancelled) setState({ loading: false, error: e?.message || String(e), diff: '' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectPath, sourceRef, filePath]);
-
-  if (!filePath) {
-    return (
-      <div className="flex h-full min-w-0 flex-1 items-center justify-center text-[13.5px] text-text-secondary">
-        No file to preview
-      </div>
-    );
-  }
-
-  const index = paths.indexOf(filePath);
-  const canNav = index >= 0 && paths.length > 1;
-  const go = (delta: number) => onNavigate(paths[(index + delta + paths.length) % paths.length]);
-  const name = filePath.split('/').pop() ?? filePath;
-  const dir = filePath.slice(0, Math.max(0, filePath.length - name.length - 1));
-  const meta = file ? STATUS_META[file.status] : null;
-  const BTN =
-    'grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-text-secondary outline-none transition-colors hover:bg-card-hover hover:text-text-primary';
-
-  return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col">
-      <div className="flex h-12 shrink-0 items-center gap-3 border-b border-text-secondary/20 px-4">
-        <img src={getFileIconPath(name)} alt="" className="h-5 w-5 shrink-0" />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate font-mono text-[14px] font-medium text-text-primary">
-            {name}
-          </span>
-          {dir && <span className="truncate font-mono text-[12px] text-text-secondary">{dir}</span>}
-        </div>
-        {meta && (
-          <span
-            className={cn('flex shrink-0 items-center gap-1 text-[12.5px] font-medium', meta.cls)}
-          >
-            <meta.icon className="h-3.5 w-3.5" />
-            {meta.label}
-          </span>
-        )}
-        {file && <Counts added={file.added} deleted={file.deleted} />}
-        {canNav && (
-          <div className="flex shrink-0 items-center gap-1">
-            <button type="button" title="Previous file" onClick={() => go(-1)} className={BTN}>
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="font-mono text-[12.5px] text-text-secondary">
-              {index + 1} / {paths.length}
-            </span>
-            <button type="button" title="Next file" onClick={() => go(1)} className={BTN}>
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      <ModalBody className="p-0">
-        <DiffBlock
-          diff={state.diff}
-          loading={state.loading}
-          error={state.error}
-          rowClassName="text-[13.5px] leading-[22px]"
-        />
-      </ModalBody>
-    </div>
-  );
-}
-
-function WarningBox({
-  title,
-  desc,
-  tone = 'warn',
-}: {
-  title: string;
-  desc: string;
-  tone?: keyof typeof WARNING_TONES;
-}) {
-  const t = WARNING_TONES[tone];
-  return (
-    <div className="flex shrink-0 items-center gap-2.5 p-2">
-      <span className={cn('grid h-7 w-7 shrink-0 place-items-center rounded-md', t.badge)}>
-        <t.icon className="h-3.5 w-3.5" />
-      </span>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className={cn('text-[12.5px] font-semibold', t.title)}>{title}</span>
-        <span className="text-[11.5px] leading-snug text-text-secondary">{desc}</span>
-      </div>
-    </div>
-  );
-}
-
-function buildTree(files: SyncFile[]): TreeNode[] {
-  const root: TreeNode = {
-    name: '',
-    path: '',
-    isDir: true,
-    children: [],
-    added: 0,
-    deleted: 0,
-    files: [],
-  };
-  for (const f of files) {
-    const parts = f.path.split('/');
-    let node = root;
-    parts.forEach((seg, i) => {
-      const last = i === parts.length - 1;
-      const p = parts.slice(0, i + 1).join('/');
-      let child = node.children.find((c) => c.name === seg && c.isDir === !last);
-      if (!child) {
-        child = { name: seg, path: p, isDir: !last, children: [], added: 0, deleted: 0, files: [] };
-        node.children.push(child);
-      }
-      if (last) {
-        child.file = f;
-        child.added = f.added;
-        child.deleted = f.deleted;
-      } else {
-        child.added += f.added;
-        child.deleted += f.deleted;
-        child.files.push(f.path);
-      }
-      node = child;
-    });
-  }
-  const finalize = (n: TreeNode): TreeNode => {
-    n.children.sort((a, b) =>
-      a.isDir === b.isDir ? a.name.localeCompare(b.name) : a.isDir ? -1 : 1,
-    );
-    n.children = n.children.map(finalize);
-    if (n.isDir && n.name && n.children.length === 1 && n.children[0].isDir) {
-      const only = n.children[0];
-      return { ...only, name: `${n.name}/${only.name}` };
-    }
-    return n;
-  };
-  return finalize(root).children;
-}
-
-function flatten(
-  nodes: TreeNode[],
-  collapsed: Set<string>,
-  depth = 0,
-  out: { node: TreeNode; depth: number }[] = [],
-) {
-  for (const n of nodes) {
-    out.push({ node: n, depth });
-    if (n.isDir && !collapsed.has(n.path)) flatten(n.children, collapsed, depth + 1, out);
-  }
-  return out;
-}
-
-function Checkbox({
-  state,
-  onClick,
-}: {
-  state: 'all' | 'some' | 'none';
-  onClick: (e: MouseEvent) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={state === 'some' ? 'mixed' : state === 'all'}
-      onClick={onClick}
-      className={cn(
-        'grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded-[4px] border outline-none transition-all duration-100 active:scale-90',
-        state === 'none'
-          ? 'border-text-secondary/40 bg-transparent hover:border-primary'
-          : 'border-primary bg-primary text-white',
-      )}
-    >
-      {state === 'all' && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
-      {state === 'some' && <Minus className="h-2.5 w-2.5" strokeWidth={3} />}
-    </button>
-  );
-}
-
-function Counts({ added, deleted }: { added: number; deleted: number }) {
-  if (!added && !deleted) return null;
-  return (
-    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[12px]">
-      {added > 0 && <span className="text-success">+{added}</span>}
-      {deleted > 0 && <span className="text-error">-{deleted}</span>}
-    </span>
-  );
-}
-
+import { Checkbox, Counts } from './SyncBranch/SyncBranchControls';
 export function SyncBranchModal({
   isOpen,
   onClose,
@@ -510,7 +224,7 @@ export function SyncBranchModal({
         }
       }
       if (cancelled) return;
-      return (window as any).api.invoke('git:branch-sync-preview', targetPath, ref);
+      return gitIpc.invoke('git:branch-sync-preview', targetPath, ref);
     };
     run()
       .then((res: any) => {
@@ -826,7 +540,7 @@ export function SyncBranchModal({
     if (!selected) return;
     setUnpushedLoading(true);
     try {
-      const res = await (window as any).api.invoke('git:unpushed-files', targetPath, selected.name);
+      const res = await gitIpc.invoke('git:unpushed-files', targetPath, selected.name);
       if (res?.error) {
         setError(res.error);
         return;
@@ -853,7 +567,7 @@ export function SyncBranchModal({
     setApplying(true);
     setError('');
     try {
-      const res = await (window as any).api.invoke(
+      const res = await gitIpc.invoke(
         'git:branch-sync-apply',
         targetPath,
         ref,

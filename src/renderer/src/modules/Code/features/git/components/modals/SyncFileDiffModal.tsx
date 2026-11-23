@@ -1,3 +1,4 @@
+import { gitIpc } from '../../../../shared/ipc/git.ipc';
 /**
  * ------------------------------------------------------------------
  * Sync File Diff Modal
@@ -298,8 +299,7 @@ export function SyncFileDiffModal({
     if (!isOpen || !filePath || !sourceRef) return;
     let cancelled = false;
     setPanel({ loading: true, error: null, diff: '' });
-    (window as any).api
-      .invoke('git:branch-sync-file-diff', projectPath, sourceRef, filePath)
+    gitIpc.invoke('git:branch-sync-file-diff', projectPath, sourceRef, filePath)
       .then((res: { diff?: string; error?: string }) => {
         if (cancelled) return;
         setPanel({ loading: false, error: res?.error ?? null, diff: res?.diff ?? '' });

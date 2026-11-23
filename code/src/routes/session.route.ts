@@ -7,7 +7,7 @@ export function registerSessionRoutes(): Router {
   const router = express.Router();
 
   router.get('/sessions', handle((_req, res) => json(res, 200, sessionService.list())));
-  router.post('/sessions', handle((req, res) => json(res, 201, sessionService.create(req.body ?? {}))));
+  router.post('/sessions', handle(async (req, res) => json(res, 201, await sessionService.create(req.body ?? {}))));
   router.get('/sessions/:id', handle((req, res) => json(res, 200, sessionService.get(param(req.params.id)))));
   router.put(
     '/sessions/:id',

@@ -3,7 +3,7 @@
  * Bao gồm cấu hình permission và timeout cho từng tool.
  */
 
-import type { TagDefinition } from '@renderer/components/Widgets/Zen/feature/Chat/types/tag-types';
+import type { TagDefinition } from '@renderer/components/Widgets/Zen/screens/Chat/types/tag-types';
 import { BROWSER_TOOL_NAMES } from './tools/browser/browser.parser';
 
 const BROWSER_TOOL_TAGS: Record<string, TagDefinition> = Object.fromEntries(

@@ -1,3 +1,5 @@
+import { dialogIpc } from './shared/ipc/dialog.ipc';
+import { fsIpc } from './shared/ipc/fs.ipc';
 /**
  * ------------------------------------------------------------------
  * Code
@@ -189,9 +191,9 @@ export function Code() {
           const ext = dotIdx > 0 ? baseName.substring(dotIdx) : '';
           const defaultPath = dir ? dir + '/' + stem + '_copy' + ext : stem + '_copy' + ext;
 
-          const result = await window.api.invoke('dialog:show-save', { defaultPath });
+          const result = await dialogIpc.showSave({ defaultPath });
           if (!result || result.canceled || !result.filePath) return;
-          await window.api.invoke('fs:write-file', result.filePath, content);
+          await fsIpc.writeFile(result.filePath, content);
         } catch (err) {
           console.error('[Code] Ctrl+Shift+S save-as failed:', err);
         }

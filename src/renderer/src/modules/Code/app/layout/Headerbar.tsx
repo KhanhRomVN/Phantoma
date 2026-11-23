@@ -46,8 +46,11 @@ import { useAccentColors } from '@renderer/hooks/useAccentColors';
 
 import { useSessionTasks } from '../../features/projects/hooks/useSessionTasks';
 import { codeApi } from '../../shared/api/code.api';
-import { getTempSessionName } from '../../features/projects/components/ProjectPanel/SessionCard';
-import { getProjectIdentity, ProjectIcon } from '../../features/projects/components/ProjectPanel/ProjectCard';
+import { getTempSessionName } from '../../features/projects/utils/session.util';
+import {
+  getProjectIdentity,
+  ProjectIcon,
+} from '../../features/projects/components/ProjectCard/ProjectIcon';
 import { ArchivedTasksModal } from '../../features/tasks/components/modals/ArchivedTasksModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
