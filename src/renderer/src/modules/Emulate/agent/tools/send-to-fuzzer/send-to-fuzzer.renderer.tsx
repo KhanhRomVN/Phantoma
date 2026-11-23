@@ -1,9 +1,9 @@
 import React from 'react';
 import { cn } from '@renderer/utils/cn';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
-import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 
 interface SendToFuzzerBlockProps {
   content: string;
@@ -13,10 +13,7 @@ interface SendToFuzzerBlockProps {
 /**
  * Block hiển thị kết quả thêm request vào Fuzzer.
  */
-const SendToFuzzerBlock: React.FC<SendToFuzzerBlockProps> = ({
-  content,
-  maxHeight = '200px',
-}) => {
+const SendToFuzzerBlock: React.FC<SendToFuzzerBlockProps> = ({ content, maxHeight = '200px' }) => {
   return (
     <div className="mt-1 bg-background border rounded-[4px] overflow-hidden">
       <pre

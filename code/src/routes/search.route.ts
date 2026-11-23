@@ -1,42 +1,36 @@
 import express, { Router } from 'express';
-import { searchService } from '../services/search.service';
-import { found } from '../utils/guard';
-import { handle } from '../utils/http';
+import { searchService } from '../services/search/search.service';
+import { requireString, safePath } from '../http/guard';
+import { handle, json } from '../http/envelope';
+import { queryBool } from '../http/params';
+import { openSse } from '../http/sse';
 
 export function registerSearchRoutes(): Router {
   const router = express.Router();
 
-  // SSE endpoint for streaming search results
   router.get(
     '/search/stream',
     handle((req, res) => {
-      const searchId = found(req.query.searchId, 'searchId') as string;
-      const projectPath = found(req.query.projectPath, 'projectPath') as string;
-      const query = found(req.query.query, 'query') as string;
-      const caseSensitive = req.query.caseSensitive === 'true';
-      const wholeWord = req.query.wholeWord === 'true';
-      const isRegex = req.query.isRegex === 'true';
+      const searchId = requireString(req.query.searchId, 'searchId');
+      const projectPath = safePath(req.query.projectPath, 'projectPath', { withinProject: true });
+      const query = requireString(req.query.query, 'query');
+      const caseSensitive = queryBool(req.query.caseSensitive);
+      const wholeWord = queryBool(req.query.wholeWord);
+      const isRegex = queryBool(req.query.isRegex);
       const includePattern = (req.query.includePattern as string | undefined) || undefined;
       const excludePattern = (req.query.excludePattern as string | undefined) || undefined;
 
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.flushHeaders();
+      const sse = openSse(res);
 
       searchService.search(
         searchId,
         projectPath,
         query,
         { caseSensitive, wholeWord, isRegex, includePattern, excludePattern },
-        (results) => {
-          res.write(`event: chunk\n`);
-          res.write(`data: ${JSON.stringify({ searchId, results })}\n\n`);
-        },
+        (results) => sse.send('chunk', { searchId, results }),
         (result) => {
-          res.write(`event: done\n`);
-          res.write(`data: ${JSON.stringify({ searchId, ...result })}\n\n`);
-          res.end();
+          sse.send('done', { searchId, ...result });
+          sse.close();
         },
       );
 
@@ -46,13 +40,12 @@ export function registerSearchRoutes(): Router {
     }),
   );
 
-  // Cancel search
   router.post(
     '/search/cancel',
     handle((req, res) => {
-      const searchId = found(req.body?.searchId, 'searchId');
+      const searchId = requireString(req.body?.searchId, 'searchId');
       searchService.cancel(searchId);
-      res.json({ success: true, data: { cancelled: true } });
+      json(res, 200, { cancelled: true });
     }),
   );
 

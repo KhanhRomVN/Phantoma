@@ -2,7 +2,7 @@
   "watch": ["src"],
   "ext": "ts,js,json",
   "ignore": ["node_modules", "src/**/*.spec.ts", "coverage", "dist"],
-  "exec": "tsx -r dotenv/config ./src/index.ts",
+  "exec": "tsx -r dotenv/config ./src/main.ts",
   "env": {
     "NODE_ENV": "development"
   }

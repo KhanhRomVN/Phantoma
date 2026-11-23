@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 
-import type { WorkflowAgentId } from '../feature/Chat/types/workflow-agents';
+import type { WorkflowAgentId } from '../screens/Chat/types/workflow-agents';
 
 const AGENT_MESSAGE_REGEX = /<agent-message from="([^"]+)">\n([\s\S]*?)\n<\/agent-message>/;
 

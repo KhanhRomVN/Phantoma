@@ -23,8 +23,7 @@ export { setupGitHandlers } from './git.handlers';
 export { setupBackupHandlers } from './backup.handlers';
 export { setupSqlViewerHandlers } from './sql-viewer.handlers';
 export { setupPullRequestHandlers } from './pullrequest.handlers';
-export { setupTaskHandlers } from './task.handlers';
-export { setupWorkflowHandlers } from './workflow.handlers';
+
 export { setupLoggerHandlers } from './logger.handlers';
 // export { setupBrowserHandlers } from './puppeteer.handlers'; // Deprecated - moved to recon server
 export { setupReconHandlers } from './recon.handlers';
@@ -32,7 +31,7 @@ export { registerWorkspaceHandlers } from './webview.handlers';
 export { setupMemoryHandlers } from './memory.handlers';
 export { setupSkillHandlers } from './skill.handlers';
 export { setupTitleHandlers } from './title.handlers';
-export { setupWorkspaceDataHandlers } from './workspace.handlers';
+
 export { setupDesignHandlers } from './design.handlers';
 export { setupRuntimeHandlers } from './runtime.handlers';
 export { setupDebugHandlers } from './debug.handlers';

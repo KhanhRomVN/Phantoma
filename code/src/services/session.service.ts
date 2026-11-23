@@ -19,7 +19,7 @@ export interface SessionInput {
 }
 
 // ASSUMED: worktree chưa kịp sync (saveAll debounce) thì tự tạo theo (projectId, worktreePath)
-function resolveWorktreeId(input: SessionInput): string {
+async function resolveWorktreeId(input: SessionInput): Promise<string> {
   if (input.worktreeId) return found(worktreeRepository.get(input.worktreeId), 'worktree').id;
   const projectId = requireString(input.projectId, 'projectId');
   const resolved = path.resolve(requireString(input.worktreePath, 'worktreePath'));
@@ -35,7 +35,7 @@ function resolveWorktreeId(input: SessionInput): string {
     id,
     projectId,
     path: resolved,
-    branch: detectBranch(resolved),
+    branch: await detectBranch(resolved),
     visible: true,
     searchTerm: '',
   });
@@ -48,8 +48,8 @@ export const sessionService = {
   get: (id: string) => found(sessionRepository.get(id), 'session'),
 
   // Mỗi worktree chỉ có 1 session: tạo mới sẽ thay thế session cũ
-  create: (input: SessionInput) => {
-    const worktreeId = resolveWorktreeId(input);
+  create: async (input: SessionInput) => {
+    const worktreeId = await resolveWorktreeId(input);
     const id = input.id ?? newId();
     sessionRepository.transaction(() => {
       sessionRepository.removeByWorktree(worktreeId);

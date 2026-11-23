@@ -15,7 +15,7 @@
 
 import React, { useState } from 'react';
 import { Ban, Stethoscope, Sparkles, Brain, Code2, Check, Zap } from 'lucide-react';
-import type { SystemPromptMode } from '@renderer/modules/Code/prompts/code';
+import type { SystemPromptMode } from '@renderer/modules/Code/agent/prompts/code';
 import {
   Dropdown,
   DropdownTrigger,

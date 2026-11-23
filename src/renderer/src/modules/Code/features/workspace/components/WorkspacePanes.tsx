@@ -1,0 +1,1058 @@
+/**
+ * Renders the 2x2 pane grid with tabs.
+ *
+ * Panel bodies live in ONE flat list (keyed by panel id) and are positioned
+ * absolutely, so moving a tab between panes never unmounts it
+ * (terminals keep their sessions).
+ *
+ * Tabs are dragged with plain mouse events (see useWorkspaceInteractions),
+ * NOT the HTML5 drag & drop API, so tabs must NOT be `draggable`.
+ */
+
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
+import {
+  Plus,
+  Terminal as TerminalIcon,
+  Globe,
+  FileText,
+  MonitorPlay,
+  X,
+  Circle,
+  Pin,
+  Palette,
+} from 'lucide-react';
+import { useCodeStore } from '../../../shared/stores/code.store';
+import { cn } from '@renderer/utils/cn';
+import { CodeTerminal } from './Terminal';
+import { CodeBrowser } from './Browser';
+
+import { CodeFile } from './File';
+import { CodeAgent } from './Zen';
+import { CodeAgentTools } from './AgentTools';
+import { Design as CodeDesign } from './Design';
+
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+} from '@renderer/components/ui/Dropdown';
+import { getFileIconPath } from '@renderer/utils/file-icon';
+import { useGitFileStatus } from '../hooks/useGitFileStatus';
+import { getAgentFavicon } from '../../../shared/constants/workspace-agents.constants';
+import { getConversation } from '@renderer/components/Widgets/AgentTools/services/conversationStorage';
+import type { SessionStatus } from '../../projects';
+import {
+  TABBAR_HEIGHT,
+  findPaneOfPanel,
+  type PaneActive,
+  type PaneRect,
+  type PaneRects,
+  type PaneTabs,
+  type PanelType,
+  type ResizeHandle,
+  type WorkspacePanel,
+} from '../../../shared/utils/workspace-layout.util';
+
+// ─── Panel metadata ───────────────────────────────────────────────────
+
+/**
+ * Xây dựng lệnh shell để auto-resume ZenCLI dựa trên binding stored trong panel.
+ * Trả về null nếu không có binding hợp lệ hoặc binding đã stale (>24h).
+ */
+function buildZenCliCommand(panel: WorkspacePanel): string | null {
+  if (!panel.zencliConversationId) return null;
+
+  // Kiểm tra freshness: nếu lastActive > 24h thì coi như stale, không auto-resume
+  const now = Date.now();
+  const maxAgeMs = 24 * 60 * 60 * 1000; // 24 hours
+  if (panel.zencliLastActiveAt && now - panel.zencliLastActiveAt > maxAgeMs) {
+    return null;
+  }
+
+  // Binary chính thức là `zen-cli` (xem package.json bin field của ZenCLI)
+  return `zen-cli --resume ${panel.zencliConversationId}`;
+}
+
+const CLI_AGENT_IDS = ['claude', 'opencode', 'codex'];
+
+function CliAgentsIcon({ iconClass }: { iconClass: string }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setIndex((i) => (i + 1) % CLI_AGENT_IDS.length), 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span className={cn('relative inline-block shrink-0', iconClass)}>
+      {CLI_AGENT_IDS.map((id, i) => (
+        <img
+          key={id}
+          src={getAgentFavicon(id)}
+          alt={id}
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-contain transition-all duration-500"
+          style={{
+            opacity: i === index ? 1 : 0,
+            transform: i === index ? 'scale(1)' : 'scale(0.6)',
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+export function getPanelMeta(
+  type: PanelType,
+  iconClass = 'w-3.5 h-3.5',
+): { icon: ReactNode; label: string } {
+  switch (type) {
+    case 'terminal':
+      return {
+        icon: <TerminalIcon className={cn(iconClass, 'text-orange-400')} />,
+        label: 'Terminal',
+      };
+    case 'website':
+      return { icon: <Globe className={cn(iconClass, 'text-sky-400')} />, label: 'Browser' };
+
+    case 'file':
+      return { icon: <FileText className={cn(iconClass, 'text-emerald-400')} />, label: 'File' };
+    case 'agent':
+      return {
+        icon: (
+          <img
+            src={`${(window as any).__zenImagesUri || '/images'}/zen-logo.png`}
+            alt="Zen"
+            className={cn(iconClass, 'object-contain')}
+            draggable={false}
+          />
+        ),
+        label: 'Zen',
+      };
+    case 'agenttools':
+      return {
+        icon: <CliAgentsIcon iconClass={iconClass} />,
+        label: 'CLI Agents',
+      };
+    case 'emulator':
+      return {
+        icon: <MonitorPlay className={cn(iconClass, 'text-pink-400')} />,
+        label: 'Emulator',
+      };
+    case 'design':
+      return {
+        icon: <Palette className={cn(iconClass, 'text-purple-400')} />,
+        label: 'Design',
+      };
+
+    default:
+      return { icon: null, label: 'Unknown' };
+  }
+}
+
+/** Panel types offered by the "+" dropdown. */
+const ADD_MENU_TYPES: PanelType[] = ['terminal', 'website', 'agent', 'agenttools'];
+
+// ─── Tab ──────────────────────────────────────────────────────────────
+
+const AGENT_TOOLS_NAMES: Record<string, string> = {
+  claude: 'Claude Code',
+  codex: 'Codex',
+  opencode: 'OpenCode',
+};
+
+// ASSUMED: panel chưa có conversation thì lấy agent đang chọn gần nhất trong MessageInput
+function getAgentToolsInfo(panel: WorkspacePanel): { providerId?: string; title: string } {
+  let providerId: string | undefined;
+  let conversationTitle: string | undefined;
+  if (panel.agentConversationId) {
+    const conversation = getConversation(panel.agentConversationId);
+    providerId = conversation?.provider;
+    conversationTitle = conversation?.title;
+  }
+  if (!providerId) {
+    try {
+      providerId = JSON.parse(localStorage.getItem('agent-tools:last-selection') ?? 'null')?.providerId;
+    } catch {
+      providerId = undefined;
+    }
+  }
+  const name = providerId ? (AGENT_TOOLS_NAMES[providerId] ?? providerId) : 'CLI Agents';
+  return { providerId, title: conversationTitle ? `${name}|${conversationTitle}` : name };
+}
+
+function getPanelTitle(panel: WorkspacePanel): string {
+  const label = getPanelMeta(panel.type).label;
+  if (panel.type === 'agent') {
+    if (panel.workflowAgentId) return panel.title;
+    return panel.agentTitle ? `Zen|${panel.agentTitle}` : 'Zen';
+  }
+  if (panel.type === 'agenttools') return getAgentToolsInfo(panel).title;
+  if (panel.type === 'website') return panel.browserTitle || panel.title || label;
+  if (panel.type === 'terminal') return panel.terminalProcess || panel.title || label;
+  if (panel.type === 'design') {
+    // ASSUMED: Design title lấy từ store dựa vào content (designId)
+    const designId = panel.content;
+    if (designId) {
+      try {
+        const designs = (window as any).__designStore?.getState?.()?.designs || [];
+        const design = designs.find((d: any) => d.id === designId);
+        if (design) return design.name;
+      } catch {
+        // Fallback to panel.title or label
+      }
+    }
+  }
+  return panel.title || label;
+}
+
+interface WorkspaceTabProps {
+  panel: WorkspacePanel;
+  isActive: boolean;
+  onClick: () => void;
+  onClose: () => void;
+  /** Called on mousedown; the interactions hook decides when it becomes a drag. */
+  onDragStart: (e: MouseEvent, id: string) => void;
+  onContextMenu: (e: MouseEvent, id: string) => void;
+}
+
+function WorkspaceTab({
+  panel,
+  isActive,
+  onClick,
+  onClose,
+  onDragStart,
+  onContextMenu,
+}: WorkspaceTabProps) {
+  const meta = getPanelMeta(panel.type);
+  const isDirty = useCodeStore((s) => {
+    if (panel.type !== 'file') return false;
+    const project = s.projects.find((p) => p.id === s.currentProjectId);
+    return project?.unsavedFiles?.has(panel.id) ?? false;
+  });
+
+  // Determine if we should show Agent info instead of generic panel icon/title
+  // This assumes panel.content or a specific field holds the providerId when detected.
+  // Looking at CodeTerminal, it calls onProviderChange. We need to ensure WorkspacePanel receives/stores this.
+  // For now, let's assume panel.providerId exists based on previous context or fallback to standard behavior.
+  // If the structure doesn't have providerId directly on panel, we might need to check how state flows.
+  // However, typically in these apps, the panel object is updated with metadata.
+  // Let's stick to the visual requirement: if it's a terminal AND has an agent, show favicon + name.
+
+  const gitRoot = useCodeStore((s) => {
+    if (panel.type !== 'file') return undefined;
+    const project = s.projects.find((p) => p.id === s.currentProjectId);
+    return project?.explorerRoot ?? project?.path;
+  });
+  const gitStatus = useGitFileStatus(gitRoot);
+  const fileGitStatus =
+    panel.type === 'file' && panel.filePath ? gitStatus[panel.filePath] : undefined;
+
+  const agentId = (panel as any).providerId; // Accessing potentially dynamic field
+  const faviconUrl = agentId ? getAgentFavicon(agentId) : undefined;
+
+  const isAgentTab = panel.type === 'agent';
+  const zenLogoUrl = `${(window as any).__zenImagesUri || '/images'}/zen-logo.png`;
+  const displayTitle = getPanelTitle(panel);
+  const agentToolsFavicon =
+    panel.type === 'agenttools' ? getAgentFavicon(getAgentToolsInfo(panel).providerId) : undefined;
+  const showAgentBadge = !!agentId && panel.type === 'terminal';
+
+  return (
+    <div
+      data-tab-id={panel.id}
+      // NO `draggable` here: native HTML5 drag would steal mousemove/mouseup from the window listeners.
+      onMouseDown={(e) => {
+        if (e.button !== 0) return;
+        onDragStart(e, panel.id);
+      }}
+      onContextMenu={(e) => onContextMenu(e, panel.id)}
+      // The hook swallows the click that follows a drag, so this only fires on a real click.
+      onClick={onClick}
+      onDoubleClick={() => {
+        if (panel.type !== 'file' || !panel.filePath) return;
+        window.dispatchEvent(
+          new CustomEvent('workspace:reveal-file', { detail: { path: panel.filePath } }),
+        );
+      }}
+      className={cn(
+        'group/tab h-9 px-3 flex items-center gap-2 shrink-0 transition-colors text-[13px] relative',
+        'border-r border-border',
+        isActive
+          ? 'bg-card-background text-text-primary border-b-2 border-b-primary/80' // Added bottom border
+          : 'bg-panel-background text-text-secondary hover:bg-white/[0.03]',
+      )}
+      style={{ cursor: 'grab', userSelect: 'none' }}
+    >
+      {showAgentBadge && faviconUrl ? (
+        <img
+          src={faviconUrl}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : agentToolsFavicon ? (
+        <img
+          src={agentToolsFavicon}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : isAgentTab ? (
+        <img
+          src={zenLogoUrl}
+          alt="Zen"
+          className="w-3.5 h-3.5 shrink-0 object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
+        />
+      ) : panel.type === 'website' && panel.browserFavicon ? (
+        <img
+          src={panel.browserFavicon}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : panel.type === 'terminal' && panel.terminalRunning ? (
+        <TerminalIcon
+          className="w-3.5 h-3.5 shrink-0 text-green-500"
+          style={{ pointerEvents: 'none' }}
+        />
+      ) : panel.type === 'file' ? (
+        <img
+          src={getFileIconPath(displayTitle)}
+          alt=""
+          className="w-3.5 h-3.5 shrink-0 object-contain"
+          style={{ pointerEvents: 'none' }}
+          draggable={false}
+        />
+      ) : (
+        <span className="shrink-0 opacity-70" style={{ pointerEvents: 'none' }}>
+          {meta.icon}
+        </span>
+      )}
+
+      <span
+        className={cn(
+          (isAgentTab || panel.type === 'agenttools') && 'max-w-[180px] truncate',
+          panel.preview && !isDirty && 'italic',
+          fileGitStatus === 'added' && 'text-emerald-500',
+          fileGitStatus === 'modified' && 'text-orange-400',
+        )}
+        style={{ pointerEvents: 'none' }}
+      >
+        {showAgentBadge ? agentId : displayTitle}
+      </span>
+
+      {panel.pinned && (
+        <Pin className="w-3 h-3 shrink-0 opacity-60" style={{ pointerEvents: 'none' }} />
+      )}
+
+      {isDirty && (
+        <Circle
+          className="w-2.5 h-2.5 ml-auto shrink-0 fill-current group-hover/tab:hidden"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
+
+      <button
+        draggable={false}
+        // Pressing × must not start a tab drag
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className={`opacity-0 group-hover/tab:opacity-100 transition-opacity w-5 h-5 items-center justify-center rounded hover:bg-white/10 p-0 border-0 outline-none focus:outline-none ${isDirty ? 'hidden group-hover/tab:flex' : 'flex ml-auto'}`}
+        style={{ cursor: 'pointer' }}
+        aria-label={`Close ${displayTitle}`}
+      >
+        <X className="w-3.5 h-3.5 stroke-current" strokeWidth={2.5} />
+      </button>
+    </div>
+  );
+}
+
+// ─── TabBar ───────────────────────────────────────────────────────────
+
+export interface TabBarProps {
+  /** Panels of this pane, already in tab order. */
+  panels: WorkspacePanel[];
+  activeId: string | null;
+  onSelectTab: (id: string) => void;
+  onCloseTab: (id: string) => void;
+  onDragStart: (e: MouseEvent, id: string) => void;
+  onAddPanel: (type: PanelType) => void;
+  onCloseTabs: (ids: string[]) => void;
+  onTogglePin: (id: string) => void;
+  onKeepOpen: (id: string) => void;
+}
+
+// ─── Overlay broadcast events ─────────────────────────────────────────
+// BrowserView là native layer Electron nằm TRÊN web content → mọi dropdown
+// DOM đều bị che bất kể z-index. Cách duy nhất: co bounds BrowserView về 0×0
+// khi overlay mở và re-sync từ getBoundingClientRect() khi overlay đóng.
+// Dùng CustomEvent local (không qua IPC global) để tránh bug trắng xóa do
+// bounds stale hoặc web contents suspend quá lâu.
+export const OVERLAY_OPEN_EVENT = 'phantoma:overlay-open';
+export const OVERLAY_CLOSE_EVENT = 'phantoma:overlay-close';
+
+function broadcastOverlayOpen() {
+  window.dispatchEvent(new CustomEvent(OVERLAY_OPEN_EVENT));
+}
+function broadcastOverlayClose() {
+  window.dispatchEvent(new CustomEvent(OVERLAY_CLOSE_EVENT));
+}
+
+function useOverlayOpen() {
+  const [open, setOpen] = useState(false);
+  const openRef = useRef(false);
+
+  const handleChange = useCallback((next: boolean) => {
+    if (openRef.current === next) return;
+    openRef.current = next;
+    setOpen(next);
+    if (next) broadcastOverlayOpen();
+    else broadcastOverlayClose();
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') handleChange(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, handleChange]);
+
+  useEffect(() => {
+    return () => {
+      if (openRef.current) broadcastOverlayClose();
+    };
+  }, []);
+
+  return [open, handleChange] as const;
+}
+
+export function TabBar({
+  panels,
+  activeId,
+  onSelectTab,
+  onCloseTab,
+  onDragStart,
+  onAddPanel,
+  onCloseTabs,
+  onTogglePin,
+  onKeepOpen,
+}: TabBarProps) {
+  const [menuOpen, handleMenuOpenChange] = useOverlayOpen();
+  const [ctxOpen, handleCtxOpenChange] = useOverlayOpen();
+  const [ctxTarget, setCtxTarget] = useState<{
+    id: string;
+    pos: { top: number; left: number };
+  } | null>(null);
+  const projectRoot = useCodeStore((s) => {
+    const project = s.projects.find((p) => p.id === s.currentProjectId);
+    return project?.explorerRoot ?? project?.path;
+  });
+
+  const openContextMenu = useCallback(
+    (e: MouseEvent, id: string) => {
+      e.preventDefault();
+      setCtxTarget({ id, pos: { top: e.clientY, left: e.clientX } });
+      handleCtxOpenChange(true);
+    },
+    [handleCtxOpenChange],
+  );
+  const handleCtxChange = (next: boolean) => {
+    handleCtxOpenChange(next);
+    if (!next) setCtxTarget(null);
+  };
+  const ctxPanel = ctxTarget ? panels.find((p) => p.id === ctxTarget.id) : undefined;
+  const ctxIndex = ctxPanel ? panels.indexOf(ctxPanel) : -1;
+  const copyText = (text: string) => {
+    void navigator.clipboard.writeText(text);
+  };
+  const getRelativePath = (panel: WorkspacePanel) => {
+    const filePath = panel.filePath ?? '';
+    const root = (panel.cwd ?? projectRoot ?? '').replace(/[\\/]+$/, '');
+    return root && filePath.startsWith(root)
+      ? filePath.slice(root.length).replace(/^[\\/]+/, '')
+      : filePath;
+  };
+  const [overflowOpen, handleOverflowOpenChange] = useOverlayOpen();
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [overflowIds, setOverflowIds] = useState<string[]>([]);
+
+  const measureOverflow = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const viewLeft = el.scrollLeft;
+    const viewRight = viewLeft + el.clientWidth;
+    const ids: string[] = [];
+    el.querySelectorAll<HTMLElement>('[data-tab-id]').forEach((node) => {
+      const left = node.offsetLeft;
+      const right = left + node.offsetWidth;
+      if (left < viewLeft - 1 || right > viewRight + 1) ids.push(node.dataset.tabId as string);
+    });
+    setOverflowIds((prev) =>
+      prev.length === ids.length && prev.every((v, i) => v === ids[i]) ? prev : ids,
+    );
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    measureOverflow();
+    const observer = new ResizeObserver(measureOverflow);
+    observer.observe(el);
+    Array.from(el.children).forEach((child) => observer.observe(child));
+    el.addEventListener('scroll', measureOverflow);
+    return () => {
+      observer.disconnect();
+      el.removeEventListener('scroll', measureOverflow);
+    };
+  }, [panels, measureOverflow]);
+
+  useEffect(() => {
+    if (!activeId) return;
+    scrollRef.current
+      ?.querySelector<HTMLElement>(`[data-tab-id="${activeId}"]`)
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [activeId]);
+
+  const overflowPanels = panels.filter((p) => overflowIds.includes(p.id));
+
+  return (
+    <div
+      ref={tabBarRef}
+      className="h-9 w-full shrink-0 flex items-end bg-panel-background border-b border-border"
+    >
+      <div
+        ref={scrollRef}
+        onWheel={(e) => {
+          if (scrollRef.current) scrollRef.current.scrollLeft += e.deltaY || e.deltaX;
+        }}
+        className="relative flex items-end min-w-0 overflow-x-hidden"
+      >
+        {panels.map((panel) => (
+          <WorkspaceTab
+            key={panel.id}
+            panel={panel}
+            isActive={activeId === panel.id}
+            onClick={() => onSelectTab(panel.id)}
+            onClose={() => onCloseTab(panel.id)}
+            onDragStart={onDragStart}
+            onContextMenu={openContextMenu}
+          />
+        ))}
+      </div>
+
+      {ctxTarget && ctxPanel && (
+        <Dropdown
+          open={ctxOpen}
+          onOpenChange={handleCtxChange}
+          strategy="fixed"
+          trigger="contextmenu"
+          position={ctxTarget.pos}
+        >
+          <DropdownTrigger asChild>
+            <span />
+          </DropdownTrigger>
+          <DropdownContent>
+            <DropdownItem onClick={() => onCloseTab(ctxPanel.id)}>Close</DropdownItem>
+            <DropdownItem
+              disabled={panels.length < 2}
+              onClick={() =>
+                onCloseTabs(panels.filter((p) => p.id !== ctxPanel.id).map((p) => p.id))
+              }
+            >
+              Close Others
+            </DropdownItem>
+            {/* ASSUMED: left/right options are hidden when there is nothing on that side (first/last tab) */}
+            {ctxIndex > 0 && (
+              <DropdownItem onClick={() => onCloseTabs(panels.slice(0, ctxIndex).map((p) => p.id))}>
+                Close to the Left
+              </DropdownItem>
+            )}
+            {ctxIndex < panels.length - 1 && (
+              <DropdownItem
+                onClick={() => onCloseTabs(panels.slice(ctxIndex + 1).map((p) => p.id))}
+              >
+                Close to the Right
+              </DropdownItem>
+            )}
+            <DropdownItem onClick={() => onCloseTabs(panels.map((p) => p.id))}>
+              Close All
+            </DropdownItem>
+            <DropdownSeparator />
+            <DropdownItem onClick={() => onTogglePin(ctxPanel.id)}>
+              {ctxPanel.pinned ? 'Unpin' : 'Pin'}
+            </DropdownItem>
+            {ctxPanel.type === 'file' && ctxPanel.filePath && (
+              <>
+                {ctxPanel.preview && (
+                  <DropdownItem onClick={() => onKeepOpen(ctxPanel.id)}>Keep Open</DropdownItem>
+                )}
+                <DropdownSeparator />
+                <DropdownItem onClick={() => copyText(ctxPanel.filePath as string)}>
+                  Copy Path
+                </DropdownItem>
+                <DropdownItem onClick={() => copyText(getRelativePath(ctxPanel))}>
+                  Copy Relative Path
+                </DropdownItem>
+              </>
+            )}
+          </DropdownContent>
+        </Dropdown>
+      )}
+
+      {overflowPanels.length > 0 && (
+        <Dropdown
+          open={overflowOpen}
+          onOpenChange={handleOverflowOpenChange}
+          align="end"
+          side="bottom"
+          sideOffset={4}
+          width={240}
+          className="shrink-0"
+        >
+          <DropdownTrigger asChild>
+            <button
+              className="h-9 min-w-9 px-2 flex items-center justify-center border border-dashed border-primary/50 text-primary text-[11px] font-semibold hover:bg-white/[0.05] transition-colors"
+              aria-label={`${overflowPanels.length} hidden tabs`}
+            >
+              {overflowPanels.length}
+            </button>
+          </DropdownTrigger>
+          <DropdownContent>
+            {overflowPanels.map((panel) => {
+              const title = getPanelTitle(panel);
+              return (
+                <DropdownItem
+                  key={panel.id}
+                  icon={
+                    panel.type === 'file' ? (
+                      <img
+                        src={getFileIconPath(title)}
+                        alt=""
+                        className="w-4 h-4 object-contain"
+                        draggable={false}
+                      />
+                    ) : (
+                      getPanelMeta(panel.type, 'w-4 h-4').icon
+                    )
+                  }
+                  className={cn(panel.id === activeId && 'bg-white/[0.06]')}
+                  onClick={() => onSelectTab(panel.id)}
+                >
+                  <span className="truncate">{title}</span>
+                </DropdownItem>
+              );
+            })}
+          </DropdownContent>
+        </Dropdown>
+      )}
+
+      <Dropdown
+        open={menuOpen}
+        onOpenChange={handleMenuOpenChange}
+        align="start"
+        side="bottom"
+        sideOffset={4}
+        width={200}
+        className="shrink-0"
+      >
+        <DropdownTrigger asChild>
+          <button
+            className="h-9 w-9 flex items-center justify-center hover:bg-white/[0.05] text-text-secondary hover:text-text-primary transition-colors shrink-0"
+            aria-label="Add panel"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </DropdownTrigger>
+        <DropdownContent>
+          {ADD_MENU_TYPES.map((type) => {
+            const meta = getPanelMeta(type, 'w-4 h-4');
+            return (
+              <DropdownItem key={type} icon={meta.icon} onClick={() => onAddPanel(type)}>
+                {meta.label}
+              </DropdownItem>
+            );
+          })}
+        </DropdownContent>
+      </Dropdown>
+    </div>
+  );
+}
+
+// ─── Panel body ───────────────────────────────────────────────────────
+
+interface PanelBodyProps {
+  panel: WorkspacePanel;
+  cwd?: string;
+  onProviderChange: (panelId: string, providerId: string | null, status?: SessionStatus) => void;
+  onContentChange: (panelId: string, content: string) => void;
+  // ── NEW: ZenCLI binding callbacks ──
+  onProcessExit?: (panelId: string) => void;
+  onBindConversation?: (panelId: string, conversationId: string) => void;
+  onResetConversation?: (panelId: string) => void;
+  onAgentConversationChange?: (panelId: string, conversationId: string | null) => void;
+  onAgentTitleChange?: (panelId: string, title: string | null) => void;
+  onPanelPatch?: (panelId: string, patch: Partial<WorkspacePanel>) => void;
+  /** True when some Zen tab of this branch is already the Orchestrator. */
+  orchestratorTaken?: boolean;
+}
+
+const PanelBody = memo(function PanelBody({
+  panel,
+  cwd,
+  onProviderChange,
+  onContentChange,
+  onProcessExit,
+  onBindConversation,
+  onResetConversation,
+  onAgentConversationChange,
+  onAgentTitleChange,
+  onPanelPatch,
+  orchestratorTaken = false,
+}: PanelBodyProps) {
+  const handleProvider = useCallback(
+    (providerId: string | null, status?: 'running' | 'idle') =>
+      onProviderChange(panel.id, providerId, status as SessionStatus | undefined),
+    [onProviderChange, panel.id],
+  );
+  const handleContent = useCallback(
+    (content: string) => onContentChange(panel.id, content),
+    [onContentChange, panel.id],
+  );
+  const handleExit = useCallback(() => {
+    onProcessExit?.(panel.id);
+  }, [onProcessExit, panel.id]);
+
+  const handleBind = useCallback(
+    (conversationId: string) => {
+      onBindConversation?.(panel.id, conversationId);
+    },
+    [onBindConversation, panel.id],
+  );
+
+  const handleReset = useCallback(() => {
+    onResetConversation?.(panel.id);
+  }, [onResetConversation, panel.id]);
+
+  const handleAgentConversation = useCallback(
+    (conversationId: string | null) => onAgentConversationChange?.(panel.id, conversationId),
+    [onAgentConversationChange, panel.id],
+  );
+
+  const handleAgentTitle = useCallback(
+    (title: string | null) => onAgentTitleChange?.(panel.id, title),
+    [onAgentTitleChange, panel.id],
+  );
+
+  const handleBrowserMeta = useCallback(
+    (meta: { title?: string; favicon?: string | null }) =>
+      onPanelPatch?.(panel.id, {
+        ...(meta.title !== undefined ? { browserTitle: meta.title } : {}),
+        ...(meta.favicon !== undefined ? { browserFavicon: meta.favicon } : {}),
+      }),
+    [onPanelPatch, panel.id],
+  );
+
+  const isOrchestrator = panel.workflowAgentId === 'orchestrator';
+  const multiAgent = useMemo(
+    () => ({
+      enabled: isOrchestrator,
+      blocked: orchestratorTaken && !isOrchestrator,
+      toggle: () =>
+        onPanelPatch?.(
+          panel.id,
+          isOrchestrator
+            ? { workflowAgentId: null, title: 'Zen' }
+            : { workflowAgentId: 'orchestrator', title: 'Zen - Orchestrator' },
+        ),
+    }),
+    [isOrchestrator, orchestratorTaken, onPanelPatch, panel.id],
+  );
+
+  switch (panel.type) {
+    case 'terminal': {
+      // Use the panel's stored CWD if available, otherwise fallback to the current workspace path.
+      // This ensures existing terminals stay in their original directory when switching sessions.
+      const effectiveCwd = panel.cwd ?? cwd;
+
+      return (
+        <CodeTerminal
+          cwd={effectiveCwd}
+          panelId={panel.id}
+          onProviderChange={handleProvider}
+          initialCommand={buildZenCliCommand(panel) ?? panel.initialCommand ?? null}
+          runNonce={panel.runNonce}
+          onProcessExit={handleExit}
+          onBindConversation={handleBind}
+          onResetConversation={handleReset}
+        />
+      );
+    }
+    case 'website':
+      return (
+        <CodeBrowser
+          initialUrl={panel.content}
+          onUrlChange={handleContent}
+          onMetaChange={handleBrowserMeta}
+        />
+      );
+    case 'file':
+      return <CodeFile filePath={panel.filePath} fileId={panel.id} cwd={panel.cwd} />;
+
+    case 'agent':
+      return (
+        <CodeAgent
+          initialConversationId={panel.agentConversationId}
+          onConversationChange={handleAgentConversation}
+          onTitleChange={handleAgentTitle}
+          workflowAgentId={panel.workflowAgentId ?? undefined}
+          multiAgent={multiAgent}
+        />
+      );
+
+    case 'agenttools':
+      return (
+        <CodeAgentTools
+          initialConversationId={panel.agentConversationId}
+          onConversationChange={handleAgentConversation}
+          cwd={panel.cwd ?? cwd}
+        />
+      );
+
+    case 'emulator':
+      return (
+        <div className="flex-1 h-full flex items-center justify-center bg-black text-gray-500">
+          Emulator View Placeholder
+        </div>
+      );
+    case 'design':
+      return (
+        <CodeDesign designId={panel.content} />
+      );
+    default:
+      return null;
+  }
+});
+
+// ─── Geometry helpers ─────────────────────────────────────────────────
+
+const pct = (n: number) => `${n}%`;
+
+const contentStyle = (r: PaneRect): CSSProperties => ({
+  left: pct(r.left),
+  top: `calc(${r.top}% + ${TABBAR_HEIGHT}px)`,
+  width: pct(r.width),
+  height: `calc(${r.height}% - ${TABBAR_HEIGHT}px)`,
+});
+
+const frameStyle = (r: PaneRect): CSSProperties => ({
+  left: pct(r.left),
+  top: pct(r.top),
+  width: pct(r.width),
+  height: pct(r.height),
+});
+
+// ─── Divider ──────────────────────────────────────────────────────────
+
+function Divider({
+  direction,
+  style,
+  active,
+  onMouseDown,
+}: {
+  direction: 'vertical' | 'horizontal';
+  style: CSSProperties;
+  active: boolean;
+  onMouseDown: () => void;
+}) {
+  const isVertical = direction === 'vertical';
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      className={cn(
+        'absolute z-[120] group select-none',
+        isVertical ? 'cursor-col-resize w-2' : 'cursor-row-resize h-2',
+      )}
+      style={style}
+    >
+      <div
+        className={cn(
+          'absolute bg-border group-hover:bg-primary transition-colors',
+          isVertical
+            ? 'inset-y-0 left-1/2 w-[2px] -translate-x-1/2'
+            : 'inset-x-0 top-1/2 h-[2px] -translate-y-1/2',
+          active && 'bg-primary',
+        )}
+      />
+    </div>
+  );
+}
+
+// ─── Pane grid ────────────────────────────────────────────────────────
+
+export interface WorkspacePanesProps {
+  panels: WorkspacePanel[];
+  paneTabs: PaneTabs;
+  paneActive: PaneActive;
+  rects: PaneRects;
+  cwd?: string;
+
+  /** Rectangle highlighted while dragging a tab (null = no preview). */
+  dropPreview: PaneRect | null;
+  resizing: ResizeHandle | null;
+  isDragging: boolean;
+
+  onResizeStart: (handle: ResizeHandle) => void;
+  onProviderChange: (panelId: string, providerId: string | null) => void;
+  onContentChange: (panelId: string, content: string) => void;
+  // ── NEW: ZenCLI binding callbacks ──
+  onProcessExit?: (panelId: string) => void;
+  onBindConversation?: (panelId: string, conversationId: string) => void;
+  onResetConversation?: (panelId: string) => void;
+  onAgentConversationChange?: (panelId: string, conversationId: string | null) => void;
+  onAgentTitleChange?: (panelId: string, title: string | null) => void;
+  onPanelPatch?: (panelId: string, patch: Partial<WorkspacePanel>) => void;
+}
+
+export const WorkspacePanes = memo(function WorkspacePanes({
+  panels,
+  paneTabs,
+  paneActive,
+  rects,
+  cwd,
+  dropPreview,
+  resizing,
+  isDragging,
+  onResizeStart,
+  onProviderChange,
+  onContentChange,
+  onProcessExit,
+  onBindConversation,
+  onResetConversation,
+  onAgentConversationChange,
+  onAgentTitleChange,
+  onPanelPatch,
+}: WorkspacePanesProps) {
+  // Divider positions, derived from which panes exist
+  const leftRect = rects.tl ?? rects.bl;
+  const rightRect = rects.tr ?? rects.br;
+  const hasColumnDivider = !!leftRect && !!rightRect;
+  const orchestratorTaken = panels.some((p) => p.workflowAgentId === 'orchestrator');
+
+  return (
+    <>
+      {/* Panel bodies — NEVER unmounted, only moved / hidden */}
+      <div className="absolute inset-0 pointer-events-none z-[100]">
+        {panels.map((panel) => {
+          const pane = findPaneOfPanel(paneTabs, panel.id);
+          const rect = pane ? rects[pane] : undefined;
+          const isVisible = !!pane && paneActive[pane] === panel.id;
+
+          return (
+            <div
+              key={panel.id}
+              className={cn(
+                'absolute',
+                isVisible ? 'pointer-events-auto' : 'invisible pointer-events-none',
+              )}
+              style={rect ? contentStyle(rect) : undefined}
+            >
+              <div className="h-full w-full overflow-hidden">
+                <PanelBody
+                  panel={panel}
+                  cwd={cwd}
+                  onProviderChange={onProviderChange}
+                  onContentChange={onContentChange}
+                  onProcessExit={onProcessExit}
+                  onBindConversation={onBindConversation}
+                  onResetConversation={onResetConversation}
+                  onAgentConversationChange={onAgentConversationChange}
+                  onAgentTitleChange={onAgentTitleChange}
+                  onPanelPatch={onPanelPatch}
+                  orchestratorTaken={orchestratorTaken}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tab bars are rendered in index.tsx (above the panel bodies) */}
+
+      {/* Dividers */}
+      {hasColumnDivider && rightRect && (
+        <Divider
+          direction="vertical"
+          active={resizing === 'col'}
+          onMouseDown={() => onResizeStart('col')}
+          style={{ left: `calc(${rightRect.left}% - 4px)`, top: 0, height: '100%' }}
+        />
+      )}
+      {rects.tl && rects.bl && (
+        <Divider
+          direction="horizontal"
+          active={resizing === 'rowLeft'}
+          onMouseDown={() => onResizeStart('rowLeft')}
+          style={{
+            left: pct(rects.bl.left),
+            width: pct(rects.bl.width),
+            top: `calc(${rects.bl.top}% - 4px)`,
+          }}
+        />
+      )}
+      {rects.tr && rects.br && (
+        <Divider
+          direction="horizontal"
+          active={resizing === 'rowRight'}
+          onMouseDown={() => onResizeStart('rowRight')}
+          style={{
+            left: pct(rects.br.left),
+            width: pct(rects.br.width),
+            top: `calc(${rects.br.top}% - 4px)`,
+          }}
+        />
+      )}
+
+      {/* Shield so iframes / webviews don't swallow mouse events while dragging or resizing */}
+      {(resizing || isDragging) && <div className="absolute inset-0 z-[130]" />}
+
+      {/* Drop preview: where the dragged tab will land */}
+      {isDragging && dropPreview && (
+        <div
+          className="absolute pointer-events-none z-[150] bg-primary/10 border-2 border-dashed border-primary transition-all duration-150"
+          style={frameStyle(dropPreview)}
+        />
+      )}
+    </>
+  );
+});

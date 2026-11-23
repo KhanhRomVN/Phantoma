@@ -1,3 +1,5 @@
+import { dialogIpc } from './shared/ipc/dialog.ipc';
+import { fsIpc } from './shared/ipc/fs.ipc';
 /**
  * ------------------------------------------------------------------
  * Code
@@ -13,7 +15,7 @@
  *   Ctrl+S (save), Ctrl+Shift+S (save-as), Ctrl+W (close tab),
  *   Ctrl+` (toggle bottom panel), Ctrl+Shift+` (new terminal)
  * - Unsaved changes guard on browser close
- * - Auto-restores project file trees from localStorage on startup
+ * - Auto-scans project file trees on startup
  * - Bridges Code state to Agent feature context
  * ------------------------------------------------------------------
  */
@@ -24,18 +26,18 @@
 import { useEffect, useRef, useState } from 'react';
 
 // ── Hooks & Types ──
-import { useCodeStore, type FileNode } from './hooks/useCodeStore';
+import { useCodeStore, type FileNode } from './shared/stores/code.store';
 
 
 // ── Components ──
-import { ContentPanel } from './components/ContentPanel';
-import { ActivityPanel } from './components/ActivityPanel';
-import { ToastContainer } from './components/common/ToastContainer';
-import { FooterBar } from './components/FooterBar';
-import { ProjectPanel } from './components/ProjectPanel/ProjectPanel';
-import { QuickOpenModal } from './components/modal/QuickOpenModal';
-import './services/unsaved.service';
-import { codeApi } from './services/code-api.service';
+import { ContentPanel } from './app/layout/ContentPanel';
+import { ActivityPanel } from './app/layout/ActivityPanel';
+import { ToastContainer } from './shared/components/ToastContainer';
+import { FooterBar } from './app/layout/FooterBar';
+import { ProjectPanel } from './features/projects';
+import { QuickOpenModal } from './features/workspace';
+import './shared/services/unsaved.service';
+import { codeApi } from './shared/api/code.api';
 
 // ─── Directory Scanner ─────────────────────────────────────────────────
 
@@ -82,8 +84,9 @@ async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
 export function Code() {
 
   // ── Store ──
-  const { setProjectManagerOpen, setNewProjectOpen, projects, hydrateProjectFiles } =
-    useCodeStore();
+  const setProjectManagerOpen = useCodeStore((s) => s.setProjectManagerOpen);
+  const setNewProjectOpen = useCodeStore((s) => s.setNewProjectOpen);
+  const hydrateProjectFiles = useCodeStore((s) => s.hydrateProjectFiles);
   // ── State ──
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   // ── Refs ──
@@ -91,12 +94,12 @@ export function Code() {
 
   // ── Effects ──
 
-  // Restore project files from localStorage on startup
+  // Scan project files on startup
   useEffect(() => {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
 
-    projects.forEach((project) => {
+    useCodeStore.getState().projects.forEach((project) => {
       const scanRoot = project.explorerRoot ?? project.path;
       const shouldScan = !!scanRoot && project.files.length === 0;
       if (shouldScan) {
@@ -188,9 +191,9 @@ export function Code() {
           const ext = dotIdx > 0 ? baseName.substring(dotIdx) : '';
           const defaultPath = dir ? dir + '/' + stem + '_copy' + ext : stem + '_copy' + ext;
 
-          const result = await window.api.invoke('dialog:show-save', { defaultPath });
+          const result = await dialogIpc.showSave({ defaultPath });
           if (!result || result.canceled || !result.filePath) return;
-          await window.api.invoke('fs:write-file', result.filePath, content);
+          await fsIpc.writeFile(result.filePath, content);
         } catch (err) {
           console.error('[Code] Ctrl+Shift+S save-as failed:', err);
         }

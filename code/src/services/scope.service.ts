@@ -2,15 +2,31 @@ import { scopeRepository } from '../repositories/scope.repository';
 import { worktreeRepository } from '../repositories/worktree.repository';
 import { found, requireString } from '../utils/guard';
 import { newId } from '../utils/http';
+import { resolveDefaultBranch } from './git/default-branch';
 import type { Scope } from '../domain/mappers';
 
 export interface ScopeInput {
   path: string;
 }
 
+/**
+ * Default branch không cần scope: nếu worktree đang ở default branch mà có scope thì xóa hết.
+ * Trả về true nếu worktree là default branch.
+ */
+const purgeIfDefaultBranch = async (worktreeId: string): Promise<boolean> => {
+  const worktree = found(worktreeRepository.get(worktreeId), 'worktree');
+  const { name } = await resolveDefaultBranch(worktree.path);
+  const isDefault = !!name && name === worktree.branch;
+  if (isDefault) {
+    const removed = scopeRepository.removeByWorktree(worktreeId);
+  }
+  return isDefault;
+};
+
 export const scopeService = {
-  list: (worktreeId: string): Scope[] => {
+  list: async (worktreeId: string): Promise<Scope[]> => {
     found(worktreeRepository.get(worktreeId), 'worktree');
+    await purgeIfDefaultBranch(worktreeId);
     return scopeRepository.listByWorktree(worktreeId);
   },
 
@@ -23,14 +39,13 @@ export const scopeService = {
     return scope;
   },
 
-  set: (worktreeId: string, paths: string[]): Scope[] => {
+  set: async (worktreeId: string, paths: string[]): Promise<Scope[]> => {
     found(worktreeRepository.get(worktreeId), 'worktree');
+    if (await purgeIfDefaultBranch(worktreeId)) return [];
     const keep = new Set<string>();
     for (const p of paths) {
       const path = requireString(p, 'path');
-      const existing = scopeRepository
-        .listByWorktree(worktreeId)
-        .find((s) => s.path === path);
+      const existing = scopeRepository.listByWorktree(worktreeId).find((s) => s.path === path);
       if (existing) {
         keep.add(existing.id);
       } else {
@@ -53,5 +68,13 @@ export const scopeService = {
     }
     const deleted = scopeRepository.remove(scopeId);
     return { deleted };
+  },
+
+  purgeAllDefaultBranches: async (): Promise<number> => {
+    let count = 0;
+    for (const w of worktreeRepository.listAll()) {
+      if (await purgeIfDefaultBranch(w.id).catch(() => false)) count++;
+    }
+    return count;
   },
 };

@@ -2,16 +2,16 @@
   "name": "@phantoma/server",
   "version": "1.0.0",
   "description": "Phantoma server - Express/TypeScript port of the Go internal API",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
   "bin": {
-    "phantoma-server": "dist/index.js"
+    "phantoma-server": "dist/main.js"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "NODE_ENV=development nodemon",
-    "start": "tsx -r dotenv/config src/index.ts",
+    "start": "tsx -r dotenv/config src/main.ts",
     "build": "tsc && tsc-alias",
     "typecheck": "tsc --noEmit"
   },
@@ -28,6 +28,7 @@
     "http-mitm-proxy": "^1.1.0",
     "kysely": "^0.29.6",
     "node-pty": "^1.1.0",
+    "systeminformation": "^5.33.23",
     "ws": "^8.22.0"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import type { ZenModule } from '@renderer/components/Widgets/Zen/feature/Chat/services/moduleRegistry';
+import type { ZenModule } from '@renderer/components/Widgets/Zen/screens/Chat/services/moduleRegistry';
 
 type ToolExecutor = NonNullable<ZenModule['executors']>[string];
 type ToolParser = NonNullable<ZenModule['parsers']>[string];

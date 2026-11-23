@@ -48,5 +48,5 @@ export function proxyBaseUrl(port: number): string {
 }
 
 export function codeBaseUrl(port: number): string {
-  return `http://localhost:${port}`;
+  return `http://127.0.0.1:${port}`;
 }

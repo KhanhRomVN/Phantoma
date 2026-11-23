@@ -3,6 +3,9 @@ import path from 'path';
 
 export interface AppConfig {
   port: number;
+  host: string;
+  allowedOrigins: string[];
+  token: string;
   env: string;
   dataDir: string;
   dbPath: string;
@@ -21,7 +24,13 @@ function getEnv(key: string, defaultVal: string): string {
 const dataDir = expandHome(getEnv('CODE_DATA_DIR', '~/.phantoma/code'));
 
 const currentConfig: AppConfig = {
-  port: parseInt(getEnv('CODE_PORT', '3055'), 10), // ASSUMED: fallback = DEFAULT_CODE_PORT (3055) cần thêm vào src/renderer/src/config/ports.ts
+  port: parseInt(getEnv('CODE_PORT', '3055'), 10),
+  host: getEnv('CODE_HOST', '127.0.0.1'),
+  allowedOrigins: getEnv('CODE_ALLOWED_ORIGINS', '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean),
+  token: getEnv('CODE_TOKEN', ''),
   env: getEnv('ENV', 'development'),
   dataDir,
   dbPath: path.join(dataDir, 'code.sql'),

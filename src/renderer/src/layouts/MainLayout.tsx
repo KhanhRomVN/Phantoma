@@ -25,7 +25,7 @@ import { motion } from 'framer-motion';
 import { getModulesForQuickNav } from '@renderer/config/module-registry';
 
 // ── Hooks ──
-import { useCodeStore } from '../modules/Code/hooks/useCodeStore';
+import { useCodeStore } from '../modules/Code/shared/stores/code.store';
 import { useActiveModule } from '../hooks/useActiveModule';
 
 import { useGlobalCopyShortcut } from '../hooks/useGlobalCopyShortcut';

@@ -30,7 +30,7 @@ export const HomeFeature = memo<HomeFeatureProps>(({ onSelectSession }) => {
           onClick={() =>
             void window.api
               .invoke('agent-tool:probe-sessions')
-              .then((result: unknown) => console.log('[DEBUG] probe-sessions result', result))
+
           }
           className="self-end px-2 py-1 text-[10px] rounded-md text-text-secondary bg-text-secondary/10 hover:text-text-primary"
         >

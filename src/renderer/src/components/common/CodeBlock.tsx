@@ -25,10 +25,10 @@ import DropdownContent from '@renderer/components/ui/Dropdown/DropdownContent';
 import { DropdownItem, DropdownSeparator } from '@renderer/components/ui/Dropdown/DropdownItem';
 
 // ── Services ──
-import { fileWatcherService } from '../../modules/Code/services/file-watcher.service';
+import { fileWatcherService } from '../../modules/Code/shared/services/file-watcher.service';
 
 // ── Hooks ──
-import { useCodeStore } from '../../modules/Code/hooks/useCodeStore';
+import { useCodeStore } from '../../modules/Code/shared/stores/code.store';
 
 // ── Theme ──
 import { useTheme } from '../../theme/ThemeProvider';

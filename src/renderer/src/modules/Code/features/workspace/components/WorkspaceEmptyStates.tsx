@@ -1,0 +1,276 @@
+/**
+ * Empty states:
+ *  - EmptyState          → no project selected
+ *  - WorkspaceEmptyState → project selected but no panels open
+ */
+
+import { memo, useEffect, useState, type ReactNode } from 'react';
+import {
+  Plus,
+  Terminal as TerminalIcon,
+  Globe,
+  FolderOpen,
+  GitBranch,
+  LayoutGrid,
+} from 'lucide-react';
+import { getAgentFavicon } from '../../../shared/constants/workspace-agents.constants';
+import { OpenProjectModal, CreateProjectModal } from '../../projects';
+
+// ─── Shared pieces ────────────────────────────────────────────────────
+
+// Full class names must be written out so Tailwind can detect them.
+const ACCENTS = {
+  primary: {
+    hover: 'hover:border-primary/50',
+    icon: 'text-primary bg-primary/10 group-hover:bg-primary/20',
+  },
+  info: { hover: 'hover:border-info/50', icon: 'text-info bg-info/10 group-hover:bg-info/20' },
+  warn: { hover: 'hover:border-warn/50', icon: 'text-warn bg-warn/10 group-hover:bg-warn/20' },
+  success: {
+    hover: 'hover:border-success/50',
+    icon: 'text-success bg-success/10 group-hover:bg-success/20',
+  },
+  purple: { hover: 'hover:border-purple/50', icon: 'text-purple bg-purple/10' },
+} as const;
+
+type Accent = keyof typeof ACCENTS;
+
+function ActionCard({
+  icon,
+  title,
+  subtitle,
+  accent,
+  iconClassName,
+  onClick,
+  disabled,
+}: {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  accent: Accent;
+  iconClassName?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`group flex items-center gap-3 text-left px-3 py-2.5 rounded-xl border border-border bg-card-background hover:outline hover:outline-1 hover:outline-dashed hover:outline-text-secondary ${
+        disabled ? 'cursor-not-allowed opacity-50' : ''
+      }`}
+    >
+      <span
+        className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 ${iconClassName ?? ACCENTS[accent].icon}`}
+      >
+        {icon}
+      </span>
+      <span>
+        <strong className="block text-[12.5px] font-medium text-text-primary">{title}</strong>
+        <small className="block text-[11px] text-text-secondary">{subtitle}</small>
+      </span>
+    </button>
+  );
+}
+
+function Hints({ items }: { items: [key: string, label: string][] }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 mt-6 text-[11px] text-text-secondary">
+      {items.map(([key, label]) => (
+        <span key={key}>
+          <kbd className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-border bg-card-background mr-1.5">
+            {key}
+          </kbd>
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Stacked-cards artwork with a centered icon. */
+function CardStackArt({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative w-[92px] h-[92px] mb-5">
+      <i className="absolute inset-0 rounded-[22px] border border-border bg-card-background transform rotate-[-8deg]" />
+      <i className="absolute inset-0 rounded-[22px] border border-transparent bg-card-hover transform rotate-[5deg]" />
+      <i className="absolute inset-0 rounded-[22px] border border-primary/50 bg-card-background shadow-[0_8px_30px_rgba(255,106,31,0.2)] grid place-items-center text-primary">
+        {children}
+      </i>
+    </div>
+  );
+}
+
+function EmptyStateShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-background relative overflow-hidden p-6">
+      {/* Subtle glow background */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.05]">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-primary blur-[130px]" />
+      </div>
+      <div className="relative z-10 text-center max-w-[740px] w-full flex flex-col items-center justify-center">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── No project selected ──────────────────────────────────────────────
+
+export const EmptyState = memo(function EmptyState() {
+  const [openModalVisible, setOpenModalVisible] = useState(false);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+
+  return (
+    <EmptyStateShell>
+      <CardStackArt>
+        <FolderOpen className="w-9 h-9 stroke-[1.4]" />
+      </CardStackArt>
+
+      <h1 className="text-[17px] font-semibold text-text-primary mb-1.5">
+        Select a project to get started
+      </h1>
+      <p className="text-sub text-[12.5px] max-w-[420px] text-text-secondary leading-relaxed">
+        Projects contain your tasks, sessions, and workspace. Open an existing project or create a
+        new one to work with agents.
+      </p>
+
+      <div className="flex flex-wrap justify-center gap-2.5 mt-6 w-full">
+        <ActionCard
+          accent="info"
+          icon={<FolderOpen className="w-4 h-4" />}
+          title="Open Project"
+          subtitle="Choose folder on disk"
+          onClick={() => setOpenModalVisible(true)}
+        />
+        <ActionCard
+          accent="primary"
+          icon={<Plus className="w-4 h-4" />}
+          title="New Project"
+          subtitle="Create from empty template"
+          onClick={() => setCreateModalVisible(true)}
+        />
+        <ActionCard
+          accent="purple"
+          icon={<GitBranch className="w-4 h-4" />}
+          title="Clone from Git"
+          subtitle="Paste repository URL"
+          onClick={() => setOpenModalVisible(true)}
+        />
+      </div>
+
+      <Hints
+        items={[
+          ['⌘ O', 'open project'],
+          ['⌘ N', 'new project'],
+          ['⌘ K', 'quick search'],
+        ]}
+      />
+
+      {/* Project Modals */}
+      <OpenProjectModal isOpen={openModalVisible} onClose={() => setOpenModalVisible(false)} />
+      <CreateProjectModal
+        isOpen={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+      />
+    </EmptyStateShell>
+  );
+});
+EmptyState.displayName = 'EmptyState';
+
+// ─── Project selected, no panels ──────────────────────────────────────
+
+export type EmptyWorkspaceAction = 'browser' | 'terminal' | 'agent';
+
+const CLI_AGENT_IDS = ['claude', 'opencode', 'codex'] as const;
+
+function CliAgentsCard({ onClick }: { onClick?: () => void }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setActiveIndex((i) => (i + 1) % CLI_AGENT_IDS.length), 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <button
+      onClick={onClick}
+      className="group flex items-center gap-3 text-left px-3 py-2.5 rounded-xl border border-border bg-card-background hover:outline hover:outline-1 hover:outline-dashed hover:outline-text-secondary"
+    >
+      <span className="relative w-8 h-8 rounded-lg grid place-items-center shrink-0 bg-text-secondary/20">
+        {CLI_AGENT_IDS.map((id, index) => (
+          <img
+            key={id}
+            src={getAgentFavicon(id)}
+            alt={id}
+            className={`absolute w-4 h-4 transition-opacity duration-500 ${
+              index === activeIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ))}
+      </span>
+      <span>
+        <strong className="block text-[12.5px] font-medium text-text-primary">CLI Agents</strong>
+        <small className="block text-[11px] text-text-secondary">Claude Code, OpenCode, Codex</small>
+      </span>
+    </button>
+  );
+}
+
+export const WorkspaceEmptyState = memo(function WorkspaceEmptyState({
+  onAddPanel,
+  onOpenCli,
+}: {
+  onAddPanel?: (action: EmptyWorkspaceAction) => void;
+  onOpenCli?: () => void;
+}) {
+  const handleAction = (action: EmptyWorkspaceAction) => {
+    if (onAddPanel) {
+      onAddPanel(action);
+    } else {
+      // Fallback: dispatch event if prop not passed
+      window.dispatchEvent(new CustomEvent('phantoma:add-workspace-panel', { detail: action }));
+    }
+  };
+
+  return (
+    <EmptyStateShell>
+      <CardStackArt>
+        <LayoutGrid className="w-9 h-9 stroke-[1.4]" />
+      </CardStackArt>
+
+      <h1 className="text-[17px] font-semibold text-text-primary mb-1.5">Workspace is empty</h1>
+      <p className="text-sub text-[12.5px] max-w-[420px] text-text-secondary leading-relaxed">
+        Open browser, terminal, agent, or markdown and drag tabs to split the workspace into up to 4
+        panes.
+      </p>
+
+      <div className="grid grid-cols-2 gap-2.5 mt-6 w-full">
+        <ActionCard
+          accent="primary"
+          icon={<Globe className="w-4 h-4" />}
+          title="Browser"
+          subtitle="Preview localhost:5173"
+          onClick={() => handleAction('browser')}
+        />
+        <ActionCard
+          accent="success"
+          icon={<TerminalIcon className="w-4 h-4" />}
+          title="Terminal"
+          subtitle="Run commands in project"
+          onClick={() => handleAction('terminal')}
+        />
+        <ActionCard
+          accent="warn"
+          iconClassName="bg-text-secondary/20"
+          icon={<img src="/images/zen-logo.png" alt="Zen" className="w-4 h-4 object-contain" />}
+          title="Zen"
+          subtitle="Assign task to agent"
+          onClick={() => handleAction('agent')}
+        />
+        <CliAgentsCard onClick={onOpenCli} />
+      </div>
+    </EmptyStateShell>
+  );
+});
+WorkspaceEmptyState.displayName = 'WorkspaceEmptyState';

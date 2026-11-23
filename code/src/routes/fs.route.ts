@@ -1,10 +1,10 @@
 import express, { Router } from 'express';
-import { fsService } from '../services/fs.service';
-import { fsReadService } from '../services/fs-read.service';
-import { imageService } from '../services/image.service';
-import { requireString } from '../utils/guard';
-import { safePath } from '../utils/guard';
-import { handle, json } from '../utils/http';
+import { fsService } from '../services/fs/fs-write.service';
+import { fsReadService } from '../services/fs/fs-query.service';
+import { imageService } from '../services/fs/image.service';
+import { requireString, safePath } from '../http/guard';
+import { handle, json } from '../http/envelope';
+import { queryBool, queryCsv } from '../http/params';
 
 export function registerFsRoutes(): Router {
   const router = express.Router();
@@ -72,22 +72,18 @@ export function registerFsRoutes(): Router {
   router.get(
     '/fs/read-file',
     handle(async (req, res) => {
-      const trusted = req.query.trusted === 'true';
+      const trusted = queryBool(req.query.trusted);
       const filePath = safePath(req.query.path, 'path', { withinProject: !trusted, allowSensitive: trusted });
       const start = req.query.start === undefined ? undefined : Number(req.query.start);
       const end = req.query.end === undefined ? undefined : Number(req.query.end);
-      if (start !== undefined && Number.isFinite(start)) {
-        json(res, 200, await fsReadService.readLines(filePath, start, Number.isFinite(end) ? end : undefined));
-        return;
-      }
-      json(res, 200, await fsReadService.readFile(filePath));
+      json(res, 200, await fsReadService.read(filePath, { start, end }));
     }),
   );
 
   router.get(
     '/fs/stat',
     handle(async (req, res) => {
-      const trusted = req.query.trusted === 'true';
+      const trusted = queryBool(req.query.trusted);
       const filePath = safePath(req.query.path, 'path', { withinProject: !trusted, allowSensitive: trusted });
       json(res, 200, await fsReadService.stat(filePath));
     }),
@@ -97,7 +93,7 @@ export function registerFsRoutes(): Router {
     '/fs/tree',
     handle(async (req, res) => {
       const dirPath = safePath(req.query.path, 'path', { withinProject: true });
-      const exclude = String(req.query.exclude ?? '').split(',').filter(Boolean);
+      const exclude = queryCsv(req.query.exclude);
       json(
         res,
         200,
@@ -115,7 +111,7 @@ export function registerFsRoutes(): Router {
     handle(async (req, res) => {
       const root = safePath(req.query.root, 'root', { withinProject: true });
       const pattern = requireString(req.query.pattern, 'pattern');
-      const exclude = String(req.query.exclude ?? '').split(',').filter(Boolean);
+      const exclude = queryCsv(req.query.exclude);
       const max = Number(req.query.max) || undefined;
       json(res, 200, await fsReadService.findFiles(root, pattern, { max, exclude }));
     }),
@@ -165,12 +161,6 @@ export function registerFsRoutes(): Router {
     }),
   );
 
-  router.post(
-    '/projects/logo/download',
-    handle(async (req, res) => {
-      json(res, 200, await imageService.downloadProjectLogo(requireString(req.body?.url, 'url')));
-    }),
-  );
 
   return router;
 }

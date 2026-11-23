@@ -2,19 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, Sparkles } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
-import { listInstalledSkills } from '../../feature/Marketplace/services/skillInstall.service';
+import { listInstalledSkills } from '../../screens/Marketplace/services/skillInstall.service';
 import {
   loadSkillWorkspaceState,
   DEFAULT_SKILL_WORKSPACE_STATE,
   type SkillWorkspaceState,
-} from '../../feature/Marketplace/services/skillWorkspaceState.service';
-import { DEFAULT_GROUP_NAME } from '../../feature/Marketplace/hooks/useSkillWorkspaceState';
-import { getGroupIcon } from '../../feature/Marketplace/components/shared/iconLibrary';
+} from '../../screens/Marketplace/services/skillWorkspaceState.service';
+import { DEFAULT_GROUP_NAME } from '../../screens/Marketplace/hooks/useSkillWorkspaceState';
+import { getGroupIcon } from '../../screens/Marketplace/components/shared/iconLibrary';
 import {
   resolveGroupColor,
   GROUP_ACCENT_COLORS,
-} from '../../feature/Marketplace/components/shared/colorHelpers';
-import { buildSkillPreview } from '../../feature/Marketplace/utils/skillPreview';
+} from '../../screens/Marketplace/components/shared/colorHelpers';
+import { buildSkillPreview } from '../../screens/Marketplace/utils/skillPreview';
 
 export interface PickedSkill {
   slug: string;

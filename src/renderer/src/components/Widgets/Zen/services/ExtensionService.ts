@@ -30,8 +30,8 @@ import {
   finalizeAllRunCommands,
   finalizeRunCommand,
   sendRunCommandInput,
-} from '@renderer/modules/Code/executors/RunCommandExecutor';
-import { useCodeStore } from '@renderer/modules/Code/hooks/useCodeStore';
+} from '@renderer/modules/Code/agent/tools/run-command/run-command.executor';
+import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
 
 // ─── Renderer-only UI commands ────────────────────────────────────────
 // These have no IPC handler in main; they only drive Code-module UI state.

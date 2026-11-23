@@ -8,13 +8,13 @@ export function registerScopeRoutes(): Router {
 
   router.get(
     '/worktrees/:worktreeId/scopes',
-    handle((req, res) => json(res, 200, scopeService.list(param(req.params.worktreeId)))),
+    handle(async (req, res) => json(res, 200, await scopeService.list(param(req.params.worktreeId)))),
   );
   router.put(
     '/worktrees/:worktreeId/scopes',
-    handle((req, res) => {
+    handle(async (req, res) => {
       const paths = found(Array.isArray(req.body?.paths) ? req.body.paths : null, 'paths');
-      json(res, 200, scopeService.set(param(req.params.worktreeId), paths));
+      json(res, 200, await scopeService.set(param(req.params.worktreeId), paths));
     }),
   );
   router.get(

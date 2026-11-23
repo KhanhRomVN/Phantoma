@@ -1,9 +1,10 @@
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Check, Minus } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 
 export interface CheckboxProps {
   checked?: boolean;
+  indeterminate?: boolean;
   defaultChecked?: boolean;
   onChange?: (checked: boolean) => void;
   disabled?: boolean;
@@ -16,6 +17,7 @@ export interface CheckboxProps {
 
 export function Checkbox({
   checked,
+  indeterminate,
   defaultChecked,
   onChange,
   disabled,
@@ -66,19 +68,25 @@ export function Checkbox({
           'flex items-center justify-center rounded border transition-colors',
           'border-border bg-card-background',
           'hover:border-text-secondary focus-within:ring-2 focus-within:ring-primary/30 focus-within:outline-none',
-          isChecked &&
+          (isChecked || indeterminate) &&
             'bg-primary border-primary hover:bg-primary/90',
           disabled && 'opacity-50 cursor-not-allowed hover:border-border',
           sizeClasses[size],
           inputClassName,
         )}
       >
-        {isChecked && (
-          <Check
-            className={cn('text-text-foreground transition-opacity', iconSizeClasses[size])}
-            strokeWidth={2.5}
-          />
-        )}
+        {(isChecked || indeterminate) &&
+          (isChecked ? (
+            <Check
+              className={cn('text-text-foreground transition-opacity', iconSizeClasses[size])}
+              strokeWidth={2.5}
+            />
+          ) : (
+            <Minus
+              className={cn('text-text-foreground transition-opacity', iconSizeClasses[size])}
+              strokeWidth={2.5}
+            />
+          ))}
       </div>
     </label>
   );

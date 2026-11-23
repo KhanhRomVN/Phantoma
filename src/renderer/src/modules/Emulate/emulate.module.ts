@@ -1,5 +1,5 @@
-import type { ZenModule } from '@renderer/components/Widgets/Zen/feature/Chat/services/moduleRegistry';
-import { rendererMapFromGlob } from '@renderer/components/Widgets/Zen/feature/Chat/utils/renderer-helpers';
+import type { ZenModule } from '@renderer/components/Widgets/Zen/screens/Chat/services/moduleRegistry';
+import { rendererMapFromGlob } from '@renderer/components/Widgets/Zen/screens/Chat/utils/renderer-helpers';
 import { EMULATE_TAG_REGISTRY } from './agent/tag-registry';
 import {
   getTrafficSummary,

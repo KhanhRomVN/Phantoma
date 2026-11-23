@@ -67,9 +67,11 @@ export const ViewContainer = () => {
           >
             <Suspense
               fallback={
-                <div className="flex h-full w-full items-center justify-center bg-background">
-                  <div className="text-sm text-text-secondary">Loading {moduleDef.title}...</div>
-                </div>
+                moduleDef.skeleton ?? (
+                  <div className="flex h-full w-full items-center justify-center bg-background">
+                    <div className="text-sm text-text-secondary">Loading {moduleDef.title}...</div>
+                  </div>
+                )
               }
             >
               {moduleDef.component}

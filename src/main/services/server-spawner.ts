@@ -44,8 +44,8 @@ function resourcesRoot(): string {
   return app.isPackaged ? process.resourcesPath : process.cwd();
 }
 
-function resolveServerEntry(baseDir: string): string {
-  return path.join(baseDir, 'dist', 'index.js');
+function resolveServerEntry(baseDir: string, entryFile = 'index.js'): string {
+  return path.join(baseDir, 'dist', entryFile);
 }
 
 function fork(entry: string, env: Record<string, string>, label: string): UtilityProcess {
@@ -82,7 +82,7 @@ export async function startShellServer(): Promise<RuntimePorts> {
   const serverPort = await findFreePort();
   currentPorts = { ...currentPorts, server: serverPort };
 
-  const serverEntry = resolveServerEntry(path.join(resourcesRoot(), 'server'));
+  const serverEntry = resolveServerEntry(path.join(resourcesRoot(), 'server'), 'main.js');
   serverProc = fork(serverEntry, { PORT: String(serverPort), ENV: 'production' }, 'server');
   await waitHealthy(`http://127.0.0.1:${serverPort}`);
   return currentPorts;

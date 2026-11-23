@@ -2,8 +2,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 
 import { AgentPanel as ZenAgentPanel } from '@renderer/components/Widgets/Zen';
-import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
 import { SettingsProvider } from '@renderer/components/Widgets/Zen/context/SettingsContext';
 import {
   AccountAgentsContext,

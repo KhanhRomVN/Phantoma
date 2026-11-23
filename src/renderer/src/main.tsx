@@ -29,7 +29,7 @@ if (import.meta.env.PROD) {
   });
 }
 
-import { installChatConsoleCapture } from './components/Widgets/Zen/feature/Chat/utils/consoleLogCapture';
+import { installChatConsoleCapture } from './components/Widgets/Zen/screens/Chat/utils/consoleLogCapture';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { FontProvider } from './fonts/FontProvider';
 

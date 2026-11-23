@@ -1,10 +1,10 @@
 import React from 'react';
 import { cn } from '@renderer/utils/cn';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/feature/Chat/constants/tag-registry';
-import { TagHeader } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/feature/Chat/types/renderer-types';
-import ErrorBlock from '@renderer/components/Widgets/Zen/feature/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
 import { useEmulateWorkflowStore } from '../../stores/emulate-workflow.store';
 
 export const SendMessageRenderer: React.FC<BaseRendererProps> = ({
