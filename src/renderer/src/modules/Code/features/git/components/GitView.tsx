@@ -1,4 +1,3 @@
-import { gitIpc } from '../../../shared/ipc/git.ipc';
 /**
  * ------------------------------------------------------------------
  * Git View
@@ -20,16 +19,14 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, GitCommit, Loader2, RefreshCw, Search, X } from 'lucide-react';
 
 import { useCodeStore } from '../../../shared/stores/code.store';
-import { codeApi } from '../../../shared/api/code.api';
-import { gitIpc } from '../../../shared/ipc/git.ipc';
 import { BranchSidebar } from './BranchSidebar';
 import { CommitContextMenu } from './CommitContextMenu';
 import { SyncBranchModal } from './modals/SyncBranchModal';
 import { CommitDetail } from './CommitDetail';
 import { EmptyState } from './EmptyState';
 import { DiffView } from './DiffView';
-import { ConfirmFileChangeModal, type FileChangeAction } from './modals/ConfirmFileChangeModal';
-import { parseRefs, type Commit, type CommitFile } from '../utils/graph.util';
+import { ConfirmFileChangeModal } from './modals/ConfirmFileChangeModal';
+import type { Commit } from '../utils/graph.util';
 import { VIRTUAL_PREFIX } from '../constants/git-view.constants';
 import { VirtualRow } from './graph/VirtualRow';
 import { CommitRow } from './graph/CommitRow';
@@ -39,6 +36,8 @@ import {
   useGitGraph,
   useGitActions,
   useGitUI,
+  useGitBranches,
+  useGitLocalCommit,
 } from '../hooks';
 // ─── Main Component ─────────────────────────────────────────────────────
 export const GitView = memo(function GitView() {
@@ -78,8 +77,6 @@ export const GitView = memo(function GitView() {
     activeFile,
     diffOpen,
     setSelectedHash,
-    setActiveFile,
-    setDiffOpen,
     openDiff,
     closeDiff,
   } = useGitSelection({ projectPath });
@@ -108,13 +105,29 @@ export const GitView = memo(function GitView() {
   const selectHash = useCallback((hash: string, block: ScrollLogicalPosition = 'nearest') => {
     setSelectedHash(hash);
     document.getElementById(`git-row-${hash}`)?.scrollIntoView({ block });
-  }, []);
+  }, [setSelectedHash]);
+
+  const {
+    currentBranch,
+    cloneBranchPaths,
+    localBranches,
+    remoteBranches,
+    syncTargets,
+    syncSourceLabel,
+  } = useGitBranches({
+    branches,
+    commits,
+    projectBranches,
+    projectPath,
+    worktreePaths,
+    activeBranch: null,
+    currentBranch: null,
+  });
 
   const {
     busyBranch,
     pushing,
     activeBranch,
-    setActiveBranch,
     jumpToBranch,
     handleCheckout,
     handlePush,
@@ -123,13 +136,7 @@ export const GitView = memo(function GitView() {
     projectPath,
     commits,
     localChanges,
-    cloneBranchPaths: useMemo(() => {
-      const map: Record<string, string> = {};
-      for (const b of projectBranches ?? []) {
-        if (b.path && b.path !== projectPath) map[b.name] = b.path;
-      }
-      return map;
-    }, [projectBranches, projectPath]),
+    cloneBranchPaths,
     refresh,
     showNotice,
     selectHash,
@@ -143,135 +150,20 @@ export const GitView = memo(function GitView() {
     setSelectedHash(keyOf(navItems[0]));
   }, [navItems, selectedHash]);
 
-  const currentBranch = useMemo(() => {
-    for (const c of commits) {
-      const ref = c.refs.find((r) => r.startsWith('HEAD -> '));
-      if (ref) return ref.slice(8);
-    }
-    return null;
-  }, [commits]);
-
-  const cloneBranchPaths = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const b of projectBranches ?? []) {
-      if (b.path && b.path !== projectPath) map[b.name] = b.path;
-    }
-    return map;
-  }, [projectBranches, projectPath]);
-
-  const validBranches = useMemo(() => {
-    const base = branches.filter((b) => b !== 'origin' && !b.endsWith('/HEAD'));
-    const extra = Object.keys(cloneBranchPaths).filter((n) => !base.includes(n));
-    return [...base, ...extra];
-  }, [branches, cloneBranchPaths]);
-  const localBranches = useMemo(
-    () => validBranches.filter((b) => !b.startsWith('origin/')),
-    [validBranches],
-  );
-  const remoteBranches = useMemo(
-    () => validBranches.filter((b) => b.startsWith('origin/')),
-    [validBranches],
-  );
-
-  const syncSourceLabel = useCallback(
-    (commit: Commit) => {
-      const chips = parseRefs(commit.refs);
-      const remote = chips.find((c) => c.kind === 'remote');
-      const local = chips.find((c) => c.kind === 'head' || c.kind === 'local');
-      const branch = remote
-        ? remote.label
-        : `origin/${local?.label ?? activeBranch ?? currentBranch ?? 'HEAD'}`;
-      return `${branch} - ${commit.hash.slice(0, 7)}`;
-    },
-    [activeBranch, currentBranch],
-  );
-
-  const syncTargets = useMemo(() => {
-    const list = currentBranch ? [{ name: currentBranch, path: projectPath }] : [];
-    Object.entries({ ...cloneBranchPaths, ...worktreePaths }).forEach(([name, path]) =>
-      list.push({ name, path }),
-    );
-    return list;
-  }, [currentBranch, projectPath, worktreePaths, cloneBranchPaths]);
 
 
-
-  const [pendingOp, setPendingOp] = useState<{ action: FileChangeAction; file: CommitFile } | null>(
-    null,
-  );
-
-  const fileActions = useMemo(
-    () =>
-      selectedVirtual
-        ? {
-            onStage: (f: CommitFile) => setPendingOp({ action: 'stage', file: f }),
-            onUnstage: (f: CommitFile) => setPendingOp({ action: 'unstage', file: f }),
-            onDiscard: (f: CommitFile) => setPendingOp({ action: 'discard', file: f }),
-          }
-        : undefined,
-    [selectedVirtual, runFileOp],
-  );
-
-  const [localBusy, setLocalBusy] = useState(false);
   const localRoot = selectedVirtual
     ? (cloneBranchPaths[selectedVirtual.name] ?? worktreePaths[selectedVirtual.name] ?? projectPath)
     : projectPath;
 
-  const localCommit = useMemo(
-    () => ({
-      busy: localBusy,
-      onNotice: showNotice,
-      onStage: async (paths: string[]) => {
-        setLocalBusy(true);
-        try {
-          const res = await codeApi.git
-            .stage(localRoot, paths)
-            .catch((e: any) => ({ error: e?.message || String(e) }));
-          showNotice(
-            res?.error ? String(res.error).split('\n')[0] : `Staged ${paths.length} files`,
-          );
-          await refresh();
-        } finally {
-          setLocalBusy(false);
-        }
-      },
-      onCommit: async (message: string) => {
-        setLocalBusy(true);
-        try {
-          const res = await codeApi.git
-            .commit(localRoot, message)
-            .catch((e: any) => ({ error: e?.message || String(e) }));
-          const failed = !!res?.error;
-          showNotice(failed ? String(res.error).split('\n')[0] : 'Committed');
-          if (!failed) await refresh();
-          return !failed;
-        } finally {
-          setLocalBusy(false);
-        }
-      },
-    }),
-    [localBusy, localRoot, refresh, showNotice],
-  );
-
-  const confirmPendingOp = useCallback(() => {
-    if (!pendingOp) return;
-    const { action, file: f } = pendingOp;
-    if (action === 'stage')
-      void runFileOp('git:stage', [f.path], `Staged ${f.path}`, undefined, localRoot);
-    else if (action === 'unstage')
-      void runFileOp('git:unstage', [f.path], `Unstaged ${f.path}`, undefined, localRoot);
-    else
-      void runFileOp(
-        'git:discard',
-        [f.path],
-        `Discarded ${f.path}`,
-        {
-          untracked: !!f.untracked,
-          staged: !f.untracked && !!f.staged,
-        },
-        localRoot,
-      );
-  }, [pendingOp, runFileOp, localRoot]);
+  const { pendingOp, setPendingOp, fileActions, localCommit, confirmPendingOp } =
+    useGitLocalCommit({
+      localRoot,
+      selectedVirtual,
+      refresh,
+      showNotice,
+      runFileOp,
+    });
 
   const [commitMenu, setCommitMenu] = useState<{
     commit: Commit;

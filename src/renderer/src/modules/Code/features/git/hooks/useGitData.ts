@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { codeApi } from '../../../shared/api/code.api';
-import type { Commit, LocalChange } from '../utils/graph.util';
-import type { CommitFile } from '../types/git-view.types';
+import type { Commit } from '../utils/graph.util';
+import type { LocalChange } from '../types/git-view.types';
 
 interface ProjectBranch {
   name: string;
@@ -62,7 +62,7 @@ export function useGitData({
         .then((r: { hashes?: string[] }) => {
           setUnpushedHashes(new Set(r?.hashes ?? []));
         })
-        .catch((e) => {
+        .catch(() => {
           setUnpushedHashes(new Set());
         });
       Promise.all(

@@ -20,7 +20,7 @@ interface UseGitUIReturn {
   hover: HoverState | null;
   handleHover: (e: React.MouseEvent | null, commit?: Commit) => void;
   matchSet: Set<string> | null;
-  searchRef: React.RefObject<HTMLInputElement>;
+  searchRef: React.RefObject<HTMLInputElement | null>;
 }
 
 export function useGitUI({ commits }: UseGitUIProps): UseGitUIReturn {

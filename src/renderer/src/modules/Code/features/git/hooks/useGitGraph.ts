@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { buildGraph, LANE_WIDTH, type Commit, type LocalChange, type GraphRow } from '../utils/graph.util';
-import { VIRTUAL_PREFIX } from '../constants/git-view.constants';
+import { buildGraph, LANE_WIDTH, type Commit, type GraphRow } from '../utils/graph.util';
+import type { LocalChange } from '../types/git-view.types';
 
 interface UseGitGraphProps {
   commits: Commit[];

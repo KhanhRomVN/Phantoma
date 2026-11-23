@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { codeApi } from '../../../shared/api/code.api';
-import type { Commit } from '../utils/graph.util';
-import type { CommitFile } from '../types/git-view.types';
+import type { CommitFile } from '../utils/graph.util';
 import { VIRTUAL_PREFIX } from '../constants/git-view.constants';
 
 interface UseGitSelectionProps {
