@@ -16,12 +16,12 @@ import { gitIpc } from '../../../shared/ipc/git.ipc';
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, GitCommit, Loader2, RefreshCw, Search, X } from 'lucide-react';
 
-import { cn } from '@renderer/utils/cn';
 import { useCodeStore } from '../../../shared/stores/code.store';
 import { codeApi } from '../../../shared/api/code.api';
+import { gitIpc } from '../../../shared/ipc/git.ipc';
 import { BranchSidebar } from './BranchSidebar';
 import { CommitContextMenu } from './CommitContextMenu';
 import { SyncBranchModal } from './modals/SyncBranchModal';
@@ -29,34 +29,17 @@ import { CommitDetail } from './CommitDetail';
 import { EmptyState } from './EmptyState';
 import { DiffView } from './DiffView';
 import { ConfirmFileChangeModal, type FileChangeAction } from './modals/ConfirmFileChangeModal';
-import { GraphCell, GraphFill, RefPill, useRemoteAccents } from './GraphCell';
-import {
-  ROW_HEIGHT,
-  LANE_WIDTH,
-  buildGraph,
-  laneX,
-  formatRelative,
-  laneColor,
-  parseRefs,
-  type Commit,
-  type CommitFile,
-  type GraphRow,
-} from '../utils/graph.util';
-
-import {
-  LocalChange,
-  VirtualRowProps,
-  BranchRowProps,
-  CommitRowProps,
-} from '../types/git-view.types';
-
+import { parseRefs, type Commit, type CommitFile } from '../utils/graph.util';
 import { VIRTUAL_PREFIX } from '../constants/git-view.constants';
-
 import { VirtualRow } from './graph/VirtualRow';
-
-import { BranchRow } from './graph/BranchRow';
-
 import { CommitRow } from './graph/CommitRow';
+import {
+  useGitData,
+  useGitSelection,
+  useGitGraph,
+  useGitActions,
+  useGitUI,
+} from '../hooks';
 // ─── Main Component ─────────────────────────────────────────────────────
 export const GitView = memo(function GitView() {
   const projectPath = useCodeStore((s) => {
@@ -71,250 +54,86 @@ export const GitView = memo(function GitView() {
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.branches,
   );
 
-  const [commits, setCommits] = useState<Commit[]>([]);
-  const [branches, setBranches] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [worktreePaths, setWorktreePaths] = useState<Record<string, string>>({});
   const [syncCommit, setSyncCommit] = useState<Commit | null>(null);
-  const [localChanges, setLocalChanges] = useState<LocalChange[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedHash, setSelectedHash] = useState<string | null>(null);
-  const [files, setFiles] = useState<CommitFile[]>([]);
-  const [filesLoading, setFilesLoading] = useState(false);
-  const [query, setQuery] = useState('');
-  const [notice, setNotice] = useState<string | null>(null);
-  const [busyBranch, setBusyBranch] = useState<string | null>(null);
-  const [diffOpen, setDiffOpen] = useState(false);
-  const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [activeBranch, setActiveBranch] = useState<string | null>(null);
 
-  const [defaultBranch, setDefaultBranch] = useState('');
-  const [unpushedHashes, setUnpushedHashes] = useState<Set<string>>(new Set());
-  const [cloneUnpushed, setCloneUnpushed] = useState<Record<string, Commit[]>>({});
-  const [pushing, setPushing] = useState(false);
-  const [hover, setHover] = useState<{
-    x: number;
-    y: number;
-    title: string;
-    lines: string[];
-  } | null>(null);
+  // Use hooks
+  const {
+    commits,
+    branches,
+    tags,
+    worktreePaths,
+    localChanges,
+    loading,
+    error,
+    defaultBranch,
+    unpushedHashes,
+    cloneUnpushed,
+    refresh,
+  } = useGitData({ projectPath, projectBranches });
 
-  useEffect(() => {
-    if (!projectPath) return;
-    codeApi.git
-      .defaultBranch(projectPath)
-      .then((def: { name?: string }) => {
-        setDefaultBranch(def?.name ?? '');
-      })
-      .catch(() => undefined);
-  }, [projectPath]);
+  const {
+    selectedHash,
+    files,
+    filesLoading,
+    activeFile,
+    diffOpen,
+    setSelectedHash,
+    setActiveFile,
+    setDiffOpen,
+    openDiff,
+    closeDiff,
+  } = useGitSelection({ projectPath });
 
-  useEffect(() => {
-    setActiveFile(null);
-    if (!selectedHash) setDiffOpen(false);
-  }, [selectedHash]);
-
-  const openDiff = useCallback((path: string) => {
-    setActiveFile(path);
-    setDiffOpen(true);
-  }, []);
-
-  const closeDiff = useCallback(() => setDiffOpen(false), []);
-
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        searchRef.current?.focus();
-        searchRef.current?.select();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const refresh = useCallback(async () => {
-    if (!projectPath) return;
-    setLoading(true);
-    setError(null);
-    try {
-      codeApi.git
-        .unpushed(projectPath)
-        .then((r: { hashes?: string[] }) => {
-          setUnpushedHashes(new Set(r?.hashes ?? []));
-        })
-        .catch((e) => {
-          setUnpushedHashes(new Set());
-        });
-      Promise.all(
-        (projectBranches ?? [])
-          .filter((b) => b.path && b.path !== projectPath)
-          .map(async (b) => {
-            const u: { hashes?: string[] } = await codeApi.git.unpushed(b.path as string);
-            const hashes = new Set(u?.hashes ?? []);
-            if (hashes.size === 0) return [b.name, [] as Commit[]] as const;
-            const l: { commits?: Commit[] } = await codeApi.git.log(b.path as string, 300);
-            return [b.name, (l?.commits ?? []).filter((c) => hashes.has(c.hash))] as const;
-          }),
-      )
-        .then((entries) => {
-          setCloneUnpushed(Object.fromEntries(entries));
-        })
-        .catch(() => setCloneUnpushed({}));
-      const [logRes, branchRes, changeRes, tagRes] = await Promise.all([
-        codeApi.git.log(projectPath, 300),
-        codeApi.git.branches(projectPath),
-        codeApi.git.localChanges(
-          projectPath,
-          Object.fromEntries(
-            (projectBranches ?? []).filter((b) => b.path).map((b) => [b.name, b.path as string]),
-          ),
-        ),
-        codeApi.git.tags(projectPath),
-      ]);
-      setLocalChanges(changeRes?.branches ?? []);
-      setTags(tagRes?.tags ?? []);
-      if (logRes?.error) {
-        setError(logRes.error);
-        setCommits([]);
-      } else {
-        const list: Commit[] = logRes?.commits ?? [];
-        setCommits(list);
-        setSelectedHash((prev) => prev ?? list[0]?.hash ?? null);
-      }
-      setBranches(branchRes?.branches ?? []);
-      setWorktreePaths(branchRes?.worktreePaths ?? {});
-    } catch (e: any) {
-      setError(e?.message ?? String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [projectPath, projectBranches]);
-
-  useEffect(() => {
-    setSelectedHash(null);
-    void refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    const onRefresh = () => void refresh();
-    window.addEventListener('phantoma:git-refresh', onRefresh);
-    return () => window.removeEventListener('phantoma:git-refresh', onRefresh);
-  }, [refresh]);
-
-  useEffect(() => {
-    if (!selectedHash || !projectPath || selectedHash.startsWith(VIRTUAL_PREFIX)) {
-      setFiles([]);
-      return;
-    }
-    let cancelled = false;
-    setFilesLoading(true);
-    codeApi.git
-      .commitFiles(projectPath, selectedHash)
-      .then((res: { files?: CommitFile[] }) => {
-        if (!cancelled) setFiles(res?.files ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setFiles([]);
-      })
-      .finally(() => {
-        if (!cancelled) setFilesLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedHash, projectPath]);
+  const { query, setQuery, notice, showNotice, hover, handleHover, matchSet, searchRef } =
+    useGitUI({ commits });
 
   const mainTip = useMemo(() => {
     if (!defaultBranch) return null;
     const names = [defaultBranch, `HEAD -> ${defaultBranch}`, `origin/${defaultBranch}`];
     return commits.find((c) => c.refs.some((r) => names.includes(r)))?.hash ?? null;
   }, [commits, defaultBranch]);
-  const { rows, laneCount } = useMemo(() => buildGraph(commits, mainTip), [commits, mainTip]);
-  const graphWidth = Math.min(Math.max(laneCount * LANE_WIDTH + 16, 72), 260);
+
+  const { items, graphWidth, laneCount, allVirtualNames } = useGitGraph({
+    commits,
+    localChanges,
+    mainTip,
+  });
+
+  const navItems = useMemo(() => items, [items]);
+
   const selected = commits.find((c) => c.hash === selectedHash) ?? null;
   const selectedVirtual =
     localChanges.find((lc) => VIRTUAL_PREFIX + lc.name === selectedHash) ?? null;
 
-  const virtualByHash = useMemo(() => {
-    const map = new Map<string, LocalChange[]>();
-    localChanges.forEach((lc) => {
-      const tip =
-        commits.find((c) => c.refs.includes(`origin/${lc.name}`)) ??
-        commits.find((c) => c.refs.some((r) => r === lc.name || r === `HEAD -> ${lc.name}`));
-      if (!tip) return;
-      map.set(tip.hash, [...(map.get(tip.hash) ?? []), lc]);
-    });
-    return map;
-  }, [commits, localChanges]);
+  const selectHash = useCallback((hash: string, block: ScrollLogicalPosition = 'nearest') => {
+    setSelectedHash(hash);
+    document.getElementById(`git-row-${hash}`)?.scrollIntoView({ block });
+  }, []);
 
-  const allVirtualNames = useMemo(() => new Set(localChanges.map((l) => l.name)), [localChanges]);
-
-  const branchRowsByHash = useMemo(() => {
-    const map = new Map<string, string[]>();
-    commits.forEach((c) => {
-      const chips = parseRefs(c.refs);
-      if (!chips.some((x) => x.kind === 'remote')) return;
-      const names = chips
-        .filter((x) => (x.kind === 'head' || x.kind === 'local') && !allVirtualNames.has(x.label))
-        .map((x) => x.label);
-      if (names.length > 0) map.set(c.hash, names);
-    });
-    return map;
-  }, [commits, allVirtualNames]);
-
-  const items = useMemo(() => {
-    const list: (
-      | { kind: 'commit'; commit: Commit; row: GraphRow }
-      | {
-          kind: 'virtual';
-          change: LocalChange;
-          row: GraphRow;
-          col: number;
-          hangCol: number | null;
-          hangFull: boolean;
-        }
-      | { kind: 'branch'; hash: string; names: string[]; row: GraphRow; joinTop: boolean }
-    )[] = [];
-    commits.forEach((c, idx) => {
-      const tipRow = rows[idx];
-      const lanes = new Set([...tipRow.incoming, ...tipRow.passThrough]);
-      const hangs = !lanes.has(tipRow.col);
-      let hanging = false;
-      (virtualByHash.get(c.hash) ?? []).forEach((change) => {
-        const col = tipRow.col;
-        const hangFull = hanging;
-        if (hangs) hanging = true;
-        list.push({
-          kind: 'virtual',
-          change,
-          row: tipRow,
-          col,
-          hangCol: hanging ? tipRow.col : null,
-          hangFull,
-        });
-      });
-      const names = branchRowsByHash.get(c.hash);
-      if (names) list.push({ kind: 'branch', hash: c.hash, names, row: tipRow, joinTop: hanging });
-      list.push({
-        kind: 'commit',
-        commit: c,
-        row: hanging ? { ...tipRow, incoming: [...tipRow.incoming, tipRow.col] } : tipRow,
-      });
-    });
-    return list;
-  }, [commits, rows, virtualByHash, branchRowsByHash]);
-
-  const navItems = useMemo(
-    () =>
-      items.filter(
-        (it): it is Exclude<(typeof items)[number], { kind: 'branch' }> => it.kind !== 'branch',
-      ),
-    [items],
-  );
+  const {
+    busyBranch,
+    pushing,
+    activeBranch,
+    setActiveBranch,
+    jumpToBranch,
+    handleCheckout,
+    handlePush,
+    runFileOp,
+  } = useGitActions({
+    projectPath,
+    commits,
+    localChanges,
+    cloneBranchPaths: useMemo(() => {
+      const map: Record<string, string> = {};
+      for (const b of projectBranches ?? []) {
+        if (b.path && b.path !== projectPath) map[b.name] = b.path;
+      }
+      return map;
+    }, [projectBranches, projectPath]),
+    refresh,
+    showNotice,
+    selectHash,
+  });
 
   useEffect(() => {
     if (navItems.length === 0) return;
@@ -375,116 +194,7 @@ export const GitView = memo(function GitView() {
     return list;
   }, [currentBranch, projectPath, worktreePaths, cloneBranchPaths]);
 
-  const matchSet = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return null;
-    const set = new Set<string>();
-    commits.forEach((c) => {
-      if (
-        c.subject.toLowerCase().includes(q) ||
-        c.author.toLowerCase().includes(q) ||
-        c.hash.startsWith(q) ||
-        c.refs.some((r) => r.toLowerCase().includes(q))
-      ) {
-        set.add(c.hash);
-      }
-    });
-    return set;
-  }, [commits, query]);
 
-  const selectHash = useCallback((hash: string, block: ScrollLogicalPosition = 'nearest') => {
-    setSelectedHash(hash);
-    setActiveBranch(null);
-    document.getElementById(`git-row-${hash}`)?.scrollIntoView({ block });
-  }, []);
-
-  const showNotice = useCallback((msg: string) => {
-    setNotice(msg);
-    setTimeout(() => setNotice(null), 3500);
-  }, []);
-
-  const jumpToBranch = useCallback(
-    async (name: string) => {
-      if (localChanges.some((lc) => lc.name === name)) {
-        selectHash(VIRTUAL_PREFIX + name, 'center');
-        setActiveBranch(name);
-        return;
-      }
-      setBusyBranch(name);
-      try {
-        const clonePath = cloneBranchPaths[name];
-        let res: any = await codeApi.git.resolveRef(
-          clonePath ?? projectPath,
-          clonePath ? 'HEAD' : name,
-        );
-        if (clonePath && !commits.some((c) => c.hash === res?.hash)) {
-          const remote: any = await codeApi.git.resolveRef(projectPath, `origin/${name}`);
-          if (remote?.hash) res = remote;
-        }
-        if (res?.error || !res?.hash) {
-          showNotice(`Cannot resolve "${name}"`);
-          return;
-        }
-        if (commits.some((c) => c.hash === res.hash)) {
-          selectHash(res.hash, 'center');
-          setActiveBranch(name);
-        } else {
-          showNotice(
-            `Tip of "${name}" (${res.hash.slice(0, 7)}) is outside the loaded 300 commits`,
-          );
-        }
-      } finally {
-        setBusyBranch(null);
-      }
-    },
-    [commits, localChanges, projectPath, cloneBranchPaths, selectHash, showNotice],
-  );
-
-  const handleCheckout = useCallback(
-    async (name: string) => {
-      setBusyBranch(name);
-      try {
-        const res = await codeApi.git
-          .checkout(projectPath, name)
-          .catch((e: any) => ({ error: e?.message || String(e) }));
-        if (res?.error) {
-          showNotice(String(res.error).split('\n')[0]);
-        } else {
-          showNotice(`Checked out "${name}"`);
-          await refresh();
-        }
-      } finally {
-        setBusyBranch(null);
-      }
-    },
-    [projectPath, refresh, showNotice],
-  );
-
-  const handlePush = useCallback(async (root?: string) => {
-    setPushing(true);
-    try {
-      const res = await codeApi.git
-        .push(root ?? projectPath)
-        .catch((e: any) => ({ error: e?.message || String(e) }));
-      showNotice(res?.error ? String(res.error).split('\n')[0] : 'Pushed');
-      await refresh();
-    } finally {
-      setPushing(false);
-    }
-  }, [projectPath, refresh, showNotice]);
-
-  const runFileOp = useCallback(
-    async (channel: string, payload: unknown, okMsg: string, opts?: unknown, root?: string) => {
-      const res = await gitIpc.invoke(channel,
-        root ?? projectPath,
-        payload,
-        ...(opts === undefined ? [] : [opts]),
-      );
-      showNotice(res?.error ? String(res.error).split('\n')[0] : okMsg);
-      await refresh();
-    },
-    [projectPath, refresh, showNotice],
-  );
 
   const [pendingOp, setPendingOp] = useState<{ action: FileChangeAction; file: CommitFile } | null>(
     null,
@@ -572,26 +282,6 @@ export const GitView = memo(function GitView() {
     e.preventDefault();
     setSelectedHash(commit.hash);
     setCommitMenu({ commit, pos: { top: e.clientY, left: e.clientX } });
-  }, []);
-
-  const handleHover = useCallback((e: React.MouseEvent | null, commit?: Commit) => {
-    if (!e || !commit) {
-      setHover(null);
-      return;
-    }
-    const chips = parseRefs(commit.refs).map((c) => c.label);
-    setHover({
-      x: e.clientX,
-      y: e.clientY,
-      title: commit.subject,
-      lines: [
-        `${commit.author} · ${commit.hash.slice(0, 7)} · ${formatRelative(commit.date)}`,
-        ...(chips.length ? [`Refs: ${chips.join(', ')}`] : []),
-        ...(commit.parents.length > 1
-          ? [`Merge of ${commit.parents.map((p) => p.slice(0, 7)).join(' + ')}`]
-          : []),
-      ],
-    });
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -756,19 +446,7 @@ export const GitView = memo(function GitView() {
                 className={'flex-1 overflow-y-auto outline-none'}
               >
                 {items.map((it) =>
-                  it.kind === 'branch' ? (
-                    <BranchRow
-                      key={`branch:${it.hash}`}
-                      hash={it.hash}
-                      names={it.names}
-                      col={it.row.col}
-                      lines={[...it.row.incoming, ...it.row.passThrough]}
-                      graphWidth={graphWidth}
-                      dimmed={matchSet !== null && !matchSet.has(it.hash)}
-                      joinTop={it.joinTop}
-                      onSelect={selectHash}
-                    />
-                  ) : it.kind === 'commit' ? (
+                  it.kind === 'commit' ? (
                     <CommitRow
                       key={it.commit.hash}
                       commit={it.commit}
@@ -777,10 +455,7 @@ export const GitView = memo(function GitView() {
                       graphWidth={graphWidth}
                       selected={it.commit.hash === selectedHash}
                       dimmed={matchSet !== null && !matchSet.has(it.commit.hash)}
-                      hideLocals={[
-                        ...allVirtualNames,
-                        ...(branchRowsByHash.get(it.commit.hash) ?? []),
-                      ]}
+                      hideLocals={[...allVirtualNames]}
                       unpushed={unpushedHashes.has(it.commit.hash)}
                       pushing={pushing}
                       onPush={handlePush}

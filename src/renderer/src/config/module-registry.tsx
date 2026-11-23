@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Network,
   Activity,
+  LayoutDashboard,
 } from 'lucide-react';
 
 // Lazy imports for better performance
@@ -33,9 +34,10 @@ const Proxy = lazy(() => import('../modules/Proxy/Proxy'));
 const Fleet = lazy(() => import('../modules/Fleet'));
 const Chat = lazy(() => import('../modules/Chat/Chat'));
 const Monitor = lazy(() => import('../modules/Monitor/Monitor'));
+const Dashboard = lazy(() => import('../modules/Dashboard/Dashboard'));
 
 export type ModuleId =
-  'recon' | 'emulate' | 'code' | 'settings' | 'preview' | 'uitest' | 'profile' | 'proxy' | 'fleet' | 'chat' | 'monitor';
+  'recon' | 'emulate' | 'code' | 'settings' | 'preview' | 'uitest' | 'profile' | 'proxy' | 'fleet' | 'chat' | 'monitor' | 'dashboard';
 
 export interface ModuleDefinition {
   id: ModuleId;
@@ -135,6 +137,16 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     icon: Activity,
     component: <Monitor />,
     color: 'text-rose-400',
+    showInQuickNav: true,
+    showInActivityBar: true,
+  },
+  {
+    id: 'dashboard',
+    title: 'Dashboard',
+    description: 'Overview of activity, stats and key metrics',
+    icon: LayoutDashboard,
+    component: <Dashboard />,
+    color: 'text-indigo-400',
     showInQuickNav: true,
     showInActivityBar: true,
   },

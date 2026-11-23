@@ -1,0 +1,96 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { parseRefs, formatRelative, type Commit } from '../utils/graph.util';
+
+interface UseGitUIProps {
+  commits: Commit[];
+}
+
+interface HoverState {
+  x: number;
+  y: number;
+  title: string;
+  lines: string[];
+}
+
+interface UseGitUIReturn {
+  query: string;
+  setQuery: (q: string) => void;
+  notice: string | null;
+  showNotice: (msg: string) => void;
+  hover: HoverState | null;
+  handleHover: (e: React.MouseEvent | null, commit?: Commit) => void;
+  matchSet: Set<string> | null;
+  searchRef: React.RefObject<HTMLInputElement>;
+}
+
+export function useGitUI({ commits }: UseGitUIProps): UseGitUIReturn {
+  const [query, setQuery] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [hover, setHover] = useState<HoverState | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const showNotice = useCallback((msg: string) => {
+    setNotice(msg);
+    setTimeout(() => setNotice(null), 3500);
+  }, []);
+
+  const handleHover = useCallback((e: React.MouseEvent | null, commit?: Commit) => {
+    if (!e || !commit) {
+      setHover(null);
+      return;
+    }
+    const chips = parseRefs(commit.refs).map((c) => c.label);
+    setHover({
+      x: e.clientX,
+      y: e.clientY,
+      title: commit.subject,
+      lines: [
+        `${commit.author} · ${commit.hash.slice(0, 7)} · ${formatRelative(commit.date)}`,
+        ...(chips.length ? [`Refs: ${chips.join(', ')}`] : []),
+        ...(commit.parents.length > 1
+          ? [`Merge of ${commit.parents.map((p) => p.slice(0, 7)).join(' + ')}`]
+          : []),
+      ],
+    });
+  }, []);
+
+  const matchSet = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return null;
+    const set = new Set<string>();
+    commits.forEach((c) => {
+      if (
+        c.subject.toLowerCase().includes(q) ||
+        c.author.toLowerCase().includes(q) ||
+        c.hash.startsWith(q) ||
+        c.refs.some((r) => r.toLowerCase().includes(q))
+      ) {
+        set.add(c.hash);
+      }
+    });
+    return set;
+  }, [commits, query]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  return {
+    query,
+    setQuery,
+    notice,
+    showNotice,
+    hover,
+    handleHover,
+    matchSet,
+    searchRef,
+  };
+}

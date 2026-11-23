@@ -21,17 +21,6 @@ export interface VirtualRowProps {
   onSelect: (key: string) => void;
 }
 
-// ─── Branch Row (local branch in sync with remote) ──────────────────────
-export interface BranchRowProps {
-  hash: string;
-  names: string[];
-  col: number;
-  lines: number[];
-  graphWidth: number;
-  dimmed: boolean;
-  joinTop: boolean;
-  onSelect: (hash: string) => void;
-}
 
 // ─── Commit Row ─────────────────────────────────────────────────────────
 export interface CommitRowProps {

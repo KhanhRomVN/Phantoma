@@ -50,19 +50,13 @@ export const CommitRow = memo(function CommitRow({
       <div
         className={'w-[200px] shrink-0 flex flex-col items-end justify-center gap-1 pl-3 pr-2 py-1'}
       >
-        {[false, true].map((remote) => {
-          // ASSUMED: tách nhãn local và remote thành 2 dòng riêng để 'main' không dính chung dòng với origin/*
-          const group = chips
-            .map((c, i) => ({ c, i }))
-            .filter(({ c }) => (c.kind === 'remote') === remote);
-          return group.length > 0 ? (
-            <div key={String(remote)} className={'flex flex-wrap items-center justify-end gap-1'}>
-              {group.map(({ c, i }) => (
-                <RefPill key={c.kind + c.label} chip={c} color={remoteAccents[i]} />
-              ))}
-            </div>
-          ) : null;
-        })}
+        {chips.length > 0 && (
+          <div className={'flex flex-wrap items-center justify-end gap-1'}>
+            {chips.map((c, i) => (
+              <RefPill key={c.kind + c.label} chip={c} color={remoteAccents[i]} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div
