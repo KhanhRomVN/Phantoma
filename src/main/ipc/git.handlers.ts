@@ -40,6 +40,7 @@ import { tmpdir } from 'os';
 import { basename, dirname, join, resolve } from 'path';
 
 // ── Internal ──
+
 import { logger } from '../utils/logger';
 
 // ─── Functions ──────────────────────────────────────────────────────────
@@ -1885,7 +1886,9 @@ exit 0
           return { error: `Thư mục "${targetPath}" đã tồn tại` };
         }
         // ASSUMED: cả 'Create branch' và 'Create project as remote branch' đều clone độc lập có .git riêng, origin trỏ về remote thật của project
-        const cloneRemoteUrl = (await runGit(['config', '--get', 'remote.origin.url'], cwd)).stdout.trim();
+        const cloneRemoteUrl = (
+          await runGit(['config', '--get', 'remote.origin.url'], cwd)
+        ).stdout.trim();
         await fs.mkdir(baseDir, { recursive: true });
 
         rollback = async () => {
@@ -1904,7 +1907,10 @@ exit 0
           return { error: cloned.stderr || cloned.error.message };
         }
         if (remoteRef || (!useExisting && sourceBranch.startsWith('origin/'))) {
-          await runGit(['fetch', 'origin', '+refs/remotes/origin/*:refs/remotes/origin/*'], targetPath);
+          await runGit(
+            ['fetch', 'origin', '+refs/remotes/origin/*:refs/remotes/origin/*'],
+            targetPath,
+          );
         }
         const startRef =
           mode === 'commit' && commitSha
@@ -1924,7 +1930,8 @@ exit 0
           await rollback();
           return { error: checkout.stderr || checkout.error.message };
         }
-        if (cloneRemoteUrl) await runGit(['remote', 'set-url', 'origin', cloneRemoteUrl], targetPath);
+        if (cloneRemoteUrl)
+          await runGit(['remote', 'set-url', 'origin', cloneRemoteUrl], targetPath);
 
         if (mode === 'local') {
           report({ step: 'local' });
@@ -1994,7 +2001,11 @@ exit 0
           if (!warning && cloneRemoteUrl) {
             const push = await runGit(['push', '-u', 'origin', name], targetPath);
             if (push.error) warning = push.stderr || push.error.message;
-            else await runGit(['fetch', 'origin', `+refs/heads/${name}:refs/remotes/origin/${name}`], cwd);
+            else
+              await runGit(
+                ['fetch', 'origin', `+refs/heads/${name}:refs/remotes/origin/${name}`],
+                cwd,
+              );
           }
           if (warning) logger.warn('[git:create-branch-worktree] commit/push failed:', warning);
         }
@@ -2388,6 +2399,28 @@ exit 0
       return { error: e.message || String(e) };
     }
   });
+
+  ipcMain.handle(
+    'git:worktree-file-diff',
+    async (_event, targetPath: string, sourcePath: string, filePath: string) => {
+      try {
+        if (!targetPath || !sourcePath || !filePath) return { error: 'Thiếu đường dẫn hoặc file' };
+        const mine = resolve(targetPath, filePath);
+        const theirs = resolve(sourcePath, filePath);
+        const has = (p: string) =>
+          fs.access(p).then(
+            () => true,
+            () => false,
+          );
+        const [hasMine, hasTheirs] = await Promise.all([has(mine), has(theirs)]);
+        const raw = await noIndexDiff(hasMine ? mine : '/dev/null', hasTheirs ? theirs : '/dev/null');
+        return { diff: raw.replace(/^diff --git .*$/m, `diff --git a/${filePath} b/${filePath}`) };
+      } catch (e: any) {
+        logger.error('[git:worktree-file-diff] Error:', e);
+        return { error: e.message || String(e) };
+      }
+    },
+  );
 
   const noIndexDiff = (a: string, b: string) =>
     new Promise<string>((done) => {

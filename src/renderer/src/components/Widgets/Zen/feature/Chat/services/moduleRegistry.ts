@@ -20,7 +20,6 @@
 import type { ComponentType } from 'react';
 import type { ExecutorContext, ExecutorOptions, ToolExecutor } from '../types/executor-types';
 import { executeConversationTitle } from './tool-executors/ConversationTitleExecutor';
-import { codeModule } from '@renderer/modules/Code/CodeModule';
 import { emulateModule } from '@renderer/modules/Emulate/EmulateModule';
 import { reconModule } from '@renderer/modules/Recon/ReconModule';
 import type { ToolFormatId } from './tool-format-parsers/types';
@@ -187,7 +186,7 @@ export const getPromptCapabilities = (
 ): ZenModuleCapabilities => {
   const mod = getZenModule(moduleId);
   const moduleCapabilities = mod?.capabilities ?? {};
-  
+
   if (!mod?.prompts?.systemPrompts) {
     return moduleCapabilities;
   }
@@ -195,7 +194,7 @@ export const getPromptCapabilities = (
   // Use promptId if provided, otherwise default to moduleId (main prompt)
   const key = promptId ?? moduleId;
   const descriptor = mod.prompts.systemPrompts.get(key);
-  
+
   // Merge module-level and prompt-level capabilities
   // Module-level capabilities (like multiAgent) are inherited by all prompts
   const promptCapabilities = descriptor?.getCapabilities() ?? {};
@@ -286,4 +285,5 @@ export const getToolFormatReminder = (
 
 // Inject module tag registries into tag-registry to avoid circular dependency
 import { injectModuleRegistries } from '../constants/tag-registry';
+import { codeModule } from '@renderer/modules/Code/code.module';
 injectModuleRegistries(getModuleTagRegistries(), getModuleTagRegistriesByModule());

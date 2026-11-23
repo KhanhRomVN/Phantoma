@@ -2,53 +2,32 @@
  * ------------------------------------------------------------------
  * Express App Factory
  * ------------------------------------------------------------------
- * Mirrors AIWeb2API_temp/src/app.ts structure but adapted for Phantoma:
- * CORS → JSON body parser → request logger → API router → 404 → error handler.
- * The Go server applied middleware in the order cors(RequestLogger(mux));
- * here we keep the same semantic ordering within Express's pipeline.
+ * Thứ tự middleware: CORS → body parser → request logger → API router
+ * → 404 → error handler.
  * ------------------------------------------------------------------
  */
 
-// ─── Imports ────────────────────────────────────────────────────────────
-// ── External 
-import express from 'express';
 import cors from 'cors';
+import express from 'express';
+import type { AppContainer } from './bootstrap/container';
+import { CORS_OPTIONS, REQUEST_BODY_LIMIT } from './constants';
+import { errorHandler } from './api/middleware/error-handler.middleware';
+import { requestLogger } from './api/middleware/request-logger.middleware';
+import { createApiRouter } from './api/routes';
+import { sendError } from './utils/http-response.util';
 
-// ── Middleware 
-import { requestLogger } from './middleware/request-logger.middleware';
-import { errorHandler } from './middleware/error-handler.middleware';
-
-// ── Routes 
-import { createApiRouter } from './routes';
-
-// ─── Factory ────────────────────────────────────────────────────────────
-
-export function createApp() {
+export function createApp(container: AppContainer): express.Express {
   const app = express();
 
-  // ─── Global middleware ───────────────────────────────────────────────
-  app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  }));
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  app.use(cors(CORS_OPTIONS));
+  app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
+  app.use(express.urlencoded({ extended: true, limit: REQUEST_BODY_LIMIT }));
   app.use(requestLogger);
 
-  // ─── API routes ──────────────────────────────────────────────────────
-  app.use(createApiRouter());
+  app.use(createApiRouter(container));
 
-  // ─── 404 fallback ────────────────────────────────────────────────────
-  app.use((req, res) => {
-    res.status(404).json({
-      success: false,
-      error: `Cannot ${req.method} ${req.path}`,
-    });
-  });
-
-  // ─── Centralized error handler (must be registered last) ─────────────
-  app.use(errorHandler);
+  app.use((req, res) => sendError(res, 404, `Cannot ${req.method} ${req.path}`));
+  app.use(errorHandler); // phải đăng ký cuối cùng
 
   return app;
 }
