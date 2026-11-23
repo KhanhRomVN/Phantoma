@@ -105,6 +105,77 @@ export const gitWriteService = {
     return res.error ? { error: message(res) } : { success: true };
   },
 
+  scopeTransfer: async (
+    root: string,
+    targetRoot: string,
+    files: string[],
+  ): Promise<{ transferred?: number; conflicts?: string[]; error?: string }> => {
+    const src = path.resolve(root);
+    const dst = path.resolve(targetRoot);
+    if (src === dst) return { error: 'Source and target must be different branches' };
+    const rels = [...new Set(files)];
+    for (const rel of rels) {
+      const a = path.resolve(src, rel);
+      const b = path.resolve(dst, rel);
+      if (path.isAbsolute(rel) || !a.startsWith(`${src}${path.sep}`) || !b.startsWith(`${dst}${path.sep}`)) {
+        return { error: `Invalid path: ${rel}` };
+      }
+    }
+    for (const rel of rels) {
+      const isDir = await fs
+        .stat(path.resolve(src, rel))
+        .then((s) => s.isDirectory())
+        .catch(() => false);
+      if (isDir) return { error: `Not a file: ${rel}` };
+    }
+    if (rels.length === 0) return { transferred: 0 };
+    const literal = (list: string[]) => list.map((p) => `:(literal)${p}`);
+
+    const dirty = await runGit(['status', '--porcelain', '--', ...literal(rels)], dst);
+    if (dirty.error) return { error: message(dirty) };
+    const conflicts = dirty.stdout
+      .split('\n')
+      .filter(Boolean)
+      .map((l) => l.slice(3).trim().replace(/^"|"$/g, ''));
+    if (conflicts.length > 0) {
+      return { conflicts, error: 'Target branch already has uncommitted changes in these files' };
+    }
+
+    for (const rel of rels) {
+      const a = path.resolve(src, rel);
+      const b = path.resolve(dst, rel);
+      const exists = await fs
+        .stat(a)
+        .then((s) => s.isFile())
+        .catch(() => false);
+      if (exists) {
+        await fs.mkdir(path.dirname(b), { recursive: true });
+        await fs.copyFile(a, b);
+      } else {
+        await fs.rm(b, { force: true });
+      }
+    }
+
+    const inHead: string[] = [];
+    const fresh: string[] = [];
+    for (const rel of rels) {
+      const res = await runGit(['cat-file', '-e', `HEAD:${rel}`], src);
+      (res.error ? fresh : inHead).push(rel);
+    }
+    for (let i = 0; i < inHead.length; i += 200) {
+      const res = await runGit(
+        ['restore', '--source=HEAD', '--staged', '--worktree', '--', ...literal(inHead.slice(i, i + 200))],
+        src,
+      );
+      if (res.error) return { error: message(res) };
+    }
+    if (fresh.length > 0) {
+      await runGit(['rm', '-r', '--cached', '--ignore-unmatch', '-q', '--', ...literal(fresh)], src);
+      for (const rel of fresh) await fs.rm(path.resolve(src, rel), { force: true });
+    }
+    return { transferred: rels.length };
+  },
+
   pruneOrphanBranches: async (root: string): Promise<{ pruned?: string[]; skipped?: string; error?: string }> => {
     await runGit(['worktree', 'prune'], root);
 

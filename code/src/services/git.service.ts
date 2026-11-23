@@ -14,15 +14,19 @@ function parseGitStatus(output: string, gitRoot: string): Record<string, FileSta
     const status = line.substring(0, 2);
     const fullPath = path.join(base, line.substring(3));
 
-    if (status.includes('A')) result[fullPath] = 'added';
+    if (status.includes('A') || status === '??') result[fullPath] = 'added';
     else if (status.includes('D')) result[fullPath] = 'deleted';
-    else if (status.includes('M') || status.includes('R') || status.includes('C')) result[fullPath] = 'modified';
+    else if (status.includes('M') || status.includes('R') || status.includes('C'))
+      result[fullPath] = 'modified';
   }
 
   return result;
 }
 
-function parseNumstat(output: string, into: Record<string, { added: number; deleted: number }>): void {
+function parseNumstat(
+  output: string,
+  into: Record<string, { added: number; deleted: number }>,
+): void {
   for (const line of lines(output)) {
     const parts = line.split('\t');
     if (parts.length < 3) continue;
@@ -42,18 +46,23 @@ export interface GitStatusPayload {
 
 export const gitService = {
   status: async (gitRoot: string): Promise<GitStatusPayload> => {
-    const [statusRes, diffRes, cachedRes, unpushedRes, branchRes, committedRes] = await Promise.all([
-      runGit(['status', '--porcelain', '--untracked-files=all'], gitRoot),
-      runGit(['diff', '--numstat'], gitRoot),
-      runGit(['diff', '--cached', '--numstat'], gitRoot),
-      runGit(['log', 'origin/HEAD..HEAD', '--oneline'], gitRoot),
-      runGit(['rev-parse', '--abbrev-ref', 'HEAD'], gitRoot),
-      runGit(['diff', '--name-only', 'origin/HEAD..HEAD'], gitRoot),
-    ]);
+    const [statusRes, diffRes, cachedRes, unpushedRes, branchRes, committedRes] = await Promise.all(
+      [
+        runGit(['status', '--porcelain', '--untracked-files=all'], gitRoot),
+        runGit(['diff', '--numstat'], gitRoot),
+        runGit(['diff', '--cached', '--numstat'], gitRoot),
+        runGit(['log', 'origin/HEAD..HEAD', '--oneline'], gitRoot),
+        runGit(['rev-parse', '--abbrev-ref', 'HEAD'], gitRoot),
+        runGit(['diff', '--name-only', 'origin/HEAD..HEAD'], gitRoot),
+      ],
+    );
 
     if (statusRes.error) {
-      if (statusRes.error.code === 'ENOENT') throw new Error('Git is not installed or not in PATH.');
-      throw new Error(`Failed to get git status: ${statusRes.stderr.trim() || statusRes.error.message}`);
+      if (statusRes.error.code === 'ENOENT')
+        throw new Error('Git is not installed or not in PATH.');
+      throw new Error(
+        `Failed to get git status: ${statusRes.stderr.trim() || statusRes.error.message}`,
+      );
     }
 
     const diffStats: Record<string, { added: number; deleted: number }> = {};
@@ -68,6 +77,15 @@ export const gitService = {
       committedFiles: committedRes.error ? [] : lines(committedRes.stdout),
       branch: branchRes.stdout.trim(),
     };
+  },
+
+  statusFiles: async (gitRoot: string): Promise<Record<string, FileStatus>> => {
+    const res = await runGit(['status', '--porcelain', '--untracked-files=all'], gitRoot);
+    if (res.error) {
+      if (res.error.code === 'ENOENT') throw new Error('Git is not installed or not in PATH.');
+      throw new Error(`Failed to get git status: ${res.stderr.trim() || res.error.message}`);
+    }
+    return parseGitStatus(res.stdout, gitRoot);
   },
 
   ignoredPaths: async (gitRoot: string): Promise<string[]> => {

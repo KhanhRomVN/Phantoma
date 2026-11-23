@@ -4,6 +4,7 @@ import { gitExtraService } from '../services/git-extra.service';
 import { gitRemoteService } from '../services/git-remote.service';
 import { gitReadService } from '../services/git-read.service';
 import { gitWriteService } from '../services/git-write.service';
+import { gitExplorerService } from '../services/git-explorer.service';
 import { found, requireString, safePath } from '../utils/guard';
 import { AppError, handle, json } from '../utils/http';
 
@@ -27,6 +28,21 @@ export function registerGitRoutes(): Router {
   );
 
   router.get(
+    '/git/explorer-state',
+    handle(async (req, res) => {
+      const root = projectRoot(req.query.root, 'root');
+      let scope: string[] = [];
+      try {
+        const parsed = JSON.parse(String(req.query.scope ?? '[]'));
+        if (Array.isArray(parsed)) scope = parsed.filter((s): s is string => typeof s === 'string');
+      } catch {
+        scope = [];
+      }
+      json(res, 200, await gitExplorerService.state(root, scope, req.query.active === '1'));
+    }),
+  );
+
+  router.get(
     '/git/changed-in-other-branches',
     handle(async (req, res) => {
       json(res, 200, await gitService.changedInOtherBranches(projectRoot(req.query.root, 'root')));
@@ -39,6 +55,13 @@ export function registerGitRoutes(): Router {
       const root = projectRoot(req.query.root, 'root');
       const remoteHash = found(req.query.remoteHash, 'remoteHash') as string;
       json(res, 200, await gitService.remoteDiff(root, remoteHash));
+    }),
+  );
+
+  router.get(
+    '/git/diff-vs-default',
+    handle(async (req, res) => {
+      json(res, 200, await gitExplorerService.diffVsDefault(projectRoot(req.query.root, 'root')));
     }),
   );
 
@@ -72,6 +95,27 @@ export function registerGitRoutes(): Router {
       const files = (req.body?.files ?? []) as string[];
       const message = (req.body?.message ?? '') as string;
       json(res, 200, await gitRemoteService.commitPushFiles(root, files, message));
+    }),
+  );
+
+  router.post(
+    '/git/push',
+    handle(async (req, res) => {
+      json(res, 200, await gitRemoteService.push(projectRoot(req.body?.root, 'root')));
+    }),
+  );
+
+  router.get(
+    '/git/staged-diff',
+    handle(async (req, res) => {
+      json(res, 200, await gitReadService.stagedDiff(projectRoot(req.query.root, 'root')));
+    }),
+  );
+
+  router.get(
+    '/git/unpushed',
+    handle(async (req, res) => {
+      json(res, 200, await gitReadService.unpushed(projectRoot(req.query.root, 'root')));
     }),
   );
 
@@ -131,7 +175,15 @@ export function registerGitRoutes(): Router {
   router.get(
     '/git/local-diff',
     handle(async (req, res) => {
-      json(res, 200, await gitReadService.localDiff(projectRoot(req.query.root, 'root'), text(req.query.branch, 'branch')));
+      json(
+        res,
+        200,
+        await gitReadService.localDiff(
+          projectRoot(req.query.root, 'root'),
+          text(req.query.branch, 'branch'),
+          req.query.branchRoot ? projectRoot(req.query.branchRoot, 'branchRoot') : undefined,
+        ),
+      );
     }),
   );
 
@@ -159,7 +211,22 @@ export function registerGitRoutes(): Router {
   router.get(
     '/git/local-changes',
     handle(async (req, res) => {
-      json(res, 200, await gitReadService.localChanges(projectRoot(req.query.root, 'root')));
+      const clones: Record<string, string> = {};
+      if (typeof req.query.clones === 'string' && req.query.clones) {
+        try {
+          const raw = JSON.parse(req.query.clones) as Record<string, string>;
+          for (const [name, p] of Object.entries(raw)) {
+            try {
+              clones[name] = projectRoot(p, 'clones');
+            } catch {
+              continue;
+            }
+          }
+        } catch {
+          // ignore malformed clones param
+        }
+      }
+      json(res, 200, await gitReadService.localChanges(projectRoot(req.query.root, 'root'), clones));
     }),
   );
 
@@ -210,6 +277,21 @@ export function registerGitRoutes(): Router {
     '/git/stage',
     handle(async (req, res) => {
       json(res, 200, await gitWriteService.stage(bodyRoot(req), fileList(req.body?.files)));
+    }),
+  );
+
+  router.post(
+    '/git/scope-transfer',
+    handle(async (req, res) => {
+      json(
+        res,
+        200,
+        await gitWriteService.scopeTransfer(
+          bodyRoot(req),
+          projectRoot(req.body?.targetRoot, 'targetRoot'),
+          fileList(req.body?.files),
+        ),
+      );
     }),
   );
 

@@ -1,0 +1,204 @@
+/**
+ * ------------------------------------------------------------------
+ * Graph Cell + Ref Pill
+ * ------------------------------------------------------------------
+ * SVG cell drawing the lanes of a single commit row with a real
+ * avatar node (small dot for merge commits), and the colored ref label.
+ * ------------------------------------------------------------------
+ */
+
+import { memo } from 'react';
+import { GitBranch, Cloud, Tag } from 'lucide-react';
+
+import { cn } from '@renderer/utils/cn';
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
+import { Avatar } from './Avatar';
+import {
+  ROW_HEIGHT,
+  LANE_WIDTH,
+  laneColor,
+  laneX,
+  type GraphRow,
+  type RefChip,
+  type RefKind,
+} from '../utils/graph.util';
+
+// ─── Ref Pill ───────────────────────────────────────────────────────────
+const KIND_STYLE: Record<RefKind, string> = {
+  head: 'bg-card-background text-text-secondary border-border',
+  local: 'bg-card-background text-blue-400 border-blue-500/45',
+  remote: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  tag: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+};
+
+const hashLabel = (label: string) => {
+  let h = 0;
+  for (let i = 0; i < label.length; i++) h = (h << 5) - h + label.charCodeAt(i);
+  return Math.abs(h);
+};
+
+// Gán màu accent khác nhau cho các remote chip trong cùng 1 row
+export function useRemoteAccents(chips: RefChip[]): (string | undefined)[] {
+  const { accentColors } = useAccentColors();
+  const n = accentColors.length;
+  const used = new Set<number>();
+  return chips.map((c) => {
+    if (c.kind !== 'remote' || n === 0) return undefined;
+    let i = hashLabel(c.label) % n;
+    while (used.has(i) && used.size < n) i = (i + 1) % n;
+    used.add(i);
+    return accentColors[i];
+  });
+}
+
+export const RefPill = memo(function RefPill({ chip, color }: { chip: RefChip; color?: string }) {
+  const { accentColors } = useAccentColors();
+  const Icon = chip.kind === 'tag' ? Tag : chip.kind === 'remote' ? Cloud : GitBranch;
+  let accent: string | null = null;
+  if (chip.kind === 'remote' && color) {
+    accent = color;
+  } else if (chip.kind === 'remote') {
+    accent = accentColors[hashLabel(chip.label) % accentColors.length];
+  }
+  return (
+    <span
+      title={chip.label}
+      style={
+        accent
+          ? {
+              color: accent,
+              backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
+              borderColor: `color-mix(in srgb, ${accent} 45%, transparent)`,
+            }
+          : undefined
+      }
+      className={cn(
+        'inline-flex items-center gap-1 h-[20px] px-1.5 rounded-md border font-mono text-[10.5px] max-w-[120px] shrink-0',
+        accent || chip.kind === 'local' || chip.kind === 'head' ? 'border-dashed' : '',
+        !accent && KIND_STYLE[chip.kind],
+      )}
+    >
+      <Icon className={'w-2.5 h-2.5 shrink-0'} />
+      <span className={'truncate'}>{chip.label}</span>
+    </span>
+  );
+});
+
+// ─── Graph Fill (kéo dài lane khi row cao hơn ROW_HEIGHT) ─────────────────
+export const GraphFill = memo(function GraphFill({
+  lanes,
+  laneCount,
+}: {
+  lanes: number[];
+  laneCount: number;
+}) {
+  const width = laneCount * LANE_WIDTH + 16;
+  return (
+    <div style={{ width }} className={'relative flex-1 min-h-0 shrink-0'}>
+      <svg width={width} height={'100%'} className={'absolute inset-0 overflow-visible'}>
+        {lanes.map((i) => (
+          <line
+            key={i}
+            x1={laneX(i)}
+            x2={laneX(i)}
+            y1={0}
+            y2={'100%'}
+            stroke={laneColor(i)}
+            strokeWidth={2}
+            strokeLinecap={'round'}
+          />
+        ))}
+      </svg>
+    </div>
+  );
+});
+
+// ─── Graph Cell ─────────────────────────────────────────────────────────
+interface GraphCellProps {
+  row: GraphRow;
+  laneCount: number;
+  author: string;
+  email: string;
+  isMerge: boolean;
+  isHead: boolean;
+}
+
+export const GraphCell = memo(function GraphCell({
+  row,
+  laneCount,
+  author,
+  email,
+  isMerge,
+  isHead,
+}: GraphCellProps) {
+  const H = ROW_HEIGHT;
+  const mid = H / 2;
+  const xc = laneX(row.col);
+  const width = laneCount * LANE_WIDTH + 16;
+  const color = laneColor(row.col);
+
+  return (
+    <svg width={width} height={H} className={'shrink-0 overflow-visible'}>
+      {row.passThrough.map((i) => (
+        <path
+          key={`p${i}`}
+          d={`M ${laneX(i)} 0 L ${laneX(i)} ${H}`}
+          stroke={laneColor(i)}
+          strokeWidth={2}
+          strokeLinecap={'round'}
+          fill={'none'}
+        />
+      ))}
+      {row.incoming.map((i) => (
+        <path
+          key={`i${i}`}
+          d={
+            i === row.col
+              ? `M ${xc} 0 L ${xc} ${mid}`
+              : `M ${laneX(i)} 0 C ${laneX(i)} ${mid * 0.5}, ${xc} ${mid * 0.5}, ${xc} ${mid}`
+          }
+          stroke={laneColor(i)}
+          strokeWidth={2}
+          strokeLinecap={'round'}
+          fill={'none'}
+        />
+      ))}
+      {row.parentLanes.map((j) => (
+        <path
+          key={`o${j}`}
+          d={
+            j === row.col
+              ? `M ${xc} ${mid} L ${xc} ${H}`
+              : `M ${xc} ${mid} C ${xc} ${mid * 1.5}, ${laneX(j)} ${mid * 1.5}, ${laneX(j)} ${H}`
+          }
+          stroke={laneColor(j)}
+          strokeWidth={2}
+          strokeLinecap={'round'}
+          fill={'none'}
+        />
+      ))}
+
+      {isHead && <circle cx={xc} cy={mid} r={14} fill={'none'} stroke={color} strokeOpacity={0.35} strokeWidth={2} />}
+
+      {isMerge ? (
+        <circle cx={xc} cy={mid} r={5} fill={color} stroke={'var(--color-background, #111)'} strokeWidth={2} />
+      ) : (
+        <foreignObject x={xc - 11} y={mid - 11} width={22} height={22}>
+          <div
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              border: `2px solid ${color}`,
+              overflow: 'hidden',
+              boxSizing: 'border-box',
+              background: 'var(--color-background, #111)',
+            }}
+          >
+            <Avatar author={author} email={email} size={18} />
+          </div>
+        </foreignObject>
+      )}
+    </svg>
+  );
+});

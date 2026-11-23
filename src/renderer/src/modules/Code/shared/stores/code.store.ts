@@ -1,0 +1,1340 @@
+/**
+ * ------------------------------------------------------------------
+ * Code Store
+ * ------------------------------------------------------------------
+ * Zustand store persisted to the code server (/api/v1/projects) for the Code editor module.
+ * Manages projects, services, open files, unsaved changes tracking,
+ * bottom panel state, activity panel state, folder expansion, and
+ * file watcher directory invalidation.
+ *
+ * Main actions:
+ * - addProject / removeProject / updateProject : Project CRUD
+ * - addService / removeService / updateServiceStatus : Service management
+ * - openFile / closeFile / setActiveFileTab : File tab management
+ * - saveFile / saveAllFiles / markFileAsUnsaved / markFileAsSaved : Save workflow
+ * - toggleBottomPanel / setBottomPanelTab / setActivityPanelTab : Panel control
+ * - toggleFolderExpand / collapseAllFolders : File tree navigation
+ * - invalidateDir / hydrateProjectFiles : File tree sync
+ * - executeWithSaveCheck : Guard action with unsaved-changes prompt
+ *
+ * Main types:
+ * - Project, Service, FileNode : Core data models
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+
+// ── Store ──
+import { create } from 'zustand';
+import { persist, type PersistStorage } from 'zustand/middleware';
+
+// ── Types ──
+import type { Design, DesignInput } from '../types/design.types';
+// Task types removed — now managed via SQLite IPC in task.service.ts
+import type { AgentGroup, AgentGroupInput, AgentTerminal } from '../types/agent-group.types';
+import type { MCP, MCPInput } from '../types/mcp.types';
+
+// ─── Interfaces ────────────────────────────────────────────────────────
+import type { BranchInfo } from '../../features/projects/components/ProjectPanel/SessionCard';
+import { useBranchScopeStore } from './branch-scope.store';
+import { codeApi, type CodeProject } from '../api/code.api';
+
+// ─── Workspace Panel Types (Persisted) ────────────────────────────────
+export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent' | 'agenttools' | 'design';
+
+export interface StoredWorkspacePanel {
+  sessionId?: string;
+  cwd?: string;
+  id: string;
+  type: PanelType;
+  title: string;
+  content?: string;
+  filePath?: string;
+  providerId?: string | null;
+
+  // ── NEW: ZenCLI session binding for auto-resume ──
+  /** Conversation ID của ZenCLI đang bind với terminal này. null nếu chưa bind. */
+  zencliConversationId?: string | null;
+  /** Timestamp lần cuối user tương tác với conversation này (để quyết định "active"). */
+  zencliLastActiveAt?: number | null;
+  /** Conversation ID của Agent panel, dùng để khôi phục sau khi restart app. */
+  agentConversationId?: string | null;
+  /** Title conversation hiện tại của Agent panel, hiển thị trên tab dạng 'Zen|<title>'. */
+  agentTitle?: string | null;
+  /** ID của workflow agent mà Zen tab này đang liên kết (nếu có). */
+  workflowAgentId?: string | null;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  path: string;
+  color: string;
+  template: string;
+  /** Đường dẫn ảnh vuông do user chọn làm logo project (null/undefined = dùng icon mặc định). */
+  logoPath?: string | null;
+  repositoryUrl?: string | null;
+  services: Service[];
+  files: FileNode[];
+  designs: Design[];
+  // tasks removed — persisted in SQLite via task.service.ts
+  agentGroups: AgentGroup[];
+  mcps: MCP[];
+  branches?: BranchInfo[];
+  explorerRoot?: string | null;
+  // ── Per-project state ──
+  expandedFolderIds: string[];
+  openFiles: string[];
+  fileDisplayNames: Record<string, string>;
+  fileNodeMap: Record<string, FileNode>;
+  activeFileTabId: string | null;
+  currentServiceId: string | null;
+  currentFileId: string | null;
+  // ── Bottom panel per-project ──
+  bottomPanelTab: 'output' | 'terminal' | 'port' | 'performance' | 'problems';
+  isBottomPanelOpen: boolean;
+  // ── Activity panel per-project ──
+  activityPanelTab:
+    | 'explore'
+    | 'search'
+    | 'source'
+    | 'agents'
+    | 'design'
+    | 'extension'
+    | 'lsp'
+    | 'account'
+    | 'debug'
+    | 'skill';
+  // ── Unsaved changes tracking ──
+  unsavedFiles: Set<string>;
+  originalContents: Record<string, string>;
+  // ── File watcher invalidation ──
+  dirVersions: Record<string, number>;
+  // ── Workspace Panels Persistence ──
+  workspacePanels: StoredWorkspacePanel[];
+  activeWorkspacePanelId: string | null;
+  activeWorkspacePanelIds?: Record<string, string | null>;
+  workspaceLayouts?: Record<string, import('../utils/workspace-layout.util').WorkspaceLayoutSnapshot>;
+}
+
+export type ProjectInput = Omit<
+  Project,
+  | 'id'
+  | 'services'
+  | 'files'
+  | 'designs'
+  | 'agentGroups'
+  | 'mcps'
+  | 'branches'
+  | 'expandedFolderIds'
+  | 'openFiles'
+  | 'fileDisplayNames'
+  | 'fileNodeMap'
+  | 'activeFileTabId'
+  | 'currentServiceId'
+  | 'currentFileId'
+  | 'bottomPanelTab'
+  | 'isBottomPanelOpen'
+  | 'activityPanelTab'
+  | 'unsavedFiles'
+  | 'originalContents'
+  | 'dirVersions'
+  | 'workspacePanels'
+  | 'activeWorkspacePanelId'
+>;
+
+export interface Service {
+  id: string;
+  name: string;
+  type: 'website' | 'app' | 'device' | 'database' | 'api' | 'design' | 'table' | 'extension';
+  status: 'running' | 'stopped' | 'building' | 'error';
+  meta: string;
+  tabId?: string;
+  extensionId?: string;
+}
+
+export type ServiceInput = Omit<Service, 'status'> | Omit<Service, 'id' | 'status'>;
+
+export interface FileNode {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+  children?: FileNode[];
+  content?: string;
+  language?: string;
+  path?: string;
+}
+
+// ─── Persistence (code server API: /api/v1/projects) ─
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+// saveAll deletes projects missing from the payload — never save before a successful load
+let projectsLoaded = false;
+
+function fromServerProject(p: CodeProject) {
+  return {
+    ...createDefaultPerProject(),
+    id: p.id,
+    name: p.name,
+    logoPath: p.logo,
+    repositoryUrl: p.repositoryUrl ?? null,
+    path: p.worktrees[0]?.path ?? '',
+    branches: p.worktrees.map((w) => ({
+      name: w.branch,
+      visible: w.visible,
+      sessions: w.session
+        ? [
+            {
+              id: w.session.id,
+              title: w.session.title,
+              status: 'idle' as const,
+              time: new Date(w.session.updatedAt).toLocaleString(),
+              agents: [],
+              procs: [],
+              summary: { tokens: 0, cost: 0, added: 0, removed: 0, files: 0, duration: '—' },
+            },
+          ]
+        : [],
+      path: w.path,
+    })),
+    color: '',
+    template: '',
+    services: [],
+    files: [],
+    agentGroups: [],
+    mcps: [],
+    workspacePanels: p.worktrees.flatMap((w) =>
+      (w.session?.panels ?? []).map((panel) => ({
+        ...panel,
+        title: panel.title ?? '',
+        sessionId: w.session!.id,
+      })),
+    ) as StoredWorkspacePanel[],
+    activeWorkspacePanelId: null,
+    activeWorkspacePanelIds: Object.fromEntries(
+      p.worktrees.filter((w) => w.session).map((w) => [w.session!.id, w.session!.activePanelId]),
+    ),
+    workspaceLayouts: Object.fromEntries(
+      p.worktrees
+        .filter((w) => w.session?.layout)
+        .map((w) => [w.session!.id, w.session!.layout]),
+    ) as NonNullable<Project['workspaceLayouts']>,
+  };
+}
+
+function toWorktreeInputs(p: Project) {
+  if (!p.path) return [];
+  const linked = (p.branches ?? []).filter((b) => b.path);
+  const main = linked.find((b) => b.path === p.path);
+  return [
+    { path: p.path, branch: main?.name, visible: main?.visible ?? true },
+    ...linked
+      .filter((b) => b.path !== p.path)
+      .map((b) => ({ path: b.path as string, branch: b.name, visible: b.visible ?? true })),
+  ];
+}
+
+// ASSUMED: per-project UI state (workspace panels, open files...) is not stored by the server yet, so it is not persisted
+let lastSavedProjects: unknown = null;
+let lastPartializeIn: unknown = null;
+let lastPartializeOut: any = null;
+const projectFileStorage: PersistStorage<any> = {
+  getItem: async () => {
+    try {
+      const list = await codeApi.projects.list();
+      projectsLoaded = true;
+      if (list.length === 0) return null;
+      return { state: { projects: list.map(fromServerProject) }, version: 0 };
+    } catch (err) {
+      console.error('[DEBUG][CodeStore] getItem failed (projectsLoaded stays false):', err);
+      return null;
+    }
+  },
+  setItem: (_name, value) => {
+    if (!projectsLoaded) return;
+    if (value.state.projects === lastSavedProjects) return;
+    lastSavedProjects = value.state.projects;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      try {
+        const { state } = value;
+        const inputs = (state.projects ?? []).map((p: Project, index: number) => ({
+          id: p.id,
+          name: p.name,
+          logo: p.logoPath ?? null,
+          repositoryUrl: p.repositoryUrl ?? null,
+          sortOrder: index + 1,
+          worktrees: toWorktreeInputs(p),
+        }));
+        codeApi.projects.saveAll(inputs).catch((err) => {
+          console.error('[CodeStore] Failed to save projects:', err);
+        });
+      } catch (err) {
+        console.error('[CodeStore] Failed to save projects:', err);
+      }
+    }, 300);
+  },
+  removeItem: () => {},
+};
+
+// ─── Helpers ────────────────────────────────────────────────────────────
+
+function createDefaultPerProject() {
+  return {
+    expandedFolderIds: [] as string[],
+    openFiles: [] as string[],
+    fileDisplayNames: {} as Record<string, string>,
+    fileNodeMap: {} as Record<string, FileNode>,
+    activeFileTabId: null as string | null,
+    currentServiceId: null as string | null,
+    currentFileId: null as string | null,
+    bottomPanelTab: 'output' as const,
+    isBottomPanelOpen: true,
+    activityPanelTab: 'explore' as const,
+    unsavedFiles: new Set<string>(),
+    originalContents: {} as Record<string, string>,
+    dirVersions: {} as Record<string, number>,
+    designs: [] as Design[],
+    // tasks removed — persisted in SQLite via task.service.ts
+    agentGroups: [] as AgentGroup[],
+    mcps: [] as MCP[],
+    // ── NEW: Workspace Panel Defaults ──
+    workspacePanels: [] as StoredWorkspacePanel[],
+    activeWorkspacePanelId: null as string | null,
+  };
+}
+
+// ─── Store Interface ────────────────────────────────────────────────────
+
+export type ContentViewMode =
+  'files' | 'tasks' | 'workspace' | 'git' | 'pullrequests' | 'design' | 'agents' | 'settings';
+
+interface CodeState {
+  projects: Project[];
+  currentProjectId: string | null;
+  isProjectManagerOpen: boolean;
+  isNewProjectOpen: boolean;
+  activityPanelWidth: number;
+  /** Account tab độc lập với project (không lưu theo project) */
+  isAccountPanelOpen: boolean;
+  isSkillPanelOpen: boolean;
+  forceShowLSPOverlay: boolean;
+  pendingAction: (() => void) | null;
+  isSaveConfirmModalOpen: boolean;
+  // ── Content Panel View State ──
+  contentViewMode: ContentViewMode;
+  activeWorkspaceSessionId: string | null;
+  focusPanelRequest: { sessionId: string; panelId: string; nonce: number } | null;
+  openFileRequest: { sessionId: string; filePath: string; name: string; nonce: number } | null;
+
+  // Actions
+  addProject: (project: ProjectInput) => string;
+  removeProject: (id: string) => void;
+  updateProject: (id: string, data: Partial<Project>) => void;
+  setCurrentProject: (id: string) => void;
+  setExplorerRoot: (projectId: string, root: string | null) => void;
+  addService: (projectId: string, service: ServiceInput) => void;
+  removeService: (projectId: string, serviceId: string) => void;
+  updateServiceStatus: (projectId: string, serviceId: string, status: Service['status']) => void;
+  setCurrentService: (serviceId: string) => void;
+  openFile: (projectId: string, fileId: string, displayName?: string, fileNode?: FileNode) => void;
+  closeFile: (fileId: string) => void;
+  setActiveFileTab: (fileId: string) => void;
+  setBottomPanelTab: (tab: 'output' | 'terminal' | 'port' | 'performance' | 'problems') => void;
+  toggleBottomPanel: () => void;
+  setActivityPanelTab: (
+    tab:
+      | 'explore'
+      | 'search'
+      | 'source'
+      | 'agents'
+      | 'design'
+      | 'extension'
+      | 'lsp'
+      | 'account'
+      | 'debug'
+      | 'skill',
+  ) => void;
+  setProjectManagerOpen: (open: boolean) => void;
+  setNewProjectOpen: (open: boolean) => void;
+  setProjectFiles: (projectId: string, files: FileNode[]) => void;
+  setActivityPanelWidth: (width: number) => void;
+  setAccountPanelOpen: (open: boolean) => void;
+  setSkillPanelOpen: (open: boolean) => void;
+  setForceShowLSPOverlay: (show: boolean) => void;
+  toggleFolderExpand: (projectId: string, folderId: string) => void;
+  collapseAllFolders: (projectId: string) => void;
+  expandFolders: (projectId: string, folderIds: string[]) => void;
+  invalidateDir: (projectId: string, dirPath: string) => void;
+  hydrateProjectFiles: (projectId: string, files: FileNode[]) => void;
+  markFileAsUnsaved: (fileId: string, content: string) => void;
+  markFileAsSaved: (fileId: string) => void;
+  setOriginalContent: (fileId: string, content: string) => void;
+  discardFileState: (fileId: string) => void;
+  hasUnsavedChanges: () => boolean;
+  getUnsavedFiles: () => string[];
+  saveAllFiles: () => Promise<void>;
+  saveFile: (fileId: string) => Promise<void>;
+  setPendingAction: (action: (() => void) | null) => void;
+  setSaveConfirmModalOpen: (open: boolean) => void;
+  executeWithSaveCheck: (action: () => void) => void;
+  // Design actions
+  addDesign: (projectId: string, design: DesignInput) => void;
+  updateDesign: (projectId: string, designId: string, updates: Partial<Design>) => void;
+  removeDesign: (projectId: string, designId: string) => void;
+  openDesign: (projectId: string, designId: string) => void;
+  // Task actions removed — now managed via SQLite IPC in task.service.ts
+  // Agent Group actions
+  addAgentGroup: (projectId: string, group: AgentGroupInput) => void;
+  updateAgentGroup: (projectId: string, groupId: string, updates: Partial<AgentGroup>) => void;
+  removeAgentGroup: (projectId: string, groupId: string) => void;
+  openAgentGroup: (projectId: string, groupId: string) => void;
+  updateTerminalInGroup: (
+    projectId: string,
+    groupId: string,
+    terminalId: string,
+    updates: Partial<AgentTerminal>,
+  ) => void;
+  // MCP actions
+  addMCP: (projectId: string, mcp: MCPInput) => void;
+  updateMCP: (projectId: string, mcpId: string, updates: Partial<MCP>) => void;
+  removeMCP: (projectId: string, mcpId: string) => void;
+  installMCP: (projectId: string, mcpId: string) => void;
+  uninstallMCP: (projectId: string, mcpId: string) => void;
+  openMCPDetail: (projectId: string, mcpId: string) => void;
+  // Content View actions
+  setContentViewMode: (mode: ContentViewMode) => void;
+  setActiveWorkspaceSessionId: (sessionId: string | null) => void;
+  requestFocusPanel: (sessionId: string, panelId: string) => void;
+  clearFocusPanelRequest: () => void;
+  requestOpenFile: (
+    sessionId: string,
+    filePath: string,
+    name: string,
+    position?: { line: number; column?: number },
+  ) => void;
+  clearOpenFileRequest: () => void;
+  fileReveal?: { filePath: string; line: number; column?: number; nonce: number } | null;
+  clearFileReveal: () => void;
+  openTerminalRequest?: {
+    sessionId: string;
+    title: string;
+    command: string;
+    cwd?: string;
+    reuseKey?: string;
+    nonce: number;
+  } | null;
+  requestOpenTerminal: (
+    sessionId: string,
+    title: string,
+    command: string,
+    cwd?: string,
+    reuseKey?: string,
+  ) => void;
+  clearOpenTerminalRequest: () => void;
+  closeTerminalRequest?: { sessionId: string; reuseKeys: string[]; nonce: number } | null;
+  requestCloseTerminals: (sessionId: string, reuseKeys: string[]) => void;
+  clearCloseTerminalRequest: () => void;
+  setSessionProcs: (
+    projectId: string,
+    sessionId: string,
+    procs: NonNullable<BranchInfo['sessions'][number]['procs']>,
+  ) => void;
+  // ── NEW: ZenCLI binding actions ──
+  updatePanelZenCliBinding: (
+    projectId: string,
+    panelId: string,
+    binding: { conversationId: string | null; lastActiveAt?: number | null },
+  ) => void;
+}
+
+// ─── Store ──────────────────────────────────────────────────────────────
+
+export const useCodeStore = create<CodeState>()(
+  persist(
+    (set, get) => {
+      const getCurrentProject = (): Project | undefined => {
+        const state = get();
+        return state.projects.find((p) => p.id === state.currentProjectId);
+      };
+
+      const updateCurrentProject = (updater: (p: Project) => Project) => {
+        const state = get();
+        if (!state.currentProjectId) return;
+        set({
+          projects: state.projects.map((p) => (p.id === state.currentProjectId ? updater(p) : p)),
+        });
+      };
+
+      /**
+       * Auto-cleanup: Remove projects whose folder no longer exists on the code server.
+       */
+      const cleanupStaleProjects = async () => {
+        try {
+          const state = get();
+          if (state.projects.length === 0) return;
+
+          const results = await Promise.all(
+            state.projects
+              .filter((p) => !!p.path)
+              .map(async (p) => {
+                try {
+                  const stat = await codeApi.fs.stat(p.path, true);
+                  return stat.isDirectory ? null : p.path;
+                } catch (err) {
+                  // ASSUMED: chỉ coi là stale khi server báo không tồn tại; lỗi mạng/server thì giữ project
+                  const message = err instanceof Error ? err.message : String(err);
+                  return /ENOENT|no such file|not found/i.test(message) ? p.path : null;
+                }
+              }),
+          );
+          const invalidPaths = results.filter((p): p is string => p !== null);
+
+          if (invalidPaths.length > 0) {
+            console.warn(
+              `[CodeStore] Cleaning up ${invalidPaths.length} stale project(s):`,
+              invalidPaths,
+            );
+
+            // Filter out projects with invalid paths
+            const validProjects = state.projects.filter((p) => !invalidPaths.includes(p.path));
+
+            // If current project was removed, reset selection
+            let newCurrentProjectId = state.currentProjectId;
+            if (newCurrentProjectId && !validProjects.find((p) => p.id === newCurrentProjectId)) {
+              newCurrentProjectId = validProjects[0]?.id || null;
+            }
+
+            set({
+              projects: validProjects,
+              currentProjectId: newCurrentProjectId,
+            });
+          }
+        } catch (err) {
+          console.error('[CodeStore] Failed to cleanup stale projects:', err);
+        }
+      };
+
+      setTimeout(() => {
+        // Auto-cleanup stale projects whose folders no longer exist on disk
+        cleanupStaleProjects();
+      }, 100);
+
+      return {
+        projects: [],
+        currentProjectId: null,
+        isProjectManagerOpen: false,
+        isNewProjectOpen: false,
+        activityPanelWidth: 380,
+        isAccountPanelOpen: false,
+        isSkillPanelOpen: false,
+        forceShowLSPOverlay: false,
+        pendingAction: null,
+        isSaveConfirmModalOpen: false,
+        // ── Content View State Defaults ──
+        contentViewMode: 'files' as ContentViewMode,
+        activeWorkspaceSessionId: null as string | null,
+        focusPanelRequest: null as { sessionId: string; panelId: string; nonce: number } | null,
+        openFileRequest: null as {
+          sessionId: string;
+          filePath: string;
+          name: string;
+          nonce: number;
+        } | null,
+
+        // ── Project Actions ──
+
+        addProject: (project) => {
+          const newProject: Project = {
+            ...project,
+            id: crypto.randomUUID(),
+            services: [],
+            files: [],
+            ...createDefaultPerProject(),
+          };
+          set((state) => ({
+            projects: [...state.projects, newProject],
+            currentProjectId: newProject.id,
+          }));
+          return newProject.id;
+        },
+
+        removeProject: (id) => {
+          useBranchScopeStore.getState().clearProject(id);
+          set((state) => {
+            const filtered = state.projects.filter((p) => p.id !== id);
+            const removed = state.projects.find((p) => p.id === id);
+            const removedSessionIds = new Set(
+              (removed?.branches ?? []).flatMap((b) => b.sessions.map((s) => s.id)),
+            );
+            return {
+              projects: filtered,
+              currentProjectId:
+                state.currentProjectId === id ? filtered[0]?.id || null : state.currentProjectId,
+              activeWorkspaceSessionId:
+                state.activeWorkspaceSessionId &&
+                removedSessionIds.has(state.activeWorkspaceSessionId)
+                  ? null
+                  : state.activeWorkspaceSessionId,
+            };
+          });
+        },
+
+        updateProject: (id, data) => {
+          set((state) => {
+            const newProjects = state.projects.map((p) => (p.id === id ? { ...p, ...data } : p));
+            return { projects: newProjects };
+          });
+        },
+
+        setCurrentProject: (id) => {
+          set({ currentProjectId: id });
+        },
+
+        setExplorerRoot: (projectId, root) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId && (p.explorerRoot ?? null) !== root
+                ? { ...p, explorerRoot: root, expandedFolderIds: [] }
+                : p,
+            ),
+          }));
+        },
+
+        // ── Service Actions ──
+
+        addService: (projectId, service) => {
+          const newService: Service = {
+            ...service,
+            id: 'id' in service ? service.id : `service_${Date.now()}`,
+            status: 'stopped',
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, services: [...p.services, newService] } : p,
+            ),
+          }));
+        },
+
+        removeService: (projectId, serviceId) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    services: p.services.filter((s) => s.id !== serviceId),
+                    currentServiceId: p.currentServiceId === serviceId ? null : p.currentServiceId,
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        updateServiceStatus: (projectId, serviceId, status) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    services: p.services.map((s) => (s.id === serviceId ? { ...s, status } : s)),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        setCurrentService: (serviceId) => {
+          updateCurrentProject((p) => ({
+            ...p,
+            currentServiceId: serviceId,
+            activeFileTabId: null,
+          }));
+        },
+
+        // ── File Tab Actions ──
+
+        openFile: (_projectId, fileId, displayName, fileNode) => {
+          const project = getCurrentProject();
+          if (!project) return;
+
+          if (!project.openFiles.includes(fileId)) {
+            updateCurrentProject((p) => {
+              const names = displayName
+                ? { ...p.fileDisplayNames, [fileId]: displayName }
+                : p.fileDisplayNames;
+              const nodeMap = fileNode ? { ...p.fileNodeMap, [fileId]: fileNode } : p.fileNodeMap;
+              return {
+                ...p,
+                openFiles: [...p.openFiles, fileId],
+                fileDisplayNames: names,
+                fileNodeMap: nodeMap,
+                activeFileTabId: fileId,
+              };
+            });
+          } else {
+            updateCurrentProject((p) => {
+              if (fileNode) {
+                return {
+                  ...p,
+                  activeFileTabId: fileId,
+                  fileNodeMap: { ...p.fileNodeMap, [fileId]: fileNode },
+                };
+              }
+              return { ...p, activeFileTabId: fileId };
+            });
+          }
+        },
+
+        closeFile: (fileId) => {
+          updateCurrentProject((p) => {
+            const newOpenFiles = p.openFiles.filter((id) => id !== fileId);
+            return {
+              ...p,
+              openFiles: newOpenFiles,
+              activeFileTabId:
+                newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null,
+            };
+          });
+        },
+
+        setActiveFileTab: (fileId) => {
+          updateCurrentProject((p) => ({
+            ...p,
+            activeFileTabId: fileId,
+            currentServiceId: null,
+          }));
+        },
+
+        // ── Panel Actions ──
+
+        setBottomPanelTab: (tab) => {
+          updateCurrentProject((p) => ({ ...p, bottomPanelTab: tab }));
+        },
+
+        toggleBottomPanel: () => {
+          updateCurrentProject((p) => ({ ...p, isBottomPanelOpen: !p.isBottomPanelOpen }));
+        },
+
+        setActivityPanelTab: (tab) => {
+          updateCurrentProject((p) => ({ ...p, activityPanelTab: tab }));
+        },
+
+        // ── Modal Actions ──
+
+        setProjectManagerOpen: (open) => {
+          set({ isProjectManagerOpen: open });
+        },
+
+        setNewProjectOpen: (open) => {
+          set({ isNewProjectOpen: open });
+        },
+
+        // ── File Tree Actions ──
+
+        setProjectFiles: (projectId, files) => {
+          set((state) => ({
+            projects: state.projects.map((p) => (p.id === projectId ? { ...p, files } : p)),
+          }));
+        },
+
+        setAccountPanelOpen: (open) => {
+          set(
+            open
+              ? { isAccountPanelOpen: true, isSkillPanelOpen: false }
+              : { isAccountPanelOpen: false },
+          );
+        },
+
+        setSkillPanelOpen: (open) => {
+          set(
+            open
+              ? { isSkillPanelOpen: true, isAccountPanelOpen: false }
+              : { isSkillPanelOpen: false },
+          );
+        },
+
+        setActivityPanelWidth: (width) => {
+          set({ activityPanelWidth: width });
+        },
+
+        setForceShowLSPOverlay: (show) => {
+          set({ forceShowLSPOverlay: show });
+        },
+
+        toggleFolderExpand: (projectId: string, folderId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) => {
+              if (p.id !== projectId) return p;
+              const isExpanded = p.expandedFolderIds.includes(folderId);
+              return {
+                ...p,
+                expandedFolderIds: isExpanded
+                  ? p.expandedFolderIds.filter((id) => id !== folderId)
+                  : [...p.expandedFolderIds, folderId],
+              };
+            }),
+          }));
+        },
+
+        expandFolders: (projectId: string, folderIds: string[]) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, expandedFolderIds: folderIds } : p,
+            ),
+          }));
+        },
+
+        collapseAllFolders: (projectId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, expandedFolderIds: [] } : p,
+            ),
+          }));
+        },
+
+        invalidateDir: (projectId: string, dirPath: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) => {
+              if (p.id !== projectId) return p;
+              return {
+                ...p,
+                dirVersions: {
+                  ...p.dirVersions,
+                  [dirPath]: (p.dirVersions[dirPath] || 0) + 1,
+                },
+              };
+            }),
+          }));
+        },
+
+        hydrateProjectFiles: (projectId, files) => {
+          set((state) => ({
+            projects: state.projects.map((p) => (p.id === projectId ? { ...p, files } : p)),
+          }));
+        },
+
+        // ── Save Actions ──
+
+        markFileAsUnsaved: (fileId: string, content: string) => {
+          const project = getCurrentProject();
+          if (!project) return;
+          updateCurrentProject((p) => {
+            const node = p.fileNodeMap[fileId];
+            const updatedNodeMap = node
+              ? { ...p.fileNodeMap, [fileId]: { ...node, content } }
+              : p.fileNodeMap;
+            const original = p.originalContents[fileId];
+            let unsavedFiles = p.unsavedFiles;
+            if (original !== undefined && original !== content) {
+              unsavedFiles = new Set([...p.unsavedFiles, fileId]);
+            } else if (original === content) {
+              unsavedFiles = new Set(p.unsavedFiles);
+              unsavedFiles.delete(fileId);
+            }
+            return { ...p, fileNodeMap: updatedNodeMap, unsavedFiles };
+          });
+        },
+
+        markFileAsSaved: (fileId: string) => {
+          updateCurrentProject((p) => {
+            const newUnsaved = new Set(p.unsavedFiles);
+            newUnsaved.delete(fileId);
+            return { ...p, unsavedFiles: newUnsaved };
+          });
+        },
+
+        setOriginalContent: (fileId: string, content: string) => {
+          updateCurrentProject((p) => ({
+            ...p,
+            originalContents: { ...p.originalContents, [fileId]: content },
+          }));
+        },
+
+        discardFileState: (fileId: string) => {
+          updateCurrentProject((p) => {
+            const unsavedFiles = new Set(p.unsavedFiles);
+            unsavedFiles.delete(fileId);
+            const { [fileId]: _discarded, ...originalContents } = p.originalContents;
+            return { ...p, unsavedFiles, originalContents };
+          });
+        },
+
+        hasUnsavedChanges: () => {
+          const project = getCurrentProject();
+          return project ? project.unsavedFiles.size > 0 : false;
+        },
+
+        getUnsavedFiles: () => {
+          const project = getCurrentProject();
+          return project ? Array.from(project.unsavedFiles) : [];
+        },
+
+        saveAllFiles: async () => {
+          const project = getCurrentProject();
+          if (!project) return;
+
+          const unsavedFileIds = Array.from(project.unsavedFiles);
+
+          for (const fileId of unsavedFileIds) {
+            await get().saveFile(fileId);
+          }
+        },
+
+        saveFile: async (fileId: string) => {
+          const project = getCurrentProject();
+          if (!project) return;
+
+          const fileNode = project.fileNodeMap[fileId];
+          if (!fileNode || !fileNode.path || fileNode.content === undefined) return;
+
+          try {
+            await codeApi.fs.writeFile(fileNode.path, fileNode.content, true);
+            get().setOriginalContent(fileId, fileNode.content);
+            get().markFileAsSaved(fileId);
+          } catch (err) {
+            console.error('[CodeStore] Failed to save file ' + fileNode.path + ':', err);
+            throw err;
+          }
+        },
+
+        // ── Save-Check Guard ──
+
+        setPendingAction: (action: (() => void) | null) => {
+          set({ pendingAction: action });
+        },
+
+        setSaveConfirmModalOpen: (open: boolean) => {
+          set({ isSaveConfirmModalOpen: open });
+        },
+
+        executeWithSaveCheck: (action: () => void) => {
+          const hasUnsaved = get().hasUnsavedChanges();
+          if (hasUnsaved) {
+            set({ pendingAction: action, isSaveConfirmModalOpen: true });
+          } else {
+            action();
+          }
+        },
+
+        // ── Design Actions ──
+
+        addDesign: (projectId: string, design: DesignInput) => {
+          const newDesign: Design = {
+            ...design,
+            id: `design_${Date.now()}`,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, designs: [...p.designs, newDesign] } : p,
+            ),
+          }));
+          // Auto-create a service for the design
+          const designService: ServiceInput = {
+            id: `service_${newDesign.id}`,
+            name: newDesign.name,
+            type: 'design',
+            meta: 'Design',
+            tabId: newDesign.id,
+          };
+          get().addService(projectId, designService);
+          // Auto-open the design
+          get().openDesign(projectId, newDesign.id);
+        },
+
+        updateDesign: (projectId: string, designId: string, updates: Partial<Design>) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    designs: p.designs.map((d) =>
+                      d.id === designId ? { ...d, ...updates, updatedAt: Date.now() } : d,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        removeDesign: (projectId: string, designId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    designs: p.designs.filter((d) => d.id !== designId),
+                    services: p.services.filter((s) => s.tabId !== designId),
+                    currentServiceId:
+                      p.currentServiceId === `service_${designId}` ? null : p.currentServiceId,
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        openDesign: (projectId: string, designId: string) => {
+          const state = get();
+          const project = state.projects.find((p) => p.id === projectId);
+          if (!project) return;
+
+          // Find or create service for this design
+          let service = project.services.find((s) => s.tabId === designId);
+          if (!service) {
+            const design = project.designs.find((d) => d.id === designId);
+            if (!design) return;
+
+            const designService: ServiceInput = {
+              id: `service_${designId}`,
+              name: design.name,
+              type: 'design',
+              meta: 'Design',
+              tabId: designId,
+            };
+            get().addService(projectId, designService);
+            service = designService as Service;
+          }
+
+          // Set as current service
+          get().setCurrentService(service.id);
+        },
+
+        // ── Task Actions removed — now managed via SQLite IPC in task.service.ts ──
+
+        // ── Agent Group Actions ──
+
+        addAgentGroup: (projectId: string, group: AgentGroupInput) => {
+          const newGroup: AgentGroup = {
+            ...group,
+            id: `agent_group_${Date.now()}`,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, agentGroups: [...p.agentGroups, newGroup] } : p,
+            ),
+          }));
+
+          // Auto-create service tab for agent group
+          const agentService: ServiceInput = {
+            id: `service_${newGroup.id}`,
+            name: newGroup.name,
+            type: 'extension', // Reuse extension type for custom content
+            meta: 'Agent Group',
+            tabId: newGroup.id,
+          };
+          get().addService(projectId, agentService);
+          get().openAgentGroup(projectId, newGroup.id);
+        },
+
+        updateAgentGroup: (projectId: string, groupId: string, updates: Partial<AgentGroup>) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    agentGroups: p.agentGroups.map((g) =>
+                      g.id === groupId ? { ...g, ...updates, updatedAt: Date.now() } : g,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        removeAgentGroup: (projectId: string, groupId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    agentGroups: p.agentGroups.filter((g) => g.id !== groupId),
+                    services: p.services.filter((s) => s.tabId !== groupId),
+                    currentServiceId:
+                      p.currentServiceId === `service_${groupId}` ? null : p.currentServiceId,
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        openAgentGroup: (projectId: string, groupId: string) => {
+          const state = get();
+          const project = state.projects.find((p) => p.id === projectId);
+          if (!project) return;
+
+          let service = project.services.find((s) => s.tabId === groupId);
+          if (!service) {
+            const group = project.agentGroups.find((g) => g.id === groupId);
+            if (!group) return;
+
+            const agentService: ServiceInput = {
+              id: `service_${groupId}`,
+              name: group.name,
+              type: 'extension',
+              meta: 'Agent Group',
+              tabId: groupId,
+            };
+            get().addService(projectId, agentService);
+            service = agentService as Service;
+          }
+
+          get().setCurrentService(service.id);
+        },
+
+        updateTerminalInGroup: (
+          projectId: string,
+          groupId: string,
+          terminalId: string,
+          updates: Partial<AgentTerminal>,
+        ) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    agentGroups: p.agentGroups.map((g) =>
+                      g.id === groupId
+                        ? {
+                            ...g,
+                            terminals: g.terminals.map((t) =>
+                              t.id === terminalId ? { ...t, ...updates } : t,
+                            ),
+                            updatedAt: Date.now(),
+                          }
+                        : g,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        // ── MCP Actions ──
+
+        addMCP: (projectId: string, mcp: MCPInput) => {
+          const newMCP: MCP = {
+            ...mcp,
+            id: `mcp_${Date.now()}`,
+            status: 'not-installed',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, mcps: [...p.mcps, newMCP] } : p,
+            ),
+          }));
+        },
+
+        updateMCP: (projectId: string, mcpId: string, updates: Partial<MCP>) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    mcps: p.mcps.map((m) =>
+                      m.id === mcpId ? { ...m, ...updates, updatedAt: Date.now() } : m,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        removeMCP: (projectId: string, mcpId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, mcps: p.mcps.filter((m) => m.id !== mcpId) } : p,
+            ),
+          }));
+        },
+
+        installMCP: (projectId: string, mcpId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    mcps: p.mcps.map((m) =>
+                      m.id === mcpId
+                        ? {
+                            ...m,
+                            status: 'installed',
+                            installedAt: Date.now(),
+                            updatedAt: Date.now(),
+                          }
+                        : m,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        uninstallMCP: (projectId: string, mcpId: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    mcps: p.mcps.map((m) =>
+                      m.id === mcpId
+                        ? {
+                            ...m,
+                            status: 'not-installed',
+                            installedAt: undefined,
+                            updatedAt: Date.now(),
+                          }
+                        : m,
+                    ),
+                  }
+                : p,
+            ),
+          }));
+        },
+
+        openMCPDetail: (projectId: string, mcpId: string) => {
+          const state = get();
+          const project = state.projects.find((p) => p.id === projectId);
+          if (!project) return;
+
+          const mcp = project.mcps.find((m) => m.id === mcpId);
+          if (!mcp) return;
+
+          // Create service tab for MCP detail view
+          let service = project.services.find((s) => s.tabId === mcpId);
+          if (!service) {
+            const mcpService: ServiceInput = {
+              id: `service_${mcpId}`,
+              name: mcp.name,
+              type: 'extension',
+              meta: 'MCP',
+              tabId: mcpId,
+            };
+            get().addService(projectId, mcpService);
+            service = mcpService as Service;
+          }
+
+          get().setCurrentService(service.id);
+        },
+
+        // ── Content View Actions ──
+        setContentViewMode: (mode) => set({ contentViewMode: mode }),
+        setActiveWorkspaceSessionId: (sessionId) => set({ activeWorkspaceSessionId: sessionId }),
+        requestFocusPanel: (sessionId, panelId) =>
+          set({ focusPanelRequest: { sessionId, panelId, nonce: Date.now() } }),
+        clearFocusPanelRequest: () => set({ focusPanelRequest: null }),
+        requestOpenFile: (sessionId, filePath, name, position) =>
+          set({
+            openFileRequest: { sessionId, filePath, name, nonce: Date.now() },
+            fileReveal: position
+              ? { filePath, line: position.line, column: position.column, nonce: Date.now() }
+              : null,
+          }),
+        clearOpenFileRequest: () => set({ openFileRequest: null }),
+        clearFileReveal: () => set({ fileReveal: null }),
+        requestOpenTerminal: (sessionId, title, command, cwd, reuseKey) =>
+          set({
+            openTerminalRequest: { sessionId, title, command, cwd, reuseKey, nonce: Date.now() },
+          }),
+        clearOpenTerminalRequest: () => set({ openTerminalRequest: null }),
+        requestCloseTerminals: (sessionId, reuseKeys) =>
+          set({ closeTerminalRequest: { sessionId, reuseKeys, nonce: Date.now() } }),
+        clearCloseTerminalRequest: () => set({ closeTerminalRequest: null }),
+        setSessionProcs: (projectId, sessionId, procs) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id !== projectId
+                ? p
+                : {
+                    ...p,
+                    branches: (p.branches || []).map((b) => ({
+                      ...b,
+                      sessions: b.sessions.map((s) => (s.id === sessionId ? { ...s, procs } : s)),
+                    })),
+                  },
+            ),
+          }));
+        },
+
+        // ── NEW: ZenCLI Binding Action ──
+        updatePanelZenCliBinding: (projectId, panelId, binding) => {
+          set((state) => ({
+            projects: state.projects.map((p) => {
+              if (p.id !== projectId) return p;
+
+              const updatedPanels = (p.workspacePanels || []).map((wp) => {
+                if (wp.id !== panelId) return wp;
+
+                return {
+                  ...wp,
+                  zencliConversationId: binding.conversationId,
+                  // Nếu có conversationId mới -> cập nhật timestamp. Nếu null -> reset về null.
+                  zencliLastActiveAt:
+                    binding.lastActiveAt ?? (binding.conversationId ? Date.now() : null),
+                };
+              });
+
+              return { ...p, workspacePanels: updatedPanels };
+            }),
+          }));
+        },
+      };
+    },
+    {
+      name: 'code-store',
+      storage: projectFileStorage,
+      partialize: (state) => {
+        if (state.projects === lastPartializeIn) {
+          return { ...state, projects: lastPartializeOut, currentProjectId: null } as any;
+        }
+        const partializedProjects = state.projects.map((p) => ({
+          ...p,
+          files: [],
+          unsavedFiles: [],
+          originalContents: {},
+          currentFileId: null,
+          // Persist branches but strip ephemeral agent/process data —
+          // these are runtime-only and must not survive a page reload.
+          branches: (p.branches || []).map((b) => ({
+            ...b,
+            sessions: (b.sessions || []).map((s) => ({
+              ...s,
+              agents: [], // ← temp only, re-detected on mount
+              procs: [], // ← dead processes shouldn't persist
+              status: s.status === 'running' ? 'idle' : s.status,
+            })),
+          })),
+        }));
+
+        lastPartializeIn = state.projects;
+        lastPartializeOut = partializedProjects;
+        return {
+          ...state,
+          projects: partializedProjects,
+          currentProjectId: null,
+          focusPanelRequest: null,
+          isProjectManagerOpen: false,
+          isNewProjectOpen: false,
+          pendingAction: null,
+          isSaveConfirmModalOpen: false,
+        };
+      },
+      merge: (persistedState: any, currentState: CodeState) => {
+        const merged = { ...currentState, ...persistedState };
+        if (merged.projects) {
+          merged.projects = merged.projects.map((p: any) => ({
+            ...p,
+            unsavedFiles: new Set<string>(),
+            originalContents: {},
+          }));
+        }
+        return merged;
+      },
+    },
+  ),
+);

@@ -1,0 +1,121 @@
+/**
+ * ------------------------------------------------------------------
+ * Read File Handler
+ * ------------------------------------------------------------------
+ * Reads file content with optional line-range slicing and LSP
+ * diagnostics attachment. Adapted from Zen's vscode.workspace.fs
+ * to window.api.invoke IPC. Supports relative path resolution
+ * against the current project root.
+ *
+ * Main functions:
+ * - handle() : Read file, apply start_line/end_line, attach diagnostics
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
+import { SecurityValidator } from '../../../shared/utils/security.util';
+import { codeApi } from '../../../shared/api/code.api';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────
+import type { ReadFileParams } from '../tool.types';
+
+export interface ReadFileResult {
+  command: string;
+  requestId?: string;
+  path?: string;
+  content?: string;
+  diagnostics?: Array<{
+    severity: string;
+    message: string;
+    line: number;
+    column: number;
+    source?: string;
+    code?: string | number;
+  }>;
+  error?: string;
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────
+
+function isAbsolute(p: string): boolean {
+  return p.startsWith('/') || p.startsWith('file://') || /^[A-Za-z]:[\\/]/.test(p);
+}
+
+function joinPath(base: string, relative: string): string {
+  if (base.endsWith('/')) return base + relative;
+  return base + '/' + relative;
+}
+
+// ─── Class ──────────────────────────────────────────────────────────────
+export class ReadFileHandler {
+  /**
+   * Đọc file và trả về kết quả (thay vì postMessage như Zen).
+   */
+  public async handle(message: ReadFileParams): Promise<ReadFileResult> {
+    const pathValue = message.path || message.filePath || message.file_path;
+    if (!pathValue) {
+      return {
+        command: 'fileContent',
+        requestId: message.requestId,
+        error: "The 'path' argument must be of type string.",
+      };
+    }
+
+    try {
+      // Resolve relative path → absolute path nếu cần
+      let resolvedPath = pathValue;
+      if (!isAbsolute(pathValue)) {
+        let baseDir: string | undefined = (message as any).basePath;
+        if (!baseDir) {
+          const { useCodeStore } = await import('../../../shared/stores/code.store');
+          const state = useCodeStore.getState();
+          const project = state.projects.find((p) => p.id === state.currentProjectId);
+          baseDir = project?.explorerRoot ?? project?.path;
+        }
+        if (baseDir) {
+          resolvedPath = joinPath(baseDir, pathValue);
+        }
+      }
+
+      // Security check
+      const securityCheck = SecurityValidator.validatePath(resolvedPath, false);
+      if (!securityCheck.safe) {
+        return {
+          command: 'fileContent',
+          requestId: message.requestId,
+          error: securityCheck.reason || 'Security validation failed',
+        };
+      }
+
+      // start_line / end_line được server cắt (cùng ngữ nghĩa cũ: 0-based, end inclusive)
+      const startLine = message.start_line ?? message.startLine;
+      const endLine = message.end_line ?? message.endLine;
+      const content: string = await codeApi.fs.readFile(
+        resolvedPath,
+        false,
+        startLine !== undefined
+          ? { start: Number(startLine) || 0, end: endLine !== undefined ? Number(endLine) : undefined }
+          : undefined,
+      );
+
+      // LSP removed — diagnostics always empty
+      const diagnostics: any[] = [];
+
+      return {
+        command: 'fileContent',
+        requestId: message.requestId,
+        path: resolvedPath,
+        content,
+        diagnostics: diagnostics.length > 0 ? diagnostics : undefined,
+      };
+    } catch (e: any) {
+      return {
+        command: 'fileContent',
+        requestId: message.requestId,
+        path: pathValue,
+        error: e.message || String(e),
+      };
+    }
+  }
+}

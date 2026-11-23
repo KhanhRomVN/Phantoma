@@ -4,6 +4,7 @@ import { getConfig } from './config/server.config';
 import { init as initDb, close as closeDb } from './database/connection';
 import { registerRoutes } from './routes/routes';
 import { errorHandler } from './utils/http';
+import { scopeService } from './services/scope.service';
 
 const app = express();
 
@@ -27,7 +28,12 @@ function bootstrap(): void {
     app.use('/api/v1', registerRoutes());
     app.use(errorHandler);
 
-    const server = app.listen(cfg.port, () => {});
+    const server = app.listen(cfg.port, () => {
+      void scopeService
+        .purgeAllDefaultBranches()
+
+        .catch((err) => console.warn('[Code] scope startup sweep failed', err));
+    });
 
     const shutdown = () => {
       server.close();

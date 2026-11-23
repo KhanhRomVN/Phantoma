@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import BetterSqlite3 from 'better-sqlite3';
+import { sweepOrphans, startOrphanSweeper } from './integrity';
 
 const SCHEMA_SQL = `CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
@@ -125,6 +126,7 @@ CREATE INDEX IF NOT EXISTS idx_task_checklist_task ON task_checklist (task_id);
 CREATE INDEX IF NOT EXISTS idx_task_attachments_task ON task_attachments (task_id);`;
 
 let db: BetterSqlite3.Database | null = null;
+let stopSweeper: (() => void) | null = null;
 
 export function init(dbPath: string): void {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -181,6 +183,8 @@ ALTER TABLE sessions_new RENAME TO sessions;`);
     sqlite.exec('ALTER TABLE sessions ADD COLUMN active_panel_id TEXT');
   }
   sqlite.exec(SCHEMA_SQL);
+  sweepOrphans(sqlite);
+  stopSweeper = startOrphanSweeper(sqlite);
   db = sqlite;
 }
 
@@ -190,6 +194,8 @@ export function getDb(): BetterSqlite3.Database {
 }
 
 export function close(): void {
+  stopSweeper?.();
+  stopSweeper = null;
   if (db) {
     db.close();
     db = null;

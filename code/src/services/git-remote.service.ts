@@ -40,6 +40,13 @@ export const gitRemoteService = {
     return { diff, remoteRef };
   },
 
+  push: async (root: string): Promise<{ ok?: boolean; error?: string }> => {
+    let push = await runGit(['push'], root);
+    if (push.error) push = await runGit(['push', '-u', 'origin', 'HEAD'], root);
+    if (push.error) return { error: push.stderr || push.error.message };
+    return { ok: true };
+  },
+
   commitPushFiles: async (
     root: string,
     absPaths: string[],
