@@ -427,14 +427,8 @@ export async function lookupIp(target: string | null, force = false): Promise<Ip
 
   await Promise.all(
     providers.map(async (provider, i) => {
-      const t0 = Date.now();
-      logger.info(`[DEBUG] lookup ${key}: querying ${provider.id}`);
       try {
         results[i] = await provider.fetch(target ?? '');
-        const r = results[i];
-        logger.info(
-          `[DEBUG] lookup ${key}: ${provider.id} ok in ${Date.now() - t0}ms -> ${r?.countryCode || '-'} / ${r?.city || '-'} / ${r?.isp || '-'}`,
-        );
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'failed';
         errors.push(`${provider.id}: ${msg}`);
@@ -446,9 +440,6 @@ export async function lookupIp(target: string | null, force = false): Promise<Ip
   const ok = results.filter((r): r is IpInfo => r !== null);
   if (ok.length === 0) throw new Error(`All IP services failed (${errors.join('; ')})`);
   const info = mergeInfos(ok);
-  logger.info(
-    `[DEBUG] lookup ${key}: merged ${ok.length}/${providers.length} services -> ${info.countryCode || '-'} / ${info.city || '-'} / ${info.isp || '-'}`,
-  );
   cache.set(key, { at: Date.now(), info });
   return info;
 }

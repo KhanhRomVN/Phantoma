@@ -26,7 +26,15 @@ class CertInstallService {
   }
 
   private async hashOf(caPath: string): Promise<string> {
-    const out = await exec('openssl', ['x509', '-inform', 'PEM', '-subject_hash_old', '-noout', '-in', caPath]);
+    const out = await exec('openssl', [
+      'x509',
+      '-inform',
+      'PEM',
+      '-subject_hash_old',
+      '-noout',
+      '-in',
+      caPath,
+    ]);
     return out.trim().split(/\r?\n/)[0];
   }
 
@@ -56,8 +64,9 @@ class CertInstallService {
       await exec('adb', ['-s', serial, 'remount']);
       await exec('adb', ['-s', serial, 'push', local, `${CA_DIR}/${current.hash}.0`]);
       await exec('adb', ['-s', serial, 'shell', `chmod 644 ${CA_DIR}/${current.hash}.0`]);
-      await exec('adb', ['-s', serial, 'shell', `restorecon ${CA_DIR}/${current.hash}.0`]).catch(() => '');
-      logger.info('CA installed to system store', F('serial', serial), F('hash', current.hash));
+      await exec('adb', ['-s', serial, 'shell', `restorecon ${CA_DIR}/${current.hash}.0`]).catch(
+        () => '',
+      );
       return { ...current, installed: true };
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });

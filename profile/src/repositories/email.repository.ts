@@ -41,18 +41,20 @@ function readFile(id: string): EmailFile | null {
 function writeFile(id: string, data: EmailFile): void {
   fs.mkdirSync(getProfileDir(id), { recursive: true });
   fs.writeFileSync(fileOf(id), JSON.stringify(data, null, 2) + '\n');
-  // Debug log - có thể xóa sau khi fix
-  logger.info(`[DEBUG] ${EMAIL_FILE} written for email ${id} -> ${fileOf(id)} (totp ${data.totp ? 'set' : 'empty'})`);
 }
 
 // Emails are the Chrome profile folders of every source that already hold an email.json
 function listIds(sourceId?: string): string[] {
-  const sources = getDb().prepare('SELECT id, path FROM sources').all() as { id: string; path: string }[];
+  const sources = getDb().prepare('SELECT id, path FROM sources').all() as {
+    id: string;
+    path: string;
+  }[];
   const out: string[] = [];
   for (const s of sources) {
     if ((sourceId && s.id !== sourceId) || !fs.existsSync(s.path)) continue;
     for (const e of fs.readdirSync(s.path, { withFileTypes: true })) {
-      if (e.isDirectory() && fs.existsSync(path.join(s.path, e.name, EMAIL_FILE))) out.push(toEmailId(s.id, e.name));
+      if (e.isDirectory() && fs.existsSync(path.join(s.path, e.name, EMAIL_FILE)))
+        out.push(toEmailId(s.id, e.name));
     }
   }
   return out;
@@ -89,7 +91,8 @@ function createEmail(input: Input): string {
     throw new AppError('email already exists', 409);
   }
   const folder = String(input.chromeProfile ?? '').trim();
-  if (!input.sourceId || !folder) throw new AppError('sourceId and chromeProfile are required', 400);
+  if (!input.sourceId || !folder)
+    throw new AppError('sourceId and chromeProfile are required', 400);
   const id = toEmailId(String(input.sourceId), folder);
   const now = new Date().toISOString();
   writeFile(id, {
@@ -117,8 +120,6 @@ export const emailRepository = {
   exists: (id: string): boolean => fs.existsSync(fileOf(id)),
   create: createEmail,
   update: (id: string, input: Input): boolean => {
-    // Debug log - có thể xóa sau khi fix
-    logger.info(`[DEBUG] emailRepository.update id=${id} keys=${Object.keys(input).join(',')}`);
     const data = readFile(id);
     if (!data) return false;
     writeFile(id, { ...data, ...buildFilePatch(input), updated_at: new Date().toISOString() });

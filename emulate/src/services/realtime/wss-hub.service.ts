@@ -113,7 +113,10 @@ class WssHubService {
    */
   public broadcast(message: WssMessage, excludeClientId?: string): void {
     if (!this.wss || this.clients.size === 0) {
-      // logger.warn(`[WssHub] No active clients to broadcast ${message.type}`);
+      // Debug log - có thể xóa sau khi fix
+      console.warn(
+        `[DEBUG][WssHub] DROP ${message.type}: wss=${!!this.wss} clients=${this.clients.size}`,
+      );
       return;
     }
 

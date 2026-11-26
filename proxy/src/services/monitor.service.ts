@@ -23,7 +23,6 @@ export const monitorService = {
   start: (): void => {
     const ms = getConfig().monitorIntervalMs;
     if (timer || !(ms > 0)) return;
-    logger.info(`Monitoring stored proxies every ${ms} ms`);
     void tick();
     timer = setInterval(() => void tick(), ms);
   },

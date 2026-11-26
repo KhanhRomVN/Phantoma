@@ -1,40 +1,53 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   Check,
+  Clock,
   CloudUpload,
   FileCode2,
   GitBranch,
-  GitCommitHorizontal,
+  HardDrive,
   Link2,
   Loader2,
   Lock,
-  Pencil,
   RefreshCw,
   ShieldCheck,
   UploadCloud,
   X,
 } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
-import { Badge, INPUT_CLASS, PageHeader, Section, SoftButton, StatTile, TONE } from '../shared';
+import {
+  Badge,
+  INPUT_CLASS,
+  PageHeader,
+  Row,
+  Section,
+  SoftButton,
+  StatTile,
+  TONE,
+  Toggle,
+} from '../shared';
 import FileTree from './FileTree';
-
-interface Status {
-  root: string;
-  enabled: boolean;
-  remoteUrl?: string;
-  branch?: string;
-  changes?: number;
-  unpushed?: number;
-}
+import { formatBytes } from './FilePreview';
+import SyncConfirmModal from './SyncConfirmModal';
+import { COMMIT_MESSAGE, useBackup, type BackupSchedule } from './useBackup';
 
 interface Result {
   error?: string;
   ok?: boolean;
-  added?: number;
 }
 
-const LAST_SYNC_KEY = 'phantoma-backup-last-sync';
+const INTERVAL_OPTIONS = [
+  { min: 15, label: '15 min' },
+  { min: 30, label: '30 min' },
+  { min: 60, label: '1 h' },
+  { min: 360, label: '6 h' },
+  { min: 720, label: '12 h' },
+  { min: 1440, label: '24 h' },
+];
+
+const intervalLabel = (min: number): string =>
+  INTERVAL_OPTIONS.find((o) => o.min === min)?.label ?? `${min} min`;
 
 const invoke = <T,>(channel: string, ...args: unknown[]): Promise<T> =>
   window.api.invoke(channel, ...args);
@@ -49,27 +62,22 @@ const ago = (iso: string | null): string => {
 };
 
 const Backup: React.FC = () => {
-  const [status, setStatus] = useState<Status | null>(null);
+  const { status, syncState, refresh, sync } = useBackup();
   const [url, setUrl] = useState('');
-  const [editing, setEditing] = useState(false);
+  const [size, setSize] = useState<number | null>(null);
+  const urlInit = useRef(false);
+  const lastTried = useRef('');
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [version, setVersion] = useState(0);
-  const [lastSync, setLastSync] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(LAST_SYNC_KEY);
-    } catch {
-      return null;
-    }
-  });
-
-  const refresh = useCallback(async () => {
-    setStatus(await invoke<Status>('backup:status'));
-  }, []);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!status?.enabled) return;
+    void invoke<number>('backup:size')
+      .then((n) => setSize(typeof n === 'number' ? n : 0))
+      .catch(() => setSize(null));
+  }, [status?.enabled, status?.changes, version]);
 
   const onTreeChange = useCallback(() => {
     setVersion((v) => v + 1);
@@ -82,10 +90,7 @@ const Backup: React.FC = () => {
     try {
       const res = await invoke<Result>('backup:enable', target.trim());
       if (res?.error) setMessage({ kind: 'error', text: res.error });
-      else {
-        setMessage({ kind: 'ok', text: 'Repository saved' });
-        setEditing(false);
-      }
+      else setMessage({ kind: 'ok', text: 'Repository saved' });
     } catch (e) {
       setMessage({ kind: 'error', text: e instanceof Error ? e.message : String(e) });
     } finally {
@@ -95,42 +100,28 @@ const Backup: React.FC = () => {
     }
   };
 
-  const syncAll = async () => {
-    if (!status) return;
-    setBusy('sync');
-    setMessage(null);
-    const root = status.root;
-    const fail = (text: string) => setMessage({ kind: 'error', text });
-    try {
-      const ai = await invoke<Result>('backup:auto-ignore');
-      if (ai.error) return fail(ai.error);
+  useEffect(() => {
+    if (!status?.enabled || urlInit.current) return;
+    urlInit.current = true;
+    setUrl(status.remoteUrl ?? '');
+    lastTried.current = status.remoteUrl ?? '';
+  }, [status]);
 
-      const a = await invoke<Result>('git:stage-all', root);
-      if (a.error) return fail(a.error);
+  useEffect(() => {
+    if (!status?.enabled || !urlInit.current) return;
+    const target = url.trim();
+    if (!target || target === lastTried.current) return;
+    const t = setTimeout(() => {
+      lastTried.current = target;
+      void enable(target);
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, status?.enabled]);
 
-      if ((status.changes ?? 0) > 0 || (ai.added ?? 0) > 0) {
-        const c = await invoke<Result>('git:commit', root, `Backup ${new Date().toISOString()}`);
-        if (c.error) return fail(c.error);
-      }
-
-      const p = await invoke<Result>('backup:push');
-      if (p.error) return fail(p.error);
-
-      const now = new Date().toISOString();
-      setLastSync(now);
-      try {
-        localStorage.setItem(LAST_SYNC_KEY, now);
-      } catch {
-        // ignore
-      }
-      setMessage({ kind: 'ok', text: 'Backup pushed to GitHub' });
-    } catch (e) {
-      fail(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(null);
-      await refresh();
-      setVersion((v) => v + 1);
-    }
+  const updateSchedule = async (patch: Partial<BackupSchedule>) => {
+    await invoke('backup:schedule-set', patch);
+    await refresh();
   };
 
   if (!status) {
@@ -141,7 +132,9 @@ const Backup: React.FC = () => {
     );
   }
 
-  const pending = (status.changes ?? 0) + (status.unpushed ?? 0);
+  const changes = status.changes ?? 0;
+  const schedule = status.schedule ?? { enabled: false, intervalMin: 360 };
+  const syncDisabled = syncState === 'loading' || (changes === 0 && (status.unpushed ?? 0) === 0);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -242,25 +235,25 @@ const Backup: React.FC = () => {
               value={status.branch || '-'}
               tone="purple"
               icon={<GitBranch className="h-3.5 w-3.5" />}
-              hint={pending === 0 ? 'Everything in sync' : `${pending} pending`}
+              hint={changes === 0 ? 'Everything in sync' : `${changes} pending`}
             />
             <StatTile
               label="Changes"
-              value={String(status.changes ?? 0)}
+              value={String(changes)}
               tone="warn"
               icon={<FileCode2 className="h-3.5 w-3.5" />}
               hint="Not yet committed"
             />
             <StatTile
-              label="Unpushed"
-              value={String(status.unpushed ?? 0)}
+              label="Schedule"
+              value={schedule.enabled ? `Every ${intervalLabel(schedule.intervalMin)}` : 'Off'}
               tone="teal"
-              icon={<GitCommitHorizontal className="h-3.5 w-3.5" />}
-              hint="Commits waiting"
+              icon={<Clock className="h-3.5 w-3.5" />}
+              hint="Auto backup"
             />
             <StatTile
               label="Last sync"
-              value={ago(lastSync)}
+              value={ago(status.lastSync ?? null)}
               tone="success"
               icon={<UploadCloud className="h-3.5 w-3.5" />}
               hint="This device"
@@ -273,59 +266,84 @@ const Backup: React.FC = () => {
             icon={<Link2 className="h-3.5 w-3.5" />}
             tone="info"
             action={
-              <div className="flex items-center gap-2">
-                <Badge tone="success">Connected</Badge>
-                <SoftButton tone="success" disabled={busy !== null} onClick={() => void syncAll()}>
-                  {busy === 'sync' ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  )}
-                  Sync now
-                </SoftButton>
-              </div>
+              <SoftButton
+                tone={syncState === 'error' ? 'error' : 'success'}
+                disabled={syncDisabled}
+                onClick={() => setConfirmOpen(true)}
+              >
+                {syncState === 'loading' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : syncState === 'success' ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : syncState === 'error' ? (
+                  <AlertCircle className="h-3.5 w-3.5" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                Sync
+              </SoftButton>
             }
           >
             <div className="px-4 py-3">
-              {editing ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://github.com/you/phantoma-backup"
-                    className={cn(INPUT_CLASS, 'flex-1 font-mono')}
-                  />
-                  <SoftButton
-                    tone="success"
-                    disabled={!url.trim() || busy !== null}
-                    onClick={() => void enable(url)}
-                  >
-                    {busy === 'enable' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                    Save
-                  </SoftButton>
-                  <SoftButton tone="muted" disabled={busy !== null} onClick={() => setEditing(false)}>
-                    Cancel
-                  </SoftButton>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-text-primary">
-                    {status.remoteUrl}
-                  </div>
-                  <SoftButton
-                    tone="info"
-                    onClick={() => {
-                      setUrl(status.remoteUrl ?? '');
-                      setEditing(true);
-                    }}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </SoftButton>
-                </div>
-              )}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://github.com/you/phantoma-backup"
+                  className="h-8 w-full border-0 bg-transparent p-0 pr-9 font-mono text-[12.5px] text-text-primary outline-none placeholder:text-text-secondary focus:outline-none focus:ring-0"
+                />
+                <span
+                  title={busy === 'enable' ? 'Saving...' : 'Connected'}
+                  className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center"
+                >
+                  {busy === 'enable' ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-text-secondary" />
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-success shadow-[0_0_6px] shadow-success/60" />
+                  )}
+                </span>
+              </div>
             </div>
+          </Section>
+
+          <Section
+            title="Schedule"
+            description="Automatically commit and push pending changes."
+            icon={<Clock className="h-3.5 w-3.5" />}
+            tone="teal"
+          >
+            <Row
+              label="Automatic backup"
+              description="Runs in the background while Phantoma is open. Skipped when there is nothing to back up."
+            >
+              <Toggle
+                checked={schedule.enabled}
+                onChange={(v) => void updateSchedule({ enabled: v })}
+              />
+            </Row>
+            <Row label="Frequency" description="How often the backup runs.">
+              <div className="flex items-center gap-1">
+                {INTERVAL_OPTIONS.map((o) => (
+                  <button
+                    key={o.min}
+                    type="button"
+                    disabled={!schedule.enabled}
+                    aria-pressed={schedule.intervalMin === o.min}
+                    onClick={() => void updateSchedule({ intervalMin: o.min })}
+                    className={cn(
+                      'h-7 min-w-12 cursor-pointer rounded-md px-2 text-[11.5px] font-medium outline-none transition-colors',
+                      schedule.intervalMin === o.min
+                        ? 'bg-teal/15 text-teal'
+                        : 'text-text-secondary hover:bg-card-hover hover:text-text-primary',
+                      !schedule.enabled && 'cursor-not-allowed opacity-40',
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </Row>
           </Section>
 
           <Section
@@ -334,11 +352,28 @@ const Backup: React.FC = () => {
             icon={<ShieldCheck className="h-3.5 w-3.5" />}
             tone="warn"
             bodyClassName="divide-y-0"
+            action={
+              <Badge tone="muted" className="shrink-0">
+                <HardDrive className="h-3 w-3" />
+                {size === null ? '...' : formatBytes(size)}
+              </Badge>
+            }
           >
             <FileTree root={status.root} version={version} onChange={onTreeChange} />
           </Section>
         </>
       )}
+
+      <SyncConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void sync();
+        }}
+        changes={changes}
+        commitMessage={COMMIT_MESSAGE}
+      />
     </div>
   );
 };

@@ -1,5 +1,6 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useCodeStore } from '../../../../shared/stores/code.store';
+import { codeApi } from '../../../../shared/api/code.api';
 import { taskService, type StoredTask } from '../../../../shared/services/task.service';
 import { GitBranch, Plus } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
@@ -9,7 +10,14 @@ import { TASK_COLORS } from '../../constants/session.constants';
 import { type BranchInfo, type TaskStatus } from '../../types/session.types';
 import { ProjectExtended } from '../../types/project-card.types';
 import { KebabButton } from './KebabButton';
-import { DefaultBadge, NO_BRANCH_NAME, NO_GIT_NAME, TempBranchBadge, BusyBadge } from './badges';
+import {
+  DefaultBadge,
+  NO_BRANCH_NAME,
+  NO_GIT_NAME,
+  TempBranchBadge,
+  BusyBadge,
+  RemoteGoneBadge,
+} from './badges';
 import { BranchScopeButton } from './BranchScopeButton';
 import { ProjectCardProps } from '../../types/project-card.types';
 
@@ -53,6 +61,7 @@ export const BranchBlock = memo(function BranchBlock({
   projectTasks?: StoredTask[];
   onOpenTaskStatusModal: (branchName: string) => void;
 }) {
+  const [gone, setGone] = useState<{ busy: boolean; error?: string }>({ busy: false });
   const newest = getNewestSession(branch);
   const busy = !!newest && ['running', 'queued', 'blocked', 'review'].includes(newest.status);
 
@@ -69,6 +78,45 @@ export const BranchBlock = memo(function BranchBlock({
     e.preventDefault();
     e.stopPropagation();
     onOpenDropdown('branch', project.id, branch.name, { top: e.clientY, left: e.clientX });
+  };
+
+  const isGone = !!branch.remoteGone && !!branch.path;
+
+  const publishBranch = async () => {
+    if (!branch.path) return;
+    setGone({ busy: true });
+    const res = await codeApi.git.publishBranch(branch.path).catch((e) => ({ error: String(e) }));
+    if (res?.error) {
+      setGone({ busy: false, error: res.error });
+      return;
+    }
+    const state = useCodeStore.getState();
+    const p = state.projects.find((x) => x.id === project.id);
+    state.updateProject(project.id, {
+      branches: (p?.branches ?? []).map((b) =>
+        b.name === branch.name ? { ...b, remoteGone: false } : b,
+      ),
+    });
+    setGone({ busy: false });
+  };
+
+  const deleteFolder = async () => {
+    if (!branch.path) return;
+    if (!window.confirm(`Delete folder ${branch.path} and all local changes? This cannot be undone.`)) return;
+    setGone({ busy: true });
+    const res = await codeApi.fs.removeDir(branch.path).catch((e) => ({ error: String(e) }));
+    if (res && 'error' in res && res.error) {
+      setGone({ busy: false, error: String(res.error) });
+      return;
+    }
+    const state = useCodeStore.getState();
+    const p = state.projects.find((x) => x.id === project.id);
+    const unlinked = new Set<string>((p as any)?.unlinkedBranches ?? []);
+    unlinked.add(branch.name);
+    state.updateProject(project.id, {
+      branches: (p?.branches ?? []).filter((b) => b.name !== branch.name),
+      unlinkedBranches: Array.from(unlinked),
+    } as any);
   };
 
   return (
@@ -95,6 +143,8 @@ export const BranchBlock = memo(function BranchBlock({
         {(branch.name === NO_BRANCH_NAME || branch.name === NO_GIT_NAME) && (
                   <TempBranchBadge name={branch.name} />
                 )}
+
+        {isGone && <RemoteGoneBadge />}
 
         <span className="flex-1" />
 
@@ -168,6 +218,31 @@ export const BranchBlock = memo(function BranchBlock({
 
         <KebabButton onClick={openAtCursor} />
       </div>
+
+      {isGone && (
+        <div className="mb-1.5 rounded-lg px-2.5 py-2 bg-red-500/10 text-[11px] text-red-500 flex flex-col gap-1.5">
+          <span>Remote branch was deleted. Local changes are still in this folder.</span>
+          {gone.error && <span className="text-red-500/80 break-words">{gone.error}</span>}
+          <div className="flex gap-1.5">
+            <button
+              disabled={gone.busy}
+              onClick={publishBranch}
+              className="h-5 px-2 rounded-[5px] bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30 disabled:opacity-50 cursor-pointer"
+              title="Push local branch to create the remote branch (requires no uncommitted changes)"
+            >
+              Recreate remote
+            </button>
+            <button
+              disabled={gone.busy}
+              onClick={deleteFolder}
+              className="h-5 px-2 rounded-[5px] bg-red-500/10 text-red-500 hover:bg-red-500/20 active:bg-red-500/30 disabled:opacity-50 cursor-pointer"
+              title="Delete this folder from disk"
+            >
+              Delete folder
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Newest session card or empty state */}
       {newest ? (

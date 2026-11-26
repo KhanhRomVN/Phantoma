@@ -34,7 +34,7 @@ class ApiService {
     this.baseUrl = baseUrl || (storedUrl ? `http://${storedUrl}` : DEFAULT_BASE_URL);
 
     // Packaged build: main chọn port ngẫu nhiên -> cập nhật lại.
-    if (!storedUrl && window.api?.runtime?.getPorts) {
+    if (!baseUrl && !storedUrl && window.api?.runtime?.getPorts) {
       window.api.runtime
         .getPorts()
         .then((ports) => {

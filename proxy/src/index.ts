@@ -48,7 +48,6 @@ function bootstrap(): void {
     printBanner();
     const cfg = getConfig();
     initDb(cfg.dbPath);
-    logger.info(`Database ready at ${cfg.dbPath}`);
     sourceService.ensureDefault();
     warpService.ensureSource();
     warpService.purgeAccounts();
@@ -63,7 +62,6 @@ function bootstrap(): void {
     });
 
     const shutdown = (): void => {
-      logger.info('Shutting down');
       monitorService.stop();
       vpnService.stopAll();
       server.close();

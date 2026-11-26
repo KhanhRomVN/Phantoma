@@ -3,11 +3,13 @@ import { Check, ChevronRight, EyeOff, Minus, Plus, RotateCcw, Search, X } from '
 import { cn } from '@renderer/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { Badge } from '../shared';
+import FilePreview, { formatBytes } from './FilePreview';
 
 interface Entry {
   name: string;
   rel: string;
   type: 'file' | 'folder';
+  size?: number;
   ignored: boolean;
   explicit: boolean;
 }
@@ -119,6 +121,7 @@ const FileTree: React.FC<{ root: string; version: number; onChange: () => void }
   onChange,
 }) => {
   const view: View = 'tree';
+  const [selected, setSelected] = useState<string | null>(null);
   const [ignoredPaths, setIgnoredPaths] = useState<string[]>([]);
   const [cache, setCache] = useState<Record<string, Entry[]>>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -247,6 +250,45 @@ const FileTree: React.FC<{ root: string; version: number; onChange: () => void }
     [cache],
   );
 
+  const [folderSizes, setFolderSizes] = useState<Record<string, number>>({});
+  const sizeQueue = useRef<string[]>([]).current;
+  const sizeSeen = useRef(new Set<string>()).current;
+  const sizeRunning = useRef(false);
+
+  const pumpSizes = useCallback(async () => {
+    if (sizeRunning.current) return;
+    sizeRunning.current = true;
+    while (sizeQueue.length) {
+      const rel = sizeQueue.shift() as string;
+      try {
+        const n = await invoke<number>('backup:folder-size', rel);
+        setFolderSizes((p) => ({ ...p, [rel]: typeof n === 'number' ? n : 0 }));
+      } catch {
+        // skip
+      }
+    }
+    sizeRunning.current = false;
+  }, [sizeQueue]);
+
+  useEffect(() => {
+    for (const { entry } of rows) {
+      if (entry.type !== 'folder' || sizeSeen.has(entry.rel)) continue;
+      sizeSeen.add(entry.rel);
+      sizeQueue.push(entry.rel);
+    }
+    void pumpSizes();
+  }, [rows, sizeSeen, sizeQueue, pumpSizes]);
+
+  const sizeLabel = (e: Entry, open: boolean): React.ReactNode => {
+    const sz = e.type === 'folder' ? (open ? undefined : folderSizes[e.rel]) : e.size;
+    if (sz === undefined) return null;
+    return (
+      <Badge tone="muted" className="shrink-0 px-1 py-0 font-mono text-[10px]">
+        {formatBytes(sz)}
+      </Badge>
+    );
+  };
+
   return (
     <div className="flex flex-col">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
@@ -302,7 +344,8 @@ const FileTree: React.FC<{ root: string; version: number; onChange: () => void }
       </div>
 
       {view === 'tree' ? (
-        <div className="max-h-[52vh] min-h-[220px] overflow-y-auto p-1.5">
+        <div className="flex h-[52vh] min-h-[260px]">
+        <div className="h-full w-1/2 shrink-0 overflow-y-auto border-r border-border p-1.5">
           {rows.length === 0 && (
             <div className="py-10 text-center text-[12px] text-text-secondary">
               {q ? 'No matches in loaded folders' : 'Empty'}
@@ -326,13 +369,17 @@ const FileTree: React.FC<{ root: string; version: number; onChange: () => void }
                 key={entry.rel}
                 onClick={() => {
                   if (isFolder && !q) toggleExpand(entry.rel);
+                  else if (!isFolder) setSelected(entry.rel);
                   else if (!inherited) void setIgnore(entry.rel, !entry.ignored);
                 }}
                 onContextMenu={(ev) => {
                   ev.preventDefault();
                   if (!inherited) void setIgnore(entry.rel, !entry.ignored);
                 }}
-                className="flex cursor-pointer items-center gap-2 rounded-md py-1 pr-2 text-[12.5px] transition-colors hover:bg-card-hover"
+                className={cn(
+                  'flex cursor-pointer items-center gap-2 rounded-md py-1 pr-2 text-[12.5px] transition-colors hover:bg-card-hover',
+                  !isFolder && selected === entry.rel && 'bg-card-hover',
+                )}
                 style={{ paddingLeft: `${6 + depth * 16}px` }}
               >
                 <ChevronRight
@@ -356,6 +403,7 @@ const FileTree: React.FC<{ root: string; version: number; onChange: () => void }
                 ) : (
                   <span className="flex-1" />
                 )}
+                {sizeLabel(entry, isOpen)}
                 {entry.ignored && (
                   <Badge tone={inherited ? 'muted' : 'warn'} className="shrink-0 px-1 py-0 text-[10px]">
                     {inherited ? 'inherited' : 'ignored'}
@@ -385,6 +433,8 @@ const FileTree: React.FC<{ root: string; version: number; onChange: () => void }
               </div>
             );
           })}
+        </div>
+        <FilePreview rel={selected} className="h-full w-1/2" />
         </div>
       ) : (
         <div className="max-h-[52vh] min-h-[220px] overflow-y-auto">

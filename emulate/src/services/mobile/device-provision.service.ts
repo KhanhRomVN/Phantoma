@@ -42,7 +42,6 @@ class DeviceProvisionService {
   }
 
   private async run(serial: string): Promise<ProvisionResult> {
-    logger.info('Provisioning device', F('serial', serial));
     const result: ProvisionResult = {
       armTranslation: { ok: false },
       cert: { ok: false },
@@ -74,7 +73,6 @@ class DeviceProvisionService {
       result.frida = { ok: false, error: errMsg(err) };
     }
 
-    logger.info('Provision done', F('serial', serial), F('result', JSON.stringify(result)));
     return result;
   }
 }

@@ -910,15 +910,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
       ),
     ]);
 
-    // Get max input tokens from model config
-    const maxInputTokens = React.useMemo(() => {
-      return currentModelConfig?.max_input_tokens || null;
-    }, [currentModelConfig]);
-
-    // Check if token limit exceeded
-    const isTokenLimitExceeded = React.useMemo(() => {
-      return maxInputTokens !== null && messageTokenCount > maxInputTokens;
-    }, [messageTokenCount, maxInputTokens]);
+    // Token limit check removed — no input token restriction
 
     const providersScope = 'default';
 
@@ -1160,9 +1152,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   ? `1px dashed ${$('--error')}`
                   : isTimeBlocked
                     ? `1px dashed ${$('--warn')}`
-                    : isTokenLimitExceeded
-                      ? `2px dashed ${$('--error')}`
-                      : `1px solid ${$('--border')}`,
+                    : `1px solid ${$('--border')}`,
               transition: 'border 0.3s ease',
               backgroundColor: $('--input-background'),
             }}
@@ -1216,7 +1206,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                   boxShadow: '0 -2px 6px rgba(0,0,0,0.1)',
                   transition: 'all 0.2s ease',
                   marginBottom:
-                    !isConnected || isTimeBlocked || isTokenLimitExceeded ? '1px' : '-1px',
+                    !isConnected || isTimeBlocked ? '1px' : '-1px',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = $('--card-background-hover');
@@ -1864,7 +1854,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                       isConnected &&
                       !isLoadingCache &&
                       !isProcessing &&
-                      !isTokenLimitExceeded &&
                       !isTimeBlocked
                     ) {
                       onSendMessage();
@@ -2167,7 +2156,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           ? 'not-allowed'
                           : isStreaming || isProcessing
                             ? 'pointer'
-                            : isTokenLimitExceeded || isTimeBlocked
+                            : isTimeBlocked
                               ? 'not-allowed'
                               : message.trim() || uploadedFiles.length > 0
                                 ? 'pointer'
@@ -2183,19 +2172,19 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                           ? $('--text-secondary')
                           : isStreaming || isProcessing
                             ? $('--error')
-                            : isTokenLimitExceeded || isTimeBlocked
+                            : isTimeBlocked
                               ? $('--error')
                               : $('--text-secondary'),
                       pointerEvents:
                         isHistoryMode ||
                         isLoadingCache ||
-                        ((isTokenLimitExceeded || isTimeBlocked) && !isStreaming && !isProcessing)
+                        (isTimeBlocked && !isStreaming && !isProcessing)
                           ? 'none'
                           : 'auto',
                       backgroundColor:
                         isStreaming || isProcessing
                           ? 'transparent'
-                          : isTokenLimitExceeded || isTimeBlocked
+                          : isTimeBlocked
                             ? `color-mix(in srgb, ${$('--error')} 12%, transparent)`
                             : `color-mix(in srgb, ${$('--text-secondary')} 8%, transparent)`,
                       fontSize: '11px',
@@ -2209,7 +2198,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         return;
                       }
 
-                      if (isTokenLimitExceeded || isTimeBlocked) {
+                      if (isTimeBlocked) {
                         return;
                       }
 
@@ -2221,7 +2210,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     onMouseEnter={(e) => {
                       if (isStreaming || isProcessing) {
                         e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-primary')} 5%, transparent)`;
-                      } else if (isTokenLimitExceeded || isTimeBlocked) {
+                      } else if (isTimeBlocked) {
                         e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--error')} 18%, transparent)`;
                       } else if (message.trim() || uploadedFiles.length > 0) {
                         e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-primary')} 5%, transparent)`;
@@ -2230,7 +2219,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                     onMouseLeave={(e) => {
                       if (isStreaming || isProcessing) {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                      } else if (isTokenLimitExceeded || isTimeBlocked) {
+                      } else if (isTimeBlocked) {
                         e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--error')} 12%, transparent)`;
                       } else {
                         e.currentTarget.style.backgroundColor = `color-mix(in srgb, ${$('--text-secondary')} 8%, transparent)`;
@@ -2241,11 +2230,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                         ? 'Stop Generation'
                         : isTimeBlocked && timeBlockLabel
                           ? `DeepSeek is blocked during ${timeBlockLabel.all}`
-                          : isTokenLimitExceeded
-                            ? `Token limit exceeded (${messageTokenCount.toLocaleString()}/${maxInputTokens?.toLocaleString()})`
-                            : maxInputTokens
-                              ? `${messageTokenCount.toLocaleString()}/${maxInputTokens.toLocaleString()} tokens`
-                              : `${messageTokenCount.toLocaleString()} tokens`
+                          : `${messageTokenCount.toLocaleString()} tokens`
                     }
                   >
                     {isStreaming || isProcessing ? (
@@ -2263,11 +2248,9 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
                               return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
                             }
                           };
-                          return maxInputTokens
-                            ? `${formatTokenCount(messageTokenCount)}/${formatTokenCount(maxInputTokens)}`
-                            : messageTokenCount > 0
-                              ? `${formatTokenCount(messageTokenCount)}`
-                              : '0';
+                          return messageTokenCount > 0
+                            ? `${formatTokenCount(messageTokenCount)}`
+                            : '0';
                         })()}
                       </span>
                     )}

@@ -8,7 +8,8 @@ import { createLogger } from '../utils/logger';
 
 const logger = createLogger('ServiceEmailRepository');
 
-const optionalJson = (v: unknown): string | null => (v === null || v === undefined ? null : JSON.stringify(v));
+const optionalJson = (v: unknown): string | null =>
+  v === null || v === undefined ? null : JSON.stringify(v);
 
 const SERVICE_EMAIL_MAP: ColumnMap = {
   templateId: ['service_id', (v) => v || null],
@@ -18,7 +19,13 @@ const SERVICE_EMAIL_MAP: ColumnMap = {
   backupCodes: ['backup_codes', optionalJson],
   status: ['status', (v) => v || 'active'],
   statusNote: ['status_note', (v) => v || null],
-  customFields: ['custom_fields', (v) => (Array.isArray(v) ? JSON.stringify(v.map((f: any) => ({ name: f.name ?? f.key, value: f.value }))) : null)],
+  customFields: [
+    'custom_fields',
+    (v) =>
+      Array.isArray(v)
+        ? JSON.stringify(v.map((f: any) => ({ name: f.name ?? f.key, value: f.value })))
+        : null,
+  ],
 };
 
 type ServiceEmail = ReturnType<typeof mapServiceEmail>;
@@ -36,11 +43,18 @@ function readServiceEmail(db: BetterSqlite3.Database, id: string): ServiceEmail 
 export const serviceEmailRepository = {
   list: (emailId: string): ServiceEmail[] =>
     withVault<ServiceEmail[]>(emailId, false, [], (db) =>
-      (db.prepare('SELECT * FROM service_emails ORDER BY rowid DESC').all() as Row[]).map(toServiceEmail),
+      (db.prepare('SELECT * FROM service_emails ORDER BY rowid DESC').all() as Row[]).map(
+        toServiceEmail,
+      ),
     ),
 
   listRaw: (emailId: string): Row[] =>
-    withVault<Row[]>(emailId, false, [], (db) => db.prepare('SELECT * FROM service_emails ORDER BY rowid').all() as Row[]),
+    withVault<Row[]>(
+      emailId,
+      false,
+      [],
+      (db) => db.prepare('SELECT * FROM service_emails ORDER BY rowid').all() as Row[],
+    ),
 
   get: (emailId: string, id: string): ServiceEmail | null =>
     withVault<ServiceEmail | null>(emailId, false, null, (db) => readServiceEmail(db, id)),
@@ -59,7 +73,9 @@ export const serviceEmailRepository = {
     const cols = Object.keys(row);
     return withVault<ServiceEmail | null>(emailId, true, null, (db) => {
       try {
-        db.prepare(`INSERT INTO service_emails (${cols.join(', ')}) VALUES (${cols.map((c) => '@' + c).join(', ')})`).run(row);
+        db.prepare(
+          `INSERT INTO service_emails (${cols.join(', ')}) VALUES (${cols.map((c) => '@' + c).join(', ')})`,
+        ).run(row);
       } catch (err: any) {
         if (typeof err?.code === 'string' && err.code.startsWith('SQLITE_CONSTRAINT')) {
           throw new AppError(err.message, 409);
@@ -76,7 +92,9 @@ export const serviceEmailRepository = {
       const cols = Object.keys(sets);
       if (cols.length === 0) return readServiceEmail(db, id);
       const res = db
-        .prepare(`UPDATE service_emails SET ${cols.map((c) => `${c} = @${c}`).join(', ')} WHERE id = @id`)
+        .prepare(
+          `UPDATE service_emails SET ${cols.map((c) => `${c} = @${c}`).join(', ')} WHERE id = @id`,
+        )
         .run({ ...sets, id });
       return res.changes > 0 ? readServiceEmail(db, id) : null;
     }),
@@ -95,7 +113,9 @@ export const serviceEmailRepository = {
 // Legacy: service links used to live in the main db table service_emails (column profile_id); move them into each service_email.sql
 export function migrateLegacyServiceEmails(): void {
   const main = getDb();
-  const legacy = main.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'service_emails'`).get();
+  const legacy = main
+    .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'service_emails'`)
+    .get();
   if (!legacy) return;
 
   const byEmail = new Map<string, Row[]>();
@@ -115,13 +135,19 @@ export function migrateLegacyServiceEmails(): void {
         );
         db.transaction((list: Row[]) => {
           for (const r of list) {
-            insert.run({ id: r.id, service_id: r.service_id ?? null, custom_fields: r.custom_fields ?? null });
+            insert.run({
+              id: r.id,
+              service_id: r.service_id ?? null,
+              custom_fields: r.custom_fields ?? null,
+            });
           }
         })(items);
       });
     } catch (err) {
       failed++;
-      logger.warn(`Cannot migrate service emails of email ${emailId}: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn(
+        `Cannot migrate service emails of email ${emailId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -130,5 +156,4 @@ export function migrateLegacyServiceEmails(): void {
     return;
   }
   main.exec('DROP TABLE service_emails');
-  logger.info(`Migrated ${byEmail.size} email(s) from profile.sql to service_email.sql`);
 }

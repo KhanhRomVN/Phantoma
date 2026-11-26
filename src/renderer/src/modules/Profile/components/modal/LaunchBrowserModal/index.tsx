@@ -52,7 +52,7 @@ export function LaunchBrowserModal({ open, profile, onClose }: LaunchBrowserModa
   const [error, setError] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
 
-  // ASSUMED: proxy auth (user/pass) is not passed to Chromium; only protocol://host:port — upgrade path: local proxy bridge
+  // ASSUMED: proxy user/pass is sent as protocol://user:pass@host:port and bridged locally by the profile server, since Chromium cannot authenticate SOCKS5
   const launch = async (): Promise<void> => {
     if (launching) return;
     setLaunching(true);
@@ -60,8 +60,13 @@ export function LaunchBrowserModal({ open, profile, onClose }: LaunchBrowserModa
     try {
       const preset = c.isChrome ? devicePreset : c.preset;
       // c.preset === null → system footprint: không ghi đè fingerprint
+      const proxyAuth = c.proxy?.user
+        ? `${encodeURIComponent(c.proxy.user)}:${encodeURIComponent(c.proxy.pass)}@`
+        : '';
       const proxyServer =
-        !c.isChrome && c.proxy ? `${c.proxy.protocol.toLowerCase()}://${c.proxy.host}:${c.proxy.port}` : undefined;
+        !c.isChrome && c.proxy
+          ? `${c.proxy.protocol.toLowerCase()}://${proxyAuth}${c.proxy.host}:${c.proxy.port}`
+          : undefined;
       const ip = await lookupIp(c.isChrome ? null : (c.proxy?.host ?? null)).catch(() => null);
       await profileApi.browser.launch(profile.id, {
         browser: c.isChrome ? 'chrome' : 'chromium',

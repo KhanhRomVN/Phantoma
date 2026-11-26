@@ -67,12 +67,14 @@ async function readSqlFile(id: string) {
   const buf = await fs.readFile(file.path);
   const SQL = await getSql();
   const isSqlite = buf.subarray(0, 16).toString('latin1') === SQLITE_MAGIC;
-  const walSize = await fs.stat(`${file.path}-wal`).then((s) => s.size, () => 0);
-  logger.info(
-    `[sqlview:read] [DEBUG] id=${id} path=${file.path} size=${buf.length} format=${isSqlite ? 'sqlite' : 'dump'} walBytes=${walSize}`,
+  const walSize = await fs.stat(`${file.path}-wal`).then(
+    (s) => s.size,
+    () => 0,
   );
   if (walSize > 0) {
-    logger.warn(`[sqlview:read] [DEBUG] ${id} có file -wal (${walSize} bytes) chưa checkpoint — sql.js KHÔNG đọc WAL nên dữ liệu có thể thiếu`);
+    logger.warn(
+      `[sqlview:read] [DEBUG] ${id} có file -wal (${walSize} bytes) chưa checkpoint — sql.js KHÔNG đọc WAL nên dữ liệu có thể thiếu`,
+    );
   }
   const db = isSqlite ? new SQL.Database(new Uint8Array(buf)) : new SQL.Database();
   try {

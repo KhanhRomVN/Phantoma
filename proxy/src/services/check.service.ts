@@ -21,10 +21,15 @@ events.setMaxListeners(50);
 async function enrichLocation(id: string, exitIp: string): Promise<void> {
   try {
     const info = await lookupIp(exitIp);
-    proxyRepository.update(id, { country: info.countryCode.toUpperCase(), city: info.city, isp: info.isp });
-    logger.info(`[DEBUG] location saved for proxy ${id}: ${exitIp} -> ${info.countryCode} / ${info.city} / ${info.isp}`);
+    proxyRepository.update(id, {
+      country: info.countryCode.toUpperCase(),
+      city: info.city,
+      isp: info.isp,
+    });
   } catch (err) {
-    logger.warn(`Location lookup failed for ${exitIp}: ${err instanceof Error ? err.message : String(err)}`);
+    logger.warn(
+      `Location lookup failed for ${exitIp}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
 
@@ -42,7 +47,10 @@ function record(id: string, result: ProbeResult): void {
   if (!row) return;
   const at = Date.now();
   // ASSUMED: success rate is derived from latency_history (0 = failure) now that proxy_checks is gone; ok probes are stored as >= 1 ms
-  const history = [...parseHistory(row.latency_history), result.ok ? Math.max(1, result.latencyMs ?? 1) : 0].slice(-HISTORY_SIZE);
+  const history = [
+    ...parseHistory(row.latency_history),
+    result.ok ? Math.max(1, result.latencyMs ?? 1) : 0,
+  ].slice(-HISTORY_SIZE);
   const recent = history.slice(-RATE_WINDOW);
   const successRate = Math.round((recent.filter((v) => v > 0).length / recent.length) * 100);
   let status = 'healthy';
@@ -65,11 +73,16 @@ async function testOne(row: Row, enrich = true): Promise<void> {
   inflight.add(row.id);
   try {
     const result = await probeProxy(
-      { protocol: row.protocol, host: row.host, port: row.port, username: row.username, password: row.password },
+      {
+        protocol: row.protocol,
+        host: row.host,
+        port: row.port,
+        username: row.username,
+        password: row.password,
+      },
       getConfig().checkTimeoutMs,
     );
     record(row.id, result);
-    logger.info(`[DEBUG] probe ${row.host}:${row.port} ok=${result.ok} exitIp=${result.exitIp || '-'}`);
     if (enrich && result.ok && result.exitIp) await enrichLocation(row.id, result.exitIp);
     const fresh = proxyRepository.get(row.id);
     if (fresh) events.emit('update', mapProxy(fresh));
@@ -78,7 +91,11 @@ async function testOne(row: Row, enrich = true): Promise<void> {
   }
 }
 
-async function runPool<T>(items: T[], limit: number, worker: (item: T) => Promise<void>): Promise<void> {
+async function runPool<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
   let next = 0;
   const lanes = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
     while (next < items.length) {
@@ -113,7 +130,9 @@ export const checkService = {
   async checkAll(): Promise<void> {
     const now = Date.now();
     // expired and already failing: nothing left to learn, so skip the ping
-    const rows = proxyRepository.list().filter((r) => !(r.status === 'dead' && r.expires_at && r.expires_at <= now));
+    const rows = proxyRepository
+      .list()
+      .filter((r) => !(r.status === 'dead' && r.expires_at && r.expires_at <= now));
     await runPool(rows, getConfig().checkConcurrency, (r) => testOne(r, !r.country));
   },
 };

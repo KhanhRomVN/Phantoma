@@ -119,7 +119,6 @@ class NetworkNormalizer {
     this.release(data.id);
   }
 
-  /** Trả true nếu channel đã được chuẩn hóa (không cần forward raw). */
   handle(channel: string, data: any): boolean {
     if (!NORMALIZED_CHANNELS.has(channel)) return false;
     try {

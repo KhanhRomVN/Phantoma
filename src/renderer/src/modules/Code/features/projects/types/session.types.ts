@@ -72,6 +72,7 @@ export interface BranchInfo {
   sessions: SessionInfo[];
   path?: string;
   remote?: boolean;
+  remoteGone?: boolean;
 }
 
 export type ProcessInteractHandler = (

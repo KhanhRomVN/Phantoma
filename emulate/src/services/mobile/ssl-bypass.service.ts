@@ -27,12 +27,9 @@ class SslBypassService {
     const key = this.key(serial, packageName);
     if (this.procs.has(key)) return;
 
-    logger.info('Starting SSL pinning bypass', F('serial', serial), F('package', packageName));
-    const proc = spawn(
-      'frida',
-      ['-U', '-f', packageName, '-l', SCRIPT_PATH, '--no-pause'],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
-    );
+    const proc = spawn('frida', ['-U', '-f', packageName, '-l', SCRIPT_PATH, '--no-pause'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     this.procs.set(key, proc);
 
     proc.stdout?.on('data', (chunk: Buffer) => {
@@ -43,17 +40,25 @@ class SslBypassService {
     proc.stderr?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString('utf8').trim();
       if (msg) {
-        logger.error('frida stderr', F('serial', serial), F('package', packageName), F('error', msg));
+        logger.error(
+          'frida stderr',
+          F('serial', serial),
+          F('package', packageName),
+          F('error', msg),
+        );
         emitLine(serial, packageName, `[stderr] ${msg}`);
       }
     });
     proc.on('error', (err) => {
       logger.error('Failed to spawn frida', F('error', err.message));
-      emitLine(serial, packageName, `[error] Failed to run frida: ${err.message} (is frida-tools installed?)`);
+      emitLine(
+        serial,
+        packageName,
+        `[error] Failed to run frida: ${err.message} (is frida-tools installed?)`,
+      );
       this.procs.delete(key);
     });
     proc.on('close', (code) => {
-      logger.info('frida exited', F('serial', serial), F('package', packageName), F('code', String(code)));
       this.procs.delete(key);
     });
   }

@@ -136,6 +136,7 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
 
     const rawBranches: string[] = res.branches || [];
     const worktreePaths: Record<string, string> = res.worktreePaths || {};
+    const goneBranches: string[] = res.goneBranches || [];
     const status = await codeApi.git.status(projectPath).catch(() => null);
     const currentBranch: string = status?.branch ?? '';
 
@@ -189,6 +190,7 @@ async function fetchRealBranches(projectPath: string): Promise<BranchInfo[]> {
         visible: !currentBranch || name === currentBranch,
         sessions: [],
         path: worktreePaths[name],
+        remoteGone: goneBranches.includes(name),
       })),
       ...remoteOnly.map((name) => ({ name, visible: false, sessions: [], remote: true })),
     ];
@@ -403,6 +405,7 @@ export const ProjectPanel = memo(function ProjectPanel() {
                     sessions: existing.sessions,
                     visible: existing.visible,
                     path: linkedPath,
+                    remoteGone: gitBranch.remoteGone,
                     remote: linkedPath ? undefined : gitBranch.remote,
                   };
                 }

@@ -11,7 +11,6 @@ let client: InstanceType<typeof Redis> | null = null;
 export function getRedis(): InstanceType<typeof Redis> {
   if (!client) {
     client = new Redis();
-    logger.info('In-process Redis ready (ioredis-mock)');
   }
   return client;
 }
@@ -27,7 +26,8 @@ export async function remember<T>(key: string, loader: () => T | Promise<T>): Pr
   const hit = await redis.get(key);
   if (hit !== null) return JSON.parse(hit) as T;
   const value = await loader();
-  if (value !== undefined && value !== null) await redis.set(key, JSON.stringify(value), 'EX', TTL_SECONDS);
+  if (value !== undefined && value !== null)
+    await redis.set(key, JSON.stringify(value), 'EX', TTL_SECONDS);
   return value;
 }
 

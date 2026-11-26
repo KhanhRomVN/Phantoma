@@ -76,7 +76,6 @@ export class BrowserUpdateService {
   async autoInstallIfMissing(): Promise<void> {
     for (const def of FORK_DEFS) {
       if (!this.isSupported(def.id) || this.forks.listBuilds(def).length > 0) continue;
-      logger.info(`No ${def.id} build found, installing the latest automatically`);
       await this.install(def.id);
     }
   }
@@ -144,7 +143,6 @@ export class BrowserUpdateService {
     let ok = false;
     try {
       if (!fs.existsSync(path.join(finalDir, EXE_NAME))) {
-        logger.info(`Downloading ${def.id} ${job.version}`);
         await downloadFile(FORK_SOURCES[def.id].downloadUrl(job.version), tmpFile, (r) => {
           job.progress = r;
         });
@@ -159,7 +157,6 @@ export class BrowserUpdateService {
         fs.renameSync(stagingDir, finalDir);
       }
       ok = true;
-      logger.info(`Installed ${def.id} ${job.version} -> ${finalDir}`);
     } catch (err) {
       job.phase = 'error';
       job.error = errorMessage(err);

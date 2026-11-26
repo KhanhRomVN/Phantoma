@@ -1,0 +1,376 @@
+/**
+ * ------------------------------------------------------------------
+ * useFuzzerPersistence
+ * ------------------------------------------------------------------
+ * Hook quản lý persistence cho Fuzzer — tự động load/save request,
+ * payloads và history từ backend API. Debounce 1s khi có thay đổi.
+ *
+ * Các chức năng chính:
+ * - Auto-load request đầu tiên khi targetId thay đổi
+ * - Auto-save request khi data thay đổi (debounce 1s)
+ * - Save payloads và history riêng biệt
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+// ── Utils ──
+
+// ── Services ──
+import { emulateApi } from '../services/emulate-api.service';
+
+// ── Types ──
+import type { ParamItem, PayloadItem, HistoryEntry, RunResult } from '../types/fuzzer.types';
+
+// ─── Types ──────────────────────────────────────────────────────────────
+interface UseFuzzerPersistenceOptions {
+  targetId: string | null;
+  method: string;
+  url: string;
+  body: string;
+  params: ParamItem[];
+  headers: ParamItem[];
+  payloads: PayloadItem[];
+  onLoadRequest?: (req: {
+    method: string;
+    url: string;
+    body: string;
+    params: ParamItem[];
+    headers: ParamItem[];
+    payloads: PayloadItem[];
+  }) => void;
+}
+
+// ─── Hook ───────────────────────────────────────────────────────────────
+export function useFuzzerPersistence({
+  targetId,
+  method,
+  url,
+  body,
+  params,
+  headers,
+  payloads,
+  onLoadRequest,
+}: UseFuzzerPersistenceOptions) {
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedRef = useRef<string>('');
+  const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    if (!targetId) {
+      setCurrentRequestId(null);
+      hasLoadedRef.current = false;
+      return;
+    }
+    let cancelled = false;
+
+    const loadData = async () => {
+      setIsLoading(true);
+      const res = await emulateApi.listRequests(targetId);
+      if (cancelled) return;
+      if (res.success && res.data && res.data.length > 0) {
+        const req = res.data[0];
+        setCurrentRequestId(req.id);
+        let loadedParams: ParamItem[] = [];
+        let loadedHeaders: ParamItem[] = [];
+        try {
+          const parsedParams = JSON.parse(req.params || '[]');
+          if (Array.isArray(parsedParams)) {
+            // Standard array format: [{"key":"test","value":"1","enabled":true}]
+            // Ensure each item has an id
+            loadedParams = parsedParams.map((item) => ({
+              id: item.id || crypto.randomUUID(),
+              key: item.key || '',
+              value: item.value || '',
+              enabled: item.enabled !== undefined ? item.enabled : true,
+            }));
+          } else if (parsedParams && typeof parsedParams === 'object') {
+            // Object format: {"test":"1"} - convert to array
+            loadedParams = Object.entries(parsedParams).map(([key, value]) => ({
+              id: crypto.randomUUID(),
+              key,
+              value: String(value),
+              enabled: true,
+            }));
+          }
+        } catch (e) {
+          console.warn('[FuzzerPersist] Failed to parse params:', e);
+        }
+        try {
+          const parsedHeaders = JSON.parse(req.headers || '[]');
+          if (Array.isArray(parsedHeaders)) {
+            // Ensure each item has an id
+            loadedHeaders = parsedHeaders.map((item) => ({
+              id: item.id || crypto.randomUUID(),
+              key: item.key || '',
+              value: item.value || '',
+              enabled: item.enabled !== undefined ? item.enabled : true,
+            }));
+          } else if (parsedHeaders && typeof parsedHeaders === 'object') {
+            loadedHeaders = Object.entries(parsedHeaders).map(([key, value]) => ({
+              id: crypto.randomUUID(),
+              key,
+              value: String(value),
+              enabled: true,
+            }));
+          }
+        } catch (e) {
+          console.warn('[FuzzerPersist] Failed to parse headers:', e);
+        }
+        const payloadsRes = await emulateApi.listPayloads(targetId, req.id);
+        let loadedPayloads: PayloadItem[] = [];
+        if (payloadsRes.success && payloadsRes.data) {
+          loadedPayloads = payloadsRes.data.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            description: '',
+            values: (() => {
+              try {
+                return JSON.parse(p.payload_values);
+              } catch (e) {
+                console.warn('[FuzzerPersist] Failed to parse payload values:', e);
+                return [];
+              }
+            })(),
+            enabled: p.enabled === 1,
+          }));
+        }
+
+        onLoadRequest?.({
+          method: req.method,
+          url: req.url,
+          body: req.body || '',
+          params: loadedParams,
+          headers: loadedHeaders,
+          payloads: loadedPayloads,
+        });
+        hasLoadedRef.current = true;
+      } else {
+        setCurrentRequestId(null);
+      }
+      setIsLoading(false);
+    };
+
+    loadData();
+    hasLoadedRef.current = false;
+
+    // Listen for fuzzer updates
+    const handleFuzzerUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('fuzzer-updated', handleFuzzerUpdate);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('fuzzer-updated', handleFuzzerUpdate);
+    };
+  }, [targetId]);
+
+  useEffect(() => {
+    if (!targetId || isLoading) return;
+    const snapshot = JSON.stringify({ method, url, body, params, headers });
+
+    if (snapshot === lastSavedRef.current) {
+      return;
+    }
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setIsSaving(true);
+
+      // Remove 'id' field from params and headers before saving
+      // Then auto-format with 2-space indent for readability
+      const paramsWithoutId = params.map(({ id, ...rest }) => rest);
+      const headersWithoutId = headers.map(({ id, ...rest }) => rest);
+
+      try {
+        if (currentRequestId) {
+          await emulateApi.updateRequest(targetId, currentRequestId, {
+            method,
+            url,
+            body,
+            params: JSON.stringify(paramsWithoutId, null, 2),
+            headers: JSON.stringify(headersWithoutId, null, 2),
+          });
+        } else {
+          const res = await emulateApi.createRequest(targetId, {
+            method,
+            url,
+            body,
+            params: JSON.stringify(paramsWithoutId, null, 2),
+            headers: JSON.stringify(headersWithoutId, null, 2),
+          });
+          if (res.success && res.data) {
+            setCurrentRequestId(res.data.id);
+          }
+        }
+        lastSavedRef.current = snapshot;
+      } catch (err) {
+        console.error('[FuzzerPersist] Save failed:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [targetId, currentRequestId, method, url, body, params, headers, isLoading]);
+
+  const savePayloads = useCallback(async () => {
+    if (!targetId) return;
+    let requestId = currentRequestId;
+    if (!requestId) {
+      const paramsWithoutId = params.map(({ id, ...rest }) => rest);
+      const headersWithoutId = headers.map(({ id, ...rest }) => rest);
+      const res = await emulateApi.createRequest(targetId, {
+        method,
+        url,
+        body,
+        params: JSON.stringify(paramsWithoutId, null, 2),
+        headers: JSON.stringify(headersWithoutId, null, 2),
+      });
+      if (res.success && res.data) {
+        requestId = res.data.id;
+        setCurrentRequestId(requestId);
+      } else {
+        return;
+      }
+    }
+    for (const p of payloads) {
+      await emulateApi.upsertPayload(targetId, requestId, {
+        name: p.name,
+        payload_values: JSON.stringify(p.values),
+        enabled: p.enabled ? 1 : 0,
+      });
+    }
+  }, [targetId, currentRequestId, method, url, body, params, headers, payloads]);
+
+  const saveHistory = useCallback(
+    async (entry: HistoryEntry, runs: RunResult[]): Promise<HistoryEntry | null> => {
+      if (!targetId) return null;
+      let requestId = currentRequestId;
+      if (!requestId) {
+        const res = await emulateApi.createRequest(targetId, {
+          method,
+          url,
+          body,
+          params: JSON.stringify(params),
+          headers: JSON.stringify(headers),
+        });
+        if (res.success && res.data) {
+          requestId = res.data.id;
+          setCurrentRequestId(requestId);
+        } else return null;
+      }
+
+      // Save new history
+      const saveRes = await emulateApi.saveHistory(targetId, requestId, {
+        history: {
+          method: entry.method,
+          url: entry.url,
+          status: entry.status,
+          statuses: entry.statuses ? JSON.stringify(entry.statuses) : undefined,
+          timestamp: Math.floor(entry.timestamp / 1000),
+          end_time: entry.endTime ? Math.floor(entry.endTime / 1000) : undefined,
+          duration: entry.duration,
+          payload_count: entry.payloadCount || runs.length,
+          payload_summary: entry.payload,
+          request_headers: entry.requestHeaders ? JSON.stringify(entry.requestHeaders) : undefined,
+          request_body: entry.requestBody,
+        },
+        runs: runs.map((r) => ({
+          payload_name: r.payloadName,
+          payload_value: r.value,
+          status: r.status,
+          duration: r.duration,
+          method: r.method,
+          url: r.url,
+          params: JSON.stringify(r.params || {}),
+          request_headers: JSON.stringify(r.requestHeaders || {}),
+          request_body: r.requestBody || '',
+          response_headers: JSON.stringify(r.responseHeaders || {}),
+          response_body: r.responseBody || '',
+        })),
+      });
+
+      // Auto-cleanup: keep max 30 history items per fuzzer
+      const historyList = await emulateApi.listHistoryByRequest(targetId, requestId);
+      if (historyList.success && historyList.data && historyList.data.length > 30) {
+        // Sort by timestamp descending, then delete oldest items
+        const sorted = [...historyList.data].sort((a, b) => b.timestamp - a.timestamp);
+        const toDelete = sorted.slice(30);
+        for (const oldHistory of toDelete) {
+          await emulateApi.deleteHistory(targetId, oldHistory.id);
+        }
+      }
+
+      if (saveRes.success && saveRes.data) {
+        const h = saveRes.data;
+        // Trả về entry với ID từ backend để frontend dùng đúng
+        return {
+          id: h.id,
+          method: h.method,
+          url: h.url,
+          status: h.status || 0,
+          statuses: entry.statuses,
+          timestamp: h.timestamp * 1000,
+          endTime: h.end_time ? h.end_time * 1000 : undefined,
+          duration: h.duration || 0,
+          payload: h.payload_summary || '',
+          payloadCount: h.payload_count,
+          requestHeaders: entry.requestHeaders,
+          requestBody: entry.requestBody,
+          responseHeaders: entry.responseHeaders,
+          responseBody: entry.responseBody,
+        };
+      }
+
+      return null;
+    },
+    [targetId, currentRequestId, method, url, body, params, headers],
+  );
+
+  const loadHistory = useCallback(async (): Promise<HistoryEntry[]> => {
+    if (!targetId || !currentRequestId) return [];
+
+    const res = await emulateApi.listHistoryByRequest(targetId, currentRequestId);
+    if (!res.success || !res.data) return [];
+
+    // Map DTO to HistoryEntry - load response data from first run
+    const entries: HistoryEntry[] = await Promise.all(
+      res.data.map(async (h: any) => {
+        // Load runs to get response data
+        const runsRes = await emulateApi.getHistoryRuns(targetId, h.id);
+        const firstRun =
+          runsRes.success && runsRes.data && runsRes.data.length > 0 ? runsRes.data[0] : null;
+
+        return {
+          id: h.id,
+          method: h.method,
+          url: h.url,
+          status: h.status || 0,
+          statuses: h.statuses ? JSON.parse(h.statuses) : undefined,
+          timestamp: h.timestamp * 1000, // Convert from seconds to milliseconds
+          endTime: h.end_time ? h.end_time * 1000 : undefined,
+          duration: h.duration || 0,
+          payload: h.payload_summary || '',
+          payloadCount: h.payload_count,
+          requestHeaders: h.request_headers ? JSON.parse(h.request_headers) : {},
+          requestBody: h.request_body || '',
+          responseHeaders: firstRun?.response_headers ? JSON.parse(firstRun.response_headers) : {},
+          responseBody: firstRun?.response_body || '',
+        };
+      }),
+    );
+
+    return entries;
+  }, [targetId, currentRequestId]);
+
+  return { currentRequestId, isLoading, isSaving, savePayloads, saveHistory, loadHistory };
+}

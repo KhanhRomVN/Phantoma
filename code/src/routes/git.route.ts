@@ -5,6 +5,7 @@ import { gitRemoteService } from '../services/git/git-remote.service';
 import { gitReadService } from '../services/git/git-read.service';
 import { gitWriteService } from '../services/git/git-write.service';
 import { gitBranchService } from '../services/git/git-branch.service';
+import { gitExportService } from '../services/git/git-export.service';
 import { gitProtectService } from '../services/git/git-protect.service';
 import { gitExplorerService } from '../services/git/git-explorer.service';
 import { found, requireString, safePath } from '../http/guard';
@@ -97,6 +98,7 @@ export function registerGitRoutes(): Router {
     return gitRemoteService.commitPushFiles(root, files, message);
   });
   post('/git/push', (req) => gitRemoteService.push(bodyRoot(req)));
+  post('/git/publish-branch', (req) => gitBranchService.publishBranch(bodyRoot(req)));
 
   get('/git/staged-diff', (req) => gitReadService.stagedDiff(queryRoot(req)));
   get('/git/unpushed', (req) => gitReadService.unpushed(queryRoot(req)));
@@ -120,6 +122,18 @@ export function registerGitRoutes(): Router {
   );
   get('/git/commit-body', (req) => gitReadService.commitBody(queryRoot(req), text(req.query.hash, 'hash')));
   get('/git/commit-files', (req) => gitReadService.commitFiles(queryRoot(req), text(req.query.hash, 'hash')));
+  post('/git/export-commit', (req) =>
+    gitExportService.exportCommit(
+      bodyRoot(req),
+      requireString(req.body?.hash, 'hash'),
+      fileList(req.body?.paths),
+      safePath(req.body?.dest, 'dest', { write: true }),
+    ),
+  );
+  get('/git/commit-tree', (req) => gitReadService.commitTree(queryRoot(req), text(req.query.hash, 'hash')));
+  get('/git/commit-file-content', (req) =>
+    gitReadService.commitFileContent(queryRoot(req), text(req.query.hash, 'hash'), text(req.query.filePath, 'filePath')),
+  );
   get('/git/remote-url', (req) => gitReadService.remoteUrl(queryRoot(req)));
   get('/git/local-changes', (req) => gitReadService.localChanges(queryRoot(req), cloneRoots(req.query.clones)));
   get('/git/file-diff', (req) => gitReadService.fileDiff(queryRoot(req), text(req.query.filePath, 'filePath')));

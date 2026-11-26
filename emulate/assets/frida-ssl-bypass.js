@@ -38,7 +38,12 @@ Java.perform(function () {
       'java.security.SecureRandom',
     );
     SSLContext_init.implementation = function (keyManager, trustManager, secureRandom) {
-      SSLContext_init.call(this, keyManager, Java.array('Ljavax.net.ssl.TrustManager;', TrustManagers), secureRandom);
+      SSLContext_init.call(
+        this,
+        keyManager,
+        Java.array('Ljavax.net.ssl.TrustManager;', TrustManagers),
+        secureRandom,
+      );
     };
   } catch (e) {}
 
@@ -59,6 +64,4 @@ Java.perform(function () {
   // 5) Network Security Config hostname verifier
   hook('javax.net.ssl.HttpsURLConnection', 'setDefaultHostnameVerifier', function (v) {});
   hook('javax.net.ssl.HttpsURLConnection', 'setHostnameVerifier', function (v) {});
-
-  console.log('[phantoma] SSL pinning bypass hooks installed');
 });

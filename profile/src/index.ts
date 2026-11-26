@@ -34,10 +34,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    if (req.originalUrl === '/health') return;
-    const line = `${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`;
-    if (res.statusCode >= 400) httpLogger.warn(line);
-    else httpLogger.info(line);
+    if (res.statusCode < 400) return;
+    httpLogger.warn(`${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`);
   });
   next();
 });
@@ -51,7 +49,6 @@ async function bootstrap(): Promise<void> {
     printBanner();
     const cfg = getConfig();
     initDb(cfg.dbPath);
-    logger.info(`Database ready at ${cfg.dbPath}`);
     migrateLegacyServiceEmails();
     browserRunService.sweepTempDirs();
 
@@ -60,9 +57,6 @@ async function bootstrap(): Promise<void> {
     if (sources.length === 0) logger.warn('No sources found in database');
     for (const s of sources) {
       const location = s.location ?? '';
-      logger.info(
-        `Source "${s.name}" (${s.id}) -> ${location || 'no location'} | ${s.count} profile(s)`,
-      );
       if (location && !fs.existsSync(location)) {
         logger.warn(`Source "${s.name}" folder does not exist: ${location}`);
       } else if (s.type === 'local' && location) {
@@ -82,7 +76,6 @@ async function bootstrap(): Promise<void> {
     });
 
     const shutdown = async () => {
-      logger.info('Shutting down');
       server.close();
       browserRunService.shutdown();
       await closeRedis();

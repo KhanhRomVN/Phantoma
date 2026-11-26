@@ -1,0 +1,663 @@
+/**
+ * ------------------------------------------------------------------
+ * Home Panel
+ * ------------------------------------------------------------------
+ * Panel Home hiển thị RequestTable và RequestDetails cho Inspector.
+ * Bao gồm tab Headers/Body/Network/Cookies/Security.
+ *
+ * Các chức năng chính:
+ * - Hiển thị RequestTable và RequestDetails split view
+ * - Tabs cho headers/body/network/cookies/security
+ * - Context menu cho text selection (Crypto/Search)
+ * - Raw mode và copy nội dung tab
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+
+// ── UI ──
+import {
+  List,
+  Box,
+  Globe,
+  Copy,
+  Flower2,
+  Filter,
+  ScanEye,
+  KeyRound,
+  Send,
+  ShieldAlert,
+  Cookie,
+  Link2,
+} from 'lucide-react';
+import { HeadersDetails } from './RequestDetail/Headers';
+import { BodyDetails, BodyDetailsRef } from './RequestDetail/Body';
+import { NetworkDetails } from './RequestDetail/Network';
+import { ValuesDetails } from './RequestDetail/Values';
+import CodeBlock from '@renderer/components/common/CodeBlock';
+
+import { RequestTable } from './RequestTable';
+import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
+
+// ── Hooks ──
+import { useAccentColors } from '@renderer/hooks/useAccentColors';
+import { useNetworkStore } from '../../../stores/networkStore';
+
+// ── Types ──
+import { InspectorFilter, NetworkFilter, NetworkRequest, initialFilterState } from './FilterPanel';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { $ } from '@renderer/utils/color';
+
+// ─── Components ─────────────────────────────────────────────────────────
+function Badge({ count, className }: { count: number; className?: string }) {
+  if (count === 0) return null;
+  return (
+    <span
+      className={cn(
+        'ml-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-medium',
+        className || 'bg-primary/20 text-primary',
+      )}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+interface NetworkDetailsProps {
+  request?: NetworkRequest | null;
+  selectedId?: string | null;
+  searchTerm: string;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+  onToggleFilter?: () => void;
+  isFilterOpen?: boolean;
+  filter: InspectorFilter;
+  onFilterChange: (filter: InspectorFilter) => void;
+  onSearchTermChange?: (term: string) => void;
+  onSelectRequest?: (id: string) => void;
+  onJumpToValue?: (requestId: string, tab: string, value: string) => void;
+  onCompareRequests?: (req1: NetworkRequest, req2: NetworkRequest, value?: string) => void;
+  onSetCompare1?: (req: NetworkRequest) => void;
+  onSetCompare2?: (req: NetworkRequest) => void;
+  appId?: string;
+  initialComposerRequest?: NetworkRequest | null;
+  showComposerTab?: boolean;
+  targetId?: string | null;
+  isSessionRunning?: boolean;
+}
+
+function TextSelectionMenu({
+  x,
+  y,
+  onAddToCrypto,
+  onUseInSearch,
+  onClose,
+}: {
+  x: number;
+  y: number;
+  selectedText: string;
+  onAddToCrypto: () => void;
+  onUseInSearch: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handleClickOutside = () => onClose();
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed z-50 bg-dropdown-background border border-border rounded-md shadow-lg py-1 min-w-[160px]"
+      style={{
+        left: `${x}px`,
+        top: `${y}px`,
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        onClick={() => {
+          onAddToCrypto();
+          onClose();
+        }}
+        className="w-full px-3 py-1.5 text-xs text-left hover:bg-error/10 hover:text-error transition-colors"
+      >
+        <KeyRound className="w-3 h-3" />
+        Add to Crypto
+      </button>
+      <button
+        onClick={() => {
+          onUseInSearch();
+          onClose();
+        }}
+        className="w-full px-3 py-1.5 text-xs text-left hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2"
+      >
+        <Filter className="w-3 h-3" />
+        Use in Search
+      </button>
+    </div>
+  );
+}
+
+export { RequestTable, initialFilterState };
+export { WebSocketUI } from './WebSocketUI';
+export const RequestDetails = React.memo(function RequestDetails({
+  request: propsRequest,
+  selectedId,
+  searchTerm,
+  activeTab: propsActiveTab,
+  onTabChange,
+  onToggleFilter,
+  isFilterOpen,
+  filter,
+  onFilterChange,
+  onSearchTermChange,
+  onSelectRequest,
+  onJumpToValue: _onJumpToValue,
+  onCompareRequests: _onCompareRequests,
+  showComposerTab = false,
+  targetId,
+  isSessionRunning,
+}: NetworkDetailsProps) {
+  const [internalActiveTab, setInternalActiveTab] = useState('headers');
+  const [isRawMode, setIsRawMode] = useState(false);
+
+  const networkRequests = useNetworkStore((s) => s.requests);
+  const request = propsRequest ?? networkRequests.find((r) => r.id === selectedId) ?? null;
+
+  const { getColorByIndex, toRgba } = useAccentColors();
+
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    selectedText: string;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    selectedText: '',
+  });
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bodyDetailsRef = useRef<BodyDetailsRef>(null);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
+
+  const activeTab = propsActiveTab || internalActiveTab;
+
+  useEffect(() => {
+    setCurrentMatchIndex(-1);
+  }, [activeTab, searchTerm]);
+
+  useEffect(() => {
+    setContextMenu({ visible: false, x: 0, y: 0, selectedText: '' });
+  }, [activeTab, request]);
+
+  const setActiveTab = (tab: string) => {
+    setIsRawMode(false);
+    if (tab === 'trace' && isFilterOpen && onToggleFilter) {
+      onToggleFilter();
+    }
+    if (onTabChange) {
+      onTabChange(tab);
+    } else {
+      setInternalActiveTab(tab);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim() || '';
+
+    if (selectedText) {
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        selectedText,
+      });
+    }
+  };
+
+  const handleAddToCrypto = () => {
+    window.dispatchEvent(
+      new CustomEvent('add-to-crypto', {
+        detail: { text: contextMenu.selectedText },
+      }),
+    );
+  };
+
+  const handleUseInSearch = () => {
+    if (onSearchTermChange) {
+      onSearchTermChange(contextMenu.selectedText);
+    }
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu({ visible: false, x: 0, y: 0, selectedText: '' });
+  };
+
+  const getTabContent = (tabId: string) => {
+    if (!request) return null;
+
+    switch (tabId) {
+      case 'headers':
+        return {
+          request: request.requestHeaders,
+          response: request.responseHeaders,
+        };
+      case 'body':
+        return {
+          request: request.requestBody,
+          response: request.responseBody,
+        };
+      case 'network':
+        return {
+          timing: request.timing,
+          securityDetails: request.securityDetails,
+          serverIPAddress: request.serverIPAddress,
+          connection: request.connection,
+        };
+      default:
+        return request;
+    }
+  };
+
+  const handleCopy = () => {
+    const content = getTabContent(activeTab);
+    if (content) {
+      navigator.clipboard.writeText(JSON.stringify(content, null, 2));
+    }
+  };
+
+  const getMatchCount = (data: unknown): number => {
+    if (!searchTerm) return 0;
+    let regex: RegExp;
+    try {
+      regex = new RegExp(searchTerm, 'i');
+    } catch {
+      regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    }
+
+    let count = 0;
+    const check = (val: unknown) => {
+      if (val == null) return;
+      if (typeof val === 'object') {
+        Object.values(val).forEach(check);
+        Object.keys(val).forEach((k) => {
+          if (regex.test(k)) count++;
+        });
+      } else if (Array.isArray(val)) {
+        val.forEach(check);
+      } else {
+        if (regex.test(String(val))) count++;
+      }
+    };
+
+    check(data);
+    return count;
+  };
+
+  const getBodyMatchCount = (body?: string) => {
+    if (!body || !searchTerm) return 0;
+    let regex: RegExp;
+    try {
+      regex = new RegExp(searchTerm, 'gi');
+    } catch {
+      regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    }
+    const matches = body.match(regex);
+    return matches ? matches.length : 0;
+  };
+
+  const matches = {
+    headers: request
+      ? getMatchCount(request.requestHeaders) + getMatchCount(request.responseHeaders)
+      : 0,
+    body: 0,
+    network: 0,
+  };
+
+  if (request && request.analysis) {
+    const analysis = request.analysis;
+    const bodyObj =
+      typeof analysis?.body === 'object' && analysis?.body !== null ? (analysis.body as any) : null;
+    const reqBody = bodyObj?.request?.formatted
+      ? JSON.stringify(bodyObj.request.formatted, null, 2)
+      : bodyObj?.request?.raw || '';
+
+    const resBody = bodyObj?.response?.formatted
+      ? JSON.stringify(bodyObj.response.formatted, null, 2)
+      : bodyObj?.response?.raw || '';
+
+    matches.body = getBodyMatchCount(reqBody) + getBodyMatchCount(resBody);
+  } else if (request) {
+    const reqBody =
+      typeof request.requestBody === 'string'
+        ? request.requestBody
+        : request.requestBody
+          ? JSON.stringify(request.requestBody)
+          : '';
+    const resBody =
+      typeof request.responseBody === 'string'
+        ? request.responseBody
+        : request.responseBody
+          ? JSON.stringify(request.responseBody)
+          : '';
+    matches.body = getBodyMatchCount(reqBody) + getBodyMatchCount(resBody);
+  }
+
+  // Use accent colors from theme for dynamic tab colors
+  const tabAccents = useMemo(() => {
+    return {
+      headers: { color: getColorByIndex(0), border: getColorByIndex(0) },
+      body: { color: getColorByIndex(1), border: getColorByIndex(1) },
+      network: { color: getColorByIndex(2), border: getColorByIndex(2) },
+      composer: { color: getColorByIndex(3), border: getColorByIndex(3) },
+      security: { color: getColorByIndex(4), border: getColorByIndex(4) },
+      cookies: { color: getColorByIndex(5), border: getColorByIndex(5) },
+      values: { color: getColorByIndex(6), border: getColorByIndex(6) },
+    };
+  }, [getColorByIndex]);
+
+  const tabs = [
+    {
+      id: 'headers',
+      label: 'Headers',
+      icon: List,
+      count: matches.headers,
+      importantCount: 0,
+      accentKey: 'headers' as const,
+    },
+    {
+      id: 'body',
+      label: 'Body',
+      icon: Box,
+      count: matches.body,
+      importantCount: 0,
+      accentKey: 'body' as const,
+    },
+    {
+      id: 'network',
+      label: 'Network',
+      icon: Globe,
+      count: matches.network,
+      importantCount: 0,
+      accentKey: 'network' as const,
+    },
+    {
+      id: 'values',
+      label: 'Values',
+      icon: Link2,
+      count: 0,
+      importantCount: 0,
+      accentKey: 'values' as const,
+    },
+
+    ...(showComposerTab
+      ? [
+          {
+            id: 'composer',
+            label: 'Composer',
+            icon: Send,
+            count: 0,
+            importantCount: 0,
+            accentKey: 'composer' as const,
+          },
+        ]
+      : []),
+    ...(request?.protocol === 'https' && (request?.securityIssues?.length ?? 0) > 0
+      ? [
+          {
+            id: 'security',
+            label: 'Security',
+            icon: ShieldAlert,
+            count: request.securityIssues!.length,
+            importantCount: 0,
+            accentKey: 'security' as const,
+          },
+        ]
+      : []),
+    ...(request?.protocol === 'https' &&
+    ((request?.requestCookies && Object.keys(request.requestCookies).length > 0) ||
+      (request?.responseCookies && Object.keys(request.responseCookies).length > 0) ||
+      (request?.requestHeaders &&
+        Object.keys(request.requestHeaders).some((k) => k.toLowerCase() === 'cookie')) ||
+      (request?.responseHeaders &&
+        Object.keys(request.responseHeaders).some((k) => k.toLowerCase() === 'set-cookie')))
+      ? [
+          {
+            id: 'cookies',
+            label: 'Cookies',
+            icon: Cookie,
+            count: 0,
+            importantCount: 0,
+            accentKey: 'cookies' as const,
+          },
+        ]
+      : []),
+  ] as const;
+
+  const scrollToNextMatch = () => {
+    if (activeTab === 'body') {
+      bodyDetailsRef.current?.nextMatch();
+      return;
+    }
+
+    if (!scrollContainerRef.current) return;
+
+    const marks = scrollContainerRef.current.querySelectorAll('mark');
+    if (marks.length === 0) return;
+
+    let nextIndex = currentMatchIndex + 1;
+    if (nextIndex >= marks.length) {
+      nextIndex = 0;
+    }
+
+    const targetMark = marks[nextIndex];
+    targetMark.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+
+    setCurrentMatchIndex(nextIndex);
+  };
+
+  const isComposerTab = activeTab === 'composer';
+  const isSecurityTab = activeTab === 'security';
+  const isCookieTab = activeTab === 'cookies';
+
+  const content = (
+    <div className="flex-1 overflow-hidden h-full" onContextMenu={handleContextMenu}>
+      {!request && !isComposerTab ? (
+        <div className="h-full flex items-center justify-center text-text-secondary">
+          Select a request to view details
+        </div>
+      ) : isRawMode ? (
+        <CodeBlock
+          code={JSON.stringify(getTabContent(activeTab), null, 2)}
+          language="json"
+          themeConfig={{ background: '#00000000' }}
+        />
+      ) : (
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto h-full p-2 font-mono text-xs">
+          {activeTab === 'headers' && request && (
+            <HeadersDetails request={request} searchTerm={searchTerm} />
+          )}
+          {activeTab === 'body' && request && (
+            <BodyDetails ref={bodyDetailsRef} request={request} searchTerm={searchTerm} />
+          )}
+          {activeTab === 'network' && request && <NetworkDetails request={request} />}
+          {activeTab === 'values' && request && (
+            <ValuesDetails
+              request={request}
+              searchTerm={searchTerm}
+              onSelectRequest={onSelectRequest}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const currentTabHasMatches =
+    searchTerm &&
+    !isRawMode &&
+    !isComposerTab &&
+    !isSecurityTab &&
+    !isCookieTab &&
+    (matches[activeTab as keyof typeof matches] || 0) > 0;
+
+  return (
+    <div className="h-full">
+      <div className="h-full flex flex-col border-t border-border/50">
+        <div className="flex h-10 items-center border-b border-border/50 bg-table-header-background">
+          <div className="flex-1 overflow-x-auto no-scrollbar flex items-center h-full">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const accent = tabAccents[tab.accentKey];
+              const accentColor = accent?.color || $('--primary');
+
+              if (isActive) {
+                const bgColor = toRgba(accentColor, 0.12);
+                return (
+                  <div
+                    key={tab.id}
+                    className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all border-b-2"
+                    style={{
+                      borderBottomColor: accentColor,
+                      background: bgColor,
+                      color: accentColor,
+                    }}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {tab.label}
+                    <Badge count={tab.count} className={undefined} />
+
+                    {tab.id !== 'composer' &&
+                      tab.id !== 'security' &&
+                      tab.id !== 'cookies' &&
+                      tab.id !== 'values' && (
+                      <div className="ml-2 pl-2 border-l border-current flex items-center gap-1 opacity-70">
+                        {currentTabHasMatches && (
+                          <button
+                            onClick={scrollToNextMatch}
+                            className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary"
+                            onMouseEnter={(e) => (e.currentTarget.style.color = $('--accent'))}
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.color = $('--text-secondary'))
+                            }
+                            title="Next match"
+                          >
+                            <ScanEye className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        <button
+                          onClick={handleCopy}
+                          className="p-0.5 rounded bg-transparent cursor-pointer transition-all text-text-secondary"
+                          onMouseEnter={(e) => (e.currentTarget.style.color = $('--accent'))}
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.color = $('--text-secondary'))
+                          }
+                          title="Copy tab content"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setIsRawMode(!isRawMode)}
+                          className="p-0.5 rounded bg-transparent cursor-pointer transition-all"
+                          style={{
+                            background: isRawMode ? toRgba(accentColor, 0.2) : 'transparent',
+                            color: isRawMode ? accentColor : $('--text-secondary'),
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isRawMode) {
+                              e.currentTarget.style.color = accentColor;
+                              e.currentTarget.style.background = toRgba(accentColor, 0.08);
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isRawMode) {
+                              e.currentTarget.style.color = $('--text-secondary');
+                              e.currentTarget.style.background = 'transparent';
+                            }
+                          }}
+                          title="Toggle raw mode"
+                        >
+                          <Flower2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="flex h-full items-center gap-1.5 px-3 text-[13px] font-semibold whitespace-nowrap transition-all bg-transparent border-b-2 border-transparent text-text-secondary cursor-pointer hover:text-text-primary"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `color-mix(in srgb, ${accentColor} 8%, transparent)`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                  <Badge count={tab.count} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-hidden relative">
+          {isFilterOpen &&
+          activeTab !== 'composer' &&
+          activeTab !== 'security' &&
+          activeTab !== 'cookies' ? (
+            <ResizableSplit direction="horizontal" initialSize={70} minSize={30} maxSize={80}>
+              {content}
+              <NetworkFilter
+                filter={filter}
+                onChange={onFilterChange}
+                targetId={targetId}
+                isSessionRunning={isSessionRunning}
+              />
+            </ResizableSplit>
+          ) : (
+            content
+          )}
+        </div>
+      </div>
+
+      {contextMenu.visible && (
+        <TextSelectionMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          selectedText={contextMenu.selectedText}
+          onAddToCrypto={handleAddToCrypto}
+          onUseInSearch={handleUseInSearch}
+          onClose={handleCloseContextMenu}
+        />
+      )}
+    </div>
+  );
+});

@@ -427,10 +427,6 @@ function spawnMember(
     inst.error = err.message;
   });
   child.on('exit', (code) => {
-    logger.info(`${p.label} "${row.name}" ${creds.country ?? ''} exited with code ${code}`);
-    logger.info(
-      `[DEBUG] ${p.label} last logs: ${inst.logs.slice(-10).join(' | ') || '(none)'} error=${inst.error ?? '-'}`,
-    );
     const mine = instances.get(id) === inst;
     const extra = (extras.get(id) ?? []).includes(inst);
     if (mine) instances.delete(id);
@@ -550,9 +546,8 @@ export const vpnService = {
 
   ensureDefaults: (): void => {
     for (const p of PROVIDERS) {
-      if (p.id === 'warp' || sourceRepository.findVpn(p.label)) continue; // ASSUMED: WARP's source is the existing warp.service one (multi-device), so only foxhole and proton are seeded here
+      if (p.id === 'warp' || sourceRepository.findVpn(p.label)) continue;
       sourceRepository.insert(newId(), { name: p.label, type: 'vpn' });
-      logger.info(`Created source "${p.label}"`);
     }
   },
 
@@ -658,7 +653,6 @@ export const vpnService = {
         },
       });
     }
-    logger.info(`${p.label} "${row.name}" activated`);
     return vpnService.get(id);
   },
 
@@ -697,7 +691,6 @@ export const vpnService = {
       throw new AppError(`${p.label} failed to start: ${reason || 'timed out'}`, 502);
     }
     register(inst, row, true);
-    logger.info(`${p.label} "${row.name}" ready on ${HOST}:${port}`);
 
     const startExtra = async (country: string): Promise<void> => {
       const extraPort = await freePort();
@@ -715,7 +708,6 @@ export const vpnService = {
         return;
       }
       register(extra, row);
-      logger.info(`${p.label} "${row.name}" ${country} ready on ${HOST}:${extraPort}`);
     };
     for (let i = 0; i < countries.length; i += EXTRA_BATCH) {
       await Promise.all(

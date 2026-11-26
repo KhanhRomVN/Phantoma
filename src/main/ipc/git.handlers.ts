@@ -239,7 +239,6 @@ export function setupGitHandlers(): void {
     const root = payload?.rootPath || process.cwd();
     try {
       const repos = await scanGitRepos(root);
-      logger.info(`[scanGitRepos] root=${root} found=${repos.length}`);
       return { repos };
     } catch (e: any) {
       logger.error('[scanGitRepos] Error:', e);
@@ -2413,7 +2412,10 @@ exit 0
             () => false,
           );
         const [hasMine, hasTheirs] = await Promise.all([has(mine), has(theirs)]);
-        const raw = await noIndexDiff(hasMine ? mine : '/dev/null', hasTheirs ? theirs : '/dev/null');
+        const raw = await noIndexDiff(
+          hasMine ? mine : '/dev/null',
+          hasTheirs ? theirs : '/dev/null',
+        );
         return { diff: raw.replace(/^diff --git .*$/m, `diff --git a/${filePath} b/${filePath}`) };
       } catch (e: any) {
         logger.error('[git:worktree-file-diff] Error:', e);
@@ -2482,14 +2484,6 @@ exit 0
         const wanted = new Set(paths ?? []);
         const targets = diff.files.filter((f) => wanted.has(f.path));
         const fromWt = 'srcWt' in diff ? diff.srcWt : '';
-        logger.info('[DEBUG] branch-sync-apply', {
-          pid: process.pid,
-          uptime: Math.round(process.uptime()),
-          ref,
-          count: targets.length,
-          fromWt: !!fromWt,
-          paths: targets.map((f) => f.path),
-        });
         if (fromWt) {
           for (const f of targets) {
             if (f.status === 'deleted') {
@@ -2515,10 +2509,6 @@ exit 0
         for (const f of targets.filter((t) => t.status === 'deleted')) {
           await fs.rm(resolve(cwd, f.path), { force: true });
         }
-        logger.info('[DEBUG] branch-sync-apply done', {
-          pid: process.pid,
-          applied: targets.length,
-        });
         return { applied: targets.length };
       } catch (e: any) {
         logger.error('[git:branch-sync-apply] Error:', e);

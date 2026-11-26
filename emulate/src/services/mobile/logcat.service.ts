@@ -37,12 +37,10 @@ class LogcatService {
 
   async start(serial: string): Promise<void> {
     await this.stop();
-    logger.info('Starting logcat', F('serial', serial));
 
     if (serial.includes(':')) {
       try {
         const out = await runAdb(['connect', serial]);
-        logger.info('adb connect', F('serial', serial), F('output', out.trim()));
       } catch (err) {
         logger.warn('adb connect failed', F('serial', serial), F('error', String(err)));
       }
@@ -63,7 +61,6 @@ class LogcatService {
       for (const line of lines) {
         if (!line) continue;
         this.lineCount++;
-        if (this.lineCount === 1) logger.info('First logcat line received', F('serial', serial));
         emitLine(line);
       }
     });
@@ -82,14 +79,12 @@ class LogcatService {
     });
 
     proc.on('close', (code) => {
-      logger.info('logcat exited', F('serial', serial), F('code', String(code)), F('lines', String(this.lineCount)));
       if (this.proc === proc) this.proc = null;
     });
   }
 
   async stop(): Promise<void> {
     if (!this.proc) return;
-    logger.info('Stopping logcat', F('serial', String(this.serial)));
     this.proc.kill();
     this.proc = null;
     this.serial = null;

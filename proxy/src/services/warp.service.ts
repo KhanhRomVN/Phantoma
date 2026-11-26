@@ -9,7 +9,6 @@ import { createLogger } from '../utils/logger';
 import { collectLogs, freePort, LOCAL_HOST, run, waitForPort } from '../utils/process';
 import { proxyService } from './proxy.service';
 
-
 const logger = createLogger('WarpService');
 
 export const WARP_PROVIDER = 'warp';
@@ -55,8 +54,10 @@ async function register(license: string): Promise<string> {
   const bin = getConfig().warpBin;
   try {
     await run(bin, ['--data-dir', tmp, 'generate'], REGISTER_TIMEOUT_MS);
-    if (license) await run(bin, ['--data-dir', tmp, 'update', '--license', license], REGISTER_TIMEOUT_MS);
-    if (!fs.existsSync(path.join(tmp, 'reg.json'))) throw new AppError('WARP did not create its identity files', 502); // ASSUMED: identity files land directly in --data-dir
+    if (license)
+      await run(bin, ['--data-dir', tmp, 'update', '--license', license], REGISTER_TIMEOUT_MS);
+    if (!fs.existsSync(path.join(tmp, 'reg.json')))
+      throw new AppError('WARP did not create its identity files', 502); // ASSUMED: identity files land directly in --data-dir
     return tmp;
   } catch (err) {
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -71,7 +72,6 @@ export const warpService = {
     if (existing) return existing.id as string;
     const id = newId();
     sourceRepository.insert(id, { name: SOURCE_NAME, type: 'vpn', ephemeral: 1 });
-    logger.info(`Created source "${SOURCE_NAME}"`);
     return id;
   },
 
@@ -93,14 +93,19 @@ export const warpService = {
     const row = requireWarpProxy(proxyId);
     if (instances.has(proxyId)) throw new AppError(`${row.name} is already running`, 409);
     const dir = warpDir(proxyId);
-    if (!fs.existsSync(path.join(dir, 'reg.json'))) throw new AppError(`${row.name} has no WARP identity; delete it and add a new one`, 409);
+    if (!fs.existsSync(path.join(dir, 'reg.json')))
+      throw new AppError(`${row.name} has no WARP identity; delete it and add a new one`, 409);
     const port = await freePort();
     proxyRepository.update(proxyId, { port, status: 'unchecked' });
 
-    const child = spawn(getConfig().warpBin, ['--data-dir', dir, 'run', '--socks-addr', `${LOCAL_HOST}:${port}`], {
-      cwd: dir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    const child = spawn(
+      getConfig().warpBin,
+      ['--data-dir', dir, 'run', '--socks-addr', `${LOCAL_HOST}:${port}`],
+      {
+        cwd: dir,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
     const inst: Instance = { child, port, logs: [], error: null };
     instances.set(proxyId, inst);
     collectLogs(inst.logs, child.stdout);
@@ -109,7 +114,6 @@ export const warpService = {
       inst.error = err.message;
     });
     child.on('exit', (code) => {
-      logger.info(`${row.name} exited with code ${code}`);
       if (instances.get(proxyId) === inst) {
         instances.delete(proxyId);
         proxyRepository.update(proxyId, { status: 'dead', latencyMs: null });
@@ -122,7 +126,6 @@ export const warpService = {
       killInstance(proxyId);
       throw new AppError(`${row.name} failed to start: ${reason || 'timed out'}`, 502);
     }
-    logger.info(`${row.name} ready on ${LOCAL_HOST}:${port}`);
     return proxyService.get(proxyId);
   },
 
@@ -136,7 +139,8 @@ export const warpService = {
   create: async (input: { license?: unknown; count?: unknown }) => {
     const license = typeof input.license === 'string' ? input.license.trim() : '';
     const count = Number(input.count ?? 1);
-    if (!Number.isInteger(count) || count < 1 || count > MAX_BATCH) throw new AppError(`count must be an integer between 1 and ${MAX_BATCH}`, 400);
+    if (!Number.isInteger(count) || count < 1 || count > MAX_BATCH)
+      throw new AppError(`count must be an integer between 1 and ${MAX_BATCH}`, 400);
     const sourceId = warpService.ensureSource();
     const created: ReturnType<typeof proxyService.get>[] = [];
     const errors: string[] = [];

@@ -52,6 +52,20 @@ export const gitHistoryService = {
     return { message: res.stdout.trim() };
   },
 
+  commitFileContent: async (root: string, hash: string, filePath: string) => {
+    if (!filePath || filePath.includes('\0')) return { error: 'invalid file path' };
+    const res = await runGit(['show', `${safeRef(hash, 'hash')}:${filePath}`], root);
+    if (res.error) return failure(res);
+    const MAX = 1_000_000;
+    return { content: res.stdout.length > MAX ? res.stdout.slice(0, MAX) : res.stdout, truncated: res.stdout.length > MAX };
+  },
+
+  commitTree: async (root: string, hash: string) => {
+    const res = await runGit(['ls-tree', '-r', '--name-only', '-z', safeRef(hash, 'hash')], root);
+    if (res.error) return failure(res);
+    return { paths: res.stdout.split('\0').filter(Boolean) };
+  },
+
   commitFiles: async (root: string, hash: string) => {
     safeRef(hash, 'hash');
     const [numstat, nameStatus] = await Promise.all([

@@ -1,0 +1,244 @@
+/**
+ * ------------------------------------------------------------------
+ * ResourcesPanel
+ * ------------------------------------------------------------------
+ * Panel hiển thị danh sách resources (images/videos/fonts/wasm...)
+ * thu thập từ network requests. Hỗ trợ search, group theo type
+ * và preview.
+ *
+ * Các chức năng chính:
+ * - Phát hiện resources từ requests (bao gồm WASM)
+ * - Group theo type và search
+ * - Auto-select resource đầu tiên
+ * - Preview resource đã chọn
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useState, useEffect, useMemo } from 'react';
+
+// ── UI ──
+import { ResourceList } from './ResourceList';
+import { ResourcePreview } from './ResourcePreview';
+
+// ── Constants ──
+import { detectResourceType } from '../../../constants/resource';
+
+// ── Services ──
+
+// ── Stores ──
+import { useNetworkStore } from '../../../stores/networkStore';
+
+// ── Types ──
+import { ResourceItem, ResourceType } from '../../../types/resource.types';
+
+// ── Utils ──
+import { detectWasm } from '../../../utils/wasm-detector.util';
+
+// ─── Types ──────────────────────────────────────────────────────────────
+interface ResourcesPanelProps {
+  onClose?: () => void;
+  onCountChange?: (count: number) => void;
+}
+
+// ─── Component ──────────────────────────────────────────────────────────
+export function ResourcesPanel({ onCountChange }: ResourcesPanelProps) {
+  const assetsVersion = useNetworkStore((s) => s.assetsVersion);
+  const requests = useMemo(
+    () => Array.from(useNetworkStore.getState().assetMap.values()),
+    [assetsVersion],
+  );
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<ResourceType>>(
+    new Set(['js', 'image', 'video', 'audio', 'wasm', 'font', 'document']),
+  );
+  // Detect WASM modules
+  const wasmItems = useMemo(() => detectWasm(requests), [requests]);
+
+  // Build resource items from requests
+  const resourceItems = useMemo(() => {
+    const items: ResourceItem[] = [];
+    const seen = new Set<string>();
+
+    // Add WASM items
+    wasmItems.forEach((wasm) => {
+      const request = requests.find((r) => r.id === wasm.id);
+      if (request) {
+        const key = request.url;
+        if (!seen.has(key)) {
+          seen.add(key);
+          items.push({
+            id: wasm.id,
+            filename: wasm.filename,
+            url: request.url,
+            path: request.path,
+            type: 'wasm',
+            contentType: 'application/wasm',
+            size: String(request.size || 'Unknown'),
+            timestamp: request.timestamp || Date.now(),
+            source: request.url.split('?')[0],
+            responseBody:
+              typeof request.responseBody === 'string' ? request.responseBody : undefined,
+            isWasm: true,
+            wasmItem: wasm,
+          });
+        }
+      }
+    });
+
+    // Add media resources from requests
+    requests.forEach((req) => {
+      const type = detectResourceType(
+        req.responseHeaders?.['content-type'] || req.responseHeaders?.['Content-Type'] || '',
+        req.path,
+      );
+
+      if (type === 'other' || type === 'wasm') return;
+
+      const key = req.url;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      const size = req.size || 'Unknown';
+
+      items.push({
+        id: req.id,
+        filename: req.path.split('/').pop()?.split('?')[0] || 'unknown',
+        url: req.url,
+        path: req.path,
+        type,
+        contentType:
+          req.responseHeaders?.['content-type'] ||
+          req.responseHeaders?.['Content-Type'] ||
+          'unknown',
+        size: size === '0 B' ? 'Unknown' : String(size),
+        timestamp: req.timestamp || Date.now(),
+        source: req.url.split('?')[0].substring(0, req.url.split('?')[0].lastIndexOf('/') + 1),
+        responseBody: typeof req.responseBody === 'string' ? req.responseBody : undefined,
+      });
+    });
+
+    return items.sort((a, b) => b.timestamp - a.timestamp);
+  }, [requests, wasmItems]);
+
+  // Notify parent of count change
+  useEffect(() => {
+    if (onCountChange) {
+      onCountChange(resourceItems.length);
+    }
+  }, [resourceItems.length, onCountChange]);
+
+  // Group items by type
+  const groupedItems = useMemo(() => {
+    const groups: Record<ResourceType, ResourceItem[]> = {
+      js: [],
+      image: [],
+      video: [],
+      audio: [],
+      wasm: [],
+      font: [],
+      document: [],
+      other: [],
+    };
+
+    resourceItems.forEach((item) => {
+      if (groups[item.type]) {
+        groups[item.type].push(item);
+      } else {
+        groups.other.push(item);
+      }
+    });
+
+    // Sort each group by filename
+    Object.keys(groups).forEach((key) => {
+      groups[key as ResourceType].sort((a, b) => a.filename.localeCompare(b.filename));
+    });
+
+    return groups;
+  }, [resourceItems]);
+
+  // Filter groups by search
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm) return groupedItems;
+
+    const term = searchTerm.toLowerCase();
+    const filtered: Record<ResourceType, ResourceItem[]> = {
+      js: [],
+      image: [],
+      video: [],
+      audio: [],
+      wasm: [],
+      font: [],
+      document: [],
+      other: [],
+    };
+
+    Object.entries(groupedItems).forEach(([type, items]) => {
+      filtered[type as ResourceType] = items.filter(
+        (item) =>
+          item.filename.toLowerCase().includes(term) ||
+          item.contentType.toLowerCase().includes(term) ||
+          item.path.toLowerCase().includes(term),
+      );
+    });
+
+    return filtered;
+  }, [groupedItems, searchTerm]);
+
+  // Get selected item
+  const selectedItem = useMemo(() => {
+    if (!selectedId) return null;
+    return resourceItems.find((item) => item.id === selectedId) || null;
+  }, [resourceItems, selectedId]);
+
+  // Auto-select first item when resources load or when selected item is removed
+  useEffect(() => {
+    if (resourceItems.length === 0) {
+      if (selectedId !== null) {
+        setSelectedId(null);
+      }
+      return;
+    }
+
+    const isSelectedIdValid =
+      selectedId !== null && resourceItems.some((item) => item.id === selectedId);
+
+    if (!isSelectedIdValid) {
+      setSelectedId(resourceItems[0].id);
+    }
+  }, [resourceItems, selectedId]);
+
+  const toggleGroup = (type: ResourceType) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+
+  const totalCount = resourceItems.length;
+
+  return (
+    <div className="flex h-full overflow-hidden">
+      <ResourceList
+        groupedItems={filteredGroups}
+        expandedGroups={expandedGroups}
+        onToggleGroup={toggleGroup}
+        selectedId={selectedId}
+        onSelectItem={setSelectedId}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        totalCount={totalCount}
+      />
+      <ResourcePreview item={selectedItem} />
+    </div>
+  );
+}
+
+export default ResourcesPanel;

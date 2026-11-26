@@ -97,7 +97,9 @@ function scanLocation(location: string): ScannedProfile[] {
   for (const entry of fs.readdirSync(location, { withFileTypes: true })) {
     if (!entry.isDirectory() || IGNORED_FOLDERS.has(entry.name)) continue;
     const prefs = readJson(path.join(location, entry.name, 'Preferences'));
-    const fromName = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.name) ? entry.name.toLowerCase() : undefined;
+    const fromName = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.name)
+      ? entry.name.toLowerCase()
+      : undefined;
     if (!prefs && !fromName) continue;
     const email = (prefs ? readEmail(prefs) : undefined) ?? fromName;
     if (!email) continue;
@@ -137,7 +139,12 @@ async function create(input: Input) {
 // ASSUMED: import adopts the chosen folder as-is (no sub-folder, unlike create), then syncs Chrome profiles and rebuilds the backup from emails already on disk
 async function importExisting(input: Input) {
   const location = String(input.location ?? input.path ?? '').trim();
-  if (!location || !path.isAbsolute(location) || !fs.existsSync(location) || !fs.statSync(location).isDirectory()) {
+  if (
+    !location ||
+    !path.isAbsolute(location) ||
+    !fs.existsSync(location) ||
+    !fs.statSync(location).isDirectory()
+  ) {
     throw new AppError('source path must be an existing absolute folder', 400);
   }
   const resolved = path.resolve(location);
@@ -173,7 +180,12 @@ const PREVIEW_LIMIT = 2000;
 async function preview(input: Input): Promise<SourcePreview> {
   const empty = { total: 0, withEmail: 0, profiles: [] };
   const location = String(input.path ?? input.location ?? '').trim();
-  if (!location || !path.isAbsolute(location) || !fs.existsSync(location) || !fs.statSync(location).isDirectory()) {
+  if (
+    !location ||
+    !path.isAbsolute(location) ||
+    !fs.existsSync(location) ||
+    !fs.statSync(location).isDirectory()
+  ) {
     return { valid: false, reason: 'Folder does not exist', ...empty };
   }
   const localState = readJson(path.join(location, 'Local State'));
@@ -184,19 +196,26 @@ async function preview(input: Input): Promise<SourcePreview> {
   for (const entry of fs.readdirSync(location, { withFileTypes: true })) {
     if (!entry.isDirectory() || IGNORED_FOLDERS.has(entry.name)) continue;
     const prefs = readJson(path.join(location, entry.name, 'Preferences'));
-    const fromName = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.name) ? entry.name.toLowerCase() : undefined;
+    const fromName = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.name)
+      ? entry.name.toLowerCase()
+      : undefined;
     if (!prefs && !fromName) continue;
     const email = (prefs ? readEmail(prefs) : undefined) ?? fromName ?? null;
     const cachedName = infoCache[entry.name]?.name;
     rows.push({
       folder: entry.name,
       email,
-      name: email ? pickName(prefs, infoCache[entry.name], email) : typeof cachedName === 'string' ? cachedName : entry.name,
+      name: email
+        ? pickName(prefs, infoCache[entry.name], email)
+        : typeof cachedName === 'string'
+          ? cachedName
+          : entry.name,
       hasEmail: !!email,
       synced: !!email && known.has(email),
     });
   }
-  if (rows.length === 0) return { valid: false, reason: 'Not a source: no Chrome profile folders found', ...empty };
+  if (rows.length === 0)
+    return { valid: false, reason: 'Not a source: no Chrome profile folders found', ...empty };
   rows.sort((a, b) => a.folder.localeCompare(b.folder, undefined, { numeric: true }));
   return {
     valid: true,
@@ -248,7 +267,9 @@ export async function syncSource(source: {
   const scanned = scanLocation(source.location);
   result.found = scanned.length;
   await emailCache.invalidate();
-  const existing = new Map((await emailService.list(source.id)).map((p) => [p.email.toLowerCase(), p]));
+  const existing = new Map(
+    (await emailService.list(source.id)).map((p) => [p.email.toLowerCase(), p]),
+  );
 
   for (const item of scanned) {
     const current = existing.get(item.email);
@@ -279,9 +300,6 @@ export async function syncSource(source: {
     result.created++;
   }
 
-  logger.info(
-    `Source "${source.name}": found ${result.found}, created ${result.created}, updated ${result.updated}, skipped ${result.skipped}`,
-  );
   rebuildSourceBackup(source.id);
   return result;
 }
@@ -291,10 +309,24 @@ async function sync(id: string): Promise<SyncResult> {
 }
 
 async function syncLocal(sourceId?: string) {
-  const targets = (await list()).filter((s) => s.type === 'local' && (!sourceId || s.id === sourceId));
+  const targets = (await list()).filter(
+    (s) => s.type === 'local' && (!sourceId || s.id === sourceId),
+  );
   const out: ({ sourceId: string } & SyncResult)[] = [];
   for (const s of targets) out.push({ sourceId: s.id, ...(await syncSource(s)) });
   return out;
 }
 
-export const sourceService = { list, find, get, create, importExisting, preview, update, remove, reconcile, sync, syncLocal };
+export const sourceService = {
+  list,
+  find,
+  get,
+  create,
+  importExisting,
+  preview,
+  update,
+  remove,
+  reconcile,
+  sync,
+  syncLocal,
+};

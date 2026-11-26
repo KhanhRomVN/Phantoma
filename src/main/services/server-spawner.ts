@@ -13,7 +13,7 @@
 import { app, utilityProcess, UtilityProcess } from 'electron';
 import net from 'net';
 import path from 'path';
-import { logger } from '../utils/logger';
+
 import { RuntimePorts, DEV_PORTS } from '../../renderer/src/config/ports';
 
 let currentPorts: RuntimePorts = { ...DEV_PORTS };
@@ -48,13 +48,12 @@ function resolveServerEntry(baseDir: string, entryFile = 'index.js'): string {
   return path.join(baseDir, 'dist', entryFile);
 }
 
-function fork(entry: string, env: Record<string, string>, label: string): UtilityProcess {
+function fork(entry: string, env: Record<string, string>, _label: string): UtilityProcess {
   const child = utilityProcess.fork(entry, [], {
     env: { ...process.env, ...env },
     stdio: 'ignore',
   });
-  child.on('spawn', () => logger.info(`[ServerSpawner] ${label} spawned`));
-  child.on('exit', (code) => logger.info(`[ServerSpawner] ${label} exited code=${code}`));
+
   return child;
 }
 

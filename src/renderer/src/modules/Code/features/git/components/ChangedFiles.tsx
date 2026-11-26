@@ -171,12 +171,14 @@ function FileRow({ file, depth, showDir, selected, onSelect }: FileRowProps) {
       >
         {name}
       </span>
-      <span
-        title={kind.title}
-        className={cn('shrink-0 font-mono text-[12px] font-semibold leading-none', kind.className)}
-      >
-        {`(${kind.mark})`}
-      </span>
+      {!file.unchanged && (
+        <span
+          title={kind.title}
+          className={cn('shrink-0 font-mono text-[12px] font-semibold leading-none', kind.className)}
+        >
+          {`(${kind.mark})`}
+        </span>
+      )}
       {showDir ? (
         <span className={'flex-1 min-w-0 truncate text-[10.5px] text-text-secondary/50'}>{dir}</span>
       ) : (

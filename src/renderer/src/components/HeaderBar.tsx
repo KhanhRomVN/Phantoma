@@ -35,11 +35,18 @@ import {
   Cpu,
   HardDrive,
   Activity,
+  CloudUpload,
+  Loader2,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
 
 // ── Components ──
 import { SystemStatsModal } from './SystemStatsModal';
 import { BrowserUpdate } from './BrowserUpdate';
+import SyncConfirmModal from '@renderer/modules/Setting/components/Backup/SyncConfirmModal';
+import ToastContainer from '@renderer/modules/Code/shared/components/ToastContainer';
+import { COMMIT_MESSAGE, useBackup } from '@renderer/modules/Setting/components/Backup/useBackup';
 
 // ── Utils ─
 import { cn } from '@renderer/utils/cn';
@@ -61,6 +68,12 @@ export function HeaderBar({
   // ── State ─
   const [isMaximized, setIsMaximized] = useState(false);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const backup = useBackup();
+  const [isSyncConfirmOpen, setIsSyncConfirmOpen] = useState(false);
+  const backupChanges = backup.status?.changes ?? 0;
+  const backupDisabled =
+    backup.syncState === 'loading' ||
+    (backupChanges === 0 && (backup.status?.unpushed ?? 0) === 0);
 
   // Emulate Service States
   const [emulateUrl, setEmulateUrl] = useState('localhost:3002');
@@ -186,6 +199,41 @@ export function HeaderBar({
         {/* Right Section */}
         <div className="flex items-center gap-3 flex-1 justify-end">
           <BrowserUpdate />
+          {backup.status?.enabled && (
+            <button
+              onClick={() => setIsSyncConfirmOpen(true)}
+              disabled={backupDisabled}
+              title={
+                backup.syncState === 'error'
+                  ? 'Backup failed - click to retry'
+                  : backupChanges > 0
+                    ? `${backupChanges} change(s) - click to back up`
+                    : 'Backup is up to date'
+              }
+              className={cn(
+                'flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium transition-colors',
+                backup.syncState === 'success'
+                  ? 'bg-success/10 text-success'
+                  : backup.syncState === 'error'
+                    ? 'bg-error/10 text-error'
+                    : backupChanges > 0
+                      ? 'bg-warn/10 text-warn hover:brightness-125'
+                      : 'text-text-secondary',
+                backupDisabled ? 'cursor-default' : 'cursor-pointer',
+              )}
+            >
+              {backup.syncState === 'loading' ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+              ) : backup.syncState === 'success' ? (
+                <Check className="h-3.5 w-3.5" strokeWidth={2} />
+              ) : backup.syncState === 'error' ? (
+                <AlertCircle className="h-3.5 w-3.5" strokeWidth={2} />
+              ) : (
+                <CloudUpload className="h-3.5 w-3.5" strokeWidth={2} />
+              )}
+              <span className="font-mono">{backupChanges}</span>
+            </button>
+          )}
           {/* System Monitors */}
           <button
             onClick={() => setIsStatsModalOpen(true)}
@@ -267,6 +315,17 @@ export function HeaderBar({
 
       {/* System Stats Modal - Rendered outside HeaderBar to avoid flex context issues */}
       <SystemStatsModal isOpen={isStatsModalOpen} onClose={() => setIsStatsModalOpen(false)} />
+      <SyncConfirmModal
+        isOpen={isSyncConfirmOpen}
+        onClose={() => setIsSyncConfirmOpen(false)}
+        onConfirm={() => {
+          setIsSyncConfirmOpen(false);
+          void backup.sync();
+        }}
+        changes={backupChanges}
+        commitMessage={COMMIT_MESSAGE}
+      />
+      <ToastContainer />
     </>
   );
 }

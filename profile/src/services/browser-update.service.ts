@@ -34,7 +34,8 @@ interface ForkSource {
 // Adding a downloadable fork = adding one entry here (same id as in FORK_DEFS)
 const SOURCES: Record<string, ForkSource> = {
   ungoogled: {
-    listUrl: 'https://ungoogled-software.github.io/ungoogled-chromium-binaries/releases/linux_portable/64bit/',
+    listUrl:
+      'https://ungoogled-software.github.io/ungoogled-chromium-binaries/releases/linux_portable/64bit/',
     downloadUrl: (v) =>
       `https://github.com/ungoogled-software/ungoogled-chromium-portablelinux/releases/download/${v}/ungoogled-chromium-${v}-x86_64_linux.tar.xz`,
   },
@@ -110,7 +111,11 @@ async function fetchText(url: string): Promise<string> {
   return data;
 }
 
-async function downloadFile(url: string, dest: string, onProgress: (ratio: number) => void): Promise<void> {
+async function downloadFile(
+  url: string,
+  dest: string,
+  onProgress: (ratio: number) => void,
+): Promise<void> {
   const res = await request(url);
   const total = Number(res.headers['content-length']) || 0;
   let received = 0;
@@ -129,7 +134,8 @@ function parseVersions(html: string): string[] {
 
 async function getLatest(id: string, force: boolean): Promise<LatestEntry> {
   const hit = latestCache.get(id);
-  if (hit && !force && Date.now() - hit.at < (hit.version ? LATEST_TTL_MS : ERROR_TTL_MS)) return hit;
+  if (hit && !force && Date.now() - hit.at < (hit.version ? LATEST_TTL_MS : ERROR_TTL_MS))
+    return hit;
   let entry: LatestEntry;
   try {
     const versions = parseVersions(await fetchText(SOURCES[id].listUrl));
@@ -175,18 +181,21 @@ async function runInstall(def: ForkDef, job: InstallJob): Promise<void> {
   let ok = false;
   try {
     if (!fs.existsSync(path.join(finalDir, EXE_NAME))) {
-      logger.info(`Downloading ${def.id} ${job.version}`);
-      await downloadFile(SOURCES[def.id].downloadUrl(job.version), tmpFile, (r) => (job.progress = r));
+      await downloadFile(
+        SOURCES[def.id].downloadUrl(job.version),
+        tmpFile,
+        (r) => (job.progress = r),
+      );
       job.phase = 'extracting';
       fs.rmSync(stagingDir, { recursive: true, force: true });
       fs.mkdirSync(stagingDir, { recursive: true });
       await execFileAsync('tar', ['-xJf', tmpFile, '-C', stagingDir, '--strip-components=1']);
-      if (!fs.existsSync(path.join(stagingDir, EXE_NAME))) throw new Error('Archive has no chrome executable');
+      if (!fs.existsSync(path.join(stagingDir, EXE_NAME)))
+        throw new Error('Archive has no chrome executable');
       fs.rmSync(finalDir, { recursive: true, force: true });
       fs.renameSync(stagingDir, finalDir);
     }
     ok = true;
-    logger.info(`Installed ${def.id} ${job.version} -> ${finalDir}`);
   } catch (err) {
     job.phase = 'error';
     job.error = errMessage(err);
@@ -199,13 +208,15 @@ async function runInstall(def: ForkDef, job: InstallJob): Promise<void> {
 }
 
 export const browserUpdateService = {
-  status: (force = false): Promise<ForkUpdateInfo[]> => Promise.all(FORK_DEFS.map((d) => buildInfo(d, force))),
+  status: (force = false): Promise<ForkUpdateInfo[]> =>
+    Promise.all(FORK_DEFS.map((d) => buildInfo(d, force))),
 
   install: async (id: string, version?: string): Promise<ForkUpdateInfo> => {
     const def = getForkDef(id);
     if (!def) throw new AppError('fork not found', 404);
     if (!isSupported(id)) throw new AppError('this platform is not supported', 400);
-    if (version !== undefined && !VERSION_RE.test(version)) throw new AppError('invalid version', 400);
+    if (version !== undefined && !VERSION_RE.test(version))
+      throw new AppError('invalid version', 400);
     const running = jobs.get(id);
     if (running && running.phase !== 'error') return buildInfo(def);
 
@@ -230,7 +241,6 @@ export const browserUpdateService = {
   autoInstallIfMissing: async (): Promise<void> => {
     for (const def of FORK_DEFS) {
       if (!isSupported(def.id) || listBuilds(def).length > 0) continue;
-      logger.info(`No ${def.id} build found, installing the latest automatically`);
       await browserUpdateService.install(def.id);
     }
   },

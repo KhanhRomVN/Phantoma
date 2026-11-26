@@ -11,6 +11,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { AlertCircle, ArrowLeft, GitBranch, Loader2, Plus, Undo2 } from 'lucide-react';
 import { codeApi } from '../../../shared/api/code.api';
+import CodeBlock, { detectLanguageId } from '@renderer/components/common/CodeBlock';
 import { cn } from '@renderer/utils/cn';
 import { getFileIconPath } from '@renderer/utils/file-icon';
 import { KIND_MARK, type FileActions } from './ChangedFiles';
@@ -50,10 +51,13 @@ export const DiffView = memo(function DiffView({
   const [files, setFiles] = useState<FileDiff[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [content, setContent] = useState<string | null>(null);
+  const viewOnly = !localBranch && !!hash && !!activePath && !file;
 
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (viewOnly) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -79,7 +83,34 @@ export const DiffView = memo(function DiffView({
     return () => {
       cancelled = true;
     };
-  }, [projectPath, hash, localBranch, branchRoot]);
+  }, [projectPath, hash, localBranch, branchRoot, viewOnly]);
+
+  useEffect(() => {
+    if (!viewOnly || !hash || !activePath) {
+      setContent(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setContent(null);
+    codeApi.git
+      .commitFileContent(projectPath, hash, activePath)
+      .then((res: { content?: string; error?: string }) => {
+        if (cancelled) return;
+        if (res?.error) setError(res.error);
+        else setContent(res?.content ?? '');
+      })
+      .catch((e: any) => {
+        if (!cancelled) setError(e?.message ?? String(e));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectPath, hash, activePath, viewOnly]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -124,6 +155,17 @@ export const DiffView = memo(function DiffView({
             </span>
             <span className={'min-w-0 truncate text-[11px] text-text-secondary/60'}>
               {splitPath(file.path).dir}
+            </span>
+          </>
+        )}
+        {viewOnly && activePath && (
+          <>
+            <img src={getFileIconPath(splitPath(activePath).name)} alt={''} className={'w-4 h-4 shrink-0'} />
+            <span className={'min-w-0 truncate text-[12.5px] font-semibold text-text-primary'}>
+              {splitPath(activePath).name}
+            </span>
+            <span className={'min-w-0 truncate text-[11px] text-text-secondary/60'}>
+              {splitPath(activePath).dir}
             </span>
           </>
         )}
@@ -172,6 +214,26 @@ export const DiffView = memo(function DiffView({
         >
           <AlertCircle className={'w-5 h-5'} />
           {error}
+        </div>
+      ) : viewOnly && content !== null ? (
+        <div className={'flex-1 min-h-0'}>
+          <CodeBlock
+            key={`${hash}:${activePath}`}
+            code={content}
+            language={detectLanguageId(activePath ?? undefined)}
+            showLineNumbers
+            hideDiagnostics
+            className={'!min-h-0 h-full'}
+            editorOptions={{
+              readOnly: true,
+              domReadOnly: true,
+              renderLineHighlight: 'none',
+              occurrencesHighlight: 'off',
+              selectionHighlight: false,
+              matchBrackets: 'never',
+              minimap: { enabled: false },
+            }}
+          />
         </div>
       ) : files.length === 0 ? (
         <div className={'flex-1 flex items-center justify-center text-xs text-text-secondary/40'}>

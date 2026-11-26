@@ -56,6 +56,8 @@ export const gitApi = {
       message,
     }),
   push: (root: string) => request<{ ok?: boolean; error?: string }>('POST', '/git/push', { root }),
+  publishBranch: (root: string) =>
+    request<{ ok?: boolean; error?: string }>('POST', '/git/publish-branch', { root }),
   stagedDiff: (root: string) =>
     request<{ diff?: string; error?: string }>('GET', `/git/staged-diff?root=${encodeURIComponent(root)}`),
   unpushed: (root: string) =>
@@ -103,7 +105,7 @@ export const gitApi = {
     return request<GitLogResult>('GET', `/git/log?${q.toString()}`);
   },
   branches: (root: string) =>
-    request<{ branches: string[]; worktreePaths: Record<string, string> } & GitErr>(
+    request<{ branches: string[]; worktreePaths: Record<string, string>; goneBranches?: string[] } & GitErr>(
       'GET',
       `/git/branches?root=${encodeURIComponent(root)}`,
     ),
@@ -143,6 +145,23 @@ export const gitApi = {
       | { files: Array<{ added: number; deleted: number; path: string; status: 'added' | 'modified' | 'deleted' }> }
       & GitErr
     >('GET', `/git/commit-files?root=${encodeURIComponent(root)}&hash=${encodeURIComponent(hash)}`),
+  commitFileContent: (root: string, hash: string, filePath: string) =>
+    request<{ content: string; truncated: boolean } & GitErr>(
+      'GET',
+      `/git/commit-file-content?root=${encodeURIComponent(root)}&hash=${encodeURIComponent(hash)}&filePath=${encodeURIComponent(filePath)}`,
+    ),
+  exportCommit: (root: string, hash: string, paths: string[], dest: string) =>
+    request<{ ok?: boolean; count?: number; error?: string }>('POST', '/git/export-commit', {
+      root,
+      hash,
+      paths,
+      dest,
+    }),
+  commitTree: (root: string, hash: string) =>
+    request<{ paths: string[] } & GitErr>(
+      'GET',
+      `/git/commit-tree?root=${encodeURIComponent(root)}&hash=${encodeURIComponent(hash)}`,
+    ),
   remoteUrl: (root: string) =>
     request<{ url: string } & GitErr>('GET', `/git/remote-url?root=${encodeURIComponent(root)}`),
   localChanges: (root: string, clones?: Record<string, string>) =>

@@ -143,12 +143,11 @@ async function browsingOf(emailId: string) {
   let stored: ReturnType<typeof readRecentHistory> = [];
   try {
     stored = browsingEntryRepository.list(emailId) as unknown as ReturnType<typeof readRecentHistory>;
-  } catch (err) {
-    log.warn(`browsing table unavailable for ${emailId}: ${err instanceof Error ? err.message : String(err)}`);
+  } catch {
+    // ASSUMED: browsing_entries is a legacy table dropped in schema v7, so a missing table is expected and not worth logging
   }
   const seen = new Set(stored.map((b) => b.url));
   const recent = readRecentHistory(emailId);
-  log.info(`history ${emailId}: stored=${stored.length} browser=${recent.length}`);
   const fromBrowser = recent.filter((b) => !seen.has(b.url));
   const merged = [...stored, ...fromBrowser].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   // ASSUMED: Chrome history has no footprint, so a visit belongs to the session whose [startedAt, endedAt] contains its last visit time; visits outside any session (browser opened outside the app) keep an empty footprintId

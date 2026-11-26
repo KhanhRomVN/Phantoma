@@ -2647,6 +2647,15 @@ const IP_TYPE_TRUST: Record<IpType, number> = {
   unknown: 0.65,
 };
 
+export function detectHostFamily(): OsFamily | undefined {
+  if (typeof navigator === 'undefined') return undefined;
+  const platform = navigator.platform || '';
+  if (/^win/i.test(platform)) return 'windows';
+  if (/^mac/i.test(platform)) return 'macos';
+  if (/linux|x11/i.test(`${platform} ${navigator.userAgent}`)) return 'linux';
+  return undefined;
+}
+
 // ============================================================================
 // SECTION 12 — CANDIDATE GENERATION
 // ============================================================================
@@ -2698,6 +2707,7 @@ export function generateFootprints(info: IpInfo, forceFamily?: OsFamily): Footpr
   const seed = fnv1a(info.ip || 'unknown');
 
   const langs = localeCandidates(cc, seed);
+  const host = detectHostFamily();
   const candidates: Candidate[] = [];
 
   for (const device of DEVICE_TEMPLATES) {
@@ -2734,6 +2744,17 @@ export function generateFootprints(info: IpInfo, forceFamily?: OsFamily): Footpr
       why.push(`IP classified as ${ipType}`);
     } else if (ipType === 'residential') {
       why.push('Residential IP fits a regular user device');
+    }
+
+    if (host) {
+      if (device.family === host) {
+        bias *= 6;
+        why.push(`Matches the host platform (${host}), real hardware stays coherent`);
+      } else {
+        bias *= 0.1;
+        penalty += 12;
+        why.push(`Differs from host platform (${host}), GPU and fonts can leak the real OS`);
+      }
     }
 
     if (device.family === 'macos' && MAC_HEAVY.has(cc)) {
@@ -2920,6 +2941,7 @@ export const ANOMALY_CODES = {
   CORES_LOW_MOBILE: 'CORES_LOW_MOBILE',
   BROWSER_OS_MISMATCH: 'BROWSER_OS_MISMATCH',
   IP_TYPE_MISMATCH: 'IP_TYPE_MISMATCH',
+  HOST_PLATFORM_MISMATCH: 'HOST_PLATFORM_MISMATCH',
 } as const;
 
 /** Bảng rule hợp nhất — #19 dùng chung cho detectAnomalies & crossValidate. */
@@ -3014,6 +3036,18 @@ const ANOMALY_RULES: AnomalyRule[] = [
     match: (p, info) => {
       if (!info) return null;
       return classifyIp(info) === 'tor' ? 'Tor exit node — high-risk IP' : null;
+    },
+  },
+  {
+    code: ANOMALY_CODES.HOST_PLATFORM_MISMATCH,
+    severity: 'high',
+    field: 'os',
+    delta: -25,
+    match: (p) => {
+      const host = detectHostFamily();
+      return host && p.family !== host
+        ? `Preset OS ${p.family} differs from host ${host}: real GPU, fonts and canvas will contradict it`
+        : null;
     },
   },
 ];

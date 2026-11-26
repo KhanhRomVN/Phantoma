@@ -28,6 +28,7 @@ export interface CommitFile {
   staged?: boolean;
   unstaged?: boolean;
   untracked?: boolean;
+  unchanged?: boolean;
 }
 
 export function fileKind(f: CommitFile): FileChangeKind {

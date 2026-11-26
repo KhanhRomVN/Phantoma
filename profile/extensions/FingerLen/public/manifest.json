@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "FingerLen",
+  "version": "1.0.0",
+  "description": "Opens scan tabs automatically and shows fingerprint authenticity scores on the new tab page.",
+  "permissions": ["tabs", "storage", "scripting", "downloads"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "chrome_url_overrides": { "newtab": "fingerlen.html" }
+}

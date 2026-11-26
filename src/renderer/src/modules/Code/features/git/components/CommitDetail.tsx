@@ -10,6 +10,7 @@
 
 import { memo, useEffect, useMemo, useState } from 'react';
 import {
+  Files,
   FolderTree,
   GitBranch,
   GitCommit,
@@ -92,6 +93,8 @@ export const CommitDetail = memo(function CommitDetail({
   const [expanded, setExpanded] = useState(false);
   const [body, setBody] = useState<string | null>(null);
   const [view, setView] = useState<FilesView>('tree');
+  const [showAll, setShowAll] = useState(false);
+  const [treePaths, setTreePaths] = useState<string[] | null>(null);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
 
   const startResize = (e: React.MouseEvent) => {
@@ -278,6 +281,37 @@ export const CommitDetail = memo(function CommitDetail({
         (!branchPaths || isInScope(f.path, branchPaths)),
     );
   }, [files, q, cat, byCategory, branchFilter, otherScopes, unscopedPaths]);
+
+  useEffect(() => {
+    if (!showAll || !commitHash || !projectPath) {
+      setTreePaths(null);
+      return;
+    }
+    let cancelled = false;
+    setTreePaths(null);
+    codeApi.git
+      .commitTree(projectPath, commitHash)
+      .then((res: { paths?: string[] }) => {
+        if (!cancelled) setTreePaths(res?.paths ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setTreePaths([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showAll, commitHash, projectPath]);
+
+  const sourceFiles = useMemo(() => {
+    if (!showAll || !treePaths) return null;
+    const changed = new Map(files.map((f) => [f.path, f]));
+    const inTree = new Set(treePaths);
+    const all: CommitFile[] = [
+      ...treePaths.map((p) => changed.get(p) ?? { path: p, added: 0, deleted: 0, unchanged: true }),
+      ...files.filter((f) => !inTree.has(f.path)),
+    ];
+    return all.filter((f) => !q || f.path.toLowerCase().includes(q));
+  }, [showAll, treePaths, files, q]);
 
   const totals = useMemo(
     () =>
@@ -505,6 +539,20 @@ export const CommitDetail = memo(function CommitDetail({
             </button>
           ))}
         </div>
+        {!(localBranch && localCommit) && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            title={showAll ? 'Show changed files only' : 'Show all source files at this commit'}
+            className={cn(
+              'h-9 w-9 rounded-md border border-border flex items-center justify-center transition-colors cursor-pointer',
+              showAll
+                ? 'bg-primary/15 text-primary'
+                : 'bg-card-background text-text-secondary hover:text-text-primary hover:bg-card-hover',
+            )}
+          >
+            <Files className={'w-3.5 h-3.5'} />
+          </button>
+        )}
       </div>
 
       {scopeActive &&
@@ -606,12 +654,12 @@ export const CommitDetail = memo(function CommitDetail({
           </>
         ) : (
           <ChangedFiles
-            files={visible}
+            files={sourceFiles ?? visible}
             view={view}
             selectedPath={selectedFile}
             onSelect={onSelectFile}
             actions={fileActions}
-            selection={selection}
+            selection={unpushedCommits?.some((c) => c.hash === commitHash) ? selection : undefined}
           />
         )}
       </div>

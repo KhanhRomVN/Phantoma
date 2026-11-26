@@ -1,6 +1,15 @@
 import { shellIpc } from '../../../shared/ipc/shell.ipc';
 import { memo, useEffect, useMemo, useState } from 'react';
-import { Copy, Download, ExternalLink, Hash, MessageSquare, Tag, User } from 'lucide-react';
+import {
+  Copy,
+  Download,
+  ExternalLink,
+  FolderOutput,
+  Hash,
+  MessageSquare,
+  Tag,
+  User,
+} from 'lucide-react';
 
 import {
   Dropdown,
@@ -19,6 +28,7 @@ interface CommitContextMenuProps {
   onClose: () => void;
   onNotice: (message: string) => void;
   onApplyToBranch: (commit: Commit) => void;
+  onExportSource: (commit: Commit) => void;
 }
 
 function toWebBase(remote: string): string | null {
@@ -50,6 +60,7 @@ export const CommitContextMenu = memo(function CommitContextMenu({
   onClose,
   onNotice,
   onApplyToBranch,
+  onExportSource,
 }: CommitContextMenuProps) {
   const [webBase, setWebBase] = useState<string | null>(null);
 
@@ -129,6 +140,9 @@ export const CommitContextMenu = memo(function CommitContextMenu({
           onClick={() => onApplyToBranch(commit)}
         >
           Apply commit to local branch...
+        </DropdownItem>
+        <DropdownItem icon={<FolderOutput className={ICON} />} onClick={() => onExportSource(commit)}>
+          Export source to folder...
         </DropdownItem>
 
         <DropdownSeparator />

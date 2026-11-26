@@ -31,7 +31,27 @@ export const gitBranchService = {
         worktreePaths[ref.replace(/^refs\/heads\//, '')] = wtPath;
       }
     }
-    return { branches, worktreePaths };
+    const goneBranches: string[] = [];
+    const tracked = await runGit(['for-each-ref', '--format=%(refname:short)%09%(upstream:track)', 'refs/heads'], root);
+    if (!tracked.error) {
+      for (const row of lines(tracked.stdout)) {
+        const [name, track] = row.split('\t');
+        if (name && track?.trim() === '[gone]') goneBranches.push(name.trim());
+      }
+    }
+    return { branches, worktreePaths, goneBranches };
+  },
+
+  publishBranch: async (root: string): Promise<{ ok?: boolean; error?: string }> => {
+    const dirty = await runGit(['status', '--porcelain'], root);
+    if (dirty.error) return { error: message(dirty) };
+    if (dirty.stdout.trim()) return { error: 'Worktree has uncommitted changes' };
+    const current = await runGit(['branch', '--show-current'], root);
+    const name = current.stdout.trim();
+    if (!name) return { error: 'No local branch checked out' };
+    const push = await runGit(['push', '-u', 'origin', name], root);
+    if (push.error) return { error: message(push) };
+    return { ok: true };
   },
 
   pruneOrphanBranches: async (root: string): Promise<{ pruned?: string[]; skipped?: string; error?: string }> => {

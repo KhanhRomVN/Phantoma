@@ -21,6 +21,7 @@ import { AlertCircle, GitCommit, Loader2, RefreshCw, Search, X } from 'lucide-re
 import { useCodeStore } from '../../../shared/stores/code.store';
 import { BranchSidebar } from './BranchSidebar';
 import { CommitContextMenu } from './CommitContextMenu';
+import { ExportCommitModal } from './modals/ExportCommitModal';
 import { SyncBranchModal } from './modals/SyncBranchModal';
 import { CommitDetail } from './CommitDetail';
 import { EmptyState } from './EmptyState';
@@ -54,6 +55,7 @@ export const GitView = memo(function GitView() {
   );
 
   const [syncCommit, setSyncCommit] = useState<Commit | null>(null);
+  const [exportCommit, setExportCommit] = useState<Commit | null>(null);
 
   // Use hooks
   const {
@@ -425,8 +427,17 @@ export const GitView = memo(function GitView() {
           onClose={() => setCommitMenu(null)}
           onNotice={showNotice}
           onApplyToBranch={setSyncCommit}
+          onExportSource={setExportCommit}
         />
       )}
+
+      <ExportCommitModal
+        isOpen={!!exportCommit}
+        onClose={() => setExportCommit(null)}
+        projectPath={projectPath}
+        commit={exportCommit}
+        onDone={showNotice}
+      />
 
       <SyncBranchModal
         isOpen={!!syncCommit}

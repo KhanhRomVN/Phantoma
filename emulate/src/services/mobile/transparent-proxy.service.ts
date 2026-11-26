@@ -24,7 +24,8 @@ function run(cmd: string, args: string[]): Promise<string> {
 // ASSUMED: sudo chạy được không cần mật khẩu (sudo -n) — upgrade path: setcap/polkit rule
 const sudo = (args: string[]) => run('sudo', ['-n', ...args]);
 
-const swapFlag = (rule: string[], from: string, to: string) => rule.map((a) => (a === from ? to : a));
+const swapFlag = (rule: string[], from: string, to: string) =>
+  rule.map((a) => (a === from ? to : a));
 
 function parseSni(buf: Buffer): string | null {
   if (buf.length < 44 || buf[0] !== 0x16 || buf[5] !== 0x01) return null;
@@ -55,7 +56,12 @@ function parseHost(text: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-function handleConnection(socket: net.Socket, targetPort: number, proxyPort: number, isTls: boolean) {
+function handleConnection(
+  socket: net.Socket,
+  targetPort: number,
+  proxyPort: number,
+  isTls: boolean,
+) {
   socket.on('error', () => socket.destroy());
   socket.once('data', (chunk: Buffer) => {
     socket.pause();
@@ -69,7 +75,9 @@ function handleConnection(socket: net.Socket, targetPort: number, proxyPort: num
 
     if (isTls) {
       upstream.once('connect', () => {
-        upstream.write(`CONNECT ${host}:${targetPort} HTTP/1.1\r\nHost: ${host}:${targetPort}\r\n\r\n`);
+        upstream.write(
+          `CONNECT ${host}:${targetPort} HTTP/1.1\r\nHost: ${host}:${targetPort}\r\n\r\n`,
+        );
       });
       let buf = Buffer.alloc(0);
       const onData = (d: Buffer) => {
@@ -136,8 +144,20 @@ class TransparentProxyService {
       proxyPort,
       servers: [httpServer, tlsServer],
       rules: [80, 443].map((dport) => [
-        '-t', 'nat', '-A', 'PREROUTING', '-p', 'tcp', '-i', iface,
-        '--dport', String(dport), '-j', 'REDIRECT', '--to-port', String(dport === 80 ? httpPort : tlsPort),
+        '-t',
+        'nat',
+        '-A',
+        'PREROUTING',
+        '-p',
+        'tcp',
+        '-i',
+        iface,
+        '--dport',
+        String(dport),
+        '-j',
+        'REDIRECT',
+        '--to-port',
+        String(dport === 80 ? httpPort : tlsPort),
       ]),
     };
     this.sessions.set(id, session);
@@ -145,9 +165,10 @@ class TransparentProxyService {
     try {
       await sudo(['sysctl', '-w', 'net.ipv4.ip_forward=1']);
       for (const rule of session.rules) {
-        await sudo(['iptables', ...swapFlag(rule, '-A', '-C')]).catch(() => sudo(['iptables', ...rule]));
+        await sudo(['iptables', ...swapFlag(rule, '-A', '-C')]).catch(() =>
+          sudo(['iptables', ...rule]),
+        );
       }
-      logger.info('Transparent proxy started', F('iface', iface), F('http', httpPort), F('tls', tlsPort));
       return session;
     } catch (err) {
       await this.stop(id);

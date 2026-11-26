@@ -15,7 +15,15 @@ import {
   type BrowserKind,
 } from '../utils/browser-folder';
 import { AppError } from '../utils/http';
-import { browserForkService } from './browser-fork.service';
+import { browserForkService, readVersion } from './browser-fork.service';
+import { startProxyBridge, type ProxyBridge } from './proxy-bridge.service';
+import {
+  alignFootprintVersion,
+  attachFootprint,
+  resolveTimezone,
+  type CdpHandle,
+  type Footprint,
+} from './browser-cdp.service';
 import { externalBrowserService } from './external-browser.service';
 import { createLogger } from '../utils/logger';
 
@@ -50,6 +58,8 @@ interface Run {
   startedAt: number;
   sessionId: string;
   tempDir: string | null;
+  bridge: ProxyBridge | null;
+  cdp: CdpHandle | null;
 }
 
 const runs = new Map<string, Run>();
@@ -135,12 +145,14 @@ function collectSites(run: Run): ReturnType<typeof readSessionSites> {
   try {
     const layout = getLaunchLayout(run.emailId);
     const file = run.tempDir
-      ? path.join(run.tempDir, ...(layout.isReal ? [layout.folder, 'History'] : ['Default', 'History']))
+      ? path.join(
+          run.tempDir,
+          ...(layout.isReal ? [layout.folder, 'History'] : ['Default', 'History']),
+        )
       : layout.isReal
         ? path.join(layout.root, layout.folder, 'History')
         : path.join(getBrowserDir(run.emailId, 'chrome'), 'Default', 'History');
     const sites = readSessionSites(file, run.startedAt - 5000, Date.now());
-    logger.info(`[sites] ${run.emailId}: ${sites.length} sites from ${file}`);
     return sites;
   } catch (err) {
     logger.warn(`Cannot read sites of ${run.emailId}: ${errMessage(err)}`);
@@ -156,11 +168,31 @@ function finish(run: Run): void {
   } catch (err) {
     logger.warn(`Cannot close session of ${run.emailId}: ${errMessage(err)}`);
   }
+  run.cdp?.close();
+  run.bridge?.close();
   if (run.tempDir) removeDir(run.tempDir);
 }
 
 function requireEmail(emailId: string): void {
   if (!emailRepository.exists(emailId)) throw new AppError('email not found', 404);
+}
+
+// ASSUMED: only what Chromium accepts as launch flags/env is applied (UA string, language, timezone, window size); navigator.platform/userAgentData, GPU/WebGL, cores and memory need JS injection — upgrade path: CDP Emulation/Page.addScriptToEvaluateOnNewDocument
+function footprintLaunch(fp: unknown): { args: string[]; env: Record<string, string> } {
+  const args: string[] = [];
+  const env: Record<string, string> = {};
+  if (!fp || typeof fp !== 'object') return { args, env };
+  const f = fp as Record<string, unknown>;
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const lang = str(f.lang);
+  if (str(f.userAgent)) args.push(`--user-agent=${str(f.userAgent)}`);
+  if (lang) args.push(`--lang=${lang}`, `--accept-lang=${lang},${lang.split('-')[0]}`);
+  const screen = /^(\d+)\D+(\d+)$/.exec(str(f.screen));
+  if (screen) args.push(`--window-size=${screen[1]},${screen[2]}`);
+  const tz = resolveTimezone(f);
+  if (tz) env.TZ = tz;
+  args.push('--remote-debugging-port=0', '--disable-blink-features=AutomationControlled');
+  return { args, env };
 }
 
 export const browserRunService = {
@@ -175,11 +207,19 @@ export const browserRunService = {
       throw new AppError('browser is already running for this profile', 409);
     }
     const kind = parseBrowserKind(input.browser);
-    if (kind === 'chrome' && (await externalBrowserService.scan()).some((e) => e.emailId === emailId)) {
-      throw new AppError('browser is already running for this profile (opened outside Phantoma)', 409);
+    if (
+      kind === 'chrome' &&
+      (await externalBrowserService.scan()).some((e) => e.emailId === emailId)
+    ) {
+      throw new AppError(
+        'browser is already running for this profile (opened outside Phantoma)',
+        409,
+      );
     }
     const forkExe =
-      kind === 'chromium' && typeof input.forkId === 'string' ? browserForkService.findPath(input.forkId) : null;
+      kind === 'chromium' && typeof input.forkId === 'string'
+        ? browserForkService.findPath(input.forkId)
+        : null;
     const exe = resolveBrowserExecutable(
       kind,
       forkExe ?? (typeof input.executablePath === 'string' ? input.executablePath : undefined),
@@ -188,20 +228,11 @@ export const browserRunService = {
 
     pending.add(emailId);
     let tempDir: string | null = null;
+    let bridge: ProxyBridge | null = null;
     try {
       const masterDir = getBrowserDir(emailId, 'chrome');
       const folderInfo = getFolderInfo(emailId);
-      logger.info(`[launch] emailId=${emailId} kind=${kind} exe=${exe}`);
-      logger.info(
-        `[launch] profileDir=${folderInfo.path} exists=${folderInfo.exists} entries=${listDir(folderInfo.path)}`,
-      );
-      logger.info(
-        `[launch] masterDir=${masterDir} exists=${fs.existsSync(masterDir)} Default=${fs.existsSync(path.join(masterDir, 'Default'))} LocalState=${fs.existsSync(path.join(masterDir, 'Local State'))} entries=${listDir(masterDir)}`,
-      );
       const layout = getLaunchLayout(emailId);
-      logger.info(
-        `[launch] layout root=${layout.root} folder=${layout.folder} realUserDataDir=${layout.isReal}`,
-      );
       let userDataDir = layout.isReal ? layout.root : masterDir;
       const profileArgs = layout.isReal ? [`--profile-directory=${layout.folder}`] : [];
       if (kind === 'chrome') {
@@ -211,9 +242,6 @@ export const browserRunService = {
           ? await cloneRealProfile(layout.root, layout.folder)
           : await cloneProfile(masterDir);
         userDataDir = tempDir;
-        logger.info(
-          `[launch] cloned ${masterDir} -> ${tempDir} entries=${listDir(tempDir)} Default=${fs.existsSync(path.join(tempDir, 'Default'))}`,
-        );
       }
 
       const args = [
@@ -222,26 +250,70 @@ export const browserRunService = {
         '--no-first-run',
         '--no-default-browser-check',
       ];
+
       if (kind === 'chromium' && typeof input.proxyServer === 'string' && input.proxyServer) {
-        args.push(`--proxy-server=${input.proxyServer}`);
+        const up = new URL(input.proxyServer);
+        const protocol = up.protocol.replace(':', '');
+        if (up.username && (protocol === 'socks5' || protocol === 'http' || protocol === 'https')) {
+          bridge = await startProxyBridge({
+            protocol,
+            host: up.hostname,
+            port: Number(up.port),
+            user: decodeURIComponent(up.username),
+            pass: decodeURIComponent(up.password),
+          });
+          args.push(`--proxy-server=socks5://127.0.0.1:${bridge.port}`);
+        } else {
+          args.push(`--proxy-server=${input.proxyServer}`);
+        }
+      }
+      const appliedFootprint =
+        kind === 'chromium' && input.footprint && typeof input.footprint === 'object'
+          ? alignFootprintVersion(input.footprint as unknown as Footprint, await readVersion(exe))
+          : input.footprint;
+      const fpLaunch = footprintLaunch(kind === 'chromium' ? appliedFootprint : null);
+      args.push(...fpLaunch.args);
+      if (kind === 'chromium' && input.forkId === 'ungoogled') {
+        const extDir = path.resolve(__dirname, '../../extensions/FingerLen/dist');
+        if (fs.existsSync(extDir)) args.push(`--load-extension=${extDir}`);
       }
       args.push(typeof input.url === 'string' && input.url ? input.url : 'chrome://newtab');
+      logger.info(
+        `[DEBUG] footprint applied: args=${JSON.stringify(fpLaunch.args)} env=${JSON.stringify(fpLaunch.env)}`,
+      );
+      const ipRecord = (input.ip && typeof input.ip === 'object' ? input.ip : {}) as Record<
+        string,
+        unknown
+      >;
+      const fpRecord = (
+        input.footprint && typeof input.footprint === 'object' ? input.footprint : {}
+      ) as Record<string, unknown>;
+      const ipGeo = Object.fromEntries(
+        Object.entries(ipRecord).filter(([k]) => /time|tz|lang|country|city|region|^ip$/i.test(k)),
+      );
+      logger.info(`[DEBUG] ip full=${JSON.stringify(input.ip ?? null)}`);
+      logger.info(`[DEBUG] footprint full=${JSON.stringify(input.footprint ?? null)}`);
+      logger.info(
+        `[DEBUG] compare ip-vs-footprint: ipGeo=${JSON.stringify(ipGeo)} fp={tz:${String(fpRecord.tz)},lang:${String(fpRecord.lang)},cc:${String(fpRecord.cc)},os:${String(fpRecord.os)},ua:${String(fpRecord.userAgent)}}`,
+      );
+      logger.info(
+        `[DEBUG] browser real: exe=${exe} kind=${kind} hostPlatform=${process.platform} hostTZ=${Intl.DateTimeFormat().resolvedOptions().timeZone} hostLang=${process.env.LANG ?? ''} spawnEnvTZ=${fpLaunch.env.TZ ?? '<unset>'} args=${JSON.stringify(args.map((a) => a.replace(/^(--proxy-server=.*:\/\/)[^@/]*@/, '$1***@')))}`,
+      );
 
-      logger.info(`[launch] spawn: ${exe} ${args.join(' ')}`);
-      const t0 = Date.now();
-      const child = spawn(exe, args, { detached: true, stdio: ['ignore', 'ignore', 'pipe'] });
-      child.stderr?.on('data', (d: Buffer) =>
-        logger.info(`[${kind}:${emailId}] stderr: ${d.toString().trim().slice(0, 500)}`),
-      );
-      child.once('exit', (code, sig) =>
-        logger.info(
-          `[launch] ${kind} process exited code=${code} signal=${sig} after ${Date.now() - t0}ms`,
-        ),
-      );
+      const child = spawn(exe, args, {
+        detached: true,
+        stdio: 'ignore',
+        env: { ...process.env, ...fpLaunch.env },
+      });
       await new Promise<void>((resolve, reject) => {
         child.once('spawn', () => resolve());
         child.once('error', reject);
       });
+
+      const cdp =
+        kind === 'chromium' && input.footprint && typeof input.footprint === 'object'
+          ? attachFootprint(userDataDir, appliedFootprint as unknown as Footprint)
+          : null;
 
       const session = sessionRepository.start(emailId, {
         browser: kind,
@@ -256,12 +328,14 @@ export const browserRunService = {
         startedAt: Date.now(),
         sessionId: session?.id ?? '',
         tempDir,
+        bridge,
+        cdp,
       };
       runs.set(emailId, run);
       child.once('exit', () => finish(run));
-      logger.info(`Launched ${kind} for ${emailId} (pid ${run.pid})`);
       return view(run);
     } catch (err) {
+      bridge?.close();
       if (tempDir) removeDir(tempDir);
       if (err instanceof AppError) throw err;
       throw new AppError(`Cannot launch ${kind}: ${errMessage(err)}`, 500);

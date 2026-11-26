@@ -20,7 +20,10 @@ export interface FxaCapturedLogin {
 function findBrowser(): string | null {
   const candidates = ['google-chrome-stable', 'google-chrome', 'chromium-browser', 'chromium'];
   for (const name of candidates) {
-    const found = (process.env.PATH ?? '').split(':').map((dir) => path.join(dir, name)).find((p) => fs.existsSync(p));
+    const found = (process.env.PATH ?? '')
+      .split(':')
+      .map((dir) => path.join(dir, name))
+      .find((p) => fs.existsSync(p));
     if (found) return found;
   }
   return null;
@@ -49,7 +52,8 @@ async function cloneRealProfile(root: string, folder: string): Promise<string> {
   const nested = path.join(source, 'chrome');
   try {
     const localState = path.join(root, 'Local State');
-    if (fs.existsSync(localState)) await fs.promises.copyFile(localState, path.join(dest, 'Local State'));
+    if (fs.existsSync(localState))
+      await fs.promises.copyFile(localState, path.join(dest, 'Local State'));
     await fs.promises.cp(source, path.join(dest, folder), {
       recursive: true,
       filter: (src) => src !== nested && !SKIP_NAMES.has(path.basename(src)),
@@ -77,7 +81,9 @@ async function waitForDebugPort(port: number, retries = 60, delay = 300): Promis
 async function pickPageTarget(port: number): Promise<string> {
   const res = await fetch(`http://127.0.0.1:${port}/json`);
   const targets = (await res.json()) as any[];
-  const pages = targets.filter((t) => t.type === 'page' && t.url && !t.url.startsWith('devtools://'));
+  const pages = targets.filter(
+    (t) => t.type === 'page' && t.url && !t.url.startsWith('devtools://'),
+  );
   const page = pages.find((t) => t.url.includes('firefox.com')) ?? pages[0];
   if (!page) throw new AppError('No page target found on Chrome CDP', 502);
   return page.webSocketDebuggerUrl;
@@ -175,7 +181,8 @@ export async function captureFxaLogin(
         if (msg.method === 'Network.requestWillBeSent') {
           urls.set(msg.params.requestId, msg.params.request.url);
         } else if (msg.method === 'Network.responseReceived') {
-          if (msg.params.response.mimeType) mimeTypes.set(msg.params.requestId, msg.params.response.mimeType);
+          if (msg.params.response.mimeType)
+            mimeTypes.set(msg.params.requestId, msg.params.response.mimeType);
           statuses.set(msg.params.requestId, msg.params.response.status);
         } else if (msg.method === 'Network.loadingFinished') {
           const requestId = msg.params.requestId;
@@ -183,28 +190,32 @@ export async function captureFxaLogin(
           const mimeType = mimeTypes.get(requestId) || '';
           // Debug log - có thể xóa sau khi fix
           if (/firefox\.com|mozilla\.(org|com)/.test(url)) {
-            logger.info(`[DEBUG][FxaCdp] ${statuses.get(requestId) ?? '?'} ${url} (${mimeType})`);
             if (mimeType.includes('json')) {
               try {
                 const dbg = await send('Network.getResponseBody', { requestId });
-                const dbgText = dbg?.base64Encoded ? Buffer.from(dbg.body, 'base64').toString() : dbg?.body;
-                logger.info(`[DEBUG][FxaCdp] responseBody ${url}: ${String(dbgText).slice(0, 3000)}`);
-              } catch (e: any) {
-                logger.info(`[DEBUG][FxaCdp] responseBody unavailable ${url}: ${e?.message || e}`);
-              }
+                const dbgText = dbg?.base64Encoded
+                  ? Buffer.from(dbg.body, 'base64').toString()
+                  : dbg?.body;
+              } catch (e: any) {}
             }
           }
           if (!url.includes(FXA_API_HOST) || !mimeType.includes('application/json')) return;
           if (!/\/(linked_)?account\/(login|create)/.test(url)) return; // ASSUMED: đăng nhập bằng Google đi qua /v1/linked_account/login, trả cùng dạng {uid, sessionToken, email}
           try {
             const body = await send('Network.getResponseBody', { requestId });
-            const text = body.base64Encoded ? Buffer.from(body.body, 'base64').toString() : body.body;
+            const text = body.base64Encoded
+              ? Buffer.from(body.body, 'base64').toString()
+              : body.body;
             const json = JSON.parse(text);
             if (typeof json.uid === 'string' && typeof json.sessionToken === 'string') {
               if (!settled) {
                 settled = true;
                 clearTimeout(timer);
-                resolve({ uid: json.uid, email: json.email ?? '', sessionToken: json.sessionToken });
+                resolve({
+                  uid: json.uid,
+                  email: json.email ?? '',
+                  sessionToken: json.sessionToken,
+                });
               }
             }
           } catch (e: any) {

@@ -256,7 +256,15 @@ class CdpService extends EventEmitter {
           mimeType: resp.mimeType,
           url: resp.url,
           remoteIPAddress: resp.remoteIPAddress,
+          remotePort: resp.remotePort,
+          networkProtocol: resp.protocol,
+          connectionId: resp.connectionId,
+          connectionReused: resp.connectionReused,
+          securityState: resp.securityState,
+          securityDetails: resp.securityDetails,
+          timing: resp.timing,
           fromDiskCache: resp.fromDiskCache,
+          fromServiceWorker: resp.fromServiceWorker,
           encodedDataLength: resp.encodedDataLength,
         };
 

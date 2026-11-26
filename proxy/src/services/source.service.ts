@@ -28,7 +28,6 @@ export const sourceService = {
   ensureDefault: (): void => {
     if (sourceRepository.list().some((s) => s.type === 'normal')) return;
     sourceRepository.insert(newId(), { name: DEFAULT_SOURCE_NAME });
-    logger.info(`Created default source "${DEFAULT_SOURCE_NAME}"`);
   },
 
   list: () => sourceRepository.list().map(mapSource),
@@ -58,7 +57,8 @@ export const sourceService = {
   // proxies and accounts are removed with the source (ON DELETE CASCADE)
   remove: (id: string): void => {
     const row = found(sourceRepository.getPlain(id), 'source');
-    if (row.type === 'vpn') throw new AppError(`the ${row.name} source is built in and cannot be removed`, 409);
+    if (row.type === 'vpn')
+      throw new AppError(`the ${row.name} source is built in and cannot be removed`, 409);
     if (!sourceRepository.remove(id)) throw new AppError('source not found', 404);
   },
 };

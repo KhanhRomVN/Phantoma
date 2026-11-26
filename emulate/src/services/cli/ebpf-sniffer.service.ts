@@ -68,7 +68,6 @@ class EbpfSnifferService extends EventEmitter {
     try {
       // Use sudo -S to read password from stdin, avoiding interactive terminal prompts.
       const sudoArgs = ['-S', 'ecapture', ...args];
-      console.log(`[DEBUG] [EbpfSniffer] spawn: sudo ${sudoArgs.join(' ')} (pid filter: ${options.pid ?? 'none'})`);
       this.process = spawn('sudo', sudoArgs, {
         stdio: ['pipe', 'pipe', 'pipe'], // Pipe stdin for password, stdout/stderr for data/logs
         env: { ...process.env, TERM: 'dumb' },
@@ -135,19 +134,24 @@ class EbpfSnifferService extends EventEmitter {
   private setupListeners(): void {
     if (!this.process?.stdout) return;
 
-    let pending: { type: 'request' | 'response'; timestamp: number; conn: string; lines: string[] } | null = null;
+    let pending: {
+      type: 'request' | 'response';
+      timestamp: number;
+      conn: string;
+      lines: string[];
+    } | null = null;
     let flushTimer: NodeJS.Timeout | undefined;
     let glueNext = false;
     let seq = 0;
     const lastReqId = new Map<string, string>();
-    const headerRe = /^\[[^\]]+\]\s+\S+\s+(request|response)\s+\S+\s+->\s+\S+.*?connection="([^"]*)"/;
+    const headerRe =
+      /^\[[^\]]+\]\s+\S+\s+(request|response)\s+\S+\s+->\s+\S+.*?connection="([^"]*)"/;
 
     const flushPending = (): void => {
       if (flushTimer) clearTimeout(flushTimer);
       if (!pending) return;
       const msg = pending;
       pending = null;
-      console.log(`[DEBUG] [EbpfSniffer emit] type=${msg.type} lines=${msg.lines.length} bytes=${msg.lines.join('\n').length}`);
       const [startLine = '', ...rest] = msg.lines;
       const headers: Record<string, string> = {};
       let bodyFrom = 0;
@@ -185,14 +189,25 @@ class EbpfSnifferService extends EventEmitter {
       const m = headerRe.exec(line);
       if (m) {
         flushPending();
-        pending = { type: m[1] as 'request' | 'response', timestamp: Date.now(), conn: m[2], lines: [] };
+        pending = {
+          type: m[1] as 'request' | 'response',
+          timestamp: Date.now(),
+          conn: m[2],
+          lines: [],
+        };
       } else if (pending) {
         if (/^[0-9a-f]{1,8}$/i.test(line.trim())) {
           glueNext = true;
           return true;
         }
         const last = pending.lines[pending.lines.length - 1];
-        if (glueNext && last !== undefined && last.startsWith('data:') && !last.endsWith('}') && !line.startsWith('data:')) {
+        if (
+          glueNext &&
+          last !== undefined &&
+          last.startsWith('data:') &&
+          !last.endsWith('}') &&
+          !line.startsWith('data:')
+        ) {
           pending.lines[pending.lines.length - 1] = last + line;
         } else {
           pending.lines.push(line);
@@ -213,7 +228,6 @@ class EbpfSnifferService extends EventEmitter {
 
     rl.on('line', (line: string) => {
       if (!line.trim()) return;
-      console.log(`[DEBUG] [EbpfSniffer stdout] ${line.slice(0, 300)}`);
       if (consumeTextLine(line)) return;
 
       // Attempt to parse as JSON first (some builds/versions may support it via env or specific flags not shown in help)
@@ -250,7 +264,6 @@ class EbpfSnifferService extends EventEmitter {
 
     this.process.stderr?.on('data', (chunk: Buffer) => {
       const msg = chunk.toString().trim();
-      console.log(`[DEBUG] [EbpfSniffer stderr] ${msg.slice(0, 500)}`);
 
       // Ignore sudo authentication prompts/noise to prevent false error emissions
       if (msg.includes('[sudo]') || msg.toLowerCase().includes('password')) {
@@ -264,7 +277,6 @@ class EbpfSnifferService extends EventEmitter {
     });
 
     this.process.on('exit', (code, signal) => {
-      console.log(`[DEBUG] [EbpfSniffer] ecapture exited: code=${code} signal=${signal}`);
       this.stopConnWatch();
       this.isRunning = false;
       this.process = null;
@@ -340,13 +352,11 @@ class EbpfSnifferService extends EventEmitter {
           live.add(key);
           if (!this.seenConns.has(key)) {
             this.seenConns.add(key);
-            console.log(`[DEBUG] [EbpfSniffer conn] NEW ${key}`);
           }
         }
         for (const key of this.seenConns) {
           if (!live.has(key)) {
             this.seenConns.delete(key);
-            console.log(`[DEBUG] [EbpfSniffer conn] CLOSED ${key}`);
           }
         }
       });

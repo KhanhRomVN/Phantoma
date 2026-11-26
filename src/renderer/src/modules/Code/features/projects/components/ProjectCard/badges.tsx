@@ -30,6 +30,17 @@ export const TempBranchBadge = memo(function TempBranchBadge({ name }: { name: s
   );
 });
 
+export const RemoteGoneBadge = memo(function RemoteGoneBadge() {
+  return (
+    <span
+      className="inline-flex items-center h-[18px] px-1.5 rounded-[5px] shrink-0 text-[9.5px] font-medium text-red-500 bg-red-500/10"
+      title="Remote branch was deleted. Local changes are still in this folder."
+    >
+      remote deleted
+    </span>
+  );
+});
+
 /** Badge: branch đang được một cửa sổ KHÁC mở */
 export const BusyBadge = memo(function BusyBadge({
   projectId,

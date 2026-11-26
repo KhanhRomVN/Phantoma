@@ -46,7 +46,12 @@ class FridaService {
 
   private async findBinary(run: RootRun): Promise<string | null> {
     const out = await run(`ls ${REMOTE_DIR}/frida-server* 2>/dev/null`).catch(() => '');
-    return out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)[0] ?? null;
+    return (
+      out
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)[0] ?? null
+    );
   }
 
   async ensureRunning(serial: string): Promise<FridaStatus> {
@@ -54,7 +59,6 @@ class FridaService {
 
     const existing = await this.findPid(run);
     if (existing) {
-      logger.info('frida-server already running', F('serial', serial), F('pid', String(existing)));
       return { running: true, started: false, pid: existing, binary: null };
     }
 
@@ -68,7 +72,6 @@ class FridaService {
       await new Promise((r) => setTimeout(r, START_POLL_MS));
       const pid = await this.findPid(run);
       if (pid) {
-        logger.info('frida-server started', F('serial', serial), F('pid', String(pid)));
         return { running: true, started: true, pid, binary };
       }
     }
