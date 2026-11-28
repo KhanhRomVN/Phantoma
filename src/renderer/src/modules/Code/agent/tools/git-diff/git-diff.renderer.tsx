@@ -1,36 +1,19 @@
 import React, { useState, useEffect } from 'react';
-/**
- * ------------------------------------------------------------------
- * GitDiffRenderer
- * ------------------------------------------------------------------
- * Renderer cho tool action `git_diff`.
- * Hiển thị diff stats (added/deleted) và nội dung diff.
- *
- * Main features:
- * - Auto-trigger execution khi chưa có output
- * - Parse diff stats từ diffContent
- * - Render partial state khi chưa active
- * - Hiển thị added/deleted lines với syntax highlighting
- * - File path clickable với FileIcon
- * - Partial state cho streaming
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
 
 // ── Components ──
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ToolAction } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { TOOL_ACTION_TYPES } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── GitDiffBlock ───────────────────────────────────────────────────────
 interface GitDiffBlockProps {

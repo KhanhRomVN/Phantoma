@@ -1,5 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * Read Memory Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool read_memory: đọc nội dung file memory toàn cục thông
+ * qua MemoryController và định dạng kết quả cho agent.
+ *
+ * Main functions:
+ * - executeReadMemory() : Đọc memory, xử lý trường hợp file chưa tồn tại
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Components ──
 import { MemoryController } from '@renderer/controller/MemoryController';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Execute read_memory tool.
  */

@@ -1,21 +1,22 @@
-import { shellIpc } from '../../../shared/ipc/shell.ipc';
-/**
- * ------------------------------------------------------------------
- * PR Blocker
- * ------------------------------------------------------------------
- * Màn hình chặn khi chưa dùng được Pull Request: thiếu GitHub CLI,
- * chưa đăng nhập (token / browser) hoặc repo không có remote GitHub.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useState } from 'react';
-import { AlertCircle, ExternalLink, Globe, KeyRound, Loader2, RefreshCw } from 'lucide-react';
 
+// ── UI ──
+import { AlertCircle, ExternalLink, Globe, KeyRound, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@renderer/components/ui/Button';
-import type { StatusInfo } from '../types/pull-request.types';
-import { FIELD } from '../utils/pull-request.util';
+
+// ── Services ──
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
 import { codeApi } from '../../../shared/api/code.api';
 
+// ── Utils ──
+import { FIELD } from '../utils/pull-request.util';
+
+// ── Types ──
+import type { StatusInfo } from '../types/pull-request.types';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface PrBlockerProps {
   projectPath: string;
   status: StatusInfo;
@@ -23,6 +24,7 @@ interface PrBlockerProps {
   onNotice: (msg: string) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const PrBlocker = memo(function PrBlocker({
   projectPath,
   status,
@@ -43,6 +45,8 @@ export const PrBlocker = memo(function PrBlocker({
 
   useEffect(() => {
     if (!webLogin) return;
+
+    // ── Derived ──
     const timer = setInterval(() => {
       void loadStatus().then((s) => {
         if (s.authenticated) {
@@ -51,6 +55,8 @@ export const PrBlocker = memo(function PrBlocker({
         }
       });
     }, 2000);
+
+    // ── Render ──
     return () => clearInterval(timer);
   }, [webLogin, loadStatus, onNotice]);
 

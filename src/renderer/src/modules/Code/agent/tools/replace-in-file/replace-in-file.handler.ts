@@ -14,21 +14,19 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
+import { FileLockManager } from '../../services/file-lock.service';
+import { codeApi } from '../../../shared/api/code.api';
 
 // ── Utils ──
 import { SecurityValidator } from '../../../shared/utils/security.util';
 import { FuzzyMatcher } from '../../../shared/utils/fuzzy-matcher.util';
 import { resolveWorkspacePath } from '../../../shared/utils/path-resolver.util';
 
-// ── Managers ──
-import { FileLockManager } from '../../services/file-lock.service';
-
-// ── Services ──
-import { codeApi } from '../../../shared/api/code.api';
-
-// ─── Interfaces ─────────────────────────────────────────────────────────
+// ── Types ──
 import type { ReplaceInFileParams } from '../tool.types';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ReplaceInFileResult {
   command: string;
   requestId?: string;

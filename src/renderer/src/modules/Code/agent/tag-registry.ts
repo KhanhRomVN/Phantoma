@@ -11,7 +11,8 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import type { TagDefinition } from '@renderer/components/Widgets/Zen/screens/Chat/types/tag-types';
+// ── Utils ──
+import { TagDefinition } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
@@ -126,8 +127,8 @@ export const CODE_TAG_REGISTRY: Record<string, TagDefinition> = {
     id: 'create_agent',
     title: 'CREATE AGENT',
     timeout: 30000,
-    // Note: Do NOT auto-execute - wait for user confirmation
-    // (handled in useToolActions skip list)
+    // Note: Requires user confirmation via ActionBar in CreateAgentRenderer
+    // Not auto-executed, but clickable when user approves
   },
 
   send_message: {

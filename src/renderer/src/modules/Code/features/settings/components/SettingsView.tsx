@@ -1,7 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
+
+// ── Components ──
 import { SmartLayoutSection } from './Layout';
 import { KeybindingsSection } from './Keybindings';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const OPTIONS = [
   'General',
   'Appearance',
@@ -13,14 +18,18 @@ const OPTIONS = [
   'Extensions',
 ];
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 type SettingSection = 'smart-layout' | 'keybindings' | string;
 
 const optionClass =
   'px-2.5 py-2 rounded-lg text-left text-xs font-medium cursor-pointer transition-colors';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function SettingsView() {
+  // ── State ──
   const [activeSection, setActiveSection] = useState<SettingSection>('smart-layout');
 
+  // ── Render ──
   return (
     <div className="flex-1 flex min-h-0 bg-background">
       <aside className="w-[260px] shrink-0 border-r border-border p-3 flex flex-col gap-1 overflow-y-auto">

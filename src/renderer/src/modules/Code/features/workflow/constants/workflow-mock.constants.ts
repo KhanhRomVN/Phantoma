@@ -1,7 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Types ──
 import type { DiffLine, WorkflowPlan } from '../types/workflow.types';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const d = (...rows: string[]): DiffLine[] => rows.map((r) => ({ t: r[0] as DiffLine['t'], s: r.slice(1) }));
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const MOCK_WORKFLOW: WorkflowPlan = {
   taskId: 'TASK-128',
   taskTitle: 'Implement RECON module',

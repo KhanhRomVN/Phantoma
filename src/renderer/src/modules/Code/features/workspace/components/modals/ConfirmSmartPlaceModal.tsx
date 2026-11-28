@@ -1,9 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { Sparkles } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
+
+// ── Utils ──
 import type { PaneId } from '../../../../shared/utils/workspace-layout.util';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const PANE_LABELS: Record<PaneId, string> = {
   tl: 'Top left',
   tr: 'Top right',
@@ -11,6 +16,7 @@ const PANE_LABELS: Record<PaneId, string> = {
   br: 'Bottom right',
 };
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmSmartPlaceModalProps {
   isOpen: boolean;
   panelLabel: string;
@@ -21,6 +27,7 @@ interface ConfirmSmartPlaceModalProps {
   onArrange: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmSmartPlaceModal({
   isOpen,
   panelLabel,
@@ -30,6 +37,7 @@ export function ConfirmSmartPlaceModal({
   onKeep,
   onArrange,
 }: ConfirmSmartPlaceModalProps) {
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[400px]">
       <ModalBody className="py-6 px-5">

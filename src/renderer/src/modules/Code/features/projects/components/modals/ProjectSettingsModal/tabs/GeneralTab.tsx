@@ -1,5 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
+
+// ── UI ──
 import { Check, EyeOff } from 'lucide-react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import {
   Panel,
@@ -9,21 +15,27 @@ import {
   type ProjectSettingsTarget,
 } from '../shared';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const MAX_NAME_LENGTH = 50;
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface GeneralTabProps {
   project: ProjectSettingsTarget;
   onChange: (patch: ProjectSettingsPatch) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function GeneralTab({ project, onChange }: GeneralTabProps) {
+  // ── State ──
   const [name, setName] = useState(project.name);
   const [saved, setSaved] = useState(false);
 
+  // ── Effects ──
   useEffect(() => {
     setName(project.name);
   }, [project.name]);
 
+  // ── Derived ──
   const trimmed = name.trim();
   const dirty = trimmed.length > 0 && trimmed !== project.name;
 
@@ -38,6 +50,7 @@ export function GeneralTab({ project, onChange }: GeneralTabProps) {
     setTimeout(() => setSaved(false), 1400);
   };
 
+  // ── Render ──
   return (
     <div className='flex flex-col gap-8'>
       <Section

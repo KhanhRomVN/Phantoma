@@ -1,11 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { ArrowDown, CheckCheck, Lock, type LucideIcon } from 'lucide-react';
-import { $ } from '@renderer/utils/color';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
+
+// ── Services ──
 import type { StoredTask } from '../../../../shared/services/task.service';
+
+// ── Utils ──
+import { $ } from '@renderer/utils/color';
 import { STATUS_META } from '../../constants/status-meta.constants';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmForceStartTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,6 +21,7 @@ interface ConfirmForceStartTaskModalProps {
   chain: StoredTask[];
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const tiersOf = (chain: StoredTask[]): StoredTask[][] => {
   const ids = new Set(chain.map((t) => t.id));
   const depth = new Map<string, number>();
@@ -27,6 +35,7 @@ const tiersOf = (chain: StoredTask[]): StoredTask[][] => {
   return tiers.filter(Boolean);
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function FlowNode({ title, color, icon: Icon }: { title: string; color: string; icon: LucideIcon }) {
   return (
     <span
@@ -46,8 +55,11 @@ export function ConfirmForceStartTaskModal({
   taskTitle,
   chain,
 }: ConfirmForceStartTaskModalProps) {
+  // ── Derived ──
   const warn = '--warn';
   const tiers = tiersOf(chain);
+
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[440px]">
       <ModalBody className="py-6 px-5">

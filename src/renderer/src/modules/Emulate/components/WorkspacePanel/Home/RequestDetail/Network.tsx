@@ -8,7 +8,9 @@
  */
 
 // ─── Component ──────────────────────────────────────────────────────────
-export function NetworkDetails() {
+import type { NetworkRequest } from '../FilterPanel';
+
+export function NetworkDetails(_props: { request: NetworkRequest }) {
   return (
     <div className="h-full flex items-center justify-center text-text-secondary">
       Network Details - Under Development

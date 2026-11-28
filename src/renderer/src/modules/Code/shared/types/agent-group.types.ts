@@ -8,6 +8,7 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type TerminalLayout = 'single' | 'horizontal-2' | 'vertical-2' | 'grid-4';
 
 export type AgentType = 'claude-code' | 'codex' | 'cursor' | 'gemini' | 'custom';

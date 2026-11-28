@@ -1,10 +1,19 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { Modal, ModalBody } from '@renderer/components/ui/Modal';
 import { X, AlertCircle } from 'lucide-react';
 import { Button } from '@renderer/components/ui/Button';
+
+// ── Services ──
 import type { TaskStatus } from '../../../../../shared/services/task.service';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmUnlinkTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,6 +21,7 @@ interface ConfirmUnlinkTaskModalProps {
   onConfirm: (newStatus: TaskStatus) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ConfirmUnlinkTaskModal = memo(function ConfirmUnlinkTaskModal({
   isOpen,
   onClose,

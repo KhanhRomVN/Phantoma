@@ -1,5 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const scopesApi = {
   list: (worktreeId: string) =>
     request<Array<{ id: string; worktreeId: string; path: string; createdAt: string }>>(

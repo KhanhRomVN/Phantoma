@@ -1,6 +1,22 @@
-import { extractParamValue } from '@renderer/components/Widgets/Zen/screens/Chat/utils/toolParser';
+/**
+ * ------------------------------------------------------------------
+ * Read File Parser
+ * ------------------------------------------------------------------
+ * Parse nội dung tag read_file từ phản hồi của AI thành params.
+ *
+ * Main functions:
+ * - parseReadFile() : Trích xuất file_path, start_line, end_line
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { extractParamValue } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+// ── Types ──
 import type { ReadFileParams } from '../tool.types';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const parseReadFile = (innerContent: string): ReadFileParams => {
   // Parse according to tools-reference.ts schema: file_path only
   const filePath = extractParamValue(innerContent, 'file_path');

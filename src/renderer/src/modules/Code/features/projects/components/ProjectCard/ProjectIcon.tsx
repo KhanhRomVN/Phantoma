@@ -1,4 +1,5 @@
-import { ProjectLogoImage } from '../ProjectLogo';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import {
   Circle,
   Square,
@@ -21,10 +22,16 @@ import {
   CircleCheckBig,
   type LucideIcon,
 } from 'lucide-react';
+
+// ── Components ──
+import { ProjectLogoImage } from '../ProjectLogo';
+
+// ── Utils ──
 import {
   PROJECT_IDENTITY_COLORS as PROJECT_COLORS,
 } from '../../../../shared/constants/project-colors';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const PROJECT_ICONS: LucideIcon[] = [
   Circle,
   Square,
@@ -47,6 +54,7 @@ export const PROJECT_ICONS: LucideIcon[] = [
   CircleCheckBig,
 ];
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /** Stable pseudo-random icon + color per project (same seed → same result). */
 export function getProjectIdentity(seed: string): { color: string; Icon: LucideIcon } {
   let hash = 0;
@@ -61,6 +69,7 @@ export function getProjectIdentity(seed: string): { color: string; Icon: LucideI
   };
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 /** Colored project icon (color-mix tinted background) */
 export function ProjectIcon({
   color,
@@ -71,6 +80,7 @@ export function ProjectIcon({
   Icon: LucideIcon;
   logoPath?: string | null;
 }) {
+  // ── Derived ──
   const fallback = (
     <span
       className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0 self-center"
@@ -80,6 +90,8 @@ export function ProjectIcon({
     </span>
   );
   if (!logoPath) return fallback;
+
+  // ── Render ──
   return (
     <span className="w-[26px] h-[26px] rounded-[8px] overflow-hidden flex items-center justify-center shrink-0 self-center">
       <ProjectLogoImage

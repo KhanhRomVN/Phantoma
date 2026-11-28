@@ -1,10 +1,19 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { FileText, ListChecks } from 'lucide-react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { STATUS_META } from '../../constants/workflow.constants';
-import type { CheckItem, WorkflowNode } from '../../types/workflow.types';
 import { nodeChangeStat } from '../../utils/workflow.util';
 
+// ── Types ──
+import type { CheckItem, WorkflowNode } from '../../types/workflow.types';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface TimelineTaskProps {
   nodes: WorkflowNode[];
   selectedId: string;
@@ -12,6 +21,7 @@ interface TimelineTaskProps {
   onSelect: (id: string) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const TimelineTask = memo(function TimelineTask({ nodes, selectedId, isChecked, onSelect }: TimelineTaskProps) {
   return (
     <div className="w-[300px] shrink-0 border-r border-border overflow-y-auto py-4 px-3">

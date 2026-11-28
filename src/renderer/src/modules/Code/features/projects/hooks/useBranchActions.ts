@@ -1,13 +1,24 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+
+// ── Services ──
 import { gitIpc } from '../../../shared/ipc/git.ipc';
 import { codeApi } from '../../../shared/api/code.api';
+
+// ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ── Utils ──
 import type { CreatedBranchResult } from '../../git';
-import type { BranchInfo, SessionInfo, ProcessInfo } from '../types/session.types';
-import type { ProjectExtended } from '../types/project-panel.types';
 import { mkSum } from '../utils/session-summary.util';
 
+// ── Types ──
+import type { BranchInfo, SessionInfo, ProcessInfo } from '../types/session.types';
+import type { ProjectExtended } from '../types/project-panel.types';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseBranchActionsArgs {
   projects: ProjectExtended[];
   setProjects: Dispatch<SetStateAction<ProjectExtended[]>>;
@@ -22,6 +33,7 @@ interface UseBranchActionsArgs {
   } | null;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useBranchActions({
   projects,
   setProjects,
@@ -31,8 +43,10 @@ export function useBranchActions({
   setBranchVisible,
   confirmDeleteBranchTarget,
 }: UseBranchActionsArgs) {
+  // ── Store ──
   const updateProject = useCodeStore((s) => s.updateProject);
 
+  // ── Callbacks ──
   const handleBranchCreated = useCallback(
     (project: ProjectExtended, result: CreatedBranchResult) => {
       const exists = project.branches.some((b) => b.name === result.branch);
@@ -83,8 +97,10 @@ export function useBranchActions({
     [confirmDeleteBranchTarget, patchProject, updateProject, showToast],
   );
 
+  // ── State ──
   const [deleteBranchHasRemote, setDeleteBranchHasRemote] = useState(false);
 
+  // ── Effects ──
   useEffect(() => {
     if (!confirmDeleteBranchTarget) {
       setDeleteBranchHasRemote(false);
@@ -108,6 +124,7 @@ export function useBranchActions({
     };
   }, [confirmDeleteBranchTarget]);
 
+  // ── Callbacks ──
   const unlinkBranch = useCallback(
     (project: ProjectExtended, branchName: string) => {
       const removed = project.branches.find((b) => b.name === branchName);

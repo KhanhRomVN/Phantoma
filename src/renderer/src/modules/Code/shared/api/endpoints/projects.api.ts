@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
+
+// ── Types ──
 import type { CodeProject, CodeProjectInput } from '../types/project.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const projectsApi = {
   list: () => request<CodeProject[]>('GET', '/projects'),
   get: (id: string) => request<CodeProject>('GET', `/projects/${id}`),

@@ -7,8 +7,11 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolOutputTransformer } from '@renderer/components/Widgets/Zen/shared/tool-behaviors';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { ToolOutputTransformer } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Transform output for Code module tools.
  * Returns transformed output or null to use default (store raw cleanOutput).

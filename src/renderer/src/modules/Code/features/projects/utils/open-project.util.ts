@@ -1,6 +1,9 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { getFaviconUrl } from '@renderer/utils/favicon';
 import { TECH_DOMAIN_MAP, Tone, TONES } from '../constants/open-project.constants';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const hashTone = (seed: string): Tone => {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
@@ -46,6 +49,7 @@ export const getTechIconUrl = (id: string): string => {
   return domain ? getFaviconUrl(domain) : '';
 };
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const GIT_URL_REGEX = /^(https?:\/\/|git@)\S+/i;
 
 export const deriveFolderName = (url: string): string =>

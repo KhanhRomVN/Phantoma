@@ -1,10 +1,19 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import type { ReactNode } from 'react';
+
+// ── UI ──
 import { Check } from 'lucide-react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { getFileIconPath } from '@renderer/utils/file-icon';
 import { ACTION_META } from '../../constants/workflow.constants';
+
+// ── Types ──
 import type { CheckItem, FileAction } from '../../types/workflow.types';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function Chip({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <span

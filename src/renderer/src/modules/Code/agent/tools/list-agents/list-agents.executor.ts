@@ -1,17 +1,24 @@
-import { useWorkflowStore } from '../../stores/workflow.store';
-import { useCodeStore } from '../../../shared/stores/code.store';
+/**
+ * ------------------------------------------------------------------
+ * List Agents Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool list_agents: liệt kê các agent đang có Zen tab mở trong
+ * session hiện tại kèm cấu hình provider/model/account.
+ *
+ * Main functions:
+ * - executeListAgents() : Trả về danh sách agent dạng JSON
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
+import { isAgentInCurrentWorkflow, useWorkflowStore } from '../../stores/workflow.store';
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function executeListAgents(): Promise<string | null> {
   const { agents, configs } = useWorkflowStore.getState();
-  const code = useCodeStore.getState();
-  const panels = code.projects.find((p) => p.id === code.currentProjectId)?.workspacePanels ?? [];
-  const linkedIds = new Set(
-    panels
-      .filter((p) => p.workflowAgentId && p.sessionId === code.activeWorkspaceSessionId)
-      .map((p) => p.workflowAgentId),
-  );
 
-  const items = agents.filter((agent) => linkedIds.has(agent.id)).map((agent) => {
+  const items = agents.filter(isAgentInCurrentWorkflow).map((agent) => {
     const config = configs[agent.id];
     return {
       id: agent.id,

@@ -1,5 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useMemo } from 'react';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const ACCENT_PALETTE = [
   '#ff6a1f',
   '#a078ff',
@@ -10,6 +13,7 @@ export const ACCENT_PALETTE = [
   '#32c8be',
 ];
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useAccentColors() {
   return useMemo(() => ({ accentColors: ACCENT_PALETTE }), []);
 }

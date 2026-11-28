@@ -1,17 +1,27 @@
-import { fsIpc } from '../../../shared/ipc/fs.ipc';
-import { dialogIpc } from '../../../shared/ipc/dialog.ipc';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+
+// ── Components ──
 import CodeBlock from '@renderer/components/common/CodeBlock';
-import { codeApi } from '../../../shared/api/code.api';
-import { useCodeStore } from '../../../shared/stores/code.store';
 import { FileBreadcrumb } from './FileBreadcrumb';
 
+// ── Services ──
+import { fsIpc } from '../../../shared/ipc/fs.ipc';
+import { dialogIpc } from '../../../shared/ipc/dialog.ipc';
+import { codeApi } from '../../../shared/api/code.api';
+
+// ── Stores ──
+import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CodeFileProps {
   filePath?: string;
   fileId?: string;
   cwd?: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const CodeFile = memo(function CodeFile({ filePath, fileId, cwd }: CodeFileProps) {
   const [code, setCode] = useState<string | null>(null);
   const editorRef = useRef<any>(null);
@@ -39,6 +49,8 @@ export const CodeFile = memo(function CodeFile({ filePath, fileId, cwd }: CodeFi
       .catch(() => {
         if (!cancelled) setCode('');
       });
+
+    // ── Render ──
     return () => {
       cancelled = true;
     };
@@ -70,6 +82,8 @@ export const CodeFile = memo(function CodeFile({ filePath, fileId, cwd }: CodeFi
 
   useEffect(() => {
     if (filePath || !fileId) return;
+
+    // ── Handlers ──
     const onKeyDown = (e: KeyboardEvent) => {
       if (!e.ctrlKey || e.shiftKey || e.altKey || e.key.toLowerCase() !== 's') return;
       const el = containerRef.current;
@@ -82,6 +96,8 @@ export const CodeFile = memo(function CodeFile({ filePath, fileId, cwd }: CodeFi
       void handleSaveTemp();
     };
     window.addEventListener('keydown', onKeyDown, true);
+
+    // ── Render ──
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [filePath, fileId, handleSaveTemp]);
 

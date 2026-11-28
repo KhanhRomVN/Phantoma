@@ -1,3 +1,16 @@
+/**
+ * ------------------------------------------------------------------
+ * Project Colors
+ * ------------------------------------------------------------------
+ * Bảng màu dùng cho project trong Code module.
+ *
+ * Main constants:
+ * - PROJECT_SEED_COLORS     : Màu seed khi tạo project
+ * - PROJECT_IDENTITY_COLORS : Màu nhận diện (hash) hiển thị trên ProjectCard
+ * ------------------------------------------------------------------
+ */
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 // ASSUMED: giữ nguyên hai bảng màu vì giá trị khác nhau (seed màu project vs hash identity của ProjectCard)
 export const PROJECT_SEED_COLORS = [
   '#4fa8e0',

@@ -1,10 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useRef, useState } from 'react';
+
+// ── Components ──
 import { SiteLayout, useStars } from './Layout';
+
+// ── Utils ──
 import { SITE } from './site';
 import { Icon } from './theme';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 type Os = 'win' | 'mac' | 'lin';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const NAMES: Record<Os, string> = { win: 'Windows', mac: 'macOS', lin: 'Linux' };
 const EXT: Record<Os, RegExp> = {
   win: /\.(exe|msi)$/i,
@@ -12,22 +20,32 @@ const EXT: Record<Os, RegExp> = {
   lin: /\.(appimage|deb|rpm)$/i,
 };
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function detectOs(): Os {
   if (/Mac/i.test(navigator.platform)) return 'mac';
   if (/Linux|X11/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent)) return 'lin';
   return 'win';
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function Body() {
+  // ── Derived ──
   const stars = useStars();
+
+  // ── State ──
   const [os, setOs] = useState<Os>(detectOs);
   const [assets, setAssets] = useState<{ name: string; browser_download_url: string }[]>([]);
   const [copied, setCopied] = useState(false);
+
+  // ── Refs ──
   const dialog = useRef<HTMLDialogElement>(null);
+
+  // ── State ──
   const [type, setType] = useState('Bug');
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
 
+  // ── Effects ──
   useEffect(() => {
     fetch(`https://api.github.com/repos/KhanhRomVN/Phantoma/releases/latest`)
       .then((r) => r.json())
@@ -37,6 +55,7 @@ function Body() {
       .catch(() => {});
   }, []);
 
+  // ── Derived ──
   const asset = assets.find((a) => EXT[os].test(a.name));
   const href = asset ? asset.browser_download_url : `${SITE.repo}/releases`;
   const cmd = `git clone ${SITE.repo}`;
@@ -59,6 +78,7 @@ function Body() {
     dialog.current?.close();
   };
 
+  // ── Render ──
   return (
     <>
       <section id="download">

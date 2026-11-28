@@ -1,19 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Git View
- * ------------------------------------------------------------------
- * GitKraken-style Git client rendered in the ContentPanel when
- * contentViewMode === 'git'.
- *
- * Main features:
- * - Toolbar: project, current branch, commit search, refresh
- * - Left: local / remote branches (click to jump to the tip)
- * - Center: commit graph with avatar nodes, ref labels, lane-tinted
- *   rows, column header and keyboard navigation (Up / Down)
- * - Right: commit detail with changed files and stats
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, GitCommit, Loader2, RefreshCw, Search, X } from 'lucide-react';

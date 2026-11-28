@@ -1,3 +1,5 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import {
   ChevronDown,
   ChevronsDown,
@@ -12,15 +14,23 @@ import {
   EyeOff,
   FolderTree,
 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { ProjectLogoImage } from '../ProjectLogo';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
+// ── Types ──
 import type { ProjectExtended, GroupInfo } from '../../types/project-panel.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const headerBtn =
   'w-[26px] h-[26px] rounded-md flex items-center justify-center transition-colors cursor-pointer relative';
 const headerBtnIdle = 'text-text-secondary hover:bg-card-hover hover:text-text-primary';
 const headerBtnOn = 'text-[#ff6a1f] bg-[rgba(255,106,31,0.1)]';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ProjectToolbarProps {
   shownCount: number;
   projects: ProjectExtended[];
@@ -41,6 +51,7 @@ interface ProjectToolbarProps {
   setQuery: (value: string) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ProjectToolbar({
   shownCount,
   projects,
@@ -60,6 +71,7 @@ export function ProjectToolbar({
   query,
   setQuery,
 }: ProjectToolbarProps) {
+  // ── Render ──
   return (
     <>
       {/* Header */}

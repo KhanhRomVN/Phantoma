@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import { create } from 'zustand';
+
+// ── Utils ──
 import type { PaneId, PanelType } from '../../../shared/utils/workspace-layout.util';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type PaneRule = PaneId | 'auto';
 export type PanelRules = Record<PanelType, PaneRule>;
 
@@ -11,6 +16,7 @@ export interface LayoutPreset {
   rules: PanelRules;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'phantoma:workspace-settings';
 
 export const PANEL_TYPES: PanelType[] = [
@@ -29,6 +35,7 @@ export const DEFAULT_RULES: PanelRules = {
   website: 'tr',
   terminal: 'br',
   emulator: 'tr',
+  design: 'tr',
 };
 
 export const LAYOUT_PRESETS: LayoutPreset[] = [
@@ -49,6 +56,7 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
       terminal: 'bl',
       emulator: 'br',
       agenttools: 'tr',
+      design: 'tr',
     },
   },
   {
@@ -62,6 +70,7 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
       terminal: 'bl',
       emulator: 'bl',
       agenttools: 'tl',
+      design: 'tl',
     },
   },
   {
@@ -75,6 +84,7 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
       terminal: 'tl',
       emulator: 'tl',
       agenttools: 'tl',
+      design: 'tl',
     },
   },
 ];
@@ -93,6 +103,7 @@ const DEFAULTS: PersistedSettings = {
 
 const VALID_RULES: PaneRule[] = ['tl', 'tr', 'bl', 'br', 'auto'];
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const load = (): PersistedSettings => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -136,6 +147,7 @@ interface WorkspaceSettingsState extends PersistedSettings {
   reset: () => void;
 }
 
+// ─── Store ───────────────────────────────────────────────────────────────────
 export const useWorkspaceSettings = create<WorkspaceSettingsState>((set, get) => {
   const update = (patch: Partial<PersistedSettings>) => {
     const s = get();

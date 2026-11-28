@@ -1,8 +1,26 @@
+/**
+ * ------------------------------------------------------------------
+ * Read File Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool read_file: gọi ReadFileHandler để đọc nội dung file
+ * (có thể theo khoảng dòng) và định dạng kết quả cho agent.
+ *
+ * Main functions:
+ * - executeReadFile() : Đọc file theo path, start_line, end_line
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { ReadFileHandler } from './read-file.handler';
+
+// ── Types ──
 import type { ReadFileParams } from '../tool.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const readFileHandler = new ReadFileHandler();
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Execute read_file tool — gọi trực tiếp ReadFileHandler.
  */

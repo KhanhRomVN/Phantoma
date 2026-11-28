@@ -24,6 +24,7 @@ import { PayloadPanel } from './Fuzzer';
 import { SourcesPanel } from './Source';
 import { ReportPanel } from './Report';
 import { LogViewer } from './Log';
+import CodeWorkspacePanel from './Code';
 
 // ── Constants ──
 import { ToolType, TOOLS } from '../../constants/tools';
@@ -53,13 +54,14 @@ import { DEFAULT_COLUMN_VISIBILITY } from './Home/requestColumns';
 import type { ColumnVisibility } from './Home/requestColumns';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
+import type { TargetTab, TargetState } from '../../types/target.types';
+
 interface WorkspacePanelProps {
   selectedTool: ToolType;
   activeTargetId: string | null;
-  targetStates: Record<
-    string,
-    { isActive: boolean; mode?: string; isIntercepting?: boolean; startTime?: number }
-  >;
+  targetStates: Record<string, TargetState>;
+  targetTabs?: TargetTab[];
+  setState?: React.Dispatch<React.SetStateAction<any>>;
   selectedId: string | null;
   searchTerm: string;
   filter: any;
@@ -95,6 +97,8 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
   selectedTool,
   activeTargetId,
   targetStates,
+  targetTabs = [],
+  setState,
   selectedId,
   searchTerm,
   filter,
@@ -127,9 +131,8 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
   );
   const [dbCounts, setDbCounts] = useState({ fuzzer: 0, report: 0 });
   const [viewMode, setViewMode] = useState<'https' | 'websocket'>('https');
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>(
-    DEFAULT_COLUMN_VISIBILITY,
-  );
+  const [columnVisibility, setColumnVisibility] =
+    useState<ColumnVisibility>(DEFAULT_COLUMN_VISIBILITY);
 
   useEffect(() => {
     if (!activeTargetId || activeTargetId === 'default') {
@@ -216,10 +219,7 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
               {createElement(tool.icon, { size: 14, strokeWidth: 1.5 })}
             </span>
             <span>{tool.label}</span>
-            {(id === 'fuzzer' ||
-              id === 'source' ||
-              id === 'resource' ||
-              id === 'report') && (
+            {(id === 'fuzzer' || id === 'source' || id === 'resource' || id === 'report') && (
               <span className="ml-1 text-xs text-text-secondary">
                 {id === 'fuzzer'
                   ? dbCounts.fuzzer
@@ -317,10 +317,7 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
                       isTargetActive={isTargetActive(activeTargetId)}
                       activeTargetMode={
                         (targetStates[activeTargetId]?.mode as
-                          | 'mitm'
-                          | 'cdp'
-                          | 'frida'
-                          | undefined) || null
+                          'mitm' | 'cdp' | 'frida' | undefined) || null
                       }
                       isInterceptActive={targetStates[activeTargetId]?.isIntercepting || false}
                       onToggleIntercept={onToggleIntercept}
@@ -382,6 +379,53 @@ const WorkspacePanel: FC<WorkspacePanelProps> = ({
               <LogViewer />
             </div>
           )}
+          {selectedTool === 'code' &&
+            (() => {
+              const workspacePath =
+                activeTargetId && targetStates[activeTargetId]
+                  ? targetStates[activeTargetId].workspacePath
+                  : undefined;
+              return (
+                <div className="flex-1 overflow-hidden">
+                  <CodeWorkspacePanel
+                    activeTargetId={activeTargetId}
+                    targetWorkspacePath={workspacePath}
+                    onUpdateWorkspacePath={
+                      setState
+                        ? async (targetId, path) => {
+                            // Update via emulateApi
+                            try {
+                              const targetTab = targetTabs.find((t) => t.id === targetId);
+                              if (targetTab) {
+                                await emulateApi.updateTarget(targetId, { workspace_path: path });
+                                // Update local state
+                                const updatedTargets = targetTabs.map((t) =>
+                                  t.id === targetId
+                                    ? { ...t, workspacePath: path || undefined }
+                                    : t,
+                                );
+                                setState((prev) => ({
+                                  ...prev,
+                                  targetTabs: updatedTargets,
+                                  targetStates: {
+                                    ...prev.targetStates,
+                                    [targetId]: {
+                                      ...prev.targetStates[targetId],
+                                      workspacePath: path || undefined,
+                                    },
+                                  },
+                                }));
+                              }
+                            } catch (error) {
+                              console.error('Failed to update workspace path:', error);
+                            }
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
+              );
+            })()}
         </>
       )}
     </div>

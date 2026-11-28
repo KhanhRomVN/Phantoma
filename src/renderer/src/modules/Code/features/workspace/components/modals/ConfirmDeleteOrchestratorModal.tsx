@@ -1,9 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmDeleteOrchestratorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,6 +15,7 @@ interface ConfirmDeleteOrchestratorModalProps {
   action?: 'close' | 'home';
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmDeleteOrchestratorModal({
   isOpen,
   onClose,
@@ -19,7 +23,10 @@ export function ConfirmDeleteOrchestratorModal({
   linkedAgentCount,
   action = 'close',
 }: ConfirmDeleteOrchestratorModalProps) {
+  // ── Derived ──
   const isHome = action === 'home';
+
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[400px]">
       <ModalBody className="py-6 px-5">

@@ -1,10 +1,18 @@
-import { ZEN_INSERT_TEXT_EVENT } from '@renderer/components/Widgets/Zen/shared/events';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Components ──
 import { getStashedMarkers } from '@renderer/components/common/CodeBlock';
+
+// ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
 
+// ── Utils ──
+import { ZEN_INSERT_TEXT_EVENT } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const SEVERITY_WARNING = 4;
 const SEVERITY_ERROR = 8;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const toRelativePath = (filePath: string): string => {
   const s = useCodeStore.getState();
   const project = s.projects.find((p) => p.id === s.currentProjectId);

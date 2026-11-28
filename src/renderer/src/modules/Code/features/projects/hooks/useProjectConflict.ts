@@ -1,17 +1,26 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useCallback, useMemo, useEffect } from 'react';
+
+// ── Components ──
 import {
   fromBranchTargetId,
   toBranchTargetId,
   type ConflictProjectOption,
 } from '../components/ProjectPanel/modals/ProjectConflictModal';
+
+// ── Hooks ──
 import {
   useTargetLock,
   useIsLateClaimant,
   forceReleaseTarget,
   focusTargetOwner,
 } from '@renderer/hooks/useTargetLock';
+
+// ── Types ──
 import type { ProjectExtended } from '../types/project-panel.types';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseProjectConflictArgs {
   projects: ProjectExtended[];
   rawProjects: ReadonlyArray<{ id: string; path?: string }>;
@@ -21,6 +30,7 @@ interface UseProjectConflictArgs {
   onUnselectProject: () => void;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useProjectConflict({
   projects,
   rawProjects,
@@ -29,10 +39,12 @@ export function useProjectConflict({
   busyTargetIds,
   onUnselectProject,
 }: UseProjectConflictArgs) {
+  // ── State ──
   const [conflictOpen, setConflictOpen] = useState(false);
   // ASSUMED: cửa sổ đang hiện modal xung đột chưa thực sự giữ target nên không được claim
   useTargetLock('code', conflictOpen ? null : currentTargetId, onUnselectProject);
 
+  // ── Derived ──
   const busyBranchesByProject = useMemo(() => {
     const map = new Map<string, Set<string>>();
     busyTargetIds.forEach((id) => {
@@ -44,6 +56,7 @@ export function useProjectConflict({
     return map;
   }, [busyTargetIds]);
 
+  // ── Callbacks ──
   const handleReleaseElsewhere = useCallback((projectId: string, branchName: string) => {
     forceReleaseTarget('code', toBranchTargetId(projectId, branchName));
   }, []);
@@ -52,9 +65,12 @@ export function useProjectConflict({
     focusTargetOwner('code', toBranchTargetId(projectId, branchName));
   }, []);
 
+  // ── Derived ──
   const isLateClaimant = useIsLateClaimant('code', currentTargetId);
   const conflictTriggered =
     !!currentTargetId && isLateClaimant && busyTargetIds.has(currentTargetId);
+
+  // ── Effects ──
   useEffect(() => {
     if (conflictOpen && currentTargetId && !busyTargetIds.has(currentTargetId)) {
       setConflictOpen(false);
@@ -70,6 +86,7 @@ export function useProjectConflict({
     if (conflictTriggered) setConflictOpen(true);
   }, [conflictTriggered]);
 
+  // ── Derived ──
   const conflictProject =
     conflictOpen && currentTargetId
       ? (projects.find((p) => p.id === currentProjectId) ?? null)

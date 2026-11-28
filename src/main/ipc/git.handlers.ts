@@ -53,7 +53,7 @@ function runGit(
   return new Promise((resolve) => {
     execFile(
       'git',
-      args,
+      ['-c', 'core.quotepath=false', ...args],
       {
         cwd,
         maxBuffer: 10 * 1024 * 1024,
@@ -65,6 +65,28 @@ function runGit(
       },
     );
   });
+}
+
+// ASSUMED: workaround an toàn nếu path vẫn đến dưới dạng C-quoted của git ("...\341\273...")
+function decodeQuotedGitPath(p: string): string {
+  if (p.length < 2 || !p.startsWith('"') || !p.endsWith('"')) return p;
+  const body = p.slice(1, -1);
+  const bytes: number[] = [];
+  for (let i = 0; i < body.length; i++) {
+    if (body[i] !== '\\') {
+      bytes.push(...Buffer.from(body[i]));
+      continue;
+    }
+    i++;
+    const oct = /^[0-7]{1,3}/.exec(body.slice(i))?.[0];
+    if (oct) {
+      bytes.push(parseInt(oct, 8));
+      i += oct.length - 1;
+    } else {
+      bytes.push(...Buffer.from(body[i] === 'n' ? '\n' : body[i] === 't' ? '\t' : body[i]));
+    }
+  }
+  return Buffer.from(bytes).toString('utf8');
 }
 
 /** Branch 'default' duy nhất của repo: origin/HEAD, fallback init.defaultBranch (phải tồn tại local). */
@@ -447,31 +469,34 @@ export function setupGitHandlers(): void {
                   status: kindByPath.get(f.path) ?? 'modified',
                 }));
           if (name === current) {
-            const status = await runGit(['status', '--porcelain', '--untracked-files=all'], cwd);
-            status.stdout
-              .split('\n')
-              .filter((l) => l.length > 3)
-              .forEach((l) => {
-                const untracked = l[0] === '?';
-                const staged = !untracked && l[0] !== ' ';
-                const unstaged = untracked || l[1] !== ' ';
-                const code = l.slice(0, 2);
-                let path = l.slice(3).trim();
-                if (path.includes(' -> ')) path = path.split(' -> ')[1];
-                if (!path) return;
-                let file = files.find((f) => f.path === path);
-                if (!file) {
-                  const kind: FileKind =
-                    untracked || code.includes('A')
-                      ? 'added'
-                      : code.includes('D')
-                        ? 'deleted'
-                        : 'modified';
-                  file = { added: 0, deleted: 0, path, status: kind };
-                  files.push(file);
-                }
-                Object.assign(file, { staged, unstaged, untracked });
-              });
+            const status = await runGit(
+              ['status', '--porcelain', '-z', '--untracked-files=all'],
+              cwd,
+            );
+            const entries = status.stdout.split('\0');
+            for (let i = 0; i < entries.length; i++) {
+              const l = entries[i];
+              if (l.length <= 3) continue;
+              const untracked = l[0] === '?';
+              const staged = !untracked && l[0] !== ' ';
+              const unstaged = untracked || l[1] !== ' ';
+              const code = l.slice(0, 2);
+              if (code[0] === 'R' || code[0] === 'C') i++;
+              const path = l.slice(3);
+              if (!path) continue;
+              let file = files.find((f) => f.path === path);
+              if (!file) {
+                const kind: FileKind =
+                  untracked || code.includes('A')
+                    ? 'added'
+                    : code.includes('D')
+                      ? 'deleted'
+                      : 'modified';
+                file = { added: 0, deleted: 0, path, status: kind };
+                files.push(file);
+              }
+              Object.assign(file, { staged, unstaged, untracked });
+            }
           }
           return { name, files };
         }),
@@ -1158,8 +1183,19 @@ export function setupGitHandlers(): void {
     try {
       const cwd = projectPath || process.cwd();
       if (!files || files.length === 0) return { success: true };
-      const result = await runGit(['add', '--', ...files], cwd);
-      if (result.error) return { error: result.stderr || result.error.message };
+      const quoted = files.filter((f) => f.startsWith('"'));
+      console.log('[DEBUG][git:stage:main]', {
+        cwd,
+        total: files.length,
+        quotedCount: quoted.length,
+        sample: quoted.slice(0, 5),
+      });
+      const paths = files.map(decodeQuotedGitPath);
+      const result = await runGit(['add', '--', ...paths], cwd);
+      if (result.error) {
+        console.error('[DEBUG][git:stage:main] failed', result.stderr);
+        return { error: result.stderr || result.error.message };
+      }
       return { success: true };
     } catch (e: any) {
       logger.error('[git:stage] Error:', e);

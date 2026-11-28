@@ -6,9 +6,12 @@
  * ------------------------------------------------------------------
  */
 
-import { DISPLAY_ONLY_RESULT } from '@renderer/components/Widgets/Zen/screens/Chat/types/executor-types';
-import type { ExecutorContext } from '@renderer/components/Widgets/Zen/screens/Chat/types/executor-types';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { DISPLAY_ONLY_RESULT } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ExecutorContext } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function executeGitStatus(
   _params: Record<string, any>,
   _ctx: ExecutorContext,

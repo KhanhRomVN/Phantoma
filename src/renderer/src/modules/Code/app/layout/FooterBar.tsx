@@ -1,20 +1,4 @@
 import { watchIpc } from '../../shared/ipc/watch.ipc';
-/**
- * ------------------------------------------------------------------
- * FooterBar
- * ------------------------------------------------------------------
- * Flat status bar at the bottom of the Code module (no button/badge
- * styling, only colored text and icons). Every item shows an instant
- * (no delay) rich tooltip panel defined in this file.
- *
- * Left:  project name, git branch (click opens Git view), changes
- *        overview (total + not added / added / committed segmented bar
- *        with +/- line stats), unpushed commits, refresh.
- * Right: unsaved files, open files, current view mode, clock.
- * Git data comes from the `git:status` IPC and refreshes every 15s.
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {

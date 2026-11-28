@@ -1,5 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import type { DesignGraph } from '../stores/design.store';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const websiteFiles = import.meta.glob('../templates/website/*.{ts,tsx,md,png}', {
   query: '?raw',
   import: 'default',
@@ -12,6 +15,7 @@ const mobileFiles = import.meta.glob('../templates/mobile/*.{ts,tsx,md,png}', {
   eager: true,
 }) as Record<string, string>;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function getTemplateFiles(platform: 'website' | 'mobile' = 'website'): Record<string, string> {
   const rawFiles = platform === 'mobile' ? mobileFiles : websiteFiles;
   const files: Record<string, string> = {};

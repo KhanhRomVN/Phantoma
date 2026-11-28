@@ -1,13 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import type { ComponentProps } from 'react';
-import type { useCodeStore } from '../../../../shared/stores/code.store';
-import { taskService } from '../../../../shared/services/task.service';
-import {
-  SyncBranchModal,
-  CreateBranchModal,
-  ConfirmDeleteBranchModal,
-  ConfirmUnlinkBranchModal,
-} from '../../../git';
-import { ConfirmForceStartTaskModal } from '../../../tasks';
+
+// ── Components ──
 import { OpenProjectModal } from '../modals/OpenProject/OpenProjectModal';
 import { ConfirmDeleteProjectModal } from '../modals/ConfirmDeleteProjectModal';
 import { ProjectSettingsModal } from '../modals/ProjectSettingsModal';
@@ -19,13 +14,33 @@ import {
 } from './modals/ProjectConflictModal';
 import { AssignTaskModal } from './modals/AssignTaskModal';
 import { ConfirmUnassignTaskModal } from './modals/ConfirmUnassignTaskModal';
+
+// ── Hooks ──
 import { forceReleaseTarget, focusTargetOwner } from '@renderer/hooks/useTargetLock';
 import type { useProjectDialogs } from '../../hooks/useProjectDialogs';
 import type { useProjectTaskActions } from '../../hooks/useProjectTaskActions';
 import type { useProjectMutations } from '../../hooks/useProjectMutations';
 import type { useProjectSelection } from '../../hooks/useProjectSelection';
+
+// ── Services ──
+import { taskService } from '../../../../shared/services/task.service';
+
+// ── Stores ──
+import type { useCodeStore } from '../../../../shared/stores/code.store';
+
+// ── Utils ──
+import {
+  SyncBranchModal,
+  CreateBranchModal,
+  ConfirmDeleteBranchModal,
+  ConfirmUnlinkBranchModal,
+} from '../../../git';
+import { ConfirmForceStartTaskModal } from '../../../tasks';
+
+// ── Types ──
 import type { GroupInfo, ProjectExtended } from '../../types/project-panel.types';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 type TaskActions = ReturnType<typeof useProjectTaskActions>;
 type Selection = ReturnType<typeof useProjectSelection>;
 type BranchCreatedResult = Parameters<ComponentProps<typeof CreateBranchModal>['onCreated']>[0];
@@ -62,6 +77,7 @@ interface ProjectDialogsProps {
   handleUnselectProject: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ProjectDialogs({
   dialogs,
   projects,
@@ -93,6 +109,7 @@ export function ProjectDialogs({
   handleSwitchBranch,
   handleUnselectProject,
 }: ProjectDialogsProps) {
+  // ── Derived ──
   const {
     addModalOpen,
     setAddModalOpen,
@@ -119,6 +136,7 @@ export function ProjectDialogs({
     setConfirmUnassign,
   } = dialogs;
 
+  // ── Render ──
   return (
     <>
       {/* ── Project Modals ── */}

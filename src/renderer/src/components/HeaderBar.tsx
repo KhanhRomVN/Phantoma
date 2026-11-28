@@ -45,7 +45,7 @@ import {
 import { SystemStatsModal } from './SystemStatsModal';
 import { BrowserUpdate } from './BrowserUpdate';
 import SyncConfirmModal from '@renderer/modules/Setting/components/Backup/SyncConfirmModal';
-import ToastContainer from '@renderer/modules/Code/shared/components/ToastContainer';
+import { ToastContainer } from '@renderer/components/ui/Toast';
 import { COMMIT_MESSAGE, useBackup } from '@renderer/modules/Setting/components/Backup/useBackup';
 
 // ── Utils ─

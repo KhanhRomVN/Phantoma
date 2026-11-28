@@ -1,10 +1,19 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
+
+// ── Components ──
 import { SiteLayout } from './Layout';
+
+// ── Utils ──
 import { MODES, PROVIDERS } from './site';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export default function Agent() {
+  // ── State ──
   const [mode, setMode] = useState<'full' | 'ask'>('full');
 
+  // ── Render ──
   return (
     <SiteLayout current="/agent">
       <section id="agent">

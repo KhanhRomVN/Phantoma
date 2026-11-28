@@ -1,8 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmDeleteTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -10,12 +13,14 @@ interface ConfirmDeleteTaskModalProps {
   taskTitle: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmDeleteTaskModal({
   isOpen,
   onClose,
   onConfirm,
   taskTitle,
 }: ConfirmDeleteTaskModalProps) {
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[400px]">
       <ModalBody className="py-6 px-5">

@@ -1,8 +1,26 @@
-import { GrepHandler } from './grep.handler';
-import { GrepParams } from './grep.parser';
+/**
+ * ------------------------------------------------------------------
+ * Grep Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool grep: gọi GrepHandler để tìm kiếm regex trong file hoặc
+ * thư mục và định dạng kết quả dạng thẻ grep_results cho agent.
+ *
+ * Main functions:
+ * - executeGrep() : Tìm kiếm theo search_term trong file_path hoặc folder_path
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { GrepHandler } from './grep.handler';
+
+// ── Types ──
+import { GrepParams } from '../tool.types';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const grepHandler = new GrepHandler('');
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const escapeAttr = (s: string): string => s.replace(/"/g, "'");
 
 export async function executeGrep(params: GrepParams): Promise<string | null> {

@@ -2,17 +2,17 @@ import React from 'react';
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/features/chat/registries/tag.registry';
 
 // ── Types ──
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
 
 // ── Utils ──
 import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/TagHeader';
+import ErrorBlock from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ErrorBlock';
 
 export const GetSourceDetailRenderer: React.FC<BaseRendererProps> = ({
   action,

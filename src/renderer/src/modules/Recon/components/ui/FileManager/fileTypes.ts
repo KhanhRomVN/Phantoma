@@ -42,11 +42,13 @@ export type FsNode = FolderNode | FileNode;
 
 // --- View / sort / filter ---
 
+import type { SortDir } from '@shared/types/sort.types';
+
 /** Two views: grid (cards) and tree (detail rows). */
 export type FileView = 'grid' | 'tree';
 
 export type SortKey = 'name' | 'kind' | 'size' | 'modified';
-export type SortDir = 'asc' | 'desc';
+export type { SortDir };
 
 export interface FileSort {
   key: SortKey;

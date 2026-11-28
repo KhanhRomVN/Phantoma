@@ -1,7 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useMemo } from 'react';
+
+// ── Utils ──
 import { buildGraph, LANE_WIDTH, type Commit, type GraphRow } from '../utils/graph.util';
+
+// ── Types ──
 import type { LocalChange } from '../types/git-view.types';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseGitGraphProps {
   commits: Commit[];
   localChanges: LocalChange[];
@@ -27,11 +34,13 @@ interface UseGitGraphReturn {
   allVirtualNames: Set<string>;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGitGraph({
   commits,
   localChanges,
   mainTip,
 }: UseGitGraphProps): UseGitGraphReturn {
+  // ── Derived ──
   const { rows, laneCount } = useMemo(() => buildGraph(commits, mainTip), [commits, mainTip]);
   const graphWidth = Math.min(Math.max(laneCount * LANE_WIDTH + 16, 72), 260);
 

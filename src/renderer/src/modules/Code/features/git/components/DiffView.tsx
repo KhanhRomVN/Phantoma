@@ -1,13 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Git Diff View
- * ------------------------------------------------------------------
- * Replaces the commit graph in the center area: shows the diff of the
- * file clicked in the right panel. Esc goes back. The diff rendering
- * itself lives in components/common/DiffBlock.
- * ------------------------------------------------------------------
- */
-
 import { memo, useEffect, useRef, useState } from 'react';
 import { AlertCircle, ArrowLeft, GitBranch, Loader2, Plus, Undo2 } from 'lucide-react';
 import { codeApi } from '../../../shared/api/code.api';

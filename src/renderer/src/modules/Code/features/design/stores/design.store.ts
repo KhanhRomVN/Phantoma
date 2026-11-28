@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { designIpc } from '../../../shared/ipc/design.ipc';
+
+// ── Stores ──
 import { create } from 'zustand';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface DesignNode {
   id: string;
   name: string;
@@ -51,6 +56,7 @@ interface DesignState {
   reset: () => void;
 }
 
+// ─── Store ───────────────────────────────────────────────────────────────────
 export const useDesignStore = create<DesignState>((set, get) => {
   // Expose store globally for WorkspacePanes to access design names
   if (typeof window !== 'undefined') {

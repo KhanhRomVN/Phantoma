@@ -4,7 +4,7 @@ interface SchedulesTabProps {
   device: Device;
 }
 
-export function SchedulesTab({ device }: SchedulesTabProps) {
+export function SchedulesTab({}: SchedulesTabProps) {
   return (
     <div className="rounded-xl bg-card-background p-4">
       <div className="text-xs text-text-secondary">No schedules</div>

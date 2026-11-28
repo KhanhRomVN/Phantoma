@@ -1,9 +1,15 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
 
+// ── UI ──
 import { Modal } from '@renderer/components/ui/Modal';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { SCOPE_DOT } from '../../../../shared/utils/scope-badges.util';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ScopeHelpModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +29,7 @@ interface Outcome {
   meaning: string;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const OUTCOMES: Outcome[] = [
   {
     id: 'none',
@@ -100,6 +107,7 @@ const OUTCOMES: Outcome[] = [
   },
 ];
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const Dot = ({ className }: { className?: string }) => (
   <span className={cn('h-2 w-2 shrink-0 rounded-full', className)} />
 );

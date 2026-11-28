@@ -1,8 +1,13 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
-import { AgentRootContext } from '@renderer/components/Widgets/Zen/context/AgentRootContext';
-import { SettingsProvider } from '@renderer/components/Widgets/Zen/context/SettingsContext';
-import { SkillPanel } from '@renderer/components/Widgets/Zen/screens/Marketplace';
 
+// ── Utils ──
+import { AgentRootContext } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { SettingsProvider } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { SkillPanel } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export function Skill() {
   const [rootEl, setRootEl] = useState<HTMLElement | null>(null);
 

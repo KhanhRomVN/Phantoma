@@ -1,9 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { Unlink } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmUnlinkBranchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -13,6 +16,7 @@ interface ConfirmUnlinkBranchModalProps {
   branchPath: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmUnlinkBranchModal({
   isOpen,
   onClose,
@@ -21,11 +25,13 @@ export function ConfirmUnlinkBranchModal({
   projectName,
   branchPath,
 }: ConfirmUnlinkBranchModalProps) {
+  // ── Handlers ──
   const handleConfirm = () => {
     onConfirm();
     onClose();
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[400px]">
       <ModalBody className="py-6 px-5">

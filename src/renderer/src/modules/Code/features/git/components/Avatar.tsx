@@ -1,23 +1,18 @@
-/**
- * ------------------------------------------------------------------
- * Git Avatar
- * ------------------------------------------------------------------
- * Real GitHub avatar (same source as ProjectDetailPanel contributors)
- * with a colored initials fallback when the user cannot be resolved
- * or the image fails to load.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useState } from 'react';
 
+// ── Utils ──
 import { avatarColor, avatarUrl, githubUsername, initials } from '../utils/graph.util';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface AvatarProps {
   author: string;
   email: string;
   size?: number;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const Avatar = memo(function Avatar({ author, email, size = 18 }: AvatarProps) {
   const user = githubUsername(author, email);
   const [failedUser, setFailedUser] = useState<string | null>(null);

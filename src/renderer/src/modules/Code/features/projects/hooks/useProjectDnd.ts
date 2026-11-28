@@ -1,14 +1,23 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useRef, useState, useCallback } from 'react';
 import type { Dispatch, DragEvent as ReactDragEvent, SetStateAction } from 'react';
+
+// ── Hooks ──
+import { UNGROUP_ID } from './useProjectGroups';
+
+// ── Utils ──
 import { getVisibleBranches } from '../utils/project-card.util';
-import type { ProjectExtended, GroupInfo } from '../types/project-panel.types';
 import {
   clearDragMarks,
   attachProjectDragImage,
   attachGroupDragGhost,
 } from '../utils/dnd.util';
-import { UNGROUP_ID } from './useProjectGroups';
 
+// ── Types ──
+import type { ProjectExtended, GroupInfo } from '../types/project-panel.types';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseProjectDndArgs {
   projects: ProjectExtended[];
   shownProjects: ProjectExtended[];
@@ -21,6 +30,7 @@ interface UseProjectDndArgs {
   setUngroupIndex: Dispatch<SetStateAction<number>>;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useProjectDnd({
   projects,
   shownProjects,
@@ -32,6 +42,7 @@ export function useProjectDnd({
   ungroupIndex,
   setUngroupIndex,
 }: UseProjectDndArgs) {
+  // ── Refs ──
   const dragRef = useRef<{
     type: 'project' | 'branch' | 'group';
     projectId?: string;
@@ -40,8 +51,10 @@ export function useProjectDnd({
     el: HTMLElement | null;
   } | null>(null);
 
+  // ── State ──
   const [isGlobalDragging, setIsGlobalDragging] = useState(false);
 
+  // ── Callbacks ──
   const handleDragStart = useCallback(
     (
       e: ReactDragEvent,

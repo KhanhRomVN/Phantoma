@@ -1,9 +1,19 @@
-import { dialogIpc } from '../../../../../../shared/ipc/dialog.ipc';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
+
+// ── UI ──
 import { Check, FolderOpen, Link2, Loader2, Trash2 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
-import { codeApi } from '../../../../../../shared/api/code.api';
+
+// ── Components ──
 import { ProjectLogoImage } from '../../../ProjectLogo';
+
+// ── Services ──
+import { dialogIpc } from '../../../../../../shared/ipc/dialog.ipc';
+import { codeApi } from '../../../../../../shared/api/code.api';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import {
   Panel,
   ProjectMark,
@@ -12,8 +22,10 @@ import {
   type ProjectSettingsTarget,
 } from '../shared';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 type LogoCandidate = { path: string; name: string; width: number; height: number };
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'svg'];
 
 interface LogoTabProps {
@@ -21,15 +33,19 @@ interface LogoTabProps {
   onChange: (patch: ProjectSettingsPatch) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function LogoTab({ project, onChange }: LogoTabProps) {
+  // ── State ──
   const [candidates, setCandidates] = useState<LogoCandidate[]>([]);
   const [scanning, setScanning] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlBusy, setUrlBusy] = useState(false);
   const [error, setError] = useState('');
 
+  // ── Derived ──
   const projectPath = project.path;
 
+  // ── Effects ──
   useEffect(() => {
     let alive = true;
     setCandidates([]);
@@ -51,6 +67,7 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
     };
   }, [projectPath]);
 
+  // ── Derived ──
   const pickFile = async () => {
     setError('');
     const res = await dialogIpc.selectPaths({
@@ -83,6 +100,7 @@ export function LogoTab({ project, onChange }: LogoTabProps) {
 
   const current = project.logoPath ?? null;
 
+  // ── Render ──
   return (
     <div className='flex flex-col gap-8'>
       <Section

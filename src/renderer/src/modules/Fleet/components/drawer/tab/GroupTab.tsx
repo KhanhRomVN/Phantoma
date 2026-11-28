@@ -5,7 +5,7 @@ interface GroupTabProps {
   group: DeviceGroup;
 }
 
-export function GroupTab({ device, group }: GroupTabProps) {
+export function GroupTab({ group }: GroupTabProps) {
   return (
     <div className="rounded-xl bg-card-background p-4">
       <div className="text-base text-text-primary">{group.name}</div>

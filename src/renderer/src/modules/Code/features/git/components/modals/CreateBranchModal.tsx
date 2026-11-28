@@ -1,17 +1,19 @@
-import { gitIpc } from '../../../../shared/ipc/git.ipc';
-import { dialogIpc } from '../../../../shared/ipc/dialog.ipc';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useId, useRef, useState } from 'react';
+
+// ── UI ──
 import {
   AlertCircle,
   Folder,
   GitBranch,
   Loader2,
 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
-
 import { Button } from '@renderer/components/ui/Button/Button';
+
+// ── Components ──
 import {
   ConfirmCreateBranchModal,
   autoSelectIgnored,
@@ -20,8 +22,16 @@ import {
   type WorktreePreview,
 } from './ConfirmCreateBranchModal';
 import { TreeUIPreview } from './TreeUIPreview';
+
+// ── Services ──
+import { gitIpc } from '../../../../shared/ipc/git.ipc';
+import { dialogIpc } from '../../../../shared/ipc/dialog.ipc';
 import { codeApi } from '../../../../shared/api/code.api';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 type CopyMode = 'latest-commit' | 'local' | 'commit';
 
 export interface CreatedBranchResult {
@@ -43,11 +53,14 @@ interface CreateBranchModalProps {
   onCreated: (result: CreatedBranchResult) => void;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const FIELD =
   'w-full h-9 rounded-md bg-input-background text-[13px] text-text-primary outline-none transition-colors placeholder:text-text-secondary/40';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const parentDir = (p: string) => p.replace(/\/+$/, '').replace(/\/[^/]*$/, '') || '/';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function CreateBranchModal({
   isOpen,
   onClose,
@@ -61,11 +74,16 @@ export function CreateBranchModal({
   projectLogoPath,
   onCreated,
 }: CreateBranchModalProps) {
+  // ── State ──
   const [remoteOverride, setRemoteOverride] = useState<string | null>(null);
+
+  // ── Derived ──
   const existingBranch = existingBranchProp ?? remoteOverride ?? undefined;
   const existingBranchRemote = existingBranchProp
     ? existingBranchRemoteProp
     : remoteOverride !== null;
+
+  // ── State ──
   const [name, setName] = useState('');
   const [source, setSource] = useState('');
   const [currentBranch, setCurrentBranch] = useState('');
@@ -79,6 +97,7 @@ export function CreateBranchModal({
   const [targetDir, setTargetDir] = useState('');
   const [siblingDirs, setSiblingDirs] = useState<string[]>([]);
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen || !targetDir) {
       setSiblingDirs([]);
@@ -112,12 +131,14 @@ export function CreateBranchModal({
     };
   }, [isOpen, targetDir]);
 
+  // ── Derived ──
   const nameId = useId();
   const sourceId = useId();
 
   const localNames = branches.filter((b) => !remoteBranches.includes(b));
   const sourceOptions = [...localNames, ...remoteBranches];
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen) return;
     setRemoteOverride(null);
@@ -149,6 +170,7 @@ export function CreateBranchModal({
 
   }, [isOpen]);
 
+  // ── Derived ──
   const trimmedName = name.trim();
   const slug = trimmedName.replace(/\//g, '-');
   const bareName = trimmedName.replace(/^origin\//, '');
@@ -178,9 +200,13 @@ export function CreateBranchModal({
   };
 
 
+  // ── State ──
   const [scanProgress, setScanProgress] = useState<ScanProgress | null>(null);
+
+  // ── Refs ──
   const scanIdRef = useRef<string | null>(null);
 
+  // ── Derived ──
   const stopScan = () => {
     if (scanIdRef.current) {
       gitIpc.invoke('git:worktree-preview-cancel', scanIdRef.current).catch(() => {});
@@ -219,6 +245,7 @@ export function CreateBranchModal({
     }
   };
 
+  // ── Handlers ──
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
@@ -259,6 +286,7 @@ export function CreateBranchModal({
     if (!submitting) onClose();
   };
 
+  // ── Render ──
   return (
     <>
       <Modal

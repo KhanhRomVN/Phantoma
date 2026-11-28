@@ -1,25 +1,30 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useMemo } from 'react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── UI ──
 import { Check, X } from 'lucide-react';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { TOOL_ACTION_TYPES } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
+import { ToolAction } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { GitStatusItem } from '../tool.types';
 
 // ── Utils ──
-import { parseGitStatusOutput } from '@renderer/components/Widgets/Zen/shared/git-status-parser';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { getFileIconPath } from '@renderer/utils/file-icon';
+import { parseGitStatusOutput } from '@renderer/modules/Code/shared/utils/git-status-parser.util';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface GitStatusBlockItem {
   status: string;
   path: string;
@@ -36,12 +41,14 @@ interface GitStatusBlockProps {
   isProcessing?: boolean;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
   statusItems,
   onConfirm,
   onCancel,
   isProcessing = false,
 }) => {
+  // ── Handlers ──
   const handleRowClick = (path: string) => {
     const vscodeApi = (window as any).vscodeApi;
     if (vscodeApi) {
@@ -52,6 +59,7 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
     }
   };
 
+  // ── Derived ──
   const getStatusColor = (status: string): string => {
     if (status === 'M' || status === 'MM' || status === 'AM') return $('--warn') || '#d4a72c';
     if (status === 'A' || status === 'R' || status === 'C') return $('--teal') || '#4ec9b0';
@@ -104,6 +112,7 @@ const GitStatusBlock: React.FC<GitStatusBlockProps> = ({
     );
   };
 
+  // ── Render ──
   return (
     <>
       <div className="bg-transparent border-none overflow-hidden my-2">
@@ -286,6 +295,7 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
   isVisible = true,
   branch,
 }) => {
+  // ── Derived ──
   const actionId = `${messageId}-action-${actionIndex}`;
 
   // If not visible, don't render anything
@@ -350,6 +360,7 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
     return { label: getToolLabel('git_status'), stats: '' };
   };
 
+  // ── Handlers ──
   const handleConfirm = () => {
     if (onConfirm && effectiveItems.length > 0) {
       onConfirm(effectiveItems);
@@ -362,6 +373,7 @@ export const GitStatusRenderer: React.FC<GitStatusRendererProps> = ({
     }
   };
 
+  // ── Render ──
   return (
     <div
       className={cn(

@@ -1,9 +1,17 @@
-import { type FileNode } from '../../../shared/stores/code.store';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { compareDirEntries } from '../services/file-tree.service';
+
+// ── Stores ──
+import { type FileNode } from '../../../shared/stores/code.store';
+
+// ── Types ──
 import { GhostIndex } from '../types/file-explorer.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const GHOST_PREFIX = 'ghost_';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const withGhosts = (
   children: FileNode[] | undefined,
   dirPath: string | undefined,

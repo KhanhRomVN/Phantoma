@@ -1,10 +1,10 @@
 import React from 'react';
 import { cn } from '@renderer/utils/cn';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/features/chat/registries/tag.registry';
+import { TagHeader } from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/TagHeader';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
 import TreeBlock, { parseSourceTree } from '@renderer/components/common/TreeBlock';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import ErrorBlock from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ErrorBlock';
 
 export const ListSourcesRenderer: React.FC<BaseRendererProps> = ({
   actionIndex,

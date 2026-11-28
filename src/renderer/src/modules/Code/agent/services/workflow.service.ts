@@ -1,6 +1,28 @@
-import { TASKS_CHANGED_EVENT } from '../../shared/services/task.service';
+/**
+ * ------------------------------------------------------------------
+ * Workflow Service
+ * ------------------------------------------------------------------
+ * Wrapper gọi API workflow của Code backend (get/create/update) và
+ * map dữ liệu về dạng WorkflowInfo/WorkflowRef dùng trong agent tools.
+ * Tự thông báo thay đổi task sau khi create/update.
+ *
+ * Main types:
+ * - WorkflowInfo : Thông tin đầy đủ của workflow (kèm content)
+ * - WorkflowRef  : Tham chiếu workflow (id + taskId)
+ *
+ * Main functions:
+ * - workflowService.get()    : Lấy workflow theo taskId
+ * - workflowService.create() : Tạo workflow mới cho task
+ * - workflowService.update() : Cập nhật nội dung workflow
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
+import { notifyChanged } from '../../shared/services/task.service';
 import { codeApi, type CodeWorkflow } from '../../shared/api/code.api';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface WorkflowInfo {
   workflowId: string;
   taskId: string;
@@ -12,6 +34,7 @@ export interface WorkflowRef {
   taskId: string;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function mapCodeWorkflowToInfo(workflow: CodeWorkflow): WorkflowInfo {
   return {
     workflowId: workflow.id,
@@ -27,12 +50,10 @@ function mapCodeWorkflowToRef(workflow: CodeWorkflow): WorkflowRef {
   };
 }
 
-const notifyChanged = (projectPath: string) => {
-  window.dispatchEvent(new CustomEvent(TASKS_CHANGED_EVENT, { detail: projectPath }));
-};
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const workflowService = {
-  get: async (projectPath: string, taskId: string): Promise<WorkflowInfo> => {
+  get: async (_projectPath: string, taskId: string): Promise<WorkflowInfo> => {
     const workflow = await codeApi.workflows.get(taskId);
     return mapCodeWorkflowToInfo(workflow);
   },

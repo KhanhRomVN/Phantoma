@@ -1,8 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * Delete Agent Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool delete_agent: xóa agent khỏi workflow store và phát event
+ * đóng Zen tab tương ứng. Không cho phép xóa orchestrator.
+ *
+ * Main functions:
+ * - executeDeleteAgent() : Validate, đóng panel và xóa agent theo agent_id
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import { useWorkflowStore } from '../../stores/workflow.store';
 import { useCodeStore } from '../../../shared/stores/code.store';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const CLOSE_AGENT_PANEL_EVENT = 'phantoma:close-agent-panel';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function executeDeleteAgent(params: {
   agent_id?: string;
   _validationError?: string;

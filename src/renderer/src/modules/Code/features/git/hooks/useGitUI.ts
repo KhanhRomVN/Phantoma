@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+// ── Utils ──
 import { parseRefs, formatRelative, type Commit } from '../utils/graph.util';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseGitUIProps {
   commits: Commit[];
 }
@@ -23,12 +28,17 @@ interface UseGitUIReturn {
   searchRef: React.RefObject<HTMLInputElement | null>;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGitUI({ commits }: UseGitUIProps): UseGitUIReturn {
+  // ── State ──
   const [query, setQuery] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
+
+  // ── Refs ──
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // ── Callbacks ──
   const showNotice = useCallback((msg: string) => {
     setNotice(msg);
     setTimeout(() => setNotice(null), 3500);
@@ -54,6 +64,7 @@ export function useGitUI({ commits }: UseGitUIProps): UseGitUIReturn {
     });
   }, []);
 
+  // ── Derived ──
   const matchSet = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return null;
@@ -71,6 +82,7 @@ export function useGitUI({ commits }: UseGitUIProps): UseGitUIReturn {
     return set;
   }, [commits, query]);
 
+  // ── Effects ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {

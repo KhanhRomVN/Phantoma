@@ -1,9 +1,9 @@
 import React from 'react';
 import { cn } from '@renderer/utils/cn';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/features/chat/registries/tag.registry';
+import { TagHeader } from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/TagHeader';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
+import ErrorBlock from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ErrorBlock';
 import { getFaviconUrl } from '@renderer/utils/favicon';
 
 interface FuzzerDetail {
@@ -205,9 +205,7 @@ export const GetFuzzerDetailRenderer: React.FC<BaseRendererProps> = ({
         title={
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2 text-xs text-text-primary">
-              <span className="font-semibold opacity-80">
-                {getToolLabel('get_fuzzer_detail')}
-              </span>
+              <span className="font-semibold opacity-80">{getToolLabel('get_fuzzer_detail')}</span>
               {parsed && (
                 <span className="opacity-50 text-[10px] text-text-secondary">{parsed.id}</span>
               )}

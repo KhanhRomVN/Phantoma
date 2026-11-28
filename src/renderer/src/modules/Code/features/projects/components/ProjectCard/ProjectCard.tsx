@@ -1,17 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Project Card — aligned with ProjectPanel.html mockup
- * ------------------------------------------------------------------
- * Renders a single project item in the sidebar list:
- *  - Top row: colored project icon, name, hidden tag, kebab,
- *    Task Manager button, chevron + task-status count chips
- *  - Collapsed view: compact branch tree (max 5 rows, ranked by
- *    urgency) with agent avatars / process pill + footer summary
- *  - Expanded view: branch blocks with session cards
- * Includes drag-and-drop handlers and context menu triggers.
- * ------------------------------------------------------------------
- */
-
 import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { useCodeStore } from '../../../../shared/stores/code.store';
 import { useSessionTasks } from '../../hooks/useSessionTasks';

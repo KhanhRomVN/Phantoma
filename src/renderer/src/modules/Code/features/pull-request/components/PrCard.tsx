@@ -1,14 +1,8 @@
-/**
- * ------------------------------------------------------------------
- * PR Card
- * ------------------------------------------------------------------
- * Dòng PR gọn 2 hàng trong danh sách: icon trạng thái + tiêu đề + số PR,
- * và hàng phụ gồm nhánh head -> base, avatar, thời gian, review.
- * Trạng thái thể hiện bằng màu icon / thanh chọn, không dùng badge riêng.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import {
   ArrowRight,
   CheckCircle2,
@@ -17,23 +11,31 @@ import {
   XCircle,
 } from 'lucide-react';
 
-import { cn } from '@renderer/utils/cn';
+// ── Components ──
 import { PrAvatar } from './PrAvatar';
-import type { PullRequest } from '../types/pull-request.types';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { REVIEW_META, TONE_COLOR, prTone, timeAgo, tint } from '../utils/pull-request.util';
 
+// ── Types ──
+import type { PullRequest } from '../types/pull-request.types';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const REVIEW_ICON: Record<string, typeof Eye> = {
   APPROVED: CheckCircle2,
   CHANGES_REQUESTED: XCircle,
   REVIEW_REQUIRED: Eye,
 };
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface PrCardProps {
   pr: PullRequest;
   selected: boolean;
   onSelect: (number: number) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const PrCard = memo(function PrCard({ pr, selected, onSelect }: PrCardProps) {
   const tone = prTone(pr);
   const color = TONE_COLOR[tone];

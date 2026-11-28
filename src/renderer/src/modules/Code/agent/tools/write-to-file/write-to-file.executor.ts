@@ -1,9 +1,30 @@
-import { WriteToFileHandler } from './write-to-file.handler';
+/**
+ * ------------------------------------------------------------------
+ * Write To File Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool write_to_file: resolve project root, gọi
+ * WriteToFileHandler (có file lock) để tạo/ghi đè file và định dạng
+ * kết quả cho agent.
+ *
+ * Main functions:
+ * - executeWriteToFile() : Ghi content vào file theo file_path
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { fileLockManager } from '../../services/file-lock.service';
+
+// ── Utils ──
+import { WriteToFileHandler } from './write-to-file.handler';
+
+// ── Types ──
 import type { WriteToFileParams } from '../tool.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const writeToFileHandler = new WriteToFileHandler(fileLockManager);
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function executeWriteToFile(
   params: WriteToFileParams,
   _bypassIgnore: boolean = false,

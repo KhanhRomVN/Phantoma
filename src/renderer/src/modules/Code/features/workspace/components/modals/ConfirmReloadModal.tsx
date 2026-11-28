@@ -1,10 +1,15 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
+
+// ── UI ──
 import { RefreshCw, Save } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmReloadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -13,6 +18,7 @@ interface ConfirmReloadModalProps {
   unsavedCount: number;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmReloadModal({
   isOpen,
   onClose,
@@ -20,8 +26,10 @@ export function ConfirmReloadModal({
   onReloadWithoutSaving,
   unsavedCount,
 }: ConfirmReloadModalProps) {
+  // ── State ──
   const [saving, setSaving] = useState(false);
 
+  // ── Handlers ──
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -31,6 +39,7 @@ export function ConfirmReloadModal({
     }
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[420px]">
       <ModalBody className="py-6 px-5">

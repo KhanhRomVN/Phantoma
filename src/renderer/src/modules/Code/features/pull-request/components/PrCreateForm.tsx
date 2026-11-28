@@ -1,18 +1,15 @@
-/**
- * ------------------------------------------------------------------
- * PR Create Form
- * ------------------------------------------------------------------
- * Form tạo Pull Request mới từ branch hiện tại: hiển thị luồng
- * head -> base, tiêu đề, mô tả và tuỳ chọn draft.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { AlertTriangle, ArrowRight, GitBranch, Loader2 } from 'lucide-react';
 
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { BTN, BTN_PRIMARY, FIELD, tint } from '../utils/pull-request.util';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface CreateFormState {
   title: string;
   body: string;
@@ -31,6 +28,7 @@ interface PrCreateFormProps {
   onSubmit: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const Branch = ({ name }: { name: string }) => (
   <span className={'inline-flex items-center gap-1 rounded bg-text-secondary/10 px-2 py-0.5 font-mono text-[11.5px] text-text-primary'}>
     <GitBranch className={'w-3 h-3 text-text-secondary'} />

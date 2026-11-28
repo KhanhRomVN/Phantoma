@@ -3,6 +3,7 @@
  * Based on Orca's detection mechanisms for process names and OSC titles.
  */
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type TuiAgentId =
   | 'claude' | 'codex' | 'gemini' | 'copilot' | 'cursor'
   | 'aider' | 'goose' | 'amp' | 'opencode' | 'cline'
@@ -22,6 +23,7 @@ interface ProviderConfig {
   processPrefix?: string;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const PROVIDER_REGISTRY: ProviderConfig[] = [
   { id: 'claude', detectCmd: 'claude', expectedProcess: 'claude' },
   { id: 'codex', detectCmd: 'codex', expectedProcess: 'codex', processPrefix: 'codex-' },
@@ -79,6 +81,7 @@ for (const p of PROVIDER_REGISTRY) {
   }
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function normalizeProcessName(name: string): string {
   if (!name) return '';
   const unquoted = name.trim().replace(/^['"]|['"]$/g, '');

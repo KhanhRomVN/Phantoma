@@ -1,14 +1,24 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+
+// ── UI ──
 import { AlertTriangle, Check, ChevronRight, Minus, Search, X } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { Button } from '@renderer/components/ui/Button/Button';
-import { cn } from '@renderer/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+
+// ── Services ──
 import { codeApi } from '../../../../shared/api/code.api';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const HIDDEN_NAMES = new Set(['.git', 'node_modules']);
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface Entry {
   name: string;
   type: 'file' | 'folder';
@@ -42,6 +52,7 @@ const limitRead = async <T,>(fn: () => Promise<T>): Promise<T> => {
 
 const globalReCache = new WeakMap<RegExp, RegExp>();
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const highlight = (text: string, re: RegExp | null): React.ReactNode => {
   if (!re) return text;
   let g = globalReCache.get(re);
@@ -77,6 +88,7 @@ const sortEntries = (list: Entry[]): Entry[] =>
       a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'folder' ? -1 : 1,
     );
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const NodeIcon = memo(function NodeIcon({
   name,
   isFolder,
@@ -157,6 +169,7 @@ export const BranchScopeModal = memo(function BranchScopeModal({
   const [query, setQuery] = useState('');
 
   const branchColor = (branch: string) => {
+    // ── Derived ──
     const palette = [
       { solid: 'bg-sky-500/15 text-sky-400', outline: 'border-sky-500/40 text-sky-400/80' },
       {
@@ -445,6 +458,8 @@ export const BranchScopeModal = memo(function BranchScopeModal({
         }
       }
     }, 300);
+
+    // ── Render ──
     return () => clearTimeout(timer);
   }, [q, cache, loadDir]);
 
@@ -458,6 +473,7 @@ export const BranchScopeModal = memo(function BranchScopeModal({
   const selectedArr = useMemo(() => [...selected], [selected]);
 
   const runInfo = useMemo(() => {
+    // ── Derived ──
     const info = new Map<string, { owner: string; pos: 'single' | 'first' | 'mid' | 'last' }>();
     const owners = rows.map((r) => ownersOf(r.rel)[0]);
     let i = 0;

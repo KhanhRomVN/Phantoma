@@ -1,23 +1,27 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useState } from 'react';
 
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // Services
-import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { $ } from '@renderer/utils/color';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface GrepBlockProps {
   action: any;
   actionId: string;
@@ -47,6 +51,7 @@ interface GrepResultData {
   totalMatches: number;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function parseCompactGrepOutput(output: string): GrepResultData | null {
   if (!output) return null;
   try {
@@ -100,6 +105,7 @@ function parseCompactGrepOutput(output: string): GrepResultData | null {
   }
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 // Track which actionIds have been logged to avoid spam
 const _loggedOutputs = new Set<string>();
 
@@ -132,6 +138,7 @@ const highlightMatch = (text: string, searchTerm: string): React.ReactNode => {
   }
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const GrepBlock: React.FC<GrepBlockProps> = ({
   action,
   actionId,
@@ -142,8 +149,10 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
   errorMessage,
   isCollapsed = false,
 }) => {
+  // ── State ──
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
+  // ── Derived ──
   const searchTerm = action.params.search_term || action.params.searchTerm || '';
 
   // Check for validation error from parser
@@ -259,6 +268,7 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
     );
   }
 
+  // ── Render ──
   return (
     <div
       className="max-h-[320px] overflow-y-auto mt-0.5 pl-3 pr-2.5 py-1.5 bg-background border rounded-[4px]"
@@ -351,6 +361,7 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
   allMessages,
   conversationId,
 }) => {
+  // ── Derived ──
   const [isGrepCollapsed, setIsGrepCollapsed] = React.useState(true);
 
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -370,6 +381,7 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
       !!toolOutputs?.[actionId] ||
       !!nextUserMessage);
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

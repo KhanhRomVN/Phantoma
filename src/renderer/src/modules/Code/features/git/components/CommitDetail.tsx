@@ -1,14 +1,8 @@
-/**
- * ------------------------------------------------------------------
- * Git Commit Detail
- * ------------------------------------------------------------------
- * Right panel: real avatar, subject, hash (copyable), parents, refs,
- * change summary and a filterable file list that can switch between
- * flat path view and folder tree view.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import {
   Files,
   FolderTree,
@@ -21,10 +15,9 @@ import {
   Search,
   ShieldAlert,
 } from 'lucide-react';
-import { BranchScopeModal } from './modals/BranchScopeModal';
 
-import { cn } from '@renderer/utils/cn';
-import { codeApi } from '../../../shared/api/code.api';
+// ── Components ──
+import { BranchScopeModal } from './modals/BranchScopeModal';
 import { Avatar } from './Avatar';
 import {
   ChangesTabs,
@@ -36,7 +29,11 @@ import {
 import { ScopeFilterTabs, UNSCOPED_BRANCH } from './ScopeFilterTabs';
 import { ChangedFiles, type FileActions, type FileSelection, type FilesView } from './ChangedFiles';
 import { RefPill } from './GraphCell';
-import { formatRelative, parseRefs, type Commit, type CommitFile } from '../utils/graph.util';
+
+// ── Services ──
+import { codeApi } from '../../../shared/api/code.api';
+
+// ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
 import {
   useBranchScope,
@@ -44,13 +41,19 @@ import {
   isInScope,
 } from '../../../shared/stores/branch-scope.store';
 import { useScopeStats } from '../../../shared/stores/scope-stats.store';
-import { SCOPE_DOT } from './scope/scopeBadges';
 import type { ScopeCategory } from '../../../shared/stores/scope-stats.store';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { formatRelative, parseRefs, type Commit, type CommitFile } from '../utils/graph.util';
+import { SCOPE_DOT } from './scope/scopeBadges';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const MIN_WIDTH = 400;
 const DEFAULT_WIDTH = 440;
 const MAX_WIDTH = 800;
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CommitDetailProps {
   commit: Commit | null;
   files: CommitFile[];
@@ -73,6 +76,7 @@ interface CommitDetailProps {
   };
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const CommitDetail = memo(function CommitDetail({
   commit,
   files,
@@ -99,8 +103,12 @@ export const CommitDetail = memo(function CommitDetail({
 
   const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
+
+    // ── Derived ──
     const startX = e.clientX;
     const startW = width;
+
+    // ── Handlers ──
     const onMove = (ev: MouseEvent) =>
       setWidth(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startW + (startX - ev.clientX))));
     const onUp = () => {
@@ -128,6 +136,8 @@ export const CommitDetail = memo(function CommitDetail({
       .catch(() => {
         if (!cancelled) setBody('');
       });
+
+    // ── Render ──
     return () => {
       cancelled = true;
     };
@@ -143,6 +153,7 @@ export const CommitDetail = memo(function CommitDetail({
   const scope = useBranchScope(projectId, scopeBranch);
   const setScope = useBranchScopeStore((s) => s.setScope);
   const scopeRoot = useCodeStore((s) => {
+    // ── Derived ──
     const p = s.projects.find((p) => p.id === s.currentProjectId);
     return p?.explorerRoot ?? p?.path ?? '';
   });
@@ -195,6 +206,8 @@ export const CommitDetail = memo(function CommitDetail({
       .catch(() => {
         if (!cancelled) setScopeInfo({ diff: null, other: new Set() });
       });
+
+    // ── Render ──
     return () => {
       cancelled = true;
     };
@@ -223,6 +236,7 @@ export const CommitDetail = memo(function CommitDetail({
   const isLocalView = !!(localBranch && localCommit);
   const stats = useScopeStats(projectId);
   const byCategory = useMemo(() => {
+    // ── Derived ──
     const out: Record<ScopeCategory, string[]> = { error: [], diff: [], warn: [], primary: [] };
     const bases = [
       ...new Set(
@@ -297,6 +311,8 @@ export const CommitDetail = memo(function CommitDetail({
       .catch(() => {
         if (!cancelled) setTreePaths([]);
       });
+
+    // ── Render ──
     return () => {
       cancelled = true;
     };
@@ -304,6 +320,8 @@ export const CommitDetail = memo(function CommitDetail({
 
   const sourceFiles = useMemo(() => {
     if (!showAll || !treePaths) return null;
+
+    // ── Derived ──
     const changed = new Map(files.map((f) => [f.path, f]));
     const inTree = new Set(treePaths);
     const all: CommitFile[] = [
@@ -336,6 +354,7 @@ export const CommitDetail = memo(function CommitDetail({
   );
 
   if (!commit && !localBranch) {
+    // ── Render ──
     return (
       <aside
         style={{ width }}

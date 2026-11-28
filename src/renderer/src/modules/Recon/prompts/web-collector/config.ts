@@ -1,4 +1,4 @@
-import type { ZenModuleCapabilities } from '@renderer/components/Widgets/Zen/screens/Chat/services/moduleRegistry';
+import { ZenModuleCapabilities } from '@renderer/components/Widgets/Zen/features/chat/types/zen_module.types';
 
 /**
  * Capabilities for the Recon Web Collector workflow agent.

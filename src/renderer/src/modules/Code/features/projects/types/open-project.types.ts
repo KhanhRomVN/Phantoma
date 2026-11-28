@@ -1,3 +1,4 @@
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type LogoCandidate = { path: string; name: string; width: number; height: number; src?: string };
 
 export type Mode = 'local' | 'clone';

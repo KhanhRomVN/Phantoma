@@ -20,6 +20,7 @@ interface SqlFile {
 // ASSUMED: nguồn thứ 5 là ~/.phantoma/phantoma.sql (đề bài ghi ".phantoma.phantoma.sql")
 const FIXED_FILES = [
   { group: 'code', path: join(ROOT, 'code', 'code.sql') },
+  { group: 'emulate', path: join(ROOT, 'emulate', 'emulate.sql') },
   { group: 'profile', path: join(ROOT, 'profile', 'profile.sql') },
   { group: 'proxy', path: join(ROOT, 'proxy', 'proxy.sql') },
   { group: 'phantoma', path: join(ROOT, 'phantoma.sql') },

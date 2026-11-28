@@ -1,15 +1,24 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useMemo } from 'react';
+
+// ── Utils ──
 import { getProjectStatus, getProjectTokens } from '../utils/project-card.util';
 import { STATUS_ORDER } from '../constants/session.constants';
+
+// ── Types ──
 import { type SessionStatus } from '../types/session.types';
 import type { ProjectExtended, SortMode } from '../types/project-panel.types';
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useProjectListView(projects: ProjectExtended[]) {
+  // ── State ──
   const [showHidden] = useState(false);
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('manual');
   const [filterStatus, setFilterStatus] = useState<'all' | SessionStatus>('all');
 
+  // ── Derived ──
   const shownProjects = useMemo(() => {
     let list = projects.filter((p) => showHidden || !p.hidden);
     const q = query.trim().toLowerCase();

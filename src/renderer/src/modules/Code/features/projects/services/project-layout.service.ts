@@ -1,10 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import type { Project } from '../../../shared/stores/code.store';
+
+// ── Utils ──
 import { PROJECT_SEED_COLORS } from '../../../shared/constants/project-colors';
+
+// ── Types ──
 import type { BranchInfo } from '../types/session.types';
 import type { ProjectExtended } from '../types/project-panel.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const LAYOUT_STORAGE_KEY = 'phantoma_code_project_layout_v2';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /** Adds the UI-only fields (color, group, hidden, branches) to a store project */
 export function seedProject(p: Project, index: number): ProjectExtended {
   const raw = p as any;

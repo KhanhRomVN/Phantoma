@@ -1,13 +1,23 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
-import { type StoredTask } from '../../../../shared/services/task.service';
+
+// ── UI ──
 import { GitBranch } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { SessionHoverTooltip } from '../SessionCard/SessionHoverTooltip';
 import { AgentAvatar, ProcessPill } from '../SessionCard/SessionBadges';
+import { BranchScopeButton } from './BranchScopeButton';
+import { BranchBlock } from './BranchBlock';
+
+// ── Services ──
+import { type StoredTask } from '../../../../shared/services/task.service';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { getNewestSession, getBranchStatus, sortAgentsByState } from '../../utils/session.util';
 import { TASK_COLORS } from '../../constants/session.constants';
-import { type TaskStatus } from '../../types/session.types';
-import { ProjectExtended } from '../../types/project-card.types';
 import {
   ACTIVE_STATUSES,
   MAX_COLLAPSED_ROWS,
@@ -16,10 +26,13 @@ import {
   stripPrefix,
 } from '../../utils/project-card.util';
 import { DefaultBadge, NO_BRANCH_NAME, NO_GIT_NAME, TempBranchBadge, BusyBadge } from './badges';
-import { BranchScopeButton } from './BranchScopeButton';
-import { ProjectCardProps } from '../../types/project-card.types';
-import { BranchBlock } from './BranchBlock';
 
+// ── Types ──
+import { type TaskStatus } from '../../types/session.types';
+import { ProjectExtended } from '../../types/project-card.types';
+import { ProjectCardProps } from '../../types/project-card.types';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 /** Collapsed view: compact branch tree with inline session display */
 export function CollapsedTree({
   project,
@@ -60,8 +73,10 @@ export function CollapsedTree({
   projectTasks?: StoredTask[];
   onOpenTaskStatusModal: (branchName: string) => void;
 }) {
+  // ── State ──
   const [expandedBranchName, setExpandedBranchName] = useState<string | null>(null);
 
+  // ── Derived ──
   const footerCls = 'pt-[5px] pl-[18px] text-[10.5px] text-text-secondary/50';
   const vb = getVisibleBranches(project);
   if (!vb.length) return <div className={footerCls}>No branches shown</div>;
@@ -84,6 +99,7 @@ export function CollapsedTree({
   if (hiddenActive)
     foot.push(`${hiddenActive} hidden branch${hiddenActive > 1 ? 'es' : ''} active`);
 
+  // ── Render ──
   return (
     <>
       {pick.map(({ b }) => {

@@ -1,7 +1,23 @@
+/**
+ * ------------------------------------------------------------------
+ * Git Diff Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool git_diff: gọi GitDiffHandler, lọc các dòng metadata
+ * và trả về diff dạng khối ```diff cho agent.
+ *
+ * Main functions:
+ * - executeGitDiff() : Lấy diff của file (hoặc toàn project) và làm sạch output
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { GitDiffHandler } from '../shared/git.handler';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const gitDiffHandler = new GitDiffHandler();
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function executeGitDiff(
   filePath: string,
   _requestId: string,

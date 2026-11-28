@@ -1,10 +1,18 @@
-import { useWorkflowStore } from '../../stores/workflow.store';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
+import { OPEN_AGENT_PANEL_EVENT } from '../../services/agent-panel.service';
+
+// ── Stores ──
+import { isAgentInCurrentWorkflow, useWorkflowStore } from '../../stores/workflow.store';
 import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ── Types ──
 import { AGENT_TYPE_COLORS, type AgentType } from '../../../shared/types/agents.types';
 
-const OPEN_AGENT_PANEL_EVENT = 'phantoma:open-agent-panel';
+// ─── Constants ───────────────────────────────────────────────────────────────
 const OPEN_AGENT_PANEL_TIMEOUT_MS = 8000;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const openAgentPanel = (agentId: string, title: string) =>
   new Promise<boolean>((resolve) => {
     const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
@@ -51,24 +59,15 @@ export async function executeCreateAgent(params: {
     return `[create_agent] Result: Error - Missing required fields (type: ${agent_type}, name: ${agent_name}, id: ${agent_id})`;
   }
 
-  // Add agent to workflow store
   const store = useWorkflowStore.getState();
-
-  // Store `agents` được persist qua các phiên; chỉ coi agent là tồn tại khi Zen tab của nó còn mở trong session hiện tại (cùng tiêu chí với list_agents)
   const existing = store.getAgent(agent_id);
   if (existing) {
-    const code = useCodeStore.getState();
-    const panels = code.projects.find((p) => p.id === code.currentProjectId)?.workspacePanels ?? [];
-    const isLinked = panels.some(
-      (p) => p.workflowAgentId === agent_id && p.sessionId === code.activeWorkspaceSessionId,
-    );
-    if (isLinked) {
+    if (isAgentInCurrentWorkflow(existing)) {
       return `[create_agent] Result: Error - Agent with id '${agent_id}' already exists`;
     }
     store.removeAgent(agent_id);
   }
 
-  // Create agent
   const color = AGENT_TYPE_COLORS[agent_type as AgentType] || '#A78BFA';
   store.addAgent({
     id: agent_id,

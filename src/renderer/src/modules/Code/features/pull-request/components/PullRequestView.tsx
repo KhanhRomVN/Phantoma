@@ -1,17 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Pull Request View
- * ------------------------------------------------------------------
- * Trang quản lý Pull Request riêng cho từng project, hiển thị trong
- * ContentPanel khi contentViewMode === 'pullrequests'.
- *
- * Main features:
- * - Header: tên project
- * - Thân: PullRequestPanel (danh sách, chi tiết, tạo/merge/close PR)
- * - Toast thông báo cục bộ
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 import { memo, useCallback, useEffect, useState } from 'react';
 import { ProjectIcon, getProjectIdentity } from '../../projects';

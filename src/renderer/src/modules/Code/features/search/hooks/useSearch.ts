@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState, startTransition } from 'react';
+
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface SearchMatch {
   lineNumber: number;
   lineContent: string;
@@ -22,23 +27,28 @@ export interface SearchOptions {
 
 export type SearchStatus = 'idle' | 'searching' | 'done' | 'error';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const DEBOUNCE_MS = 120;
 let searchCounter = 0;
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useSearch(
   projectPath: string | undefined,
   query: string,
   options: SearchOptions,
   refreshKey: number,
 ) {
+  // ── State ──
   const [results, setResults] = useState<FileResult[]>([]);
   const [status, setStatus] = useState<SearchStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
   const [session, setSession] = useState(0);
 
+  // ── Derived ──
   const { matchCase, wholeWord, isRegex, include, exclude } = options;
 
+  // ── Effects ──
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed || !projectPath) {

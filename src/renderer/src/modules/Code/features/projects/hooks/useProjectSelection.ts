@@ -1,36 +1,58 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+
+// ── Components ──
+import { toBranchTargetId } from '../components/ProjectPanel/modals/ProjectConflictModal';
+
+// ── Hooks ──
+import { useBusyTargetIds } from '@renderer/hooks/useTargetLock';
+
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
+
+// ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
 import { useBranchScopeStore, toScopeKey } from '../../../shared/stores/branch-scope.store';
-import { useBusyTargetIds } from '@renderer/hooks/useTargetLock';
-import { toBranchTargetId } from '../components/ProjectPanel/modals/ProjectConflictModal';
-import type { SessionInfo, BranchInfo } from '../types/session.types';
-import type { ProjectExtended } from '../types/project-panel.types';
+
+// ── Utils ──
 import { mkSum } from '../utils/session-summary.util';
 
+// ── Types ──
+import type { SessionInfo, BranchInfo } from '../types/session.types';
+import type { ProjectExtended } from '../types/project-panel.types';
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useProjectSelection(
   projects: ProjectExtended[],
   setProjects: Dispatch<SetStateAction<ProjectExtended[]>>,
 ) {
+  // ── Store ──
   const updateProject = useCodeStore((s) => s.updateProject);
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
   const setExplorerRoot = useCodeStore((s) => s.setExplorerRoot);
   const setActiveWorkspaceSessionId = useCodeStore((s) => s.setActiveWorkspaceSessionId);
   const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
 
+  // ── State ──
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [activeTaskManagerProjectId, setActiveTaskManagerProjectId] = useState<string | null>(null);
   const [activeGitProjectId, setActiveGitProjectId] = useState<string | null>(null);
   const [activePullRequestProjectId, setActivePullRequestProjectId] = useState<string | null>(null);
   const [gitRepoByProject, setGitRepoByProject] = useState<Record<string, boolean>>({});
+
+  // ── Derived ──
   const busyTargetIds = useBusyTargetIds('code');
+
+  // ── State ──
   const [blockedTarget, setBlockedTarget] = useState<{
     projectId: string;
     branchName: string;
   } | null>(null);
 
+  // ── Callbacks ──
   const handleToggleProject = useCallback((projectId: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);

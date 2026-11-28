@@ -1,18 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Activity Panel (Right Side)
- * ------------------------------------------------------------------
- * Right sidebar panel container with horizontal topbar for tab
- * switching (File Explorer, Search, Design, History). Includes a
- * resizable width handle on the LEFT edge (200px–600px) and
- * delegates content rendering to the active tab component.
- *
- * Design tab: leaving it restores the previous content view, while
- * the design session (open design, agent UI) is kept in the store so
- * clicking the Design icon again brings it back.
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import { useEffect, useRef, useState } from 'react';

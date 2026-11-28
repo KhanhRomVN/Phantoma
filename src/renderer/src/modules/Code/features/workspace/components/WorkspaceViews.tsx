@@ -1,25 +1,5 @@
 import { terminalIpc } from '../../../shared/ipc/terminal.ipc';
 import { dialogIpc } from '../../../shared/ipc/dialog.ipc';
-/**
- * ------------------------------------------------------------------
- * Workspace Views — 2x2 pane grid with tabs
- * ------------------------------------------------------------------
- * - Up to 4 panes (top-left, top-right, bottom-left, bottom-right),
- *   each with its own tab bar and "+" menu.
- * - Drag a tab onto any quadrant to move it there (creates the pane
- *   if it doesn't exist yet). Emptied panes collapse automatically.
- * - Dividers are draggable (20% – 80%).
- *
- * File map:
- *   workspaceLayout.ts          pure layout logic + reducer
- *   workspaceAgents.ts          agent favicons + store sync
- *   WorkspaceTabs.tsx           Tab / TabBar
- *   WorkspacePanes.tsx          panel bodies, dividers, drop preview
- *   WorkspaceEmptyStates.tsx    EmptyState / WorkspaceEmptyState
- *   useWorkspaceInteractions.ts drag-drop (pointer events) + resize
- * ------------------------------------------------------------------
- */
-
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useCodeStore, type StoredWorkspacePanel } from '../../../shared/stores/code.store';
 import { useWorkflowStore } from '../../../agent/stores/workflow.store';
@@ -33,10 +13,14 @@ import {
 import type { SessionStatus } from '../../projects';
 import { getPanelMeta, TabBar } from './WorkspacePanes';
 import { WorkspacePanes } from './WorkspacePanes';
+import { SELECT_AGENT_TAB_EVENT } from './AgentGroup';
 import { WorkspaceEmptyState, type EmptyWorkspaceAction } from './WorkspaceEmptyStates';
 import { ConfirmSmartPlaceModal } from './modals/ConfirmSmartPlaceModal';
 import { ConfirmSaveFileModal } from './modals/ConfirmSaveFileModal';
-import { useActivityPanelStore, useCurrentBranchKey } from '../../../app/stores/activity-panel.store';
+import {
+  useActivityPanelStore,
+  useCurrentBranchKey,
+} from '../../../app/stores/activity-panel.store';
 import { ConfirmDeleteOrchestratorModal } from './modals/ConfirmDeleteOrchestratorModal';
 
 import { useWorkspaceInteractions } from '../hooks/useWorkspaceInteractions';
@@ -379,6 +363,15 @@ export const WorkspaceViews = memo(function WorkspaceViews({
         }>
       ).detail;
       if (d.sessionId !== sessionId) return;
+      if (d.agentId !== 'orchestrator') {
+        if (d.focus) {
+          window.dispatchEvent(
+            new CustomEvent(SELECT_AGENT_TAB_EVENT, { detail: { agentId: d.agentId } }),
+          );
+        }
+        d.done(true);
+        return;
+      }
       const existing = panels.find((p) => p.type === 'agent' && p.workflowAgentId === d.agentId);
       if (existing) {
         if (d.focus) dispatch({ type: 'focus', id: existing.id });
@@ -759,12 +752,10 @@ export const WorkspaceViews = memo(function WorkspaceViews({
     : undefined;
 
   const [pendingOrchestratorCloseId, setPendingOrchestratorCloseId] = useState<string | null>(null);
+  const workflowAgents = useWorkflowStore((s) => s.agents);
   const linkedAgentPanels = useMemo(
-    () =>
-      panels.filter(
-        (p) => p.type === 'agent' && p.workflowAgentId && p.workflowAgentId !== 'orchestrator',
-      ),
-    [panels],
+    () => workflowAgents.filter((a) => a.id !== 'orchestrator'),
+    [workflowAgents],
   );
 
   const [pendingHome, setPendingHome] = useState<{ proceed: () => void } | null>(null);
@@ -777,9 +768,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       );
       if (!hasOrchestrator) return;
       d.handled = true;
-      const hasLinked = panelsRef.current.some(
-        (p) => p.type === 'agent' && p.workflowAgentId && p.workflowAgentId !== 'orchestrator',
-      );
+      const hasLinked = useWorkflowStore.getState().agents.some((a) => a.id !== 'orchestrator');
       if (hasLinked) setPendingHome({ proceed: d.proceed });
       else d.proceed();
     };
@@ -801,10 +790,7 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
       if (existingPanel) {
         // Focus existing panel
-        const pane = findPaneOfPanel(existingPanel.id, state);
-        if (pane) {
-          dispatch({ type: 'setActive', pane, panelId: existingPanel.id });
-        }
+        dispatch({ type: 'focus', id: existingPanel.id });
       } else {
         // Create new design panel
         const newPanel: WorkspacePanel = {
@@ -823,22 +809,16 @@ export const WorkspaceViews = memo(function WorkspaceViews({
 
   const confirmGoHome = useCallback(() => {
     if (!pendingHome) return;
-    panelsRef.current
-      .filter(
-        (p) => p.type === 'agent' && p.workflowAgentId && p.workflowAgentId !== 'orchestrator',
-      )
-      .forEach((p) => closePanel(p.id, { notifyOrchestrator: false, keepAgent: true }));
     pendingHome.proceed();
     setPendingHome(null);
-  }, [pendingHome, closePanel]);
+  }, [pendingHome]);
 
   const closeOrchestratorWorkflow = useCallback(() => {
     if (!pendingOrchestratorCloseId) return;
-    panelsRef.current
-      .filter(
-        (p) => p.type === 'agent' && p.workflowAgentId && p.workflowAgentId !== 'orchestrator',
-      )
-      .forEach((p) => closePanel(p.id, { notifyOrchestrator: false }));
+    const workflow = useWorkflowStore.getState();
+    workflow.agents
+      .filter((a) => a.id !== 'orchestrator')
+      .forEach((a) => workflow.removeAgent(a.id));
     closePanel(pendingOrchestratorCloseId);
     useWorkflowStore.getState().clearMessages();
     setPendingOrchestratorCloseId(null);
@@ -1160,7 +1140,8 @@ export const WorkspaceViews = memo(function WorkspaceViews({
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'o') {
         e.preventDefault();
         e.stopPropagation();
-        dialogIpc.selectPaths({
+        dialogIpc
+          .selectPaths({
             kind: 'file',
             multiple: false,
             defaultPath: currentProjectPath,

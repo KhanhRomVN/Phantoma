@@ -1,7 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+
+// ── Utils ──
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import TaskToolRendererBase from '../shared/task-tool-base.renderer';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const ListTasksRenderer: React.FC<BaseRendererProps> = (props) => (
   <TaskToolRendererBase {...props} />
 );

@@ -1,13 +1,33 @@
+/**
+ * ------------------------------------------------------------------
+ * Find Files Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool find_files: gọi FindFilesHandler để tìm file theo tên
+ * và định dạng danh sách kết quả cho agent.
+ *
+ * Main types:
+ * - FindFilesResult : Kết quả khớp theo tên file
+ *
+ * Main functions:
+ * - executeFindFiles() : Tìm file và trả về output cùng tổng số kết quả
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { FindFilesHandler } from './find-files.handler';
 import { FindFilesParams } from './find-files.parser';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const findFilesHandler = new FindFilesHandler();
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface FindFilesResult {
   fileName: string;
   matches: string[];
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function executeFindFiles(params: FindFilesParams): Promise<{
   output: string;
   results?: FindFilesResult[];

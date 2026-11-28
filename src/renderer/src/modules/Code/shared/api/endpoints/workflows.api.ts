@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
+
+// ── Types ──
 import type { CodeWorkflow } from '../types/workflow.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const workflowsApi = {
   get: (taskId: string) => request<CodeWorkflow>('GET', `/tasks/${taskId}/workflow`),
   create: (taskId: string, content: string) =>

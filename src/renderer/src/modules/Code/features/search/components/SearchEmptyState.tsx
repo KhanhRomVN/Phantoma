@@ -1,7 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { Search as SearchIcon, Folder, X, AlertCircle } from 'lucide-react';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export type EmptyVariant = 'no-project' | 'idle' | 'no-results' | 'error';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const CONFIG = {
   'no-project': {
     icon: Folder,
@@ -30,6 +34,7 @@ interface SearchEmptyStateProps {
   message?: string | null;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function SearchEmptyState({ variant, message }: SearchEmptyStateProps) {
   const { icon: Icon, title, hint } = CONFIG[variant];
   return (

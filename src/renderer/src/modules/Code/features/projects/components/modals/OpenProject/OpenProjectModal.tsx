@@ -1,5 +1,8 @@
-import { dialogIpc } from '../../../../../shared/ipc/dialog.ipc';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+
+// ── UI ──
 import {
   FolderOpen,
   GitBranch,
@@ -12,7 +15,26 @@ import {
   FolderGit2,
 } from 'lucide-react';
 import { Button } from '@renderer/components/ui/Button';
+import { Modal } from '@renderer/components/ui/Modal';
+import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
+import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
+import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
+
+// ── Components ──
+import { ProjectLogoImage } from '../../ProjectLogo';
+import { DuplicateRepoModal, type DuplicateRepoKind } from '../DuplicateRepoModal';
+import { NewRepositoryForm } from './NewRepositoryForm';
+import { LanguageBadgeIcon } from './LanguageBadgeIcon';
+import { SectionTitle, EmptyState, ProjectDetailPanel } from './ProjectDetailPanel';
+
+// ── Services ──
+import { dialogIpc } from '../../../../../shared/ipc/dialog.ipc';
 import { codeApi } from '../../../../../shared/api/code.api';
+
+// ── Stores ──
+import { useCodeStore } from '../../../../../shared/stores/code.store';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import {
   detectProjectStack,
@@ -20,19 +42,10 @@ import {
   detectRemoteStack,
   type StackInfo,
 } from '../../../utils/detect-stack.util';
-import { ProjectLogoImage } from '../../ProjectLogo';
-import { DuplicateRepoModal, type DuplicateRepoKind } from '../DuplicateRepoModal';
-import { Modal } from '@renderer/components/ui/Modal';
-import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
-import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
-import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
-import { useCodeStore } from '../../../../../shared/stores/code.store';
-
-
 import { TONE_SOFT, TONE_BAR } from '../../../constants/open-project.constants';
 import { hashTone, GIT_URL_REGEX, deriveFolderName } from '../../../utils/open-project.util';
-import { NewRepositoryForm } from './NewRepositoryForm';
-import { LanguageBadgeIcon } from './LanguageBadgeIcon';
+
+// ── Types ──
 import {
   LogoCandidate,
   Mode,
@@ -40,16 +53,19 @@ import {
   OpenProjectModalProps,
 } from '../../../types/open-project.types';
 
-import { SectionTitle, EmptyState, ProjectDetailPanel } from './ProjectDetailPanel';
+// ─── Constants ───────────────────────────────────────────────────────────────
 const DEFAULT_CLONE_DEST = '';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjectModalProps) {
+  // ── Store ──
   const addProject = useCodeStore((s) => s.addProject);
   const setCurrentProject = useCodeStore((s) => s.setCurrentProject);
   const projects = useCodeStore((s) => s.projects);
   const removeProject = useCodeStore((s) => s.removeProject);
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
 
+  // ── State ──
   const [mode, setMode] = useState<Mode>('local');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -63,21 +79,30 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   const [cloneDest, setCloneDest] = useState(DEFAULT_CLONE_DEST);
   const [folderNameEdited, setFolderNameEdited] = useState(false);
 
+  // ── Refs ──
   const fetchingPathsRef = useRef<Set<string>>(new Set());
   const scanningLogoRef = useRef<Set<string>>(new Set());
+
+  // ── Store ──
   const updateProject = useCodeStore((s) => s.updateProject);
+
+  // ── State ──
   const [logoScan, setLogoScan] = useState<Record<string, LogoCandidate[]>>({});
   const [logoChoice, setLogoChoice] = useState<Record<string, string | null>>({});
   const [remoteStack, setRemoteStack] = useState<Record<string, StackInfo>>({});
   const [cloneBranch, setCloneBranch] = useState('');
+
+  // ── Derived ──
   const remoteBranches = remoteStack[cloneUrl.trim()]?.branches ?? [];
   const effectiveBranch =
     cloneBranch || (remoteBranches.find((b) => b.isCurrent)?.name ?? remoteBranches[0]?.name ?? '');
 
+  // ── State ──
   const [remoteLogos, setRemoteLogos] = useState<Record<string, LogoCandidate[]>>({});
   const [cloneLogo, setCloneLogo] = useState<string | null>(null);
   const [destEntries, setDestEntries] = useState<string[] | null>(null);
 
+  // ── Effects ──
   useEffect(() => {
     const url = cloneUrl.trim();
     if (mode !== 'clone' || !GIT_URL_REGEX.test(url) || remoteLogos[url]) return;
@@ -109,6 +134,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     };
   }, [mode, cloneDest]);
 
+  // ── Derived ──
   const cloneLogoCandidates = remoteLogos[cloneUrl.trim()] ?? [];
   const effectiveCloneLogo = cloneLogoCandidates.some((c) => c.path === cloneLogo) ? cloneLogo : null;
   const finalCloneDest = `${cloneDest.trim().replace(/\/+$/, '')}/${cloneFolderName.trim()}`;
@@ -126,6 +152,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     return `${base}-${i}`;
   })();
 
+  // ── Effects ──
   useEffect(() => {
     const url = cloneUrl.trim();
     if (mode !== 'clone' || !GIT_URL_REGEX.test(url) || remoteStack[url]) return;
@@ -158,6 +185,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     setLogoChoice({});
   }, [isOpen]);
 
+  // ── Derived ──
   const recentProjects = useMemo(() => {
     // ASSUMED: project đang hiển thị trên ProjectPanel (không hidden) thì ẩn khỏi danh sách recent
     let list = projects.filter((p) => !!(p as any).hidden && p.id !== currentProjectId);
@@ -198,6 +226,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     return null;
   }, [mode, selection, browsePath, projects]);
 
+  // ── Effects ──
   useEffect(() => {
     const paths = [target?.path, browsePath, ...recentProjects.map((p) => p.path)].filter(
       (p): p is string => !!p,
@@ -238,6 +267,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       .finally(() => scanningLogoRef.current.delete(p));
   }, [target?.path, logoScan]);
 
+  // ── Derived ──
   const cloneUrlValid = GIT_URL_REGEX.test(cloneUrl.trim());
   const cloneFolderValid = cloneFolderName.trim().length > 0 && !/[\\/]/.test(cloneFolderName);
   const canSubmit =
@@ -245,6 +275,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       ? cloneUrlValid && cloneFolderValid && cloneDest.trim().length > 0 && !folderConflict
       : selection !== null && target !== null;
 
+  // ── Handlers ──
   const handleSearchChange = (value: string) => {
     if (GIT_URL_REGEX.test(value.trim())) {
       setMode('clone');
@@ -269,6 +300,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     setFolderNameEdited(true);
   };
 
+  // ── Derived ──
   const pickDirectory = async (_title: string): Promise<string | null> => {
     try {
       const result = await dialogIpc.selectPaths({ kind: 'folder' });
@@ -279,6 +311,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     }
   };
 
+  // ── Handlers ──
   const handleBrowseFolder = async () => {
     const picked = await pickDirectory('Select Project Folder');
     if (picked) {
@@ -294,6 +327,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
   };
 
 
+  // ── State ──
   const [pendingDup, setPendingDup] = useState<{
     kind: DuplicateRepoKind;
     existingId: string;
@@ -304,6 +338,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     repositoryUrl: string;
   } | null>(null);
 
+  // ── Derived ──
   const repoNameFromUrl = (url: string) =>
     url
       .replace(/\/+$/, '')
@@ -348,6 +383,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     onProjectAdded?.(newId);
   };
 
+  // ── Handlers ──
   const handleDupConfirm = (linkName: string) => {
     if (!pendingDup || !browsePath) return;
     const isLink = pendingDup.kind === 'different-branch';
@@ -361,6 +397,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     onClose();
   };
 
+  // ── Callbacks ──
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || loading) return;
     setLoading(true);
@@ -429,6 +466,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     onClose,
   ]);
 
+  // ── Handlers ──
   const handleOpenProjectDirect = (id: string) => {
     setCurrentProject(id);
     onClose();
@@ -440,11 +478,13 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     if (selection?.type === 'project' && selection.id === id) setSelection(null);
   };
 
+  // ── Derived ──
   const switchMode = (next: Mode) => {
     setMode(next);
     setError('');
   };
 
+  // ── Handlers ──
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && mode === 'clone' && !(e.target instanceof HTMLButtonElement)) {
       e.preventDefault();
@@ -452,6 +492,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     }
   };
 
+  // ── Derived ──
   const actionLabel = mode === 'clone' ? 'Clone Project' : 'Open Select Project';
 
   const headerTitle = mode === 'clone' ? 'Clone Repository' : 'Open Project';
@@ -540,11 +581,15 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       ? (targetProject.logoPath ?? null)
       : (logoChoice[target.path] ?? null)
     : null;
+
+  // ── Handlers ──
   const handleLogoPick = (filePath: string | null) => {
     if (!target) return;
     if (targetProject) updateProject(targetProject.id, { logoPath: filePath });
     else setLogoChoice((prev) => ({ ...prev, [target.path]: filePath }));
   };
+
+  // ── Derived ──
   const getLogoPath = (path: string): string | null => {
     const proj = projects.find((p) => p.path === path);
     return proj ? (proj.logoPath ?? null) : (logoChoice[path] ?? null);
@@ -698,6 +743,7 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     );
   };
 
+  // ── Render ──
   return (
     <Modal
       isOpen={isOpen}

@@ -1,7 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { type MouseEvent } from 'react';
+
+// ── UI ──
 import { Check, Minus } from 'lucide-react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function Checkbox({
   state,
   onClick,

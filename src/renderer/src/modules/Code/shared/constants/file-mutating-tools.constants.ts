@@ -11,8 +11,11 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { CODE_TAG_REGISTRY } from '../../agent/tag-registry';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const FILE_MUTATING_TOOLS = new Set(
   Object.entries(CODE_TAG_REGISTRY)
     .filter(([_, def]) => def.features?.isFileMutation)

@@ -1,9 +1,27 @@
-import { DEV_PORTS, codeBaseUrl, DEFAULT_CODE_PORT } from '@renderer/config/ports';
+/**
+ * ------------------------------------------------------------------
+ * Code Base URL Resolver
+ * ------------------------------------------------------------------
+ * Xác định base URL của Code server từ cổng runtime do main process cấp,
+ * có cache kết quả và fallback về cổng dev mặc định.
+ *
+ * Main functions:
+ * - resolveCodeBaseUrl() : Trả về base URL (cache sau lần resolve đầu tiên)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { runtimeIpc } from '../ipc/runtime.ipc';
 
+// ── Utils ──
+import { DEV_PORTS, codeBaseUrl, DEFAULT_CODE_PORT } from '@renderer/config/ports';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 let resolved: string | null = null;
 let pending: Promise<string> | null = null;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function resolveCodeBaseUrl(): Promise<string> {
   if (resolved) return Promise.resolve(resolved);
   if (pending) return pending;

@@ -1,3 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * Git Status Parser Util
+ * ------------------------------------------------------------------
+ * Parse output của `git status --porcelain` thành danh sách thay đổi
+ * và đếm số file theo loại thay đổi.
+ *
+ * Main types:
+ * - GitChangeKind / GitStatusEntry / GitStatusCounts
+ *
+ * Main functions:
+ * - parseGitStatusOutput() : Parse output thành danh sách entry
+ * - countGitStatus()       : Đếm added/modified/deleted
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type GitChangeKind = 'added' | 'modified' | 'deleted';
 
 export interface GitStatusEntry {
@@ -11,6 +28,7 @@ export interface GitStatusCounts {
   deleted: number;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function parseGitStatusOutput(output: string): GitStatusEntry[] {
   const entries: GitStatusEntry[] = [];
   for (const line of output.split('\n')) {

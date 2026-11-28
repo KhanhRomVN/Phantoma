@@ -1,17 +1,5 @@
 import { watchIpc } from '../../../shared/ipc/watch.ipc';
 import { debugIpc } from '../../../shared/ipc/debug.ipc';
-/**
- * ------------------------------------------------------------------
- * Debug Panel (Run & Debug)
- * ------------------------------------------------------------------
- * Tab Run & Debug của Activity Panel: đọc `.vscode/launch.json` của
- * project hiện tại và hiển thị mỗi configuration thành 1 card (nền đặc,
- * không viền). Click card để mở phần thao tác (Start, hoặc thanh điều
- * khiển khi đang debug). Thêm/sửa/xóa configuration bằng cách mở
- * launch.json thành file tab trong Workspace. Logic DAP: useDebugStore.
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import { useCallback, useEffect, useState } from 'react';

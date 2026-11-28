@@ -1,9 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { Unlink } from 'lucide-react';
-import { $ } from '@renderer/utils/color';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 
+// ── Utils ──
+import { $ } from '@renderer/utils/color';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmUnassignTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,13 +16,17 @@ interface ConfirmUnassignTaskModalProps {
   taskTitle: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmUnassignTaskModal({
   isOpen,
   onClose,
   onConfirm,
   taskTitle,
 }: ConfirmUnassignTaskModalProps) {
+  // ── Derived ──
   const warn = '--warn';
+
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} closeOnBackdropClick={false} className="max-w-[400px]">
       <ModalBody className="py-6 px-5">

@@ -1,37 +1,45 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
+
+// ── UI ──
 import { ChevronRight, ClipboardList, Cpu, Hammer, ScanSearch, UserRound } from 'lucide-react';
 
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+
 import { getFaviconUrl } from '@renderer/utils/favicon';
 
 // ── Context ──
-import { useAgentRoot } from '@renderer/components/Widgets/Zen/context/AgentRootContext';
-import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
-import { useAgentFeature } from '@renderer/components/Widgets/Zen/context/FeatureContext';
+import { useAgentRoot } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { useSettings } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { useAgentFeature } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Components ──
 import { Button } from '@renderer/components/ui/Button';
-import SelectModelAccountModal from '@renderer/components/Widgets/Zen/components/MessageInput/SelectModelAccountModal';
-import { splitModelAndEffort } from '@renderer/components/Widgets/Zen/components/MessageInput/EffortDropdown';
+
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+import { AGENT_TYPE_COLORS, type AgentType } from '../../../shared/types/agents.types';
+import { SelectModelAccountModal } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { splitModelAndEffort } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import {
   accountsKey,
   cacheGet,
   cacheSet,
   providersKey,
-} from '@renderer/components/Widgets/Zen/components/MessageInput/providerModelCache';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
 
-import { AGENT_TYPE_COLORS, type AgentType } from '../../../shared/types/agents.types';
-
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ModelSelection {
   providerId: string;
   modelId: string;
@@ -40,6 +48,7 @@ interface ModelSelection {
   website?: string;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const AGENT_TYPE_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
   executor: Hammer,
   planner: ClipboardList,
@@ -50,6 +59,7 @@ const LAST_MODEL_KEY = 'zen-create-agent-last-model';
 
 type LastModel = ModelSelection;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const readLastModel = (key: string): LastModel | null => {
   try {
     const raw = localStorage.getItem(key);
@@ -67,6 +77,7 @@ const writeLastModel = (key: string, model: LastModel) => {
   }
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
@@ -79,6 +90,7 @@ const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
   onToolClick,
   moduleId,
 }) => {
+  // ── Derived ──
   const {
     agent_type: agentType = '',
     agent_name: agentName = '',
@@ -93,19 +105,27 @@ const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
   const isCompleted = !!outputEntry || isActionClicked || isError || !!nextUserMessage;
   const isCreating = isActionClicked && !outputEntry;
 
+  // ── State ──
   const [showModelDrawer, setShowModelDrawer] = useState(false);
   const [selection, setSelection] = useState<ModelSelection | null>(null);
   const [providers, setProviders] = useState<any[]>([]);
   const [isLoadingProviders, setIsLoadingProviders] = useState(false);
+
+  // ── Derived ──
   const { codeState } = useAgentFeature();
   const storageKey = `${LAST_MODEL_KEY}:${codeState.currentProjectId ?? 'default'}:${agentType || 'agent'}`;
   const lastUsed = useMemo(() => readLastModel(storageKey), [storageKey]);
+
+  // ── State ──
   const [resolvedLast, setResolvedLast] = useState<ModelSelection | null>(null);
+
+  // ── Derived ──
   const preferred = selection ?? resolvedLast ?? lastUsed;
   const effective: ModelSelection | null = selection ?? resolvedLast ?? lastUsed;
   const rootEl = useAgentRoot();
   const { apiUrl } = useSettings();
 
+  // ── Effects ──
   useEffect(() => {
     if (!lastUsed || isCompleted || !apiUrl) return;
     if (lastUsed.email && lastUsed.website) {
@@ -155,12 +175,14 @@ const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
     };
   }, [lastUsed, isCompleted, apiUrl]);
 
+  // ── Derived ──
   const agentTypeLabel = agentType ? agentType.charAt(0).toUpperCase() + agentType.slice(1) : '';
   const typeColor = AGENT_TYPE_COLORS[agentType as AgentType] || 'rgb(106, 122, 154)';
   const TypeIcon = AGENT_TYPE_ICONS[agentType] || UserRound;
   const canConfirm = !isCompleted && !!agentType && !!agentName && !!effective;
   const canPickModel = !isCompleted && !isLoadingProviders;
 
+  // ── Handlers ──
   const handleOpenModelDrawer = async () => {
     if (!canPickModel) return;
     const cacheKey = providersKey('default');
@@ -234,6 +256,7 @@ const CreateAgentRenderer: React.FC<BaseRendererProps> = ({
     onToolClick?.(action, messageId, actionIndex, 'reject');
   };
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

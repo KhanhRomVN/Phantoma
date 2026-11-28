@@ -1,7 +1,25 @@
+/**
+ * ------------------------------------------------------------------
+ * Browser IPC
+ * ------------------------------------------------------------------
+ * Wrapper mỏng quanh window.api cho các kênh IPC của browser trong
+ * Code module (invoke, send, listen/unlisten).
+ *
+ * Main types:
+ * - Listener : Kiểu hàm lắng nghe sự kiện IPC
+ *
+ * Main constants:
+ * - browserIpc : Tập hàm canSend/canListen/canInvoke/invoke/send/listen/unlisten
+ * ------------------------------------------------------------------
+ */
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 const api = () => (window as any).api;
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 type Listener = (event: any, ...args: any[]) => void;
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const browserIpc = {
   canSend: (): boolean => Boolean(api()?.send),
   canListen: (): boolean => Boolean(api()?.on),

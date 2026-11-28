@@ -1,12 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import type { LucideIcon } from 'lucide-react';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface EmptyStateProps {
   icon: LucideIcon;
   text: string;
   desc?: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const EmptyState = memo(function EmptyState({ icon: Icon, text, desc }: EmptyStateProps) {
   return (
     <div className={'h-full min-h-[240px] flex flex-col items-center justify-center text-center gap-3 px-6'}>

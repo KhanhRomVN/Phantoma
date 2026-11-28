@@ -15,10 +15,11 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
 import {
   ExecutorContext,
   ExecutorOptions,
-} from '@renderer/components/Widgets/Zen/screens/Chat/types/executor-types';
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { TerminalIpc, TerminalDataPayload, TerminalExitPayload } from './run-command.handler';
 
 // ─── Types ──────────────────────────────────────────────────────────────

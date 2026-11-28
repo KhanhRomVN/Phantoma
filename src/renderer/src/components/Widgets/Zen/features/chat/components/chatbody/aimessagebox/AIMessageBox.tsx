@@ -1,0 +1,600 @@
+import React from 'react';
+/**
+ * ------------------------------------------------------------------
+ * AIMessageBox
+ * ------------------------------------------------------------------
+ * Component hi���n thị message của AI trong chat.
+ * Parse content thành groups và render qua TagRouter.
+ *
+ * Main features:
+ * - Parse AI response thành content blocks
+ * - Hiển thị response metadata bar
+ * - Render tool groups qua TagRouter
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
+// ── Constants ──
+import { EXECUTION_STATUS } from '../../../constants/tool_execution';
+
+// ── Types ──
+import { Message } from '../../../types/message.types';
+import { isUserMessage } from '../../../utils/message_filters';
+import type { ParsedResponse } from '../../../types/parsed_response.types';
+import { GroupType } from '../../../types/renderer.types';
+
+// ── Utils ──
+import { checkToolMutation } from '../../../registries/tool_mutation.registry';
+
+// ── Utils ──
+import {
+  buildDangerousCommandMap,
+  type DangerousCommandInfo,
+} from '../../../utils/dangerous_command_detector';
+import { isToolBusy } from '../../../registries/tool_status.registry';
+
+// ── Components ──
+import TagRouter from './TagRouter';
+import ResponseMetadataBar from './ResponseMetadataBar';
+import {
+  TerminalStatus,
+  TOOL_ACTION_TYPES,
+} from '@renderer/components/Widgets/Zen/shared/types/tool-constants';
+
+// ─── Types ──────────────────────────────────────────────────────────────
+interface AIMessageBoxProps {
+  message: Message;
+  parsedContent: ParsedResponse;
+  clickedActions: Set<string>;
+  failedActions?: Set<string>;
+  rejectedActions?: Set<string>;
+  onToolClick: (
+    action: any,
+    message: Message,
+    index: number,
+    type: (typeof TOOL_ACTION_TYPES)[keyof typeof TOOL_ACTION_TYPES],
+  ) => void;
+  executionState?: {
+    total: number;
+    completed: number;
+    status: (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
+  };
+  isLastMessage?: boolean;
+  hasNextAssistantMessage?: boolean;
+  isRestored?: boolean;
+  toolOutputs?: Record<string, { output: string; isError: boolean }>;
+  terminalStatus?: Record<string, TerminalStatus>;
+  nextUserMessage?: Message;
+  allMessages?: Message[];
+  conversationId?: string;
+  previousAssistantMessage?: Message;
+  isGenerating?: boolean;
+  onSendMessage?: (
+    content: string,
+    files?: any[],
+    model?: any,
+    account?: any,
+    skipLogic?: boolean,
+    actionIds?: string[],
+    uiHidden?: boolean,
+  ) => void;
+  onSelectOption?: (messageId: string, option: string) => void;
+  singleLineReviewActions?: Record<string, { action: any; actionId: string; messageId: string }>;
+  onConfirmSingleLineAction?: (actionId: string) => void;
+  onRejectSingleLineAction?: (actionId: string) => void;
+  onGitConfirm?: (items: any[]) => void;
+  onGitCancel?: () => void;
+  gitStatusItems?: any[];
+  gitStatusBranch?: string;
+  isGitProcessing?: boolean;
+  isGitStatusVisible?: boolean;
+  onBackToHome?: (summary: string) => void;
+  responseNumber?: number | null;
+  onRetryRequest?: (messageId: string) => void;
+  onRevertConversation?: (messageId: string, timestamp: number) => void;
+  /** User xác nhận chạy dangerous command — reset guard để lần execute kế tiếp cho phép. */
+  onApproveDangerousAction?: (actionId: string) => void;
+  /** User huỷ dangerous command — reset approval, không execute. */
+  onRejectDangerousAction?: (actionId: string) => void;
+  /** Feature/module hiện tại (code/recon/emulate) để chọn renderer đúng module. */
+  feature?: string | null;
+}
+
+const AIMessageBoxInternal: React.FC<AIMessageBoxProps> = ({
+  message,
+  parsedContent,
+  clickedActions,
+  failedActions,
+  rejectedActions,
+  onToolClick,
+  executionState,
+  isLastMessage,
+  hasNextAssistantMessage = false,
+  isRestored = false,
+  toolOutputs,
+  terminalStatus,
+  nextUserMessage,
+  allMessages,
+  conversationId,
+  isGenerating,
+  onSendMessage,
+  onSelectOption,
+  singleLineReviewActions,
+  onConfirmSingleLineAction,
+  onRejectSingleLineAction,
+  onGitConfirm,
+  onGitCancel,
+  gitStatusItems,
+  gitStatusBranch,
+  isGitProcessing,
+  isGitStatusVisible = true,
+  onBackToHome,
+  responseNumber,
+  onRetryRequest,
+  onRevertConversation,
+  onApproveDangerousAction,
+  onRejectDangerousAction,
+  feature,
+}) => {
+  const dangerousCommands = React.useMemo<Record<string, DangerousCommandInfo>>(() => {
+    if (!parsedContent?.actions?.length) return {};
+    return buildDangerousCommandMap(message.id, parsedContent.actions);
+  }, [message.id, parsedContent.actions]);
+
+  // Handlers cho dangerous command actions
+  const onProceedDangerousCommand = React.useCallback(
+    (actionId: string) => {
+      const idx = parsedContent.actions.findIndex(
+        (_a, i) => `${message.id}-action-${i}` === actionId,
+      );
+      if (idx === -1) return;
+      // Mark approve trước khi trigger execute để guard dangerous command bỏ qua.
+      onApproveDangerousAction?.(actionId);
+      onToolClick(parsedContent.actions[idx], message, idx, 'accept');
+    },
+    [message, parsedContent.actions, onToolClick, onApproveDangerousAction],
+  );
+
+  const onCancelDangerousCommand = React.useCallback(
+    (actionId: string) => {
+      const idx = parsedContent.actions.findIndex(
+        (_a, i) => `${message.id}-action-${i}` === actionId,
+      );
+      if (idx === -1) return;
+      onRejectDangerousAction?.(actionId);
+      onToolClick(parsedContent.actions[idx], message, idx, 'reject');
+    },
+    [message, parsedContent.actions, onToolClick, onRejectDangerousAction],
+  );
+
+  // Track render count for this specific message
+  const renderCountRef = React.useRef(0);
+  renderCountRef.current++;
+
+  //   Cache previousUserMessage lookup. Only recompute when the message
+  // list length changes or the current message id changes (not on every render
+  // where allMessages is a new array reference with same content).
+  const prevUserMsgCacheRef = React.useRef<{
+    allMessagesLength: number;
+    messageId: string;
+    result: Message | null;
+  } | null>(null);
+
+  const previousUserMessage = React.useMemo((): Message | null => {
+    if (!allMessages || !message) return null;
+
+    // Use cached result if messages array hasn't changed structurally
+    const cache = prevUserMsgCacheRef.current;
+    if (cache && cache.allMessagesLength === allMessages.length && cache.messageId === message.id) {
+      return cache.result;
+    }
+
+    const msgIndex = allMessages.findIndex((m) => m.id === message.id);
+    let result: Message | null = null;
+    if (msgIndex > 0) {
+      for (let i = msgIndex - 1; i >= 0; i--) {
+        if (isUserMessage(allMessages[i])) {
+          result = allMessages[i];
+          break;
+        }
+      }
+    }
+
+    // Update cache
+    prevUserMsgCacheRef.current = {
+      allMessagesLength: allMessages.length,
+      messageId: message.id,
+      result,
+    };
+
+    return result;
+  }, [allMessages, message, responseNumber]);
+
+  //   Cache knownFilePaths computation. This scans all messages for file paths
+  // using regex — expensive O(n*m) operation. Only recompute when the number of
+  // messages changes (new message added), not on every render during streaming.
+  const knownFilePathsCacheRef = React.useRef<{
+    allMessagesLength: number;
+    lastMessageId: string;
+    map: Map<string, string>;
+  } | null>(null);
+
+  const knownFilePaths = React.useMemo((): Map<string, string> => {
+    if (!allMessages) return new Map();
+
+    // Use cached result if messages array hasn't changed structurally
+    const lastMsg = allMessages[allMessages.length - 1];
+    const cache = knownFilePathsCacheRef.current;
+    if (
+      cache &&
+      cache.allMessagesLength === allMessages.length &&
+      cache.lastMessageId === lastMsg?.id
+    ) {
+      return cache.map;
+    }
+
+    const map = new Map<string, string>();
+    const filePathRegex = /(?:^|\s)([\/~][\w\-\.\/]+\.\w+)(?:\s|$)/g;
+    let totalMatches = 0;
+
+    allMessages.forEach((msg) => {
+      if (!msg.content) return;
+      const matches = msg.content.matchAll(filePathRegex);
+      let matchCount = 0;
+      for (const match of matches) {
+        matchCount++;
+        totalMatches++;
+        const fullPath = match[1];
+        const basename = fullPath.split('/').pop();
+        if (basename) {
+          map.set(basename, fullPath);
+        }
+      }
+    });
+
+    // Update cache
+    knownFilePathsCacheRef.current = {
+      allMessagesLength: allMessages.length,
+      lastMessageId: lastMsg?.id,
+      map,
+    };
+
+    return map;
+  }, [allMessages, responseNumber]);
+
+  return (
+    <div
+      className={cn(
+        'assistant-message-container',
+        message.isError && 'is-error',
+        hasNextAssistantMessage === false && message.role === 'assistant' && 'is-last-assistant',
+        'flex flex-col mb-1 pl-0 relative transition-all duration-300 bg-transparent rounded-md border-none p-0',
+        message.isCancelled
+          ? 'opacity-40 grayscale blur-[0.5px] pointer-events-none'
+          : 'opacity-100 pointer-events-auto',
+      )}
+    >
+      {(() => {
+        const groups: GroupType[] = [];
+
+        if (responseNumber !== null && responseNumber !== undefined && !message.isError) {
+          groups.push({
+            type: 'response_number',
+            content: `[${responseNumber}]`,
+            key: 'response-number',
+          });
+        }
+
+        let currentToolGroup: { action: any; index: number }[] = [];
+        const blocks = parsedContent.contentBlocks || [];
+
+        const flushTools = () => {
+          if (currentToolGroup.length > 0) {
+            const firstIndex = currentToolGroup[0].index;
+            groups.push({
+              type: 'tools',
+              items: [...currentToolGroup],
+              key: `tools-${firstIndex}`,
+            });
+            currentToolGroup = [];
+          }
+        };
+
+        if (message.isError) {
+          groups.push({
+            type: 'error',
+            content: message.content,
+            key: 'error-block',
+          });
+        } else if (parsedContent.onlyThinkingDetected) {
+          // 🛡️ FALLBACK: Response chỉ có thinking, hiển thị warning
+          groups.push({
+            type: 'warning' as any,
+            label: 'WARNING',
+            message:
+              'Response contains only internal reasoning (thinking blocks) with no visible content or actions. The AI may need to continue or regenerate the response.',
+            key: 'only-thinking-warning',
+          });
+        } else if (blocks.length > 0) {
+          blocks.forEach((block, idx) => {
+            if (block.type === 'tool') {
+              const actionIndex = parsedContent.actions.indexOf(block.action);
+              const toolAction = {
+                action: block.action,
+                index: actionIndex !== -1 ? actionIndex : idx,
+              };
+
+              // Flush tools if tool type changes (avoid mixing different tool types in same group)
+              if (
+                currentToolGroup.length > 0 &&
+                currentToolGroup[0].action.type !== block.action.type
+              ) {
+                flushTools();
+              }
+
+              currentToolGroup.push(toolAction);
+            } else if (block.type === 'error') {
+              flushTools();
+              groups.push({
+                type: 'error',
+                content: block.content,
+                errorCode: block.errorCode,
+                toolName: block.toolName,
+                toolParams: block.toolParams,
+                key: `error-${idx}`,
+              });
+            } else if (block.type === 'markdown') {
+              if (block.content.trim().length > 0) {
+                flushTools();
+                groups.push({
+                  type: 'markdown',
+                  content: block.content,
+                  key: `markdown-${idx}`,
+                });
+              }
+            } else if ((block as any).type === 'code') {
+              // Handle code blocks
+              if ((block as any).content.trim().length > 0) {
+                flushTools();
+                groups.push({
+                  type: 'code',
+                  content: (block as any).content,
+                  language: (block as any).language || 'text',
+                  key: `code-${idx}`,
+                });
+              }
+            } else if (block.type === 'thinking') {
+              if (block.content.trim().length > 0) {
+                flushTools();
+                groups.push({
+                  type: 'thinking',
+                  content: block.content,
+                  key: `thinking-${idx}`,
+                });
+              }
+            } else if (block.type === 'question') {
+              flushTools();
+              groups.push({
+                type: 'question',
+                options: block.options,
+                title: block.title,
+                optional: block.optional,
+                questions: block.questions,
+                questionAnswers: message.questionAnswers as any,
+                key: `question-${idx}`,
+              });
+            }
+          });
+          flushTools();
+        } else {
+          if (parsedContent.displayText) {
+            groups.push({
+              type: 'markdown',
+              content: parsedContent.displayText,
+              key: 'markdown-legacy',
+            });
+          }
+          if (parsedContent.actions && parsedContent.actions.length > 0) {
+            currentToolGroup = parsedContent.actions.map((action, index) => ({
+              action,
+              index,
+            }));
+            flushTools();
+          }
+        }
+
+        // Calculate firstUnclickedActionIndex for approval mode
+        let firstUnclickedActionIndex: number | undefined = undefined;
+        if (isLastMessage && parsedContent.actions) {
+          for (let i = 0; i < parsedContent.actions.length; i++) {
+            const actionId = `${message.id}-action-${i}`;
+            const isClicked = clickedActions.has(actionId);
+            const hasOutput = toolOutputs && toolOutputs[actionId];
+            const hasHistoryOutput =
+              !!nextUserMessage || !!allMessages?.some((m) => m.actionIds?.includes(actionId));
+
+            if (!isClicked && !hasOutput && !hasHistoryOutput) {
+              firstUnclickedActionIndex = i;
+              break;
+            }
+          }
+        }
+
+        let isInteractionBlocked = false;
+        const renderGroups = groups;
+
+        return renderGroups.map((group, index) => {
+          const isLastGroup = index === renderGroups.length - 1;
+
+          if (group.type === 'response_number') {
+            return (
+              <React.Fragment key={group.key}>
+                <ResponseMetadataBar
+                  responseNumber={responseNumber!}
+                  message={message}
+                  previousUserMessage={previousUserMessage}
+                  allMessages={allMessages}
+                  conversationId={conversationId}
+                  onRetryRequest={onRetryRequest ? () => onRetryRequest(message.id) : undefined}
+                  onRevertConversation={onRevertConversation}
+                />
+              </React.Fragment>
+            );
+          }
+
+          // Pass all other groups to TagRouter (tools, markdown, code, question, error, warning)
+          const content = (
+            <TagRouter
+              group={group}
+              messageId={message.id}
+              clickedActions={clickedActions}
+              failedActions={failedActions}
+              rejectedActions={rejectedActions}
+              onToolClick={(action, _msgId, actionIndex, type) =>
+                onToolClick(action, message, actionIndex, type)
+              }
+              executionState={executionState}
+              isLastMessage={isLastMessage}
+              isRestored={isRestored}
+              isLastGroup={isLastGroup}
+              toolOutputs={toolOutputs}
+              terminalStatus={terminalStatus}
+              nextUserMessage={nextUserMessage}
+              allMessages={allMessages}
+              conversationId={conversationId}
+              allActions={parsedContent.actions}
+              isBlockedByPrecedingInteraction={isInteractionBlocked}
+              singleLineReviewActions={singleLineReviewActions}
+              onConfirmSingleLineAction={onConfirmSingleLineAction}
+              onRejectSingleLineAction={onRejectSingleLineAction}
+              onGitConfirm={onGitConfirm}
+              onGitCancel={onGitCancel}
+              gitStatusItems={gitStatusItems}
+              gitStatusBranch={gitStatusBranch}
+              isGitProcessing={isGitProcessing}
+              isGitStatusVisible={isGitStatusVisible}
+              onBackToHome={onBackToHome}
+              knownFilePaths={knownFilePaths}
+              isGenerating={isGenerating}
+              onSelectOption={onSelectOption}
+              onSendMessage={onSendMessage}
+              firstUnclickedActionIndex={firstUnclickedActionIndex}
+              isViewOnly={isRestored}
+              dangerousCommands={dangerousCommands}
+              onProceedDangerousCommand={onProceedDangerousCommand}
+              onCancelDangerousCommand={onCancelDangerousCommand}
+              feature={feature}
+            />
+          );
+
+          // Update isInteractionBlocked based on group
+          if (group.type === 'question') {
+            const isAnswered = !!message.selectedOption;
+            if (!isAnswered) isInteractionBlocked = true;
+          } else if (group.type === 'tools') {
+            const hasUnclickedOrBusyAction = group.items.some((item) => {
+              const actionId = `${message.id}-action-${item.index}`;
+              const hasOutput = toolOutputs && toolOutputs[actionId];
+              const isClicked = clickedActions.has(actionId);
+              const hasHistoryOutput =
+                !!nextUserMessage || !!allMessages?.some((m) => m.actionIds?.includes(actionId));
+              if (!isClicked && !hasOutput && !hasHistoryOutput) {
+                const mutation = checkToolMutation(item.action);
+                // File mutation tools (create/modify) should not be blocked before execution
+                if (mutation.mutates && mutation.mutationType !== 'delete') return false;
+                return true;
+              }
+              // Check if tool is busy using module-specific checker
+              if (
+                isToolBusy({
+                  actionId,
+                  action: item.action,
+                  hasOutput: !!hasOutput,
+                  hasHistoryOutput,
+                  toolOutputs,
+                  terminalStatus,
+                })
+              ) {
+                return true;
+              }
+              return false;
+            });
+            if (hasUnclickedOrBusyAction) isInteractionBlocked = true;
+          }
+
+          return <React.Fragment key={group.key}>{content}</React.Fragment>;
+        });
+      })()}
+    </div>
+  );
+};
+
+// Memoize AIMessageBox to prevent re-renders during streaming
+const AIMessageBox = React.memo(AIMessageBoxInternal, (prevProps, nextProps) => {
+  // Performance optimization: shallow comparison of props
+  // Only re-render if these critical props change
+
+  // Message identity check
+  if (prevProps.message.id !== nextProps.message.id) {
+    return false; // Different message, re-render
+  }
+
+  // CRITICAL: During streaming, only re-render if content actually changed
+  if (prevProps.isGenerating || nextProps.isGenerating) {
+    // Check if message content changed
+    const contentChanged = prevProps.message.content !== nextProps.message.content;
+
+    // Check if streaming state changed (started/stopped)
+    const streamingStateChanged = prevProps.isGenerating !== nextProps.isGenerating;
+
+    // Only re-render if content or streaming state changed
+    if (contentChanged || streamingStateChanged) {
+      return false; // Re-render needed
+    }
+    return true; // Skip re-render
+  }
+
+  // Not streaming, check all critical props
+  const sameContent = prevProps.message.content === nextProps.message.content;
+  const sameParsed = prevProps.parsedContent === nextProps.parsedContent;
+  const sameIsLastMessage = prevProps.isLastMessage === nextProps.isLastMessage;
+  const sameHasNext = prevProps.hasNextAssistantMessage === nextProps.hasNextAssistantMessage;
+  const sameResponseNumber = prevProps.responseNumber === nextProps.responseNumber;
+  const sameSelectedOption = prevProps.message.selectedOption === nextProps.message.selectedOption;
+
+  // Check if arrays/objects changed by reference (quick check)
+  const sameClickedActions = prevProps.clickedActions === nextProps.clickedActions;
+  const sameToolOutputs = prevProps.toolOutputs === nextProps.toolOutputs;
+  const sameTerminalStatus = prevProps.terminalStatus === nextProps.terminalStatus;
+
+  const shouldSkipRender =
+    sameContent &&
+    sameParsed &&
+    sameIsLastMessage &&
+    sameHasNext &&
+    sameResponseNumber &&
+    sameSelectedOption &&
+    sameClickedActions &&
+    sameToolOutputs &&
+    sameTerminalStatus;
+
+  if (!shouldSkipRender) {
+    const changedProps: string[] = [];
+    if (!sameContent) changedProps.push('content');
+    if (!sameParsed) changedProps.push('parsedContent');
+    if (!sameIsLastMessage) changedProps.push('isLastMessage');
+    if (!sameHasNext) changedProps.push('hasNextAssistantMessage');
+    if (!sameResponseNumber) changedProps.push('responseNumber');
+    if (!sameSelectedOption) changedProps.push('selectedOption');
+    if (!sameClickedActions) changedProps.push('clickedActions');
+    if (!sameToolOutputs) changedProps.push('toolOutputs');
+    if (!sameTerminalStatus) changedProps.push('terminalStatus');
+  }
+
+  return shouldSkipRender; // true = skip re-render
+});
+
+export default AIMessageBox;

@@ -9,7 +9,7 @@ import { useIpLookup } from './useIpLookup';
 export function useFootprintPicker(proxy: ProxyItem | null) {
   const lookup = useIpLookup(proxy ? proxy.exitIp || proxy.host : null);
   const info = lookup.state.status === 'ok' ? lookup.state.data : null;
-  const source = useMemo<FootprintPreset[]>(() => (info ? generateFootprints(info) : FOOTPRINT_PRESETS), [info]);
+  const source = useMemo<FootprintPreset[]>(() => (info ? generateFootprints({ ...info, mobile: info.mobile ?? undefined, proxy: info.proxy ?? undefined, hosting: info.hosting ?? undefined, vpn: info.vpn ?? undefined, tor: info.tor ?? undefined, asn: Number(info.asn) || undefined }) : FOOTPRINT_PRESETS), [info]);
   const generated = info !== null;
 
   const [q, setQ] = useState('');

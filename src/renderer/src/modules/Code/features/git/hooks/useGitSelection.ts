@@ -1,8 +1,15 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useCallback, useEffect, useState } from 'react';
+
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
+
+// ── Utils ──
 import type { CommitFile } from '../utils/graph.util';
 import { VIRTUAL_PREFIX } from '../constants/git-view.constants';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseGitSelectionProps {
   projectPath: string;
   initialHash?: string | null;
@@ -21,16 +28,19 @@ interface UseGitSelectionReturn {
   closeDiff: () => void;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGitSelection({
   projectPath,
   initialHash = null,
 }: UseGitSelectionProps): UseGitSelectionReturn {
+  // ── State ──
   const [selectedHash, setSelectedHash] = useState<string | null>(initialHash);
   const [files, setFiles] = useState<CommitFile[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [diffOpen, setDiffOpen] = useState(false);
 
+  // ── Effects ──
   useEffect(() => {
     setActiveFile(null);
     if (!selectedHash) setDiffOpen(false);
@@ -59,6 +69,7 @@ export function useGitSelection({
     };
   }, [selectedHash, projectPath]);
 
+  // ── Callbacks ──
   const openDiff = useCallback((path: string) => {
     setActiveFile(path);
     setDiffOpen(true);

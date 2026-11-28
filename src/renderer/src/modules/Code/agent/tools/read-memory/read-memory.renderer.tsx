@@ -1,12 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * ReadMemoryRenderer
- * ------------------------------------------------------------------
- * Hiển thị nội dung memory.md (toàn cục) sau khi AI gọi read_memory.
- * Nội dung được lấy từ toolOutputs[actionId].output.
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import React from 'react';
@@ -15,10 +6,10 @@ import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── Types ──────────────────────────────────────────────────────────────
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── Component ──────────────────────────────────────────────────────────
 export const ReadMemoryRenderer: React.FC<BaseRendererProps> = ({

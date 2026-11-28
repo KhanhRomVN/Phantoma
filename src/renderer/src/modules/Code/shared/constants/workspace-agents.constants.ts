@@ -1,13 +1,30 @@
 /**
- * AI-agent helpers for the workspace:
- *  - favicon lookup for detected agents (shown in tab icons)
- *  - syncing a detected agent back into the project store (SessionCard display)
+ * ------------------------------------------------------------------
+ * Workspace Agents Constants
+ * ------------------------------------------------------------------
+ * Hằng số và helper cho các AI agent trong workspace: tra cứu favicon
+ * của agent được phát hiện (hiển thị ở icon tab) và đồng bộ agent đã
+ * phát hiện về project store (hiển thị ở SessionCard).
+ *
+ * Main constants:
+ * - AGENT_DOMAIN_MAP : Map agent id sang domain chính thức để lấy favicon
+ *
+ * Main functions:
+ * - getAgentFavicon() : Lấy favicon URL của agent
+ * ------------------------------------------------------------------
  */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import { useCodeStore } from '../stores/code.store';
-import type { SessionStatus } from '../../features/projects/types/session.types';
+
+// ── Utils ──
 import { getFaviconUrl } from '@renderer/utils/favicon';
 
+// ── Types ──
+import type { SessionStatus } from '../../features/projects/types/session.types';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 // Map AI agent IDs to their official domains for favicon fetching
 const AGENT_DOMAIN_MAP: Record<string, string> = {
   claude: 'https://claude.ai',
@@ -52,6 +69,7 @@ const AGENT_DOMAIN_MAP: Record<string, string> = {
   prime: 'https://prime.agent',
 };
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function getAgentFavicon(agentId: string | null | undefined): string | undefined {
   if (!agentId) return undefined;
   const domain = AGENT_DOMAIN_MAP[agentId];

@@ -1,20 +1,24 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
 
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 import { getAgentFavicon } from '../../../shared/constants/workspace-agents.constants';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface AgentItem {
   id: string;
   name: string;
@@ -25,9 +29,11 @@ interface AgentItem {
   account_id?: string | null;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const capitalize = (value: string): string =>
   value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : value;
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const AgentRow: React.FC<{ agent: AgentItem }> = ({ agent }) => (
   <div className="flex items-center gap-2 text-xs leading-[1.4]">
     <span
@@ -78,6 +84,7 @@ const ListAgentsRenderer: React.FC<BaseRendererProps> = ({
   allMessages,
   moduleId,
 }) => {
+  // ── Derived ──
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -88,6 +95,7 @@ const ListAgentsRenderer: React.FC<BaseRendererProps> = ({
   const isCompleted = !!outputEntry || isActionClicked || isError || !!nextUserMessage;
   const agents = React.useMemo(() => parseAgents(output), [output]);
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

@@ -1,3 +1,4 @@
+// ─── Exports ─────────────────────────────────────────────────────────────────
 export { GitView } from './components/GitView';
 export { FileSection, parseDiff } from './components/DiffView';
 export { avatarColor, avatarUrl, initials } from './utils/graph.util';

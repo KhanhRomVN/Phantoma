@@ -1,6 +1,22 @@
-import { extractParamValue } from '@renderer/components/Widgets/Zen/screens/Chat/utils/toolParser';
+/**
+ * ------------------------------------------------------------------
+ * List Files Parser
+ * ------------------------------------------------------------------
+ * Parse nội dung tag list_files từ phản hồi của AI thành params.
+ *
+ * Main functions:
+ * - parseListFiles() : Trích xuất folder_path, type và depth
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { extractParamValue } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+// ── Types ──
 import type { ListFilesParams } from '../tool.types';
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const parseListFiles = (innerContent: string): ListFilesParams => {
   // Parse according to tools-reference.ts schema: folder_path only
   const folderPath = extractParamValue(innerContent, 'folder_path');

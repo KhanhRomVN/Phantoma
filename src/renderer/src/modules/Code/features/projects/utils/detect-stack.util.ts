@@ -15,8 +15,11 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface ContributorInfo {
   username: string;
   avatarUrl?: string; // Fallback to GitHub favicon if not provided
@@ -48,6 +51,7 @@ export interface StackInfo {
   branches?: BranchInfo[];
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 // Simple mapping of extensions to language IDs (matching standard registry IDs)
 const EXT_MAP: Record<string, string> = {
   ts: 'typescript',
@@ -67,6 +71,7 @@ const EXT_MAP: Record<string, string> = {
   kt: 'kotlin',
 };
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 // Simple heuristic based on package.json dependencies or specific files
 function detectFromManifest(files: string[]): StackInfo {
   const langs = new Set<string>();

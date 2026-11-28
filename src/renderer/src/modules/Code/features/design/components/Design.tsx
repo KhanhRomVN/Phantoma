@@ -1,12 +1,24 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
+
+// ── UI ──
 import { Palette, Plus } from 'lucide-react';
-import { useCodeStore } from '../../../shared/stores/code.store';
-import { useDesignStore } from '../stores/design.store';
+
+// ── Components ──
 import { DesignModal } from './modals/DesignModal';
 import { DesignCard } from './DesignCard';
+
+// ── Stores ──
+import { useCodeStore } from '../../../shared/stores/code.store';
+import { useDesignStore } from '../stores/design.store';
+
+// ── Utils ──
 import { getTemplateFiles, getTemplateGraph } from '../utils/template-files.util';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function Design() {
+  // ── Store ──
   const projectPath = useCodeStore((s) => {
     const p = s.projects.find((p) => p.id === s.currentProjectId);
     return p?.path ?? '';
@@ -18,12 +30,16 @@ export function Design() {
   const createDesign = useDesignStore((s) => s.createDesign);
   const deleteDesign = useDesignStore((s) => s.deleteDesign);
   const openTab = useDesignStore((s) => s.openTab);
+
+  // ── State ──
   const [modalOpen, setModalOpen] = useState(false);
 
+  // ── Effects ──
   useEffect(() => {
     if (projectPath) void loadDesigns(projectPath);
   }, [projectPath, loadDesigns]);
 
+  // ── Handlers ──
   const handleOpen = (designId: string) => {
     openTab(designId);
     // ASSUMED: Mở Design tab trong Workspace thay vì contentViewMode
@@ -59,6 +75,7 @@ export function Design() {
     }
   };
 
+  // ── Render ──
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-9 shrink-0 items-center justify-between border-b border-border bg-panel-background px-3">

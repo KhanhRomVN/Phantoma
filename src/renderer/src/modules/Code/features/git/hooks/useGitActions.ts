@@ -1,9 +1,16 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useCallback, useState } from 'react';
+
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 import { gitIpc } from '../../../shared/ipc/git.ipc';
+
+// ── Utils ──
 import type { Commit } from '../utils/graph.util';
 import { VIRTUAL_PREFIX } from '../constants/git-view.constants';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseGitActionsProps {
   projectPath: string;
   commits: Commit[];
@@ -31,6 +38,7 @@ interface UseGitActionsReturn {
   ) => Promise<void>;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGitActions({
   projectPath,
   commits,
@@ -40,10 +48,12 @@ export function useGitActions({
   showNotice,
   selectHash,
 }: UseGitActionsProps): UseGitActionsReturn {
+  // ── State ──
   const [busyBranch, setBusyBranch] = useState<string | null>(null);
   const [pushing, setPushing] = useState(false);
   const [activeBranch, setActiveBranch] = useState<string | null>(null);
 
+  // ── Callbacks ──
   const jumpToBranch = useCallback(
     async (name: string) => {
       if (localChanges.some((lc) => lc.name === name)) {

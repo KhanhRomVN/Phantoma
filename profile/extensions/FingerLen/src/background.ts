@@ -1,4 +1,11 @@
-import { SCAN_STATE_KEY, type PageStatus, type RawPages, type ScanCommand, type ScanState, type ScanTarget } from './types';
+import {
+  SCAN_STATE_KEY,
+  type PageStatus,
+  type RawPages,
+  type ScanCommand,
+  type ScanState,
+  type ScanTarget,
+} from './types';
 import { SCAN_TARGETS, TAB_LOAD_TIMEOUT_MS } from './scan/targets';
 import { scrapePage } from './scan/scrape';
 import { buildScanData } from './scan/build/index';
@@ -30,7 +37,16 @@ async function publish(patch: Partial<ScanState>): Promise<void> {
 function withTimeout<T>(p: Promise<T>, ms: number, msg: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(msg)), ms);
-    p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
   });
 }
 
@@ -54,7 +70,14 @@ function waitTabComplete(tabId: number, ms: number): Promise<void> {
     chrome.tabs.onUpdated.addListener(onUpdated);
     chrome.tabs.onRemoved.addListener(onRemoved);
     // Trường hợp tab đã complete trước khi gắn listener
-    chrome.tabs.get(tabId).then((t) => { if (t.status === 'complete') done(resolve); }, () => { /* sẽ do onRemoved xử lý */ });
+    chrome.tabs.get(tabId).then(
+      (t) => {
+        if (t.status === 'complete') done(resolve);
+      },
+      () => {
+        /* sẽ do onRemoved xử lý */
+      },
+    );
   });
 }
 
@@ -67,7 +90,13 @@ const persistTabs = (s: Session) => chrome.storage.session.set({ [TABS_KEY]: [..
 async function closeAllTabs(s: Session): Promise<void> {
   const ids = [...s.tabIds];
   s.tabIds.clear();
-  await Promise.all(ids.map((id) => chrome.tabs.remove(id).catch(() => { /* tab đã đóng */ })));
+  await Promise.all(
+    ids.map((id) =>
+      chrome.tabs.remove(id).catch(() => {
+        /* tab đã đóng */
+      }),
+    ),
+  );
   await chrome.storage.session.remove(TABS_KEY).catch(() => {});
 }
 
@@ -79,7 +108,11 @@ const wakers = new Map<string, () => void>();
 function sleepOrWake(id: string, ms: number): Promise<void> {
   if (dirty.has(id)) return Promise.resolve();
   return new Promise<void>((resolve) => {
-    const done = () => { clearTimeout(t); wakers.delete(id); resolve(); };
+    const done = () => {
+      clearTimeout(t);
+      wakers.delete(id);
+      resolve();
+    };
     const t = setTimeout(done, ms);
     wakers.set(id, done);
   });
@@ -93,11 +126,20 @@ function installObserver(pageId: string): void {
   const notify = () => {
     clearTimeout(timer);
     timer = window.setTimeout(() => {
-      try { chrome.runtime.sendMessage({ type: 'scan:dirty', pageId }).catch(() => {}); } catch { /* context invalidated */ }
+      try {
+        chrome.runtime.sendMessage({ type: 'scan:dirty', pageId }).catch(() => {});
+      } catch {
+        /* context invalidated */
+      }
     }, 800);
   };
   w.__ftcObserver = new MutationObserver(notify);
-  w.__ftcObserver.observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true });
+  w.__ftcObserver.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+    attributes: true,
+  });
 }
 
 /* ───────────────────────────────── Quét liên tục ───────────────────────────────── */
@@ -108,8 +150,18 @@ async function startScan(): Promise<void> {
   session = s;
 
   const pages: ScanState['pages'] = {};
-  SCAN_TARGETS.forEach((t) => { pages[t.id] = { status: 'pending' }; });
-  await publish({ phase: 'running', progress: 0, pages, data: undefined, error: undefined, startedAt: Date.now(), finishedAt: undefined });
+  SCAN_TARGETS.forEach((t) => {
+    pages[t.id] = { status: 'pending' };
+  });
+  await publish({
+    phase: 'running',
+    progress: 0,
+    pages,
+    data: undefined,
+    error: undefined,
+    startedAt: Date.now(),
+    finishedAt: undefined,
+  });
 
   // Giữ service worker sống suốt thời gian theo dõi
   const keepAlive = setInterval(() => void chrome.runtime.getPlatformInfo(), 20000);
@@ -127,21 +179,38 @@ async function startScan(): Promise<void> {
 
   const pushData = async () => {
     if (s.cancelled) return;
-    try { await publish({ data: buildScanData(raw) }); } catch (e) { console.error('buildScanData failed', e); }
+    try {
+      await publish({ data: buildScanData(raw) });
+    } catch (e) {
+      console.error('buildScanData failed', e);
+    }
   };
 
-  const scrapeOnce = async (target: ScanTarget, tabId: number, timeoutMs: number): Promise<Record<string, any>> => {
-    await chrome.scripting.executeScript({ target: { tabId }, func: installObserver, args: [target.id] });
+  const scrapeOnce = async (
+    target: ScanTarget,
+    tabId: number,
+    timeoutMs: number,
+  ): Promise<Record<string, any>> => {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: installObserver,
+      args: [target.id],
+    });
     const injected = await withTimeout(
-      chrome.scripting.executeScript({ target: { tabId }, func: scrapePage, args: [target.id, timeoutMs] }),
+      chrome.scripting.executeScript({
+        target: { tabId },
+        func: scrapePage,
+        args: [target.id, timeoutMs],
+      }),
       timeoutMs + 15000,
       'Đọc DOM quá thời gian',
     );
     const data = injected?.[0]?.result as Record<string, any> | undefined;
     if (!data) throw new Error('Không nhận được dữ liệu từ trang');
     if (data.__error) throw new Error(String(data.__error));
-    if (!Object.keys(data).some((k) => !k.startsWith('__'))) throw new Error('Trang chưa có dữ liệu (DOM chưa render?)');
-    
+    if (!Object.keys(data).some((k) => !k.startsWith('__')))
+      throw new Error('Trang chưa có dữ liệu (DOM chưa render?)');
+
     // ASSUMED: Lưu DOM snapshot vào folder dom-snapshots/ qua downloads API
     try {
       const tab = await chrome.tabs.get(tabId);
@@ -162,12 +231,11 @@ async function startScan(): Promise<void> {
           conflictAction: 'overwrite',
         });
         URL.revokeObjectURL(dataUrl);
-        console.log(`[${target.id}] ✅ DOM saved: dom-snapshots/${fileName}`);
       }
     } catch (e) {
       console.warn(`[${target.id}] Failed to capture DOM:`, e);
     }
-    
+
     return data;
   };
 
@@ -176,7 +244,6 @@ async function startScan(): Promise<void> {
     while (!s.cancelled) {
       let tabId: number | undefined;
       try {
-
         await setPage(target.id, 'loading');
         const tab = await chrome.tabs.create({ url: target.url, active: false });
         if (tab.id === undefined) throw new Error('Không tạo được tab');
@@ -193,7 +260,11 @@ async function startScan(): Promise<void> {
           if (s.cancelled) return;
           dirty.delete(target.id);
           try {
-            const data = await scrapeOnce(target, tabId, hadData ? RESCRAPE_TIMEOUT_MS : target.timeoutMs);
+            const data = await scrapeOnce(
+              target,
+              tabId,
+              hadData ? RESCRAPE_TIMEOUT_MS : target.timeoutMs,
+            );
             const stable: Record<string, any> = {};
             for (const k of Object.keys(data)) if (!k.startsWith('__')) stable[k] = data[k];
             const sig = JSON.stringify(stable);
@@ -201,11 +272,9 @@ async function startScan(): Promise<void> {
               sigs[target.id] = sig;
               raw[target.id] = data;
               hadData = true;
-              // Log chi tiết field:value cho từng tab
-              console.log(`\n✅ [${target.id}] Data captured:`);
               Object.entries(stable).forEach(([k, v]) => {
-                const preview = typeof v === 'string' && v.length > 100 ? v.slice(0, 100) + '...' : v;
-                console.log(`  ${k}: ${JSON.stringify(preview)}`);
+                const preview =
+                  typeof v === 'string' && v.length > 100 ? v.slice(0, 100) + '...' : v;
               });
               await setPage(target.id, 'ok');
               await pushData();
@@ -228,7 +297,9 @@ async function startScan(): Promise<void> {
       }
       if (tabId !== undefined) {
         s.tabIds.delete(tabId);
-        await chrome.tabs.remove(tabId).catch(() => { /* tab đã đóng */ });
+        await chrome.tabs.remove(tabId).catch(() => {
+          /* tab đã đóng */
+        });
         await persistTabs(s);
       }
       await pause(RECREATE_DELAY_MS);
@@ -246,13 +317,11 @@ async function startScan(): Promise<void> {
       if (keys.length) summary.ok.push(`${id} (${keys.length} fields)`);
     }
     for (const target of SCAN_TARGETS) {
-      if (!raw[target.id]) summary.failed.push(`${target.id} (${state.pages[target.id]?.error || 'no data'})`);
+      if (!raw[target.id])
+        summary.failed.push(`${target.id} (${state.pages[target.id]?.error || 'no data'})`);
     }
-    console.log('\n📊 SCAN SUMMARY:');
-    console.log('✅ Success:', summary.ok.length, 'pages');
-    summary.ok.forEach(s => console.log('  -', s));
-    console.log('❌ Failed:', summary.failed.length, 'pages');
-    summary.failed.forEach(s => console.log('  -', s));
+    summary.ok.forEach((s) => console.log('  -', s));
+    summary.failed.forEach((s) => console.log('  -', s));
   }
 }
 
@@ -270,9 +339,16 @@ async function stopScan(): Promise<void> {
 /* ───────────────────────────────── Messaging ───────────────────────────────── */
 
 chrome.runtime.onMessage.addListener((msg: ScanCommand, _sender, sendResponse) => {
-  if (msg?.type === 'scan:start') { void startScan(); sendResponse({ ok: true }); }
-  else if (msg?.type === 'scan:stop') { void stopScan().then(() => sendResponse({ ok: true })); return true; }
-  else if (msg?.type === 'scan:dirty') { dirty.add(msg.pageId); wakers.get(msg.pageId)?.(); }
+  if (msg?.type === 'scan:start') {
+    void startScan();
+    sendResponse({ ok: true });
+  } else if (msg?.type === 'scan:stop') {
+    void stopScan().then(() => sendResponse({ ok: true }));
+    return true;
+  } else if (msg?.type === 'scan:dirty') {
+    dirty.add(msg.pageId);
+    wakers.get(msg.pageId)?.();
+  }
   return false;
 });
 
@@ -282,7 +358,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   const tabs = await chrome.tabs.query({});
   for (const tab of tabs) {
     const url = tab.url || tab.pendingUrl || '';
-    if (tab.id !== undefined && /^chrome:\/\/newtab\/?$/.test(url)) await chrome.tabs.update(tab.id, { url: NEWTAB_URL });
+    if (tab.id !== undefined && /^chrome:\/\/newtab\/?$/.test(url))
+      await chrome.tabs.update(tab.id, { url: NEWTAB_URL });
   }
 });
 
@@ -299,7 +376,12 @@ void chrome.storage.session.get(TABS_KEY).then(async (r) => {
 void chrome.storage.session.get(SCAN_STATE_KEY).then((r) => {
   const prev = r[SCAN_STATE_KEY] as ScanState | undefined;
   if (prev?.phase === 'running' && !session) {
-    state = { ...prev, phase: 'error', error: 'Lần quét bị gián đoạn (service worker khởi động lại)', finishedAt: Date.now() };
+    state = {
+      ...prev,
+      phase: 'error',
+      error: 'Lần quét bị gián đoạn (service worker khởi động lại)',
+      finishedAt: Date.now(),
+    };
     void chrome.storage.session.set({ [SCAN_STATE_KEY]: state });
   } else if (prev) state = prev;
 });

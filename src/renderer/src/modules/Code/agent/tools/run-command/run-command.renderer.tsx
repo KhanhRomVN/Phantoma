@@ -1,4 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useEffect, useRef, useState } from 'react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── Terminal ──
@@ -7,22 +11,17 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
 // ── Hooks ──
-import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
+import { useSettings } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { useCodeStore } from '../../../shared/stores/code.store';
 
 // Services
-import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Constants ──
-import {
-  TOOL_ACTION_TYPES,
-  TERMINAL_STATUS,
-  type TerminalStatus,
-} from '@renderer/components/Widgets/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Types ──
-import { Message } from '@renderer/components/Widgets/Zen/screens/Chat/types/message';
 
 // ── Utils ──
 import { $ } from '@renderer/utils/color';
@@ -30,11 +29,19 @@ import { $ } from '@renderer/utils/color';
 import { getFolderIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ActionBar } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ToolAction } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import {
+  TERMINAL_STATUS,
+  TerminalStatus,
+  TOOL_ACTION_TYPES,
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { Message } from '@renderer/modules/Chat/types';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface TerminalBlockProps {
   logs: string;
   status?: 'busy' | 'idle' | 'free';
@@ -46,6 +53,7 @@ interface TerminalBlockProps {
   rejectedOutline?: boolean;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const CopyIcon: React.FC = () => (
   <svg
     width="13"
@@ -77,6 +85,7 @@ const CheckIcon: React.FC = () => (
   </svg>
 );
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 /** Copy button:
  *  - hidden (opacity 0) by default, shown (opacity 1) via parent CSS class
  *  - no background in resting state, subtle bg on hover
@@ -166,6 +175,7 @@ const TerminalInputBar: React.FC<{ onInput: (data: string) => void }> = ({ onInp
   );
 };
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /** Helper: Read a CSS custom property value from the document root.
  *  Returns the resolved value or fallback if unavailable.
  *  This is needed because xterm.js requires actual color values,
@@ -211,8 +221,10 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
   onInput,
   rejectedOutline,
 }) => {
+  // ── Refs ──
   const terminalRef = useRef<HTMLDivElement>(null);
 
+  // ── Derived ──
   const formatCommand = (cmd: string) => {
     if (!cmd) return '';
     const lines = cmd.split('\n');
@@ -222,11 +234,16 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
     return cmd;
   };
 
+  // ── Refs ──
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+
+  // ── State ──
   const [isXtermVisible, setIsXtermVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [physicalLineCount, setPhysicalLineCount] = useState(0);
+
+  // ── Derived ──
   const canExpand = physicalLineCount > 15;
 
   const toggleExpand = () => {
@@ -236,6 +253,7 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
   const stripAnsi = (str: string) =>
     str.replace(/\x1B\[[0-9;?]*[A-Za-z~]/g, '').replace(/\x1b\].*?(\x07|\x1b\\)/g, '');
 
+  // ── Effects ──
   useEffect(() => {
     if (logs || status === 'busy') {
       setIsXtermVisible(true);
@@ -288,8 +306,10 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
     return () => {};
   }, [isXtermVisible]);
 
+  // ── Refs ──
   const lastWrittenLogsRef = useRef('');
 
+  // ── Effects ──
   useEffect(() => {
     if (xtermRef.current && isXtermVisible) {
       const trimmedLogs = logs.replace(/\r?\n$/, '');
@@ -330,9 +350,11 @@ export const TerminalBlock: React.FC<TerminalBlockProps> = ({
     }
   }, [logs, status, isXtermVisible, rows]);
 
+  // ── Derived ──
   const getCleanLogs = () => stripAnsi(logs || '');
   const getCommand = () => initialCommand || '';
 
+  // ── Render ──
   return (
     <>
       <div
@@ -520,13 +542,18 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
   onCancelDangerousCommand,
   moduleId,
 }) => {
+  // ── Derived ──
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isRejectedLocal, setIsRejectedLocal] = React.useState(false);
   const [storedOutput, setStoredOutput] = React.useState<string | null>(null);
+
+  // ── Store ──
   const rootPath = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.path || '',
   );
   useSettings();
+
+  // ── Derived ──
   const actionId = `${messageId}-action-${actionIndex}`;
   const outputData = toolOutputs?.[actionId];
 
@@ -568,7 +595,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
     window.addEventListener('message', handleMessage);
     extensionService.postMessage({
       command: 'readTerminalOutput',
-      chatUuid: conversationId || nextUserMessage.conversationId || '',
+      chatUuid: conversationId || '',
       outputUuid,
       requestId: `read-terminal-${outputUuid}`,
     });
@@ -616,6 +643,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
     }
   }, [isCompleted, outputData]);
 
+  // ── Render ──
   return (
     <div className="flex flex-col gap-1.5 pb-1 mb-0.5">
       <TagHeader

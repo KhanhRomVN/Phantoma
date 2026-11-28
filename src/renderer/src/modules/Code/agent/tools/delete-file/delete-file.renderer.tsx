@@ -1,12 +1,17 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Types ──
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const getDisplayPath = (fullPath: string, allPaths: string[]): string => {
   const sep = /[\/\\]/;
   const parts = fullPath.split(sep).filter(Boolean);
@@ -48,17 +53,19 @@ const getFilename = (action: any): string => {
   return path.split('/').pop() || path || '';
 };
 
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
 
 import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ActionBar } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 /**
  * Renderer cho loại tool delete_file
  */
@@ -73,6 +80,7 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
   onToolClick,
   moduleId,
 }) => {
+  // ── Derived ──
   const toolType = action.type;
   const actionId = `${messageId}-action-${actionIndex}`;
 
@@ -95,6 +103,7 @@ export const DeleteFileRenderer: React.FC<BaseRendererProps> = ({
 
   const hasValidationError = !!action.isError;
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

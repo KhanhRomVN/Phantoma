@@ -1,42 +1,29 @@
 import React from 'react';
-/**
- * ------------------------------------------------------------------
- * ReplaceInFileRenderer
- * ------------------------------------------------------------------
- * Renderer cho replace_in_file tool.
- * Hiển thị diff giữa old_content và new_content, hỗ trợ merge actions.
- *
- * Main features:
- * - Hiển thị diff highlight với code block
- * - Hỗ trợ merge nhiều actions trong cùng group
- * - Permission check trước khi hiển thị approve UI
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { parseDiff, DiffHighlight } from '../../../shared/utils/diff.util';
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Hooks ──
 
 // ── Services ──
-import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Types ──
-import { MergedRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ActionBar } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
+import { MergedRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── Helper ─────────────────────────────────────────────────────────────
 const getLanguageFromPath = (filePath: string): string | undefined => {

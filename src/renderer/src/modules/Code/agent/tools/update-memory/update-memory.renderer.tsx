@@ -1,13 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * UpdateMemoryRenderer
- * ------------------------------------------------------------------
- * Hiển thị kết quả sau khi AI gọi update_memory.
- * Diff giữa old_content và new_content được hiển thị để user thấy
- * thay đổi trước khi accept (nếu ở approval mode).
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import React from 'react';
@@ -16,10 +6,10 @@ import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── Types ──────────────────────────────────────────────────────────────
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── Component ──────────────────────────────────────────────────────────
 export const UpdateMemoryRenderer: React.FC<BaseRendererProps> = ({
@@ -43,7 +33,7 @@ export const UpdateMemoryRenderer: React.FC<BaseRendererProps> = ({
         statusTooltip={isError ? 'Error' : 'Memory update'}
       />
       <div className="border border-primary rounded-md overflow-hidden">
-        {error && (
+        {oldContent && (
           <div className="px-3 py-2 bg-error/5 border-b border-primary">
             <div className="text-[10px] uppercase tracking-wide text-error mb-1">Old</div>
             <pre className="text-[11px] leading-relaxed whitespace-pre-wrap break-words text-text-secondary font-mono">

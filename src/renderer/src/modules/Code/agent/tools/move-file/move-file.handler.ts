@@ -6,10 +6,15 @@
  * ------------------------------------------------------------------
  */
 
-import { resolveWorkspacePath } from '../../../shared/utils/path-resolver.util';
-import { SecurityValidator } from '../../../shared/utils/security.util';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
+// ── Utils ──
+import { resolveWorkspacePath } from '../../../shared/utils/path-resolver.util';
+import { SecurityValidator } from '../../../shared/utils/security.util';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface BaseParams {
   requestId?: string;
 }
@@ -27,6 +32,7 @@ interface MoveFileParams extends BaseParams {
   basePath?: string;
 }
 
+// ─── Class ───────────────────────────────────────────────────────────────────
 export class MoveFileHandler {
   public async handle(message: MoveFileParams): Promise<BaseResult> {
     if (!message.file_path || !message.target_folder_path) {

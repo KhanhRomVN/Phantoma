@@ -1,10 +1,38 @@
-import { create } from 'zustand';
-import { useScopeStatsStore } from './scope-stats.store';
+/**
+ * ------------------------------------------------------------------
+ * Branch Scope Store
+ * ------------------------------------------------------------------
+ * Zustand store giữ phạm vi (scope) đường dẫn được phép sửa của từng
+ * branch theo project. Server là nguồn dữ liệu duy nhất; store chỉ giữ
+ * state trong bộ nhớ và đồng bộ qua codeApi.
+ *
+ * Main functions:
+ * - toScopeKey()  : Tạo key projectId::branchName
+ * - isInScope()   : Kiểm tra đường dẫn có nằm trong scope
+ *
+ * Main actions:
+ * - setScope()          : Đặt scope cho branch và đẩy lên server
+ * - refreshFromServer() : Nạp lại scope của project từ server
+ * - clearProject()      : Xóa scope của một project
+ *
+ * Main hooks:
+ * - useBranchScope() : Lấy scope của một branch
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { codeApi } from '../api/code.api';
 
+// ── Stores ──
+import { create } from 'zustand';
+import { useScopeStatsStore } from './scope-stats.store';
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const toScopeKey = (projectId: string, branchName: string): string =>
   `${projectId}::${branchName}`;
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface BranchScopeState {
   scopes: Record<string, string[]>;
   loaded: Record<string, boolean>;
@@ -31,9 +59,11 @@ const pushToServer = async (
   }
 };
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 // Server là nguồn dữ liệu duy nhất; store chỉ giữ state trong bộ nhớ, không lưu localStorage.
 const inflight = new Map<string, Promise<void>>();
 
+// ─── Store ───────────────────────────────────────────────────────────────────
 export const useBranchScopeStore = create<BranchScopeState>((set, get) => ({
   scopes: {},
   loaded: {},
@@ -83,6 +113,7 @@ export const useBranchScopeStore = create<BranchScopeState>((set, get) => ({
 
 const EMPTY: string[] = [];
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export const useBranchScope = (projectId: string, branchName: string): string[] =>
   useBranchScopeStore((s) => s.scopes[toScopeKey(projectId, branchName)] ?? EMPTY);
 

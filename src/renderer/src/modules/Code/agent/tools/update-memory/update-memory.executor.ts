@@ -1,5 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * Update Memory Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool update_memory: thay thế đoạn nội dung trong file memory
+ * toàn cục thông qua MemoryController.
+ *
+ * Main functions:
+ * - executeUpdateMemory() : Cập nhật memory theo old_content/new_content
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Components ──
 import { MemoryController } from '@renderer/controller/MemoryController';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Execute update_memory tool.
  */

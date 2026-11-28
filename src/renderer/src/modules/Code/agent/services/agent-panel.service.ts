@@ -1,9 +1,30 @@
+/**
+ * ------------------------------------------------------------------
+ * Agent Panel Service
+ * ------------------------------------------------------------------
+ * Mở và focus panel của một agent trong workspace. Tự tạo agent mặc định
+ * trong workflow store nếu chưa tồn tại, sau đó phát custom event để UI mở panel.
+ *
+ * Main functions:
+ * - focusAgentPanel() : Focus panel của agent theo agentId
+ *
+ * Main constants:
+ * - OPEN_AGENT_PANEL_EVENT : Tên custom event dùng để mở agent panel
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import { useCodeStore } from '../../shared/stores/code.store';
 import { useWorkflowStore } from '../stores/workflow.store';
+
+// ── Types ──
 import { AGENT_TYPE_COLORS, type AgentType } from '../../shared/types/agents.types';
 
-const OPEN_AGENT_PANEL_EVENT = 'phantoma:open-agent-panel';
+// ─── Constants ───────────────────────────────────────────────────────────────
+export const OPEN_AGENT_PANEL_EVENT = 'phantoma:open-agent-panel';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const humanizeAgentId = (id: string): string =>
   id
     .split('_')
@@ -34,7 +55,7 @@ export function focusAgentPanel(agentId: string): void {
   }
 
   const title =
-    agent.id === 'orchestrator' ? 'Zen - Orchestrator' : `${capitalize(agent.type)} - ${agent.name}`;
+    agent.id === 'orchestrator' ? 'Zen' : `${capitalize(agent.type)} - ${agent.name}`;
 
   codeStore.setContentViewMode('workspace');
   window.dispatchEvent(

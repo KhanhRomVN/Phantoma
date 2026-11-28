@@ -3,10 +3,11 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ActionBar';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
 
 interface BackBlockProps {
   output?: string;
@@ -53,10 +54,7 @@ export const BackRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <BackBlock
-          output={outputData?.output}
-          isError={isError}
-        />
+        <BackBlock output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar

@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ActionBar';
 
 interface ForwardBlockProps {
   output?: string;
@@ -53,10 +53,7 @@ export const ForwardRenderer: React.FC<BaseRendererProps> = ({
         </div>
       </div>
       <div className="pl-6">
-        <ForwardBlock
-          output={outputData?.output}
-          isError={isError}
-        />
+        <ForwardBlock output={outputData?.output} isError={isError} />
       </div>
       {!hasOutput && (
         <ActionBar

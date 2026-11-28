@@ -1,10 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 
 // ── Constants ──
-import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/tool-constants';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { TOOL_ACTION_TYPES } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Hooks ──
 import { useCodeStore } from '../../../shared/stores/code.store';
@@ -12,11 +16,12 @@ import { GitCommitHandler } from '../shared/git.handler';
 import { codeApi } from '../../../shared/api/code.api';
 
 // ── Types ──
-import { ToolAction } from '@renderer/components/Widgets/Zen/screens/Chat/services/responseParser';
+import { ToolAction } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CommitMessageRendererProps {
   action: ToolAction;
   actionIndex: number;
@@ -33,6 +38,7 @@ interface CommitMessageRendererProps {
   branch?: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 /**
  * Renderer cho loại tool commit_message
  * Hiển thị commit message với nút Accept/Cancel
@@ -46,17 +52,20 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
   onToolClick,
   branch,
 }) => {
+  // ── Derived ──
   const messageContent = action.params?.message || action.params?.content || '';
 
   const [isCommitted, setIsCommitted] = React.useState(false);
   const [isCommitting, setIsCommitting] = React.useState(false);
   const [commitError, setCommitError] = React.useState<string | null>(null);
 
+  // ── Store ──
   const projectPath = useCodeStore((s: any) => {
     const p = s.projects?.find((x: any) => x.id === s.currentProjectId);
     return (p?.explorerRoot ?? p?.path ?? '') as string;
   });
 
+  // ── Handlers ──
   const handleAccept = async () => {
     if (isCommitting) return;
     setIsCommitting(true);
@@ -73,12 +82,14 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
     setIsCommitted(true);
   };
 
+  // ── Store ──
   // ASSUMED: tên project lấy từ project đang active trong useCodeStore (field `name`)
   const projectName = useCodeStore(
     (s: any) =>
       s.projects?.find((p: any) => p.id === s.currentProjectId)?.name as string | undefined,
   );
 
+  // ── Derived ──
   const [fetchedBranch, setFetchedBranch] = React.useState('');
   const currentBranch = branch || fetchedBranch;
 
@@ -102,6 +113,7 @@ export const CommitMessageRenderer: React.FC<CommitMessageRendererProps> = ({
       ? 'rgb(48, 209, 88)'
       : 'rgb(0, 210, 255)';
 
+  // ── Render ──
   return (
     <div className="relative flex flex-col gap-1.5">
       <div className={cn(isLastItemInList ? 'mb-0' : 'mb-2')}>

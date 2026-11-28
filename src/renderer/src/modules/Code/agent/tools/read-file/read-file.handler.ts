@@ -13,13 +13,16 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-// ── Utils ──
-import { SecurityValidator } from '../../../shared/utils/security.util';
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
-// ─── Interfaces ─────────────────────────────────────────────────────────
+// ── Utils ──
+import { SecurityValidator } from '../../../shared/utils/security.util';
+
+// ── Types ──
 import type { ReadFileParams } from '../tool.types';
 
+// ─── Interfaces ─────────────────────────────────────────────────────────
 export interface ReadFileResult {
   command: string;
   requestId?: string;

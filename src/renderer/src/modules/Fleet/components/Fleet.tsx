@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { Device, DeviceGroup, DeviceStatus } from '../types';
+import type { Device, DeviceGroup } from '../types';
 import { FleetHeroSection } from './FleetHeroSection';
 import { FleetToolPanel } from './FleetToolPanel';
 import { FleetTable } from './FleetTable';

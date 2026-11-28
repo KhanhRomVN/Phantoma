@@ -1,14 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Group Picker Form (Modal)
- * ------------------------------------------------------------------
- * Dialog to create or edit a Project Group.
- * - Live preview of the group header.
- * - Icon grid: pick from Lucide icons.
- * - Name input: limited length, Enter to save, Esc to cancel.
- * ------------------------------------------------------------------
- */
-
 import { useState, memo } from 'react';
 import {
   Folder,

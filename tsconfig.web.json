@@ -20,6 +20,9 @@
       ],
       "@app/*": [
         "src/shared/*"
+      ],
+      "@shared/*": [
+        "src/renderer/src/shared/*"
       ]
     }
   }

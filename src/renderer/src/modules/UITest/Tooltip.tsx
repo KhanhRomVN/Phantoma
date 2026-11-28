@@ -10,7 +10,8 @@ const ALIGNS = ['start', 'center', 'end'] as const;
 const DELAYS: number[] = [0, 300, 800];
 const OFFSETS: number[] = [4, 12, 28];
 const ALIGN_OFFSETS: number[] = [0, 10, 20];
-const LONG_TEXT = 'src/renderer/src/components/Widgets/Zen/screens/Chat/components/ChatBody/index.tsx';
+const LONG_TEXT =
+  'src/renderer/src/components/Widgets/Zen/features/chat/components/chatbody/index.tsx';
 
 function PlacementGrid() {
   const cell = (side: (typeof SIDES)[number], className: string) => (
@@ -77,7 +78,9 @@ export default function TooltipTab() {
               alignOffset={alignOffset}
               disableHoverableContent={!hoverable}
             >
-              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">Hover me</Button>
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
+                Hover me
+              </Button>
             </Tooltip>
           </div>
           <Field label="side">
@@ -153,7 +156,10 @@ export default function TooltipTab() {
         <Panel title="Disabled button" description="Bọc trong span để tooltip vẫn hoạt động">
           <Tooltip content="Cần quyền admin để xóa">
             <span className="inline-flex">
-              <Button className="bg-error/10 text-error hover:bg-error/20 active:bg-error/30" disabled>
+              <Button
+                className="bg-error/10 text-error hover:bg-error/20 active:bg-error/30"
+                disabled
+              >
                 Delete
               </Button>
             </span>
@@ -163,7 +169,9 @@ export default function TooltipTab() {
         <Panel title="Controlled" description={`open=${String(open)}, onOpenChange`}>
           <div className="flex items-center gap-4">
             <Tooltip content="Controlled tooltip" open={open} onOpenChange={setOpen}>
-              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">Target</Button>
+              <Button className="bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30">
+                Target
+              </Button>
             </Tooltip>
             <Toggle label="open" checked={open} onChange={setOpen} />
           </div>
@@ -177,7 +185,9 @@ export default function TooltipTab() {
             className="inline-flex"
             contentClassName="border border-primary"
           >
-            <Button className="border border-border text-text-secondary hover:border-primary hover:text-primary hover:bg-primary/10 active:bg-primary/20">defaultOpen</Button>
+            <Button className="border border-border text-text-secondary hover:border-primary hover:text-primary hover:bg-primary/10 active:bg-primary/20">
+              defaultOpen
+            </Button>
           </Tooltip>
         </Panel>
       </div>

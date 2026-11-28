@@ -1,16 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useState, useEffect, useCallback, useMemo } from 'react';
+
+// ── UI ──
 import { Loader2 } from 'lucide-react';
-import { useCodeStore } from '../../../shared/stores/code.store';
-import {
-  taskService,
-  getBlockers,
-  getUnfinishedChain,
-  TASKS_CHANGED_EVENT,
-  type StoredTask,
-  type TaskStatus,
-  type CreateTaskInput,
-  type UpdateTaskInput,
-} from '../../../shared/services/task.service';
+
+// ── Components ──
 import { TaskModal } from './modals/TaskModal';
 import { TaskTable } from './TaskTable';
 import {
@@ -24,9 +19,26 @@ import { ConfirmArchiveTaskModal } from './modals/ConfirmArchiveTaskModal';
 import { ConfirmDeleteTaskModal } from './modals/ConfirmDeleteTaskModal';
 import { ConfirmForceStartTaskModal } from './modals/ConfirmForceStartTaskModal';
 
+// ── Services ──
+import {
+  taskService,
+  getBlockers,
+  getUnfinishedChain,
+  TASKS_CHANGED_EVENT,
+  type StoredTask,
+  type TaskStatus,
+  type CreateTaskInput,
+  type UpdateTaskInput,
+} from '../../../shared/services/task.service';
+
+// ── Stores ──
+import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 const bulkTitle = (list: StoredTask[]): string =>
   list.length === 1 ? list[0].title : list.length > 1 ? `${list.length} tasks` : '';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const TaskManager = memo(function TaskManager() {
   const project = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId));
   const projectPath = project?.path ?? '';
@@ -74,14 +86,18 @@ export const TaskManager = memo(function TaskManager() {
   }, [fetchTasks]);
 
   useEffect(() => {
+    // ── Handlers ──
     const onChanged = (e: Event) => {
       if ((e as CustomEvent<string>).detail === projectPath) void refreshSilently();
     };
     window.addEventListener(TASKS_CHANGED_EVENT, onChanged);
+
+    // ── Render ──
     return () => window.removeEventListener(TASKS_CHANGED_EVENT, onChanged);
   }, [projectPath, refreshSilently]);
 
   useEffect(() => {
+    // ── Handlers ──
     const onNewTask = () => {
       setEditingTask(null);
       setNewTaskStatus(null);
@@ -92,6 +108,8 @@ export const TaskManager = memo(function TaskManager() {
     };
     window.addEventListener('phantoma:new-task', onNewTask);
     window.addEventListener('phantoma:task-search', onSearch as EventListener);
+
+    // ── Render ──
     return () => {
       window.removeEventListener('phantoma:new-task', onNewTask);
       window.removeEventListener('phantoma:task-search', onSearch as EventListener);
@@ -99,6 +117,7 @@ export const TaskManager = memo(function TaskManager() {
   }, []);
 
   const filteredTasks = useMemo(() => {
+    // ── Derived ──
     const q = searchQuery.trim().toLowerCase();
     const visible = tasks.filter((t) => !t.archived);
     if (!q) return visible;
@@ -122,8 +141,11 @@ export const TaskManager = memo(function TaskManager() {
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
+    // ── Handlers ──
     const onFilterOpen = (e: Event) => setFilterOpen(Boolean((e as CustomEvent<boolean>).detail));
     window.addEventListener('phantoma:task-filter-open', onFilterOpen);
+
+    // ── Render ──
     return () => window.removeEventListener('phantoma:task-filter-open', onFilterOpen);
   }, []);
 
@@ -151,6 +173,7 @@ export const TaskManager = memo(function TaskManager() {
   }, []);
 
   const syncNextTasks = async (selfId: string, nextIds: string[]) => {
+    // ── Derived ──
     const pending = tasks
       .filter((t) => t.id !== selfId)
       .flatMap((t) => {
@@ -292,6 +315,7 @@ export const TaskManager = memo(function TaskManager() {
 
 
   if (loading) {
+    // ── Render ──
     return (
       <div className="flex-1 flex flex-col min-h-0 gap-3 p-4 bg-background">
         <div className="flex items-center gap-2 text-xs text-text-secondary">

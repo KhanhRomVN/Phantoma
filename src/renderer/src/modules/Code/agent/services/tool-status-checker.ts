@@ -6,9 +6,12 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolStatusChecker } from '@renderer/components/Widgets/Zen/shared/tool-status';
-import { TERMINAL_STATUS } from '@renderer/components/Widgets/Zen/shared/tool-constants';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { TERMINAL_STATUS } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ToolStatusChecker } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Check if a Code tool is busy and should block interaction.
  */

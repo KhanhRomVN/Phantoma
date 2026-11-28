@@ -1,16 +1,32 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+
+// ── UI ──
 import { ChevronDown, ChevronRight, FolderTree, List, Search } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
-import { useCodeStore, type StoredWorkspacePanel } from '../../../../shared/stores/code.store';
-import { useGitFileStatus } from '../../hooks/useGitFileStatus';
-import { codeApi } from '../../../../shared/api/code.api';
+
+// ── Components ──
 import { getPanelMeta } from '../WorkspacePanes';
 
+// ── Hooks ──
+import { useGitFileStatus } from '../../hooks/useGitFileStatus';
+
+// ── Services ──
+import { codeApi } from '../../../../shared/api/code.api';
+
+// ── Stores ──
+import { useCodeStore, type StoredWorkspacePanel } from '../../../../shared/stores/code.store';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const MAX_RESULTS = 100;
 const NO_PANELS: StoredWorkspacePanel[] = [];
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 type Row =
   | { kind: 'tab'; panel: StoredWorkspacePanel; title: string }
   | { kind: 'dir'; path: string; label: string; depth: number; open: boolean }
@@ -23,6 +39,7 @@ interface DirNode {
   files: string[];
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function buildTree(files: string[]): DirNode {
   const root: DirNode = { name: '', path: '', dirs: new Map(), files: [] };
   for (const rel of files) {
@@ -73,7 +90,6 @@ function flattenTree(
 
 function getTabTitle(panel: StoredWorkspacePanel): string {
   if (panel.type === 'agent') {
-    if (panel.workflowAgentId) return panel.title;
     return panel.agentTitle ? `Zen|${panel.agentTitle}` : 'Zen';
   }
   return panel.title || getPanelMeta(panel.type).label;
@@ -98,21 +114,32 @@ function scoreMatch(path: string, query: string): number {
   return qi === query.length ? 100 - p.length : -1;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
+  // ── Store ──
   const projectPath = useCodeStore((s) => {
     const p = s.projects.find((x) => x.id === s.currentProjectId);
     return p?.explorerRoot ?? p?.path ?? '';
   });
+
+  // ── State ──
   const [query, setQuery] = useState('');
   const [files, setFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(0);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'tree' | 'list'>('tree');
+
+  // ── Derived ──
   const tree = useMemo(() => buildTree(files), [files]);
+
+  // ── Refs ──
   const listRef = useRef<HTMLDivElement>(null);
+
+  // ── Derived ──
   const gitStatus = useGitFileStatus(isOpen ? projectPath : undefined);
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen) return;
     setQuery('');
@@ -140,11 +167,13 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     };
   }, [isOpen, projectPath]);
 
+  // ── Store ──
   const sessionId = useCodeStore((s) => s.activeWorkspaceSessionId);
   const storedPanels = useCodeStore(
     (s) => s.projects.find((p) => p.id === s.currentProjectId)?.workspacePanels ?? NO_PANELS,
   );
 
+  // ── Derived ──
   const results = useMemo<Row[]>(() => {
     const q = query.trim().toLowerCase();
     const tabs: Row[] = storedPanels
@@ -176,6 +205,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     return [...tabs, ...flattenTree(buildTree(matched), expanded, true)];
   }, [files, tree, expanded, viewMode, query, storedPanels, sessionId]);
 
+  // ── Effects ──
   useEffect(() => {
     setActive(0);
   }, [query]);
@@ -192,6 +222,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     });
   }, [active]);
 
+  // ── Derived ──
   const openResult = (row: Row) => {
     if (row.kind === 'dir') {
       const dirPath = row.path;
@@ -216,6 +247,7 @@ export function QuickOpenModal({ isOpen, onClose }: QuickOpenModalProps) {
     onClose();
   };
 
+  // ── Handlers ──
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       e.preventDefault();

@@ -1,9 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { AlertTriangle, Save } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmDiscardTaskModalProps {
   isOpen: boolean;
   canSave: boolean;
@@ -12,6 +15,7 @@ interface ConfirmDiscardTaskModalProps {
   onSave: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmDiscardTaskModal({
   isOpen,
   canSave,
@@ -19,6 +23,7 @@ export function ConfirmDiscardTaskModal({
   onDiscard,
   onSave,
 }: ConfirmDiscardTaskModalProps) {
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[480px]">
       <ModalBody className="py-6 px-5">

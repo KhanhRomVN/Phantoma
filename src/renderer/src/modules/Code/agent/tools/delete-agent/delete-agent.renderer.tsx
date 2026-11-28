@@ -1,15 +1,19 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
 
-import { cn } from '@renderer/utils/cn';
-
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
-
+// ── Stores ──
 import { useWorkflowStore } from '../../stores/workflow.store';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 const humanizeAgentId = (id: string): string =>
   id
     .split('_')
@@ -17,6 +21,7 @@ const humanizeAgentId = (id: string): string =>
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const DeleteAgentRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
@@ -28,6 +33,7 @@ const DeleteAgentRenderer: React.FC<BaseRendererProps> = ({
   allMessages,
   moduleId,
 }) => {
+  // ── Derived ──
   const { agent_id: agentId = '', _validationError: validationError } = action.params || {};
 
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -38,9 +44,13 @@ const DeleteAgentRenderer: React.FC<BaseRendererProps> = ({
   const isCompleted = !!outputEntry || isActionClicked || isError || !!nextUserMessage;
   const isDeleting = isActionClicked && !outputEntry;
 
+  // ── Store ──
   const target = useWorkflowStore((s) => s.agents.find((a) => a.id === agentId));
+
+  // ── Derived ──
   const targetName = target?.name ?? (humanizeAgentId(agentId) || 'unknown');
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

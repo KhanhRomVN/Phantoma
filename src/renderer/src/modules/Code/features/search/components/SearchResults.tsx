@@ -1,5 +1,8 @@
-import { shellIpc } from '../../../shared/ipc/shell.ipc';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useMemo, useRef, useState } from 'react';
+
+// ── UI ──
 import { ChevronRight, ChevronDown, Replace, Folder, X } from 'lucide-react';
 import {
   Dropdown,
@@ -9,23 +12,35 @@ import {
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
 import { Kbd } from '@renderer/components/ui/Kbd';
-import { getFileIconPath } from '@renderer/utils/file-icon';
-import { cn } from '@renderer/utils/cn';
-import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ── Hooks ──
 import type { FileResult } from '../hooks/useSearch';
 
+// ── Services ──
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
+
+// ── Stores ──
+import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ── Utils ──
+import { getFileIconPath } from '@renderer/utils/file-icon';
+import { cn } from '@renderer/utils/cn';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const MAX_MATCHES_PER_FILE = 200;
 const MAX_LINE_LENGTH = 300;
 const LEAD_CONTEXT = 24;
 const AUTO_OPEN_FILES = 30;
 const FALLBACK_FILE_ICON = '/images/icon/file.svg';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface MatcherOptions {
   matchCase: boolean;
   wholeWord: boolean;
   isRegex: boolean;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function buildMatcher(query: string, opts: MatcherOptions): RegExp | null {
   try {
     let src = opts.isRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -49,6 +64,7 @@ interface HighlightedLineProps {
   replacement: string | null;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const HighlightedLine = memo(function HighlightedLine({
   text,
   matcher,
@@ -56,6 +72,7 @@ const HighlightedLine = memo(function HighlightedLine({
   replacement,
 }: HighlightedLineProps) {
   const parts = useMemo<LinePart[]>(() => {
+    // ── Derived ──
     const full = text.trim();
     if (!matcher) return [{ text: full.slice(0, MAX_LINE_LENGTH), hit: false }];
 
@@ -168,6 +185,8 @@ const FileGroup = memo(function FileGroup({
     }
     if (e.ctrlKey || e.altKey) return;
     e.preventDefault();
+
+    // ── Derived ──
     const now = Date.now();
     if (now - lastCKeyTimeRef.current < 300) {
       lastCKeyTimeRef.current = 0;
@@ -178,6 +197,7 @@ const FileGroup = memo(function FileGroup({
   };
 
   const handleOpenFile = () => {
+    // ── Store ──
     const { activeWorkspaceSessionId, requestOpenFile } = useCodeStore.getState();
     if (activeWorkspaceSessionId) requestOpenFile(activeWorkspaceSessionId, result.file, fileName);
   };
@@ -345,6 +365,7 @@ export function SearchResults({
   onReplaceFile,
   onOpenMatch,
 }: SearchResultsProps) {
+  // ── Derived ──
   const order = useMemo(() => new Map(files.map((f, i) => [f.file, i])), [files]);
 
   const renderFile = (r: FileResult, indent: number, showDir: boolean) => (
@@ -368,6 +389,7 @@ export function SearchResults({
 
   if (!groups) return <>{files.map((r) => renderFile(r, 4, true))}</>;
 
+  // ── Render ──
   return (
     <>
       {groups.map(([dir, group]) => {

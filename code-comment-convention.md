@@ -8,7 +8,9 @@ This document defines the standard comment structure for all source files in the
 
 Every file **must** start with a block comment describing the file's purpose and listing its main exports/functions/features.
 
-### 1.1 General Format (Services, Components, Hooks, Utils)
+**Exception — UI files:** UI files (`.tsx` files that render JSX: components, modals, layouts, renderers, pages) do **NOT** need a file header comment. Skip section 1 for them. All other rules (section dividers, import sub-grouping, internal sub-sections) still apply to UI files. Non-UI files (services, hooks, utils, types, stores, constants, IPC handlers, `.ts` files) must still have a header.
+
+### 1.1 General Format (Services, Hooks, Utils, Stores, Types — not UI files)
 
 
 /**
@@ -663,7 +665,7 @@ State → Store → Refs → Derived → Callbacks → Effects → Handlers → 
 
 ## 7. Checklist
 
-- [ ] **File header** exists with title, description, and main items list
+- [ ] **File header** exists with title, description, and main items list (not required for UI `.tsx` files)
 - [ ] **Top-level sections** (`// ─── X ───`) group major code blocks
 - [ ] **Import sub-groups** use `// ── X ──` format (not bare `// X`)
 - [ ] **Sub-sections** (`// ── X ──`) organize logic inside components/hooks (State, Effects, Render...)

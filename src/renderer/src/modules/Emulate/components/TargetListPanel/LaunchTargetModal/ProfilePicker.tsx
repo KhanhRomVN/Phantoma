@@ -9,15 +9,18 @@ import { Cloud, FileText, Globe, HardDrive, Loader2, Search, User } from 'lucide
 import type { LucideIcon } from 'lucide-react';
 
 import { cn } from '@renderer/utils/cn';
-import { profileApi } from '@renderer/modules/Profile/services/profile-api.service';
-import type { Profile, ProfileSource } from '@renderer/modules/Profile/types';
 
 import { ProfileSelect } from '../TargetModal';
+import { ProfileSource } from '@renderer/modules/Profile/shared/types/source.types';
+import { profileApi } from '@renderer/modules/Profile/shared/api/profile.api';
+import { Profile } from '@renderer/modules/Profile/shared/types/profile.types';
 
 const SYSTEM_ID = '__system__';
 const LIST_CLASS = 'max-h-[240px] overflow-y-auto pr-1';
-const CARD = 'flex min-w-0 items-center gap-3 rounded-xl border p-2.5 text-left outline-none transition-all';
-const CARD_SELECTED = 'rounded-l-none border-transparent border-l-2 border-l-primary bg-input-background';
+const CARD =
+  'flex min-w-0 items-center gap-3 rounded-xl border p-2.5 text-left outline-none transition-all';
+const CARD_SELECTED =
+  'rounded-l-none border-transparent border-l-2 border-l-primary bg-input-background';
 const CARD_IDLE = 'border-border/40 bg-input-background hover:bg-dropdown-item-hover/60';
 
 const SOURCE_ICON: Record<ProfileSource['type'], LucideIcon> = {
@@ -27,7 +30,8 @@ const SOURCE_ICON: Record<ProfileSource['type'], LucideIcon> = {
 };
 
 // ASSUMED: source local tên chứa "chrome" (vd Local Chrome) trùng với tab Chrome hệ thống nên bị ẩn
-const isSystemChromeSource = (s: ProfileSource): boolean => s.type === 'local' && /chrome/i.test(s.name);
+const isSystemChromeSource = (s: ProfileSource): boolean =>
+  s.type === 'local' && /chrome/i.test(s.name);
 
 interface ProfilePickerProps {
   value: string;
@@ -71,7 +75,12 @@ const Avatar: React.FC<{ src?: string | null }> = ({ src }) => {
   return (
     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-border/40 text-text-secondary">
       {src && !failed ? (
-        <img src={src} alt="" className="h-full w-full object-cover" onError={() => setFailed(true)} />
+        <img
+          src={src}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
       ) : (
         <User className="h-4 w-4" />
       )}
@@ -150,7 +159,12 @@ export function ProfilePicker({ value, onChange }: ProfilePickerProps) {
     <div className="space-y-2">
       {visibleSources.length > 0 && (
         <div className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-md bg-text-secondary/10 p-0.5">
-          <SourceTab active={activeId === SYSTEM_ID} icon={Globe} label="Chrome" onClick={() => handleTab(SYSTEM_ID)} />
+          <SourceTab
+            active={activeId === SYSTEM_ID}
+            icon={Globe}
+            label="Chrome"
+            onClick={() => handleTab(SYSTEM_ID)}
+          />
           {visibleSources.map((s) => (
             <SourceTab
               key={s.id}
@@ -189,8 +203,12 @@ export function ProfilePicker({ value, onChange }: ProfilePickerProps) {
             >
               <Avatar />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-semibold text-text-primary">No Profile</div>
-                <div className="truncate text-[11px] text-text-secondary">Clean temporary session</div>
+                <div className="truncate text-[13px] font-semibold text-text-primary">
+                  No Profile
+                </div>
+                <div className="truncate text-[11px] text-text-secondary">
+                  Clean temporary session
+                </div>
               </div>
             </button>
             {profiles.map((p) => (
@@ -202,7 +220,9 @@ export function ProfilePicker({ value, onChange }: ProfilePickerProps) {
               >
                 <Avatar src={p.avatarUrl} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-semibold text-text-primary">{p.email}</div>
+                  <div className="truncate text-[13px] font-semibold text-text-primary">
+                    {p.email}
+                  </div>
                   <div className="truncate text-[11px] text-text-secondary">{p.displayName}</div>
                 </div>
               </button>

@@ -1,12 +1,21 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useRef, useState } from 'react';
+
+// ── Components ──
 import { RouteLink, SiteLayout } from './Layout';
+
+// ── Utils ──
 import { AGENTS, MODULES, SITE, STEPS, VERBS } from './site';
 import { Icon } from './theme';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function Ghost() {
+  // ── Refs ──
   const ref = useRef<HTMLDivElement>(null);
   const eyes = useRef<SVGGElement>(null);
 
+  // ── Effects ──
   useEffect(() => {
     const move = (e: PointerEvent) => {
       if (!ref.current || !eyes.current) return;
@@ -21,6 +30,7 @@ function Ghost() {
     return () => window.removeEventListener('pointermove', move);
   }, []);
 
+  // ── Render ──
   return (
     <div className="gh" ref={ref}>
       <svg viewBox="0 0 420 380" aria-label="Phantoma ghost, eyes follow your cursor">
@@ -65,6 +75,7 @@ function Ghost() {
 }
 
 function AppMock() {
+  // ── Render ──
   return (
     <div className="app rv" aria-hidden="true">
       <div className="bar">
@@ -136,13 +147,16 @@ function AppMock() {
 }
 
 export default function Home() {
+  // ── State ──
   const [vi, setVi] = useState(0);
 
+  // ── Effects ──
   useEffect(() => {
     const t = setInterval(() => setVi((v) => (v + 1) % VERBS.length), 2400);
     return () => clearInterval(t);
   }, []);
 
+  // ── Render ──
   return (
     <SiteLayout current="/">
       {(stars) => (

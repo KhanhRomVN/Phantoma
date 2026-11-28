@@ -1,5 +1,26 @@
+/**
+ * ------------------------------------------------------------------
+ * Scope Stats Store
+ * ------------------------------------------------------------------
+ * Zustand store giữ thống kê phân loại file theo scope (inside/outside/
+ * drift/clash), bộ lọc, nhánh mặc định và các nhánh khác của từng project.
+ *
+ * Main types:
+ * - ScopeCategory / ScopeFilter / ScopeStats : Phân loại và thống kê scope
+ *
+ * Main constants:
+ * - EMPTY_SCOPE_STATS, SCOPE_CATEGORIES, SCOPE_DIFF_DOT, SCOPE_DIFF_RING
+ *
+ * Main hooks:
+ * - useScopeStats() / useScopeHideNoDot() / useScopeFilter() / useScopeBranchFilter()
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import { create } from 'zustand';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type ScopeCategory = 'primary' | 'warn' | 'diff' | 'error';
 export type ScopeFilter = ScopeCategory | 'outside';
 
@@ -11,6 +32,7 @@ export interface ScopeStats {
   deletedPaths: string[];
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const EMPTY_SCOPE_STATS: ScopeStats = {
   primary: [],
   warn: [],
@@ -34,6 +56,7 @@ export const SCOPE_CATEGORIES: { id: ScopeCategory; label: string; dot: string }
   },
 ];
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i]);
 
 interface ScopeStatsState {
@@ -53,6 +76,7 @@ interface ScopeStatsState {
   setOtherBranches: (projectId: string, branches: string[]) => void;
 }
 
+// ─── Store ───────────────────────────────────────────────────────────────────
 export const useScopeStatsStore = create<ScopeStatsState>((set) => ({
   statsByProject: {},
   filterByProject: {},
@@ -112,6 +136,7 @@ export const useScopeStatsStore = create<ScopeStatsState>((set) => ({
     }),
 }));
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export const useScopeStats = (projectId: string): ScopeStats =>
   useScopeStatsStore((s) => s.statsByProject[projectId] ?? EMPTY_SCOPE_STATS);
 

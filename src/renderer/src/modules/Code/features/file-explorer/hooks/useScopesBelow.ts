@@ -1,7 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useMemo } from 'react';
+
+// ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
 import { useBranchScope, isInScope } from '../../../shared/stores/branch-scope.store';
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useActiveBranchName(projectId: string): string {
   return useCodeStore((s) => {
     const p = s.projects.find((x) => x.id === projectId);
@@ -12,6 +17,7 @@ export function useActiveBranchName(projectId: string): string {
   });
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const NO_SCOPES: number[] = [];
 
 export function useScopesBelow(

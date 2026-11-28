@@ -1,13 +1,25 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { GitBranch, Workflow as WorkflowIcon } from 'lucide-react';
-import { STATUS_META } from '../../constants/workflow.constants';
+
+// ── Components ──
 import { Chip } from './WorkflowShared';
+
+// ── Utils ──
+import { STATUS_META } from '../../constants/workflow.constants';
+
+// ── Types ──
 import type { WorkflowPlan } from '../../types/workflow.types';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface HeaderSectionProps {
   plan: WorkflowPlan;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const HeaderSection = memo(function HeaderSection({ plan }: HeaderSectionProps) {
   return (
     <div className="px-5 py-4 border-b border-border bg-gradient-to-b from-primary/[0.06] to-transparent">

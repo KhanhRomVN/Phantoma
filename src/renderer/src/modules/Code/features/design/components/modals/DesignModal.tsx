@@ -1,14 +1,22 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
+
+// ── UI ──
 import { Palette, Monitor, Smartphone } from 'lucide-react';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from '@renderer/components/ui/Modal';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface DesignModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (name: string, description: string, platform: 'website' | 'mobile') => void;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const NAME_MAX = 40;
 const DESC_MAX = 120;
 
@@ -29,11 +37,14 @@ const PLATFORMS: Array<{ id: Platform; label: string; icon: typeof Monitor; desc
   },
 ];
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function DesignModal({ isOpen, onClose, onSubmit }: DesignModalProps) {
+  // ── State ──
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [platform, setPlatform] = useState<Platform>('website');
 
+  // ── Effects ──
   useEffect(() => {
     if (isOpen) {
       setName('');
@@ -42,13 +53,16 @@ export function DesignModal({ isOpen, onClose, onSubmit }: DesignModalProps) {
     }
   }, [isOpen]);
 
+  // ── Derived ──
   const canSubmit = name.trim().length > 0;
 
+  // ── Handlers ──
   const handleSubmit = () => {
     if (!canSubmit) return;
     onSubmit(name.trim(), description.trim(), platform);
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalHeader

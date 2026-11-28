@@ -798,8 +798,8 @@ const CodeBlock = forwardRef<CodeBlockRef, CodeBlockProps>((props, ref) => {
         monacoTheme = convertThemeToMonaco(currentPreset);
       } else {
         try {
-          const { VioletAbyss } = await import('../../theme/themes/VioletAbyss');
-          monacoTheme = convertThemeToMonaco(VioletAbyss);
+          const { PhantomNight } = await import('../../theme/themes/VioletAbyss');
+          monacoTheme = convertThemeToMonaco(PhantomNight);
         } catch (e) {
           return;
         }

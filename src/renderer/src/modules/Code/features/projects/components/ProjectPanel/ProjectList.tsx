@@ -1,12 +1,25 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import type { DragEvent, ReactNode, RefObject } from 'react';
+
+// ── UI ──
 import { ChevronRight, ChevronDown, Folder } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { NewGroupModal } from './modals/NewGroupModal';
 import { ProjectGroupSection } from './ProjectGroupSection';
-import type { MenuPosition } from '../../types/session.types';
+
+// ── Hooks ──
 import { UNGROUP_ID } from '../../hooks/useProjectGroups';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
+// ── Types ──
+import type { MenuPosition } from '../../types/session.types';
 import type { GroupInfo, ProjectExtended } from '../../types/project-panel.types';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ProjectListProps {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   projects: ProjectExtended[];
@@ -35,6 +48,7 @@ interface ProjectListProps {
   onDrop: (e: DragEvent) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ProjectList({
   scrollContainerRef,
   projects,
@@ -62,8 +76,10 @@ export function ProjectList({
   onDragOver,
   onDrop,
 }: ProjectListProps) {
+  // ── Derived ──
   const ungrouped = shownProjects.filter((p) => !groups.some((g) => g.id === p.groupId));
 
+  // ── Render ──
   return (
     <div
       ref={scrollContainerRef}

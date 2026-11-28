@@ -18,7 +18,7 @@ import { useFilterStore } from '../stores/filterStore';
 import { useNetworkStore } from '../stores/networkStore';
 
 // ── Types ──
-import type { TrafficSummary } from '../prompts/emulate';
+import type { TrafficSummary } from '../prompts/filter-agent';
 import type { InspectorFilter } from '../types/filter.types';
 import type { NetworkRequest } from '../types/inspector';
 

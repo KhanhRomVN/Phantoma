@@ -1,4 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useMemo, type ReactNode } from 'react';
+
+// ── UI ──
 import {
   Filter,
   X,
@@ -13,16 +17,21 @@ import {
   CalendarRange,
   type LucideIcon,
 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
-import { $ } from '@renderer/utils/color';
+
+// ── Services ──
 import {
   isTaskOverdue,
   type StoredTask,
   type TaskPriority,
   type TaskStatus,
 } from '../../../shared/services/task.service';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { $ } from '@renderer/utils/color';
 import { STATUS_META } from '../constants/status-meta.constants';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export type DueFilter = 'any' | 'overdue' | 'scheduled' | 'unscheduled';
 
 export interface TaskFilters {
@@ -33,6 +42,7 @@ export interface TaskFilters {
   blockedOnly: boolean;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const EMPTY_FILTERS: TaskFilters = {
   status: [],
   priority: [],
@@ -41,6 +51,7 @@ export const EMPTY_FILTERS: TaskFilters = {
   blockedOnly: false,
 };
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function countActiveFilters(f: TaskFilters): number {
   return (
     Number(f.status.length > 0) +
@@ -96,7 +107,9 @@ interface ChipProps {
   children: ReactNode;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function Chip({ active, color = '--primary', icon: Icon, count, onClick, children }: ChipProps) {
+  // ── Render ──
   return (
     <button
       type="button"
@@ -173,6 +186,7 @@ export const FilterSection = memo(function FilterSection({
   onChange,
 }: FilterSectionProps) {
   const tagOptions = useMemo(() => {
+    // ── Derived ──
     const map = new Map<string, { color: string; count: number }>();
     tasks.forEach((t) =>
       t.tags.forEach((tag) => {

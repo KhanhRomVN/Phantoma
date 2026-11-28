@@ -1,65 +1,21 @@
-/**
- * ------------------------------------------------------------------
- * Session Card — aligned with ProjectPanel.html mockup
- * ------------------------------------------------------------------
- * Renders a single session card: status dot, task row, agent chips,
- * hint, background processes and summary stats.
- * Also exports shared types, constants, helpers and small building
- * blocks (StatusDot, TaskIcon, AgentAvatar, ProcessPill …) used by
- * SessionCard, ProjectCard and ProjectPanel.
- * Animations use pp-* classes defined in global styles/animations.css.
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
-import { memo, useEffect, useState } from 'react';
-import type { CSSProperties, MouseEvent } from 'react';
+import { memo, useState } from 'react';
 
 // ── Icons ─
-import { Terminal, Loader2, AlertTriangle } from 'lucide-react';
 
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
-import { getFaviconUrl } from '@renderer/utils/favicon';
 import { Tooltip } from '@renderer/components/ui/Tooltip';
-import { Row, TOOLTIP_CLASS } from "../../../../app/layout/FooterBar";
+import { TOOLTIP_CLASS } from '../../../../app/layout/FooterBar';
 // ── Task link ──
 import { useCodeStore } from '../../../../shared/stores/code.store';
-import { useScopeStats } from '../../../../shared/stores/scope-stats.store';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { useWorkflowSubTasks } from '../../hooks/useWorkflowSubTasks';
-import type { StoredTask } from '../../../../shared/services/task.service';
 import { TASK_DRAG_TYPE } from '../../../../shared/constants/dnd.constants';
-import { codeApi } from '../../../../shared/api/code.api';
 
-import {
-  SessionStatus,
-  TaskStatus,
-  ProcessStatus,
-  AgentVisualState,
-  MenuPosition,
-  AgentInfo,
-  ProcessInfo,
-  SessionInfo,
-  BranchInfo,
-  ProcessInteractHandler,
-} from '../../types/session.types';
-import {
-  STATUS_LABELS,
-  STATUS_COLORS,
-  TASK_COLORS,
-  PROCESS_COLORS,
-  AGENT_STATE_LABELS,
-  AGENT_STATE_ORDER,
-} from '../../constants/session.constants';
+import { MenuPosition, SessionInfo, ProcessInteractHandler } from '../../types/session.types';
 
-import {
-  getAgentState,
-  sortAgentsByState,
-  getWorstProcessStatus,
-  getTempSessionName,
-  getAgentFavicon,
-} from '../../utils/session.util';
+import { getTempSessionName } from '../../utils/session.util';
 import { SessionTooltipContent } from './SessionHoverTooltip';
 
 import { AgentChip, ZenBadge, ProcessList, TaskIconButton } from './SessionBadges';

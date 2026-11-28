@@ -1,13 +1,42 @@
-import { useCodeStore } from '../../../shared/stores/code.store';
+/**
+ * ------------------------------------------------------------------
+ * Task Tool Util
+ * ------------------------------------------------------------------
+ * Tiện ích dùng chung cho các executor tool task/workflow: validate và
+ * parse status/priority/due_date, tóm tắt task và chạy handler với xử lý lỗi thống nhất.
+ *
+ * Main types:
+ * - TaskToolParams  : Params thô của tool
+ * - TaskToolHandler : Hàm xử lý nhận params và projectPath
+ *
+ * Main functions:
+ * - compact()       : Loại bỏ field undefined khỏi object
+ * - parseStatus()   : Validate status task
+ * - parsePriority() : Validate priority task
+ * - parseDueDate()  : Chuyển YYYY-MM-DD sang timestamp
+ * - summarizeTask() : Tóm tắt task cho output
+ * - detailTask()    : Chi tiết task cho output
+ * - runTaskTool()   : Chạy handler, kiểm tra project và bắt lỗi
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import type { StoredTask, TaskPriority, TaskStatus } from '../../../shared/services/task.service';
 
-const STATUSES: TaskStatus[] = ['todo', 'progress', 'review', 'done'];
+// ── Stores ──
+import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const STATUSES: TaskStatus[] = ['todo', 'progress', 'done'];
 const PRIORITIES: TaskPriority[] = ['low', 'medium', 'high'];
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type TaskToolParams = Record<string, any>;
 export type TaskToolHandler = (params: TaskToolParams, projectPath: string) => Promise<string>;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const getProjectPath = (): string | null => {
   const state = useCodeStore.getState();
   return state.projects.find((p) => p.id === state.currentProjectId)?.path ?? null;

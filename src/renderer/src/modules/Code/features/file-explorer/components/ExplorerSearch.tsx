@@ -1,8 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import { Loader2, Search, X } from 'lucide-react';
 
-import { getFileIconPath } from '@renderer/utils/file-icon';
+// ── Components ──
+import { ScopeFilterTabs } from '../../../shared/components/ScopeFilterTabs';
+import { EmptyState } from '../../../shared/components/EmptyState';
+
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
+
+// ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
 import {
   useScopeBranchFilter,
@@ -11,11 +21,13 @@ import {
   useScopeStatsStore,
 } from '../../../shared/stores/scope-stats.store';
 import { isInScope, useBranchScopeStore } from '../../../shared/stores/branch-scope.store';
-import { ScopeFilterTabs } from '../../../shared/components/ScopeFilterTabs';
+
+// ── Utils ──
+import { getFileIconPath } from '@renderer/utils/file-icon';
 import { SCOPE_DOT } from '../../../shared/utils/scope-badges.util';
-import { EmptyState } from '../../../shared/components/EmptyState';
 
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ExplorerSearchBarProps {
   projectId: string;
   root: string;
@@ -25,6 +37,7 @@ interface ExplorerSearchBarProps {
   showScope?: boolean;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ExplorerSearchBar = memo(function ExplorerSearchBar({
   projectId,
   root,
@@ -46,6 +59,7 @@ export const ExplorerSearchBar = memo(function ExplorerSearchBar({
   );
   const total = stats.primary.length + stats.warn.length + stats.diff.length + stats.error.length;
   const branchScopes = useMemo(() => {
+    // ── Derived ──
     const prefix = `${projectId}::`;
     return Object.entries(allScopes)
       .filter(([k, paths]) => k.startsWith(prefix) && paths.length > 0)
@@ -170,6 +184,7 @@ export const ExplorerSearchResults = memo(function ExplorerSearchResults({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // ── Derived ──
     const q = query.trim();
     if (!q || !root) {
       setItems(null);
@@ -190,6 +205,8 @@ export const ExplorerSearchResults = memo(function ExplorerSearchResults({
           if (!cancelled) setLoading(false);
         });
     }, 250);
+
+    // ── Render ──
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -197,12 +214,16 @@ export const ExplorerSearchResults = memo(function ExplorerSearchResults({
   }, [root, query]);
 
   const open = (path: string, name: string) => {
+    // ── Derived ──
     const abs = path.startsWith('/') ? path : `${root}/${path}`;
+
+    // ── Store ──
     const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
     if (sessionId) useCodeStore.getState().requestOpenFile(sessionId, abs, name);
   };
 
   if (items === null || (loading && items.length === 0)) {
+    // ── Render ──
     return (
       <div className={'flex-1 flex justify-center py-6'}>
         <Loader2 className={'w-4 h-4 animate-spin text-text-secondary/60'} />

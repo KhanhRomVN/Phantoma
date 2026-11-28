@@ -1,0 +1,123 @@
+/**
+ /**
+ * ------------------------------------------------------------------
+ * useConversationPersistence
+ * ------------------------------------------------------------------
+ * Tự động save conversation vào localStorage mỗi khi messages/toolOutputs
+ * thay đổi. Debounce 500ms trước khi save để tránh ghi quá nhiều.
+ *
+ * Main features:
+ * - Persist toolOutputs khi thay đổi
+ * - Persist singleLineReviewActions khi thay đổi
+ * - Persist conversationFileStats khi thay đổi
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── React ──
+import { useEffect, useRef } from 'react';
+
+// ── Types ──
+import { Message } from '../../types/message.types';
+import { ChatSession } from '../../types/chat.types';
+
+// ── Services ──
+import { saveConversation } from '../../services/conversation_persistence.service';
+
+interface UseConversationPersistenceProps {
+  currentConversationId: string | null;
+  currentChat: ChatSession | null;
+  messages: Message[];
+  toolOutputs: any;
+  singleLineReviewActions: any;
+  conversationFileStats: {
+    totalFiles: number;
+    totalAdditions: number;
+    totalDeletions: number;
+  };
+}
+
+/**
+ * Hook to persist conversation data to storage
+ */
+export const useConversationPersistence = ({
+  currentConversationId,
+  currentChat,
+  messages,
+  toolOutputs,
+  singleLineReviewActions,
+  conversationFileStats,
+}: UseConversationPersistenceProps) => {
+  const renderCountRef = useRef(0);
+  const toolOutputsSaveCountRef = useRef(0);
+  const reviewActionsSaveCountRef = useRef(0);
+  const fileStatsSaveCountRef = useRef(0);
+
+  renderCountRef.current += 1;
+
+  // Persist toolOutputs
+  useEffect(() => {
+    if (!currentConversationId || Object.keys(toolOutputs).length === 0) {
+      return;
+    }
+
+    toolOutputsSaveCountRef.current += 1;
+
+    const sessionId = currentChat?.sessionId || -1;
+    const folderPath = currentChat?.folderPath || null;
+    saveConversation(
+      sessionId,
+      folderPath,
+      messages,
+      currentConversationId,
+      true,
+      undefined,
+      toolOutputs,
+    );
+  }, [toolOutputs, currentConversationId, currentChat, messages]);
+
+  // Persist singleLineReviewActions
+  useEffect(() => {
+    if (!currentConversationId || Object.keys(singleLineReviewActions).length === 0) {
+      return;
+    }
+
+    reviewActionsSaveCountRef.current += 1;
+
+    const sessionId = currentChat?.sessionId || -1;
+    const folderPath = currentChat?.folderPath || null;
+    saveConversation(
+      sessionId,
+      folderPath,
+      messages,
+      currentConversationId,
+      true,
+      undefined,
+      undefined,
+      singleLineReviewActions,
+    );
+  }, [singleLineReviewActions, currentConversationId, currentChat, messages]);
+
+  // Persist conversationFileStats
+  useEffect(() => {
+    if (!currentConversationId || conversationFileStats.totalFiles === 0) {
+      return;
+    }
+
+    fileStatsSaveCountRef.current += 1;
+
+    const sessionId = currentChat?.sessionId || -1;
+    const folderPath = currentChat?.folderPath || null;
+    saveConversation(
+      sessionId,
+      folderPath,
+      messages,
+      currentConversationId,
+      true,
+      undefined,
+      undefined,
+      undefined,
+      conversationFileStats,
+    );
+  }, [conversationFileStats, currentConversationId, currentChat, messages]);
+};

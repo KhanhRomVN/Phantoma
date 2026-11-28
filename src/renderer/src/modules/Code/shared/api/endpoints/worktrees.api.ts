@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
+
+// ── Types ──
 import type { CodeWorktree, CodeWorktreeInput } from '../types/project.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const worktreesApi = {
   list: (projectId: string) => request<CodeWorktree[]>('GET', `/projects/${projectId}/worktrees`),
   create: (projectId: string, input: CodeWorktreeInput & { path: string }) =>

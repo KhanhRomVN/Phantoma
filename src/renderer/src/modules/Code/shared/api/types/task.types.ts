@@ -1,3 +1,17 @@
+/**
+ * ------------------------------------------------------------------
+ * Task API Types
+ * ------------------------------------------------------------------
+ * Kiểu dữ liệu task của Code server.
+ *
+ * Main types:
+ * - CodeTask            : Task đầy đủ
+ * - CodeTaskInput       : Input tạo task
+ * - CodeTaskUpdateInput : Input cập nhật task
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface CodeTask {
   id: string;
   projectId: string;

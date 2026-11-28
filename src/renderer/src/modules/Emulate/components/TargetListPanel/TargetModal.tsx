@@ -31,7 +31,7 @@ import { User } from 'lucide-react';
 import {
   listChromiumProfiles,
   getChromeProfileDirs,
-} from '@renderer/components/Widgets/Zen/services/chromeProfiles';
+} from '@renderer/components/Widgets/Zen/shared/services/chromeProfiles';
 
 // ─── Shared Types ───────────────────────────────────────────────────────
 export interface BaseModalProps {
@@ -431,22 +431,25 @@ export const ProfileSelect: React.FC<{
             <div className="truncate text-[11px] text-text-secondary">Clean temporary session</div>
           </div>
         </button>
-        {profiles.map((profile, index) => query.trim() && !profile.email.toLowerCase().includes(query.trim().toLowerCase()) ? null : (
-          <button
-            key={profile.path}
-            type="button"
-            onClick={() => onChange(profile.path)}
-            style={
-              profile.path === value ? { borderLeftColor: getProfileColor(index + 1) } : undefined
-            }
-            className={cn(
-              PROFILE_CARD,
-              profile.path === value ? PROFILE_CARD_SELECTED : PROFILE_CARD_IDLE,
-            )}
-          >
-            <ProfileCardContent profile={profile} />
-          </button>
-        ))}
+        {profiles.map((profile, index) =>
+          query.trim() &&
+          !profile.email.toLowerCase().includes(query.trim().toLowerCase()) ? null : (
+            <button
+              key={profile.path}
+              type="button"
+              onClick={() => onChange(profile.path)}
+              style={
+                profile.path === value ? { borderLeftColor: getProfileColor(index + 1) } : undefined
+              }
+              className={cn(
+                PROFILE_CARD,
+                profile.path === value ? PROFILE_CARD_SELECTED : PROFILE_CARD_IDLE,
+              )}
+            >
+              <ProfileCardContent profile={profile} />
+            </button>
+          ),
+        )}
       </div>
       {loading && (
         <div className="flex items-center gap-2 text-xs text-text-secondary">
@@ -511,10 +514,7 @@ const WebsiteForm = forwardRef<BodyRef, FormProps>(function WebsiteForm(
     }
   };
 
-  const canSubmit =
-    !!(name && url) &&
-    !duplicateError.name &&
-    !duplicateError.value;
+  const canSubmit = !!(name && url) && !duplicateError.name && !duplicateError.value;
 
   useImperativeHandle(ref, () => ({ submit: handleSubmit, canSubmit }), [handleSubmit, canSubmit]);
 
@@ -547,8 +547,6 @@ const WebsiteForm = forwardRef<BodyRef, FormProps>(function WebsiteForm(
           </div>
         </Field>
       </div>
-
-
     </div>
   );
 });
@@ -1230,11 +1228,7 @@ export const TargetModal: React.FC<TargetModalProps> = ({
           <Button onClick={handleCancel} className={CANCEL_CLASS}>
             Cancel
           </Button>
-          <Button
-            className={ADD_TARGET_CLASS}
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-          >
+          <Button className={ADD_TARGET_CLASS} onClick={handleSubmit} disabled={!canSubmit}>
             {isEdit ? 'Save Changes' : 'Add Target'}
           </Button>
         </ModalFooter>

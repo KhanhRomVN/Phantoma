@@ -1,4 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useCallback } from 'react';
+
+// ── Hooks ──
+import { useSessionTasks } from './useSessionTasks';
+
+// ── Services ──
 import {
   taskService,
   getBlockers,
@@ -6,21 +13,26 @@ import {
   type StoredTask,
   type UpdateTaskInput,
 } from '../../../shared/services/task.service';
+
+// ── Types ──
 import type { TaskStatus } from '../types/session.types';
 import type { ProjectExtended } from '../types/project-panel.types';
-import { useSessionTasks } from './useSessionTasks';
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useProjectTaskActions(projects: ProjectExtended[]) {
+  // ── Derived ──
   const bySession = useSessionTasks((s) => s.bySession);
   const tasksByPath = useSessionTasks((s) => s.byPath);
   const loadSessionTasks = useSessionTasks((s) => s.load);
 
+  // ── Effects ──
   useEffect(() => {
     projects.forEach((p) => {
       if (p.path) void loadSessionTasks(p.path);
     });
   }, [projects.map((p) => p.path).join('|'), loadSessionTasks]);
 
+  // ── Callbacks ──
   const findSessionProjectPath = useCallback(
     (sessionId: string) =>
       projects.find((p) => p.branches.some((b) => b.sessions.some((s) => s.id === sessionId)))
@@ -28,6 +40,7 @@ export function useProjectTaskActions(projects: ProjectExtended[]) {
     [projects],
   );
 
+  // ── State ──
   const [forceStart, setForceStart] = useState<{
     path: string;
     title: string;
@@ -35,6 +48,7 @@ export function useProjectTaskActions(projects: ProjectExtended[]) {
     proceed: () => Promise<unknown>;
   } | null>(null);
 
+  // ── Callbacks ──
   const setTaskStatus = useCallback(
     (sessionId: string, status: TaskStatus) => {
       const task = bySession[sessionId];

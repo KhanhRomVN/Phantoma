@@ -8,12 +8,15 @@ import { Check, FolderOpen, Monitor, Smartphone } from 'lucide-react';
 
 import { cn } from '@renderer/utils/cn';
 import { Pill } from '@renderer/components/common/LaunchConfig/picker/ConfigBits';
-import { ServiceIcon } from '@renderer/modules/Profile/components/common/StatusBadge';
-import type { Fork } from '@renderer/modules/Profile/types';
 
-import { LaunchPlatform, LAUNCH_PLATFORMS } from '@renderer/modules/Emulate/constants/launch-platforms';
+import {
+  LaunchPlatform,
+  LAUNCH_PLATFORMS,
+} from '@renderer/modules/Emulate/constants/launch-platforms';
 import type { TargetTab } from '@renderer/modules/Emulate/types/target.types';
 import { getTargetFavicon } from '../index';
+import { ServiceIcon } from '@renderer/modules/Profile/features/services/components/ServiceBadges';
+import { Fork } from '@renderer/modules/Profile/shared/types/browser.types';
 
 const CHROME_URL = 'https://www.google.com/intl/vi_vn/chrome/';
 const LABEL_CLASS = 'text-[10px] font-semibold uppercase tracking-wider text-text-secondary';
@@ -67,7 +70,9 @@ function OptionButton({
       onClick={onClick}
       className={cn(
         'flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-        active ? 'border-dashed border-primary' : 'border-transparent bg-text-secondary/5 hover:bg-text-secondary/10',
+        active
+          ? 'border-dashed border-primary'
+          : 'border-transparent bg-text-secondary/5 hover:bg-text-secondary/10',
       )}
     >
       {children}
@@ -100,7 +105,12 @@ export function TargetPanel({
         : target.emulatorSerial;
 
   const renderTargetIcon = () => {
-    const src = platform === 'application' && target.icon ? `media://${target.icon}` : platform === 'application' ? null : getTargetFavicon(target);
+    const src =
+      platform === 'application' && target.icon
+        ? `media://${target.icon}`
+        : platform === 'application'
+          ? null
+          : getTargetFavicon(target);
     if (platform !== 'android' && src) {
       return (
         <img
@@ -124,7 +134,9 @@ export function TargetPanel({
         </span>
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-semibold text-text-primary">{target.title}</span>
-          {subtitle && <span className="truncate font-mono text-[11px] text-text-secondary">{subtitle}</span>}
+          {subtitle && (
+            <span className="truncate font-mono text-[11px] text-text-secondary">{subtitle}</span>
+          )}
         </div>
       </div>
 
@@ -133,13 +145,20 @@ export function TargetPanel({
           <>
             <div className="flex flex-col gap-2">
               <span className={LABEL_CLASS}>Browser</span>
-              <OptionButton active={browserId === 'chrome'} onClick={() => onBrowserChange('chrome')}>
+              <OptionButton
+                active={browserId === 'chrome'}
+                onClick={() => onBrowserChange('chrome')}
+              >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/60">
                   <ServiceIcon name="Google Chrome" url={CHROME_URL} size={20} />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-xs font-semibold text-text-primary">Google Chrome</span>
-                  <span className="truncate text-[11px] text-text-secondary">Real device footprint</span>
+                  <span className="truncate text-xs font-semibold text-text-primary">
+                    Google Chrome
+                  </span>
+                  <span className="truncate text-[11px] text-text-secondary">
+                    Real device footprint
+                  </span>
                 </span>
               </OptionButton>
             </div>
@@ -168,7 +187,9 @@ export function TargetPanel({
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="min-w-0 truncate text-xs font-medium text-text-primary">{f.name}</span>
+                        <span className="min-w-0 truncate text-xs font-medium text-text-primary">
+                          {f.name}
+                        </span>
                         <Pill tone={f.tone}>{f.badge}</Pill>
                       </span>
                       <span className="truncate font-mono text-[10px] text-text-secondary/70">
@@ -179,8 +200,6 @@ export function TargetPanel({
                 ))}
               </div>
             </div>
-
-
           </>
         )}
 
@@ -196,13 +215,23 @@ export function TargetPanel({
               </span>
             )}
             {deviceList.map((d) => (
-              <OptionButton key={d.serial} active={deviceSerial === d.serial} onClick={() => onDeviceChange(d.serial)}>
+              <OptionButton
+                key={d.serial}
+                active={deviceSerial === d.serial}
+                onClick={() => onDeviceChange(d.serial)}
+              >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background/60 text-text-secondary">
-                  {d.type === 'physical' ? <Smartphone className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
+                  {d.type === 'physical' ? (
+                    <Smartphone className="h-4 w-4" />
+                  ) : (
+                    <Monitor className="h-4 w-4" />
+                  )}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-xs font-medium text-text-primary">{d.name}</span>
-                  <span className="truncate font-mono text-[10px] text-text-secondary">{d.serial}</span>
+                  <span className="truncate font-mono text-[10px] text-text-secondary">
+                    {d.serial}
+                  </span>
                 </span>
                 <Pill tone="muted">{d.type === 'physical' ? 'USB' : 'VM'}</Pill>
               </OptionButton>
@@ -215,7 +244,10 @@ export function TargetPanel({
             <span className={LABEL_CLASS}>Executable</span>
             <div className="flex min-w-0 items-center gap-2 rounded-xl bg-text-secondary/5 px-3 py-2.5">
               <FolderOpen className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
-              <span title={target.executablePath} className="min-w-0 break-all font-mono text-[11px] text-text-primary">
+              <span
+                title={target.executablePath}
+                className="min-w-0 break-all font-mono text-[11px] text-text-primary"
+              >
                 {target.executablePath || '—'}
               </span>
             </div>

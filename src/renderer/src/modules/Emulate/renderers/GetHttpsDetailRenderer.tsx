@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { MethodBadge, tryFormatJson } from './shared/http-render.utils';
+import { TagHeader } from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/TagHeader';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
+import ErrorBlock from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ErrorBlock';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/features/chat/registries/tag.registry';
 
 interface GetHttpsDetailBlockProps {
   content: string;
@@ -97,15 +98,6 @@ function parseContent(content: string): ParsedDetail {
   return result;
 }
 
-function tryFormatJson(text: string): string {
-  try {
-    const parsed = JSON.parse(text.trim());
-    return JSON.stringify(parsed, null, 2);
-  } catch {
-    return text.trim();
-  }
-}
-
 function CollapsibleSection({
   title,
   content,
@@ -172,28 +164,6 @@ function StatusBadge({ status }: { status: string }) {
   else if (code >= 400) color = 'text-error';
 
   return <span className={cn('text-[11px] font-bold font-mono', color)}>{status || 'N/A'}</span>;
-}
-
-function MethodBadge({ method }: { method: string }) {
-  const colors: Record<string, string> = {
-    GET: 'text-success',
-    POST: 'text-warn',
-    PUT: 'text-primary',
-    PATCH: 'text-primary',
-    DELETE: 'text-error',
-    OPTIONS: 'text-text-secondary',
-    HEAD: 'text-text-secondary',
-  };
-  return (
-    <span
-      className={cn(
-        'text-[11px] font-bold font-mono',
-        colors[method.toUpperCase()] || 'text-text-primary',
-      )}
-    >
-      {method.toUpperCase()}
-    </span>
-  );
 }
 
 const GetHttpsDetailBlock: React.FC<GetHttpsDetailBlockProps> = ({ content }) => {

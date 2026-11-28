@@ -1,20 +1,17 @@
-/**
- * ------------------------------------------------------------------
- * PR Avatar
- * ------------------------------------------------------------------
- * Avatar GitHub theo login, fallback chữ cái đầu có màu khi ảnh lỗi.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useState } from 'react';
 
+// ── Utils ──
 import { avatarColor, avatarUrl, initials } from '../../git';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface PrAvatarProps {
   login?: string | null;
   size?: number;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const PrAvatar = memo(function PrAvatar({ login, size = 18 }: PrAvatarProps) {
   const [failed, setFailed] = useState(false);
   const style = { width: size, height: size };

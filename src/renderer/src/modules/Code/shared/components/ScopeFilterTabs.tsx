@@ -1,14 +1,33 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { CornerDownRight } from 'lucide-react';
 
-import { cn } from '@renderer/utils/cn';
+// ── Stores ──
 import type { ScopeCategory } from '../stores/scope-stats.store';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { SCOPE_BADGE_META, SCOPE_DOT } from '../utils/scope-badges.util';
 
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface BranchScope {
   branch: string;
   paths: string[];
+}
+
+interface TabProps {
+  active: boolean;
+  title?: string;
+  label: string;
+  count: number | null;
+  dotClass?: string;
+  dots?: string[];
+  tintClass?: string;
+  onClick: () => void;
 }
 
 interface ScopeFilterTabsProps {
@@ -27,6 +46,7 @@ interface ScopeFilterTabsProps {
   onSelectBranch: (branch: string) => void;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const UNSCOPED_BRANCH = '__unscoped__';
 
 const OUTSIDE_CATS: ScopeCategory[] = ['warn', 'diff', 'error'];
@@ -38,18 +58,9 @@ const SUB_LABEL: Record<string, string> = {
   error: 'Clash',
 };
 
-interface TabProps {
-  active: boolean;
-  title?: string;
-  label: string;
-  count: number | null;
-  dotClass?: string;
-  dots?: string[];
-  tintClass?: string;
-  onClick: () => void;
-}
-
+// ─── Component ───────────────────────────────────────────────────────────────
 function Tab({ active, title, label, count, dotClass, dots, tintClass, onClick }: TabProps) {
+  // ── Render ──
   return (
     <button
       type={'button'}

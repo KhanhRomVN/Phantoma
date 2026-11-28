@@ -1,10 +1,16 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect } from 'react';
+
+// ── Types ──
 import type { GroupInfo } from '../types/project-panel.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const GROUP_STORAGE_KEY = 'phantoma_code_project_groups_v2';
 export const UNGROUP_ID = '__ungroup__';
 const UNGROUP_INDEX_KEY = 'phantoma_code_ungroup_index_v2';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function loadGroupsFromStorage(): GroupInfo[] {
   try {
     const stored = window.localStorage.getItem(GROUP_STORAGE_KEY);
@@ -32,7 +38,9 @@ function loadUngroupIndex(): number {
   }
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useProjectGroups() {
+  // ── State ──
   const [groups, setGroups] = useState<GroupInfo[]>(loadGroupsFromStorage);
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [groupFormOpen, setGroupFormOpen] = useState(false);
@@ -40,6 +48,7 @@ export function useProjectGroups() {
   const [ungroupedOpen, setUngroupedOpen] = useState(true);
   const [ungroupIndex, setUngroupIndex] = useState<number>(loadUngroupIndex);
 
+  // ── Effects ──
   useEffect(() => {
     try {
       window.localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(groups));

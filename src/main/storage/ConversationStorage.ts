@@ -80,6 +80,12 @@ export class ConversationStorage {
   }
 
   private getProjectDir(moduleId: string, folderPath?: string | null): string {
+    // code:<project_id> → ~/.phantoma/code/<project_id>/conversations
+    // emulate:<target_id> → ~/.phantoma/emulate/<target_id>/conversations
+    const scoped = /^(code|emulate):([A-Za-z0-9_-]+)$/.exec(moduleId);
+    if (scoped) {
+      return path.join(os.homedir(), '.phantoma', scoped[1], scoped[2], 'conversations');
+    }
     const hash = crypto
       .createHash('md5')
       .update(folderPath || moduleId)

@@ -1,6 +1,9 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useMemo } from 'react';
+
+// ── UI ──
 import { Button } from '@renderer/components/ui/Button';
-import { codeApi } from '../../../../shared/api/code.api';
 import {
   Loader2,
   Folder,
@@ -16,16 +19,22 @@ import {
   Shield,
   Bot,
 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
-
-
-import { useCodeStore } from '../../../../shared/stores/code.store';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 
+// ── Services ──
+import { codeApi } from '../../../../shared/api/code.api';
+
+// ── Stores ──
+import { useCodeStore } from '../../../../shared/stores/code.store';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface TemplateDef {
   id: string;
   name: string;
@@ -39,6 +48,7 @@ interface TemplateDef {
   lay: 'app' | 'api' | 'term';
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const TEMPLATES: TemplateDef[] = [
   {
     id: 'blank',
@@ -190,9 +200,12 @@ interface CreateProjectModalProps {
   onClose: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps) {
+  // ── Store ──
   const addProject = useCodeStore((s) => s.addProject);
 
+  // ── State ──
   const [loading, setLoading] = useState(false);
   const [newProjName, setNewProjName] = useState('');
   const [newProjLoc, setNewProjLoc] = useState('/home/khanhromvn/projects');
@@ -203,6 +216,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
   const [options, setOptions] = useState({ git: true, readme: true, ignore: true, deps: false });
   const [license, setLicense] = useState('MIT');
 
+  // ── Derived ──
   const filteredTemplates = useMemo(() => {
     if (templateCategory === 'All') return TEMPLATES;
     return TEMPLATES.filter((t) => t.category === templateCategory || t.id === 'blank');
@@ -215,6 +229,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
 
   const canSubmit = newProjName.trim().length > 0 && !!newProjLoc;
 
+  // ── Handlers ──
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setLoading(true);
@@ -235,6 +250,7 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     }
   };
 
+  // ── Render ──
   return (
     <Modal
       isOpen={isOpen}

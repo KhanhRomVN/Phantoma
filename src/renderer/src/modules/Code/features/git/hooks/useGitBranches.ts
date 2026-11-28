@@ -1,11 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useMemo } from 'react';
+
+// ── Utils ──
 import type { Commit } from '../utils/graph.util';
 
-interface ProjectBranch {
-  name: string;
-  path?: string;
-}
+// ── Types ──
+import type { ProjectBranch } from '../types/project-branch.types';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseGitBranchesProps {
   branches: string[];
   commits: Commit[];
@@ -26,6 +29,7 @@ interface UseGitBranchesReturn {
   syncSourceLabel: (commit: Commit) => string;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGitBranches({
   branches,
   commits,
@@ -34,6 +38,7 @@ export function useGitBranches({
   worktreePaths,
   activeBranch,
 }: UseGitBranchesProps): UseGitBranchesReturn {
+  // ── Derived ──
   const currentBranch = useMemo(() => {
     for (const c of commits) {
       const ref = c.refs.find((r) => r.startsWith('HEAD -> '));

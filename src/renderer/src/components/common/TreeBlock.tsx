@@ -21,7 +21,7 @@ import { ChevronRight } from 'lucide-react';
 import { getFileIconPath, getFolderIconPath, getIconBaseUri } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import ErrorBlock from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ErrorBlock';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 export interface FileNode {

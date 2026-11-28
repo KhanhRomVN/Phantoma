@@ -1,8 +1,6 @@
 import { Radio, Wifi, Loader2, AlertTriangle, WifiOff, Layers } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
 import type { Device, DeviceStatus } from '../types';
-import { TONE_CLASS } from '../constants/tone';
 import { DEVICE_KIND } from '../constants/device';
 
 interface FleetHeroSectionProps {
@@ -22,10 +20,20 @@ interface StatCardProps {
   onClick: () => void;
 }
 
-function StatCard({ icon: Icon, label, value, color, description, active, onClick }: StatCardProps) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  color,
+  description,
+  active,
+  onClick,
+}: StatCardProps) {
   const iconBg = active ? color : `rgba(${color.match(/\d+/g)?.slice(0, 3).join(',')}, 0.14)`;
   const textColor = active ? color : 'rgb(var(--text-primary))';
-  const bgColor = active ? `rgba(${color.match(/\d+/g)?.slice(0, 3).join(',')}, 0.14)` : 'transparent';
+  const bgColor = active
+    ? `rgba(${color.match(/\d+/g)?.slice(0, 3).join(',')}, 0.14)`
+    : 'transparent';
 
   return (
     <button
@@ -53,7 +61,11 @@ function StatCard({ icon: Icon, label, value, color, description, active, onClic
         </div>
         <div
           className="truncate text-[11px]"
-          style={{ color: active ? `rgba(${color.match(/\d+/g)?.slice(0, 3).join(',')}, 0.85)` : 'rgb(var(--text-secondary) / 0.7)' }}
+          style={{
+            color: active
+              ? `rgba(${color.match(/\d+/g)?.slice(0, 3).join(',')}, 0.85)`
+              : 'rgb(var(--text-secondary) / 0.7)',
+          }}
         >
           {description}
         </div>
@@ -151,7 +163,6 @@ export function FleetHeroSection({ devices, activeFilter, onFilterClick }: Fleet
       <div className="grid grid-cols-5 gap-1">
         {stats.map((stat) => (
           <StatCard
-            key={stat.key}
             {...stat}
             filterKey={stat.key}
             active={activeFilter === stat.key}

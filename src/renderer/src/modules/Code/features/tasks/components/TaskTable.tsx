@@ -1,4 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useState } from 'react';
+
+// ── UI ──
 import {
   CalendarDays,
   Paperclip,
@@ -10,8 +14,6 @@ import {
   GitBranch,
   X,
 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
-import { $ } from '@renderer/utils/color';
 import { Checkbox } from '@renderer/components/ui/Checkbox';
 import {
   Dropdown,
@@ -23,17 +25,21 @@ import {
   DropdownSubTrigger,
   DropdownSubContent,
 } from '@renderer/components/ui/Dropdown';
-import type { StoredTask, TaskPriority, TaskStatus } from '../../../shared/services/task.service';
+
+// ── Components ──
 import { TaskEmptyState } from './TaskEmptyState';
+
+// ── Services ──
+import type { StoredTask, TaskStatus } from '../../../shared/services/task.service';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { $ } from '@renderer/utils/color';
 import { STATUS_META } from '../constants/status-meta.constants';
+import { PRIORITY_META } from '../constants/priority-meta.constants';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const STATUS_ORDER: TaskStatus[] = ['todo', 'progress', 'done'];
-
-const PRIORITY_META: Record<TaskPriority, { label: string; color: string }> = {
-  high: { label: 'High', color: '--error' },
-  medium: { label: 'Medium', color: '--warn' },
-  low: { label: 'Low', color: '--text-secondary' },
-};
 
 const HEADERS: { label: string; center?: boolean }[] = [
   { label: 'Task' },
@@ -48,6 +54,7 @@ const HEADERS: { label: string; center?: boolean }[] = [
 const GRID =
   'grid grid-cols-[32px_minmax(220px,2.5fr)_120px_100px_minmax(120px,1.2fr)_130px_minmax(140px,1fr)_70px] gap-3 items-center px-4';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function formatDate(ts: number): string {
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -59,6 +66,7 @@ function formatPoint(date: number | null, time: string | null): string {
   return time ? `${formatDate(date)} ${time}` : formatDate(date);
 }
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface TaskTableProps {
   tasks: StoredTask[];
   blockedCounts: Record<string, number>;
@@ -72,6 +80,7 @@ interface TaskTableProps {
   onDeleteTasks: (tasks: StoredTask[]) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const TaskTable = memo(function TaskTable({
   tasks,
   blockedCounts,

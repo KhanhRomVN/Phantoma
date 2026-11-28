@@ -1,14 +1,23 @@
-import { AlertCircle, Check, GitBranch, Loader2, Search, X } from 'lucide-react';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useMemo, useState } from 'react';
-import { cn } from '@renderer/utils/cn';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+
+// ── UI ──
+import { AlertCircle, Check, GitBranch, Loader2, Search, X } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button/Button';
+
+// ── Components ──
 import { TreeUIPreview } from './TreeUIPreview';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface WorktreePreview {
   hasGitignore: boolean;
   alreadyIgnored: boolean;
@@ -62,9 +71,11 @@ interface ConfirmCreateBranchModalProps {
   projectBranch?: string;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 // ASSUMED: dependency folders (node_modules, .venv, venv) and env files (.env, .env.*) are auto-selected; build output and logs are not
 const AUTO_SELECT_RE = /(^|\/)(node_modules|\.venv|venv)\/$|(^|\/)\.env(\..+)?$/;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const autoSelectIgnored = (paths: string[]): string[] =>
   paths.filter((p) => AUTO_SELECT_RE.test(p));
 
@@ -88,6 +99,7 @@ const formatSize = (bytes: number): string => {
 };
 
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function TickBox({ checked }: { checked: boolean }) {
   return (
     <span
@@ -132,6 +144,7 @@ function ProgressView({
   steps: BranchProgress['step'][];
   progress: BranchProgress | null;
 }) {
+  // ── Derived ──
   const active = Math.max(0, steps.indexOf(progress?.step ?? 'worktree'));
   const total = progress?.total ?? 0;
   const current = progress?.current ?? 0;
@@ -139,6 +152,7 @@ function ProgressView({
   const bytesTotal = progress?.bytesTotal ?? 0;
   const pct = total > 0 && bytesTotal > 0 ? Math.min(100, (bytesDone / bytesTotal) * 100) : 0;
 
+  // ── Render ──
   return (
     <ul className="flex flex-col gap-4 py-2">
       {steps.map((s, i) => {
@@ -200,9 +214,11 @@ function ScanView({
   progress: ScanProgress | null | undefined;
   onStop?: () => void;
 }) {
+  // ── Derived ──
   const total = progress?.total ?? 0;
   const done = progress?.done ?? 0;
 
+  // ── Render ──
   return (
     <section className="rounded-lg bg-input-background px-4 py-3.5">
       <div className="flex items-center gap-3">
@@ -262,8 +278,10 @@ export function ConfirmCreateBranchModal({
   scanProgress,
   onStopScan,
 }: ConfirmCreateBranchModalProps) {
+  // ── State ──
   const [query, setQuery] = useState('');
 
+  // ── Derived ──
   const ignored = useMemo(() => preview?.ignoredPaths ?? [], [preview]);
   const sizes = preview?.sizes;
   const recommended = useMemo(() => autoSelectIgnored(ignored), [ignored]);
@@ -287,17 +305,20 @@ export function ConfirmCreateBranchModal({
     ...(selectedPaths.length > 0 ? (['copy'] as const) : []),
   ];
 
+  // ── Handlers ──
   const handleClose = () => {
     if (submitting) return;
     onClose();
   };
 
+  // ── Derived ──
   const toggle = (p: string) =>
     onSelectedPathsChange(
       selectedPaths.includes(p) ? selectedPaths.filter((x) => x !== p) : [...selectedPaths, p],
     );
 
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={handleClose} className="max-w-[580px]">
       <ModalHeader

@@ -1,5 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { Check } from 'lucide-react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import {
   computeRects,
@@ -18,6 +24,7 @@ import {
   type PanelRules,
 } from '../../workspace';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const PANES: { id: PaneId; label: string }[] = [
   { id: 'tl', label: 'Top left' },
   { id: 'tr', label: 'Top right' },
@@ -62,9 +69,16 @@ const TYPE_STYLE: Record<PanelType, { label: string; hint: string; solid: string
     solid: 'bg-text-secondary',
     soft: 'bg-text-secondary/15 text-text-secondary border-text-secondary/30',
   },
+  design: {
+    label: 'Design',
+    hint: 'UI design canvas',
+    solid: 'bg-violet-500',
+    soft: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
+  },
 
 };
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function layoutOf(rules: PanelRules) {
   const used = PANE_IDS.filter((p) => PANEL_TYPES.some((t) => rules[t] === p));
   const autoTypes = PANEL_TYPES.filter((t) => rules[t] === 'auto');
@@ -84,6 +98,7 @@ function paneName(rect: PaneRect): string {
   return `${rect.top === 0 ? 'Top' : 'Bottom'} ${rect.left === 0 ? 'left' : 'right'}`;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
@@ -115,6 +130,7 @@ function PanePicker({
   solid: string;
   onChange: (rule: PaneRule) => void;
 }) {
+  // ── Render ──
   return (
     <div className="flex items-center gap-2">
       <div className="grid grid-cols-2 gap-[3px] p-1 rounded-md bg-card-hover border border-border">
@@ -138,7 +154,10 @@ function PanePicker({
 }
 
 function MiniMap({ rules }: { rules: PanelRules }) {
+  // ── Derived ──
   const { panes, rects, typesIn } = layoutOf(rules);
+
+  // ── Render ──
   return (
     <div className="relative w-full h-[38px]">
       {panes.map((pane) => {
@@ -168,7 +187,10 @@ function MiniMap({ rules }: { rules: PanelRules }) {
 }
 
 function LiveMap({ rules, dimmed }: { rules: PanelRules; dimmed: boolean }) {
+  // ── Derived ──
   const { panes, rects, autoTypes, fallback, typesIn } = layoutOf(rules);
+
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-2 transition-opacity', dimmed && 'opacity-40')}>
       <div className="relative w-full aspect-video rounded-xl border border-border bg-gradient-to-br from-card-hover/60 to-transparent">

@@ -1,5 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import type { DragEvent as ReactDragEvent } from 'react';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const clearDragMarks = () =>
   document.querySelectorAll('.pp-dragover').forEach((el) => {
     el.classList.remove('pp-dragover');

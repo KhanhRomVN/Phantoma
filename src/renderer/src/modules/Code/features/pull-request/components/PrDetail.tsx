@@ -1,16 +1,8 @@
-import { shellIpc } from '../../../shared/ipc/shell.ipc';
-/**
- * ------------------------------------------------------------------
- * PR Detail
- * ------------------------------------------------------------------
- * Khung chi tiết một Pull Request: header màu theo trạng thái, thống
- * kê, thanh hành động và 4 tab (Overview / Commits / Files /
- * Conversation) để không bị chôn danh sách commit và comment dưới
- * danh sách file dài.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useState } from 'react';
+
+// ── UI ──
 import {
   AlertTriangle,
   ArrowRight,
@@ -28,12 +20,17 @@ import {
   XCircle,
 } from 'lucide-react';
 
-import { cn } from '@renderer/utils/cn';
+// ── Components ──
 import { PrAvatar } from './PrAvatar';
 import { PrCommits } from './PrCommits';
 import { PrConversation } from './PrConversation';
 import { PrFiles } from './PrFiles';
-import type { DetailTab, MergeMethod, PullRequestDetail } from '../types/pull-request.types';
+
+// ── Services ──
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import {
   BTN,
   BTN_DANGER,
@@ -50,6 +47,10 @@ import {
   type PrTone,
 } from '../utils/pull-request.util';
 
+// ── Types ──
+import type { DetailTab, MergeMethod, PullRequestDetail } from '../types/pull-request.types';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const TONE_ICON: Record<PrTone, typeof GitPullRequest> = {
   open: GitPullRequest,
   merged: GitMerge,
@@ -57,6 +58,7 @@ const TONE_ICON: Record<PrTone, typeof GitPullRequest> = {
   draft: GitPullRequestDraft,
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const Branch = ({ name, dim }: { name: string; dim?: boolean }) => (
   <span
     className={cn(
@@ -69,6 +71,7 @@ const Branch = ({ name, dim }: { name: string; dim?: boolean }) => (
   </span>
 );
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface PrDetailProps {
   detail: PullRequestDetail;
   busy: boolean;

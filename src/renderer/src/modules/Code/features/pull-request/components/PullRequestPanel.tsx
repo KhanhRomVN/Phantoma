@@ -1,19 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Pull Request Panel
- * ------------------------------------------------------------------
- * Quản lý Pull Request GitHub của một project thông qua GitHub CLI
- * (gh) ở main process (channels 'pr:*').
- *
- * Main features:
- * - Cột trái: bộ lọc trạng thái, tìm kiếm, danh sách PR dạng card,
- *   skeleton khi tải và empty state theo bộ lọc
- * - Cột phải: chi tiết PR dạng tab (overview, commits, files,
- *   conversation) hoặc form tạo PR mới
- * - Hành động: tạo, merge, close / reopen, ready, approve, comment
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Loader2, RefreshCw, Search, X } from 'lucide-react';

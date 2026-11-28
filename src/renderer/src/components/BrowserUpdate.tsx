@@ -9,7 +9,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, Loader2, RefreshCw } from 'lucide-react';
-import { profileApi, type ForkUpdateInfo } from '@renderer/modules/Profile/services/profile-api.service';
 import {
   Dropdown,
   DropdownTrigger,
@@ -19,6 +18,8 @@ import {
 } from '@renderer/components/ui/Dropdown';
 import { Button } from '@renderer/components/ui/Button';
 import { cn } from '@renderer/utils/cn';
+import { ForkUpdateInfo } from '@renderer/modules/Profile/shared/types';
+import { profileApi } from '@renderer/modules/Profile/shared/api/profile.api';
 
 const POLL_BUSY_MS = 1000;
 const POLL_OFFLINE_MS = 3000; // ASSUMED: profile server may start after the renderer (on-demand spawn), so retry until it answers
@@ -36,7 +37,9 @@ function useForkUpdates() {
     if (timer.current) clearTimeout(timer.current);
     let delay = POLL_OFFLINE_MS;
     try {
-      const data = force ? await profileApi.browser.checkUpdates() : await profileApi.browser.updates();
+      const data = force
+        ? await profileApi.browser.checkUpdates()
+        : await profileApi.browser.updates();
       if (!alive.current) return;
       setForks(data);
       delay = data.some(isBusy) ? POLL_BUSY_MS : POLL_IDLE_MS;
@@ -82,9 +85,13 @@ function summarize(forks: ForkUpdateInfo[] | null) {
     return { label: `Installing${pct}`, tone: 'busy' as const };
   }
   const updatable = forks.filter((f) => f.hasUpdate);
-  if (updatable.length > 0) return { label: `Update available (${updatable.length})`, tone: 'update' as const };
+  if (updatable.length > 0)
+    return { label: `Update available (${updatable.length})`, tone: 'update' as const };
   const first = forks[0];
-  return { label: first?.current ? `Chromium ${first.current}` : 'Browsers', tone: 'idle' as const };
+  return {
+    label: first?.current ? `Chromium ${first.current}` : 'Browsers',
+    tone: 'idle' as const,
+  };
 }
 
 export function BrowserUpdate() {
@@ -99,7 +106,8 @@ export function BrowserUpdate() {
             'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer',
             tone === 'update' && 'bg-primary/15 text-primary hover:bg-primary/25',
             tone === 'busy' && 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/25',
-            tone === 'idle' && 'bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15',
+            tone === 'idle' &&
+              'bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15',
           )}
         >
           {tone === 'busy' ? (
@@ -108,7 +116,9 @@ export function BrowserUpdate() {
             <Download className="w-3.5 h-3.5" strokeWidth={2} />
           )}
           <span className="whitespace-nowrap">{label}</span>
-          {tone === 'update' && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
+          {tone === 'update' && (
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          )}
         </button>
       </DropdownTrigger>
       <DropdownContent>
@@ -118,7 +128,12 @@ export function BrowserUpdate() {
           </DropdownItem>
         )}
         {forks?.map((f) => (
-          <DropdownItem key={f.id} noPadding closeOnSelect={false} className="py-1.5 px-3 items-start">
+          <DropdownItem
+            key={f.id}
+            noPadding
+            closeOnSelect={false}
+            className="py-1.5 px-3 items-start"
+          >
             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
               <span className="text-[13px] font-medium text-text-primary">{f.name}</span>
               <span className="text-[11px] font-mono text-text-secondary">
@@ -132,12 +147,16 @@ export function BrowserUpdate() {
                 <span className="text-[11px] text-error truncate">{f.checkError}</span>
               )}
               {!f.supported && (
-                <span className="text-[11px] text-text-secondary">Auto-update is not supported on this platform</span>
+                <span className="text-[11px] text-text-secondary">
+                  Auto-update is not supported on this platform
+                </span>
               )}
             </div>
             {isBusy(f) && f.job ? (
               <span className="text-[11px] font-mono text-amber-500 self-center whitespace-nowrap">
-                {f.job.phase === 'downloading' ? `${Math.round(f.job.progress * 100)}%` : f.job.phase}
+                {f.job.phase === 'downloading'
+                  ? `${Math.round(f.job.progress * 100)}%`
+                  : f.job.phase}
               </span>
             ) : (
               f.supported &&

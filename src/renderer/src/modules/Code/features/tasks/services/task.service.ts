@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { codeApi, type CodeTask } from '../../../shared/api/code.api';
+
+// ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type TaskStatus = 'todo' | 'progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
@@ -77,8 +82,10 @@ export interface UpdateTaskInput extends Partial<TaskExtras> {
   dependsOn?: string[];
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const TASKS_CHANGED_EVENT = 'phantoma:tasks-changed';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function mapCodeTaskToStored(task: CodeTask): StoredTask {
   return {
     id: task.id,
@@ -114,7 +121,7 @@ async function getProjectIdByPath(projectPath: string): Promise<string> {
   return project.id;
 }
 
-const notifyChanged = (projectPath: string) => {
+export const notifyChanged = (projectPath: string) => {
   window.dispatchEvent(new CustomEvent(TASKS_CHANGED_EVENT, { detail: projectPath }));
 };
 

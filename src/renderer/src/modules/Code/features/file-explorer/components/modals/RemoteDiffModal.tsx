@@ -1,12 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Remote Diff Modal
- * ------------------------------------------------------------------
- * Modal xem diff của 1 file giữa remote default branch (origin/main|master)
- * và bản Local — tối đa 2 panel side-by-side.
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 import { memo, useEffect, useMemo, useState } from 'react';
 import { Loader, GitBranch } from 'lucide-react';
@@ -16,6 +7,7 @@ import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { getFileIconPath } from '@renderer/utils/file-icon';
 import { FileSection, parseDiff } from '../../../git';
+import type { PanelState } from '../../../../shared/types/diff-panel.types';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
 interface RemoteDiffModalProps {
@@ -23,12 +15,6 @@ interface RemoteDiffModalProps {
   onClose: () => void;
   projectPath: string;
   filePath: string | null;
-}
-
-interface PanelState {
-  loading: boolean;
-  error: string | null;
-  diff: string;
 }
 
 const noop = () => {};

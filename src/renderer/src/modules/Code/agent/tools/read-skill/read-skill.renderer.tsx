@@ -1,11 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * ReadSkillRenderer
- * ------------------------------------------------------------------
- * Hiển thị chi tiết + nội dung của một skill sau khi AI gọi read_skill.
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import React from 'react';
@@ -14,10 +6,10 @@ import React from 'react';
 import { $ } from '@renderer/utils/color';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── Types ──────────────────────────────────────────────────────────────
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ─── Component ──────────────────────────────────────────────────────────
 export const ReadSkillRenderer: React.FC<BaseRendererProps> = ({

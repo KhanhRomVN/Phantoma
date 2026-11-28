@@ -12,9 +12,14 @@
  * problems and the floating "ghost" always follows the cursor.
  */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react';
+
+// ── Utils ──
 import type { PaneId, ResizeHandle } from '../../../shared/utils/workspace-layout.util';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface Options {
   contentRef: RefObject<HTMLDivElement | null>;
   /** Resolve the pane under a point (percentages of the content area). */
@@ -23,9 +28,11 @@ interface Options {
   onResize: (handle: ResizeHandle, valuePct: number) => void;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 /** Mouse must travel this far (px) before a press on a tab counts as a drag. */
 const DRAG_THRESHOLD = 5;
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useWorkspaceInteractions({ contentRef, getPaneAt, onMove, onResize }: Options) {
   const [dragSourceId, setDragSourceId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<PaneId | null>(null);

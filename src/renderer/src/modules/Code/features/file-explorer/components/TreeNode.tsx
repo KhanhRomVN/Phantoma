@@ -193,7 +193,6 @@ export const TreeNode = memo(function TreeNode({
   useEffect(() => {
     if (isFolder && expanded && node.path && lazyChildren === null && !loading) {
       setLoading(true);
-      const t0 = performance.now();
       fetchDirChildren(node.path)
         .then((kids) => {
           setLazyChildren(kids);
@@ -243,7 +242,6 @@ export const TreeNode = memo(function TreeNode({
   }, [node.path, selectedNodeIds, onCopyAbsolutePath]);
 
   const handleCopyRelativePathLocal = useCallback(() => {
-    const dbgP = getProject();
     if (selectedNodeIds.size > 0) {
       onCopyRelativePath();
     } else if (node.path) {
@@ -600,7 +598,9 @@ export const TreeNodeGate = memo(function TreeNodeGate(props: TreeNodeProps) {
   const branchFilterPaths = useBranchScopeStore((s) =>
     branchFilter ? s.scopes[toScopeKey(projectId, branchFilter)] : undefined,
   );
-  const allScopes = useBranchScopeStore((s) => (branchFilter === UNSCOPED_BRANCH ? s.scopes : undefined));
+  const allScopes = useBranchScopeStore((s) =>
+    branchFilter === UNSCOPED_BRANCH ? s.scopes : undefined,
+  );
   const activeBranch = useActiveBranchName(projectId);
   const stats = useScopeStats(projectId);
   const projectRoot = useCodeStore((s) => {
@@ -621,10 +621,16 @@ export const TreeNodeGate = memo(function TreeNodeGate(props: TreeNodeProps) {
       const rootPrefix = `${projectRoot.replace(/\/+$/, '')}/`;
       const keyPrefix = `${projectId}::`;
       const others = Object.entries(allScopes)
-        .filter(([k, paths]) => k.startsWith(keyPrefix) && k.slice(keyPrefix.length) !== activeBranch && paths.length > 0)
+        .filter(
+          ([k, paths]) =>
+            k.startsWith(keyPrefix) &&
+            k.slice(keyPrefix.length) !== activeBranch &&
+            paths.length > 0,
+        )
         .map(([, paths]) => paths);
       list = stats.diff.filter(
-        (p) => p.startsWith(rootPrefix) && !others.some((o) => isInScope(p.slice(rootPrefix.length), o)),
+        (p) =>
+          p.startsWith(rootPrefix) && !others.some((o) => isInScope(p.slice(rootPrefix.length), o)),
       );
     } else if (branchFilterPaths && projectRoot) {
       const prefix = `${projectRoot.replace(/\/+$/, '')}/`;
@@ -635,6 +641,18 @@ export const TreeNodeGate = memo(function TreeNodeGate(props: TreeNodeProps) {
     if (node.type !== 'folder') return list.includes(node.path);
     const prefix = `${node.path}/`;
     return list.some((p) => p.startsWith(prefix));
-  }, [filter, hideNoDot, stats, branchFilter, branchFilterPaths, allScopes, activeBranch, projectId, projectRoot, node.path, node.type]);
+  }, [
+    filter,
+    hideNoDot,
+    stats,
+    branchFilter,
+    branchFilterPaths,
+    allScopes,
+    activeBranch,
+    projectId,
+    projectRoot,
+    node.path,
+    node.type,
+  ]);
   return visible ? <TreeNode {...props} /> : null;
 });

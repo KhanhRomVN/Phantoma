@@ -25,19 +25,21 @@ export interface TargetDTO {
   executable_path: string | null;
   startup_args: string | null;
   environment: Record<string, string> | null;
+  workspace_path: string | null;
 }
 
 export interface CreateTargetDTO {
   id?: string;
   title: string;
-  url: string | null;
-  icon: string | null;
-  platform: string | null;
-  executable_path: string | null;
-  startup_args: string | null;
-  environment: Record<string, string> | null;
+  url?: string;
+  icon?: string;
+  platform?: string;
+  executable_path?: string;
+  startup_args?: string;
+  environment?: Record<string, string>;
+  emulator_serial?: string;
+  workspace_path?: string;
 }
-
 export interface UpdateTargetDTO {
   title?: string;
   url?: string | null;
@@ -46,6 +48,7 @@ export interface UpdateTargetDTO {
   executable_path?: string | null;
   startup_args?: string | null;
   environment?: Record<string, string> | null;
+  workspace_path?: string | null;
 }
 
 // ── Filter ──

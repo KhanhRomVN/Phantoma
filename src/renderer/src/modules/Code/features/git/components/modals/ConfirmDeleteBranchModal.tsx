@@ -1,11 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
+
+// ── Components ──
 import { TreeUIPreview } from './TreeUIPreview';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmDeleteBranchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +26,7 @@ interface ConfirmDeleteBranchModalProps {
   hasRemote?: boolean;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmDeleteBranchModal({
   isOpen,
   onClose,
@@ -31,17 +39,20 @@ export function ConfirmDeleteBranchModal({
   projectBranch,
   hasRemote = false,
 }: ConfirmDeleteBranchModalProps) {
+  // ── State ──
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [confirmText, setConfirmText] = useState('');
   const [deleteRemote, setDeleteRemote] = useState(false);
 
+  // ── Derived ──
   const { folderName, targetDir } = useMemo(() => {
     const trimmed = branchPath.replace(/\/+$/, '');
     const i = trimmed.lastIndexOf('/');
     return { folderName: trimmed.slice(i + 1), targetDir: i <= 0 ? '/' : trimmed.slice(0, i) };
   }, [branchPath]);
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen) {
       setConfirmText('');
@@ -50,8 +61,10 @@ export function ConfirmDeleteBranchModal({
     }
   }, [isOpen]);
 
+  // ── Derived ──
   const canDelete = !!folderName && confirmText === folderName && !submitting;
 
+  // ── Handlers ──
   const handleClose = () => {
     if (submitting) return;
     setError('');
@@ -76,6 +89,7 @@ export function ConfirmDeleteBranchModal({
     }
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={handleClose} className="max-w-[480px]">
       <ModalBody className="py-6 px-5">

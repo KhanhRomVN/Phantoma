@@ -9,27 +9,21 @@
  * ------------------------------------------------------------------
  */
 
-import type {
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import {
   ToolCollapseChecker,
   ToolDangerChecker,
   ToolMarkdownFormatter,
-} from '@renderer/components/Widgets/Zen/shared/tool-behaviors';
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { SecurityValidator } from '../../shared/utils/security.util';
 
-/**
- * Code tools không collapse mặc định.
- * (Zen core sẽ collapse tất cả tool khác, chỉ run_command được expand.)
- */
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const checkCodeToolCollapse: ToolCollapseChecker = (action) => {
-  // run_command luôn expand để user thấy output ngay
   if (action.type === 'run_command') return false;
-  // Các tool khác của Code module không có quy tắc đặc biệt → để Zen core quyết định
   return false;
 };
 
-/**
- * Check dangerous command cho run_command.
- */
 export const checkCodeToolDanger: ToolDangerChecker = (action) => {
   if (action.type !== 'run_command') return { dangerous: false };
 

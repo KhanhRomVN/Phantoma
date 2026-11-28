@@ -1,4 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import {
   Archive,
   ArchiveRestore,
@@ -10,21 +14,27 @@ import {
   Paperclip,
   Terminal,
 } from 'lucide-react';
-import { $ } from '@renderer/utils/color';
+
+// ── Services ──
 import {
   formatTaskRange,
   isTaskOverdue,
   type StoredTask,
   type TaskPriority,
 } from '../../../shared/services/task.service';
+
+// ── Utils ──
+import { $ } from '@renderer/utils/color';
 import { STATUS_META } from '../constants/status-meta.constants';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string }> = {
   high: { label: 'High', color: '--error' },
   medium: { label: 'Medium', color: '--warn' },
   low: { label: 'Low', color: '--text-secondary' },
 };
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ArchivedTaskCardProps {
   task: StoredTask;
   nextCount: number;
@@ -33,6 +43,7 @@ interface ArchivedTaskCardProps {
   onRestore: (task: StoredTask) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ArchivedTaskCard = memo(function ArchivedTaskCard({
   task,
   nextCount,

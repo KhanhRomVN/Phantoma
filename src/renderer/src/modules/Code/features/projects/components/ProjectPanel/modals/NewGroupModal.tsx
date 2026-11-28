@@ -1,16 +1,26 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useMemo, memo } from 'react';
+
+// ── UI ──
 import { AlertTriangle, ChevronDown, ChevronRight, Folder, Search, X } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '@renderer/components/ui/Modal';
 import { Button } from '@renderer/components/ui/Button';
 
+// ── Components ──
 import { ProjectIcon, getProjectIdentity } from '../../ProjectCard/ProjectIcon';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const MAX_NAME_LENGTH = 30;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const sanitizeName = (value: string) =>
   value.replace(/[^A-Za-z0-9_-]/g, '').slice(0, MAX_NAME_LENGTH);
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface NewGroupProject {
   id: string;
   name: string;
@@ -30,6 +40,7 @@ interface NewGroupModalProps {
   onCancel: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const NewGroupModal = memo(function NewGroupModal({
   projects,
   groups,
@@ -45,6 +56,7 @@ export const NewGroupModal = memo(function NewGroupModal({
   const searching = query.trim().length > 0;
 
   const tree = useMemo(() => {
+    // ── Derived ──
     const q = query.trim().toLowerCase();
     const match = (p: NewGroupProject) => !q || p.name.toLowerCase().includes(q);
     const groupIds = new Set(groups.map((g) => g.id));
@@ -90,6 +102,8 @@ export const NewGroupModal = memo(function NewGroupModal({
   const renderProject = (p: NewGroupProject) => {
     const active = selected.includes(p.id);
     const identity = getProjectIdentity(p.id + p.name);
+
+    // ── Render ──
     return (
       <button
         key={p.id}

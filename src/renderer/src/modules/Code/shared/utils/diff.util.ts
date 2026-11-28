@@ -10,6 +10,7 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface DiffHighlight {
   startLine: number;
   endLine: number;
@@ -25,6 +26,7 @@ export interface DiffResult {
   };
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Parses a diff string (SEARCH/REPLACE or Git-style) and returns content + highlights
  */

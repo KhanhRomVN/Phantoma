@@ -38,6 +38,7 @@ import { CodeBrowser } from './Browser';
 
 import { CodeFile } from './File';
 import { CodeAgent } from './Zen';
+import { AgentGroup } from './AgentGroup';
 import { CodeAgentTools } from './AgentTools';
 import { Design as CodeDesign } from './Design';
 
@@ -196,7 +197,6 @@ function getAgentToolsInfo(panel: WorkspacePanel): { providerId?: string; title:
 function getPanelTitle(panel: WorkspacePanel): string {
   const label = getPanelMeta(panel.type).label;
   if (panel.type === 'agent') {
-    if (panel.workflowAgentId) return panel.title;
     return panel.agentTitle ? `Zen|${panel.agentTitle}` : 'Zen';
   }
   if (panel.type === 'agenttools') return getAgentToolsInfo(panel).title;
@@ -793,7 +793,7 @@ const PanelBody = memo(function PanelBody({
           panel.id,
           isOrchestrator
             ? { workflowAgentId: null, title: 'Zen' }
-            : { workflowAgentId: 'orchestrator', title: 'Zen - Orchestrator' },
+            : { workflowAgentId: 'orchestrator', title: 'Zen' },
         ),
     }),
     [isOrchestrator, orchestratorTaken, onPanelPatch, panel.id],
@@ -830,6 +830,16 @@ const PanelBody = memo(function PanelBody({
       return <CodeFile filePath={panel.filePath} fileId={panel.id} cwd={panel.cwd} />;
 
     case 'agent':
+      if (isOrchestrator) {
+        return (
+          <AgentGroup
+            initialConversationId={panel.agentConversationId}
+            onConversationChange={handleAgentConversation}
+            onTitleChange={handleAgentTitle}
+            multiAgent={multiAgent}
+          />
+        );
+      }
       return (
         <CodeAgent
           initialConversationId={panel.agentConversationId}

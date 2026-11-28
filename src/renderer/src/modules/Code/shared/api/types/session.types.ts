@@ -1,3 +1,16 @@
+/**
+ * ------------------------------------------------------------------
+ * Session API Types
+ * ------------------------------------------------------------------
+ * Kiểu dữ liệu session và workspace panel của Code server.
+ *
+ * Main types:
+ * - CodeWorkspacePanel / CodeWorkspaceInput : Panel và input workspace
+ * - CodeSession / CodeSessionInput          : Session và input tạo/cập nhật
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface CodeWorkspacePanel {
   id: string;
   type: string;

@@ -1,5 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * Read Skill Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool read_skill: đọc chi tiết một skill theo skill_id qua
+ * SkillController và định dạng kết quả cho agent.
+ *
+ * Main functions:
+ * - executeReadSkill() : Đọc skill và trả về tên, mô tả, nội dung
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Components ──
 import { SkillController } from '@renderer/controller/SkillController';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function executeReadSkill(params: {
   skill_id: string;
   _validationError?: string;

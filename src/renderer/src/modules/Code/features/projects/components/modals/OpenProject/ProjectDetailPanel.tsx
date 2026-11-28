@@ -1,9 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { type ReactNode } from 'react';
+
+// ── UI ──
 import { FileText, GitBranch, Link2, HardDrive, User } from 'lucide-react';
+
+// ── Components ──
+import { ProjectLogoImage } from '../../ProjectLogo';
+import { LanguageBadgeIcon } from './LanguageBadgeIcon';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { Favicon } from '@renderer/utils/favicon';
 import { type StackInfo } from '../../../utils/detect-stack.util';
-import { ProjectLogoImage } from '../../ProjectLogo';
 import { LANG_COLORS, Tone, TONE_SOFT, TONE_DOT } from '../../../constants/open-project.constants';
 import {
   hashTone,
@@ -12,9 +21,11 @@ import {
   formatRepoUrl,
   getTechIconUrl,
 } from '../../../utils/open-project.util';
-import { LanguageBadgeIcon } from './LanguageBadgeIcon';
+
+// ── Types ──
 import { LogoCandidate } from '../../../types/open-project.types';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface ProjectDetailPanelProps {
   target: { name: string; path: string } | null;
   stackInfo?: StackInfo;
@@ -25,6 +36,7 @@ export interface ProjectDetailPanelProps {
   onBranchSelect?: (name: string) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function SectionTitle({
   children,
   tone = 'blue',
@@ -103,6 +115,7 @@ export function ProjectDetailPanel({
   selectedBranch,
   onBranchSelect,
 }: ProjectDetailPanelProps) {
+  // ── Derived ──
   const currentLabel = onBranchSelect ? 'Default' : 'Current';
   if (!target) {
     return (
@@ -165,6 +178,7 @@ export function ProjectDetailPanel({
     contributors.length > 0 ||
     branches.length > 0;
 
+  // ── Render ──
   return (
     <div className="flex flex-col select-text">
       <div className="relative px-5 pt-5 pb-4 overflow-hidden">

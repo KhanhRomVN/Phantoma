@@ -28,6 +28,7 @@ const invoke = <T,>(channel: string, ...args: unknown[]): Promise<T> =>
 
 const GROUP_TONE: Record<string, Tone> = {
   code: 'info',
+  emulate: 'success',
   profile: 'pink',
   proxy: 'warn',
   phantoma: 'primary',

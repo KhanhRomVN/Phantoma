@@ -1,14 +1,9 @@
-/**
- * ------------------------------------------------------------------
- * Git Branch Sidebar
- * ------------------------------------------------------------------
- * Collapsible Local / Remote branch lists with a filter box. The
- * current branch is highlighted; clicking a branch jumps to its tip.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+
+// ── UI ──
 import {
   ChevronDown,
   ChevronRight,
@@ -20,8 +15,10 @@ import {
   Tag,
 } from 'lucide-react';
 
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface BranchSidebarProps {
   local: string[];
   remote: string[];
@@ -34,6 +31,7 @@ interface BranchSidebarProps {
   title: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function Section({
   title,
   icon,
@@ -45,7 +43,10 @@ function Section({
   count: number;
   children: ReactNode;
 }) {
+  // ── State ──
   const [open, setOpen] = useState(true);
+
+  // ── Render ──
   return (
     <div className={'mb-2'}>
       <button
@@ -100,8 +101,11 @@ export const BranchSidebar = memo(function BranchSidebar({
   );
 
   const renderItem = (name: string, isRemote: boolean) => {
+    // ── Derived ──
     const isCurrent = !isRemote && name === current;
     const slash = name.indexOf('/');
+
+    // ── Render ──
     return (
       <button
         key={name}
@@ -139,6 +143,8 @@ export const BranchSidebar = memo(function BranchSidebar({
 
   useEffect(() => {
     if (!dragging) return;
+
+    // ── Handlers ──
     const onMove = (e: MouseEvent) => {
       const left = asideRef.current?.getBoundingClientRect().left ?? 0;
       setWidth(Math.max(180, Math.min(480, e.clientX - left)));
@@ -146,6 +152,8 @@ export const BranchSidebar = memo(function BranchSidebar({
     const onUp = () => setDragging(false);
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
+
+    // ── Render ──
     return () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);

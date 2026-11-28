@@ -1,5 +1,8 @@
-import { shellIpc } from '../../../shared/ipc/shell.ipc';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import {
   Copy,
   Download,
@@ -10,7 +13,6 @@ import {
   Tag,
   User,
 } from 'lucide-react';
-
 import {
   Dropdown,
   DropdownTrigger,
@@ -18,9 +20,15 @@ import {
   DropdownItem,
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
-import { parseRefs, type Commit } from '../utils/graph.util';
+
+// ── Services ──
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
 import { codeApi } from '../../../shared/api/code.api';
 
+// ── Utils ──
+import { parseRefs, type Commit } from '../utils/graph.util';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CommitContextMenuProps {
   commit: Commit;
   projectPath: string;
@@ -31,6 +39,7 @@ interface CommitContextMenuProps {
   onExportSource: (commit: Commit) => void;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function toWebBase(remote: string): string | null {
   const url = remote.trim().replace(/\.git$/, '');
   const ssh = url.match(/^(?:ssh:\/\/)?git@([^:/]+)[:/](.+)$/);
@@ -47,10 +56,12 @@ function buildUrl(base: string, kind: 'commit' | 'tag', value: string): string {
   return `${base}/${kind === 'commit' ? 'commit' : 'releases/tag'}/${v}`;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const MenuLabel = ({ children }: { children: string }) => (
   <div className={'px-3 pt-1.5 pb-1 text-[10.5px] text-text-secondary/50'}>{children}</div>
 );
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const ICON = 'w-3.5 h-3.5';
 
 export const CommitContextMenu = memo(function CommitContextMenu({
@@ -74,6 +85,8 @@ export const CommitContextMenu = memo(function CommitContextMenu({
       .catch(() => {
         if (!cancelled) setWebBase(null);
       });
+
+    // ── Render ──
     return () => {
       cancelled = true;
     };
@@ -89,6 +102,7 @@ export const CommitContextMenu = memo(function CommitContextMenu({
   };
 
   const copyMessage = async () => {
+    // ── Derived ──
     const res = await codeApi.git.commitBody(projectPath, commit.hash).catch(() => null);
     copy(res?.message || commit.subject, 'commit message');
   };

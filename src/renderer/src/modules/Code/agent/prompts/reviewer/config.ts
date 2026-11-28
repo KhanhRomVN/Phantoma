@@ -1,4 +1,4 @@
-import type { ZenModuleCapabilities } from '@renderer/components/Widgets/Zen/screens/Chat/services/moduleRegistry';
+import { ZenModuleCapabilities } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 /**
  * Capabilities for the Reviewer workflow agent.

@@ -1,8 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useCallback, useMemo, useState } from 'react';
-import { codeApi } from '../../../shared/api/code.api';
-import type { CommitFile } from '../utils/graph.util';
+
+// ── Components ──
 import type { FileChangeAction } from '../components/modals/ConfirmFileChangeModal';
 
+// ── Services ──
+import { codeApi } from '../../../shared/api/code.api';
+import { toastService } from '@renderer/components/ui/Toast';
+
+// ── Utils ──
+import type { CommitFile } from '../utils/graph.util';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseGitLocalCommitProps {
   localRoot: string;
   selectedVirtual: { name: string; files: CommitFile[] } | null;
@@ -37,6 +47,7 @@ interface UseGitLocalCommitReturn {
   confirmPendingOp: () => void;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGitLocalCommit({
   localRoot,
   selectedVirtual,
@@ -44,11 +55,13 @@ export function useGitLocalCommit({
   showNotice,
   runFileOp,
 }: UseGitLocalCommitProps): UseGitLocalCommitReturn {
+  // ── State ──
   const [localBusy, setLocalBusy] = useState(false);
   const [pendingOp, setPendingOp] = useState<{ action: FileChangeAction; file: CommitFile } | null>(
     null,
   );
 
+  // ── Derived ──
   const fileActions = useMemo(
     () =>
       selectedVirtual
@@ -67,14 +80,43 @@ export function useGitLocalCommit({
       onNotice: showNotice,
       onStage: async (paths: string[]) => {
         setLocalBusy(true);
+        console.log('[DEBUG][git:stage] start', {
+          localRoot,
+          count: paths.length,
+          paths: paths.slice(0, 20),
+        });
+        const toastId = toastService.show({
+          id: 'git-stage',
+          variant: 'loading',
+          title: 'Git add',
+          description: `Staging ${paths.length} files...`,
+        });
         try {
-          const res = await codeApi.git
-            .stage(localRoot, paths)
-            .catch((e: any) => ({ error: e?.message || String(e) }));
-          showNotice(
-            res?.error ? String(res.error).split('\n')[0] : `Staged ${paths.length} files`,
+          const res = await codeApi.git.stage(localRoot, paths).catch((e: any) => {
+            console.error('[DEBUG][git:stage] threw', e);
+            return { error: e?.message || String(e) };
+          });
+          console.log('[DEBUG][git:stage] result', res);
+          if (res?.error) console.error('[DEBUG][git:stage] full error:\n' + String(res.error));
+          toastService.show(
+            res?.error
+              ? {
+                  id: toastId,
+                  variant: 'error',
+                  title: 'Git add failed',
+                  description: String(res.error).split('\n')[0],
+                  duration: 6000,
+                }
+              : {
+                  id: toastId,
+                  variant: 'success',
+                  title: 'Git add done',
+                  description: `Staged ${paths.length} files`,
+                  duration: 3000,
+                },
           );
           await refresh();
+          console.log('[DEBUG][git:stage] refresh done');
         } finally {
           setLocalBusy(false);
         }
@@ -97,6 +139,7 @@ export function useGitLocalCommit({
     [localBusy, localRoot, refresh, showNotice],
   );
 
+  // ── Callbacks ──
   const confirmPendingOp = useCallback(() => {
     if (!pendingOp) return;
     const { action, file: f } = pendingOp;

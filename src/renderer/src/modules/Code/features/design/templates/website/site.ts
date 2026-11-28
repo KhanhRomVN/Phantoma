@@ -1,3 +1,4 @@
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const SITE = {
   name: 'Phantoma',
   tagline: 'The desktop platform for security and network analysis',
@@ -28,6 +29,7 @@ export const AGENTS =
     ' ',
   );
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface ModuleInfo {
   id: string;
   title: string;

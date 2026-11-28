@@ -1,13 +1,21 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Stores ──
 import {
   SCOPE_DIFF_DOT,
   SCOPE_DIFF_RING,
   type ScopeFilter,
 } from '../../../shared/stores/scope-stats.store';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const DOT = 'w-2 h-2 shrink-0 rounded-full';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const BadgeDot = ({ dot, ring, deleted }: { dot: string; ring: string; deleted?: boolean }) =>
   deleted ? (
     <span className={cn('inline-flex shrink-0 p-[2px] rounded-[4px] border border-dashed', ring)}>

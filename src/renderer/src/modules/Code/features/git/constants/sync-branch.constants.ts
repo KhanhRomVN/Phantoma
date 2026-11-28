@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { AlertCircle, FileDiff, FileMinus2, FilePlus2 } from 'lucide-react';
+
+// ── Types ──
 import { FileStatus } from '../types/sync-branch.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const BRANCH_PILL =
   'flex h-9 max-w-full cursor-pointer items-center gap-2 rounded-md bg-transparent px-2 text-left text-[14px] text-text-primary transition-colors hover:bg-text-secondary/10 disabled:cursor-default disabled:hover:bg-transparent';
 

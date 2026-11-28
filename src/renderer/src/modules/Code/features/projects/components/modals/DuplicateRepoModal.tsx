@@ -1,10 +1,15 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
+
+// ── UI ──
 import { AlertTriangle, Link2 } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export type DuplicateRepoKind = 'different-branch' | 'same-branch';
 
 interface DuplicateRepoModalProps {
@@ -18,6 +23,7 @@ interface DuplicateRepoModalProps {
   defaultLinkName: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function DuplicateRepoModal({
   isOpen,
   onClose,
@@ -28,15 +34,19 @@ export function DuplicateRepoModal({
   newBranch,
   defaultLinkName,
 }: DuplicateRepoModalProps) {
+  // ── State ──
   const [linkName, setLinkName] = useState(defaultLinkName);
 
+  // ── Effects ──
   useEffect(() => {
     if (isOpen) setLinkName(defaultLinkName);
   }, [isOpen, defaultLinkName]);
 
+  // ── Derived ──
   const isSameBranch = kind === 'same-branch';
   const Icon = isSameBranch ? AlertTriangle : Link2;
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[420px]">
       <ModalBody className="py-6 px-5">

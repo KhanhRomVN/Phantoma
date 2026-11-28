@@ -1,9 +1,16 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+
+// ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ── Types ──
 import type { BranchInfo } from '../types/session.types';
 import type { ProjectExtended } from '../types/project-panel.types';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseProjectActionsArgs {
   projects: ProjectExtended[];
   setProjects: Dispatch<SetStateAction<ProjectExtended[]>>;
@@ -12,6 +19,7 @@ interface UseProjectActionsArgs {
   setPendingGroupAssign: (v: { projectId: string; groupId: string } | null) => void;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useProjectActions({
   projects,
   setProjects,
@@ -19,8 +27,10 @@ export function useProjectActions({
   pendingGroupAssign,
   setPendingGroupAssign,
 }: UseProjectActionsArgs) {
+  // ── Store ──
   const updateProject = useCodeStore((s) => s.updateProject);
 
+  // ── Callbacks ──
   const setBranchVisible = useCallback(
     (projectId: string, branchName: string, visible?: boolean) => {
       const storeProject = useCodeStore.getState().projects.find((p) => p.id === projectId);
@@ -62,6 +72,7 @@ export function useProjectActions({
     [patchProject],
   );
 
+  // ── Effects ──
   useEffect(() => {
     if (!pendingGroupAssign) return;
     if (!projects.some((p) => p.id === pendingGroupAssign.projectId)) return;

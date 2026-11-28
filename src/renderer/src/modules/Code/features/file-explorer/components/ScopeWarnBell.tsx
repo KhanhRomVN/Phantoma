@@ -1,4 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useState } from 'react';
+
+// ── UI ──
 import { Bell, FileWarning } from 'lucide-react';
 import {
   Dropdown,
@@ -6,9 +10,14 @@ import {
   DropdownContent,
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
-import { useScopeStats } from '../../../shared/stores/scope-stats.store';
+
+// ── Components ──
 import { CommitSyncedFilesModal } from './modals/CommitSyncedFilesModal';
 
+// ── Stores ──
+import { useScopeStats } from '../../../shared/stores/scope-stats.store';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ScopeWarnBell = memo(function ScopeWarnBell({
   projectId,
   projectPath,

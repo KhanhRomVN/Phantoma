@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
+
+// ── Types ──
 import type { DirEntry, FileStat, TreeNode, SquareImage, ReadDirEntry } from '../types/fs.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const fsApi = {
   listDir: (path: string) =>
     request<DirEntry[]>('GET', `/fs/list-dir?path=${encodeURIComponent(path)}`),

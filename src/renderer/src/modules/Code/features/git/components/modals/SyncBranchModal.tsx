@@ -1,5 +1,8 @@
-import { gitIpc } from '../../../../shared/ipc/git.ipc';
-import { useEffect, useMemo, useState, type MouseEvent } from 'react';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
+import { useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import {
   AlertCircle,
   ArrowRight,
@@ -11,22 +14,13 @@ import {
   Download,
   Upload,
   FileDiff,
-  FileMinus2,
-  FilePlus2,
   GitBranch,
   Loader2,
-  Minus,
   Search,
   X,
-  ChevronLeft,
 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
-import { DiffBlock } from '@renderer/components/common/DiffBlock';
-import { BranchScopeModal } from './BranchScopeModal';
-import { parseGitStatusOutput } from '../../../../shared/utils/git-status-parser.util';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 import {
@@ -36,10 +30,30 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { Button } from '@renderer/components/ui/Button/Button';
-import { codeApi } from '../../../../shared/api/code.api';
 import { Tooltip } from '@renderer/components/ui/Tooltip/Tooltip';
-import { useBranchScope, useBranchScopeStore, isInScope } from '../../../../shared/stores/branch-scope.store';
+
+// ── Components ──
+import { BranchScopeModal } from './BranchScopeModal';
+import { RemoteBadge, DefaultBadge } from './SyncBranch/SyncBranchBadges';
+import { SyncDiffPanel, WarningBox } from './SyncBranch/SyncDiffPanel';
+import { Checkbox, Counts } from './SyncBranch/SyncBranchControls';
+
+// ── Services ──
+import { gitIpc } from '../../../../shared/ipc/git.ipc';
+import { codeApi } from '../../../../shared/api/code.api';
+
+// ── Stores ──
+import {
+  useBranchScope,
+  useBranchScopeStore,
+  isInScope,
+} from '../../../../shared/stores/branch-scope.store';
 import type { ScopeCategory } from '../../../../shared/stores/scope-stats.store';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { parseGitStatusOutput } from '../../../../shared/utils/git-status-parser.util';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import {
   SCOPE_BADGE_ORDER,
   SCOPE_BADGE_META,
@@ -54,7 +68,10 @@ import {
   branchColors,
   groupScopeBlocks,
 } from '../scope/scopeTree';
+import { BRANCH_PILL, STATUS_META } from '../../constants/sync-branch.constants';
+import { stripOrigin, refOf, buildTree, flatten } from '../../utils/sync-branch.util';
 
+// ── Types ──
 import {
   FileStatus,
   SourceOption,
@@ -63,15 +80,7 @@ import {
   SyncBranchModalProps,
 } from '../../types/sync-branch.types';
 
-import { BRANCH_PILL, STATUS_META, WARNING_TONES } from '../../constants/sync-branch.constants';
-
-import { stripOrigin, refOf, buildTree, flatten } from '../../utils/sync-branch.util';
-
-import { RemoteBadge, DefaultBadge } from './SyncBranch/SyncBranchBadges';
-
-import { SyncDiffPanel, WarningBox } from './SyncBranch/SyncDiffPanel';
-
-import { Checkbox, Counts } from './SyncBranch/SyncBranchControls';
+// ─── Component ───────────────────────────────────────────────────────────────
 export function SyncBranchModal({
   isOpen,
   onClose,
@@ -85,10 +94,15 @@ export function SyncBranchModal({
   projectId,
   defaultBranch,
 }: SyncBranchModalProps) {
+  // ── State ──
   const [pickedTarget, setPickedTarget] = useState<string | null>(null);
+
+  // ── Derived ──
   const activeTarget = targets?.find((t) => t.path === pickedTarget) ?? targets?.[0] ?? null;
   const targetPath = activeTarget?.path ?? baseTargetPath;
   const currentBranch = activeTarget?.name ?? baseBranch;
+
+  // ── State ──
   const [picked, setPicked] = useState<SourceOption | null>(null);
   const [rawBranches, setRawBranches] = useState<string[] | null>(null);
   const [fetchingRemote, setFetchingRemote] = useState(false);
@@ -112,6 +126,7 @@ export function SyncBranchModal({
     other: Set<string>;
   } | null>(null);
 
+  // ── Derived ──
   const options = useMemo<SourceOption[]>(() => {
     const all = rawBranches ?? branches;
     const local = Array.from(
@@ -144,7 +159,11 @@ export function SyncBranchModal({
   const ref = branchRef;
   const refLabel = branchRef;
   const scope = useBranchScope(projectId ?? '', fixedSource ? '' : currentBranch);
+
+  // ── Store ──
   const setBranchScope = useBranchScopeStore((s) => s.setScope);
+
+  // ── Derived ──
   const needsScope =
     !fixedSource &&
     !!projectId &&
@@ -152,7 +171,11 @@ export function SyncBranchModal({
     !!currentBranch &&
     currentBranch !== defaultBranch &&
     scope.length === 0;
+
+  // ── Store ──
   const allScopes = useBranchScopeStore((s) => s.scopes);
+
+  // ── Derived ──
   const branchScopes = useMemo(() => {
     const prefix = `${projectId ?? ''}::`;
     return Object.entries(allScopes)
@@ -164,9 +187,13 @@ export function SyncBranchModal({
     () => branchScopes.filter((o) => o.branch !== currentBranch),
     [branchScopes, currentBranch],
   );
+
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen) return;
   }, [isOpen, projectId, currentBranch, allScopes, otherScopes]);
+
+  // ── Derived ──
   const isDefaultSource =
     !!defaultBranch &&
     !fixedSource &&
@@ -175,6 +202,7 @@ export function SyncBranchModal({
   const scoped = isDefaultSource && scope.length > 0;
   const files = rawFiles;
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen) return;
     setPicked(null);
@@ -262,6 +290,7 @@ export function SyncBranchModal({
     };
   }, [isOpen, ref, targetPath, rawBranches === null, reloadKey]);
 
+  // ── Derived ──
   const byCategory = useMemo(() => {
     const out: Record<ScopeCategory, string[]> = { error: [], diff: [], warn: [], primary: [] };
     if (!scopeInfo) return out;
@@ -327,7 +356,10 @@ export function SyncBranchModal({
   );
   const isLocalSource = !fixedSource && selected?.kind === 'local';
 
+  // ── State ──
   const [dirty, setDirty] = useState<Set<string>>(new Set());
+
+  // ── Effects ──
   useEffect(() => {
     setDirty(new Set());
     if (!isOpen || !isRemote || !targetPath) return;
@@ -348,6 +380,8 @@ export function SyncBranchModal({
     setUnpushedOnly(false);
     setUnpushed(null);
   }, [ref]);
+
+  // ── Derived ──
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? visibleFiles.filter((f) => f.path.toLowerCase().includes(q)) : visibleFiles;
@@ -376,6 +410,7 @@ export function SyncBranchModal({
     return c;
   }, [chosen]);
 
+  // ── Effects ──
   useEffect(() => {
     setScopeInfo(null);
     if (!isOpen || !files || files.length === 0) return;
@@ -440,6 +475,7 @@ export function SyncBranchModal({
     el?.scrollIntoView({ block: 'center' });
   }, [isOpen, diffPath]);
 
+  // ── Derived ──
   const toggleCategory = (id: ScopeCategory | 'all') => {
     const next = id === 'all' || active === id ? 'all' : id;
     const keep = next === 'all' ? null : new Set(byCategory[next]);
@@ -481,6 +517,7 @@ export function SyncBranchModal({
       return next;
     });
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen || confirmOpen || !diffPath) return;
     const onKey = (e: KeyboardEvent) => {
@@ -504,6 +541,7 @@ export function SyncBranchModal({
     return () => window.removeEventListener('keydown', onKey, true);
   }, [isOpen, confirmOpen, rows, diffPath, excluded]);
 
+  // ── Derived ──
   const selectAll = (on: boolean) => {
     const visible = new Set(visibleFiles.map((f) => f.path));
     setExcluded(
@@ -562,6 +600,7 @@ export function SyncBranchModal({
     }
   };
 
+  // ── Handlers ──
   const handleApply = async () => {
     if (!ref || chosen.length === 0 || applying) return;
     setApplying(true);
@@ -593,6 +632,7 @@ export function SyncBranchModal({
     if (!applying) onClose();
   };
 
+  // ── Derived ──
   const allState = !visibleFiles.length
     ? 'none'
     : chosen.length === visibleFiles.length
@@ -617,6 +657,7 @@ export function SyncBranchModal({
     );
   }
 
+  // ── Render ──
   return (
     <Modal
       isOpen={isOpen}
@@ -914,9 +955,13 @@ export function SyncBranchModal({
                               off && 'opacity-50 line-through',
                             )}
                           >
-                            <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', SCOPE_DOT.diff)} />
+                            <span
+                              className={cn('h-1.5 w-1.5 shrink-0 rounded-full', SCOPE_DOT.diff)}
+                            />
                             Unscoped
-                            <span className="font-mono text-[11px] text-text-secondary">{ps.length}</span>
+                            <span className="font-mono text-[11px] text-text-secondary">
+                              {ps.length}
+                            </span>
                           </button>
                         </Tooltip>
                       );
@@ -1332,6 +1377,7 @@ export function SyncBranchModal({
   );
 }
 
+// ─── Exports ─────────────────────────────────────────────────────────────────
 export { SyncDiffPanel, buildTree, flatten, Checkbox, Counts, STATUS_META, BRANCH_PILL };
 export type { SyncFile, TreeNode, FileStatus };
 

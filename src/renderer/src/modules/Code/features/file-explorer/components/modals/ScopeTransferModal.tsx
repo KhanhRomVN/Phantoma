@@ -1,5 +1,8 @@
-import { gitIpc } from '../../../../shared/ipc/git.ipc';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import {
   AlertCircle,
   ArrowRight,
@@ -13,7 +16,6 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
@@ -25,8 +27,14 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import { Button } from '@renderer/components/ui/Button/Button';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+
+// ── Services ──
+import { gitIpc } from '../../../../shared/ipc/git.ipc';
 import { codeApi } from '../../../../shared/api/code.api';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import {
   SyncDiffPanel,
   buildTree,
@@ -39,6 +47,7 @@ import {
   type TreeNode,
 } from '../../../git';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface ScopeTransferTarget {
   branch: string;
   path: string;
@@ -54,6 +63,7 @@ interface ScopeTransferModalProps {
   onApplied: (count: number, branch: string) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ScopeTransferModal({
   isOpen,
   onClose,
@@ -62,6 +72,7 @@ export function ScopeTransferModal({
   targets,
   onApplied,
 }: ScopeTransferModalProps) {
+  // ── State ──
   const [picked, setPicked] = useState<string | null>(null);
   const [files, setFiles] = useState<SyncFile[] | null>(null);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
@@ -72,10 +83,12 @@ export function ScopeTransferModal({
   const [error, setError] = useState('');
   const [conflicts, setConflicts] = useState<string[]>([]);
 
+  // ── Derived ──
   const target = targets.find((t) => t.branch === picked) ?? targets[0] ?? null;
   const targetBranch = target?.branch ?? '';
   const targetPath = target?.path ?? '';
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen) return;
     setPicked(null);
@@ -115,6 +128,7 @@ export function ScopeTransferModal({
     };
   }, [isOpen, targetBranch, targetPath, sourceBranch]);
 
+  // ── Derived ──
   const tree = useMemo(() => buildTree(files ?? []), [files]);
   const rows = useMemo(() => flatten(tree, collapsed), [tree, collapsed]);
   const order = useMemo(
@@ -131,11 +145,13 @@ export function ScopeTransferModal({
     [chosen],
   );
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen || order.length === 0) return;
     if (diffPath === null || !order.includes(diffPath)) setDiffPath(order[0]);
   }, [isOpen, order, diffPath]);
 
+  // ── Derived ──
   const pathsOf = (n: TreeNode) => (n.isDir ? n.files : [n.path]);
   const stateOf = (n: TreeNode): 'all' | 'some' | 'none' => {
     const ps = pathsOf(n);
@@ -170,6 +186,7 @@ export function ScopeTransferModal({
           ? 'none'
           : 'some';
 
+  // ── Handlers ──
   const handleApply = async () => {
     if (!target || chosen.length === 0 || applying) return;
     setApplying(true);
@@ -199,6 +216,7 @@ export function ScopeTransferModal({
     if (!applying) onClose();
   };
 
+  // ── Render ──
   return (
     <Modal
       isOpen={isOpen}

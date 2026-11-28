@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
+
+// ── Types ──
 import type { CodeTask, CodeTaskInput, CodeTaskUpdateInput } from '../types/task.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const tasksApi = {
   list: (projectId: string) => request<CodeTask[]>('GET', `/projects/${projectId}/tasks`),
   get: (projectId: string, taskId: string) =>

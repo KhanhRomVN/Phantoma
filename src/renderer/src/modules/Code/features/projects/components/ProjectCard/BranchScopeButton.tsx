@@ -1,15 +1,27 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useState, useMemo, useRef } from 'react';
-import { useCodeStore } from '../../../../shared/stores/code.store';
+
+// ── UI ──
 import { ShieldAlert } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
-import { BranchScopeModal } from '../../../git';
-import { useBranchScope, useBranchScopeStore } from '../../../../shared/stores/branch-scope.store';
-import { useScopeStatsStore } from '../../../../shared/stores/scope-stats.store';
+
+// ── Services ──
 import { codeApi } from '../../../../shared/api/code.api';
 
+// ── Stores ──
+import { useCodeStore } from '../../../../shared/stores/code.store';
+import { useBranchScope, useBranchScopeStore } from '../../../../shared/stores/branch-scope.store';
+import { useScopeStatsStore } from '../../../../shared/stores/scope-stats.store';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { BranchScopeModal } from '../../../git';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 /** Badge: branch là default của repo */
 export const gitRepoCache = new Map<string, boolean>();
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const BranchScopeButton = memo(function BranchScopeButton({
   projectId,
   branchName,
@@ -26,6 +38,7 @@ export const BranchScopeButton = memo(function BranchScopeButton({
   );
   const allScopes = useBranchScopeStore((s) => s.scopes);
   const otherScopes = useMemo(() => {
+    // ── Derived ──
     const prefix = `${projectId}::`;
     return Object.entries(allScopes)
       .filter(([key, paths]) => key.startsWith(prefix) && paths.length > 0)
@@ -55,6 +68,8 @@ export const BranchScopeButton = memo(function BranchScopeButton({
         gitRepoCache.set(root, false);
       }
     })();
+
+    // ── Render ──
     return () => {
       cancelled = true;
     };
@@ -66,6 +81,8 @@ export const BranchScopeButton = memo(function BranchScopeButton({
 
   useEffect(() => {
     if (!isRepo) return;
+
+    // ── Handlers ──
     const onOpen = (e: Event) => {
       const d = (
         e as CustomEvent<{
@@ -85,6 +102,8 @@ export const BranchScopeButton = memo(function BranchScopeButton({
       }
     };
     window.addEventListener('phantoma:open-branch-scope', onOpen);
+
+    // ── Render ──
     return () => window.removeEventListener('phantoma:open-branch-scope', onOpen);
   }, [isRepo, projectId, branchName]);
 

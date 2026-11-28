@@ -1,33 +1,45 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { AgentRootContext } from '@renderer/components/Widgets/Zen/context/AgentRootContext';
-import { AgentPanel } from '@renderer/components/Widgets/Zen';
-import { SettingsProvider } from '@renderer/components/Widgets/Zen/context/SettingsContext';
-import { useAgentFeature } from '@renderer/components/Widgets/Zen/context/FeatureContext';
-import { useCodeStore } from '../../../shared/stores/code.store';
-import { useDesignStore } from '../../design';
-import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../agent/stores/workflow.store';
-import { USER_ID } from '../../../shared/types/agents.types';
+
+// ── Components ──
 import AgentMessageBox from '../../../agent/components/AgentMessageBox/AgentMessageBox';
-import { parseAgentMessage } from '@renderer/components/Widgets/Zen/context/WorkflowAgentContext';
+
+// ── Stores ──
+import { useCodeStore } from '../../../shared/stores/code.store';
+import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../../agent/stores/workflow.store';
+
+// ── Utils ──
+import { AgentRootContext } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { AgentPanel } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { SettingsProvider } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { useAgentFeature } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { useDesignStore } from '../../design';
+import { parseAgentMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { DRAG_CANCEL_EVENT } from '@renderer/utils/drag-cancel';
-import {
-  MENTION_DRAG_TYPE,
-  ZEN_MENTION_DROP_EVENT,
-  readDraggedItems,
-} from '@renderer/components/Widgets/Zen/components/MessageInput/mentionEditor';
 import {
   AccountAgentsContext,
   WorkflowAgentContext,
   type WorkflowAgentSync,
-} from '@renderer/components/Widgets/Zen/context/WorkflowAgentContext';
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
 import {
   MultiAgentContext,
   type MultiAgentControl,
-} from '@renderer/components/Widgets/Zen/context/MultiAgentContext';
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
+import {
+  MENTION_DRAG_TYPE,
+  readDraggedItems,
+  ZEN_MENTION_DROP_EVENT,
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ── Types ──
+import { USER_ID } from '../../../shared/types/agents.types';
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 const renderIncomingMessage: WorkflowAgentSync['renderIncomingMessage'] = (message) =>
   parseAgentMessage(message.content) ? <AgentMessageBox message={message} /> : null;
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CodeAgentProps {
   multiAgent?: MultiAgentControl | null;
   initialConversationId?: string | null;
@@ -37,6 +49,7 @@ interface CodeAgentProps {
   workflowAgentId?: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const CodeAgent = memo(function CodeAgent({
   initialConversationId,
   onConversationChange,
@@ -50,10 +63,14 @@ export const CodeAgent = memo(function CodeAgent({
 
   useEffect(() => {
     if (!isDropActive) return;
+
+    // ── Derived ──
     const reset = () => setIsDropActive(false);
     document.addEventListener('dragend', reset);
     document.addEventListener('drop', reset);
     document.addEventListener(DRAG_CANCEL_EVENT, reset);
+
+    // ── Render ──
     return () => {
       document.removeEventListener('dragend', reset);
       document.removeEventListener('drop', reset);
@@ -69,6 +86,7 @@ export const CodeAgent = memo(function CodeAgent({
   const allConfigs = useWorkflowStore((s) => s.configs);
   const allAgents = useWorkflowStore((s) => s.agents);
   const accountAgents = useMemo(() => {
+    // ── Derived ──
     const map: Record<string, string[]> = {};
     for (const agent of allAgents) {
       const acc = allConfigs[agent.id]?.account;

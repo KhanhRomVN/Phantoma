@@ -1,11 +1,22 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
+
+// ── Components ──
 import { SiteLayout } from './Layout';
+
+// ── Utils ──
 import { TABS } from './site';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export default function Emulate() {
+  // ── State ──
   const [active, setActive] = useState(0);
+
+  // ── Derived ──
   const [title, desc, tags] = TABS[active];
 
+  // ── Render ──
   return (
     <SiteLayout current="/emulate">
       <section id="emulate">

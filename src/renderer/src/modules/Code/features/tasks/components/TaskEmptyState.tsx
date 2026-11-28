@@ -1,5 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, type ComponentType } from 'react';
-import { ClipboardList, Circle, Loader, Eye, CheckCircle2, Plus } from 'lucide-react';
+
+// ── UI ──
+import { ClipboardList, Circle, Loader, CheckCircle2, Plus } from 'lucide-react';
+
+// ── Services ──
 import type { TaskStatus } from '../../../shared/services/task.service';
 
 const STATUS_META: Record<
@@ -8,15 +14,16 @@ const STATUS_META: Record<
 > = {
   todo: { icon: Circle, hint: 'Ideas and upcoming work land here' },
   progress: { icon: Loader, hint: 'Move a task here when you start it' },
-  review: { icon: Eye, hint: 'Finished work waiting for a second look' },
   done: { icon: CheckCircle2, hint: 'Completed tasks will be collected here' },
 };
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface TaskEmptyStateProps {
   status?: TaskStatus;
   onAdd?: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const TaskEmptyState = memo(function TaskEmptyState({ status, onAdd }: TaskEmptyStateProps) {
   const meta = status ? STATUS_META[status] : null;
   const Icon = meta?.icon ?? ClipboardList;

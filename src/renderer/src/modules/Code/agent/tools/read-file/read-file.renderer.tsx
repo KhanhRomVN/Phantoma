@@ -1,24 +1,29 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // Services
-import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Types ──
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
@@ -30,6 +35,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
   allMessages,
   moduleId,
 }) => {
+  // ── Derived ──
   const [, setIsCollapsed] = React.useState(true);
 
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -64,6 +70,7 @@ export const ReadFileRenderer: React.FC<BaseRendererProps> = ({
     lineRangeText = `0-${outputLineCount}`;
   }
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

@@ -1,8 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import type { StoredTask } from '../services/task.service';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 type Schedule = Pick<StoredTask, 'startDate' | 'startTime' | 'endDate' | 'endTime'>;
 type DependencyNode = Pick<StoredTask, 'id' | 'dependsOn'>;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function atTime(day: number, time: string | null, endOfDay: boolean): number {
   const d = new Date(day);
   if (time) {

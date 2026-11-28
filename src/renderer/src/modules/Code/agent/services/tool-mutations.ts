@@ -2,17 +2,28 @@
  * ------------------------------------------------------------------
  * Code Tool Mutations
  * ------------------------------------------------------------------
- * Định nghĩa các tool của Code module có khả năng thay đổi filesystem.
+ * Các hàm kiểm tra hành vi thay đổi filesystem của tool trong Code module:
+ * nhận diện tool có mutate file không, trích xuất đường dẫn file và
+ * tính số dòng thêm/xóa.
+ *
+ * Main functions:
+ * - checkCodeToolMutation()   : Kiểm tra tool có thay đổi filesystem (create/modify/delete)
+ * - extractCodeFilePath()     : Trích xuất file_path từ params của tool
+ * - checkCodeSingleLineReview(): Kiểm tra write_to_file có nội dung một dòng quá dài
+ * - calculateCodeDiff()       : Tính additions/deletions cho write_to_file và replace_in_file
  * ------------------------------------------------------------------
  */
 
-import type {
-  ToolMutationChecker,
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import {
+  DiffCalculator,
   FilePathExtractor,
   SingleLineReviewChecker,
-  DiffCalculator,
-} from '@renderer/components/Widgets/Zen/shared/tool-mutation';
+  ToolMutationChecker,
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const countLines = (text: string | undefined): number => {
   if (!text) return 0;
   return text.split('\n').length;

@@ -35,6 +35,7 @@ export interface TargetTab {
   emulatorSerial?: string; // For Android targets
   httpsCount?: number;
   dataUsed?: string;
+  workspacePath?: string; // Path to linked code workspace folder
 }
 
 export interface TargetState {
@@ -42,6 +43,7 @@ export interface TargetState {
   mode?: 'mitm' | 'cdp' | 'frida';
   isIntercepting: boolean;
   startTime?: number;
+  workspacePath?: string;
 }
 
 export interface EmulateState {

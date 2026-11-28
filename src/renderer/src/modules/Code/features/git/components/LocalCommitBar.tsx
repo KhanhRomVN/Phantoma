@@ -1,19 +1,8 @@
-import { fsIpc } from '../../../shared/ipc/fs.ipc';
-import { dialogIpc } from '../../../shared/ipc/dialog.ipc';
-/**
- * ------------------------------------------------------------------
- * Local Commit Bar
- * ------------------------------------------------------------------
- * Pieces of the local-changes panel:
- *  - GroupHeader: collapsible "Staged Changes" / "Changes" title.
- *  - LocalStageBar (Changes group): git add the ticked files that are
- *    not added yet, with a confirm modal.
- *  - LocalCommitBox (Staged Changes group): commit the staged files
- *    with a message (or copy a plain-text prompt to get one from any AI).
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useRef, useState } from 'react';
+
+// ── UI ──
 import {
   ArrowUp,
   Check,
@@ -30,18 +19,26 @@ import {
   DropdownContent,
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
-
-import { cn } from '@renderer/utils/cn';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
-import { codeApi } from '../../../shared/api/code.api';
-import { getCommitMessagePlainPrompt } from '../../../agent/prompts/code/commit-message';
+
+// ── Components ──
 import { ChangedFiles, type FilesView } from './ChangedFiles';
 import { EmptyState } from './EmptyState';
+
+// ── Services ──
+import { fsIpc } from '../../../shared/ipc/fs.ipc';
+import { dialogIpc } from '../../../shared/ipc/dialog.ipc';
+import { codeApi } from '../../../shared/api/code.api';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getCommitMessagePlainPrompt } from '../../../agent/prompts/code/commit-message';
 import { fileKind, formatRelative, type Commit, type CommitFile } from '../utils/graph.util';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const SOFT_BUTTON =
   'h-6 shrink-0 cursor-pointer inline-flex items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium bg-card-background text-text-secondary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors';
 
@@ -50,6 +47,7 @@ const ACTION_BUTTON =
 
 const STATUS_LETTER = { added: 'A', modified: 'M', deleted: 'D' } as const;
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export type ChangesTab = 'staged' | 'changes' | 'unpushed';
 
 interface ChangesTabsProps {
@@ -60,6 +58,7 @@ interface ChangesTabsProps {
   onChange: (tab: ChangesTab) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ChangesTabs = memo(function ChangesTabs({
   tab,
   stagedCount,
@@ -108,6 +107,7 @@ const UnpushedItem = memo(function UnpushedItem({
   const [loading, setLoading] = useState(false);
 
   const toggle = () => {
+    // ── Derived ──
     const next = !open;
     setOpen(next);
     if (!next || files || loading) return;
@@ -193,6 +193,7 @@ export const UnpushedList = memo(function UnpushedList({
   const [pushWorking, setPushWorking] = useState(false);
 
   if (commits.length === 0) {
+    // ── Render ──
     return (
       <EmptyState
         icon={GitCommit}
@@ -316,8 +317,15 @@ export const LocalStageBar = memo(function LocalStageBar({
   const handleConfirmAdd = async () => {
     setConfirmOpen(false);
     setWorking(true);
+    console.log('[DEBUG][LocalStageBar] confirm add', {
+      count: checkedUnstaged.length,
+      paths: checkedUnstaged.slice(0, 20).map((f) => f.path),
+    });
     try {
       await onStage(checkedUnstaged.map((f) => f.path));
+      console.log('[DEBUG][LocalStageBar] onStage resolved');
+    } catch (e) {
+      console.error('[DEBUG][LocalStageBar] onStage threw', e);
     } finally {
       setWorking(false);
     }
@@ -411,6 +419,7 @@ export const LocalCommitBox = memo(function LocalCommitBox({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    // ── Derived ──
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';

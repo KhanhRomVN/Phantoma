@@ -1,7 +1,22 @@
-import { useWorkflowStore } from '../../stores/workflow.store';
+/**
+ * ------------------------------------------------------------------
+ * Send Message Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool send_message: gửi tin nhắn từ agent hiện tại tới agent
+ * đích, ghi vào workflow store và đưa vào inbox của Zen tab đích.
+ *
+ * Main functions:
+ * - executeSendMessage() : Validate agent đích/tab đang mở và gửi tin nhắn
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
+import { isAgentInCurrentWorkflow, useWorkflowStore } from '../../stores/workflow.store';
 import { useCodeStore } from '../../../shared/stores/code.store';
 
-export async function executeSendMessage(
+// ─── Functions ───────────────────────────────────────────────────────────────
+async function executeSendMessageImpl(
   params: {
     agent_id?: string;
     message?: string;
@@ -35,11 +50,18 @@ export async function executeSendMessage(
   }
 
   const codeState = useCodeStore.getState();
-  const targetTabOpen = codeState.projects
-    .find((p) => p.id === codeState.currentProjectId)
-    ?.workspacePanels?.some(
-      (p) => p.workflowAgentId === agent_id && p.sessionId === codeState.activeWorkspaceSessionId,
-    );
+  const targetTabOpen =
+    agent_id === 'orchestrator'
+      ? codeState.projects
+          .find((p) => p.id === codeState.currentProjectId)
+          ?.workspacePanels?.some(
+            (p) =>
+              p.workflowAgentId === agent_id && p.sessionId === codeState.activeWorkspaceSessionId,
+          )
+      : isAgentInCurrentWorkflow(targetAgent);
+  console.warn(
+    `[DEBUG][SendMessage][TabCheck] from=${from} target=${agent_id} targetTabOpen=${targetTabOpen} storeAgents=${JSON.stringify(store.agents.map((a) => a.id))} currentProjectId=${codeState.currentProjectId} activeSessionId=${codeState.activeWorkspaceSessionId}`,
+  );
   if (!targetTabOpen) {
     return `[send_message] Result: Error - The Zen tab of agent '${agent_id}' is not open, so the message was not delivered. Ask the user to reopen it${agent_id === 'orchestrator' ? '' : ' or create the agent again with create_agent'}.`;
   }
@@ -57,4 +79,21 @@ export async function executeSendMessage(
   store.enqueueInbox(agent_id, { from, content: message });
 
   return `[send_message to '${agent_id}'] Result: Message sent successfully (${message.length} characters)`;
+}
+
+export async function executeSendMessage(
+  ...args: Parameters<typeof executeSendMessageImpl>
+): Promise<string | null> {
+  const [params, ctx] = args;
+  console.warn(
+    `[DEBUG][SendMessage] called from=${ctx?.workflowAgentId ?? 'orchestrator(default)'} agent_id=${params.agent_id} messageLen=${params.message?.length ?? 0} validationError=${params._validationError ?? 'none'}`,
+  );
+  try {
+    const result = await executeSendMessageImpl(...args);
+    console.warn(`[DEBUG][SendMessage] result=${result}`);
+    return result;
+  } catch (error) {
+    console.error('[DEBUG][SendMessage] threw', error);
+    throw error;
+  }
 }

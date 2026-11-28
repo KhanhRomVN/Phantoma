@@ -6,8 +6,11 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface BaseParams {
   requestId?: string;
 }
@@ -34,6 +37,7 @@ interface ListedNode {
   children?: ListedNode[];
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const toListed = (nodes: Array<{ name: string; type: 'file' | 'folder'; size?: number; children?: any[] }>): ListedNode[] =>
   nodes.map((n) =>
     n.type === 'folder'
@@ -41,6 +45,7 @@ const toListed = (nodes: Array<{ name: string; type: 'file' | 'folder'; size?: n
       : { name: n.name, type: 'file', size: n.size },
   );
 
+// ─── Class ───────────────────────────────────────────────────────────────────
 export class ListFilesHandler {
   public async handle(message: ListFilesParams): Promise<BaseResult> {
     const pathValue = message.path || message.folder_path || message.filePath || '.';

@@ -1,19 +1,17 @@
-import type { ZenModule } from '@renderer/components/Widgets/Zen/screens/Chat/services/moduleRegistry';
-import { rendererMapFromGlob } from '@renderer/components/Widgets/Zen/screens/Chat/utils/renderer-helpers';
 import { EMULATE_TAG_REGISTRY } from './constants/tag-registry';
 import {
   getTrafficSummary,
   getCurrentFilter,
   getFilterText,
 } from './services/emulate-context.service';
-import { CAPABILITIES as EMULATE_CAPABILITIES } from './prompts/emulate/config';
+import { CAPABILITIES as EMULATE_CAPABILITIES } from './prompts/filter-agent/config';
 import {
   buildPromptForMode as buildEmulatePrompt,
   buildTrafficContext,
   buildEmptyTrafficContext,
   buildFilterContext,
   buildEmptyFilterContext,
-} from './prompts/emulate';
+} from './prompts/filter-agent';
 import { executeListHttps } from './executors/ListHttpsExecutor';
 import { executeListHosts } from './executors/ListHostsExecutor';
 import { executeListSources } from './executors/ListSourcesExecutor';
@@ -50,6 +48,8 @@ import { parseListReports } from './parsers/ListReportsParser';
 import { parseCreateReport } from './parsers/CreateReportParser';
 import { parseReadReport } from './parsers/ReadReportParser';
 import { parseUpdateReport } from './parsers/UpdateReportParser';
+import { ZenModule } from '@renderer/components/Widgets/Zen/features/chat/types/zen_module.types';
+import { rendererMapFromGlob } from '@renderer/components/Widgets/Zen/features/chat/utils/renderer_helpers';
 
 export const emulateModule: ZenModule = {
   tagRegistry: EMULATE_TAG_REGISTRY,

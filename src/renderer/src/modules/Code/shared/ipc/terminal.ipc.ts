@@ -1,7 +1,25 @@
+/**
+ * ------------------------------------------------------------------
+ * Terminal IPC
+ * ------------------------------------------------------------------
+ * Wrapper mỏng quanh window.api cho các kênh IPC terminal:* trong Code
+ * module (invoke, send, listen, kill foreground, lịch sử, process info).
+ *
+ * Main types:
+ * - Listener : Kiểu hàm lắng nghe sự kiện IPC
+ *
+ * Main constants:
+ * - terminalIpc : Tập hàm giao tiếp với terminal
+ * ------------------------------------------------------------------
+ */
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 const api = () => (window as any).api;
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 type Listener = (event: any, ...args: any[]) => void;
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const terminalIpc = {
   canSend: (): boolean => Boolean(api()?.send),
   canListen: (): boolean => Boolean(api()?.on),

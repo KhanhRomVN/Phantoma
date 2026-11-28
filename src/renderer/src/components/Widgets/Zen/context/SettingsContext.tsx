@@ -14,7 +14,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Services
-import { extensionService } from '../services/ExtensionService';
+import { extensionService } from '../shared/services/ExtensionService';
 
 export type SystemPromptMode = 'fast' | 'balanced' | 'thorough';
 export type PromptLengthMode = 'none' | 'short' | 'medium' | 'long';
@@ -143,7 +143,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setApiUrlState(res.value);
       }
     });
-
   }, []);
 
   const setApiUrl = (url: string) => {

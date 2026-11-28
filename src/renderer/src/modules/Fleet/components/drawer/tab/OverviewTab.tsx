@@ -24,11 +24,11 @@ export function OverviewTab({ device }: OverviewTabProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-2">
-        {[
+        {([
           ['CPU', device.cpu, Cpu],
           ['RAM', device.ram, MemoryStick],
           ['Disk', device.disk, HardDrive],
-        ].map(([label, value, Icon]) => (
+        ] as const).map(([label, value, Icon]) => (
           <div key={label as string} className="rounded-xl bg-card-background p-3">
             <div className="flex items-center gap-1.5 text-xs text-text-secondary">
               <Icon className="h-3.5 w-3.5" />

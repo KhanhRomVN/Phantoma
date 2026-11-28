@@ -1,8 +1,8 @@
-import type { Tone } from '@renderer/modules/Profile/types/ui.types';
-
 // ============================================================================
 // SECTION 1 — TYPES
 // ============================================================================
+
+import { Tone } from '@renderer/modules/Proxy';
 
 export type OsFamily = 'windows' | 'macos' | 'linux' | 'android' | 'ios';
 export type BrowserName = 'Chrome' | 'Edge' | 'Firefox' | 'Safari' | 'Opera' | 'Brave';
@@ -3033,7 +3033,7 @@ const ANOMALY_RULES: AnomalyRule[] = [
     severity: 'high',
     field: 'ip',
     delta: -20,
-    match: (p, info) => {
+    match: (_p, info) => {
       if (!info) return null;
       return classifyIp(info) === 'tor' ? 'Tor exit node — high-risk IP' : null;
     },
@@ -3147,14 +3147,6 @@ export function recombineTrust(f: TrustFactors): number {
 // SECTION 16 — FINGERPRINT BUILDER (per-section generators)
 // ============================================================================
 
-interface Ctx {
-  p: FootprintPreset;
-  seed: number;
-  rng: SeededRandom;
-  gpu?: GpuProfile;
-  screen?: ScreenProfile;
-}
-
 interface UaResult {
   ua: string;
   platform: string;
@@ -3170,7 +3162,6 @@ function buildUserAgent(p: FootprintPreset): UaResult {
   const ios = p.family === 'ios';
   const android = p.family === 'android';
   const ipad = ios && p.deviceClass === 'tablet';
-  const mobile = android || ios;
   const osVer = p.os.split(' ')[1] ?? '';
   const osVerUnderscore = osVer.replace('.', '_');
 

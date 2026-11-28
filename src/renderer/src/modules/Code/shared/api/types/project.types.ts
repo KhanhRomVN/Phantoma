@@ -1,5 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * Project API Types
+ * ------------------------------------------------------------------
+ * Kiểu dữ liệu project và worktree của Code server.
+ *
+ * Main types:
+ * - CodeProject / CodeProjectInput   : Project và input tạo/cập nhật
+ * - CodeWorktree / CodeWorktreeInput : Worktree và input tạo/cập nhật
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Types ──
 import type { CodeSession } from './session.types';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface CodeWorktree {
   id: string;
   projectId: string;

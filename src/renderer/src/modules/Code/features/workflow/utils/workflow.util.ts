@@ -1,5 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Types ──
 import type { FileRef, WorkflowNode } from '../types/workflow.types';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const diffStat = (f: FileRef) => ({
   add: f.diff?.filter((l) => l.t === '+').length ?? 0,
   del: f.diff?.filter((l) => l.t === '-').length ?? 0,

@@ -1,7 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import type { Project } from '../../../shared/stores/code.store';
+
+// ── Types ──
 import type { ProjectExtended as CardProject } from './project-card.types';
 import type { MenuPosition } from './session.types';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type ProjectExtended = Project & CardProject & { defaultBranch: string };
 
 export interface GroupInfo {

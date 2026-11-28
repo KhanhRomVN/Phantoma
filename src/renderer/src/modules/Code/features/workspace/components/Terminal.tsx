@@ -1,3 +1,4 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
 import { terminalIpc } from '../../../shared/ipc/terminal.ipc';
 import { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
@@ -11,6 +12,7 @@ import {
   TuiAgentId,
 } from '../utils/ai-agent-detector.util';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /** Resolve a CSS custom property like "--panel-background: R G B" to "#RRGGBB". */
 const resolveCssRgbVarToHex = (varName: string, fallback: string): string => {
   if (typeof window === 'undefined') return fallback;
@@ -30,6 +32,7 @@ import {
 } from '@renderer/components/ui/Dropdown';
 import { Copy, ClipboardPaste, SquareMousePointer, Trash2, PowerOff, Zap } from 'lucide-react';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CodeTerminalProps {
   projectId?: string;
   panelId?: string;
@@ -49,6 +52,7 @@ interface CodeTerminalProps {
   onResetConversation?: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const CodeTerminal = ({
   panelId,
   cwd,

@@ -1,11 +1,22 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useMemo } from 'react';
+
+// ── UI ──
 import { Lightbulb } from 'lucide-react';
+
+// ── Components ──
+import { ActionBadge, CheckRow, FileIcon, Progress, Section } from './WorkflowShared';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { SURFACE } from '../../constants/workflow.constants';
-import { ActionBadge, CheckRow, FileIcon, Progress, Section } from './WorkflowShared';
-import type { CheckItem, FileRef, TabId, WorkflowNode } from '../../types/workflow.types';
 import { diffStat, splitPath } from '../../utils/workflow.util';
 
+// ── Types ──
+import type { CheckItem, FileRef, TabId, WorkflowNode } from '../../types/workflow.types';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface TabContentProps {
   node: WorkflowNode;
   tab: TabId;
@@ -13,6 +24,7 @@ interface TabContentProps {
   onToggle: (c: CheckItem) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function AccentText({ children }: { children: string }) {
   return (
     <div className="border-l-2 border-primary/60 pl-4">
@@ -73,6 +85,7 @@ function OverviewTab({ node, isChecked, onToggle }: Omit<TabContentProps, 'tab'>
 }
 
 function DoneFilesTab({ node }: { node: WorkflowNode }) {
+  // ── Derived ──
   const diffTotals = useMemo(
     () =>
       node.files.reduce(
@@ -85,6 +98,7 @@ function DoneFilesTab({ node }: { node: WorkflowNode }) {
     [node],
   );
 
+  // ── Render ──
   return (
     <Section
       title="Changes"
@@ -168,6 +182,7 @@ function PendingFilesTab({ node }: { node: WorkflowNode }) {
 }
 
 function ConclusionTab({ node }: { node: WorkflowNode }) {
+  // ── Derived ──
   const conclusion = node.conclusion;
   if (!conclusion) {
     return (
@@ -178,6 +193,8 @@ function ConclusionTab({ node }: { node: WorkflowNode }) {
       </Section>
     );
   }
+
+  // ── Render ──
   return (
     <>
       <Section title="Conclusion">

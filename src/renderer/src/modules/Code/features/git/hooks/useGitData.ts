@@ -1,13 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useCallback, useEffect, useState } from 'react';
+
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
+
+// ── Utils ──
 import type { Commit } from '../utils/graph.util';
+
+// ── Types ──
 import type { LocalChange } from '../types/git-view.types';
+import type { ProjectBranch } from '../types/project-branch.types';
 
-interface ProjectBranch {
-  name: string;
-  path?: string;
-}
-
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface UseGitDataProps {
   projectPath: string;
   projectBranches?: ProjectBranch[];
@@ -27,10 +32,12 @@ interface UseGitDataReturn {
   refresh: () => Promise<void>;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGitData({
   projectPath,
   projectBranches,
 }: UseGitDataProps): UseGitDataReturn {
+  // ── State ──
   const [commits, setCommits] = useState<Commit[]>([]);
   const [branches, setBranches] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -42,6 +49,7 @@ export function useGitData({
   const [unpushedHashes, setUnpushedHashes] = useState<Set<string>>(new Set());
   const [cloneUnpushed, setCloneUnpushed] = useState<Record<string, Commit[]>>({});
 
+  // ── Effects ──
   useEffect(() => {
     if (!projectPath) return;
     codeApi.git
@@ -52,6 +60,7 @@ export function useGitData({
       .catch(() => undefined);
   }, [projectPath]);
 
+  // ── Callbacks ──
   const refresh = useCallback(async () => {
     if (!projectPath) return;
     setLoading(true);
@@ -109,6 +118,7 @@ export function useGitData({
     }
   }, [projectPath, projectBranches]);
 
+  // ── Effects ──
   useEffect(() => {
     void refresh();
   }, [refresh]);

@@ -1,21 +1,33 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, useCallback } from 'react';
-import { useCodeStore } from '../../../shared/stores/code.store';
-import type { SessionInfo } from '../types/session.types';
-import type { ProjectExtended } from '../types/project-panel.types';
+
+// ── Services ──
 import {
   LAYOUT_STORAGE_KEY,
   applyProjectLayout,
   seedProject,
 } from '../services/project-layout.service';
 
+// ── Stores ──
+import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ── Types ──
+import type { SessionInfo } from '../types/session.types';
+import type { ProjectExtended } from '../types/project-panel.types';
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
 // ASSUMED: giữ state `projects` cục bộ (chứa field UI-only) — chưa gộp vào store trong task này
 export function useProjectMutations() {
+  // ── Store ──
   const rawProjects = useCodeStore((s) => s.projects);
 
+  // ── State ──
   const [projects, setProjects] = useState<ProjectExtended[]>(() =>
     applyProjectLayout(rawProjects.map(seedProject)),
   );
 
+  // ── Effects ──
   useEffect(() => {
     setProjects((prev) => {
       const byId = new Map(rawProjects.map((p) => [p.id, p]));
@@ -76,6 +88,7 @@ export function useProjectMutations() {
     }
   }, [projects]);
 
+  // ── Callbacks ──
   const patchProject = useCallback((id: string, fn: (p: ProjectExtended) => ProjectExtended) => {
     setProjects((prev) => prev.map((p) => (p.id === id ? fn(p) : p)));
   }, []);

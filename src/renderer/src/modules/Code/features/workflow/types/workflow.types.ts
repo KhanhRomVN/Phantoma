@@ -1,3 +1,4 @@
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type NodeStatus = 'done' | 'active' | 'todo' | 'blocked';
 export type FileAction = 'create' | 'modify' | 'read' | 'delete';
 export type TabId = 'overview' | 'files' | 'conclusion';

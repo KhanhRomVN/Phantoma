@@ -1,14 +1,23 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
-import type { ProjectExtended } from '../types/project-panel.types';
+
+// ── Components ──
 import type { MergeCandidate } from '../components/modals/ConfirmLinkProjectModal';
 
+// ── Types ──
+import type { ProjectExtended } from '../types/project-panel.types';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface BranchTarget {
   project: ProjectExtended;
   branchName: string;
   branchPath: string;
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useProjectDialogs() {
+  // ── State ──
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addToGroupId, setAddToGroupId] = useState<string | null>(null);
   const [pendingGroupAssign, setPendingGroupAssign] = useState<{

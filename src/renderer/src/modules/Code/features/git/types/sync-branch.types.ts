@@ -1,3 +1,4 @@
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type FileStatus = 'added' | 'modified' | 'deleted';
 
 export type SourceKind = 'local' | 'remote';

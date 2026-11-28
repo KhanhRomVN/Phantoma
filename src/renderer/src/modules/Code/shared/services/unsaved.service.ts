@@ -1,10 +1,30 @@
+/**
+ * ------------------------------------------------------------------
+ * Unsaved Service
+ * ------------------------------------------------------------------
+ * Đăng ký provider "code" với UnsavedProvider: liệt kê các file chưa lưu
+ * của mọi project và cung cấp hàm lưu từng file (ưu tiên nội dung từ Monaco).
+ * Chỉ cần import file này để kích hoạt việc đăng ký (side-effect).
+ *
+ * Main functions:
+ * - registerUnsavedProvider() : Đăng ký getItems/saveItem cho Code module
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Components ──
 import {
   registerUnsavedProvider,
   type UnsavedItem,
 } from '@renderer/providers/UnsavedProvider';
-import { useCodeStore } from '../stores/code.store';
+
+// ── Services ──
 import { codeApi } from '../api/code.api';
 
+// ── Stores ──
+import { useCodeStore } from '../stores/code.store';
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 const baseName = (p: string) => p.split('/').pop() || p;
 
 registerUnsavedProvider({

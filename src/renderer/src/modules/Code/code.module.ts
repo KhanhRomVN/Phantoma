@@ -1,4 +1,43 @@
-import type { ZenModule } from '@renderer/components/Widgets/Zen/screens/Chat/services/moduleRegistry';
+/**
+ * ------------------------------------------------------------------
+ * Code Module Definition
+ * ------------------------------------------------------------------
+ * Định nghĩa và đăng ký Code module vào Zen: các formatter hiển thị,
+ * checker trạng thái/mutation, executor, parser, renderer của tool
+ * và system prompt cho từng loại agent.
+ *
+ * Main constants:
+ * - codeModule : ZenModule chứa tagRegistry, executors, parsers, renderers, prompts
+ *
+ * Main functions:
+ * - bypass() : Lấy cờ bypassIgnore từ ExecutorOptions
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
+import {
+  formatCodeAction,
+  formatCodeCompletedTooltip,
+} from './agent/services/tool-display-formatters';
+import { checkCodeToolStatus } from './agent/services/tool-status-checker';
+import {
+  checkCodeToolCollapse,
+  checkCodeToolDanger,
+  formatCodeToolForMarkdown,
+} from './agent/services/tool-behaviors';
+import { transformCodeToolOutput } from './agent/services/tool-output-transformer';
+import { formatCodeToolOutput } from './agent/services/tool-output-formatter';
+import {
+  checkCodeToolMutation,
+  extractCodeFilePath,
+  checkCodeSingleLineReview,
+  calculateCodeDiff,
+} from './agent/services/tool-mutations';
+import { extractCodeRawContentDiff } from './agent/services/raw-content-diff';
+
+// ── Utils ──
+import { ZenModule } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { CODE_TAG_REGISTRY } from './agent/tag-registry';
 import { CAPABILITIES as CODE_CAPABILITIES } from './agent/prompts/code/config';
 import { CAPABILITIES as ORCHESTRATOR_CAPABILITIES } from './agent/prompts/orchestrator/config';
@@ -6,7 +45,6 @@ import { CAPABILITIES as PLANNER_CAPABILITIES } from './agent/prompts/planner/co
 import { CAPABILITIES as EXECUTOR_CAPABILITIES } from './agent/prompts/executor/config';
 import { CAPABILITIES as REVIEWER_CAPABILITIES } from './agent/prompts/reviewer/config';
 import { CAPABILITIES as TESTER_CAPABILITIES } from './agent/prompts/tester/config';
-import type { ExecutorOptions } from '@renderer/components/Widgets/Zen/screens/Chat/types/executor-types';
 import {
   CommitMessageRenderer,
   executeCommitMessage,
@@ -59,8 +97,8 @@ import {
   parseWriteToFile,
 } from './agent/tools/write-to-file';
 import { SecurityValidator } from './shared/utils/security.util';
+import { useCodeStore } from './shared/stores/code.store';
 import { executeMoveFile } from './agent/tools/move-file';
-
 import { executeListTasks, parseListTasks, ListTasksRenderer } from './agent/tools/list-tasks';
 import { executeGetTask, parseGetTask, GetTaskRenderer } from './agent/tools/get-task';
 import { executeCreateTask, parseCreateTask, CreateTaskRenderer } from './agent/tools/create-task';
@@ -86,56 +124,39 @@ import {
   buildToolFormatReminder as buildCodeToolFormatReminder,
   type ToolFormat as CodeToolFormat,
 } from './agent/prompts/code';
-import {
-  formatCodeAction,
-  formatCodeCompletedTooltip,
-} from './agent/services/tool-display-formatters';
-import { registerActionDisplayFormatter } from '@renderer/components/Widgets/Zen/screens/Chat/utils/action-display-formatter';
-import { registerCompletedTooltipFormatter as registerTooltipFormatter } from '@renderer/components/Widgets/Zen/screens/Chat/utils/status-tooltip-builder';
-import { registerToolStatusChecker } from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-status-registry';
-import { checkCodeToolStatus } from './agent/services/tool-status-checker';
-import {
-  checkCodeToolCollapse,
-  checkCodeToolDanger,
-  formatCodeToolForMarkdown,
-} from './agent/services/tool-behaviors';
-import { transformCodeToolOutput } from './agent/services/tool-output-transformer';
-import {
-  registerToolCollapseChecker,
-  registerToolDangerChecker,
-  registerToolMarkdownFormatter,
-  registerToolOutputTransformer,
-} from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-behavior-registry';
-import { registerToolOutputFormatter } from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-output-registry';
-import { registerStreamingTool } from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-streaming-registry';
-import {
-  registerMutationChecker,
-  registerFilePathExtractor,
-  registerSingleLineReviewChecker,
-  registerDiffCalculator,
-  registerRawContentDiffExtractor,
-} from '@renderer/components/Widgets/Zen/screens/Chat/utils/tool-mutation-registry';
-import { formatCodeToolOutput } from './agent/services/tool-output-formatter';
-import {
-  checkCodeToolMutation,
-  extractCodeFilePath,
-  checkCodeSingleLineReview,
-  calculateCodeDiff,
-} from './agent/services/tool-mutations';
-import { extractCodeRawContentDiff } from './agent/services/raw-content-diff';
 import { buildOrchestratorPrompt } from './agent/prompts/orchestrator';
 import { buildPlannerPrompt } from './agent/prompts/planner';
 import { buildExecutorPrompt } from './agent/prompts/executor';
 import { buildReviewerPrompt } from './agent/prompts/reviewer';
 import { buildTesterPrompt } from './agent/prompts/tester';
+import { registerActionDisplayFormatter } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { registerCompletedTooltipFormatter } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import {
+  registerToolCollapseChecker,
+  registerToolDangerChecker,
+  registerToolMarkdownFormatter,
+  registerToolOutputTransformer,
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { registerToolStatusChecker } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { registerToolOutputFormatter } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import {
+  registerDiffCalculator,
+  registerFilePathExtractor,
+  registerMutationChecker,
+  registerRawContentDiffExtractor,
+  registerSingleLineReviewChecker,
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { registerStreamingTool } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ExecutorOptions } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const bypass = (o?: ExecutorOptions) => o?.bypassIgnore ?? false;
 
 setRunCommandValidator((command: string) => SecurityValidator.validateCommand(command));
 
 // Register Code module display formatters
 registerActionDisplayFormatter('code', formatCodeAction);
-registerTooltipFormatter(formatCodeCompletedTooltip);
+registerCompletedTooltipFormatter(formatCodeCompletedTooltip);
 
 // Register Code module tool status checker
 registerToolStatusChecker(checkCodeToolStatus);
@@ -157,9 +178,15 @@ registerSingleLineReviewChecker(checkCodeSingleLineReview);
 registerDiffCalculator(calculateCodeDiff);
 registerRawContentDiffExtractor(extractCodeRawContentDiff);
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const codeModule: ZenModule = {
   tagRegistry: CODE_TAG_REGISTRY,
   id: 'code',
+  // ASSUMED: projects.id trong code store == worktrees.project_id → lưu ở ~/.phantoma/code/<project_id>/conversations
+  getConversationScope: () => {
+    const projectId = (window as any).__currentProjectId ?? useCodeStore.getState().currentProjectId;
+    return projectId ? `code:${projectId}` : null;
+  },
   services: {},
   capabilities: {
     multiAgent: true,

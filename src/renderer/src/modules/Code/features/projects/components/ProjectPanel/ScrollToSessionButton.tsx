@@ -1,17 +1,14 @@
-/**
- * ------------------------------------------------------------------
- * ScrollToSessionButton — overlay button for out-of-view selection
- * ------------------------------------------------------------------
- * Displayed at the bottom-right corner of ProjectPanel when the
- * currently selected SessionCard is not visible in the viewport.
- * Clicking scrolls to the selected session and centers it vertically.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useState } from 'react';
+
+// ── UI ──
 import { ChevronsDown } from 'lucide-react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ScrollToSessionButtonProps {
   /** The ID of the currently selected session */
   selectedSessionId: string | null;
@@ -19,6 +16,7 @@ interface ScrollToSessionButtonProps {
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ScrollToSessionButton = memo(function ScrollToSessionButton({
   selectedSessionId,
   scrollContainerRef,
@@ -30,6 +28,7 @@ export const ScrollToSessionButton = memo(function ScrollToSessionButton({
       return;
     }
 
+    // ── Derived ──
     const checkVisibility = () => {
       const container = scrollContainerRef.current;
       if (!container) return;
@@ -64,6 +63,7 @@ export const ScrollToSessionButton = memo(function ScrollToSessionButton({
     const mutationObserver = new MutationObserver(schedule);
     mutationObserver.observe(container, { childList: true, subtree: true });
 
+    // ── Render ──
     return () => {
       cancelAnimationFrame(raf);
       container.removeEventListener('scroll', schedule);
@@ -73,6 +73,7 @@ export const ScrollToSessionButton = memo(function ScrollToSessionButton({
   }, [selectedSessionId, scrollContainerRef]);
 
   const handleClick = () => {
+    // ── Derived ──
     const container = scrollContainerRef.current;
     if (!container || !selectedSessionId) return;
 

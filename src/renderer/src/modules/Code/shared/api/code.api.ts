@@ -1,4 +1,18 @@
-import { resolveCodeBaseUrl } from './code-base-url';
+/**
+ * ------------------------------------------------------------------
+ * Code API
+ * ------------------------------------------------------------------
+ * Điểm truy cập gom tất cả endpoint của Code server (projects, sessions,
+ * worktrees, tasks, workflows, fs, git, pr, scopes, search) và re-export
+ * các type liên quan.
+ *
+ * Main constants:
+ * - codeApi : Object gom các nhóm endpoint và hàm health()
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { projectsApi } from './endpoints/projects.api';
 import { sessionsApi } from './endpoints/sessions.api';
 import { worktreesApi } from './endpoints/worktrees.api';
@@ -9,6 +23,11 @@ import { gitApi } from './endpoints/git.api';
 import { prApi } from './endpoints/pr.api';
 import { scopesApi } from './endpoints/scopes.api';
 import { searchApi } from './endpoints/search.api';
+
+// ── Utils ──
+import { resolveCodeBaseUrl } from './code-base-url';
+
+// ─── Exports ─────────────────────────────────────────────────────────────────
 export type { CodeProject, CodeWorktree, CodeWorktreeInput, CodeProjectInput } from './types/project.types';
 export type { CodeWorkspacePanel, CodeWorkspaceInput, CodeSession, CodeSessionInput } from './types/session.types';
 export type { CodeTask, CodeTaskInput, CodeTaskUpdateInput } from './types/task.types';
@@ -16,6 +35,7 @@ export type { CodeWorkflow } from './types/workflow.types';
 export type { DirEntry, FileStat, TreeNode, SquareImage, ReadDirEntry } from './types/fs.types';
 export type { GitStatusResult, GitErr, GitLogCommit, GitLogResult, GitChangedInOtherBranchesResult, GitRemoteDiffResult } from './types/git.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const codeApi = {
   health: async (): Promise<boolean> => {
     try {

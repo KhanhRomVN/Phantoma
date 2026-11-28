@@ -4,7 +4,7 @@ interface ActivityTabProps {
   device: Device;
 }
 
-export function ActivityTab({ device }: ActivityTabProps) {
+export function ActivityTab({}: ActivityTabProps) {
   return (
     <div className="rounded-xl bg-card-background p-4">
       <div className="text-xs text-text-secondary">No activity</div>

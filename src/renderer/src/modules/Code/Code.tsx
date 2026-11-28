@@ -1,45 +1,25 @@
-import { dialogIpc } from './shared/ipc/dialog.ipc';
-import { fsIpc } from './shared/ipc/fs.ipc';
-/**
- * ------------------------------------------------------------------
- * Code
- * ------------------------------------------------------------------
- * Main layout component for the Code editor module.
- * Orchestrates the project tabs, service tabs, activity panel,
- * content panel (Monaco editor), bottom panel, and footer bar.
- * Handles global keyboard shortcuts and coordinates LSP notifications.
- *
- * Main features:
- * - Project & service tab navigation
- * - Keyboard shortcuts: Ctrl+O (open), Ctrl+N (new), Ctrl+P (quick open),
- *   Ctrl+S (save), Ctrl+Shift+S (save-as), Ctrl+W (close tab),
- *   Ctrl+` (toggle bottom panel), Ctrl+Shift+` (new terminal)
- * - Unsaved changes guard on browser close
- * - Auto-scans project file trees on startup
- * - Bridges Code state to Agent feature context
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
-
 // ── React ──
 import { useEffect, useRef, useState } from 'react';
 
-// ── Hooks & Types ──
-import { useCodeStore, type FileNode } from './shared/stores/code.store';
+// ── Services ──
+import { dialogIpc } from './shared/ipc/dialog.ipc';
+import { fsIpc } from './shared/ipc/fs.ipc';
+import './shared/services/unsaved.service';
+import { codeApi } from './shared/api/code.api';
 
+// ── Stores ──
+import { useCodeStore, type FileNode } from './shared/stores/code.store';
 
 // ── Components ──
 import { ContentPanel } from './app/layout/ContentPanel';
 import { ActivityPanel } from './app/layout/ActivityPanel';
-import { ToastContainer } from './shared/components/ToastContainer';
+
 import { FooterBar } from './app/layout/FooterBar';
 import { ProjectPanel } from './features/projects';
 import { QuickOpenModal } from './features/workspace';
-import './shared/services/unsaved.service';
-import { codeApi } from './shared/api/code.api';
 
-// ─── Directory Scanner ─────────────────────────────────────────────────
+// ─── Interfaces ─────────────────────────────────────────────────────────
 
 interface DirEntry {
   name: string;
@@ -51,6 +31,7 @@ interface DirEntry {
 
 
 
+// ─── Functions ──────────────────────────────────────────────────────────
 /** Recursively scans a directory via IPC and builds a FileNode tree. */
 async function scanDirectory(dirPath: string, depth = 0): Promise<FileNode[]> {
   if (depth > 8) return []; // safety cap against runaway recursion
@@ -227,7 +208,6 @@ export function Code() {
         <ProjectPanel />
         <div className="flex-1 flex flex-col min-w-0 relative">
           <ContentPanel />
-          <ToastContainer />
         </div>
         {!isGitView && <ActivityPanel />}
       </div>

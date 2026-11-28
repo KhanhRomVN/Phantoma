@@ -6,9 +6,14 @@
  * ------------------------------------------------------------------
  */
 
-import { resolveWorkspacePath } from '../../../shared/utils/path-resolver.util';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
+// ── Utils ──
+import { resolveWorkspacePath } from '../../../shared/utils/path-resolver.util';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface BaseResult {
   command: string;
   requestId?: string;
@@ -16,6 +21,7 @@ interface BaseResult {
   [key: string]: any;
 }
 
+// ─── Class ───────────────────────────────────────────────────────────────────
 export class DeleteFileHandler {
   public async handle(message: any): Promise<BaseResult> {
     const inputPath = message.file_path;

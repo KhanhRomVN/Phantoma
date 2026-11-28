@@ -1,6 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-
-import type { WorkflowAgentId } from '../screens/Chat/types/workflow-agents';
+import { WorkflowAgentId } from '../features/chat/types/workflow_agent.types';
 
 const AGENT_MESSAGE_REGEX = /<agent-message from="([^"]+)">\n([\s\S]*?)\n<\/agent-message>/;
 
@@ -33,7 +32,8 @@ export interface WorkflowAgentSync {
 
 export const WorkflowAgentContext = createContext<WorkflowAgentSync | null>(null);
 
-export const useWorkflowAgentSync = (): WorkflowAgentSync | null => useContext(WorkflowAgentContext);
+export const useWorkflowAgentSync = (): WorkflowAgentSync | null =>
+  useContext(WorkflowAgentContext);
 
 export const AccountAgentsContext = createContext<Record<string, string[]> | undefined>(undefined);
 

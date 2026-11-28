@@ -1,17 +1,23 @@
-import { create } from 'zustand';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import {
   taskService,
   TASKS_CHANGED_EVENT,
   type StoredTask,
 } from '../../../shared/services/task.service';
+
+// ── Stores ──
+import { create } from 'zustand';
 import { useCodeStore } from '../../../shared/stores/code.store';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface SessionTasksState {
   byPath: Record<string, StoredTask[]>;
   bySession: Record<string, StoredTask>;
   load: (projectPath: string) => Promise<void>;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const sessionIdsOfBranch = (projectPath: string, branchName: string): string[] => {
   const project = useCodeStore.getState().projects.find((p) => p.path === projectPath);
   const branch = project?.branches?.find((b) => b.name === branchName);
@@ -43,6 +49,7 @@ const sameIndex = (a: Record<string, StoredTask>, b: Record<string, StoredTask>)
   return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
 };
 
+// ─── Store ───────────────────────────────────────────────────────────────────
 export const useSessionTasks = create<SessionTasksState>((set, get) => ({
   byPath: {},
   bySession: {},
@@ -59,6 +66,7 @@ export const useSessionTasks = create<SessionTasksState>((set, get) => ({
   },
 }));
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 // Session/branch đổi (tạo session mới...) => dựng lại index theo branch.
 let lastProjects = useCodeStore.getState().projects;
 useCodeStore.subscribe((state) => {

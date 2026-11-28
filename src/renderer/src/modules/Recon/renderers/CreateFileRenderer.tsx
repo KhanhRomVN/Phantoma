@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
 import { $ } from '@renderer/utils/color';
 import { cn } from '@renderer/utils/cn';
-import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
+import ActionBar from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ActionBar';
 
 interface CreateFileBlockProps {
   filePath?: string;
@@ -36,9 +36,7 @@ function CreateFileBlock({ filePath, content, output, isError }: CreateFileBlock
             onClick={() => setIsCollapsed((v) => !v)}
           >
             <span>{isCollapsed ? 'Show content' : 'Hide content'}</span>
-            {filePath && (
-              <span className="font-mono text-[11px] opacity-60">{filePath}</span>
-            )}
+            {filePath && <span className="font-mono text-[11px] opacity-60">{filePath}</span>}
           </button>
           {!isCollapsed && (
             <pre

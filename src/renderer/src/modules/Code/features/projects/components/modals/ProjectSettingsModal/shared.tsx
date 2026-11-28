@@ -1,8 +1,17 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, type ReactNode } from 'react';
+
+// ── UI ──
 import { Check, Copy } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { ProjectLogoImage } from '../../ProjectLogo';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export type ProjectSettingsTabId = 'overview' | 'general' | 'logo';
 
 export interface ProjectSettingsTarget {
@@ -22,6 +31,7 @@ export interface ProjectSettingsPatch {
   hidden?: boolean;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function Section({
   title,
   description,
@@ -84,6 +94,7 @@ export function Toggle({
   onChange: (value: boolean) => void;
   label: string;
 }) {
+  // ── Render ──
   return (
     <button
       type='button'
@@ -117,6 +128,7 @@ export function ProjectMark({
   logoPath?: string | null;
   size?: number;
 }) {
+  // ── Derived ──
   const fallback = (
     <span
       className='w-full h-full grid place-items-center font-semibold uppercase'
@@ -129,6 +141,8 @@ export function ProjectMark({
       {name.trim().charAt(0) || '?'}
     </span>
   );
+
+  // ── Render ──
   return (
     <span
       className='block shrink-0 overflow-hidden border border-border bg-white/[0.04]'

@@ -1,6 +1,9 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
 import { resolveCodeBaseUrl } from '../code-base-url';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const searchApi = {
   stream: async (
     searchId: string,

@@ -1,14 +1,23 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import { ChevronRight, Loader } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
+
+// ── Services ──
 import { codeApi } from '../../../../shared/api/code.api';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CommitSyncedFilesModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -17,6 +26,7 @@ interface CommitSyncedFilesModalProps {
   files: string[];
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const buildTemplate = (count: number) =>
   `chore: sync ${count} file${count === 1 ? '' : 's'} outside scope with default branch`;
 
@@ -70,6 +80,7 @@ const flattenTree = (
   return out;
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function CommitSyncedFilesModal({
   isOpen,
   onClose,
@@ -77,19 +88,25 @@ export function CommitSyncedFilesModal({
   projectPath,
   files,
 }: CommitSyncedFilesModalProps) {
+  // ── State ──
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen) return;
     setMessage(buildTemplate(files.length));
     setError(null);
   }, [isOpen]);
 
+  // ── Derived ──
   const base = projectPath.replace(/\/+$/, '');
+
+  // ── State ──
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
+  // ── Derived ──
   const tree = useMemo(
     () => buildTree(files.map((p) => (p.startsWith(`${base}/`) ? p.slice(base.length + 1) : p))),
     [files, base],
@@ -103,6 +120,7 @@ export function CommitSyncedFilesModal({
       return next;
     });
 
+  // ── Handlers ──
   const handleSubmit = async () => {
     if (busy || files.length === 0 || !message.trim()) return;
     setBusy(true);
@@ -123,6 +141,7 @@ export function CommitSyncedFilesModal({
     }
   };
 
+  // ── Render ──
   return (
     <Modal
       isOpen={isOpen}

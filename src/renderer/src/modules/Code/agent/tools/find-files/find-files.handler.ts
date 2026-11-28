@@ -6,9 +6,14 @@
  * ------------------------------------------------------------------
  */
 
-import { resolveWorkspacePath } from '../../../shared/utils/path-resolver.util';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
+// ── Utils ──
+import { resolveWorkspacePath } from '../../../shared/utils/path-resolver.util';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface BaseParams {
   requestId?: string;
 }
@@ -27,6 +32,7 @@ interface FindFilesParams extends BaseParams {
   folder_path?: string;
 }
 
+// ─── Class ───────────────────────────────────────────────────────────────────
 export class FindFilesHandler {
   public async handle(message: FindFilesParams): Promise<BaseResult> {
     const fileName = message.fileName || message.file_name || '';

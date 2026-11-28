@@ -1,9 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { Archive } from 'lucide-react';
-import { $ } from '@renderer/utils/color';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 
+// ── Utils ──
+import { $ } from '@renderer/utils/color';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmArchiveTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,13 +16,17 @@ interface ConfirmArchiveTaskModalProps {
   taskTitle: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmArchiveTaskModal({
   isOpen,
   onClose,
   onConfirm,
   taskTitle,
 }: ConfirmArchiveTaskModalProps) {
+  // ── Derived ──
   const warn = '--warn';
+
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[400px]">
       <ModalBody className="py-6 px-5">

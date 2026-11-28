@@ -1,12 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Graph Cell + Ref Pill
- * ------------------------------------------------------------------
- * SVG cell drawing the lanes of a single commit row with a real
- * avatar node (small dot for merge commits), and the colored ref label.
- * ------------------------------------------------------------------
- */
-
 import { memo } from 'react';
 import { GitBranch, Cloud, Tag } from 'lucide-react';
 

@@ -1,20 +1,21 @@
-import { shellIpc } from '../../../shared/ipc/shell.ipc';
-/**
- * ------------------------------------------------------------------
- * PR Files
- * ------------------------------------------------------------------
- * Danh sách file thay đổi của PR: icon theo đuôi file (file-icon),
- * thư mục mờ + tên file đậm, thanh +/- mini và ô tìm kiếm.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useMemo, useState } from 'react';
+
+// ── UI ──
 import { AlertTriangle, ExternalLink, Search, X } from 'lucide-react';
 
+// ── Services ──
+import { shellIpc } from '../../../shared/ipc/shell.ipc';
+
+// ── Utils ──
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import type { PrFile } from '../types/pull-request.types';
 import { BTN, splitPath, tint } from '../utils/pull-request.util';
 
+// ── Types ──
+import type { PrFile } from '../types/pull-request.types';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 const ChangeBar = ({ add, del }: { add: number; del: number }) => {
   const total = add + del;
   let green = total === 0 ? 0 : Math.round((5 * add) / total);
@@ -40,6 +41,7 @@ const ChangeBar = ({ add, del }: { add: number; del: number }) => {
   );
 };
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface PrFilesProps {
   files: PrFile[];
   totalFiles: number;
@@ -50,6 +52,7 @@ export const PrFiles = memo(function PrFiles({ files, totalFiles, url }: PrFiles
   const [query, setQuery] = useState('');
 
   const shown = useMemo(() => {
+    // ── Derived ──
     const q = query.trim().toLowerCase();
     return q ? files.filter((f) => f.path.toLowerCase().includes(q)) : files;
   }, [files, query]);

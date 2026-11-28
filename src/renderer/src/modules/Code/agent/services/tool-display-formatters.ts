@@ -6,12 +6,15 @@
  * ------------------------------------------------------------------
  */
 
-import type {
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import {
   ActionDisplayFormatter,
   CompletedTooltipFormatter,
-} from '@renderer/components/Widgets/Zen/shared/tool-display';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Format action display string cho Code tools.
  */

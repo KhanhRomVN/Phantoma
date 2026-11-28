@@ -1,3 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { readAttr } from '../shared/task-tool-parser.util';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const VALID_AGENT_TYPES = [
   'executor',
   'planner',
@@ -10,15 +15,12 @@ const VALID_AGENT_TYPES = [
 ];
 const VALID_AGENT_ID = /^[a-z][a-z0-9_]*$/;
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const readTag = (raw: string, tag: string): string | undefined => {
   const m = raw.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
   return m ? m[1].trim() : undefined;
 };
 
-const readAttr = (raw: string, name: string): string | undefined => {
-  const m = raw.match(new RegExp(`${name}="([^"]*)"`));
-  return m ? m[1] : undefined;
-};
 
 const pick = (raw: string, name: string): string | undefined =>
   readTag(raw, name) ?? readAttr(raw, name);

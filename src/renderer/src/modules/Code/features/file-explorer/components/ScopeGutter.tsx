@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useEffect, memo } from 'react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const GutterDot = memo(function GutterDot({
   top,
   dot,
@@ -15,6 +20,7 @@ export const GutterDot = memo(function GutterDot({
   onClick?: () => void;
 }) {
   if (!deleted) {
+    // ── Render ──
     return (
       <span
         onClick={onClick}
@@ -50,7 +56,10 @@ export function SelectionBlocks({
   containerRef: { current: HTMLDivElement | null };
   selectedNodeIds: Set<string>;
 }) {
+  // ── State ──
   const [blocks, setBlocks] = useState<{ top: number; height: number }[]>([]);
+
+  // ── Effects ──
   useEffect(() => {
     const el = containerRef.current;
     if (!el || selectedNodeIds.size < 2) {
@@ -92,6 +101,7 @@ export function SelectionBlocks({
     };
   }, [containerRef, selectedNodeIds]);
 
+  // ── Render ──
   return (
     <div className="absolute left-0 right-0 top-0 z-10 h-0 pointer-events-none">
       {blocks.map((b, i) => (

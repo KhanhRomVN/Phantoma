@@ -1,7 +1,12 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { FolderOpen } from 'lucide-react';
+
+// ── Utils ──
 import { getFileIconPath } from '@renderer/utils/file-icon';
 import { type StackInfo } from '../../../utils/detect-stack.util';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const LANG_EXT: Record<string, string> = {
   typescript: 'ts',
   javascript: 'js',
@@ -30,6 +35,7 @@ export const LANG_EXT: Record<string, string> = {
   markdown: 'md',
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function LanguageBadgeIcon({ stack, className = 'w-4 h-4' }: { stack?: StackInfo; className?: string }) {
   const top = stack?.languages?.length
     ? stack.languages.reduce((a, b) => (b.percentage > a.percentage ? b : a))

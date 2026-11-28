@@ -16,13 +16,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 // ── Components ──
-import HomePanel from './screens/Home';
-import ChatPanel from './screens/Chat';
-import AgentOverlay from './components/AgentOverlay';
-import AccountPanel from './screens/Account';
-import HistoryPanel from './screens/History';
-import MarketplacePanel from './screens/Marketplace';
-import SettingsPanel from './screens/Setting';
 
 // CONTEXT
 import { ProjectProvider } from './context/ProjectContext';
@@ -31,13 +24,21 @@ import { useDesignStore } from '@renderer/modules/Code/features/design/stores/de
 import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
 
 // ── Types ──
-import { ChatSession } from './screens/Chat/types/chat';
 
 // ── Utils ── (icons)
 import { MousePointer } from 'lucide-react';
 import { AgentRootContext } from './context/AgentRootContext';
 import { useWorkflowAgentSync } from './context/WorkflowAgentContext';
-import { useToolFormatSettings } from './hooks/useToolFormatSettings';
+import { useToolFormatSettings } from './shared/hooks/useToolFormatSettings';
+
+import type { ChatSession } from './features/chat/types/chat.types';
+import AgentOverlay from './shared/components/AgentOverlay';
+import ChatPanel from './features/chat';
+import HomePanel from './features/home';
+import HistoryPanel from './features/history';
+import MarketplacePanel from './features/marketplace';
+import AccountPanel from './features/account';
+import SettingsPanel from './features/setting';
 
 // ─── Page switcher ─────────────────────────────────────────────────────────
 
@@ -223,8 +224,6 @@ function AgentView({
     };
   }, [isVisible, handleBack]);
 
-
-
   return (
     <div
       className="flex-1 overflow-hidden bg-background flex flex-col"
@@ -273,7 +272,6 @@ function AgentView({
         {subView === 'setting' && (
           <SettingsPanel isOpen={true} onClose={() => setSubView(null)} onNavigate={setSubView} />
         )}
-
       </div>
     </div>
   );

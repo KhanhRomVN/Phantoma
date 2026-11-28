@@ -217,6 +217,7 @@ export default React.memo(function Emulate({
   const startTarget = useCallback(
     (targetId: string, mode: 'mitm' | 'cdp' | 'frida') => {
       setState((prev) => {
+        const target = prev.targetTabs.find((t) => t.id === targetId);
         const newState = {
           ...prev,
           targetStates: {
@@ -226,6 +227,7 @@ export default React.memo(function Emulate({
               mode,
               isIntercepting: false,
               startTime: Date.now(),
+              workspacePath: target?.workspacePath,
             },
           },
         };
@@ -824,6 +826,8 @@ export default React.memo(function Emulate({
           selectedTool={selectedTool}
           activeTargetId={activeTargetId}
           targetStates={targetStates}
+          targetTabs={targetTabs}
+          setState={setState}
           selectedId={selectedId}
           searchTerm={searchTerm}
           filter={filter}

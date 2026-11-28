@@ -1,5 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * Agents Types
+ * ------------------------------------------------------------------
+ * Kiểu dữ liệu và hằng số cho workflow đa agent: agent, tin nhắn giữa
+ * các agent, snapshot người tham gia và màu theo loại agent.
+ *
+ * Main types:
+ * - AgentId / ParticipantId / AgentType : Định danh và loại agent
+ * - WorkflowAgent / WorkflowMessage / ParticipantSnapshot : Mô hình dữ liệu workflow
+ * - WorkflowLinks : Liên kết Zen tab theo agent
+ *
+ * Main constants:
+ * - USER_ID, ORCHESTRATOR_AGENT, AGENT_TYPE_COLORS
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type AgentId = string; // Dynamic agent IDs (snake_case from agent_name)
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const USER_ID = 'user';
 export type ParticipantId = AgentId | typeof USER_ID;
 
@@ -21,6 +40,8 @@ export interface WorkflowAgent {
   type: AgentType;
   /** Tints @mentions and the fallback avatar letter. */
   color: string;
+  /** Orchestrator conversation (workflow) this agent belongs to; null until that conversation has an id. */
+  conversationId?: string | null;
 }
 
 /** Who a participant was when a message was recorded; keeps history readable after the agent or its Zen tab is gone. */

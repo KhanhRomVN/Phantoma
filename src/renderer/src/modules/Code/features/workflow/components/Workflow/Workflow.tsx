@@ -1,11 +1,20 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useMemo, useState } from 'react';
+
+// ── Components ──
 import { DetailHeader } from './DetailHeader';
 import { HeaderSection } from './HeaderSection';
-import { MOCK_WORKFLOW } from '../../constants/workflow-mock.constants';
 import { TabContent } from './TabContent';
 import { TimelineTask } from './TimelineTask';
+
+// ── Utils ──
+import { MOCK_WORKFLOW } from '../../constants/workflow-mock.constants';
+
+// ── Types ──
 import type { CheckItem, TabId } from '../../types/workflow.types';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const Workflow = memo(function Workflow() {
   const plan = MOCK_WORKFLOW;
   const nextNode = useMemo(() => plan.nodes.find((n) => n.status !== 'done') ?? null, [plan]);

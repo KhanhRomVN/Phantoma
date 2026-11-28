@@ -1,5 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Types ──
 import { SourceOption, SyncFile, TreeNode } from '../types/sync-branch.types';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const stripOrigin = (n: string) => n.replace(/^origin\//, '');
 
 export const refOf = (o: SourceOption | null) =>

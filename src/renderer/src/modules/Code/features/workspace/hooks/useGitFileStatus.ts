@@ -1,9 +1,15 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
+
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type GitFileStatus = 'added' | 'modified';
 export type GitStatusMap = Record<string, GitFileStatus>;
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const POLL_MS = 15000;
 const EMPTY: GitStatusMap = {};
 
@@ -15,6 +21,7 @@ interface Entry {
 
 const entries = new Map<string, Entry>();
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function parseStatus(root: string, output: string): GitStatusMap {
   const base = root.replace(/\/+$/, '');
   const map: GitStatusMap = {};
@@ -52,10 +59,13 @@ async function load(root: string, entry: Entry): Promise<void> {
   entry.subs.forEach((fn) => fn(next));
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 /** Shared, ref-counted git status poller: one poll per root regardless of subscriber count. */
 export function useGitFileStatus(root?: string): GitStatusMap {
+  // ── State ──
   const [map, setMap] = useState<GitStatusMap>(() => (root ? entries.get(root)?.map ?? EMPTY : EMPTY));
 
+  // ── Effects ──
   useEffect(() => {
     if (!root) {
       setMap(EMPTY);

@@ -1,23 +1,20 @@
-/**
- * ------------------------------------------------------------------
- * Changed Files
- * ------------------------------------------------------------------
- * File list of a commit in two layouts: flat "path" list or folder
- * "tree". Icons come from fileIconMapper (getFileIconPath /
- * getFolderIconPath). Stats are a green +N and a red -N. Clicking a
- * file calls onSelect so the parent can open its diff.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { createContext, memo, useContext, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, FileX, Minus, Plus, Undo2 } from 'lucide-react';
 
-import { cn } from '@renderer/utils/cn';
+// ── UI ──
+import { ChevronDown, ChevronRight, FileX, Minus, Plus, Undo2 } from 'lucide-react';
 import { Checkbox } from '@renderer/components/ui/Checkbox/Checkbox';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
-import { fileKind, splitPath, type CommitFile, type FileChangeKind } from '../utils/graph.util';
+
+// ── Components ──
 import { EmptyState } from './EmptyState';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+import { fileKind, splitPath, type CommitFile, type FileChangeKind } from '../utils/graph.util';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export type FilesView = 'path' | 'tree';
 
 interface TreeNode {
@@ -27,6 +24,7 @@ interface TreeNode {
   files: CommitFile[];
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const makeNode = (name: string, path: string): TreeNode => ({
   name,
   path,
@@ -79,6 +77,7 @@ export interface FileActions {
   onDiscard?: (file: CommitFile) => void;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const ActionsContext = createContext<FileActions>({});
 
 export interface FileSelection {
@@ -92,6 +91,7 @@ function collectPaths(node: TreeNode): string[] {
   return [...node.files.map((f) => f.path), ...[...node.folders.values()].flatMap(collectPaths)];
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function SelectBox({ paths }: { paths: string[] }) {
   const sel = useContext(SelectionContext);
   if (!sel || paths.length === 0) return null;
@@ -143,6 +143,7 @@ export const KIND_MARK: Record<FileChangeKind, { mark: string; title: string; cl
 };
 
 function FileRow({ file, depth, showDir, selected, onSelect }: FileRowProps) {
+  // ── Derived ──
   const { name, dir } = splitPath(file.path);
   const actions = useContext(ActionsContext);
   const kindId = fileKind(file);
@@ -151,6 +152,8 @@ function FileRow({ file, depth, showDir, selected, onSelect }: FileRowProps) {
   const canUnstage = !!actions.onUnstage && !!file.staged;
   const canDiscard = !!actions.onDiscard && (!!file.unstaged || !!file.staged);
   const hasActions = canStage || canUnstage || canDiscard;
+
+  // ── Render ──
   return (
     <div
       title={file.path}
@@ -224,8 +227,11 @@ interface BranchProps {
 }
 
 function TreeLevel({ node, depth, closed, toggle, selectedPath, onSelect }: BranchProps) {
+  // ── Derived ──
   const folders = [...node.folders.values()].sort((a, b) => a.name.localeCompare(b.name));
   const files = [...node.files].sort((a, b) => a.path.localeCompare(b.path));
+
+  // ── Render ──
   return (
     <>
       {folders.map((f) => {
@@ -315,6 +321,7 @@ const ChangedFilesBody = memo(function ChangedFilesBody({
     });
 
   if (files.length === 0) {
+    // ── Render ──
     return <EmptyState icon={FileX} text={'No files'} desc={'There are no changed files to show here.'} />;
   }
 

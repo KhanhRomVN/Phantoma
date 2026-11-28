@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { proxyApi } from '@renderer/modules/Proxy/services/proxy-api.service';
-import { DEFAULT_PROXY_FILTERS, EMPTY_PROXY_DRAFT, MAX_PING, PROXY_HEALTH, PROXY_KIND, PROXY_QUERY_KEYS } from '../constants/proxy';
+import {
+  DEFAULT_PROXY_FILTERS,
+  EMPTY_PROXY_DRAFT,
+  MAX_PING,
+  PROXY_HEALTH,
+  PROXY_KIND,
+  PROXY_QUERY_KEYS,
+} from '../constants/proxy';
 import type {
   FilterTag,
   ProxyDraft,
@@ -12,6 +18,7 @@ import type {
   ProxyTestState,
 } from '../types';
 import { buildCountryStats, parseQuery, toggleItem, toProxyItem } from '../utils/proxy';
+import { proxyApi } from '@renderer/modules/Proxy';
 
 export function useProxyPicker(value: ProxyItem | null, onChange: (p: ProxyItem | null) => void) {
   const [items, setItems] = useState<ProxyItem[]>([]);
@@ -41,7 +48,11 @@ export function useProxyPicker(value: ProxyItem | null, onChange: (p: ProxyItem 
       });
     const unsubscribe = proxyApi.proxies.subscribe((proxy) => {
       const next = toProxyItem(proxy);
-      setItems((prev) => (prev.some((i) => i.id === next.id) ? prev.map((i) => (i.id === next.id ? next : i)) : [...prev, next]));
+      setItems((prev) =>
+        prev.some((i) => i.id === next.id)
+          ? prev.map((i) => (i.id === next.id ? next : i))
+          : [...prev, next],
+      );
     });
     return () => {
       cancelled = true;
@@ -58,10 +69,15 @@ export function useProxyPicker(value: ProxyItem | null, onChange: (p: ProxyItem 
 
   const list = useMemo(() => {
     const filtered = items.filter((p) => {
-      const hay = `${p.name} ${p.host} ${p.country} ${p.city} ${p.provider} ${p.protocol} ${p.kind}`.toLowerCase();
+      const hay =
+        `${p.name} ${p.host} ${p.country} ${p.city} ${p.provider} ${p.protocol} ${p.kind}`.toLowerCase();
       if (!parsed.text.every((t) => hay.includes(t))) return false;
       for (const [k, v] of parsed.keys) {
-        if (k === 'country' && !(p.country.toLowerCase().includes(v) || p.countryCode.toLowerCase() === v)) return false;
+        if (
+          k === 'country' &&
+          !(p.country.toLowerCase().includes(v) || p.countryCode.toLowerCase() === v)
+        )
+          return false;
         if (k === 'type' && p.protocol.toLowerCase() !== v) return false;
         if (k === 'kind' && !p.kind.includes(v)) return false;
         if (k === 'provider' && !p.provider.toLowerCase().includes(v)) return false;
@@ -73,7 +89,8 @@ export function useProxyPicker(value: ProxyItem | null, onChange: (p: ProxyItem 
       if (filters.kinds.length && !filters.kinds.includes(p.kind)) return false;
       if (filters.health !== 'all' && p.health !== filters.health) return false;
       if (filters.country !== 'all' && p.countryCode !== filters.country) return false;
-      if (filters.maxPing < MAX_PING && (p.latency === 0 || p.latency > filters.maxPing)) return false;
+      if (filters.maxPing < MAX_PING && (p.latency === 0 || p.latency > filters.maxPing))
+        return false;
       return true;
     });
     return filtered.sort((a, b) => {
@@ -83,11 +100,14 @@ export function useProxyPicker(value: ProxyItem | null, onChange: (p: ProxyItem 
     });
   }, [items, parsed, filters]);
 
-  const toggleProtocol = (p: ProxyProtocol): void => setFilters((f) => ({ ...f, protocols: toggleItem(f.protocols, p) }));
-  const toggleKind = (k: ProxyKind): void => setFilters((f) => ({ ...f, kinds: toggleItem(f.kinds, k) }));
+  const toggleProtocol = (p: ProxyProtocol): void =>
+    setFilters((f) => ({ ...f, protocols: toggleItem(f.protocols, p) }));
+  const toggleKind = (k: ProxyKind): void =>
+    setFilters((f) => ({ ...f, kinds: toggleItem(f.kinds, k) }));
   const setHealth = (h: ProxyHealth | 'all'): void => setFilters((f) => ({ ...f, health: h }));
   const setMaxPing = (v: number): void => setFilters((f) => ({ ...f, maxPing: v }));
-  const toggleCountry = (code: string): void => setFilters((f) => ({ ...f, country: f.country === code ? 'all' : code }));
+  const toggleCountry = (code: string): void =>
+    setFilters((f) => ({ ...f, country: f.country === code ? 'all' : code }));
 
   const tags: FilterTag[] = [
     ...filters.protocols.map((p) => ({
@@ -101,7 +121,13 @@ export function useProxyPicker(value: ProxyItem | null, onChange: (p: ProxyItem 
       onRemove: () => setFilters((f) => ({ ...f, kinds: f.kinds.filter((x) => x !== k) })),
     })),
     ...(filters.health !== 'all'
-      ? [{ id: 'health', label: PROXY_HEALTH[filters.health].label, onRemove: () => setHealth('all') }]
+      ? [
+          {
+            id: 'health',
+            label: PROXY_HEALTH[filters.health].label,
+            onRemove: () => setHealth('all'),
+          },
+        ]
       : []),
     ...(filters.country !== 'all'
       ? [
@@ -112,7 +138,9 @@ export function useProxyPicker(value: ProxyItem | null, onChange: (p: ProxyItem 
           },
         ]
       : []),
-    ...(filters.maxPing < MAX_PING ? [{ id: 'ping', label: `≤ ${filters.maxPing} ms`, onRemove: () => setMaxPing(MAX_PING) }] : []),
+    ...(filters.maxPing < MAX_PING
+      ? [{ id: 'ping', label: `≤ ${filters.maxPing} ms`, onRemove: () => setMaxPing(MAX_PING) }]
+      : []),
   ];
 
   const reset = (): void => {

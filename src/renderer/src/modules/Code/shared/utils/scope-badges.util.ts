@@ -1,5 +1,22 @@
+/**
+ * ------------------------------------------------------------------
+ * Scope Badges Util
+ * ------------------------------------------------------------------
+ * Metadata và class style cho các badge scope (Clash/Drift/Outside/Inside)
+ * và bảng màu badge/text cho branch.
+ *
+ * Main constants:
+ * - SCOPE_BADGE_ORDER / SCOPE_BADGE_META : Thứ tự và nhãn/hint của badge
+ * - SCOPE_DOT / SCOPE_BADGE_ON / SCOPE_BADGE_OFF : Class màu theo trạng thái
+ * - BRANCH_BADGE_PALETTE / BRANCH_TEXT_PALETTE : Bảng màu cho branch
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import { SCOPE_CATEGORIES, type ScopeCategory } from '../stores/scope-stats.store';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const SCOPE_BADGE_ORDER: ScopeCategory[] = ['error', 'diff', 'warn', 'primary'];
 
 export const SCOPE_BADGE_META: Record<ScopeCategory, { label: string; hint: string }> = {

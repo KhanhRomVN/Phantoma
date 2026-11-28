@@ -1,3 +1,4 @@
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const TECH_DOMAIN_MAP: Record<string, string> = {
   typescript: 'https://www.typescriptlang.org',
   javascript: 'https://developer.mozilla.org/docs/Web/JavaScript',
@@ -27,6 +28,7 @@ export const TECH_DOMAIN_MAP: Record<string, string> = {
 
 export const LANG_COLORS = ['#4fa8e0', '#e0a84f', '#6fcf97', '#bb6bd9', '#eb5757', '#56ccf2'];
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type Tone = 'blue' | 'green' | 'purple' | 'pink' | 'teal' | 'yellow' | 'violet';
 
 export const TONES: Tone[] = ['blue', 'purple', 'teal', 'pink', 'green', 'yellow', 'violet'];

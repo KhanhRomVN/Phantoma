@@ -1,4 +1,4 @@
-import { Play, RotateCw, Terminal, MoreHorizontal, Globe, Gauge } from 'lucide-react';
+import { Play, RotateCw, Terminal, MoreHorizontal, Gauge } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { Checkbox } from '@renderer/components/ui/Checkbox';
 import { Tooltip } from '@renderer/components/ui/Tooltip';
@@ -20,15 +20,7 @@ interface FleetTableProps {
   onShell: (id: string) => void;
 }
 
-const TH = [
-  '',
-  'Device',
-  'Status',
-  'Performance',
-  'Network · Proxy',
-  'Heartbeat',
-  '',
-];
+const TH = ['', 'Device', 'Status', 'Performance', 'Network · Proxy', 'Heartbeat', ''];
 
 const ICON_BTN =
   'flex h-7 w-7 items-center justify-center rounded-md bg-text-secondary/10 text-text-secondary transition-colors hover:bg-text-secondary/15 hover:text-text-primary';
@@ -62,7 +54,7 @@ export function FleetTable({
                   <Checkbox
                     checked={allChecked}
                     indeterminate={someChecked && !allChecked}
-                    onCheckedChange={onToggleAll}
+                    onChange={onToggleAll}
                   />
                 ) : (
                   h
@@ -90,7 +82,7 @@ export function FleetTable({
               >
                 <td className="px-3 py-2.5">
                   <div onClick={(e) => e.stopPropagation()}>
-                    <Checkbox checked={checked} onCheckedChange={() => onToggleCheck(device.id)} />
+                    <Checkbox checked={checked} onChange={() => onToggleCheck(device.id)} />
                   </div>
                 </td>
 
@@ -143,7 +135,9 @@ export function FleetTable({
                   </div>
                 </td>
 
-                <td className="whitespace-nowrap px-3 py-2.5 text-text-secondary">{device.lastSeen}</td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-text-secondary">
+                  {device.lastSeen}
+                </td>
 
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -157,7 +151,11 @@ export function FleetTable({
                       </button>
                     </Tooltip>
                     <Tooltip content="Restart" side="top">
-                      <button type="button" onClick={() => onRestart(device.id)} className={ICON_BTN}>
+                      <button
+                        type="button"
+                        onClick={() => onRestart(device.id)}
+                        className={ICON_BTN}
+                      >
                         <RotateCw className="h-3.5 w-3.5" />
                       </button>
                     </Tooltip>

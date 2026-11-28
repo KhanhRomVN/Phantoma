@@ -16,7 +16,7 @@
 
 // ── Imports ────────────────────────────────────────────────────────────
 // ── React ──
-import { useState, useEffect, useRef, memo, Fragment } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 
 // ── UI ──
 import { Search, ArrowUp, ArrowDown, CornerDownLeft, Circle } from 'lucide-react';

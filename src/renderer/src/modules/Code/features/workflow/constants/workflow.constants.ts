@@ -1,3 +1,5 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import {
   Ban,
   CheckCircle2,
@@ -11,8 +13,11 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
+
+// ── Types ──
 import type { TabId } from '../types/workflow.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const STATUS_META = {
   done: {
     label: 'Done',

@@ -1,0 +1,130 @@
+/**
+ * ------------------------------------------------------------------
+ * Message Types
+ * ------------------------------------------------------------------
+ * Định nghĩa cấu trúc dữ liệu cho message trong chat.
+ * Bao gồm Message, Question, và các type liên quan.
+ *
+ * Main types:
+ * - Message         : Core message type cho một lượt chat
+ * - Question        : Câu hỏi hiển thị cho người dùng
+ * - QuestionAnswer  : Câu trả lời của người dùng cho question
+ * - QuestionType    : Loại câu hỏi (single/multi/text/confirm)
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ────────────────────────────────────────────────────────────
+// ── Types ──
+import type { ParsedResponse } from "./parsed_response.types";
+
+// ─── Types ──────────────────────────────────────────────────────────────
+export type QuestionType = "single" | "multi" | "text" | "confirm";
+
+export interface Question {
+  id: string;
+  type: QuestionType;
+  label: string;
+  options?: string[];
+}
+
+export interface QuestionAnswer {
+  questionId: string;
+  value: string | string[] | boolean;
+}
+
+/** Core message type representing a single chat turn. */
+export interface Message {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: number;
+  token_usage?: number;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+  /** IDs of tool actions that generated this message. */
+  actionIds?: string[];
+  uiHidden?: boolean;
+  isCancelled?: boolean;
+  /** Real backend conversation ID for this message. */
+  conversationId?: string;
+  providerId?: string;
+  modelId?: string;
+  accountId?: string;
+  websiteUrl?: string;
+  email?: string;
+  isError?: boolean;
+  /** Legacy single option selection (kept for backward compatibility) */
+  selectedOption?: string;
+  /** Structured answers for new paginated question format */
+  questionAnswers?: Record<string, QuestionAnswer>;
+  thinking?: string;
+  clickedActions?: string[];
+  rejectedActions?: string[];
+  /** DeepSeek parent_message_id for revert support. */
+  response_message_id?: string;
+  /** Pre-parsed message content (cached for performance) */
+  parsed?: ParsedResponse;
+  /** Raw API request body (JSON string) sent to LLM provider. */
+  rawRequest?: string;
+  /** Provider-specific unique identifier for the message (used by Qwen for edit/regenerate tracking). */
+  providerFid?: string;
+  /** Parent message ID from provider context (for threading in edit flows). */
+  providerParentId?: string;
+  /** Raw API response content accumulated from SSE stream. */
+  rawResponse?: string;
+  /** Uploaded files sent with this message */
+  uploadedFiles?: Array<{
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    content: string;
+    file_id?: string;
+  }>;
+/** Attached items (files/folders/snippets) sent with this message */
+  attachedItems?: Array<{
+    id: string;
+    path: string;
+    type: "file" | "external" | "text-snippet";
+    content?: string;
+    lineCount?: number;
+  }>;
+  /** Parse debug information for troubleshooting parse errors */
+  parseDebugInfo?: {
+    totalActions: number;
+    successfulActions: number;
+    failedActions: number;
+    actions: Array<{
+      index: number;
+      type: string;
+      params: Record<string, any>;
+      status: "success" | "error";
+      errorMessage?: string;
+      errorCode?: string;
+      extractedParams?: Array<{
+        name: string;
+        found: boolean;
+        length?: number;
+      }>;
+    }>;
+    contentBlocks?: Array<{
+      index: number;
+      type: string;
+      contentLength: number;
+      language?: string;
+      actionIndex?: number;
+    }>;
+    contentBlockStats?: Record<string, number>;
+    parseError?: {
+      message: string;
+      rawContent: string;
+    };
+  };
+  /** Flag indicating this message is awaiting a format-retry next-request. */
+  isAwaitingFormatRetry?: boolean;
+  /** Unparsed content blocks from partial parse (will be sent in next-request). */
+  unparsedContent?: string;
+}

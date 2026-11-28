@@ -1,20 +1,21 @@
-/**
- * ------------------------------------------------------------------
- * PR Conversation
- * ------------------------------------------------------------------
- * Review và comment của PR dạng bubble có avatar, kèm ô nhập comment.
- * Review không có nội dung hiển thị thành dòng sự kiện gọn.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { Loader2, MessageSquare, Send } from 'lucide-react';
 
-import { cn } from '@renderer/utils/cn';
+// ── Components ──
 import { PrAvatar } from './PrAvatar';
-import type { PrComment, PrReview } from '../types/pull-request.types';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { BTN_PRIMARY, FIELD, REVIEW_META, tint, timeAgo } from '../utils/pull-request.util';
 
+// ── Types ──
+import type { PrComment, PrReview } from '../types/pull-request.types';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface PrConversationProps {
   reviews: PrReview[];
   comments: PrComment[];
@@ -24,6 +25,7 @@ interface PrConversationProps {
   onSubmit: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const PrConversation = memo(function PrConversation({
   reviews,
   comments,

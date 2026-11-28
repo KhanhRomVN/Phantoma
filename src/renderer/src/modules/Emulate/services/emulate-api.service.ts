@@ -159,6 +159,7 @@ function toTargetTab(dto: TargetDTO): TargetTab {
     executablePath: dto.executable_path ?? undefined,
     startupArgs: dto.startup_args ?? undefined,
     environment: dto.environment ?? undefined,
+    workspacePath: dto.workspace_path ?? undefined,
   };
 }
 
@@ -167,12 +168,13 @@ function toCreateDTO(target: TargetTab): CreateTargetDTO {
   return {
     id: target.id,
     title: target.title,
-    url: target.url ?? null,
-    icon: target.icon ?? null,
-    platform: platformToApi(target.platform),
-    executable_path: target.executablePath ?? null,
-    startup_args: target.startupArgs ?? null,
-    environment: target.environment ?? null,
+    url: target.url ?? undefined,
+    icon: target.icon ?? undefined,
+    platform: platformToApi(target.platform) ?? undefined,
+    executable_path: target.executablePath ?? undefined,
+    startup_args: target.startupArgs ?? undefined,
+    environment: target.environment ?? undefined,
+    workspace_path: target.workspacePath ?? undefined,
   };
 }
 
@@ -186,6 +188,7 @@ function toUpdateDTO(target: Partial<TargetTab>): UpdateTargetDTO {
   if (target.executablePath !== undefined) dto.executable_path = target.executablePath ?? null;
   if (target.startupArgs !== undefined) dto.startup_args = target.startupArgs ?? null;
   if (target.environment !== undefined) dto.environment = target.environment ?? null;
+  if (target.workspacePath !== undefined) dto.workspace_path = target.workspacePath ?? null;
   return dto;
 }
 
@@ -630,12 +633,12 @@ class DataService {
     const dto: CreateTargetDTO = {
       id: input.id,
       title: input.title,
-      url: input.url ?? null,
-      icon: input.icon ?? input.favicon ?? null,
-      platform: platformToApi(input.platform ?? 'web'),
-      executable_path: input.executablePath ?? null,
-      startup_args: input.startupArgs ?? null,
-      environment: input.environment ?? null,
+      url: input.url ?? undefined,
+      icon: input.icon ?? input.favicon ?? undefined,
+      platform: platformToApi(input.platform ?? 'web') ?? undefined,
+      executable_path: input.executablePath ?? undefined,
+      startup_args: input.startupArgs ?? undefined,
+      environment: input.environment ?? undefined,
     };
     const result = await emulateApi.createTarget(dto);
     return toTargetTab(result);

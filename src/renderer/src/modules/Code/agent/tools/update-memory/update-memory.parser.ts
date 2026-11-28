@@ -1,11 +1,30 @@
-import { extractParamValue } from '@renderer/components/Widgets/Zen/screens/Chat/utils/toolParser';
+/**
+ * ------------------------------------------------------------------
+ * Update Memory Parser
+ * ------------------------------------------------------------------
+ * Parse nội dung tag update_memory từ phản hồi của AI thành params,
+ * kiểm tra thiếu tham số hoặc thiếu thẻ đóng.
+ *
+ * Main types:
+ * - UpdateMemoryParams : Params của tool (old_content, new_content)
+ *
+ * Main functions:
+ * - parseUpdateMemory() : Trích xuất và validate old_content/new_content
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { extractParamValue } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface UpdateMemoryParams {
   old_content: string;
   new_content: string;
   _validationError?: string;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const detectMissingClosingTag = (content: string, paramName: string): string | null => {
   const openingTag = new RegExp(`<${paramName}(?:\\s+[^>]*)?>`, 'i');
   if (!openingTag.test(content)) return null;

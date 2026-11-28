@@ -1,6 +1,16 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import { Archive, Loader2 } from 'lucide-react';
 import { Modal, ModalHeader, ModalBody } from '@renderer/components/ui/Modal';
+
+// ── Components ──
+import { TaskModal } from './TaskModal';
+import { ArchivedTaskCard } from '../ArchivedTaskCard';
+
+// ── Services ──
 import {
   taskService,
   TASKS_CHANGED_EVENT,
@@ -8,27 +18,30 @@ import {
   type CreateTaskInput,
   type UpdateTaskInput,
 } from '../../../../shared/services/task.service';
-import { TaskModal } from './TaskModal';
-import { ArchivedTaskCard } from '../ArchivedTaskCard';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ArchivedTasksModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectPath: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ArchivedTasksModal({ isOpen, onClose, projectPath }: ArchivedTasksModalProps) {
+  // ── State ──
   const [all, setAll] = useState<StoredTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [editing, setEditing] = useState<StoredTask | null>(null);
 
+  // ── Derived ──
   const tasks = useMemo(
     () => all.filter((t) => t.archived).sort((a, b) => b.updatedAt - a.updatedAt),
     [all],
   );
 
+  // ── Callbacks ──
   const load = useCallback(
     async (showSpinner: boolean) => {
       if (!projectPath) {
@@ -48,6 +61,7 @@ export function ArchivedTasksModal({ isOpen, onClose, projectPath }: ArchivedTas
     [projectPath],
   );
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen) {
       setEditing(null);
@@ -61,6 +75,7 @@ export function ArchivedTasksModal({ isOpen, onClose, projectPath }: ArchivedTas
     return () => window.removeEventListener(TASKS_CHANGED_EVENT, onChanged);
   }, [isOpen, projectPath, load]);
 
+  // ── Handlers ──
   const handleRestore = async (task: StoredTask) => {
     setRestoringId(task.id);
     try {
@@ -107,6 +122,7 @@ export function ArchivedTasksModal({ isOpen, onClose, projectPath }: ArchivedTas
     }
   };
 
+  // ── Render ──
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} className="w-[70vw] max-w-6xl h-[80vh]">

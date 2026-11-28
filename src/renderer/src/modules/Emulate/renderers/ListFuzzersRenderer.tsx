@@ -1,9 +1,9 @@
 import React from 'react';
 import { cn } from '@renderer/utils/cn';
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { getToolLabel } from '@renderer/components/Widgets/Zen/features/chat/registries/tag.registry';
+import { TagHeader } from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/TagHeader';
+import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
+import ErrorBlock from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ErrorBlock';
 
 interface ListFuzzersBlockProps {
   content: string;
@@ -42,10 +42,7 @@ const parseFuzzerData = (content: string): FuzzerRow[] => {
  * Block displaying fuzzer requests as a professional table.
  * Columns: ID | Method | Host | Path
  */
-const ListFuzzersBlock: React.FC<ListFuzzersBlockProps> = ({
-  content,
-  maxHeight = '400px',
-}) => {
+const ListFuzzersBlock: React.FC<ListFuzzersBlockProps> = ({ content, maxHeight = '400px' }) => {
   const rows = parseFuzzerData(content);
 
   if (rows.length === 0) {

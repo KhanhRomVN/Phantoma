@@ -1,0 +1,1 @@
+export const MAX_POLL_FAILURES = 10;

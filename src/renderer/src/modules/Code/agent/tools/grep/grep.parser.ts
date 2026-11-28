@@ -1,7 +1,23 @@
-import { extractParamValue } from '@renderer/components/Widgets/Zen/screens/Chat/utils/toolParser';
+/**
+ * ------------------------------------------------------------------
+ * Grep Parser
+ * ------------------------------------------------------------------
+ * Parse nội dung tag grep từ phản hồi của AI thành params, kèm kiểm tra
+ * tính hợp lệ của regex pattern.
+ *
+ * Main functions:
+ * - parseGrep() : Trích xuất search_term, file_path, folder_path và validate regex
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { extractParamValue } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+// ── Types ──
 import type { GrepParams } from '../tool.types';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Validate regex pattern using Rust regex syntax
  * Returns error message if invalid, null if valid
@@ -34,7 +50,7 @@ export const parseGrep = (innerContent: string): GrepParams => {
   const searchTerm = extractParamValue(innerContent, 'search_term');
   const filePath = extractParamValue(innerContent, 'file_path');
   const folderPath = extractParamValue(innerContent, 'folder_path');
-  const filePattern = extractParamValue(innerContent, 'file_pattern');
+
 
   const searchTermValue = searchTerm || '';
 
@@ -53,7 +69,7 @@ export const parseGrep = (innerContent: string): GrepParams => {
     search_term: searchTermValue,
     file_path: filePath || undefined,
     folder_path: folderPath || undefined,
-    file_pattern: filePattern || undefined,
+
     _validationError: validationError || undefined,
   };
 };

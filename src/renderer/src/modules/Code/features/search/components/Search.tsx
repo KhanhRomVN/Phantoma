@@ -1,18 +1,4 @@
 import { fsIpc } from '../../../shared/ipc/fs.ipc';
-/**
- * ------------------------------------------------------------------
- * Search
- * ------------------------------------------------------------------
- * Project-wide content search panel (right sidebar), powered by
- * ripgrep in the main process with results streamed in chunks.
- *
- * Files:
- * - useSearch.ts         : debounce + stream + cancel logic
- * - SearchResults.tsx    : result list / tree rendering
- * - SearchEmptyState.tsx : vertically centered empty / error states
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 import {
   ListTree,

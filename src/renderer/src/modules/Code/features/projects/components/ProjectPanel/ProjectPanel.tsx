@@ -1,27 +1,6 @@
 import { terminalIpc } from '../../../../shared/ipc/terminal.ipc';
 import { fsIpc } from '../../../../shared/ipc/fs.ipc';
 import { shellIpc } from '../../../../shared/ipc/shell.ipc';
-/**
- * ------------------------------------------------------------------
- * Project Panel (Left Side) — aligned with ProjectPanel.html mockup
- * ------------------------------------------------------------------
- * Vertical project list with:
- * - Project groups (collapse, inline rename, ungroup) + "Ungrouped"
- * - Expandable project cards (collapsed tree / expanded branch blocks)
- * - Task chips, task status menu, background process list (kill)
- * - Sort (Manual / Name / Status / Token usage) + status filter
- * - Show hidden projects, expand / collapse all
- * - Drag-and-drop: projects (Manual sort only, also moves between
- *   groups) and branches (within a project)
- * - Context menus via the shared Dropdown component
- * - Add-project modal, Task Manager toast
- *
- * NOTE: Git scanning is not implemented yet, so mock branches are
- * injected per project (see buildMockBranches). All edits are kept in
- * local state; store persistence is still stubbed.
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ───────────────────────────────────────────────────────────
 import { useState, useRef, useCallback, useMemo, useEffect, memo } from 'react';
 // ── Icons ──

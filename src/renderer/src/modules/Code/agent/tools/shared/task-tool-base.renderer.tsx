@@ -1,13 +1,16 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
 
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
-
+// ─── Functions ───────────────────────────────────────────────────────────────
 const parseTaskCount = (output: string): number | null => {
   try {
     const parsed = JSON.parse(output.slice(output.indexOf('\n') + 1));
@@ -17,6 +20,7 @@ const parseTaskCount = (output: string): number | null => {
   }
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const TaskToolRendererBase: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
@@ -28,6 +32,7 @@ const TaskToolRendererBase: React.FC<BaseRendererProps> = ({
   allMessages,
   moduleId,
 }) => {
+  // ── Derived ──
   const params = action.params || {};
   const validationError = params._validationError;
 
@@ -46,6 +51,7 @@ const TaskToolRendererBase: React.FC<BaseRendererProps> = ({
   const taskCount =
     action.type === 'list_tasks' && isCompleted && !isError ? parseTaskCount(output) : null;
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

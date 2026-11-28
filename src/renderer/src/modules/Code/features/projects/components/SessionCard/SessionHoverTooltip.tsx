@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react';
 import { Tooltip } from '@renderer/components/ui/Tooltip';
-import { Row, TOOLTIP_CLASS } from '../../../../app/layout/FooterBar';
+import { TOOLTIP_CLASS } from '../../../../app/layout/FooterBar';
 import { useCodeStore } from '../../../../shared/stores/code.store';
-import { useScopeStats } from '../../../../shared/stores/scope-stats.store';
 import { useSessionTasks } from '../../hooks/useSessionTasks';
 import { useWorkflowSubTasks } from '../../hooks/useWorkflowSubTasks';
 import type { StoredTask } from '../../../../shared/services/task.service';
-import { codeApi } from '../../../../shared/api/code.api';
 import { SessionInfo } from '../../types/session.types';
 import {
   STATUS_LABELS,
@@ -48,7 +45,7 @@ export function SessionTooltipContent({
   const projectPath = useCodeStore((s) => s.projects.find((p) => p.id === projectId)?.path);
   const allTasks = useSessionTasks((s) => (projectPath ? s.byPath[projectPath] : []));
   const branchTasks = (allTasks ?? []).filter(
-    (t) => !t.archived && t.branchName === branchName && t.status === 'todo' && t.id !== task?.id
+    (t) => !t.archived && t.branchName === branchName && t.status === 'todo' && t.id !== task?.id,
   );
 
   return (

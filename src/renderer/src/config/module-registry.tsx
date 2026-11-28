@@ -17,7 +17,6 @@ import {
   MessageSquare,
   Network,
   Activity,
-  LayoutDashboard,
 } from 'lucide-react';
 
 // Lazy imports for better performance
@@ -26,7 +25,7 @@ import { lazy } from 'react';
 const Recon = lazy(() => import('../modules/Recon'));
 const Emulate = lazy(() => import('../modules/Emulate/Emulate'));
 const Code = lazy(() => import('../modules/Code/Code'));
-import { CodeSkeleton } from '../modules/Code/CodeSkeleton';
+
 const Setting = lazy(() => import('../modules/Setting'));
 const UITest = lazy(() => import('../modules/UITest'));
 const Profile = lazy(() => import('../modules/Profile/Profile'));
@@ -34,10 +33,19 @@ const Proxy = lazy(() => import('../modules/Proxy/Proxy'));
 const Fleet = lazy(() => import('../modules/Fleet'));
 const Chat = lazy(() => import('../modules/Chat/Chat'));
 const Monitor = lazy(() => import('../modules/Monitor/Monitor'));
-const Dashboard = lazy(() => import('../modules/Dashboard/Dashboard'));
 
 export type ModuleId =
-  'recon' | 'emulate' | 'code' | 'settings' | 'preview' | 'uitest' | 'profile' | 'proxy' | 'fleet' | 'chat' | 'monitor' | 'dashboard';
+  | 'recon'
+  | 'emulate'
+  | 'code'
+  | 'settings'
+  | 'preview'
+  | 'uitest'
+  | 'profile'
+  | 'proxy'
+  | 'fleet'
+  | 'chat'
+  | 'monitor';
 
 export interface ModuleDefinition {
   id: ModuleId;
@@ -85,7 +93,6 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     description: 'AI-powered development environment',
     icon: CodeIcon,
     component: <Code />,
-    skeleton: <CodeSkeleton />,
     color: 'text-blue-400',
     showInQuickNav: true,
     showInActivityBar: true,
@@ -137,16 +144,6 @@ export const MODULE_DEFINITIONS: ModuleDefinition[] = [
     icon: Activity,
     component: <Monitor />,
     color: 'text-rose-400',
-    showInQuickNav: true,
-    showInActivityBar: true,
-  },
-  {
-    id: 'dashboard',
-    title: 'Dashboard',
-    description: 'Overview of activity, stats and key metrics',
-    icon: LayoutDashboard,
-    component: <Dashboard />,
-    color: 'text-indigo-400',
     showInQuickNav: true,
     showInActivityBar: true,
   },

@@ -17,10 +17,7 @@ import React from 'react';
 import { ChevronRight } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────
-interface ThinkingBlockProps {
-  content: string;
-  isStreaming?: boolean;
-}
+import type { ThinkingBlockProps } from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/ThinkingBlock';
 
 // ─── Component ──────────────────────────────────────────────────────────
 export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ content, isStreaming = false }) => {

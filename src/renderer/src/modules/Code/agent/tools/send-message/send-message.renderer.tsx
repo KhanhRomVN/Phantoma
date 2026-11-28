@@ -1,25 +1,31 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── UI ──
 import { ArrowRight } from 'lucide-react';
 
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
-import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
-import type { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
-import { useWorkflowAgentSync } from '@renderer/components/Widgets/Zen/context/WorkflowAgentContext';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { useWorkflowAgentSync } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 import { getAgentFavicon } from '../../../shared/constants/workspace-agents.constants';
 import { focusAgentPanel } from '../../services/agent-panel.service';
 import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../stores/workflow.store';
+import { MarkdownRenderer } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const humanizeAgentId = (id: string): string =>
   id
     .split('_')
@@ -27,6 +33,7 @@ const humanizeAgentId = (id: string): string =>
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const SendMessageRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
@@ -38,6 +45,7 @@ const SendMessageRenderer: React.FC<BaseRendererProps> = ({
   allMessages,
   moduleId,
 }) => {
+  // ── Derived ──
   const [isCollapsed, setIsCollapsed] = React.useState(true);
 
   const {
@@ -57,10 +65,13 @@ const SendMessageRenderer: React.FC<BaseRendererProps> = ({
 
   const workflowSync = useWorkflowAgentSync();
   const senderId = workflowSync?.agentId ?? 'orchestrator';
+
+  // ── Store ──
   const sender = useWorkflowStore((s) => s.agents.find((a) => a.id === senderId));
   const target = useWorkflowStore((s) => s.agents.find((a) => a.id === agentId));
   const config = useWorkflowStore((s) => s.configs[agentId] ?? EMPTY_AGENT_CONFIG);
 
+  // ── Derived ──
   const senderName = sender?.name ?? humanizeAgentId(senderId);
   const targetName = target?.name ?? (humanizeAgentId(agentId) || 'unknown');
   const providerId = config.model?.providerId ?? config.model?.provider_id;
@@ -70,6 +81,7 @@ const SendMessageRenderer: React.FC<BaseRendererProps> = ({
   const modelLabel = providerId && modelId ? `${providerId}/${modelId}` : 'no model';
   const modelLine = [modelLabel, email].filter(Boolean).join(' ');
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

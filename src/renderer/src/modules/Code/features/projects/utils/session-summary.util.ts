@@ -1,3 +1,4 @@
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const mkSum = (
   tokens: number,
   cost: number,

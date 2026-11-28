@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
+
+// ── Types ──
 import type { CodeWorkspaceInput, CodeSession, CodeSessionInput } from '../types/session.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const sessionsApi = {
   create: (input: CodeSessionInput) => request<CodeSession>('POST', '/sessions', input),
   update: (id: string, input: CodeSessionInput) =>

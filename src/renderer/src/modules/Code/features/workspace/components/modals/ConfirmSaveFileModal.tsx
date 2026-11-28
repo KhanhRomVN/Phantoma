@@ -1,10 +1,15 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState } from 'react';
+
+// ── UI ──
 import { FileWarning, Save, Trash2 } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ConfirmSaveFileModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -13,6 +18,7 @@ interface ConfirmSaveFileModalProps {
   fileName: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmSaveFileModal({
   isOpen,
   onClose,
@@ -20,8 +26,10 @@ export function ConfirmSaveFileModal({
   onDiscard,
   fileName,
 }: ConfirmSaveFileModalProps) {
+  // ── State ──
   const [saving, setSaving] = useState(false);
 
+  // ── Handlers ──
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -32,6 +40,7 @@ export function ConfirmSaveFileModal({
     }
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[420px]">
       <ModalBody className="py-6 px-5">

@@ -7,7 +7,6 @@ import React from 'react';
 import {
   Activity,
   Cpu,
-
   Fingerprint,
   Globe,
   Key,
@@ -190,39 +189,41 @@ const MethodCard: React.FC<{
   const s = TONE_STYLE[tone];
   return (
     <button
-      type='button'
+      type="button"
       onClick={onClick}
       className={cn(
         'flex h-full w-full items-start gap-3 rounded-xl bg-background/60 p-3 text-left transition-colors hover:bg-dropdown-item-hover/60',
         selected
-          ? cn('outline outline-1 -outline-offset-1 outline-dashed outline-current', s.text)
+          ? cn(' outline-1 -outline-offset-1 outline-dashed outline-current', s.text)
           : 'outline-none',
       )}
     >
-      <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', s.icon)}>
-        <Icon className='h-5 w-5' />
+      <span
+        className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', s.icon)}
+      >
+        <Icon className="h-5 w-5" />
       </span>
-      <span className='flex min-w-0 flex-1 flex-col gap-1'>
-        <span className='flex items-center gap-2'>
-          <span className='truncate text-[13px] font-semibold text-text-primary'>{label}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="flex items-center gap-2">
+          <span className="truncate text-[13px] font-semibold text-text-primary">{label}</span>
           {recommended && (
-            <span className='shrink-0 rounded-md bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success'>
+            <span className="shrink-0 rounded-md bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success">
               Recommended
             </span>
           )}
           {soon && (
-            <span className='shrink-0 rounded-md bg-text-secondary/10 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary'>
+            <span className="shrink-0 rounded-md bg-text-secondary/10 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
               Soon
             </span>
           )}
         </span>
-        <span className='text-[11px] leading-snug text-text-secondary'>{description}</span>
+        <span className="text-[11px] leading-snug text-text-secondary">{description}</span>
         {tools && tools.length > 0 && (
-          <span className='mt-0.5 flex flex-wrap gap-1'>
+          <span className="mt-0.5 flex flex-wrap gap-1">
             {tools.map((t) => (
               <span
                 key={t}
-                className='rounded-md bg-text-secondary/10 px-1.5 py-0.5 font-mono text-[10px] text-text-secondary'
+                className="rounded-md bg-text-secondary/10 px-1.5 py-0.5 font-mono text-[10px] text-text-secondary"
               >
                 {t}
               </span>
@@ -260,7 +261,6 @@ export function MethodPanel({
   sudoPassword,
   onSudoPasswordChange,
 }: MethodPanelProps) {
-  
   const needsSudo = (selectedAction === 'ebpf' || selectedAction === 'pcap') && !isRunning;
 
   const renderMethods = () => {
@@ -268,9 +268,9 @@ export function MethodPanel({
       return (
         <MethodCard
           icon={Square}
-          label='Stop target'
-          description='Stop the running target session'
-          tone='error'
+          label="Stop target"
+          description="Stop the running target session"
+          tone="error"
           selected={selectedAction === 'stop'}
           onClick={() => onSelectAction('stop')}
         />
@@ -278,15 +278,15 @@ export function MethodPanel({
     }
     if (loadingMethods) {
       return (
-        <div className='flex items-center justify-center gap-2 py-6 text-xs text-text-secondary'>
-          <Loader2 className='h-3.5 w-3.5 animate-spin' />
+        <div className="flex items-center justify-center gap-2 py-6 text-xs text-text-secondary">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Loading methods...
         </div>
       );
     }
     if (methods.length === 0) {
       return (
-        <div className='py-6 text-center text-xs text-text-secondary'>
+        <div className="py-6 text-center text-xs text-text-secondary">
           No capture methods available for this platform
         </div>
       );
@@ -304,11 +304,11 @@ export function MethodPanel({
     });
 
     return groups.map((g) => (
-      <div key={g.name || 'all'} className='grid grid-cols-2 gap-2 min-[1400px]:grid-cols-3'>
+      <div key={g.name || 'all'} className="grid grid-cols-2 gap-2 min-[1400px]:grid-cols-3">
         {g.name && (
-          <div className='col-span-full flex items-center gap-2 px-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary'>
+          <div className="col-span-full flex items-center gap-2 px-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
             <span>{g.name}</span>
-            <span className='h-px flex-1 bg-text-secondary/15' />
+            <span className="h-px flex-1 bg-text-secondary/15" />
           </div>
         )}
         {g.items.map(({ m, i }) => (
@@ -334,48 +334,48 @@ export function MethodPanel({
       <Block
         title={isRunning ? 'Actions' : 'HTTPS capture method'}
         icon={Shield}
-        tone='success'
+        tone="success"
         aside={
           !isRunning && methods.length > 0 ? (
-            <span className='rounded-md bg-text-secondary/10 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary'>
+            <span className="rounded-md bg-text-secondary/10 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
               {methods.length} methods
             </span>
           ) : undefined
         }
       >
-        <div className='flex flex-col gap-2'>{renderMethods()}</div>
+        <div className="flex flex-col gap-2">{renderMethods()}</div>
       </Block>
 
       {showProfile && (
-        <Block title='Browser profile' icon={User} tone='primary'>
+        <Block title="Browser profile" icon={User} tone="primary">
           <ProfilePicker value={profilePath} onChange={onProfileChange} />
         </Block>
       )}
 
       {needsSudo && (
-        <Block title='Sudo password' icon={Lock} tone='warn'>
+        <Block title="Sudo password" icon={Lock} tone="warn">
           <input
-            type='text'
-            autoComplete='off'
+            type="text"
+            autoComplete="off"
             value={sudoPassword}
             onChange={(e) => onSudoPasswordChange(e.target.value)}
-            placeholder='Enter your sudo password...'
-            className='h-[42px] w-full rounded-lg bg-background px-3 text-sm text-text-primary outline-none'
+            placeholder="Enter your sudo password..."
+            className="h-[42px] w-full rounded-lg bg-background px-3 text-sm text-text-primary outline-none"
           />
         </Block>
       )}
 
       {showProxy && (
         <Block
-          title='Proxy'
+          title="Proxy"
           icon={Network}
-          tone='info'
+          tone="info"
           aside={
-            <span className='flex items-center gap-1.5 text-[11px] text-text-secondary'>
+            <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
               {proxy ? (
                 <>
-                  <span className='text-sm leading-none'>{flagEmoji(proxy.countryCode)}</span>
-                  <span className='max-w-[220px] truncate'>{proxy.name}</span>
+                  <span className="text-sm leading-none">{flagEmoji(proxy.countryCode)}</span>
+                  <span className="max-w-[220px] truncate">{proxy.name}</span>
                 </>
               ) : (
                 'Direct connection'
@@ -389,10 +389,14 @@ export function MethodPanel({
 
       {showFootprint && (
         <Block
-          title='Footprint'
+          title="Footprint"
           icon={Fingerprint}
-          tone='primary'
-          aside={<span className='text-[11px] text-text-secondary'>{preset?.name ?? 'System footprint'}</span>}
+          tone="primary"
+          aside={
+            <span className="text-[11px] text-text-secondary">
+              {preset?.name ?? 'System footprint'}
+            </span>
+          }
         >
           <FootprintPicker value={preset} onChange={onPresetChange} proxy={proxy} />
         </Block>

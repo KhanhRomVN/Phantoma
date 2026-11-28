@@ -1,5 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const prApi = {
   status: (root: string) =>
     request<Record<string, any>>('GET', `/pr/status?root=${encodeURIComponent(root)}`),

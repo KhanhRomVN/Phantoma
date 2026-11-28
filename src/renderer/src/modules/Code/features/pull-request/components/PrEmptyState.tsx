@@ -1,18 +1,17 @@
-/**
- * ------------------------------------------------------------------
- * PR Empty States
- * ------------------------------------------------------------------
- * Empty state cho danh sách PR (theo bộ lọc) và cho khung chi tiết
- * khi chưa chọn PR nào.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { GitMerge, GitPullRequest, GitPullRequestClosed, Inbox, Plus } from 'lucide-react';
 
-import type { Filter } from '../types/pull-request.types';
+// ── Utils ──
 import { BTN_PRIMARY, TONE_COLOR as TONE_COLOR_EXPORT, tint } from '../utils/pull-request.util';
 
+// ── Types ──
+import type { Filter } from '../types/pull-request.types';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const COPY: Record<Filter, { title: string; hint: string; color: string; Icon: typeof Inbox }> = {
   open: {
     title: 'No open pull requests',
@@ -40,6 +39,7 @@ const COPY: Record<Filter, { title: string; hint: string; color: string; Icon: t
   },
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const PrListEmpty = memo(function PrListEmpty({
   filter,
   onCreate,

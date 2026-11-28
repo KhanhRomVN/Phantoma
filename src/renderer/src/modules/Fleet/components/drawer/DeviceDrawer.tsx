@@ -39,7 +39,8 @@ interface DeviceDrawerProps {
   onClose: () => void;
 }
 
-const SOFT_BTN = 'h-8 shrink-0 rounded-md bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15';
+const SOFT_BTN =
+  'h-8 shrink-0 rounded-md bg-text-secondary/10 text-text-secondary hover:bg-text-secondary/15';
 const PRIMARY_BTN = 'h-8 rounded-md bg-primary/10 text-primary hover:bg-primary/20';
 const DANGER_BTN = 'h-8 rounded-md bg-error/10 text-error hover:bg-error/20';
 
@@ -84,27 +85,31 @@ export function DeviceDrawer({ device, group, onClose }: DeviceDrawerProps) {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" className={PRIMARY_BTN}>
+          <Button className={PRIMARY_BTN}>
             <Play className="h-3.5 w-3.5" />
             Run script
           </Button>
-          <Button size="sm" className={SOFT_BTN}>
+          <Button className={SOFT_BTN}>
             <RotateCw className="h-3.5 w-3.5" />
             Restart
           </Button>
-          <Button size="sm" className={SOFT_BTN}>
+          <Button className={SOFT_BTN}>
             <Terminal className="h-3.5 w-3.5" />
             Shell
           </Button>
-          <Button size="sm" className={SOFT_BTN}>
+          <Button className={SOFT_BTN}>
             <Upload className="h-3.5 w-3.5" />
             Upload
           </Button>
-          <Button size="sm" className={SOFT_BTN}>
-            {device.status === 'locked' ? <Radio className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+          <Button className={SOFT_BTN}>
+            {device.status === 'locked' ? (
+              <Radio className="h-3.5 w-3.5" />
+            ) : (
+              <Lock className="h-3.5 w-3.5" />
+            )}
             {device.status === 'locked' ? 'Unlock' : 'Lock'}
           </Button>
-          <Button size="sm" className={DANGER_BTN}>
+          <Button className={DANGER_BTN}>
             <Power className="h-3.5 w-3.5" />
             Shutdown
           </Button>

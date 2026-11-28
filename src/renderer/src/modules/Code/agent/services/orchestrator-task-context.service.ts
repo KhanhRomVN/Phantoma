@@ -1,7 +1,26 @@
-import { useCodeStore } from '../../shared/stores/code.store';
+/**
+ * ------------------------------------------------------------------
+ * Orchestrator Task Context Service
+ * ------------------------------------------------------------------
+ * Nạp danh sách task của project hiện tại và dựng chuỗi ngữ cảnh task
+ * để đưa vào system prompt của orchestrator agent.
+ *
+ * Main functions:
+ * - loadOrchestratorTaskContext() : Lấy task theo project/session/branch và build context
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { taskService } from '../../shared/services/task.service';
+
+// ── Stores ──
+import { useCodeStore } from '../../shared/stores/code.store';
+
+// ── Utils ──
 import { buildOrchestratorTaskContext } from '../prompts/orchestrator/task-context';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function loadOrchestratorTaskContext(): Promise<string> {
   const state = useCodeStore.getState();
   const project = state.projects.find((p) => p.id === state.currentProjectId);

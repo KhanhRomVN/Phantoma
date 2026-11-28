@@ -1,8 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+
+// ── Utils ──
 import { LOGO_DARK, LOGO_LIGHT } from './logos';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export type ThemeName = 'light' | 'dark';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'pt';
 
 const CSS = `
@@ -192,6 +198,7 @@ const ICONS: Record<string, ReactNode> = {
   ),
 };
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function Icon({ n, f }: { n: string; f?: boolean }) {
   return (
     <span data-i={n}>
@@ -219,6 +226,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue>({ theme: 'dark', toggle: () => {} });
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function readInitial(): ThemeName {
   try {
     const value = window.localStorage.getItem(STORAGE_KEY);
@@ -230,8 +238,10 @@ function readInitial(): ThemeName {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // ── State ──
   const [theme, setTheme] = useState<ThemeName>(readInitial);
 
+  // ── Derived ──
   const toggle = () => {
     const next: ThemeName = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
@@ -242,6 +252,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // ── Effects ──
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -278,6 +289,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // ── Render ──
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>
       <style>{CSS}</style>
@@ -288,6 +300,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useTheme(): ThemeContextValue {
   return useContext(ThemeContext);
 }

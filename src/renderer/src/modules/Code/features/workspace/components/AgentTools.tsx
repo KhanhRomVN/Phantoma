@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── Components ──
 import { AgentTools } from '@renderer/components/Widgets/AgentTools';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CodeAgentToolsProps {
   onProviderChange?: (provider: { id: string; name: string; url?: string }) => void;
   initialConversationId?: string | null;
@@ -8,6 +13,7 @@ interface CodeAgentToolsProps {
   cwd?: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const CodeAgentTools = memo(function CodeAgentTools({
   onProviderChange,
   initialConversationId,

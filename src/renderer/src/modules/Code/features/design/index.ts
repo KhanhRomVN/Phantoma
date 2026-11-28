@@ -1,3 +1,4 @@
+// ─── Exports ─────────────────────────────────────────────────────────────────
 export { Design } from './components/Design';
 export {
   useDesignStore,

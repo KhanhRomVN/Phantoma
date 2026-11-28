@@ -1,14 +1,27 @@
-import { gitIpc } from '../../../../../shared/ipc/git.ipc';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
+
+// ── UI ──
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
+
+// ── Components ──
 import { DiffBlock } from '@renderer/components/common/DiffBlock';
-import { getFileIconPath } from '@renderer/utils/file-icon';
-import { SyncFile } from '../../../types/sync-branch.types';
-import { STATUS_META, WARNING_TONES } from '../../../constants/sync-branch.constants';
 import { Counts } from './SyncBranchControls';
 
+// ── Services ──
+import { gitIpc } from '../../../../../shared/ipc/git.ipc';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { getFileIconPath } from '@renderer/utils/file-icon';
+import { STATUS_META, WARNING_TONES } from '../../../constants/sync-branch.constants';
+
+// ── Types ──
+import { SyncFile } from '../../../types/sync-branch.types';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export function SyncDiffPanel({
   projectPath,
   sourceRef,
@@ -26,12 +39,14 @@ export function SyncDiffPanel({
   paths: string[];
   onNavigate: (path: string) => void;
 }) {
+  // ── State ──
   const [state, setState] = useState<{ loading: boolean; error: string | null; diff: string }>({
     loading: true,
     error: null,
     diff: '',
   });
 
+  // ── Effects ──
   useEffect(() => {
     if (!sourceRef || !filePath) return;
     let cancelled = false;
@@ -62,6 +77,7 @@ export function SyncDiffPanel({
     );
   }
 
+  // ── Derived ──
   const index = paths.indexOf(filePath);
   const canNav = index >= 0 && paths.length > 1;
   const go = (delta: number) => onNavigate(paths[(index + delta + paths.length) % paths.length]);
@@ -71,6 +87,7 @@ export function SyncDiffPanel({
   const BTN =
     'grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-text-secondary outline-none transition-colors hover:bg-card-hover hover:text-text-primary';
 
+  // ── Render ──
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="flex h-12 shrink-0 items-center gap-3 border-b border-text-secondary/20 px-4">

@@ -14,7 +14,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── UI ──
-import { LayoutPanelLeft, Package, Code, ScrollText, FolderOpen, FileText } from 'lucide-react';
+import { LayoutPanelLeft, Package, Code, ScrollText, FolderOpen, FileText, FolderCode } from 'lucide-react';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 export const TOOLS = {
@@ -59,6 +59,13 @@ export const TOOLS = {
     color: 'red',
     accentIndex: 5,
     description: 'Log viewer (under development)',
+  },
+  code: {
+    icon: FolderCode,
+    label: 'Code',
+    color: 'purple',
+    accentIndex: 6,
+    description: 'Code workspace with file explorer',
   },
 } as const;
 

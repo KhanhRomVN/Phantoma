@@ -1,19 +1,3 @@
-/**
- * ------------------------------------------------------------------
- * Confirm Delete File Modal
- * ------------------------------------------------------------------
- * Confirmation dialog before permanently deleting files or folders
- * from the file explorer. Supports single and multi-item deletion
- * with a centered warning layout matching ConfirmDeleteProjectModal.
- *
- * Main features:
- * - Single item: shows filename highlighted in the description
- * - Multi item: summary count + fixed-height scrollable list with icons
- * - Centered alert badge + title + description
- * - Split Cancel / Delete footer buttons
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── UI 
 import { AlertTriangle, Trash2 } from 'lucide-react';

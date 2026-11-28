@@ -1,22 +1,20 @@
-/**
- * ------------------------------------------------------------------
- * PR Commits
- * ------------------------------------------------------------------
- * Danh sách commit của PR dạng timeline dọc: chấm node, tiêu đề commit
- * và hash (click để copy).
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { Copy, GitCommit } from 'lucide-react';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface PrCommitsProps {
   commits: { oid: string; messageHeadline: string }[];
   onCopy: (hash: string) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const PrCommits = memo(function PrCommits({ commits, onCopy }: PrCommitsProps) {
   if (commits.length === 0) {
+    // ── Render ──
     return (
       <div className={'flex flex-col items-center gap-2 py-12 text-text-secondary/50 text-xs'}>
         <GitCommit className={'w-8 h-8'} strokeWidth={1.2} />

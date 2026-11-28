@@ -1,3 +1,15 @@
+/**
+ * ------------------------------------------------------------------
+ * Delete Agent Parser
+ * ------------------------------------------------------------------
+ * Parse params của tool delete_agent từ khối JSON, thẻ XML hoặc attribute.
+ *
+ * Main functions:
+ * - parseDeleteAgent() : Trích xuất và validate agent_id
+ * ------------------------------------------------------------------
+ */
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 const readTag = (raw: string, tag: string): string | undefined => {
   const m = raw.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
   return m ? m[1].trim() : undefined;

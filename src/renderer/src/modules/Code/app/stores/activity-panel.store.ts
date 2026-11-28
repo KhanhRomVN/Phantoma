@@ -1,7 +1,10 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useCodeStore, type Project } from '../../shared/stores/code.store';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type ActivityTab = Project['activityPanelTab'];
 
 export interface SearchFormState {
@@ -17,6 +20,7 @@ export interface SearchFormState {
   viewAsTree: boolean;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const DEFAULT_SEARCH_FORM: SearchFormState = {
   query: '',
   replaceQuery: '',
@@ -37,6 +41,7 @@ interface ActivityPanelState {
   patchSearch: (key: string, patch: Partial<SearchFormState>) => void;
 }
 
+// ─── Store ───────────────────────────────────────────────────────────────────
 export const useActivityPanelStore = create<ActivityPanelState>()(
   persist(
     (set) => ({
@@ -50,6 +55,7 @@ export const useActivityPanelStore = create<ActivityPanelState>()(
   ),
 );
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useCurrentBranchKey(): string | null {
   return useCodeStore((s) => {
     if (!s.currentProjectId) return null;

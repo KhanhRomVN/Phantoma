@@ -1,9 +1,19 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
+
+// ── Components ──
 import { Row } from '../../../../app/layout/FooterBar';
-import { useScopeStats } from '../../../../shared/stores/scope-stats.store';
+
+// ── Services ──
 import { codeApi } from '../../../../shared/api/code.api';
 
+// ── Stores ──
+import { useScopeStats } from '../../../../shared/stores/scope-stats.store';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ScopeSection({ projectId }: { projectId: string }) {
+  // ── Derived ──
   const stats = useScopeStats(projectId);
   const rows = [
     {
@@ -37,6 +47,7 @@ export function ScopeSection({ projectId }: { projectId: string }) {
   ];
   if (rows.every((r) => r.n === 0)) return null;
 
+  // ── Render ──
   return (
     <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5">
       <span className="text-text-secondary">Scope</span>
@@ -55,6 +66,7 @@ export function ScopeSection({ projectId }: { projectId: string }) {
   );
 }
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface GitDotCounts {
   unstaged: number;
   staged: number;
@@ -64,8 +76,10 @@ export interface GitDotCounts {
 
 /** 4 git dots: not added · added · committed · unpushed commits */
 export function GitDots({ path }: { path: string }) {
+  // ── State ──
   const [git, setGit] = useState<GitDotCounts | null>(null);
 
+  // ── Effects ──
   useEffect(() => {
     if (!path) return;
     let cancelled = false;
@@ -95,6 +109,7 @@ export function GitDots({ path }: { path: string }) {
 
   if (!git) return null;
 
+  // ── Derived ──
   const items: { label: string; sub: string; value: number; dot: string; text: string }[] = [
     {
       label: 'Not added',
@@ -126,6 +141,7 @@ export function GitDots({ path }: { path: string }) {
     },
   ];
 
+  // ── Render ──
   return (
     <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5">
       <span className="text-text-secondary">Git</span>

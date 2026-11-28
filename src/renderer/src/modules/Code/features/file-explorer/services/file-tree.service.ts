@@ -1,10 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import type { DirEntry } from '../../../shared/api/types/fs.types';
-import { useCodeStore, type FileNode } from '../../../shared/stores/code.store';
 import { codeApi } from '../../../shared/api/code.api';
+
+// ── Stores ──
+import { useCodeStore, type FileNode } from '../../../shared/stores/code.store';
+
+// ── Utils ──
 import { beginScan, endScan, lazyNodeRegistry, refreshInFlight } from './file-tree.cache';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const nameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const compareDirEntries = (
   a: { name: string; isDirectory: boolean },
   b: { name: string; isDirectory: boolean },

@@ -38,9 +38,10 @@ import type { MCP, MCPInput } from '../types/mcp.types';
 import type { BranchInfo } from '../../features/projects/types/session.types';
 import { useBranchScopeStore } from './branch-scope.store';
 import { codeApi, type CodeProject } from '../api/code.api';
+import type { PanelType } from '../utils/workspace-layout.util';
 
 // ─── Workspace Panel Types (Persisted) ────────────────────────────────
-export type PanelType = 'terminal' | 'website' | 'emulator' | 'file' | 'agent' | 'agenttools' | 'design';
+export type { PanelType };
 
 export interface StoredWorkspacePanel {
   sessionId?: string;
@@ -308,7 +309,7 @@ function createDefaultPerProject() {
 // ─── Store Interface ────────────────────────────────────────────────────
 
 export type ContentViewMode =
-  'files' | 'tasks' | 'workspace' | 'git' | 'pullrequests' | 'design' | 'agents' | 'settings';
+  'files' | 'tasks' | 'workspace' | 'git' | 'pullrequests' | 'design' | 'settings';
 
 interface CodeState {
   projects: Project[];

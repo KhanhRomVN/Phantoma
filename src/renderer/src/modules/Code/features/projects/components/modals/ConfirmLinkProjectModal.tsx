@@ -1,10 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Check, GitMerge } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
+
+// ── UI ──
+import { AlertTriangle, GitMerge } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface MergeCandidate {
   id: string;
   name: string;
@@ -20,6 +24,7 @@ interface ConfirmLinkProjectModalProps {
   candidates: MergeCandidate[];
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmLinkProjectModal({
   isOpen,
   onClose,
@@ -28,16 +33,20 @@ export function ConfirmLinkProjectModal({
   branchName,
   candidates,
 }: ConfirmLinkProjectModalProps) {
+  // ── State ──
   const [selectedId, setSelectedId] = useState('');
 
+  // ── Effects ──
   useEffect(() => {
     if (isOpen) setSelectedId(candidates[0]?.id ?? '');
   }, [isOpen, candidates]);
 
+  // ── Derived ──
   const selected = candidates.find((c) => c.id === selectedId);
   const duplicate = !!selected?.hasBranch;
   const label = branchName || 'detached';
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[400px]">
       <ModalBody className="px-5 py-6">

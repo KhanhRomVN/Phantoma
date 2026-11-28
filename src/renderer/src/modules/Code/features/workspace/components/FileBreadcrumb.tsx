@@ -1,19 +1,32 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import { ChevronRight, Loader } from 'lucide-react';
 import { Dropdown, DropdownTrigger, DropdownContent } from '@renderer/components/ui/Dropdown';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
-import { cn } from '@renderer/utils/cn';
-import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 
+// ── Stores ──
+import { useCodeStore } from '../../../shared/stores/code.store';
+
+// ── Utils ──
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+import { cn } from '@renderer/utils/cn';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface DirEntry {
   name: string;
   path: string;
   isDirectory: boolean;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const sortEntries = (a: DirEntry, b: DirEntry): number => {
   if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
   return collator.compare(a.name, b.name);
@@ -35,27 +48,33 @@ interface MiniNodeProps {
   onOpenFile: (path: string, name: string) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function MiniNode({ entry, depth, targetPath, onOpenFile }: MiniNodeProps) {
+  // ── State ──
   const [expanded, setExpanded] = useState(false);
   const [children, setChildren] = useState<DirEntry[] | null>(null);
 
+  // ── Effects ──
   useEffect(() => {
     if (entry.isDirectory && expanded && children === null) {
       listDir(entry.path).then(setChildren);
     }
   }, [entry.isDirectory, entry.path, expanded, children]);
 
+  // ── Derived ──
   const isTarget = entry.path === targetPath;
   const iconSrc = entry.isDirectory
     ? getFolderIconPath(entry.name, expanded)
     : getFileIconPath(entry.name);
   const fallbackIcon = entry.isDirectory ? '/images/icon/folder-base.svg' : '/images/icon/file.svg';
 
+  // ── Handlers ──
   const handleClick = () => {
     if (entry.isDirectory) setExpanded((v) => !v);
     else onOpenFile(entry.path, entry.name);
   };
 
+  // ── Render ──
   return (
     <div>
       <button
@@ -114,8 +133,10 @@ interface MiniExplorerProps {
 }
 
 function MiniExplorer({ dirPath, targetPath, onOpenFile }: MiniExplorerProps) {
+  // ── State ──
   const [entries, setEntries] = useState<DirEntry[] | null>(null);
 
+  // ── Effects ──
   useEffect(() => {
     let cancelled = false;
     listDir(dirPath).then((list) => {
@@ -126,6 +147,7 @@ function MiniExplorer({ dirPath, targetPath, onOpenFile }: MiniExplorerProps) {
     };
   }, [dirPath]);
 
+  // ── Render ──
   return (
     <div className="max-h-[320px] overflow-y-auto py-1">
       {entries === null ? (
@@ -155,14 +177,17 @@ interface SegmentProps {
 }
 
 function Segment({ label, parentDir, targetPath, isFile }: SegmentProps) {
+  // ── State ──
   const [open, setOpen] = useState(false);
 
+  // ── Handlers ──
   const handleOpenFile = (path: string, name: string) => {
     const sessionId = useCodeStore.getState().activeWorkspaceSessionId;
     if (sessionId) useCodeStore.getState().requestOpenFile(sessionId, path, name);
     setOpen(false);
   };
 
+  // ── Render ──
   return (
     <Dropdown open={open} onOpenChange={setOpen} align="start" sideOffset={4} width={260}>
       <DropdownTrigger asChild>
@@ -199,6 +224,7 @@ interface FileBreadcrumbProps {
 
 export const FileBreadcrumb = memo(function FileBreadcrumb({ filePath }: FileBreadcrumbProps) {
   const root = useCodeStore((s) => {
+    // ── Derived ──
     const p = s.projects.find((pr) => pr.id === s.currentProjectId);
     return p?.explorerRoot ?? p?.path ?? null;
   });

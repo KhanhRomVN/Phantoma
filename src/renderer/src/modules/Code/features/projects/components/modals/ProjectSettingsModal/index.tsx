@@ -1,10 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+
+// ── UI ──
 import { Image as ImageIcon, Info, SlidersHorizontal, X } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { OverviewTab } from './tabs/OverviewTab';
 import { GeneralTab } from './tabs/GeneralTab';
 import { LogoTab } from './tabs/LogoTab';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import {
   ProjectMark,
   type ProjectSettingsPatch,
@@ -12,8 +20,10 @@ import {
   type ProjectSettingsTarget,
 } from './shared';
 
+// ─── Exports ─────────────────────────────────────────────────────────────────
 export type { ProjectSettingsPatch, ProjectSettingsTarget } from './shared';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface TabProps {
   project: ProjectSettingsTarget;
   onChange: (patch: ProjectSettingsPatch) => void;
@@ -26,6 +36,7 @@ interface TabDefinition {
   component: ComponentType<TabProps>;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const TABS: TabDefinition[] = [
   {
     id: 'overview',
@@ -54,24 +65,31 @@ interface ProjectSettingsModalProps {
   onChange: (id: string, patch: ProjectSettingsPatch) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ProjectSettingsModal({
   isOpen,
   onClose,
   project,
   onChange,
 }: ProjectSettingsModalProps) {
+  // ── State ──
   const [tab, setTab] = useState<ProjectSettingsTabId>('overview');
+
+  // ── Derived ──
   const projectId = project?.id;
 
+  // ── Effects ──
   useEffect(() => {
     if (isOpen) setTab('overview');
   }, [isOpen, projectId]);
 
   if (!project) return null;
 
+  // ── Derived ──
   const active = TABS.find((t) => t.id === tab) ?? TABS[0];
   const ActiveTab = active.component;
 
+  // ── Render ──
   return (
     <Modal
       isOpen={isOpen}

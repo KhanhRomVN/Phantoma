@@ -1,11 +1,16 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React, { useEffect, useState } from 'react';
 
+// ── Services ──
 import { codeApi } from '../api/code.api';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const MAX_CACHE = 200;
 const cache = new Map<string, string | null>();
 const pending = new Map<string, Promise<string | null>>();
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function loadLogo(filePath: string, side: number): Promise<string | null> {
   const key = `${side}:${filePath}`;
   if (cache.has(key)) return Promise.resolve(cache.get(key) ?? null);
@@ -26,6 +31,7 @@ function loadLogo(filePath: string, side: number): Promise<string | null> {
   return promise;
 }
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ProjectLogoImageProps {
   path: string;
   side?: number;
@@ -33,6 +39,7 @@ interface ProjectLogoImageProps {
   fallback?: React.ReactNode;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ProjectLogoImage({ path, side = 96, className, fallback = null }: ProjectLogoImageProps) {
   const [src, setSrc] = useState<string | null>(() => cache.get(`${side}:${path}`) ?? null);
   const [failed, setFailed] = useState(false);

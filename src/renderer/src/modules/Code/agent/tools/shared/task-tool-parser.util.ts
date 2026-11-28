@@ -1,16 +1,34 @@
+/**
+ * ------------------------------------------------------------------
+ * Task Tool Parser Util
+ * ------------------------------------------------------------------
+ * Tiện ích dựng parser dùng chung cho các tool task/workflow. Hỗ trợ đọc
+ * params từ khối JSON, thẻ XML hoặc attribute và validate field bắt buộc.
+ *
+ * Main types:
+ * - ToolParamSpec : Khai báo field required/optional/verbatim của tool
+ *
+ * Main functions:
+ * - readAttr()         : Đọc giá trị attribute dạng name="value"
+ * - createToolParser() : Tạo parser cho một tool theo ToolParamSpec
+ * ------------------------------------------------------------------
+ */
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface ToolParamSpec {
   required: string[];
   optional?: string[];
   verbatim?: string[];
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const readTag = (raw: string, tag: string, verbatim: boolean): string | undefined => {
   const m = raw.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
   if (!m) return undefined;
   return verbatim ? m[1] : m[1].trim();
 };
 
-const readAttr = (raw: string, name: string): string | undefined => {
+export const readAttr = (raw: string, name: string): string | undefined => {
   const m = raw.match(new RegExp(`${name}="([^"]*)"`));
   return m ? m[1] : undefined;
 };

@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
 import { request } from '../client';
+
+// ── Types ──
 import type { GitStatusResult, GitErr, GitLogResult, GitChangedInOtherBranchesResult, GitRemoteDiffResult } from '../types/git.types';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const gitApi = {
   status: (gitRoot: string) =>
     request<GitStatusResult>('GET', `/git/status?gitRoot=${encodeURIComponent(gitRoot)}`),

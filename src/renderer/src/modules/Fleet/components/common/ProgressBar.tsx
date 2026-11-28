@@ -1,5 +1,3 @@
-import { cn } from '@renderer/utils/cn';
-
 interface ProgressBarProps {
   value: number;
   width?: number | string;
@@ -16,7 +14,7 @@ function getHeatColor(v: number): string {
 export function ProgressBar({ value, width = 56, color, showLabel }: ProgressBarProps) {
   const barColor = color || getHeatColor(value);
   const w = typeof width === 'number' ? `${width}px` : width;
-  
+
   return (
     <div className="flex items-center gap-2">
       <div className="h-1 overflow-hidden rounded-full bg-border" style={{ width: w }}>

@@ -1,13 +1,24 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useRef, useEffect, useMemo } from 'react';
 import type { DragEvent, ReactNode } from 'react';
+
+// ── UI ──
 import { ChevronRight, ChevronDown } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { KebabButton } from '../ProjectCard/KebabButton';
 import { GroupPickerForm } from './GroupPickerForm';
-import type { MenuPosition } from '../../types/session.types';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { useAccentColors } from '../../utils/accent.util';
+
+// ── Types ──
+import type { MenuPosition } from '../../types/session.types';
 import type { GroupInfo, ProjectExtended } from '../../types/project-panel.types';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 /** Group header row with inline rename and drag support */
 function GroupHeader({
   group,
@@ -36,10 +47,14 @@ function GroupHeader({
   onDragOver?: (e: DragEvent) => void;
   onDrop?: (e: DragEvent) => void;
 }) {
+  // ── Refs ──
   const inputRef = useRef<HTMLInputElement>(null);
   const doneRef = useRef(false);
+
+  // ── Derived ──
   const { accentColors } = useAccentColors();
 
+  // ── Effects ──
   useEffect(() => {
     if (renaming) {
       doneRef.current = false;
@@ -48,6 +63,7 @@ function GroupHeader({
     }
   }, [renaming]);
 
+  // ── Derived ──
   const finish = (commit: boolean) => {
     if (doneRef.current) return;
     doneRef.current = true;
@@ -66,6 +82,7 @@ function GroupHeader({
     return accentColors[idx];
   }, [group.id, group.name, accentColors]);
 
+  // ── Render ──
   return (
     <div
       draggable={draggable}
@@ -129,6 +146,7 @@ function GroupHeader({
   );
 }
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ProjectGroupSectionProps {
   group: GroupInfo;
   order: number;
@@ -170,6 +188,7 @@ export function ProjectGroupSection({
   onDragOver,
   onDrop,
 }: ProjectGroupSectionProps) {
+  // ── Render ──
   return (
     <div data-gid={g.id} className="shrink-0" style={{ order }}>
       {editing ? (

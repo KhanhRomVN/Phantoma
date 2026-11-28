@@ -10,8 +10,9 @@
  * ------------------------------------------------------------------
  */
 
+import { TagDefinition } from '@renderer/components/Widgets/Zen/features/chat/types/tag.types';
+
 // ─── Imports ────────────────────────────────────────────────────────────
-import type { TagDefinition } from '@renderer/components/Widgets/Zen/screens/Chat/types/tag-types';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 export const EMULATE_TAG_REGISTRY: Record<string, TagDefinition> = {

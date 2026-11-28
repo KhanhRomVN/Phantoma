@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { toastService } from '@renderer/modules/Code/shared/services/toast.service';
+import { toastService } from '@renderer/components/ui/Toast';
 
 export interface BackupSchedule {
   enabled: boolean;

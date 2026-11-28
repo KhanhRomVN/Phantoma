@@ -1,3 +1,4 @@
+// ─── Exports ─────────────────────────────────────────────────────────────────
 export { ProjectPanel } from './components/ProjectPanel/ProjectPanel';
 export { ProjectLogoImage } from './components/ProjectLogo';
 export { ProjectIcon, getProjectIdentity } from './components/ProjectCard/ProjectIcon';

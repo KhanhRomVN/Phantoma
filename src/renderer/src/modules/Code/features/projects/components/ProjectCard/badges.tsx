@@ -1,4 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── UI ──
 import { MoreVertical, MonitorUp, PowerOff, Unlink } from 'lucide-react';
 import {
   Dropdown,
@@ -7,9 +11,14 @@ import {
   DropdownItem,
   DropdownSeparator,
 } from '@renderer/components/ui/Dropdown';
-import { closeTargetOwner } from '@renderer/hooks/useTargetLock';
+
+// ── Components ──
 import { toBranchTargetId } from '../ProjectPanel/modals/ProjectConflictModal';
 
+// ── Hooks ──
+import { closeTargetOwner } from '@renderer/hooks/useTargetLock';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export const DefaultBadge = memo(function DefaultBadge() {
   return (
     <span className="inline-flex items-center h-[18px] px-1.5 rounded-[5px] shrink-0 text-[9.5px] font-medium text-primary bg-primary/10">
@@ -18,6 +27,7 @@ export const DefaultBadge = memo(function DefaultBadge() {
   );
 });
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const NO_BRANCH_NAME = 'no-branch';
 
 export const NO_GIT_NAME = 'no-git';

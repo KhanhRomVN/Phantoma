@@ -1,6 +1,4 @@
-import type { ZenModule } from '@renderer/components/Widgets/Zen/screens/Chat/services/moduleRegistry';
 import { RECON_TAG_REGISTRY } from './constants/tag-registry';
-import { rendererMapFromGlob } from '@renderer/components/Widgets/Zen/screens/Chat/utils/renderer-helpers';
 import * as R from './executors/ReconExecutor';
 import * as P from './parsers/ReconParser';
 import {
@@ -17,6 +15,8 @@ import { CAPABILITIES as RECON_WEB_CAPABILITIES } from './prompts/web-collector/
 import { CAPABILITIES as RECON_LOCAL_CAPABILITIES } from './prompts/local-operator/config';
 import { CAPABILITIES as RECON_VERIFIER_CAPABILITIES } from './prompts/verifier/config';
 import { CAPABILITIES as RECON_SYNTH_CAPABILITIES } from './prompts/synthesizer/config';
+import { ZenModule } from '@renderer/components/Widgets/Zen/features/chat/types/zen_module.types';
+import { rendererMapFromGlob } from '@renderer/components/Widgets/Zen/features/chat/utils/renderer_helpers';
 
 const unwrap =
   (fn: any): ZenModule['executors'][string] =>
@@ -91,7 +91,6 @@ export const reconModule: ZenModule = {
   renderers: rendererMapFromGlob(import.meta.glob('./renderers/*Renderer.tsx', { eager: true })),
   prompts: {
     systemPrompts: new Map([
-
       [
         'orchestrator',
         {

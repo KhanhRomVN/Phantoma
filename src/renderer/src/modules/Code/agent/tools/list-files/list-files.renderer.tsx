@@ -1,23 +1,28 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // Services
-import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import { BaseRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { getFolderIconPath } from '@renderer/utils/file-icon';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import TreeBlock from '@renderer/components/common/TreeBlock';
 import { buildTreeFromPaths } from '../../../shared/utils/tree-builder.util';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   action,
   actionIndex,
@@ -29,6 +34,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
   allMessages,
   moduleId,
 }) => {
+  // ── Derived ──
   const [isCollapsed, setIsCollapsed] = React.useState(true);
 
   const actionId = `${messageId}-action-${actionIndex}`;
@@ -104,6 +110,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
     }
   }
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

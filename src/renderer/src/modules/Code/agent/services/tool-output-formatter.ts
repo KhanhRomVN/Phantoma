@@ -6,8 +6,11 @@
  * ------------------------------------------------------------------
  */
 
-import type { ToolOutputFormatter } from '@renderer/components/Widgets/Zen/shared/tool-output';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { ToolOutputFormatter } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 /**
  * Format run_command output message.
  */

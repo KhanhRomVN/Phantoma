@@ -1,10 +1,15 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { AlertTriangle, Minus, Plus, Trash2, type LucideIcon } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export type FileChangeAction = 'discard' | 'stage' | 'unstage';
 
 interface ActionConfig {
@@ -18,6 +23,7 @@ interface ActionConfig {
   confirmClass: string;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const ACTION_CONFIG: Record<FileChangeAction, ActionConfig> = {
   discard: {
     title: 'Discard Changes?',
@@ -59,6 +65,7 @@ interface ConfirmFileChangeModalProps {
   onConfirm: () => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ConfirmFileChangeModal({
   isOpen,
   action,
@@ -66,9 +73,11 @@ export function ConfirmFileChangeModal({
   onClose,
   onConfirm,
 }: ConfirmFileChangeModalProps) {
+  // ── Derived ──
   const cfg = ACTION_CONFIG[action];
   const { BadgeIcon, ConfirmIcon } = cfg;
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className={'max-w-[400px]'}>
       <ModalBody className={'py-6 px-5'}>

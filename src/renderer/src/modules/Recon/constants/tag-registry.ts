@@ -11,9 +11,10 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
-import type { TagDefinition } from '@renderer/components/Widgets/Zen/screens/Chat/types/tag-types';
 
 // ─── Constants ──────────────────────────────────────────────────────────
+import { TagDefinition } from '@renderer/components/Widgets/Zen/features/chat/types/tag.types';
+
 export const RECON_TAG_REGISTRY: Record<string, TagDefinition> = {
   list_tabs: {
     id: 'list_tabs',

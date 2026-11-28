@@ -13,15 +13,15 @@
  */
 
 // ─── Imports ────────────────────────────────────────────────────────────
+// ── Services ──
+import { FileLockManager } from '../../services/file-lock.service';
+import { codeApi } from '../../../shared/api/code.api';
 
 // ── Utils ──
 import { SecurityValidator } from '../../../shared/utils/security.util';
 
-// ── Managers ──
-import { FileLockManager } from '../../services/file-lock.service';
-
-// ── Services ──
-import { codeApi } from '../../../shared/api/code.api';
+// ── Types ──
+import type { WriteToFileParams } from '../tool.types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -35,8 +35,6 @@ function joinPath(base: string, relative: string): string {
 }
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
-import type { WriteToFileParams } from '../tool.types';
-
 export interface WriteToFileOptions {
   basePath?: string;
 }

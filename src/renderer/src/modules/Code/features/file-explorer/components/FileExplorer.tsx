@@ -1,38 +1,8 @@
 import { watchIpc } from '../../../shared/ipc/watch.ipc';
-import { shellIpc } from '../../../shared/ipc/shell.ipc';
-/**
- * ------------------------------------------------------------------
- * File Explorer
- * ------------------------------------------------------------------
- * Tree-view file browser in the Activity sidebar. Renders the project
- * file tree with expandable folders, file-type icons, right-click
- * context menu (copy path, rename, delete, new file/folder), and
- * supports folder collapse-all and manual refresh.
- *
- * Main features:
- * - Recursive folder/file tree with expand/collapse
- * - File-type and folder icons via fileIconMapper
- * - Right-click context menu: Copy Path, Rename, Delete, New File, New Folder
- * - Delete confirmation modal for single/multi items
- * - Collapse all folders button
- * - Manual refresh to re-scan directory
- * - Directory version invalidation for file watcher sync
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 
 // ── React ──
-import {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useEffect,
-  createContext,
-  useContext,
-  memo,
-} from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
 // ── UI ──
 import {
@@ -41,19 +11,8 @@ import {
   FolderPlus,
   FilePlus,
   RefreshCw,
-  ChevronRight,
-  Loader,
-  File,
   Folder,
 } from 'lucide-react';
-import { Kbd } from '@renderer/components/ui/Kbd';
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownContent,
-  DropdownItem,
-  DropdownSeparator,
-} from '@renderer/components/ui/Dropdown';
 
 // ── Hooks ──
 import { useCodeStore, type FileNode } from '../../../shared/stores/code.store';
@@ -61,14 +20,10 @@ import {
   useBranchScope,
   useBranchScopeStore,
   isInScope,
-  toScopeKey,
 } from '../../../shared/stores/branch-scope.store';
 import { codeApi } from '../../../shared/api/code.api';
 
 // ── Utils ──
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
-import { installRightClickDragCancel } from '@renderer/utils/drag-cancel';
-import { cn } from '@renderer/utils/cn';
 
 // ── Components ──
 import { ConfirmDeleteFileModal } from './modals/ConfirmDeleteFileModal';
@@ -77,59 +32,30 @@ import { ScopeTransferModal, type ScopeTransferTarget } from './modals/ScopeTran
 import { ScopeHelpModal } from './modals/ScopeHelpModal';
 import { HelpCircle } from 'lucide-react';
 
-import { FolderBadges } from './FolderBadges';
 import { ExplorerSearchBar, ExplorerSearchResults } from './ExplorerSearch';
 import { ScopeWarnBell } from './ScopeWarnBell';
-import {
-  useScopeBranchFilter,
-  useScopeFilter,
-  SCOPE_DIFF_DOT,
-  SCOPE_DIFF_RING,
-  useScopeStats,
-  useScopeStatsStore,
-} from '../../../shared/stores/scope-stats.store';
-import { UNSCOPED_BRANCH } from '../../../shared/components/ScopeFilterTabs';
+import { useScopeStats, useScopeStatsStore } from '../../../shared/stores/scope-stats.store';
+
+import { GitFileStatus, GhostIndex, CreatingState, NodeMeta } from '../types/file-explorer.types';
+
+import { gitStatusCache, ignoredPathsCache, lazyNodeRegistry } from '../services/file-tree.cache';
+import { withGhosts } from '../utils/tree-ghost.util';
 
 import {
-  GitFileStatus,
-  GhostIndex,
-  CreatingState,
-  NodeMeta,
-  FileExplorerContextValue,
-} from '../types/file-explorer.types';
-
-import {
-  gitStatusCache,
-  ignoredPathsCache,
-  remoteDiffCache,
-  remoteHashByRoot,
-  lazyNodeRegistry,
-} from '../services/file-tree.cache';
-import { GHOST_PREFIX, withGhosts } from '../utils/tree-ghost.util';
-
-import {
-  fetchDirChildren,
   refreshProjectTree,
   findNodeById,
   collectSelectedItems,
 } from '../services/file-tree.service';
 import { useTreeScanning } from '../hooks/useTreeScanning';
-
 import { FileExplorerContext } from './FileExplorerContext';
-
 import { InlineNewInput } from './InlineNewInput';
-
-import { InlineRenameInput } from './InlineRenameInput';
-import { BorderRun, ScopeLayout, mergeRuns, insetRuns } from '../utils/scope-runs.util';
-import { GutterDot, SelectionBlocks } from './ScopeGutter';
-import { useActiveBranchName, useScopesBelow } from '../hooks/useScopesBelow';
+import { SelectionBlocks } from './ScopeGutter';
 import { ScopeBlocks } from './ScopeBlocks';
 
 import { TreeNodeGate } from './TreeNode';
 export function FileExplorer() {
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const project = useCodeStore((s) => s.projects.find((p) => p.id === s.currentProjectId));
-  const setProjectFiles = useCodeStore((s) => s.setProjectFiles);
   const expandFolders = useCodeStore((s) => s.expandFolders);
   const collapseAllFolders = useCodeStore((s) => s.collapseAllFolders);
 
@@ -157,9 +83,8 @@ export function FileExplorer() {
   const [errorPaths, setErrorPaths] = useState<Set<string>>(new Set());
   const [viewRemoteDiffPath, setViewRemoteDiffPath] = useState<string | null>(null);
   const handleViewRemoteDiff = useCallback((path: string) => setViewRemoteDiffPath(path), []);
-  const treeScanning = useTreeScanning();
   const nodeMetaRef = useRef<Map<string, NodeMeta>>(new Map());
-  const contextMenuTriggerPathRef = useRef<string | null>(null);
+
   // Double-press C detection
   const lastCKeyTimeRef = useRef<number>(0);
   const cKeyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -380,10 +305,9 @@ export function FileExplorer() {
       }
     }
     if (paths.length > 0) {
-      navigator.clipboard.writeText(paths.join('\n')).then(
-        undefined,
-        (err) => console.error('[DEBUG] clipboard write FAILED:', err),
-      );
+      navigator.clipboard
+        .writeText(paths.join('\n'))
+        .then(undefined, (err) => console.error('[DEBUG] clipboard write FAILED:', err));
     }
   }, [selectedNodeIds]);
 
@@ -622,7 +546,8 @@ export function FileExplorer() {
           .map((p) => p.slice(base.length + 1));
         if (files.length > 0) targets.push({ branch, path: branchPath, files });
       }
-      if (targets.length > 0) setTransferTargets(targets.sort((a, b) => a.branch.localeCompare(b.branch)));
+      if (targets.length > 0)
+        setTransferTargets(targets.sort((a, b) => a.branch.localeCompare(b.branch)));
     };
     window.addEventListener('explorer:scope-transfer', onOpen);
     return () => window.removeEventListener('explorer:scope-transfer', onOpen);
@@ -1055,14 +980,16 @@ export function FileExplorer() {
         <button
           type={'button'}
           onClick={() => setScopeHelpOpen(true)}
-          className={'shrink-0 flex h-8 w-full items-center gap-1.5 border-t border-border px-3 text-[11.5px] text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary cursor-pointer'}
+          className={
+            'shrink-0 flex h-8 w-full items-center gap-1.5 border-t border-border px-3 text-[11.5px] text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary cursor-pointer'
+          }
         >
           <HelpCircle className={'h-3.5 w-3.5'} />
           <span>Don't understand the scope dot colors?</span>
         </button>
 
         {selectedNodeIds.size > 1 && (
-          <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-md bg-card-background px-3 py-1 text-xs text-text-secondary outline outline-1 outline-dashed outline-primary">
+          <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-md bg-card-background px-3 py-1 text-xs text-text-secondary outline-1 outline-dashed outline-primary">
             <span className="whitespace-nowrap">
               {selectedNodeIds.size} selected · drag to add to message
             </span>

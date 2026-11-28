@@ -7,6 +7,7 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type TaskStatus = 'pending' | 'in_progress' | 'review' | 'completed';
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';

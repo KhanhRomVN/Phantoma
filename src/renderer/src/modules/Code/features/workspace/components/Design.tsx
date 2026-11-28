@@ -8,17 +8,9 @@ import { Palette, Loader2, ArrowLeft, ArrowRight, RotateCw } from 'lucide-react'
 import { useCodeStore } from '../../../shared/stores/code.store';
 import { useDesignStore, type DesignGraph, type DesignMeta, type DesignNode, type DesignEdge } from '../../design';
 import { cn } from '@renderer/utils/cn';
+import { toBase64Url } from '../../design/utils/design-url.util';
 
 // ─── Design URL helper ──────────────────────────────────────────────
-
-function toBase64Url(value: string): string {
-  const bytes = new TextEncoder().encode(value);
-  let binary = '';
-  bytes.forEach((b) => {
-    binary += String.fromCharCode(b);
-  });
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
 
 function getDesignPageUrl(
   projectPath: string,

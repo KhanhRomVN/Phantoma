@@ -9,6 +9,7 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function isAbsoluteWorkspacePath(p: string): boolean {
   return p.startsWith('/') || p.startsWith('file://') || /^[A-Za-z]:[\\/]/.test(p);
 }

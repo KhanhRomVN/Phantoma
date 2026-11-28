@@ -1,11 +1,17 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useState, type ReactNode } from 'react';
+
+// ── Utils ──
 import { NAV, SITE } from './site';
 import { Icon, Logo, ThemeProvider, useTheme } from './theme';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function navigate(route: string) {
   window.parent.postMessage({ type: 'phantoma-design:navigate', route }, '*');
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function RouteLink({
   route,
   className,
@@ -31,6 +37,7 @@ function RouteLink({
 
 const fmt = (n: number) => (n >= 1e3 ? (n / 1e3).toFixed(1).replace('.0', '') + 'k' : String(n));
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 export function useStars(): string {
   const [stars, setStars] = useState('—');
   useEffect(() => {
@@ -73,6 +80,7 @@ function Header({ current, stars }: { current: string; stars: string }) {
 }
 
 function Footer() {
+  // ── Render ──
   return (
     <footer>
       <div className="w">
@@ -157,4 +165,5 @@ export function SiteLayout({
   );
 }
 
+// ─── Exports ─────────────────────────────────────────────────────────────────
 export { RouteLink };

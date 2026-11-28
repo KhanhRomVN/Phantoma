@@ -1,9 +1,15 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { FolderOpen, Globe, CheckCircle2, ShieldCheck, CornerDownLeft } from 'lucide-react';
+
+// ── Utils ──
 import { GIT_URL_REGEX } from '../../../utils/open-project.util';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const inputClass =
   'w-full h-9 rounded-lg bg-input-background border border-transparent px-3 text-sm font-mono text-text-primary outline-none focus:outline-none focus:ring-0 focus:border-primary/40 placeholder:text-text-secondary transition-colors';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface NewRepositoryFormProps {
   url: string;
   folderName: string;
@@ -16,6 +22,7 @@ export interface NewRepositoryFormProps {
   suggestedName?: string;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function Field({
   label,
   hint,
@@ -52,11 +59,13 @@ export function NewRepositoryForm({
   folderConflict,
   suggestedName,
 }: NewRepositoryFormProps) {
+  // ── Derived ──
   const trimmedUrl = url.trim();
   const isValidUrl = GIT_URL_REGEX.test(trimmedUrl);
   const showUrlError = trimmedUrl.length > 0 && !isValidUrl;
   const folderInvalid = /[\\/]/.test(folderName);
 
+  // ── Render ──
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
       <Field

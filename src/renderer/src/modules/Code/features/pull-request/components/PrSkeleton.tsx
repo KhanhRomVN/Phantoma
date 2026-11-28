@@ -1,15 +1,11 @@
-/**
- * ------------------------------------------------------------------
- * PR Skeleton
- * ------------------------------------------------------------------
- * Skeleton loading cho danh sách card và cho khung chi tiết PR.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
 
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const Bone = ({ className }: { className?: string }) => (
   <div className={cn('animate-pulse rounded bg-text-secondary/10', className)} />
 );

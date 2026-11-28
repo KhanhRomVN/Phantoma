@@ -1,7 +1,14 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import { Folder, GitBranch } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { ProjectLogoImage } from '../../../../shared/components/ProjectLogo';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface TreeUIPreviewProps {
   projectName: string;
   projectPath: string;
@@ -24,6 +31,7 @@ interface TreeRow {
   tag?: RowTag;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const trimSlash = (p: string) => p.replace(/\/+$/, '') || '/';
 
 const parentOf = (p: string) => {
@@ -99,6 +107,7 @@ function buildSiblingRows(
   return rows;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function RowIcon({
   tag,
   logoPath,
@@ -108,6 +117,7 @@ function RowIcon({
   logoPath?: string | null;
   variant?: 'create' | 'delete';
 }) {
+  // ── Derived ──
   const isDeleting = tag === 'new' && variant === 'delete';
   const fallback = isDeleting ? (
     <Folder className="h-3.5 w-3.5 text-error" />
@@ -119,6 +129,8 @@ function RowIcon({
   if (!tag || !logoPath) {
     return <span className="grid h-4 w-4 shrink-0 place-items-center">{fallback}</span>;
   }
+
+  // ── Render ──
   return (
     <span className="grid h-4 w-4 shrink-0 place-items-center overflow-hidden rounded-[4px]">
       <ProjectLogoImage
@@ -170,10 +182,12 @@ export function TreeUIPreview({
   hideBadges,
   conflict,
 }: TreeUIPreviewProps) {
+  // ── Derived ──
   const groups = siblings
     ? [buildSiblingRows(projectPath, projectName, folderName, targetDir, siblings)]
     : buildGroups(projectPath, projectName, folderName, targetDir);
 
+  // ── Render ──
   return (
     <div className="flex flex-col gap-2">
       {groups.map((rows, gi) => (

@@ -1,18 +1,26 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, type ReactNode } from 'react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Stores ──
 import {
   SCOPE_DIFF_DOT,
   SCOPE_DIFF_RING,
   type ScopeCategory,
 } from '../../../../shared/stores/scope-stats.store';
 import { isInScope } from '../../../../shared/stores/branch-scope.store';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { SCOPE_BADGE_META, BRANCH_BADGE_PALETTE, BRANCH_TEXT_PALETTE } from './scopeBadges';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 export interface BranchScopeEntry {
   branch: string;
   paths: string[];
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export function scopeRootOwners(
   rows: { node: { path: string; isDir?: boolean; files?: string[] }; depth: number }[],
   index: number,
@@ -63,6 +71,7 @@ export function branchColors(
   };
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const DOT_ORDER: ScopeCategory[] = ['error', 'diff', 'warn', 'primary'];
 
 const DOT_STYLE: Record<ScopeCategory, { dot: string; ring: string }> = {
@@ -116,6 +125,7 @@ export function groupScopeBlocks(
   return out;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const ScopeDots = memo(function ScopeDots({
   counts,
   deleted = false,

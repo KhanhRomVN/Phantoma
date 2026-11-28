@@ -1,0 +1,1 @@
+export const stringifyParam = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v));

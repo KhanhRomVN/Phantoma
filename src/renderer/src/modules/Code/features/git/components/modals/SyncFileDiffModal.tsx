@@ -1,26 +1,29 @@
-import { gitIpc } from '../../../../shared/ipc/git.ipc';
-/**
- * ------------------------------------------------------------------
- * Sync File Diff Modal
- * ------------------------------------------------------------------
- * Modal xem diff của 1 file mà SyncBranchModal sắp pull từ branch nguồn
- * về branch hiện tại. Phần hiển thị diff dùng DiffBlock dùng chung.
- * ------------------------------------------------------------------
- */
-
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useMemo, useRef, useState } from 'react';
+
+// ── UI ──
 import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search } from 'lucide-react';
-import { codeApi } from '../../../../shared/api/code.api';
 import { ResizableSplit } from '@renderer/components/ui/ResizableSplit/ResizableSplit';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
-import { DiffBlock } from '@renderer/components/common/DiffBlock';
-import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
-import { cn } from '@renderer/utils/cn';
 import { Tooltip } from '@renderer/components/ui/Tooltip/Tooltip';
+
+// ── Components ──
+import { DiffBlock } from '@renderer/components/common/DiffBlock';
+
+// ── Services ──
+import { gitIpc } from '../../../../shared/ipc/git.ipc';
+import { codeApi } from '../../../../shared/api/code.api';
+
+// ── Stores ──
 import { useBranchScope, useBranchScopeStore, isInScope } from '../../../../shared/stores/branch-scope.store';
 import type { ScopeCategory } from '../../../../shared/stores/scope-stats.store';
+
+// ── Utils ──
+import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
+import { cn } from '@renderer/utils/cn';
 import {
   SCOPE_BADGE_ORDER,
   SCOPE_BADGE_META,
@@ -36,6 +39,10 @@ import {
   groupScopeBlocks,
 } from '../scope/scopeTree';
 
+// ── Types ──
+import type { PanelState } from '../../../../shared/types/diff-panel.types';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface SyncFileDiffModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,12 +57,6 @@ interface SyncFileDiffModalProps {
   currentBranch?: string;
   activeScope?: ScopeCategory | 'all';
   onActiveScopeChange?: (next: ScopeCategory | 'all') => void;
-}
-
-interface PanelState {
-  loading: boolean;
-  error: string | null;
-  diff: string;
 }
 
 type FileStatus = 'added' | 'modified' | 'deleted';
@@ -78,12 +79,14 @@ interface TreeNode {
   files: string[];
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const STATUS_META: Record<FileStatus, { cls: string; label: string; mark: string }> = {
   added: { cls: 'text-success', label: 'Added', mark: '(+)' },
   modified: { cls: 'text-warn', label: 'Modified', mark: '(~)' },
   deleted: { cls: 'text-error', label: 'Deleted', mark: '(-)' },
 };
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 function buildTree(files: SyncFile[]): TreeNode[] {
   const root: TreeNode = {
     name: '',
@@ -144,6 +147,7 @@ function flatten(
   return out;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function SyncFileDiffModal({
   isOpen,
   onClose,
@@ -159,11 +163,18 @@ export function SyncFileDiffModal({
   activeScope,
   onActiveScopeChange,
 }: SyncFileDiffModalProps) {
+  // ── State ──
   const [panel, setPanel] = useState<PanelState>({ loading: false, error: null, diff: '' });
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  // ── Derived ──
   const scope = useBranchScope(projectId ?? '', currentBranch ?? '');
+
+  // ── Store ──
   const allScopes = useBranchScopeStore((s) => s.scopes);
+
+  // ── Derived ──
   const branchScopes = useMemo(() => {
     const prefix = `${projectId ?? ''}::`;
     return Object.entries(allScopes)
@@ -172,15 +183,23 @@ export function SyncFileDiffModal({
       .sort((a, b) => a.branch.localeCompare(b.branch));
   }, [allScopes, projectId]);
 
+  // ── State ──
   const [localActive, setLocalActive] = useState<ScopeCategory | 'all'>('all');
+
+  // ── Derived ──
   const active = activeScope ?? localActive;
   const setActive = onActiveScopeChange ?? setLocalActive;
+
+  // ── State ──
   const [scopeInfo, setScopeInfo] = useState<{
     diff: Set<string> | null;
     other: Set<string>;
   } | null>(null);
+
+  // ── Derived ──
   const filesKey = files.join('\n');
 
+  // ── Effects ──
   useEffect(() => {
     setScopeInfo(null);
     if (!isOpen || scope.length === 0 || files.length === 0) return;
@@ -202,6 +221,7 @@ export function SyncFileDiffModal({
     };
   }, [isOpen, filesKey, projectPath, scope]);
 
+  // ── Derived ──
   const byCategory = useMemo(() => {
     const out: Record<ScopeCategory, string[]> = { error: [], diff: [], warn: [], primary: [] };
     if (!scopeInfo) return out;
@@ -258,8 +278,11 @@ export function SyncFileDiffModal({
       else next.add(p);
       return next;
     });
+
+  // ── Refs ──
   const listRef = useRef<HTMLElement>(null);
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen || !filePath) return;
     setCollapsed((prev) => {
@@ -276,6 +299,7 @@ export function SyncFileDiffModal({
     el?.scrollIntoView({ block: 'nearest' });
   }, [isOpen, filePath, collapsed]);
 
+  // ── Derived ──
   const index = filePath ? navFiles.indexOf(filePath) : -1;
   const canNav = !!onNavigate && index >= 0 && navFiles.length > 1;
   const go = (delta: number) => {
@@ -283,6 +307,7 @@ export function SyncFileDiffModal({
     onNavigate!(navFiles[(index + delta + navFiles.length) % navFiles.length]);
   };
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen || !canNav) return;
     const onKey = (e: KeyboardEvent) => {
@@ -312,6 +337,7 @@ export function SyncFileDiffModal({
     };
   }, [isOpen, projectPath, sourceRef, filePath]);
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-[94vw] max-w-[1560px] h-[80vh]">
       <ModalHeader

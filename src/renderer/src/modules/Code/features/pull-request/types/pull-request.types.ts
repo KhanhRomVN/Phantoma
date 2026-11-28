@@ -7,6 +7,7 @@
  * ------------------------------------------------------------------
  */
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface PrUser {
   login: string;
 }
@@ -81,6 +82,7 @@ export type Filter = 'open' | 'merged' | 'closed' | 'all';
 export type MergeMethod = 'merge' | 'squash' | 'rebase';
 export type DetailTab = 'overview' | 'commits' | 'files' | 'conversation';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const FILTERS: { id: Filter; label: string }[] = [
   { id: 'open', label: 'Open' },
   { id: 'merged', label: 'Merged' },

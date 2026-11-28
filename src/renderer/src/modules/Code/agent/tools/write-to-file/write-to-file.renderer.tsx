@@ -1,29 +1,37 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { FilePreviewModal } from '@renderer/components/common/FilePreviewModal';
 
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+
 // ── Hooks ──
-import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
+import { useSettings } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // Services
-import { extensionService } from '@renderer/components/Widgets/Zen/services/ExtensionService';
+import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Constants ──
-import { getToolLabel } from '@renderer/components/Widgets/Zen/screens/Chat/constants/tag-registry';
+import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
-import { getNextUserMessage } from '@renderer/components/Widgets/Zen/screens/Chat/utils/message-navigator';
+import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 import { getFileIconPath } from '@renderer/utils/file-icon';
 
 // ── Components ──
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
-import ActionBar from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ActionBar';
-import ErrorBlock from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/ErrorBlock';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { ActionBar } from '@renderer/modules/Code/shared/zen/zen-bridge';
+
+import { ErrorBlock } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { MergedRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Types ──
-import { MergedRendererProps } from '@renderer/components/Widgets/Zen/screens/Chat/types/renderer-types';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   action,
   actionIndex,
@@ -39,6 +47,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
   onRejectSingleLineAction,
   firstUnclickedActionIndex,
 }) => {
+  // ── Derived ──
   const [, setIsCollapsed] = React.useState(true);
   useSettings();
 
@@ -64,6 +73,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
 
   const hasValidationError = !!action.isError;
 
+  // ── Handlers ──
   const handleToolClickWithLog = React.useCallback(
     (_e: React.MouseEvent, type: any) => {
       onToolClick(action, messageId, actionIndex, type);
@@ -88,6 +98,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
     return null;
   }
 
+  // ── Render ──
   return (
     <div className={cn('flex flex-col gap-1.5 pb-1', isLastItemInList ? 'mb-0' : 'mb-0.5')}>
       <TagHeader

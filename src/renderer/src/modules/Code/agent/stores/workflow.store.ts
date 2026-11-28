@@ -1,9 +1,39 @@
+/**
+ * ------------------------------------------------------------------
+ * Workflow Store
+ * ------------------------------------------------------------------
+ * Zustand store (có persist) quản lý workflow đa agent: cấu hình model/account
+ * cho từng agent, danh sách agent, tin nhắn giữa các agent và inbox runtime
+ * để chuyển tin nhắn vào tab Zen của agent đích.
+ *
+ * Main types:
+ * - WorkflowAgentConfig : Cấu hình model + account của một agent
+ * - WorkflowInboxItem   : Tin nhắn đang chờ giao cho agent
+ *
+ * Main constants:
+ * - EMPTY_AGENT_CONFIG  : Cấu hình agent rỗng mặc định
+ *
+ * Main actions:
+ * - setModel() / setAccount()  : Cập nhật cấu hình agent
+ * - addAgent() / removeAgent() : Thêm/xóa agent
+ * - addMessage()               : Ghi tin nhắn kèm snapshot người gửi/nhận
+ * - adoptOrphanMessages()      : Gắn tin nhắn mồ côi vào conversation của Orchestrator
+ * - enqueueInbox() / shiftInbox() : Quản lý hàng đợi inbox
+ * - deliver()                  : Ghi tin nhắn và đẩy vào inbox agent đích
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Stores ──
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ParticipantSnapshot, WorkflowAgent, WorkflowMessage } from '../../shared/types/agents.types';
-import { ORCHESTRATOR_AGENT, USER_ID } from '../../shared/types/agents.types';
 import { useCodeStore } from '../../shared/stores/code.store';
 
+// ── Types ──
+import type { ParticipantSnapshot, WorkflowAgent, WorkflowMessage } from '../../shared/types/agents.types';
+import { ORCHESTRATOR_AGENT, USER_ID } from '../../shared/types/agents.types';
+
+// ─── Functions ───────────────────────────────────────────────────────────────
 const snapshotParticipant = (
   s: { agents: WorkflowAgent[]; configs: Record<string, WorkflowAgentConfig> },
   id: string,
@@ -20,7 +50,13 @@ const snapshotParticipant = (
   };
 };
 
-const getOrchestratorConversationId = (): string | null => {
+export const isAgentInCurrentWorkflow = (agent: WorkflowAgent): boolean => {
+  if (agent.id === ORCHESTRATOR_AGENT.id) return true;
+  const convId = getOrchestratorConversationId();
+  return !agent.conversationId || !convId || agent.conversationId === convId;
+};
+
+export const getOrchestratorConversationId = (): string | null => {
   const s = useCodeStore.getState();
   const project = s.projects.find((p) => p.id === s.currentProjectId);
   const panel = project?.workspacePanels?.find(
@@ -29,11 +65,13 @@ const getOrchestratorConversationId = (): string | null => {
   return panel?.agentConversationId ?? null;
 };
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 export interface WorkflowAgentConfig {
   model: any | null;
   account: any | null;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const EMPTY_AGENT_CONFIG: WorkflowAgentConfig = { model: null, account: null };
 
 export interface WorkflowInboxItem {
@@ -72,6 +110,7 @@ interface WorkflowState {
   deliver: (from: string, to: string, content: string) => void;
 }
 
+// ─── Store ───────────────────────────────────────────────────────────────────
 export const useWorkflowStore = create<WorkflowState>()(
   persist(
     (set, get) => ({
@@ -99,7 +138,8 @@ export const useWorkflowStore = create<WorkflowState>()(
         set((s) => {
           const exists = s.agents.some((a) => a.id === agent.id);
           if (exists) return s;
-          return { agents: [...s.agents, agent] };
+          const conversationId = agent.conversationId ?? getOrchestratorConversationId();
+          return { agents: [...s.agents, { ...agent, conversationId }] };
         }),
 
       removeAgent: (agentId) =>
@@ -132,10 +172,14 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       adoptOrphanMessages: (conversationId) =>
         set((s) =>
-          s.messages.some((m) => m.conversationId === null)
+          s.messages.some((m) => m.conversationId === null) ||
+          s.agents.some((a) => a.conversationId === null)
             ? {
                 messages: s.messages.map((m) =>
                   m.conversationId === null ? { ...m, conversationId } : m,
+                ),
+                agents: s.agents.map((a) =>
+                  a.conversationId === null ? { ...a, conversationId } : a,
                 ),
               }
             : s,

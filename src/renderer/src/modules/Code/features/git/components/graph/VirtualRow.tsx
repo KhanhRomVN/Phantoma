@@ -1,10 +1,19 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { RefPill } from '../GraphCell';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { ROW_HEIGHT, laneX, laneColor } from '../../utils/graph.util';
-import { VirtualRowProps } from '../../types/git-view.types';
 import { VIRTUAL_PREFIX } from '../../constants/git-view.constants';
 
+// ── Types ──
+import { VirtualRowProps } from '../../types/git-view.types';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export const VirtualRow = memo(function VirtualRow({
   branch,
   unstagedCount,

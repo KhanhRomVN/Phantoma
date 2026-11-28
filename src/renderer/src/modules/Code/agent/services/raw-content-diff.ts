@@ -7,8 +7,11 @@
  * ------------------------------------------------------------------
  */
 
-import type { RawContentDiffExtractor } from '@renderer/components/Widgets/Zen/shared/tool-mutation';
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { RawContentDiffExtractor } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const countLines = (text: string | undefined): number => {
   if (!text) return 0;
   return text.split('\n').length;

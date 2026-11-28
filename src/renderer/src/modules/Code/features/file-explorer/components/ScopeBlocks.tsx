@@ -1,22 +1,37 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useState, useMemo, useRef, useEffect } from 'react';
+
+// ── Components ──
+import { GutterDot } from './ScopeGutter';
+
+// ── Hooks ──
+import { useActiveBranchName } from '../hooks/useScopesBelow';
+
+// ── Services ──
+import { codeApi } from '../../../shared/api/code.api';
+import { remoteDiffCache, remoteHashByRoot } from '../services/file-tree.cache';
+
+// ── Stores ──
 import {
   useBranchScope,
   useBranchScopeStore,
   isInScope,
 } from '../../../shared/stores/branch-scope.store';
-import { codeApi } from '../../../shared/api/code.api';
 import {
   useScopeFilter,
   SCOPE_DIFF_DOT,
   SCOPE_DIFF_RING,
   useScopeStatsStore,
 } from '../../../shared/stores/scope-stats.store';
-import { GitFileStatus } from '../types/file-explorer.types';
-import { remoteDiffCache, remoteHashByRoot } from '../services/file-tree.cache';
-import { BorderRun, ScopeLayout, mergeRuns, insetRuns } from '../utils/scope-runs.util';
-import { GutterDot } from './ScopeGutter';
-import { useActiveBranchName } from '../hooks/useScopesBelow';
 
+// ── Utils ──
+import { BorderRun, ScopeLayout, mergeRuns, insetRuns } from '../utils/scope-runs.util';
+
+// ── Types ──
+import { GitFileStatus } from '../types/file-explorer.types';
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ScopeBlocks({
   containerRef,
   projectId,
@@ -32,9 +47,14 @@ export function ScopeBlocks({
   otherFiles: Record<string, string[]>;
   onErrorPaths: (paths: Set<string>) => void;
 }) {
+  // ── Derived ──
   const branchName = useActiveBranchName(projectId);
   const scope = useBranchScope(projectId, branchName);
+
+  // ── Store ──
   const allBranchScopes = useBranchScopeStore((s) => s.scopes);
+
+  // ── Derived ──
   const hasScopeOwner = (abs: string) => {
     const base = root.replace(/\/+$/, '');
     if (!base || !abs.startsWith(`${base}/`)) return false;
@@ -45,7 +65,11 @@ export function ScopeBlocks({
         k.startsWith(prefix) && k.slice(prefix.length) !== branchName && isInScope(rel, paths),
     );
   };
+
+  // ── State ──
   const [defaultBranch, setDefaultBranch] = useState('');
+
+  // ── Effects ──
   useEffect(() => {
     if (!root) return;
     let cancelled = false;
@@ -59,24 +83,41 @@ export function ScopeBlocks({
       cancelled = true;
     };
   }, [root]);
+
+  // ── Derived ──
   const isDefault = !!branchName && branchName === defaultBranch;
   const active = !!branchName && (scope.length > 0 || isDefault);
+
+  // ── Store ──
   const setIsDefault = useScopeStatsStore((s) => s.setIsDefault);
+
+  // ── Effects ──
   useEffect(() => {
     setIsDefault(projectId, isDefault);
   }, [projectId, isDefault, setIsDefault]);
+
+  // ── Store ──
   const setDefaultBranchName = useScopeStatsStore((s) => s.setDefaultBranch);
+
+  // ── Effects ──
   useEffect(() => {
     setDefaultBranchName(projectId, defaultBranch);
   }, [projectId, defaultBranch, setDefaultBranchName]);
+
+  // ── State ──
   // ASSUMED: remoteDiff = null (không có remote/main|master hoặc lỗi) → giữ hành vi cũ (error)
   const [remoteDiff, setRemoteDiff] = useState<Set<string> | null>(() => {
     const h = remoteHashByRoot.get(root);
     return h ? (remoteDiffCache.get(`${root}\n${h}`) ?? null) : null;
   });
 
+  // ── Refs ──
   const lastDiffKeyRef = useRef('');
+
+  // ── State ──
   const [remoteOnly, setRemoteOnly] = useState<string[]>([]);
+
+  // ── Derived ──
   const effectiveStatus = useMemo(() => {
     if (remoteOnly.length === 0) return gitStatus;
     const merged: Record<string, GitFileStatus> = { ...gitStatus };
@@ -108,13 +149,18 @@ export function ScopeBlocks({
       .join('\n');
   }, [effectiveStatus, root, scope, branchName, remoteDiff]);
 
+  // ── Effects ──
   useEffect(() => {
     onErrorPaths(new Set(errorKey ? errorKey.split('\n') : []));
   }, [errorKey, onErrorPaths]);
 
+  // ── Derived ──
   const filter = useScopeFilter(projectId);
 
+  // ── State ──
   const [remoteTick, setRemoteTick] = useState(0);
+
+  // ── Effects ──
   // ASSUMED: fetch định kỳ 30s để origin/<default> luôn mới, rồi buộc tính lại diff-vs-remote
   useEffect(() => {
     if (!root || !active) return;
@@ -169,9 +215,14 @@ export function ScopeBlocks({
       cancelled = true;
     };
   }, [root, branchName, scope, candidatesKey, remoteTick]);
+
+  // ── State ──
   const [layout, setLayout] = useState<ScopeLayout>({ blocks: [], bad: [], diff: [], warn: [] });
+
+  // ── Refs ──
   const lastJsonRef = useRef('');
 
+  // ── Effects ──
   useEffect(() => {
     const el = containerRef.current;
     const apply = (next: ScopeLayout) => {
@@ -264,6 +315,7 @@ export function ScopeBlocks({
     };
   }, [containerRef, branchName, scope, root, gitStatus, effectiveStatus, remoteDiff, otherChanged]);
 
+  // ── Render ──
   return (
     <div className="absolute left-0 right-0 top-0 z-10 h-0 pointer-events-none">
       {(!filter || filter === 'primary') &&

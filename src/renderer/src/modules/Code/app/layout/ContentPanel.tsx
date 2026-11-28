@@ -1,23 +1,4 @@
 import { shellIpc } from '../../shared/ipc/shell.ipc';
-/**
- * ------------------------------------------------------------------
- * Content Panel
- * ------------------------------------------------------------------
- * Main editor area displaying Monaco Editor code blocks for open
- * files. Handles file open/close lifecycle, LSP auto-start, external
- * file change detection, and service content rendering (websites,
- * apps, devices, databases, APIs, designs, extensions).
- *
- * Main features:
- * - Monaco Editor integration via CodeBlock component
- * - Auto-starts LSP server for supported file types
- * - File watcher integration for external change detection
- * - Service type content rendering (iframe for websites, etc.)
- * - Empty state with file icon when no file is open
- * - Unsaved changes tracking via file content comparison
- * ------------------------------------------------------------------
- */
-
 // ─── Imports ────────────────────────────────────────────────────────────
 
 // ── React ──
@@ -50,7 +31,7 @@ import { ConfirmDefaultBranchModal } from '../../features/workspace/components/m
 import { ContentHeaderBar } from './Headerbar';
 import { GitView } from '../../features/git';
 import { PullRequestView } from '../../features/pull-request';
-import { AgentWorkflow } from '../../features/workflow';
+
 import { SettingsView } from '../../features/settings';
 
 // ── Services ─
@@ -492,7 +473,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
     contentViewMode === 'git' ||
     contentViewMode === 'pullrequests' ||
     contentViewMode === 'design' ||
-    contentViewMode === 'agents' ||
+
     contentViewMode === 'settings' ||
     isWorkspaceMode
   ) {
@@ -502,7 +483,7 @@ const ContentPanelInner = memo(function ContentPanelInner() {
         {contentViewMode === 'tasks' && <TaskManager />}
         {contentViewMode === 'git' && <GitView />}
         {contentViewMode === 'pullrequests' && <PullRequestView />}
-        {contentViewMode === 'agents' && <AgentWorkflow />}
+
         {contentViewMode === 'settings' && <SettingsView />}
         <ConfirmDefaultBranchModal
           isOpen={needsDefaultBranchConfirm}

@@ -1,4 +1,20 @@
+/**
+ * ------------------------------------------------------------------
+ * Create Task Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool create_task: tạo task mới cho project hiện tại từ
+ * title, description, priority và due_date.
+ *
+ * Main functions:
+ * - executeCreateTask() : Tạo task và trả về bản tóm tắt
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Services ──
 import { taskService, type CreateTaskInput } from '../../../shared/services/task.service';
+
+// ── Utils ──
 import {
   compact,
   parseDueDate,
@@ -8,6 +24,7 @@ import {
   type TaskToolParams,
 } from '../shared/task-tool.util';
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export const executeCreateTask = (params?: TaskToolParams) =>
   runTaskTool('create_task', params, async (p, projectPath) => {
     const input: CreateTaskInput = compact({

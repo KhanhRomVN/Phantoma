@@ -1,14 +1,22 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
 import { STATUS_META, TABS } from '../../constants/workflow.constants';
+
+// ── Types ──
 import type { TabId, WorkflowNode } from '../../types/workflow.types';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface DetailHeaderProps {
   node: WorkflowNode;
   tab: TabId;
   onTabChange: (tab: TabId) => void;
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const DetailHeader = memo(function DetailHeader({ node, tab, onTabChange }: DetailHeaderProps) {
   const meta = STATUS_META[node.status];
   const StatusIcon = meta.icon;

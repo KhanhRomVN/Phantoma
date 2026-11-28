@@ -1,22 +1,32 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import React from 'react';
+
+// ── UI ──
 import { ArrowRight } from 'lucide-react';
 
+// ── Services ──
+import { focusAgentPanel } from '../../services/agent-panel.service';
+
+// ── Stores ──
+import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../stores/workflow.store';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
-import { MarkdownRenderer } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/renderers/MarkdownRenderer';
-import { TagHeader } from '@renderer/components/Widgets/Zen/screens/Chat/components/ChatBody/AIMessageBox/TagHeader';
+import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import {
   parseAgentMessage,
   useWorkflowAgentSync,
-} from '@renderer/components/Widgets/Zen/context/WorkflowAgentContext';
-
+} from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { getAgentFavicon } from '../../../shared/constants/workspace-agents.constants';
-import { focusAgentPanel } from '../../services/agent-panel.service';
-import { EMPTY_AGENT_CONFIG, useWorkflowStore } from '../../stores/workflow.store';
+import { MarkdownRenderer } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface AgentMessageBoxProps {
   message: { id: string; content: string };
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const humanizeAgentId = (id: string): string =>
   id
     .split('_')
@@ -24,11 +34,15 @@ const humanizeAgentId = (id: string): string =>
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const AgentMessageBox: React.FC<AgentMessageBoxProps> = ({ message }) => {
+  // ── Derived ──
   const parsed = parseAgentMessage(message.content);
   const fromId = parsed?.from ?? '';
   const workflowSync = useWorkflowAgentSync();
   const currentId = workflowSync?.agentId ?? 'orchestrator';
+
+  // ── Store ──
   const sender = useWorkflowStore((s) => s.agents.find((a) => a.id === fromId));
   const current = useWorkflowStore((s) => s.agents.find((a) => a.id === currentId));
   const config = useWorkflowStore((s) => s.configs[fromId] ?? EMPTY_AGENT_CONFIG);
@@ -38,6 +52,8 @@ const AgentMessageBox: React.FC<AgentMessageBoxProps> = ({ message }) => {
     }
     return undefined;
   });
+
+  // ── Derived ──
   const [isCollapsed, setIsCollapsed] = React.useState(true);
 
   if (!parsed) return null;
@@ -52,6 +68,7 @@ const AgentMessageBox: React.FC<AgentMessageBoxProps> = ({ message }) => {
   const modelLabel = providerId && modelId ? `${providerId}/${modelId}` : 'no model';
   const modelLine = [modelLabel, email].filter(Boolean).join(' ');
 
+  // ── Render ──
   return (
     <div className="flex flex-col gap-1.5 mb-2">
       <TagHeader

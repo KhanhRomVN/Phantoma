@@ -1,8 +1,26 @@
-import { ListFilesHandler } from './list-files.handler';
-import { ListFilesParams } from './list-files.parser';
+/**
+ * ------------------------------------------------------------------
+ * List Files Executor
+ * ------------------------------------------------------------------
+ * Thực thi tool list_files: gọi ListFilesHandler để liệt kê cây thư mục
+ * và trả về kết quả dạng JSON cho agent.
+ *
+ * Main functions:
+ * - executeListFiles() : Liệt kê file/folder theo folder_path và depth
+ * ------------------------------------------------------------------
+ */
 
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Utils ──
+import { ListFilesHandler } from './list-files.handler';
+
+// ── Types ──
+import { ListFilesParams } from '../tool.types';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 const listFilesHandler = new ListFilesHandler();
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 export async function executeListFiles(
   params: ListFilesParams,
   _bypassIgnore: boolean = false,

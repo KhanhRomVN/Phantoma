@@ -1,5 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import type { ReactNode } from 'react';
+
+// ── UI ──
 import { Eye, EyeOff, Folder, GitBranch } from 'lucide-react';
+
+// ── Utils ──
 import {
   CopyButton,
   Panel,
@@ -8,6 +14,7 @@ import {
   type ProjectSettingsTarget,
 } from '../shared';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 function Stat({
   icon,
   label,
@@ -56,7 +63,10 @@ function DetailRow({
 }
 
 export function OverviewTab({ project }: { project: ProjectSettingsTarget }) {
+  // ── Derived ──
   const VisibilityIcon = project.hidden ? EyeOff : Eye;
+
+  // ── Render ──
   return (
     <div className='flex flex-col gap-7'>
       <div

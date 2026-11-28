@@ -1,6 +1,11 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── Components ──
 import { SiteLayout } from './Layout';
+
+// ── Utils ──
 import { FAQS } from './site';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export default function Faq() {
   return (
     <SiteLayout current="/faq">

@@ -1,4 +1,4 @@
-import { extractParamValue } from '@renderer/components/Widgets/Zen/screens/Chat/utils/toolParser';
+import { extractParamValue } from '@renderer/components/Widgets/Zen/features/chat/utils/toolParser';
 export interface GetFuzzerDetailParams {
   fuzzer_id: string;
 }

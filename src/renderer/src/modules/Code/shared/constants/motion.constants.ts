@@ -1,5 +1,24 @@
+/**
+ * ------------------------------------------------------------------
+ * Motion Constants
+ * ------------------------------------------------------------------
+ * Bộ hằng số và variants framer-motion dùng chung cho animation của
+ * Code module (easing, duration, spring, tween, các variants phổ biến).
+ *
+ * Main constants:
+ * - EASE_OUT / EASE_IN_OUT : Đường cong easing
+ * - DURATION / SPRING / TWEEN : Thời lượng và transition chuẩn
+ * - fade, slideUp, slideDown, scaleIn, panelSwap, collapse : Variants cơ bản
+ * - listContainer / listItem : Variants cho danh sách có stagger
+ * - toastMotion : Variants cho toast
+ * ------------------------------------------------------------------
+ */
+
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── UI ──
 import type { Transition, Variants } from 'framer-motion';
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 export const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 export const EASE_IN_OUT = [0.4, 0, 0.2, 1] as const;
 

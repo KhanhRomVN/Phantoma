@@ -1,13 +1,24 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { useEffect, useMemo, useState } from 'react';
+
+// ── UI ──
 import { Folder, FolderOpen, Loader2, Search } from 'lucide-react';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { Button } from '@renderer/components/ui/Button';
-import { codeApi } from '../../../../shared/api/code.api';
-import type { Commit, CommitFile } from '../../utils/graph.util';
+
+// ── Components ──
 import { ChangedFiles, type FileSelection } from '../ChangedFiles';
 
+// ── Services ──
+import { codeApi } from '../../../../shared/api/code.api';
+
+// ── Utils ──
+import type { Commit, CommitFile } from '../../utils/graph.util';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface ExportCommitModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -16,6 +27,7 @@ interface ExportCommitModalProps {
   onDone: (message: string) => void;
 }
 
+// ─── Functions ───────────────────────────────────────────────────────────────
 const pickFolder = async (): Promise<string | null> => {
   try {
     const result = await (window as any).electron.ipcRenderer.invoke('dialog:select-paths', {
@@ -27,11 +39,13 @@ const pickFolder = async (): Promise<string | null> => {
   }
 };
 
+// ─── Constants ───────────────────────────────────────────────────────────────
 const SOFT_CANCEL =
   'flex-1 h-[42px] text-xs font-medium rounded-none border-r border-border bg-primary/10 text-text-secondary hover:bg-primary/20 hover:text-text-primary active:bg-primary/30 disabled:hover:bg-primary/10';
 const SOFT_CONFIRM =
   'flex-1 h-[42px] text-xs font-semibold rounded-none flex items-center justify-center gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 active:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export function ExportCommitModal({
   isOpen,
   onClose,
@@ -39,6 +53,7 @@ export function ExportCommitModal({
   commit,
   onDone,
 }: ExportCommitModalProps) {
+  // ── State ──
   const [paths, setPaths] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [checked, setChecked] = useState<Set<string>>(new Set());
@@ -48,6 +63,7 @@ export function ExportCommitModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // ── Effects ──
   useEffect(() => {
     if (!isOpen || !commit) return;
     let cancelled = false;
@@ -73,6 +89,7 @@ export function ExportCommitModal({
     };
   }, [isOpen, commit, projectPath]);
 
+  // ── Derived ──
   const q = query.trim().toLowerCase();
   const files = useMemo<CommitFile[]>(
     () =>
@@ -112,6 +129,7 @@ export function ExportCommitModal({
     return { rows, more: Math.max(0, sorted.length - 40) };
   }, [checked]);
 
+  // ── Handlers ──
   const handleClose = () => {
     if (submitting) return;
     onClose();
@@ -122,9 +140,11 @@ export function ExportCommitModal({
     if (folder) setDest(folder);
   };
 
+  // ── Derived ──
   const canExport =
     !!commit && checked.size > 0 && !!dest && !!folderName.trim() && !submitting;
 
+  // ── Handlers ──
   const handleExport = async () => {
     if (!commit || !canExport) return;
     setSubmitting(true);
@@ -147,6 +167,7 @@ export function ExportCommitModal({
     }
   };
 
+  // ── Render ──
   return (
     <Modal isOpen={isOpen} onClose={handleClose} className="max-w-[560px]">
       <ModalBody className="py-5 px-5">

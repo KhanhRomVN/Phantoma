@@ -1,4 +1,8 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useEffect, useState } from 'react';
+
+// ── UI ──
 import {
   ArrowRightLeft,
   CalendarDays,
@@ -12,14 +16,22 @@ import {
   Unlink,
   X,
 } from 'lucide-react';
-import { cn } from '@renderer/utils/cn';
-import { $ } from '@renderer/utils/color';
 import { Modal, ModalBody } from '@renderer/components/ui/Modal';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
-import type { StoredTask, TaskPriority, TaskStatus } from '../../../../../shared/services/task.service';
-import { STATUS_META } from '../../../../tasks/constants/status-meta.constants';
+
+// ── Components ──
 import { TaskIcon } from '../../SessionCard/SessionBadges';
 
+// ── Services ──
+import type { StoredTask, TaskStatus } from '../../../../../shared/services/task.service';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
+import { $ } from '@renderer/utils/color';
+import { STATUS_META } from '../../../../tasks/constants/status-meta.constants';
+import { PRIORITY_META } from '../../../../tasks/constants/priority-meta.constants';
+
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface AssignTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -32,13 +44,7 @@ interface AssignTaskModalProps {
   onUnlink?: (task: StoredTask) => void;
 }
 
-const PRIORITY_META: Record<TaskPriority, { label: string; color: string }> = {
-  high: { label: 'High', color: '--error' },
-  medium: { label: 'Medium', color: '--warn' },
-  low: { label: 'Low', color: '--text-secondary' },
-};
-
-
+// ─── Functions ───────────────────────────────────────────────────────────────
 function formatDate(ts: number): string {
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -50,6 +56,7 @@ function formatPoint(date: number | null, time: string | null): string {
   return time ? `${formatDate(date)} ${time}` : formatDate(date);
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
 const SectionLabel = ({ children }: { children: string }) => (
   <span className="px-1 text-[13px] font-semibold text-text-primary">{children}</span>
 );
@@ -78,6 +85,7 @@ const TaskCard = ({
   onClick?: () => void;
   onUnlink?: () => void;
 }) => {
+  // ── Derived ──
   const prio = PRIORITY_META[task.priority];
   const total = task.checklist.length;
   const done = task.checklist.filter((c) => c.done).length;
@@ -85,6 +93,7 @@ const TaskCard = ({
   const hasDate = task.startDate !== null || task.endDate !== null;
   const hasMeta = hasDate || total > 0 || task.attachments.length > 0 || blockedBy > 0;
 
+  // ── Render ──
   return (
     <div
       role={onClick ? 'button' : undefined}

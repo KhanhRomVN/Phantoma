@@ -1,15 +1,26 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo, useMemo, useState } from 'react';
-import { useCodeStore } from '../../../../shared/stores/code.store';
+
+// ── UI ──
+import { GitBranch, Plus } from 'lucide-react';
+
+// ── Components ──
+import { SessionCard } from '../SessionCard/SessionCard';
+import { KebabButton } from './KebabButton';
+import { BranchScopeButton } from './BranchScopeButton';
+
+// ── Services ──
 import { codeApi } from '../../../../shared/api/code.api';
 import { taskService, type StoredTask } from '../../../../shared/services/task.service';
-import { GitBranch, Plus } from 'lucide-react';
+
+// ── Stores ──
+import { useCodeStore } from '../../../../shared/stores/code.store';
+
+// ── Utils ──
 import { cn } from '@renderer/utils/cn';
-import { SessionCard } from '../SessionCard/SessionCard';
 import { getNewestSession } from '../../utils/session.util';
 import { TASK_COLORS } from '../../constants/session.constants';
-import { type BranchInfo, type TaskStatus } from '../../types/session.types';
-import { ProjectExtended } from '../../types/project-card.types';
-import { KebabButton } from './KebabButton';
 import {
   DefaultBadge,
   NO_BRANCH_NAME,
@@ -18,9 +29,13 @@ import {
   BusyBadge,
   RemoteGoneBadge,
 } from './badges';
-import { BranchScopeButton } from './BranchScopeButton';
+
+// ── Types ──
+import { type BranchInfo, type TaskStatus } from '../../types/session.types';
+import { ProjectExtended } from '../../types/project-card.types';
 import { ProjectCardProps } from '../../types/project-card.types';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 /** Branch block inside expanded project */
 export const BranchBlock = memo(function BranchBlock({
   project,
@@ -67,6 +82,7 @@ export const BranchBlock = memo(function BranchBlock({
 
   // Calculate task counts for this specific branch
   const branchTaskCounts = useMemo(() => {
+    // ── Derived ──
     const c: Record<TaskStatus, number> = { todo: 0, progress: 0, done: 0 };
     (projectTasks ?? []).forEach((t) => {
       if (!t.archived && t.branchName === branch.name) c[t.status]++;
@@ -90,7 +106,11 @@ export const BranchBlock = memo(function BranchBlock({
       setGone({ busy: false, error: res.error });
       return;
     }
+
+    // ── Store ──
     const state = useCodeStore.getState();
+
+    // ── Derived ──
     const p = state.projects.find((x) => x.id === project.id);
     state.updateProject(project.id, {
       branches: (p?.branches ?? []).map((b) =>
@@ -109,7 +129,11 @@ export const BranchBlock = memo(function BranchBlock({
       setGone({ busy: false, error: String(res.error) });
       return;
     }
+
+    // ── Store ──
     const state = useCodeStore.getState();
+
+    // ── Derived ──
     const p = state.projects.find((x) => x.id === project.id);
     const unlinked = new Set<string>((p as any)?.unlinkedBranches ?? []);
     unlinked.add(branch.name);

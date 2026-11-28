@@ -1,3 +1,4 @@
+// ─── Exports ─────────────────────────────────────────────────────────────────
 export { useGitData } from './useGitData';
 export { useGitSelection } from './useGitSelection';
 export { useGitGraph } from './useGitGraph';

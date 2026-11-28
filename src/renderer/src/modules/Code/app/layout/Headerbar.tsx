@@ -1,17 +1,5 @@
-/**
- * ------------------------------------------------------------------
- * Content Header Bar
- * ------------------------------------------------------------------
- * Extracted from ContentPanel/index.tsx
- * Displays project name, branch, session info, and global actions
- * depending on the current view mode (workspace/tasks/files).
- * ------------------------------------------------------------------
- */
-
-import { useState, useEffect, useMemo, useRef, type ReactElement } from 'react';
-import type { ContentViewMode } from '../../shared/stores/code.store';
+import { useState, useEffect, useMemo, type ReactElement } from 'react';
 import {
-  Workflow,
   Loader2,
   RefreshCw,
   GitBranch,
@@ -318,24 +306,7 @@ const CONTENT_HEADER_HEIGHT = 44;
 
 export function ContentHeaderBar() {
   const contentViewMode = useCodeStore((s) => s.contentViewMode);
-  const setContentViewMode = useCodeStore((s) => s.setContentViewMode);
-  const lastViewModeRef = useRef<ContentViewMode>('workspace');
 
-  useEffect(() => {
-    if (contentViewMode !== 'agents' && contentViewMode !== 'settings') {
-      lastViewModeRef.current = contentViewMode;
-    }
-  }, [contentViewMode]);
-
-  const hasOrchestrator = useCodeStore((s) => {
-    const project = s.projects.find((p) => p.id === s.currentProjectId);
-    return !!project?.workspacePanels?.some(
-      (w) => w.workflowAgentId === 'orchestrator' && w.sessionId === s.activeWorkspaceSessionId,
-    );
-  });
-
-  const toggleAgents = () =>
-    setContentViewMode(contentViewMode === 'agents' ? lastViewModeRef.current : 'agents');
 
   const currentProjectId = useCodeStore((s) => s.currentProjectId);
   const projectName = useCodeStore((s) => {
@@ -504,16 +475,6 @@ export function ContentHeaderBar() {
             <span className="text-sm font-semibold text-text-primary truncate">Settings</span>
           )}
 
-          {contentViewMode === 'agents' && (
-            <>
-              <span className="w-[26px] h-[26px] rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
-                <Workflow className="w-3.5 h-3.5" />
-              </span>
-              <span className="text-sm font-semibold text-text-primary truncate">
-                Agent Workflow
-              </span>
-            </>
-          )}
 
           {contentViewMode === 'workspace' && activeSession && (
             <>
@@ -625,19 +586,6 @@ export function ContentHeaderBar() {
             </button>
           )}
 
-          {(hasOrchestrator || contentViewMode === 'agents') && (
-            <button
-              onClick={toggleAgents}
-              title={contentViewMode === 'agents' ? 'Close Agent Workflow' : 'Open Agent Workflow'}
-              className={`w-[26px] h-[26px] rounded-md flex items-center justify-center transition-colors cursor-pointer ${
-                contentViewMode === 'agents'
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-text-secondary hover:bg-card-hover hover:text-text-primary'
-              }`}
-            >
-              <Workflow className="w-3.5 h-3.5" />
-            </button>
-          )}
 
           {contentViewMode !== 'tasks' && contentViewMode !== 'settings' && (
             <Dropdown trigger="click" align="end">

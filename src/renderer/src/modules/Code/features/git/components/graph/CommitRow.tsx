@@ -1,9 +1,18 @@
+// ─── Imports ─────────────────────────────────────────────────────────────────
+// ── React ──
 import { memo } from 'react';
-import { cn } from '@renderer/utils/cn';
+
+// ── Components ──
 import { GraphCell, GraphFill, RefPill, useRemoteAccents } from '../GraphCell';
+
+// ── Utils ──
+import { cn } from '@renderer/utils/cn';
 import { ROW_HEIGHT, formatRelative, laneColor, parseRefs } from '../../utils/graph.util';
+
+// ── Types ──
 import { CommitRowProps } from '../../types/git-view.types';
 
+// ─── Component ───────────────────────────────────────────────────────────────
 export const CommitRow = memo(function CommitRow({
   commit,
   row,
