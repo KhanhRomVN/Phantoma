@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 
 export type SaveStatus = 'idle' | 'saving' | 'success' | 'error';
 
@@ -47,7 +48,9 @@ export function useSaveState(successMs = 1800) {
       } catch (e) {
         if (mounted.current) {
           setStatus('error');
-          setError(e instanceof Error ? e.message : String(e));
+          const message = e instanceof Error ? e.message : String(e);
+          setError(message);
+          toastService.show({ variant: 'error', title: 'Save failed', description: message });
         }
         return false;
       }

@@ -21,6 +21,7 @@ import { NetworkRequest } from '../../../../types/inspector';
 // ── Utils ──
 
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface HeadersDetailsProps {
@@ -107,7 +108,7 @@ function CopyText({ value, className, children }: CopyTextProps) {
         clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setCopied(false), 1200);
       })
-      .catch(() => undefined);
+      .catch(() => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }));
   };
 
   return (

@@ -31,6 +31,7 @@ import { RemoteDiffModal } from './modals/RemoteDiffModal';
 import { ScopeTransferModal, type ScopeTransferTarget } from './modals/ScopeTransferModal';
 import { ScopeHelpModal } from './modals/ScopeHelpModal';
 import { HelpCircle } from 'lucide-react';
+import { toastService } from '@renderer/components/ui/Toast';
 
 import { ExplorerSearchBar, ExplorerSearchResults } from './ExplorerSearch';
 import { ScopeWarnBell } from './ScopeWarnBell';
@@ -258,6 +259,19 @@ export function FileExplorer() {
     setSelectedNodeIds(new Set());
     setLastClickedId(null);
     setDeleteTargetIds([]);
+    toastService.show(
+      errorCount > 0
+        ? {
+            variant: 'error',
+            title: 'Delete failed',
+            description: `${errorCount} of ${items.length} item${items.length === 1 ? '' : 's'} could not be deleted`,
+          }
+        : {
+            variant: 'success',
+            title: 'Deleted',
+            description: `${items.length} item${items.length === 1 ? '' : 's'}`,
+          },
+    );
     // Watcher (fs:dir-changed) sẽ tự động cập nhật folder cha
   }, [project, deleteTargetIds]);
 
@@ -284,7 +298,15 @@ export function FileExplorer() {
       if (found?.path) paths.push(found.path);
     }
     if (paths.length > 0) {
-      navigator.clipboard.writeText(paths.join('\n')).catch(() => {});
+      navigator.clipboard.writeText(paths.join('\n')).then(
+        () =>
+          toastService.show({
+            variant: 'success',
+            title: 'Copied path',
+            description: paths.length === 1 ? paths[0] : `${paths.length} paths`,
+          }),
+        () => toastService.show({ variant: 'error', title: 'Cannot copy path' }),
+      );
     }
   }, [selectedNodeIds]);
 
@@ -307,7 +329,15 @@ export function FileExplorer() {
     if (paths.length > 0) {
       navigator.clipboard
         .writeText(paths.join('\n'))
-        .then(undefined, (err) => console.error('[DEBUG] clipboard write FAILED:', err));
+        .then(
+          () =>
+            toastService.show({
+              variant: 'success',
+              title: 'Copied relative path',
+              description: paths.length === 1 ? paths[0] : `${paths.length} paths`,
+            }),
+          () => toastService.show({ variant: 'error', title: 'Cannot copy path' }),
+        );
     }
   }, [selectedNodeIds]);
 
@@ -386,6 +416,21 @@ export function FileExplorer() {
         errorCount++;
       }
     }
+
+    const total = clipboard.paths.length;
+    toastService.show(
+      errorCount > 0
+        ? {
+            variant: 'error',
+            title: clipboard.operation === 'cut' ? 'Move failed' : 'Paste failed',
+            description: `${errorCount} of ${total} item${total === 1 ? '' : 's'} failed`,
+          }
+        : {
+            variant: 'success',
+            title: clipboard.operation === 'cut' ? 'Moved' : 'Pasted',
+            description: `${total} item${total === 1 ? '' : 's'}`,
+          },
+    );
 
     if (clipboard.operation === 'cut') {
       setClipboard(null);

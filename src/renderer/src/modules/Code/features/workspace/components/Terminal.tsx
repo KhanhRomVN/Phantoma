@@ -1,5 +1,6 @@
 // ─── Imports ─────────────────────────────────────────────────────────────────
 import { terminalIpc } from '../../../shared/ipc/terminal.ipc';
+import { toastService } from '@renderer/components/ui/Toast';
 import { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -429,6 +430,11 @@ export const CodeTerminal = ({
         } catch (err) {
           console.error('[CodeTerminal] Failed to spawn shell', err);
           hasSpawnedRef.current = false;
+          toastService.show({
+            variant: 'error',
+            title: 'Start terminal failed',
+            description: String((err as Error)?.message ?? err).split('\n')[0],
+          });
           if (term) {
             term.write(`\r\n\x1b[31mError starting terminal: ${(err as Error).message}\x1b[0m\r\n`);
           }
@@ -529,7 +535,10 @@ export const CodeTerminal = ({
           });
         }
       })
-      .catch((err) => console.error('[CodeTerminal] Paste failed:', err));
+      .catch((err) => {
+        console.error('[CodeTerminal] Paste failed:', err);
+        toastService.show({ variant: 'error', title: 'Cannot paste from clipboard' });
+      });
     setContextMenuOpen(false);
   };
 

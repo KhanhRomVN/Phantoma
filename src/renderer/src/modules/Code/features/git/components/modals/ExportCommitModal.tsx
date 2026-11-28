@@ -24,7 +24,11 @@ interface ExportCommitModalProps {
   onClose: () => void;
   projectPath: string;
   commit: Commit | null;
-  onDone: (message: string) => void;
+  onDone: (
+    message: string,
+    variant?: 'info' | 'success' | 'error' | 'warning' | 'loading',
+    description?: string,
+  ) => void;
 }
 
 // ─── Functions ───────────────────────────────────────────────────────────────
@@ -154,14 +158,18 @@ export function ExportCommitModal({
       const res = await codeApi.git.exportCommit(projectPath, commit.hash, Array.from(checked), target);
       if (res?.error) {
         setError(res.error);
+        onDone('Export failed', 'error', String(res.error).split('\n')[0]);
         return;
       }
       onDone(
-        `Exported ${checked.size} file${checked.size === 1 ? '' : 's'} from ${commit.hash.slice(0, 7)} to ${dest.replace(/\/+$/, '')}/${folderName.trim()}`,
+        'Exported source',
+        'success',
+        `${checked.size} file${checked.size === 1 ? '' : 's'} from ${commit.hash.slice(0, 7)} to ${dest.replace(/\/+$/, '')}/${folderName.trim()}`,
       );
       onClose();
     } catch (e: any) {
       setError(e?.message || String(e));
+      onDone('Export failed', 'error', String(e?.message || e).split('\n')[0]);
     } finally {
       setSubmitting(false);
     }

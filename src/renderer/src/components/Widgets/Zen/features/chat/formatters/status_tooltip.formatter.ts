@@ -15,7 +15,7 @@ import {
   DiffStats,
   StatusTooltipInput,
   TooltipMeta,
-} from '../../../shared/types/tool-display';
+} from '../types/tool-display';
 import { getTagDef } from '../registries/tag.registry';
 
 // Module-specific completed tooltip formatters registry

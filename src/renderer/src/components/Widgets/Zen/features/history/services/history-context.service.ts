@@ -15,7 +15,7 @@
 import { useCodeStore } from '@renderer/modules/Code/shared/stores/code.store';
 import type { HistoryScope } from '../types';
 import { resolveConversationModuleId } from '../../chat/registries/module.registry';
-import { getWorkspaceFolderPath } from '@renderer/components/Widgets/Zen/shared/services/ConversationService';
+import { getWorkspaceFolderPath } from '@renderer/components/Widgets/Zen/shared/conversations/conversation-storage.service';
 
 interface ZenWindowGlobals {
   __activeFeature?: string;

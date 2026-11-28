@@ -31,7 +31,7 @@ import { User } from 'lucide-react';
 import {
   listChromiumProfiles,
   getChromeProfileDirs,
-} from '@renderer/components/Widgets/Zen/shared/services/chromeProfiles';
+} from '@renderer/components/Widgets/Zen/features/account/services/chromium-profile.service';
 
 // ─── Shared Types ───────────────────────────────────────────────────────
 export interface BaseModalProps {

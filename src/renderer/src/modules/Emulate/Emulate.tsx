@@ -32,6 +32,7 @@ import { useActiveModule } from '@renderer/hooks/useActiveModule';
 // ── Services ──
 import { emulateApi } from './services/emulate-api.service';
 import { runtimeApi } from './services/runtime-api.service';
+import { toastService } from '@renderer/components/ui/Toast';
 import { installRuntimeWsBridge, wsBus } from './services/runtime-ws-bridge';
 import { refreshEmulateBaseFromIpc } from './services/emulate-base-url';
 import { useFilterStore } from './stores/filterStore';
@@ -640,14 +641,21 @@ export default React.memo(function Emulate({
         );
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
+          toastService.show({ variant: 'success', title: 'eBPF capture started' });
         } else {
-          alert(`Failed to start eBPF capture: ${result.error}`);
+          toastService.show({
+            variant: 'error',
+            title: 'Failed to start eBPF capture',
+            description: result.error,
+          });
         }
       } catch (error) {
         console.error('[Emulate] eBPF start error:', error);
-        alert(
-          `Failed to start eBPF capture: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
+        toastService.show({
+          variant: 'error',
+          title: 'Failed to start eBPF capture',
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     },
     [startTarget],
@@ -659,14 +667,21 @@ export default React.memo(function Emulate({
         const result = await runtimeApi.startCliCdp(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'cdp'); // Track as active with CDP mode
+          toastService.show({ variant: 'success', title: 'CDP proxy started' });
         } else {
-          alert(`Failed to start CDP proxy: ${result.error}`);
+          toastService.show({
+            variant: 'error',
+            title: 'Failed to start CDP proxy',
+            description: result.error,
+          });
         }
       } catch (error) {
         console.error('[Emulate] CDP start error:', error);
-        alert(
-          `Failed to start CDP proxy: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
+        toastService.show({
+          variant: 'error',
+          title: 'Failed to start CDP proxy',
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     },
     [startTarget],
@@ -688,14 +703,21 @@ export default React.memo(function Emulate({
         );
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
+          toastService.show({ variant: 'success', title: 'Packet capture started' });
         } else {
-          alert(`Failed to start packet capture: ${result.error}`);
+          toastService.show({
+            variant: 'error',
+            title: 'Failed to start packet capture',
+            description: result.error,
+          });
         }
       } catch (error) {
         console.error('[Emulate] Packet capture start error:', error);
-        alert(
-          `Failed to start packet capture: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
+        toastService.show({
+          variant: 'error',
+          title: 'Failed to start packet capture',
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     },
     [startTarget],
@@ -707,14 +729,21 @@ export default React.memo(function Emulate({
         const result = await runtimeApi.startCliDebug(targetId, executablePath, useSandbox);
         if (result.success) {
           startTarget(targetId, 'mitm'); // Track as active
+          toastService.show({ variant: 'success', title: 'App debug mode started' });
         } else {
-          alert(`Failed to start app debug mode: ${result.error}`);
+          toastService.show({
+            variant: 'error',
+            title: 'Failed to start app debug mode',
+            description: result.error,
+          });
         }
       } catch (error) {
         console.error('[Emulate] App debug start error:', error);
-        alert(
-          `Failed to start app debug mode: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
+        toastService.show({
+          variant: 'error',
+          title: 'Failed to start app debug mode',
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     },
     [startTarget],

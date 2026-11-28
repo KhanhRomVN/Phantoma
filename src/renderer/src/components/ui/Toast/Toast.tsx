@@ -1,29 +1,34 @@
 import type { ReactNode } from 'react';
-import { Info, CheckCircle, AlertTriangle, AlertCircle, Loader2 } from 'lucide-react';
+import { Info, CheckCircle, AlertTriangle, AlertCircle, Loader2, X } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { $ } from '@renderer/utils/color';
 import type { ToastProps, ToastVariant } from './type';
 
-const variantConfig: Record<ToastVariant, { icon: ReactNode; badge: string }> = {
+const variantConfig: Record<ToastVariant, { icon: ReactNode; badge: string; outline: string }> = {
   info: {
     icon: <Info className="w-4 h-4" strokeWidth={2} />,
     badge: 'bg-[#3b82f6]/15 text-[#60a5fa]',
+    outline: 'outline-[#3b82f6]/60',
   },
   success: {
     icon: <CheckCircle className="w-4 h-4" strokeWidth={2} />,
     badge: 'bg-[#22c55e]/15 text-[#4ade80]',
+    outline: 'outline-[#22c55e]/60',
   },
   error: {
     icon: <AlertCircle className="w-4 h-4" strokeWidth={2} />,
     badge: 'bg-[#ef4444]/15 text-[#f87171]',
+    outline: 'outline-[#ef4444]/60',
   },
   warning: {
     icon: <AlertTriangle className="w-4 h-4" strokeWidth={2} />,
     badge: 'bg-[#f59e0b]/15 text-[#fbbf24]',
+    outline: 'outline-[#f59e0b]/60',
   },
   loading: {
     icon: <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />,
     badge: 'bg-[#f59e0b]/15 text-[#fbbf24]',
+    outline: 'outline-[#f59e0b]/60',
   },
 };
 
@@ -36,6 +41,8 @@ export function Toast({ toast, onDismiss }: ToastProps) {
       onClick={() => onDismiss(toast.id)}
       className={cn(
         'flex w-[320px] max-w-[calc(100vw-2rem)] cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-3 py-2.5 shadow-lg',
+        'outline outline-1 outline-dashed outline-offset-2',
+        config.outline,
         toast.className,
       )}
     >
@@ -60,6 +67,17 @@ export function Toast({ toast, onDismiss }: ToastProps) {
           </p>
         )}
       </div>
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDismiss(toast.id);
+        }}
+        className="flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
+      >
+        <X className="w-3.5 h-3.5" strokeWidth={2} />
+      </button>
     </div>
   );
 }

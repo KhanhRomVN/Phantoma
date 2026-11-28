@@ -23,7 +23,7 @@ import type { SystemInfo } from '@renderer/modules/Code/agent/prompts/code';
 
 import SelectModelAccountModal from './components/ModelAccountPickerModal';
 import { cacheGet, cacheSet, providersKey } from './stores/provider-model-cache.store';
-import SkillPickerDrawer, { type PickedSkill } from './components/SkillPickerDrawer';
+import SkillPickerModal, { type PickedSkill } from './components/SkillPickerModal';
 import { getFaviconUrl } from '@renderer/utils/favicon';
 
 import type { MessageInputProps, UploadedFile } from './types/composer.types';
@@ -48,7 +48,7 @@ import {
   resolveToolFormats,
 } from '../chat/services/module_prompt.service';
 import { useGitRepoScanner } from '../chat/hooks/workspace/useGitRepoScanner';
-import { countTokens } from '../../shared/utils/tokenizer';
+import { countTokens } from './utils/tokenizer';
 import { useAccountStats } from '../chat/hooks/api/useAccountStats';
 
 export type { UploadedFile };
@@ -1168,7 +1168,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
             )}
 
             {showSkillPicker && (
-              <SkillPickerDrawer
+              <SkillPickerModal
                 isOpen={showSkillPicker}
                 selectedSlugs={selectedSkills.map((s) => s.slug)}
                 onClose={() => setShowSkillPicker(false)}

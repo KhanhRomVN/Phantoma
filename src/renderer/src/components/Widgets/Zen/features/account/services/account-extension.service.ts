@@ -1,4 +1,4 @@
-import { extensionService, messageDispatcher } from '../../../shared/services/ExtensionService';
+import { electronWidgetBridge, messageDispatcher } from '../../../shared/platform/electron-widget-bridge.service';
 
 /** Message trả về từ extension cho request import (preview). */
 export interface ImportPreviewMessage {
@@ -22,15 +22,15 @@ export const requestAccountImport = (
 ): void => {
   const requestId = `import-${Date.now()}`;
   messageDispatcher.register(requestId, handler as any, timeoutMs, onTimeout);
-  extensionService.postMessage({ command: 'importAccounts', apiUrl, requestId });
+  electronWidgetBridge.postMessage({ command: 'importAccounts', apiUrl, requestId });
 };
 
 export const exportAccountsFile = (fileName: string, content: string): void => {
-  extensionService.postMessage({ command: 'exportAccounts', fileName, content });
+  electronWidgetBridge.postMessage({ command: 'exportAccounts', fileName, content });
 };
 
 export const openFolder = (path: string): void => {
-  extensionService.postMessage({ command: 'openFolder', path });
+  electronWidgetBridge.postMessage({ command: 'openFolder', path });
 };
 
 export const openBrowserWithProfile = (opts: {
@@ -38,7 +38,7 @@ export const openBrowserWithProfile = (opts: {
   userDataDir?: string;
   profileDirectory?: string;
 }): void => {
-  extensionService.postMessage({
+  electronWidgetBridge.postMessage({
     command: 'openBrowserWithProfile',
     url: opts.url,
     ...(opts.userDataDir ? { userDataDir: opts.userDataDir } : {}),

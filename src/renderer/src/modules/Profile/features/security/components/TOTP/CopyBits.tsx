@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { Tooltip } from '@renderer/components/ui/Tooltip';
+import { toastService } from '@renderer/components/ui/Toast';
 
 function useCopied(value: string): [boolean, () => Promise<void>] {
   const [copied, setCopied] = useState(false);
@@ -13,6 +14,7 @@ function useCopied(value: string): [boolean, () => Promise<void>] {
       setTimeout(() => setCopied(false), 1200);
     } catch {
       setCopied(false);
+      toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' });
     }
   };
   return [copied, copy];

@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 
 // ── UI ──
 import { Button } from '@renderer/components/ui/Button';
+import { toastService } from '@renderer/components/ui/Toast';
 import {
   Loader2,
   Folder,
@@ -243,8 +244,14 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
         template: selectedTemplateId,
       });
       onClose();
+      toastService.show({ variant: 'success', title: 'Project created', description: newProjName });
     } catch (err) {
       console.error('[CreateProjectModal] Create failed:', err);
+      toastService.show({
+        variant: 'error',
+        title: 'Create project failed',
+        description: String((err as Error)?.message ?? err).split('\n')[0],
+      });
     } finally {
       setLoading(false);
     }

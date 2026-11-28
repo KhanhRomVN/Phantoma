@@ -18,7 +18,7 @@ import { useState, useRef, useEffect } from 'react';
 // ── Utils ──
 
 // ── Services ──
-import { extensionService } from '../../../../shared/services/ExtensionService';
+import { electronWidgetBridge } from '../../../../shared/platform/electron-widget-bridge.service';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 export const useDraftManagement = (
@@ -34,7 +34,7 @@ export const useDraftManagement = (
   renderCountRef.current += 1;
 
   const [message, setMessage] = useState('');
-  const storage = extensionService.getStorage();
+  const storage = electronWidgetBridge.getStorage();
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDraftRestoredRef = useRef(false);
   const undoStackRef = useRef<string[]>([]);

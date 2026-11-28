@@ -7,6 +7,7 @@ import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { TONE_CLASS } from '../../../../../shared/constants/tone.constants';
 import { profileApi } from '../../../../../shared/api/profile.api';
+import { toastService } from '@renderer/components/ui/Toast';
 import { type TransferJob, type TransferJobItem } from '../../../../../shared/types';
 import type { TransferResult } from '../../SourceTransfer/source-transfer.types';
 import { plural, formatBytes, formatDuration, hsl } from '../../../utils/transfer-format.util';
@@ -71,7 +72,24 @@ export function ConfirmTransferModal({ isOpen, onClose, onFinished, request, tar
         setSpeed(dt >= 0.6 ? Math.max(0, (next.doneBytes - first.b) / dt) : null);
         setNow(t);
         setJob(next);
-        if (next.phase !== 'scanning' && next.phase !== 'running') setStage('done');
+        if (next.phase !== 'scanning' && next.phase !== 'running') {
+          setStage('done');
+          const failedCount = next.items.filter((i) => i.state === 'failed').length;
+          toastService.show(
+            next.phase === 'error'
+              ? { id: 'profile-transfer-job', variant: 'error', title: `${verb} failed`, description: next.error ?? undefined }
+              : next.phase === 'cancelled'
+                ? { id: 'profile-transfer-job', variant: 'warning', title: `${verb} cancelled` }
+                : failedCount > 0
+                  ? {
+                      id: 'profile-transfer-job',
+                      variant: 'warning',
+                      title: `${verb} finished with errors`,
+                      description: `${failedCount} item${failedCount === 1 ? '' : 's'} failed`,
+                    }
+                  : { id: 'profile-transfer-job', variant: 'success', title: `${verb} complete`, description: targetName },
+          );
+        }
       } catch {
         failures.current += 1;
         if (!stopped && failures.current >= MAX_POLL_FAILURES) {
@@ -103,7 +121,9 @@ export function ConfirmTransferModal({ isOpen, onClose, onFinished, request, tar
       setJob(created);
       setStage('running');
     } catch (err) {
-      setStartError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setStartError(message);
+      toastService.show({ variant: 'error', title: `${verb} failed to start`, description: message });
     } finally {
       setStarting(false);
     }

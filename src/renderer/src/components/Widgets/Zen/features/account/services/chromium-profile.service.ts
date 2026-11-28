@@ -1,4 +1,4 @@
-import { extensionService, messageDispatcher } from './ExtensionService';
+import { electronWidgetBridge, messageDispatcher } from '../../../shared/platform/electron-widget-bridge.service';
 
 export interface ChromeProfileDir {
   label: string;
@@ -28,7 +28,7 @@ function request<T>(
       8000,
       () => reject(new Error(timeoutMessage)),
     );
-    extensionService.postMessage({ command, requestId, ...payload });
+    electronWidgetBridge.postMessage({ command, requestId, ...payload });
   });
 }
 

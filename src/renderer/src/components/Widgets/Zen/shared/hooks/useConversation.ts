@@ -19,7 +19,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 // SERVICES
-import ConversationService, { ConversationData } from '../services/ConversationService';
+import ConversationService, { ConversationData } from '../conversations/conversation-storage.service';
 
 export interface UseConversationOptions {
   moduleId: string;

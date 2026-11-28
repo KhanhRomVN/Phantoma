@@ -6,6 +6,7 @@ import CodeBlock, { CodeBlockRef } from '@renderer/components/common/CodeBlock';
 
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 
 interface PayloadValueModalProps {
   isOpen: boolean;
@@ -592,7 +593,10 @@ export function PayloadValueModal({
                       )}
                       <button
                         onClick={() =>
-                          navigator.clipboard.writeText(templatePreviewValues.join('\n'))
+                          navigator.clipboard.writeText(templatePreviewValues.join('\n')).then(
+                            () => toastService.show({ variant: 'success', title: 'Copied' }),
+                            () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+                          )
                         }
                         className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
                       >
@@ -628,7 +632,12 @@ export function PayloadValueModal({
                     {payloadName} ({currentPreviewValues.length} values)
                   </div>
                   <button
-                    onClick={() => navigator.clipboard.writeText(currentPreviewValues.join('\n'))}
+                    onClick={() =>
+                      navigator.clipboard.writeText(currentPreviewValues.join('\n')).then(
+                        () => toastService.show({ variant: 'success', title: 'Copied' }),
+                        () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+                      )
+                    }
                     className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
                   >
                     <Copy className="w-3 h-3" />
@@ -697,7 +706,10 @@ export function PayloadValueModal({
                     )}
                     <button
                       onClick={() =>
-                        navigator.clipboard.writeText(templatePreviewValues.join('\n'))
+                        navigator.clipboard.writeText(templatePreviewValues.join('\n')).then(
+                          () => toastService.show({ variant: 'success', title: 'Copied' }),
+                          () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+                        )
                       }
                       className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-text-secondary hover:text-text-primary hover:bg-dropdown-item-hover transition-colors"
                     >

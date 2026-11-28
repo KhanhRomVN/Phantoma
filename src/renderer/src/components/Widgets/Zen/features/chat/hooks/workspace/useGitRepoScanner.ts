@@ -6,7 +6,7 @@
  * Ported from Zen: temp/Zen/src/webview-ui/src/hooks/useGitRepoScanner.ts
  */
 
-import { extensionService } from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+import { electronWidgetBridge } from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 import { useCallback, useState } from 'react';
 
 export interface GitRepoInfo {
@@ -76,7 +76,7 @@ export const fetchGitRepoDetail = (absPath: string): Promise<GitRepoDetail> =>
       reject(new Error('Load repo detail timeout'));
     }, 15000);
 
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'scanGitRepoDetail',
       requestId,
       absPath,

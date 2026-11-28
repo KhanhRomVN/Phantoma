@@ -13,6 +13,7 @@ import { profileApi } from '../../../../shared/api/profile.api';
 import type { Profile, ProfileSource, SessionFootprint } from '../../../../shared/types';
 import { buildFullReport } from '@renderer/services/fingerprint-generator';
 import type { FootprintPreset } from '@renderer/services/fingerprint-generator';
+import { toastService } from '@renderer/components/ui/Toast';
 
 interface LaunchBrowserModalProps {
   open: boolean;
@@ -71,9 +72,12 @@ export function LaunchBrowserModal({ open, profile, onClose }: LaunchBrowserModa
         footprint: preset ? toSessionFootprint(preset) : null,
       });
       notifyBrowserChanged();
+      toastService.show({ variant: 'success', title: 'Browser launched', description: profile.email });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      toastService.show({ variant: 'error', title: 'Launch failed', description: message });
     } finally {
       setLaunching(false);
     }

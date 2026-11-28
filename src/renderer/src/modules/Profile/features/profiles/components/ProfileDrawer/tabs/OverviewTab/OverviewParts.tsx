@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@renderer/utils/cn';
 import { Tooltip } from '@renderer/components/ui/Tooltip';
+import { toastService } from '@renderer/components/ui/Toast';
 import { TONE_CLASS } from '../../../../../../shared/constants/tone.constants';
 import { CopyTextProps, SectionProps } from './overview-tab.types';
 
@@ -20,6 +21,7 @@ export function CopyText({
       setTimeout(() => setCopied(false), 1200);
     } catch {
       setCopied(false);
+      toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' });
     }
   };
   return (

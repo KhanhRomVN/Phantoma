@@ -4,6 +4,7 @@ import { memo, useState, useEffect, useCallback, useMemo } from 'react';
 
 // ── UI ──
 import { Loader2 } from 'lucide-react';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── Components ──
 import { TaskModal } from './modals/TaskModal';
@@ -225,7 +226,7 @@ export const TaskManager = memo(function TaskManager() {
         if (editingTask) setEditingTask((cur) => (cur && cur.id === saved.id ? saved : cur));
         else setModalOpen(false);
       } catch (e: any) {
-        alert(`Error saving task: ${e.message}`);
+        toastService.show({ variant: 'error', title: 'Save task failed', description: e.message });
       }
     };
     const statusChanged = !editingTask || status !== editingTask.status;
@@ -272,7 +273,7 @@ export const TaskManager = memo(function TaskManager() {
           prev.filter((t) => !doomed.has(t.id)).map((t) => updated.find((u) => u.id === t.id) ?? t),
         );
       } catch (e: any) {
-        alert(`Error deleting task: ${e.message}`);
+        toastService.show({ variant: 'error', title: 'Delete task failed', description: e.message });
       }
     },
     [projectPath, tasks],
@@ -291,7 +292,7 @@ export const TaskManager = memo(function TaskManager() {
         const updated = await taskService.update(projectPath, taskId, updates);
         setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
       } catch (e: any) {
-        alert(`Error updating task: ${e.message}`);
+        toastService.show({ variant: 'error', title: 'Update task failed', description: e.message });
       }
     },
     [projectPath],
@@ -396,7 +397,7 @@ export const TaskManager = memo(function TaskManager() {
               await completeChain(pending.chain);
               await pending.proceed();
             } catch (e: any) {
-              alert(`Error updating tasks: ${e.message}`);
+              toastService.show({ variant: 'error', title: 'Update tasks failed', description: e.message });
             }
           })();
         }}

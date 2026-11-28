@@ -9,7 +9,7 @@ import { cn } from '@renderer/utils/cn';
 import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // Services
-import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { electronWidgetBridge } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Types ──
 import { BaseRendererProps } from '@renderer/modules/Code/shared/zen/zen-bridge';
@@ -172,7 +172,7 @@ export const FindFilesRenderer: React.FC<BaseRendererProps> = ({
                 <TreeBlock
                   files={treeData}
                   onFileClick={(path) => {
-                    extensionService.postMessage({
+                    electronWidgetBridge.postMessage({
                       command: 'openFile',
                       path,
                     });

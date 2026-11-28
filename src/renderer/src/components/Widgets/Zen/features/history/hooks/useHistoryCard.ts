@@ -12,7 +12,7 @@ import type { ConversationItem, HistoryMessage } from '../types';
 import { resolveHistoryScope } from '../services/history-context.service';
 import { getConversationMessages } from '../services/conversation-history.service';
 import { formatMessagesForCopy } from '../utils/history.utils';
-import { extensionService } from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+import { electronWidgetBridge } from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 
 export type CopyStatus = 'idle' | 'copied' | 'error';
 
@@ -118,7 +118,7 @@ export const useHistoryCard = (item: Pick<ConversationItem, 'id'>) => {
 
   const openConversationFolder = useCallback(() => {
     try {
-      extensionService.postMessage({
+      electronWidgetBridge.postMessage({
         command: 'openConversationFolder',
         conversationId: item.id,
       });

@@ -17,7 +17,7 @@
 import type { ToolOutput } from './tool_output.types';
 
 // ── Services ──
-import type { extensionService } from '../../../shared/services/ExtensionService';
+import type { electronWidgetBridge } from '../../../shared/platform/electron-widget-bridge.service';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 // Executor context - shared state and dependencies
@@ -25,7 +25,7 @@ export interface ExecutorContext {
   setToolOutputs: React.Dispatch<React.SetStateAction<Record<string, ToolOutput>>>;
   conversationIdRef?: React.MutableRefObject<string>;
   getToolTimeout: (actionType: string) => number;
-  extensionService: typeof extensionService;
+  extensionService: typeof electronWidgetBridge;
   messageDispatcher: any;
   pendingToolResolvers?: Map<string, (result: string | null) => void>;
   commandStartTimes?: Map<string, number>;

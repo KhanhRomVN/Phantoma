@@ -34,7 +34,11 @@ interface CommitContextMenuProps {
   projectPath: string;
   position: { top: number; left: number };
   onClose: () => void;
-  onNotice: (message: string) => void;
+  onNotice: (
+    message: string,
+    variant?: 'info' | 'success' | 'error' | 'warning' | 'loading',
+    description?: string,
+  ) => void;
   onApplyToBranch: (commit: Commit) => void;
   onExportSource: (commit: Commit) => void;
 }
@@ -98,7 +102,10 @@ export const CommitContextMenu = memo(function CommitContextMenu({
   );
 
   const copy = (text: string, label: string) => {
-    void navigator.clipboard.writeText(text).then(() => onNotice(`Copied ${label}`));
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => onNotice(`Copied ${label}`, 'success'))
+      .catch((e: any) => onNotice(`Cannot copy ${label}`, 'error', e?.message));
   };
 
   const copyMessage = async () => {
@@ -108,7 +115,9 @@ export const CommitContextMenu = memo(function CommitContextMenu({
   };
 
   const openUrl = (url: string) => {
-    void shellIpc.openExternal(url);
+    void Promise.resolve(shellIpc.openExternal(url)).catch((e: any) =>
+      onNotice('Cannot open link', 'error', e?.message),
+    );
   };
 
   return (

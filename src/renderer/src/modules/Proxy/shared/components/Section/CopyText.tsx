@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 
 export function CopyText({ value, display, mono = true }: { value: string; display?: string; mono?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -11,7 +12,7 @@ export function CopyText({ value, display, mono = true }: { value: string; displ
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1200);
       })
-      .catch(() => undefined);
+      .catch(() => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }));
   };
   return (
     <button

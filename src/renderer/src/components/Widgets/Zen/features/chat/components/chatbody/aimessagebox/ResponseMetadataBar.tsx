@@ -17,7 +17,7 @@ import { buildRevertPreview } from '../../../utils/revert_preview_builder';
 
 import CodeBlock from '@renderer/components/common/CodeBlock';
 import RevertConfirmModal from '../revert/RevertConfirmModal';
-import RevertConfirmDrawer from '../revert/RevertConfirmDrawer';
+import RevertPreviewModal from '../revert/RevertPreviewModal';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ResponseMetadataBarProps {
@@ -455,7 +455,7 @@ export const ResponseMetadataBar: React.FC<ResponseMetadataBarProps> = ({
       />
 
       {/* Revert Confirmation Drawer (with file preview) */}
-      <RevertConfirmDrawer
+      <RevertPreviewModal
         isOpen={showRevertDrawer}
         onClose={() => setShowRevertDrawer(false)}
         onConfirm={handleConfirmRevert}

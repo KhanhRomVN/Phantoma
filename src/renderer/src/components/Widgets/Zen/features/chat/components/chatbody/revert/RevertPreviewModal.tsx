@@ -1,6 +1,6 @@
 /**
  * ------------------------------------------------------------------
- * RevertConfirmDrawer
+ * RevertPreviewModal
  * ------------------------------------------------------------------
  * Bottom-sheet drawer xác nhận revert conversation. Hiển thị danh sách
  * file bị ảnh hưởng, phân loại theo restore/undo/remove, có search và
@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import { createPortal } from 'react-dom';
+import ResponsiveModal from '../../../../../shared/components/ResponsiveModal';
 import { RotateCcw, Loader2 } from 'lucide-react';
 import { getFileIconPath } from '@renderer/utils/file-icon';
 import { cn } from '@renderer/utils/cn';
@@ -31,7 +31,7 @@ interface GroupDef {
   icon: React.ReactNode;
 }
 
-interface RevertConfirmDrawerProps {
+interface RevertPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -209,7 +209,7 @@ const FileGroup: React.FC<{
 };
 
 // ─── Main component ─────────────────────────────────────────────────────
-const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
+const RevertPreviewModal: React.FC<RevertPreviewModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
@@ -254,16 +254,9 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
     }, 300);
   };
 
-  return createPortal(
+  return (
     <>
-      <div
-        className="fixed inset-0 z-[9998] bg-black/55 backdrop-blur-sm animate-[rcFadeIn_0.18s_ease]"
-        onClick={onClose}
-      />
-      <div className="fixed inset-x-0 bottom-0 z-[9999] h-1/2 flex flex-col bg-tertiary border-t border-border shadow-[0_-8px_32px_rgba(0,0,0,0.28)] animate-[rcSlideUp_0.22s_ease]">
-        <div className="flex justify-center pt-2.5 pb-1 shrink-0">
-          <div className="w-9 h-1 rounded-full bg-border" />
-        </div>
+      <ResponsiveModal isOpen={isOpen} onClose={onClose} sheetHeight="50%" background="var(--tertiary)">
 
         <div className="flex-1 overflow-y-auto px-5 pt-1 min-h-0 rc-scroll">
           <div className="flex flex-col items-center text-center px-2 pt-2 pb-4">
@@ -408,24 +401,15 @@ const RevertConfirmDrawer: React.FC<RevertConfirmDrawerProps> = ({
             )}
           </button>
         </div>
-      </div>
+      </ResponsiveModal>
 
       <style>{`
-        @keyframes rcSlideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
-        }
-        @keyframes rcFadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
         .rc-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
         .rc-scroll::-webkit-scrollbar { width: 5px; }
         .rc-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 99px; }
       `}</style>
-    </>,
-    document.body,
+    </>
   );
 };
 
-export default RevertConfirmDrawer;
+export default RevertPreviewModal;

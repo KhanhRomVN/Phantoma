@@ -105,14 +105,12 @@ export function useGitLocalCommit({
                   variant: 'error',
                   title: 'Git add failed',
                   description: String(res.error).split('\n')[0],
-                  duration: 6000,
                 }
               : {
                   id: toastId,
                   variant: 'success',
                   title: 'Git add done',
                   description: `Staged ${paths.length} files`,
-                  duration: 3000,
                 },
           );
           await refresh();
@@ -128,7 +126,19 @@ export function useGitLocalCommit({
             .commit(localRoot, message)
             .catch((e: any) => ({ error: e?.message || String(e) }));
           const failed = !!res?.error;
-          showNotice(failed ? String(res.error).split('\n')[0] : 'Committed');
+          toastService.show(
+            failed
+              ? {
+                  variant: 'error',
+                  title: 'Commit failed',
+                  description: String(res.error).split('\n')[0],
+                }
+              : {
+                  variant: 'success',
+                  title: 'Committed',
+                  description: message.split('\n')[0],
+                },
+          );
           if (!failed) await refresh();
           return !failed;
         } finally {

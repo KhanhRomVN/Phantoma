@@ -27,8 +27,8 @@ import type { ToolFormatId } from '../../types/tool_format.types';
 import { ConversationCache } from '../../stores/conversation_cache.store';
 import { deleteConversation } from '../../services/conversation_persistence.service';
 import { getModuleIdFromContext } from '../../services/conversation_context.service';
-import { ConversationService as NewConversationService } from '../../../../shared/services/ConversationService';
-import { extensionService } from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+import { ConversationService as NewConversationService } from '../../../../shared/conversations/conversation-storage.service';
+import { electronWidgetBridge } from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 
 interface UseConversationRestoreProps {
   currentChat: ChatSession | null;
@@ -275,13 +275,13 @@ export const useConversationRestore = ({
       }
     };
     applyConversationRef.current = handleMessageResponse;
-    const unsubMessageResponse = extensionService.onMessage(
+    const unsubMessageResponse = electronWidgetBridge.onMessage(
       'messageResponse',
       handleMessageResponse,
     );
 
     // Listen for commitError
-    const unsubCommitError = extensionService.onMessage('commitError', (data: any) => {
+    const unsubCommitError = electronWidgetBridge.onMessage('commitError', (data: any) => {
       const errorMsg = data.error || 'Unknown git error';
       const errorMessage: Message = {
         id: `msg-error-${Date.now()}`,
@@ -291,24 +291,18 @@ export const useConversationRestore = ({
         isError: true,
       };
       setMessages((prev) => [...prev, errorMessage]);
-      const vscodeApi = (window as any).vscodeApi;
-      if (vscodeApi) {
-        vscodeApi.postMessage({
-          command: 'showError',
-          message: `Lỗi commit/push: ${errorMsg.substring(0, 200)}${errorMsg.length > 200 ? '...' : ''}`,
-        });
-      }
+
     });
 
     // Listen for clearChatConfirmed
-    const unsubClearChat = extensionService.onMessage('clearChatConfirmed', (data: any) => {
+    const unsubClearChat = electronWidgetBridge.onMessage('clearChatConfirmed', (data: any) => {
       if (data.conversationId === currentConversationIdRef.current) {
         handleClearConfirmed();
       }
     });
 
     // Listen for conversationRevertedError
-    const unsubRevertError = extensionService.onMessage(
+    const unsubRevertError = electronWidgetBridge.onMessage(
       'conversationRevertedError',
       (data: any) => {
         if (data.conversationId === currentConversationIdRef.current) {
@@ -323,7 +317,7 @@ export const useConversationRestore = ({
     );
 
     // Listen for conversationReverted
-    const unsubReverted = extensionService.onMessage('conversationReverted', (data: any) => {
+    const unsubReverted = electronWidgetBridge.onMessage('conversationReverted', (data: any) => {
       if (data.conversationId === currentConversationIdRef.current) {
         const targetId = revertMessageIdRef.current;
         revertMessageIdRef.current = null;
@@ -406,7 +400,7 @@ export const useConversationRestore = ({
         visibleUserMessages.length > 0 && visibleUserMessages[0].id === messageId;
       revertMessageIdRef.current = isFirstMessage ? '__first__' : messageId;
       setIsLoadingConversation(true);
-      extensionService.postMessage({
+      electronWidgetBridge.postMessage({
         command: 'revertConversation',
         conversationId: currentConversationIdRef.current,
         messageId,

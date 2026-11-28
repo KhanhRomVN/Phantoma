@@ -13,6 +13,7 @@ import { codeApi } from '../../../shared/api/code.api';
 
 // ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 interface CodeFileProps {
@@ -75,6 +76,11 @@ export const CodeFile = memo(function CodeFile({ filePath, fileId, cwd }: CodeFi
       );
     } catch (err) {
       console.error('[CodeFile] Save temp file failed:', err);
+      toastService.show({
+        variant: 'error',
+        title: 'Save file failed',
+        description: String((err as Error)?.message ?? err).split('\n')[0],
+      });
     } finally {
       savingRef.current = false;
     }

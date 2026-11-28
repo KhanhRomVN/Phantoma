@@ -52,7 +52,7 @@ import { useActionStatusEvents } from '../events/useActionStatusEvents';
 import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
 import { useProject } from '@renderer/components/Widgets/Zen/context/ProjectContext';
 import { useFileUpload } from '../workspace/useFileUpload';
-import { extensionService } from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+import { electronWidgetBridge } from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 import { TOOL_ACTION_TYPES } from '@renderer/components/Widgets/Zen/shared/types/tool-constants';
 
 // ── Utils ──
@@ -244,7 +244,7 @@ export const useChatLLM = ({
 
     dispatchStreaming({ type: 'STOP_ALL' });
 
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'stopCommand',
       actionId: 'all',
       kill: true,

@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { ExternalLink, Eye, EyeOff } from 'lucide-react';
 import type { FieldKind } from '../../../shared/types';
+import { toastService } from '@renderer/components/ui/Toast';
 import { normalizeUrl } from '../utils/service.util';
 import { BackupCodeGrid, BackupCopyMenu, parseBackup, serializeBackup, TotpLive } from '../../security';
 
 const copy = (text: string): void => {
-  void navigator.clipboard.writeText(text).catch(() => undefined);
+  void navigator.clipboard.writeText(text).then(
+    () => toastService.show({ variant: 'success', title: 'Copied to clipboard' }),
+    () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+  );
 };
 
 function BackupView({ value, onChange }: { value: string; onChange?: (v: string) => void }) {

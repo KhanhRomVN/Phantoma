@@ -5,6 +5,7 @@ import { memo, useEffect, useState } from 'react';
 // ── UI ──
 import { AlertCircle, ExternalLink, Globe, KeyRound, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@renderer/components/ui/Button';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── Services ──
 import { shellIpc } from '../../../shared/ipc/shell.ipc';
@@ -86,7 +87,9 @@ export const PrBlocker = memo(function PrBlocker({
         setLoginError(String(res.error));
         return;
       }
-      await navigator.clipboard.writeText(res.code).catch(() => {});
+      await navigator.clipboard
+        .writeText(res.code)
+        .catch(() => toastService.show({ variant: 'error', title: 'Cannot copy login code' }));
       void shellIpc.openPrExternal(res.url);
       setWebLogin({ code: res.code, url: res.url });
     } finally {

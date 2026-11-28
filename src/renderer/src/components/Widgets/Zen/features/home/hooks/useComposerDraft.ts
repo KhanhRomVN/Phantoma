@@ -13,9 +13,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  extensionService,
+  electronWidgetBridge,
   messageDispatcher,
-} from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+} from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 
 export const useComposerDraft = (folderPath: string | null) => {
   const draftKey = folderPath ? `home-draft:${folderPath}` : 'home-draft:global';
@@ -51,7 +51,7 @@ export const useComposerDraft = (folderPath: string | null) => {
         if (active) setRestoredKey(draftKey);
       },
     );
-    extensionService.postMessage({ command: 'storageGet', requestId, key: draftKey });
+    electronWidgetBridge.postMessage({ command: 'storageGet', requestId, key: draftKey });
 
     return () => {
       active = false;
@@ -64,14 +64,14 @@ export const useComposerDraft = (folderPath: string | null) => {
 
     const timer = setTimeout(() => {
       if (message.trim()) {
-        extensionService.postMessage({
+        electronWidgetBridge.postMessage({
           command: 'storageSet',
           requestId: `setDraft-${Date.now()}`,
           key: draftKey,
           value: message,
         });
       } else {
-        extensionService.postMessage({
+        electronWidgetBridge.postMessage({
           command: 'storageDelete',
           requestId: `deleteDraft-${Date.now()}`,
           key: draftKey,
@@ -83,7 +83,7 @@ export const useComposerDraft = (folderPath: string | null) => {
   }, [message, draftKey, restoredKey]);
 
   const clearDraft = useCallback(() => {
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'storageDelete',
       requestId: `clearDraft-${Date.now()}`,
       key: draftKeyRef.current,

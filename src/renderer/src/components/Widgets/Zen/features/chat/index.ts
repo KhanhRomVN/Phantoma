@@ -4,5 +4,5 @@ export {
   messagesToJson,
   downloadJson,
   copyToClipboard,
-} from './ChatPanel';
+} from './utils/conversation-export';
 export type { ChatSession } from './types/chat.types';

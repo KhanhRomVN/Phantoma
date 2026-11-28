@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { toastService } from '@renderer/components/ui/Toast';
 import { useCodeStore, type FileNode } from '../../../shared/stores/code.store';
 import { codeApi } from '../../../shared/api/code.api';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
@@ -42,6 +43,11 @@ export function InlineRenameInput({ node, depth, projectId, onDone }: InlineRena
         if (root) await refreshProjectTree(projectId, root);
       } catch (err) {
         console.error('[FileExplorer] Failed to rename:', err);
+        toastService.show({
+          variant: 'error',
+          title: 'Rename failed',
+          description: String((err as Error)?.message ?? err).split('\n')[0],
+        });
       }
     }
     onDone();

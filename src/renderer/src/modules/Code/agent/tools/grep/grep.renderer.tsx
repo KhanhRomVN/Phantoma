@@ -9,7 +9,7 @@ import { cn } from '@renderer/utils/cn';
 import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // Services
-import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { electronWidgetBridge } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
 import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
@@ -203,14 +203,14 @@ const GrepBlock: React.FC<GrepBlockProps> = ({
 
   const openFileAtLine = (filePathLine: string, lineNumber: number) => {
     const fullPath = filePathLine;
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'openFileAtLine',
       path: fullPath,
       line: lineNumber,
       selection: { startLine: lineNumber, endLine: lineNumber },
     });
     setTimeout(() => {
-      extensionService.postMessage({ command: 'openFile', path: fullPath });
+      electronWidgetBridge.postMessage({ command: 'openFile', path: fullPath });
     }, 200);
   };
 
@@ -461,7 +461,7 @@ export const GrepRenderer: React.FC<BaseRendererProps> = ({
           return folderPath || filePath || '';
         })()}
         onPathClick={(clickedPath) => {
-          extensionService.postMessage({
+          electronWidgetBridge.postMessage({
             command: 'openFile',
             path: clickedPath,
           });

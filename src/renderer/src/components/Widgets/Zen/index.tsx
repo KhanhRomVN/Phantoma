@@ -242,6 +242,7 @@ function AgentView({
             onConversationChange={handleChatConversationChange}
             onTitleChange={handleChatTitleChange}
             onOpenSubView={setSubView}
+            isActive={isVisible}
           />
         ) : (
           <HomePanel

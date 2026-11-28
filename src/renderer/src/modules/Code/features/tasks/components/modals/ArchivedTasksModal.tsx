@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 // ── UI ──
 import { Archive, Loader2 } from 'lucide-react';
 import { Modal, ModalHeader, ModalBody } from '@renderer/components/ui/Modal';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── Components ──
 import { TaskModal } from './TaskModal';
@@ -81,8 +82,10 @@ export function ArchivedTasksModal({ isOpen, onClose, projectPath }: ArchivedTas
     try {
       const saved = await taskService.update(projectPath, task.id, { archived: false });
       setAll((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
+      toastService.show({ variant: 'success', title: 'Task restored', description: saved.title });
     } catch (e: any) {
       setError(e.message || 'Failed to restore task');
+      toastService.show({ variant: 'error', title: 'Restore task failed', description: e.message });
     } finally {
       setRestoringId(null);
     }
@@ -118,7 +121,7 @@ export function ArchivedTasksModal({ isOpen, onClose, projectPath }: ArchivedTas
       setAll((prev) => prev.map((t) => updated.find((u) => u.id === t.id) ?? t));
       setEditing((cur) => (cur && cur.id === target.id ? saved : cur));
     } catch (e: any) {
-      alert(`Error saving task: ${e.message}`);
+      toastService.show({ variant: 'error', title: 'Save task failed', description: e.message });
     }
   };
 

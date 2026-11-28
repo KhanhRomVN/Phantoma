@@ -6,6 +6,7 @@ import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 
 import { profileApi } from '../../../../../shared/api/profile.api';
+import { toastService } from '@renderer/components/ui/Toast';
 import type { ImportJob } from '../../../../../shared/types';
 import { Ring, Stat, StateIcon, formatBytes, formatDuration } from '../../../../sources';
 
@@ -48,7 +49,11 @@ export function ImportProgressModal({ isOpen, path, targetId, targetName, folder
     profileApi.profiles.importJob
       .start({ path, targetId, folders })
       .then(setJob)
-      .catch((err) => setStartError(err instanceof Error ? err.message : String(err)));
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        setStartError(message);
+        toastService.show({ variant: 'error', title: 'Import failed to start', description: message });
+      });
   }, [path, targetId, folders]);
 
   useEffect(() => {
@@ -66,6 +71,23 @@ export function ImportProgressModal({ isOpen, path, targetId, targetName, folder
         setSpeed(dt >= 0.6 ? Math.max(0, (next.doneBytes - first.b) / dt) : null);
         setNow(t);
         setJob(next);
+        if (next.phase !== 'scanning' && next.phase !== 'running') {
+          const failedCount = next.items.filter((i) => i.state === 'failed').length;
+          toastService.show(
+            next.phase === 'error'
+              ? { id: 'profile-import-job', variant: 'error', title: 'Import failed', description: next.error ?? undefined }
+              : next.phase === 'cancelled'
+                ? { id: 'profile-import-job', variant: 'warning', title: 'Import cancelled' }
+                : failedCount > 0
+                  ? {
+                      id: 'profile-import-job',
+                      variant: 'warning',
+                      title: 'Import finished with errors',
+                      description: `${failedCount} item${failedCount === 1 ? '' : 's'} failed`,
+                    }
+                  : { id: 'profile-import-job', variant: 'success', title: 'Import complete', description: targetName },
+          );
+        }
       } catch {
         failures.current += 1;
         if (!stopped && failures.current >= MAX_POLL_FAILURES) {

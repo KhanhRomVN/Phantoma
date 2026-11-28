@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 import { Avatar } from '../../../../../shared/components/Avatar';
 import type { Profile, ProfileSource } from '../../../../../shared/types';
 import { TONE_CLASS } from '../../../../../shared/constants/tone.constants';
@@ -118,7 +119,13 @@ export function DuplicateSection({ items, onOpen }: DuplicateSectionProps) {
               </DropdownItem>
               <DropdownItem
                 icon={<Copy className="h-3.5 w-3.5" />}
-                onClick={() => menuPath && void navigator.clipboard.writeText(menuPath).catch(() => undefined)}
+                onClick={() =>
+                  menuPath &&
+                  void navigator.clipboard.writeText(menuPath).then(
+                    () => toastService.show({ variant: 'success', title: 'Path copied' }),
+                    () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+                  )
+                }
               >
                 Copy path
               </DropdownItem>

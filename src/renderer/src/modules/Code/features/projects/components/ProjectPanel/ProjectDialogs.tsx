@@ -17,6 +17,7 @@ import { ConfirmUnassignTaskModal } from './modals/ConfirmUnassignTaskModal';
 
 // ── Hooks ──
 import { forceReleaseTarget, focusTargetOwner } from '@renderer/hooks/useTargetLock';
+import { toastService } from '@renderer/components/ui/Toast';
 import type { useProjectDialogs } from '../../hooks/useProjectDialogs';
 import type { useProjectTaskActions } from '../../hooks/useProjectTaskActions';
 import type { useProjectMutations } from '../../hooks/useProjectMutations';
@@ -395,7 +396,7 @@ export function ProjectDialogs({
               }
               await pending.proceed();
             } catch (e: any) {
-              alert(`Error updating tasks: ${e.message}`);
+              toastService.show({ variant: 'error', title: 'Update tasks failed', description: e.message });
             }
           })();
         }}

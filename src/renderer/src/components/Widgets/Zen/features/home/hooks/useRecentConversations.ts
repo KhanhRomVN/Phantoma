@@ -8,8 +8,12 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { ConversationItem } from '../../../history/History/types';
-import ConversationService from '../../../shared/services/ConversationService';
+import { ConversationItem } from '../../history/types';
+import ConversationService from '../../../shared/conversations/conversation-storage.service';
+import {
+  mapConversationSummary,
+  mapWithConcurrency,
+} from '../../../shared/conversations/conversation-summary';
 import { resolveConversationModuleId } from '../../chat/registries/module.registry';
 
 const DETAIL_CONCURRENCY = 5;
@@ -25,62 +29,6 @@ function getCurrentModuleId(): string | null {
   if (feature === 'recon' && w.__activeTargetId) return `recon:${w.__activeTargetId}`;
   if (feature === 'design' && w.__activeDesignId) return `design:${w.__activeDesignId}`;
   return null;
-}
-
-const text = (v: unknown): string => (typeof v === 'string' ? v : '');
-
-function toSummary(data: any): ConversationItem | null {
-  const messages: any[] = Array.isArray(data?.messages) ? data.messages : [];
-  if (messages.length === 0) return null;
-
-  const title = text(messages[0]?.content).substring(0, 100) || 'New Conversation';
-  const preview = messages
-    .slice(0, 3)
-    .map((m) => text(m?.content).substring(0, 50))
-    .join(' ');
-
-  let providerId: string | undefined;
-  let modelId: string | undefined;
-  let totalTokenUsage = 0;
-  let totalRequests = 0;
-  for (const m of messages) {
-    if (m?.role === 'user') totalRequests++;
-    if (m?.role === 'assistant') {
-      if (!providerId && m.providerId) providerId = m.providerId;
-      if (!modelId && m.modelId) modelId = m.modelId;
-      if (!m.isError && m.tokenUsage) totalTokenUsage += m.tokenUsage;
-    }
-  }
-
-  return {
-    id: data.conversationId,
-    title,
-    preview,
-    timestamp: data.createdAt,
-    lastModified: data.lastModified,
-    createdAt: data.createdAt,
-    messageCount: messages.length,
-    tabId: -1,
-    totalRequests,
-    totalTokenUsage,
-    providerId,
-    modelId,
-    workflowAgentId: data.conversationOverrides?.workflowAgentId ?? data.workflowAgentId ?? null,
-    folderPath: null,
-  } as ConversationItem;
-}
-
-async function mapWithLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>) {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await fn(items[i]);
-    }
-  });
-  await Promise.all(workers);
-  return results;
 }
 
 function timeOf(c: ConversationItem): number {
@@ -107,9 +55,9 @@ export function useRecentConversations() {
     (async () => {
       try {
         const ids = await ConversationService.list(moduleId);
-        const items = await mapWithLimit(ids, DETAIL_CONCURRENCY, async (id) => {
+        const items = await mapWithConcurrency(ids, DETAIL_CONCURRENCY, async (id) => {
           try {
-            return toSummary(await ConversationService.get(moduleId, id));
+            return mapConversationSummary(await ConversationService.get(moduleId, id));
           } catch (error) {
             console.warn(`[Home] Failed to load conversation ${id}:`, error);
             return null;

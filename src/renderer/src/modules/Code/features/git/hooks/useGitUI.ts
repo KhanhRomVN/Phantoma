@@ -2,6 +2,9 @@
 // ── React ──
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+// ── UI ──
+import { toastService, type ToastVariant } from '@renderer/components/ui/Toast';
+
 // ── Utils ──
 import { parseRefs, formatRelative, type Commit } from '../utils/graph.util';
 
@@ -20,8 +23,7 @@ interface HoverState {
 interface UseGitUIReturn {
   query: string;
   setQuery: (q: string) => void;
-  notice: string | null;
-  showNotice: (msg: string) => void;
+  showNotice: (title: string, variant?: ToastVariant, description?: string) => void;
   hover: HoverState | null;
   handleHover: (e: React.MouseEvent | null, commit?: Commit) => void;
   matchSet: Set<string> | null;
@@ -32,17 +34,18 @@ interface UseGitUIReturn {
 export function useGitUI({ commits }: UseGitUIProps): UseGitUIReturn {
   // ── State ──
   const [query, setQuery] = useState('');
-  const [notice, setNotice] = useState<string | null>(null);
   const [hover, setHover] = useState<HoverState | null>(null);
 
   // ── Refs ──
   const searchRef = useRef<HTMLInputElement>(null);
 
   // ── Callbacks ──
-  const showNotice = useCallback((msg: string) => {
-    setNotice(msg);
-    setTimeout(() => setNotice(null), 3500);
-  }, []);
+  const showNotice = useCallback(
+    (title: string, variant: ToastVariant = 'info', description?: string) => {
+      toastService.show({ variant, title, description });
+    },
+    [],
+  );
 
   const handleHover = useCallback((e: React.MouseEvent | null, commit?: Commit) => {
     if (!e || !commit) {
@@ -98,7 +101,6 @@ export function useGitUI({ commits }: UseGitUIProps): UseGitUIReturn {
   return {
     query,
     setQuery,
-    notice,
     showNotice,
     hover,
     handleHover,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 import { MethodBadge, tryFormatJson } from './shared/http-render.utils';
 import { TagHeader } from '@renderer/components/Widgets/Zen/features/chat/components/chatbody/aimessagebox/TagHeader';
 import { BaseRendererProps } from '@renderer/components/Widgets/Zen/features/chat/types/renderer.types';
@@ -117,9 +118,13 @@ function CollapsibleSection({
   const formatted = tryFormatJson(content);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(formatted);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(formatted).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      },
+      () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+    );
   };
 
   return (

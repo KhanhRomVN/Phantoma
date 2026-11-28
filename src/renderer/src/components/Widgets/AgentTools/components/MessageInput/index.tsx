@@ -10,7 +10,7 @@ import {
 import {
   countTokens,
   formatTokenCount,
-} from '@renderer/components/Widgets/Zen/shared/utils/tokenizer';
+} from '@renderer/components/Widgets/Zen/features/composer/utils/tokenizer';
 import { fetchProviders } from '../../services/agentApi';
 import SelectProviderModelModal from './SelectProviderModelModal';
 import ProviderModelTrigger from './ProviderModelTrigger';

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toastService } from '@renderer/components/ui/Toast';
 import type { ProxySource } from '../../../shared/types/source-domain.types';
 import { errorMessage } from '../../../shared/utils/error';
 import { vpnApi } from '../api/vpn.api';
@@ -26,14 +27,33 @@ export function useVpnLifecycle({ activeSource, reload, setError, openSource, fo
       openSource(account.id);
       return;
     }
+    const stopping = !!account.running;
     setVpnBusy(true);
+    const toastId = toastService.show({
+      id: 'vpn-toggle',
+      variant: 'loading',
+      title: stopping ? 'Stopping VPN' : 'Starting VPN',
+      description: activeSource?.name,
+    });
     try {
-      if (account.running) await vpnApi.stop(account.id);
+      if (stopping) await vpnApi.stop(account.id);
       else await vpnApi.start(account.id);
       await reload();
       setError(null);
+      toastService.show({
+        id: toastId,
+        variant: 'success',
+        title: stopping ? 'VPN stopped' : 'VPN started',
+        description: activeSource?.name,
+      });
     } catch (err) {
       setError(errorMessage(err));
+      toastService.show({
+        id: toastId,
+        variant: 'error',
+        title: stopping ? 'Stop VPN failed' : 'Start VPN failed',
+        description: errorMessage(err),
+      });
     } finally {
       setVpnBusy(false);
     }
@@ -53,6 +73,7 @@ export function useVpnLifecycle({ activeSource, reload, setError, openSource, fo
     await vpnApi.start(source.id, { country: input.country });
     await reload();
     setError(null);
+    toastService.show({ variant: 'success', title: 'Foxhole VPN started', description: input.country });
   };
 
   const createProton = async (input: ProtonCredentials): Promise<void> => {
@@ -66,6 +87,7 @@ export function useVpnLifecycle({ activeSource, reload, setError, openSource, fo
     await vpnApi.start(source.id);
     await reload();
     setError(null);
+    toastService.show({ variant: 'success', title: 'Proton VPN started', description: input.email });
   };
 
   return { vpnBusy, toggleVpn, createFoxhole, createProton };

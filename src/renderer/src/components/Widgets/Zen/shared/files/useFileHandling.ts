@@ -19,7 +19,8 @@ import React, { useState, useRef } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 
 // TYPES
-import { UploadedFile, ExternalFile, AttachedItem } from '../types/file-uploader';
+import { UploadedFile, ExternalFile, AttachedItem } from './file.types';
+import { uploadFileToBackend } from './file-upload.service';
 import { isFileAllowed, readFileAsText } from '../../features/chat/utils/file_operations';
 import { ALLOWED_FILE_EXTENSIONS } from '../../features/chat/constants/file_extensions';
 
@@ -58,48 +59,10 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
     );
 
     try {
-      let blob: Blob;
-      if (file.content.startsWith('data:')) {
-        const arr = file.content.split(',');
-        const mime = arr[0].match(/:(.*?);/)?.[1] || file.type || 'application/octet-stream';
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-        blob = new Blob([u8arr], { type: mime });
-      } else {
-        blob = new Blob([file.content], { type: file.type || 'text/plain' });
-      }
-
-      const formData = new FormData();
-      formData.append('file', blob, file.name);
-
-      const uploadRes = await fetch(`${apiUrl}/v1/uploads/accounts/${accountId}/uploads`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        const errorText = await uploadRes.text();
-        console.error(`[useFileHandling] Upload API error response: ${errorText}`);
-        throw new Error(`Upload API returned status ${uploadRes.status}: ${errorText}`);
-      }
-
-      const uploadData = await uploadRes.json();
-
-      if (uploadData.success && uploadData.data?.file_id) {
-        setUploadedFiles((prev) =>
-          prev.map((f) =>
-            f.id === file.id ? { ...f, file_id: uploadData.data.file_id, isUploading: false } : f,
-          ),
-        );
-      } else {
-        const errorMsg = uploadData.error || 'Unknown upload error';
-        console.error(`[useFileHandling] Upload failed: ${errorMsg}`);
-        throw new Error(errorMsg);
-      }
+      const fileId = await uploadFileToBackend({ apiUrl, accountId, file });
+      setUploadedFiles((prev) =>
+        prev.map((f) => (f.id === file.id ? { ...f, file_id: fileId, isUploading: false } : f)),
+      );
     } catch (err: any) {
       console.error(`[useFileHandling] Upload exception:`, err);
       console.error(`[useFileHandling] Error message: ${err.message}`);
@@ -207,16 +170,8 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
     }
 
     if (invalidFiles.length > 0) {
-      const vscodeApi = (window as any).vscodeApi;
       const message = `Cannot add file(s):\n${invalidFiles.map((f) => `• ${f.name}: ${f.reason}`).join('\n')}`;
-      if (vscodeApi) {
-        vscodeApi.postMessage({
-          command: 'showWarning',
-          message: message,
-        });
-      } else {
-        alert(message);
-      }
+      alert(message);
     }
 
     setUploadedFiles((prev) => [...prev, ...newFiles]);
@@ -295,17 +250,9 @@ export const useFileHandling = ({ accountId, onAddAttachedItem }: UseFileHandlin
     if (newInvalidFiles.length > 0) {
       setInvalidExternalFiles((prev) => [...prev, ...newInvalidFiles]);
       // Show warning to user
-      const vscodeApi = (window as any).vscodeApi;
-      if (vscodeApi) {
-        vscodeApi.postMessage({
-          command: 'showWarning',
-          message: `${newInvalidFiles.length} file(s) could not be added:\n${newInvalidFiles.map((f) => `• ${f.name}: ${f.reason}`).join('\n')}`,
-        });
-      } else {
-        alert(
+      alert(
           `Cannot add file(s):\n${newInvalidFiles.map((f) => `• ${f.name}: ${f.reason}`).join('\n')}`,
         );
-      }
     }
 
     // Reset input

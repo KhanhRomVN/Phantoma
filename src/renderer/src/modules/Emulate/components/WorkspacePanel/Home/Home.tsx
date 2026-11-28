@@ -16,6 +16,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── UI ──
 import {
@@ -279,7 +280,10 @@ export const RequestDetails = React.memo(function RequestDetails({
   const handleCopy = () => {
     const content = getTabContent(activeTab);
     if (content) {
-      navigator.clipboard.writeText(JSON.stringify(content, null, 2));
+      navigator.clipboard.writeText(JSON.stringify(content, null, 2)).then(
+        () => toastService.show({ variant: 'success', title: 'Copied' }),
+        () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+      );
     }
   };
 

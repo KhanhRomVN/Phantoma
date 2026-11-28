@@ -16,6 +16,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── Table ──
 import {
@@ -274,11 +275,17 @@ export const RequestTable = React.memo(function RequestTable({
   };
 
   const handleCopySingleAsMarkdown = (req: NetworkRequest) => {
-    navigator.clipboard.writeText(formatRequestToMarkdown(req));
+    navigator.clipboard.writeText(formatRequestToMarkdown(req)).then(
+      () => toastService.show({ variant: 'success', title: 'Copied as Markdown' }),
+      () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+    );
   };
 
   const handleCopySingleAsJson = (req: NetworkRequest) => {
-    navigator.clipboard.writeText(formatRequestToJson(req));
+    navigator.clipboard.writeText(formatRequestToJson(req)).then(
+      () => toastService.show({ variant: 'success', title: 'Copied as JSON' }),
+      () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+    );
   };
 
   // Copy Selected with section options
@@ -365,7 +372,10 @@ export const RequestTable = React.memo(function RequestTable({
   const handleCopySelectedWithOptions = () => {
     const text = formatSelectedWithOptions();
     if (text) {
-      navigator.clipboard.writeText(text);
+      navigator.clipboard.writeText(text).then(
+        () => toastService.show({ variant: 'success', title: 'Copied' }),
+        () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+      );
     }
   };
 

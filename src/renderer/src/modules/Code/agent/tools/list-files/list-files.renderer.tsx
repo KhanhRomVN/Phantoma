@@ -9,7 +9,7 @@ import { cn } from '@renderer/utils/cn';
 import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // Services
-import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { electronWidgetBridge } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Utils ──
 import { getNextUserMessage } from '@renderer/modules/Code/shared/zen/zen-bridge';
@@ -121,7 +121,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
-                  extensionService.postMessage({
+                  electronWidgetBridge.postMessage({
                     command: 'openFile',
                     path: rawPath,
                   });
@@ -134,7 +134,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
-                  extensionService.postMessage({
+                  electronWidgetBridge.postMessage({
                     command: 'openFile',
                     path: rawPath,
                   });
@@ -153,7 +153,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 if (rawPath) {
-                  extensionService.postMessage({
+                  electronWidgetBridge.postMessage({
                     command: 'openFile',
                     path: rawPath,
                   });
@@ -203,7 +203,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
         path={rawPath}
         compactPath
         onPathClick={(clickedPath) => {
-          extensionService.postMessage({
+          electronWidgetBridge.postMessage({
             command: 'openFile',
             path: clickedPath,
           });
@@ -240,7 +240,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
               <TreeBlock
                 files={rawTreeData}
                 onFileClick={(fullPath) =>
-                  extensionService.postMessage({
+                  electronWidgetBridge.postMessage({
                     command: 'openFile',
                     path: fullPath,
                   })
@@ -260,7 +260,7 @@ export const ListFilesRenderer: React.FC<BaseRendererProps> = ({
             <TreeBlock
               files={treeData}
               onFileClick={(fullPath) =>
-                extensionService.postMessage({
+                electronWidgetBridge.postMessage({
                   command: 'openFile',
                   path: fullPath,
                 })

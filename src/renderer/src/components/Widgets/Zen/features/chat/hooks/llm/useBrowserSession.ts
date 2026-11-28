@@ -24,6 +24,7 @@ export const useBrowserSession = (
   currentModel: any,
   currentAccount: any,
   backendApiUrl: string,
+  isActive: boolean = true,
 ) => {
   const [isBrowserSessionReady, setIsBrowserSessionReady] = useState(false);
   const [showBrowserWarning, setShowBrowserWarning] = useState(false);
@@ -123,6 +124,7 @@ export const useBrowserSession = (
   // Poll every 5 seconds for zai-browser provider
   // PERFORMANCE: Only set up interval once, use refs to access latest values
   useEffect(() => {
+    if (!isActive) return;
     const checkStatus = async () => {
       const model = currentModelRef.current;
       const account = currentAccountRef.current;
@@ -168,7 +170,7 @@ export const useBrowserSession = (
     const interval = setInterval(checkStatus, 5000);
     
     return () => clearInterval(interval);
-  }, []); // Empty deps - interval is set up once and uses refs
+  }, [isActive]); // Interval chỉ chạy khi view đang active
 
   return {
     isBrowserSessionReady,

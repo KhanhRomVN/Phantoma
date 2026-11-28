@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toastService } from '@renderer/components/ui/Toast';
 import { profileApi } from '../../shared/api/profile.api';
 import type { Profile as ProfileRecord, ProfileSource, SourceStats } from '../../shared/types';
 import { useProfileViewStore } from '../../features/profiles';
@@ -42,7 +43,9 @@ export function useProfilePageData() {
       setSelectedId((prev) => (prev && loadedProfiles.some((p) => p.id === prev) ? prev : null));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      toastService.show({ variant: 'error', title: 'Cannot load profiles', description: message });
     } finally {
       setLoading(false);
     }
@@ -75,7 +78,9 @@ export function useProfilePageData() {
       await task();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      toastService.show({ variant: 'error', title: 'Action failed', description: message });
     }
   }, []);
 

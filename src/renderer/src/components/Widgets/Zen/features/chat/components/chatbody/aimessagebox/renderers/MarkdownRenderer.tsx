@@ -73,7 +73,7 @@ const isFilename = (text: string): boolean => {
   return /^[^/\\]+\.[a-zA-Z0-9]{1,10}$/.test(text);
 };
 import { PATH_CHIP_ICON_SIZE } from '../../../../constants/ui';
-import { extensionService } from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+import { electronWidgetBridge } from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 interface PathChipProps {
   displayText: string;
   resolvedPath: string;
@@ -86,12 +86,12 @@ const PathChip: React.FC<PathChipProps> = ({ displayText, resolvedPath }) => {
     e.preventDefault();
     e.stopPropagation();
     if (isFolder) {
-      extensionService.postMessage({
+      electronWidgetBridge.postMessage({
         command: 'openFolder',
         path: resolvedPath,
       });
     } else {
-      extensionService.postMessage({ command: 'openFile', path: resolvedPath });
+      electronWidgetBridge.postMessage({ command: 'openFile', path: resolvedPath });
     }
   };
 
@@ -210,7 +210,7 @@ const domNodeToReact = (
       const handleClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        extensionService.postMessage({
+        electronWidgetBridge.postMessage({
           command: 'openFile',
           path: text,
         });

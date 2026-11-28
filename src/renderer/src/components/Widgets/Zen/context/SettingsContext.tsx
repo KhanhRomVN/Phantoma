@@ -3,10 +3,10 @@
  * SettingsContext
  * ------------------------------------------------------------------
  * Quản lý toàn bộ settings của Agent (API URL, permission mode,
- * tool permissions, ngôn ngữ...). Persist qua extensionService storage.
+ * tool permissions, ngôn ngữ...). Persist qua electronWidgetBridge storage.
  *
  * Main features:
- * - SettingsProvider : Provider persist settings qua extensionService
+ * - SettingsProvider : Provider persist settings qua electronWidgetBridge
  * - useSettings()    : Hook trả về toàn bộ settings + setters
  * ------------------------------------------------------------------
  */
@@ -14,7 +14,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Services
-import { extensionService } from '../shared/services/ExtensionService';
+import { electronWidgetBridge } from '../shared/platform/electron-widget-bridge.service';
 
 export type SystemPromptMode = 'fast' | 'balanced' | 'thorough';
 export type PromptLengthMode = 'none' | 'short' | 'medium' | 'long';
@@ -136,7 +136,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (e) {
       console.warn('[SettingsContext] Failed to load settings from localStorage:', e);
     }
-    const storage = extensionService.getStorage();
+    const storage = electronWidgetBridge.getStorage();
 
     storage.get('backend-api-url').then((res: any) => {
       if (res?.value) {
@@ -147,7 +147,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setApiUrl = (url: string) => {
     setApiUrlState(url);
-    const storage = extensionService.getStorage();
+    const storage = electronWidgetBridge.getStorage();
     storage.set('backend-api-url', url);
   };
 

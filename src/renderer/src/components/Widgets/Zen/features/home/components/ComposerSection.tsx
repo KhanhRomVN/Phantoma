@@ -3,13 +3,14 @@
  * Sở hữu: draft, file handling, attachments, model/account, toggles, previews, send orchestration.
  */
 
+import { electronWidgetBridge } from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 import React, { useCallback, useRef, useState } from 'react';
 import { useComposerDraft } from '../hooks/useComposerDraft';
 import { useWorkflowAgentSync } from '@renderer/components/Widgets/Zen/context/WorkflowAgentContext';
 import { useSettings } from '@renderer/components/Widgets/Zen/context/SettingsContext';
 import { useModelAccount } from '@renderer/components/Widgets/Zen/shared/hooks/useModelAccount';
 import { useToolFormatSettings } from '@renderer/components/Widgets/Zen/shared/hooks/useToolFormatSettings';
-import { useFileHandling } from '@renderer/components/Widgets/Zen/shared/hooks/useFileHandling';
+import { useFileHandling } from '@renderer/components/Widgets/Zen/shared/files/useFileHandling';
 import FilesPreviews from '../../composer/components/FilesPreviews';
 import Composer from '../../composer/Composer';
 
@@ -116,8 +117,7 @@ const ComposerSection: React.FC<ComposerSectionProps> = ({ folderPath, onSendMes
   );
 
   const handleOpenImage = useCallback((file: { content: any; name: string }) => {
-    const vscodeApi = (window as any).vscodeApi;
-    vscodeApi?.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'openTempImage',
       content: file.content,
       filename: file.name,

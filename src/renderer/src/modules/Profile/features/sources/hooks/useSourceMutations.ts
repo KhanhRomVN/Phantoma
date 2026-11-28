@@ -1,3 +1,4 @@
+import { toastService } from '@renderer/components/ui/Toast';
 import { profileApi } from '../../../shared/api/profile.api';
 import type { Profile as ProfileRecord, ProfileSource } from '../../../shared/types';
 import type { ImportSourceDraft, SourceDraft } from '../components/SourceModal/source-modal.types';
@@ -46,6 +47,7 @@ export function useSourceMutations({
       setActiveSourceId(source.id);
       setCheckedIds(new Set());
       setDialog(null);
+      toastService.show({ variant: 'success', title: 'Source created', description: source.name });
     });
   };
 
@@ -59,6 +61,7 @@ export function useSourceMutations({
       setSources((prev) => prev.map((s) => (s.id === editSourceId ? updated : s)));
       setEditSourceId(null);
       setDialog(null);
+      toastService.show({ variant: 'success', title: 'Source updated', description: updated.name });
     });
   };
 
@@ -73,10 +76,12 @@ export function useSourceMutations({
       setActiveSourceId(source.id);
       setCheckedIds(new Set());
       setDialog(null);
+      toastService.show({ variant: 'success', title: 'Source imported', description: source.name });
     });
   };
 
   const unlinkSource = (id: string): void => {
+    const name = sources.find((s) => s.id === id)?.name;
     void run(async () => {
       await profileApi.sources.remove(id);
       setSources((prev) => prev.filter((s) => s.id !== id));
@@ -86,6 +91,7 @@ export function useSourceMutations({
       }
       setCheckedIds(new Set());
       setSelectedId(null);
+      toastService.show({ variant: 'success', title: 'Source unlinked', description: name });
     });
   };
 

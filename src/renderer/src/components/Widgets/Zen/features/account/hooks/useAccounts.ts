@@ -18,7 +18,7 @@ import {
   readProvidersCache,
   writeProvidersCache,
 } from '../services/account-cache.service';
-import { useDbFetch } from '../../../shared/services/useDbFetch';
+import { useDbFetch } from './useAccountDbFetch';
 import { compareAccountsByUsage } from '../../../shared/utils/accountSort';
 
 export type { AccountStatus };

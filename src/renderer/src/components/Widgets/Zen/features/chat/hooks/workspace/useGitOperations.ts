@@ -22,7 +22,7 @@ import { Message } from '../../types/message.types';
 
 // ── Prompts ──
 import { getModuleService } from '../../registries/module.registry';
-import { parseGitStatusOutput } from '@renderer/components/Widgets/Zen/shared/types/git-status-parser';
+import { parseGitStatusOutput } from '@renderer/components/Widgets/Zen/features/chat/utils/git-status-output.parser';
 const getCommitMessagePrompt = getModuleService('code', 'getCommitMessagePrompt');
 
 interface UseGitOperationsProps {
@@ -246,13 +246,6 @@ ${statusMessage}
     async (items?: any[]) => {
       const statusItems = items || gitStatus?.items || [];
       if (statusItems.length === 0) {
-        const vscodeApi = (window as any).vscodeApi;
-        if (vscodeApi) {
-          vscodeApi.postMessage({
-            command: 'showInformation',
-            message: "Chưa có thay đổi nào để commit. Hãy thêm file với 'git add' trước.",
-          });
-        }
         setShowGitStatusBlock(false);
         return;
       }

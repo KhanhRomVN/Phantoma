@@ -4,6 +4,7 @@ import type { Profile, ServiceLink, ServiceLinkInput } from '../../../shared/typ
 import type { ServicePreset } from '../constants/service.constants';
 import { useServiceStore } from '../stores/service.store';
 import { profileApi } from '../../../shared/api/profile.api';
+import { toastService } from '@renderer/components/ui/Toast';
 import { findTemplate } from '../utils/service.util';
 import { ServiceList } from './ServiceList';
 import { ServiceDetail } from './ServiceDetail/ServiceDetail';
@@ -46,7 +47,9 @@ export function ServicesTab({ profile, focus, onFocusDone }: ServicesTabProps) {
       await task();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      toastService.show({ variant: 'error', title: 'Service action failed', description: message });
     }
   };
 
@@ -139,6 +142,7 @@ export function ServicesTab({ profile, focus, onFocusDone }: ServicesTabProps) {
               const saved = await profileApi.serviceEmails.create(profile.id, toInput(link));
               setLinks(profile.id, [saved, ...links]);
               setView({ kind: 'detail', id: saved.id });
+              toastService.show({ variant: 'success', title: 'Service linked', description: saved.name });
             })
           }
         />
@@ -157,6 +161,7 @@ export function ServicesTab({ profile, focus, onFocusDone }: ServicesTabProps) {
                 profile.id,
                 links.filter((l) => l.id !== id),
               );
+              toastService.show({ variant: 'success', title: 'Service unlinked' });
             })
           }
         />

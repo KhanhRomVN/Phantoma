@@ -10,7 +10,7 @@
  */
 
 import { useCallback } from 'react';
-import { useSettings } from '../../context/SettingsContext';
+import { useSettings } from '../../../context/SettingsContext';
 
 /** Header name dùng để truyền database manager ID. */
 export const DB_MANAGER_HEADER = 'x-database-manager-id';

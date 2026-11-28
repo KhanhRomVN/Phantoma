@@ -35,6 +35,7 @@ import type { Report } from '../../../stores/reportStore';
 
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ReportListPanelProps {
@@ -82,11 +83,14 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
     try {
       const report = await createReport(targetId, content, title);
       onSelectReport(report.id);
+      toastService.show({ variant: 'success', title: 'Report created', description: title });
     } catch (error) {
       console.error('[ReportListPanel] Failed to create report:', error);
-      alert(
-        'Failed to create report: ' + (error instanceof Error ? error.message : 'Unknown error'),
-      );
+      toastService.show({
+        variant: 'error',
+        title: 'Create report failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   };
 
@@ -95,11 +99,16 @@ export const ReportListPanel: React.FC<ReportListPanelProps> = ({
       const res = await emulateApi.deleteReport(targetId, id);
       if (!res.success || !res.data?.deleted) {
         console.error('[ReportListPanel] Failed to delete report:', res.error);
-        alert('Failed to delete report: ' + (res.error || 'Unknown error'));
+        toastService.show({
+          variant: 'error',
+          title: 'Delete report failed',
+          description: res.error || 'Unknown error',
+        });
         return;
       }
     }
     deleteReport(id);
+    toastService.show({ variant: 'success', title: 'Report deleted' });
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('report-updated'));
     }

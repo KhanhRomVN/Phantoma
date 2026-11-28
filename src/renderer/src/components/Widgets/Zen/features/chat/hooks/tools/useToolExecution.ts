@@ -49,9 +49,9 @@ import {
   TOOL_ACTION_TYPES,
 } from '@renderer/components/Widgets/Zen/shared/types/tool-constants';
 import {
-  extensionService,
+  electronWidgetBridge,
   messageDispatcher,
-} from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+} from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface UseToolExecutionProps {
@@ -149,11 +149,12 @@ export const useToolExecution = ({
       const messageId = messageObj.id;
       const buffer = [...(toolResultsBufferRef.current[messageId] || []), ...newResults];
 
-      const parsed = parseAIResponse(messageObj.content, toolFormat, activeFeature);
+      const currentMessage = messagesRef?.current.find((m) => m.id === messageId);
+      const parsed =
+        currentMessage?.parsed ?? parseAIResponse(messageObj.content, toolFormat, activeFeature);
       const allActionIds = parsed.actions.map(
         (_: any, idx: number) => `${messageId}-action-${idx}`,
       );
-      const currentMessage = messagesRef?.current.find((m) => m.id === messageId);
       const selectedOption = currentMessage?.selectedOption;
       const isQuestionAnswered = parsed.question ? !!selectedOption : true;
 
@@ -226,7 +227,7 @@ export const useToolExecution = ({
             const resolver = pendingToolResolvers.current.get(message.actionId)!;
             if (message.terminalId) {
               terminalToActionMap.current.delete(message.terminalId);
-              extensionService.postMessage({
+              electronWidgetBridge.postMessage({
                 command: 'removeTerminal',
                 terminalId: message.terminalId,
               });
@@ -316,7 +317,7 @@ export const useToolExecution = ({
         setToolOutputs,
         conversationIdRef,
         getToolTimeout,
-        extensionService,
+        extensionService: electronWidgetBridge,
         messageDispatcher,
         pendingToolResolvers: pendingToolResolvers.current,
         commandStartTimes: commandStartTimes.current,

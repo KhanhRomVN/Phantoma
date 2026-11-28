@@ -11,7 +11,7 @@ import {
 import { $ } from '@renderer/utils/color';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import { Modal, ModalHeader, ModalBody } from '@renderer/components/ui/Modal';
-import { countTokens, formatTokenCount } from '../../../shared/utils/tokenizer';
+import { countTokens, formatTokenCount } from '../utils/tokenizer';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

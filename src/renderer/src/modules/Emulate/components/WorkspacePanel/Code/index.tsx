@@ -16,6 +16,7 @@
 import { useState, useCallback, memo, useEffect } from 'react';
 import { FolderOpen, ChevronRight, Loader, RefreshCw, ChevronsDownUp, X } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 import { getFileIconPath, getFolderIconPath } from '@renderer/utils/file-icon';
 import {
   Dropdown,
@@ -45,7 +46,10 @@ const sortEntries = (entries: DirEntry[]): DirEntry[] =>
   );
 
 const copyText = (text: string) => {
-  navigator.clipboard.writeText(text).catch(() => {});
+  navigator.clipboard.writeText(text).then(
+    () => toastService.show({ variant: 'success', title: 'Copied' }),
+    () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+  );
 };
 
 interface TreeItemProps {

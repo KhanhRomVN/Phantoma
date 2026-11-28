@@ -15,7 +15,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import HistoryCard from './components/HistoryCard';
-import ConfirmClearHistoryDrawer from './components/ConfirmClearHistoryDrawer';
+import ConfirmClearHistoryModal from './components/ConfirmClearHistoryModal';
 import { FolderOpen, Loader2, Search } from 'lucide-react';
 import { useConversationHistory } from './hooks/useConversationHistory';
 import { getDateLabel } from './utils/history.utils';
@@ -115,7 +115,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       </div>
 
       {/* Confirm drawer */}
-      <ConfirmClearHistoryDrawer
+      <ConfirmClearHistoryModal
         open={showConfirm}
         onOpenChange={setShowConfirm}
         onConfirm={clearAllHistory}

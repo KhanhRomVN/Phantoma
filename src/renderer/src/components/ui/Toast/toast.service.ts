@@ -1,7 +1,10 @@
 import type { ToastItem, ToastShowOptions } from './type';
 
+const DEFAULT_DURATION = 2000;
+
 type Listener = () => void;
 const listeners = new Set<Listener>();
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
 let toasts: ToastItem[] = [];
 let idCounter = 0;
 
@@ -12,6 +15,29 @@ function emit() {
 function generateId(): string {
   idCounter += 1;
   return `toast-${Date.now()}-${idCounter}`;
+}
+
+function clearTimer(id: string) {
+  const timer = timers.get(id);
+  if (timer) {
+    clearTimeout(timer);
+    timers.delete(id);
+  }
+}
+
+function resolveDuration(toast: ToastItem): number {
+  if (toast.duration !== undefined) return toast.duration;
+  return toast.variant === 'loading' ? 0 : DEFAULT_DURATION;
+}
+
+function schedule(toast: ToastItem) {
+  clearTimer(toast.id);
+  const duration = resolveDuration(toast);
+  if (duration <= 0) return;
+  timers.set(
+    toast.id,
+    setTimeout(() => toastService.dismiss(toast.id), duration),
+  );
 }
 
 export const toastService = {
@@ -37,12 +63,7 @@ export const toastService = {
       toasts.push(toast);
     }
 
-    if (toast.duration && toast.duration > 0) {
-      setTimeout(() => {
-        this.dismiss(id);
-      }, toast.duration);
-    }
-
+    schedule(toast);
     emit();
     return id;
   },
@@ -51,10 +72,12 @@ export const toastService = {
     const index = toasts.findIndex((t) => t.id === id);
     if (index < 0) return;
     toasts[index] = { ...toasts[index], ...partial };
+    schedule(toasts[index]);
     emit();
   },
 
   dismiss(id: string): void {
+    clearTimer(id);
     const toast = toasts.find((t) => t.id === id);
     if (toast?.onClose) {
       toast.onClose();
@@ -64,6 +87,8 @@ export const toastService = {
   },
 
   clearAll(): void {
+    timers.forEach((timer) => clearTimeout(timer));
+    timers.clear();
     toasts.forEach((t) => t.onClose?.());
     toasts = [];
     emit();

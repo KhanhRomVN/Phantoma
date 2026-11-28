@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import ResponsiveModal from '../../../shared/components/ResponsiveModal';
 import { X, Search, Sparkles } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
 import {
@@ -25,7 +25,7 @@ export interface PickedSkill {
   name: string;
 }
 
-interface SkillPickerDrawerProps {
+interface SkillPickerModalProps {
   isOpen: boolean;
   selectedSlugs: string[];
   onClose: () => void;
@@ -200,12 +200,12 @@ const SkillPreviewTooltip: React.FC<PreviewState> = ({ skill, x, y }) => (
   </div>
 );
 
-export default function SkillPickerDrawer({
+export default function SkillPickerModal({
   isOpen,
   selectedSlugs,
   onClose,
   onConfirm,
-}: SkillPickerDrawerProps) {
+}: SkillPickerModalProps) {
   const [skills, setSkills] = useState<PickerSkill[]>([]);
   const [workspace, setWorkspace] = useState<SkillWorkspaceState>(EMPTY_SKILL_WORKSPACE_STATE);
   const [loading, setLoading] = useState(false);
@@ -315,32 +315,7 @@ export default function SkillPickerDrawer({
 
   const content = (
     <>
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.55)',
-          zIndex: 10000,
-          animation: 'skPickFadeIn 0.15s ease',
-        }}
-      />
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '75%',
-          backgroundColor: $('--card-background'),
-          borderTop: `1px solid ${$('--border')}`,
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.25)',
-          zIndex: 10001,
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'skPickSlideUp 0.22s ease',
-        }}
-      >
+      <ResponsiveModal isOpen={isOpen} onClose={onClose} sheetHeight="75%">
         <div
           style={{
             padding: '12px 16px',
@@ -574,16 +549,11 @@ export default function SkillPickerDrawer({
             Apply{checked.size > 0 ? ` (${checked.size})` : ''}
           </button>
         </div>
-      </div>
+      </ResponsiveModal>
 
       {preview && <SkillPreviewTooltip {...preview} />}
-
-      <style>{`
-        @keyframes skPickSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes skPickFadeIn { from { opacity: 0; } to { opacity: 1; } }
-      `}</style>
     </>
   );
 
-  return createPortal(content, document.body);
+  return content;
 }

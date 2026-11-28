@@ -27,6 +27,7 @@ import { SyncBadge } from '../../../../shared/components/SyncBadge';
 import { TONE_CLASS } from '../../../../shared/constants/tone.constants';
 import { PROFILE_STATUS, PROFILE_STATUS_ORDER } from '../../constants/profile-status.constants';
 import { profileApi } from '../../../../shared/api/profile.api';
+import { toastService } from '@renderer/components/ui/Toast';
 import type { Tone } from '../../../../shared/types/ui.types';
 
 import { OverviewTab } from './tabs/OverviewTab/OverviewTab';
@@ -89,8 +90,17 @@ export function ProfileDrawer({
     };
     profileApi.profiles
       .update(profile.id, { status, statusNote: status === 'active' ? undefined : profile.statusNote })
-      .then(() => onUpdate?.(patch))
-      .catch((e) => console.error('[DEBUG] changeStatus FAILED', status, e));
+      .then(() => {
+        onUpdate?.(patch);
+        toastService.show({ variant: 'success', title: 'Status updated', description: status });
+      })
+      .catch((e) =>
+        toastService.show({
+          variant: 'error',
+          title: 'Update status failed',
+          description: e instanceof Error ? e.message : String(e),
+        }),
+      );
   };
   const chromePath = profile.chromeProfile
     ? `home/.chrome/${profile.chromeProfile.toLowerCase().replace(/\s+/g, '')}`
@@ -185,7 +195,10 @@ export function ProfileDrawer({
                   type="button"
                   title="Click to copy email"
                   onClick={() =>
-                    void navigator.clipboard.writeText(profile.email).catch(() => undefined)
+                    void navigator.clipboard.writeText(profile.email).then(
+                      () => toastService.show({ variant: 'success', title: 'Email copied' }),
+                      () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+                    )
                   }
                   className="min-w-0 shrink-0 truncate text-left transition-colors hover:text-primary"
                 >
@@ -222,7 +235,12 @@ export function ProfileDrawer({
             <Button
               className={SOFT_BTN}
               disabled={!chromePath}
-              onClick={() => void navigator.clipboard.writeText(chromePath)}
+              onClick={() =>
+                void navigator.clipboard.writeText(chromePath).then(
+                  () => toastService.show({ variant: 'success', title: 'Path copied' }),
+                  () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+                )
+              }
             >
               <Copy className="h-3.5 w-3.5" />
               Copy path

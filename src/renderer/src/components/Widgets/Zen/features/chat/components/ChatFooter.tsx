@@ -1,3 +1,4 @@
+import { electronWidgetBridge } from '../../../shared/platform/electron-widget-bridge.service';
 import React from 'react';
 /**
  * ------------------------------------------------------------------
@@ -283,23 +284,11 @@ const ChatFooter: React.FC<ChatFooterProps> = ({
         onRemoveAttachedItem={removeAttachedItem}
         onOpenImage={onOpenImage}
         onAttachedItemClick={(item) => {
-          const vscodeApi = (window as any).vscodeApi;
-          if (!vscodeApi) return;
           if (item.type === 'file') {
-            vscodeApi.postMessage({
-              command: 'openWorkspaceFile',
-              path: item.path,
-            });
+            electronWidgetBridge.postMessage({ command: 'openFile', path: item.path });
           } else if (item.type === 'folder') {
-            vscodeApi.postMessage({
-              command: 'openWorkspaceFolder',
-              path: item.path,
-            });
-          } else if (item.type === ('terminal' as any)) {
-            vscodeApi.postMessage({
-              command: 'focusTerminal',
-              terminalId: item.path,
-            });
+            // ASSUMED: item.path của folder là đường dẫn tuyệt đối
+            (window as any).api?.invoke('shell:open-path', item.path);
           }
         }}
       />

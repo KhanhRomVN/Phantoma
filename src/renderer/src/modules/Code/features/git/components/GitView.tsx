@@ -67,7 +67,7 @@ export const GitView = memo(function GitView() {
     closeDiff,
   } = useGitSelection({ projectPath });
 
-  const { query, setQuery, notice, showNotice, hover, handleHover, matchSet, searchRef } =
+  const { query, setQuery, showNotice, hover, handleHover, matchSet, searchRef } =
     useGitUI({ commits });
 
   const mainTip = useMemo(() => {
@@ -376,15 +376,6 @@ export const GitView = memo(function GitView() {
         </section>
       )}
 
-      {notice && (
-        <div
-          className={
-            'absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-3 py-2 rounded-lg border border-border bg-card-background text-xs text-text-primary shadow-lg'
-          }
-        >
-          {notice}
-        </div>
-      )}
 
       {hover && !commitMenu && (
         <div
@@ -435,7 +426,7 @@ export const GitView = memo(function GitView() {
         }
         targets={syncTargets}
         onApplied={(count, source) => {
-          showNotice(`Applied ${count} file${count === 1 ? '' : 's'} from ${source}`);
+          showNotice('Applied files', 'success', `${count} file${count === 1 ? '' : 's'} from ${source}`);
           void refresh();
         }}
       />

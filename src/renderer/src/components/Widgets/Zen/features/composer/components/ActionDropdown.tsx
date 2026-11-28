@@ -15,7 +15,7 @@ import {
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
 import type { AttachedItem } from '../types/composer.types';
-import SkillPickerDrawer, { type PickedSkill } from './SkillPickerDrawer';
+import SkillPickerModal, { type PickedSkill } from './SkillPickerModal';
 
 interface AttachmentOption {
   key: string;
@@ -255,7 +255,7 @@ const ActionDropdown: React.FC<ActionDropdownProps> = ({
       </Dropdown>
 
       {onSelectSkills && (
-        <SkillPickerDrawer
+        <SkillPickerModal
           isOpen={skillDrawerOpen}
           selectedSlugs={selectedSkillSlugs ?? []}
           onClose={() => setSkillDrawerOpen(false)}

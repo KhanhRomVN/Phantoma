@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-import { ToolStatusChecker } from '../../../shared/types/tool-status';
+import { ToolStatusChecker } from '../types/tool-status';
 
 // Module-specific status checkers registry
 const statusCheckers: ToolStatusChecker[] = [];

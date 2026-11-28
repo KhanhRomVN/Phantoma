@@ -11,7 +11,11 @@
  * ------------------------------------------------------------------
  */
 
-import ConversationService from '@renderer/components/Widgets/Zen/shared/services/ConversationService';
+import ConversationService from '@renderer/components/Widgets/Zen/shared/conversations/conversation-storage.service';
+import {
+  mapConversationSummary,
+  mapWithConcurrency,
+} from '@renderer/components/Widgets/Zen/shared/conversations/conversation-summary';
 import type { ConversationItem, HistoryMessage } from '../types';
 
 // ─── Cache adapter (global bridge có type) ──────────────────────────────
@@ -45,24 +49,6 @@ const invalidateCache = (ids: string[]): void => {
 // ─── Concurrency ────────────────────────────────────────────────────────
 const LIST_CONCURRENCY = 6;
 
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  worker: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-
-  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const index = next++;
-      results[index] = await worker(items[index]);
-    }
-  });
-
-  await Promise.all(runners);
-  return results;
-}
 
 // ─── Summary ────────────────────────────────────────────────────────────
 export interface ConversationSummaryResult {
@@ -71,51 +57,7 @@ export interface ConversationSummaryResult {
 }
 
 async function loadSummary(key: string, id: string): Promise<ConversationItem | null> {
-  const data = await ConversationService.get(key, id);
-  if (!data) return null;
-
-  const firstMessage = data.messages[0];
-  const title = firstMessage?.content.substring(0, 100) || 'New Conversation';
-  const preview = data.messages
-    .slice(0, 3)
-    .map((m) => m.content.substring(0, 50))
-    .join(' ');
-
-  let providerId: string | undefined;
-  let modelId: string | undefined;
-  let totalTokenUsage = 0;
-  let totalRequests = 0;
-
-  for (const rawMsg of data.messages) {
-    const msg = rawMsg as HistoryMessage;
-    if (msg.role === 'user') {
-      totalRequests++;
-    }
-    if (msg.role === 'assistant') {
-      if (!providerId && msg.providerId) providerId = msg.providerId;
-      if (!modelId && msg.modelId) modelId = msg.modelId;
-      if (!msg.isError && msg.tokenUsage) {
-        totalTokenUsage += msg.tokenUsage;
-      }
-    }
-  }
-
-  return {
-    id: data.conversationId,
-    title,
-    preview,
-    timestamp: data.createdAt,
-    lastModified: data.lastModified,
-    createdAt: data.createdAt,
-    messageCount: data.messages.length,
-    folderPath: null, // Legacy field, giữ nguyên contract với onLoadConversation
-    tabId: -1, // Legacy field, giữ nguyên contract với onLoadConversation
-    totalRequests,
-    totalTokenUsage,
-    providerId,
-    modelId,
-    workflowAgentId: data.conversationOverrides?.workflowAgentId ?? data.workflowAgentId ?? null,
-  };
+  return mapConversationSummary(await ConversationService.get(key, id));
 }
 
 /** Dựng danh sách conversation cho một history key. */

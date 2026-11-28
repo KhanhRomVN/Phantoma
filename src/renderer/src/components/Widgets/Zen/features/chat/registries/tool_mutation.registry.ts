@@ -12,7 +12,7 @@ import type {
   SingleLineReviewChecker,
   DiffCalculator,
   RawContentDiffExtractor,
-} from '../../../shared/types/tool-mutation';
+} from '../types/tool-mutation';
 import type { ToolAction } from '../types/tool_action.types';
 
 // ─── Registry State ─────────────────────────────────────────────────────

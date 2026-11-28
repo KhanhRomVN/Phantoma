@@ -12,7 +12,7 @@ import { cn } from '@renderer/utils/cn';
 import { useSettings } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // Services
-import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { electronWidgetBridge } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Constants ──
 import { getToolLabel } from '@renderer/modules/Code/shared/zen/zen-bridge';
@@ -160,7 +160,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
         onClick={() => {
           setIsCollapsed((v) => !v);
           if (rawPath) {
-            extensionService.postMessage({
+            electronWidgetBridge.postMessage({
               command: 'openFile',
               path: rawPath,
             });
@@ -169,7 +169,7 @@ export const WriteToFileRenderer: React.FC<MergedRendererProps> = ({
         path={rawPath}
         compactPath
         onPathClick={(clickedPath) => {
-          extensionService.postMessage({
+          electronWidgetBridge.postMessage({
             command: 'openFile',
             path: clickedPath,
           });

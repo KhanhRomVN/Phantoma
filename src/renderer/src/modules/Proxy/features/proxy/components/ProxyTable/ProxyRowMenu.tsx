@@ -7,7 +7,15 @@ import {
   DropdownTrigger,
 } from '@renderer/components/ui/Dropdown';
 import type { Proxy } from '../../../../shared/types/proxy-domain.types';
+import { toastService } from '@renderer/components/ui/Toast';
 import { buildProxyUrl } from '../../../../shared/utils/format';
+
+const copyText = (text: string, title: string): void => {
+  void navigator.clipboard.writeText(text).then(
+    () => toastService.show({ variant: 'success', title, description: text }),
+    () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+  );
+};
 
 export interface RowMenuState {
   id: string;
@@ -47,13 +55,13 @@ export function ProxyRowMenu({ menu, proxy, onClose, onTest, onDelete }: ProxyRo
             </DropdownItem>
             <DropdownItem
               icon={<Link2 className='h-3.5 w-3.5' />}
-              onClick={() => void navigator.clipboard.writeText(buildProxyUrl(proxy, true)).catch(() => undefined)}
+              onClick={() => copyText(buildProxyUrl(proxy, true), 'Copied proxy URL')}
             >
               Copy proxy URL
             </DropdownItem>
             <DropdownItem
               icon={<Copy className='h-3.5 w-3.5' />}
-              onClick={() => void navigator.clipboard.writeText(`${proxy.host}:${proxy.port}`).catch(() => undefined)}
+              onClick={() => copyText(`${proxy.host}:${proxy.port}`, 'Copied host:port')}
             >
               Copy host:port
             </DropdownItem>

@@ -1,16 +1,9 @@
 import { FileMutationTool } from '../../chat/registries/tag.registry';
 import { WorkflowAgentId } from '../../chat/types/workflow_agent.types';
 
-export interface UploadedFile {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  content: string; // Base64 or text content
-  file_id?: string;
-  isUploading?: boolean;
-  error?: string;
-}
+import type { UploadedFile } from '../../../shared/files/file.types';
+
+export type { UploadedFile };
 
 export interface AttachedItem {
   id: string;

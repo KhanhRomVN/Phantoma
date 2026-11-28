@@ -397,15 +397,19 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     }
 
     const cache = parseCacheRef.current;
+    const PARSE_CACHE_MAX_ENTRIES = 200;
 
     const result = messages.map((msg) => {
-      const contentCacheKey = `${toolFormat}::${msg.content}`;
-      const cached = cache.get(contentCacheKey);
-      if (!cached || cached === undefined) {
-        const parsed = parseAIResponse(msg.content, toolFormat, feature);
+      const contentCacheKey = `${feature ?? ''}::${toolFormat}::${msg.content}`;
+      let parsed = cache.get(contentCacheKey);
+      if (!parsed) {
+        parsed = parseAIResponse(msg.content, toolFormat, feature);
+        if (cache.size >= PARSE_CACHE_MAX_ENTRIES) {
+          cache.delete(cache.keys().next().value as string);
+        }
         cache.set(contentCacheKey, parsed);
       }
-      return { ...msg, parsed: cache.get(contentCacheKey)! };
+      return { ...msg, parsed };
     });
 
     lastParsedMessagesRef.current = result;
@@ -443,17 +447,39 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     if (!isRestored || messages.length === 0) return false;
     const lastMessage = messages[messages.length - 1];
     if (lastMessage.role !== 'assistant') return false;
-    const parsed = parseAIResponse(lastMessage.content, toolFormat, feature);
-    if (!parsed.actions || parsed.actions.length === 0) return false;
-    const firstPendingAction = parsed.actions.find((_action: any, idx: number) => {
+    const parsed = parsedMessages[parsedMessages.length - 1]?.parsed;
+    if (!parsed || !parsed.actions || parsed.actions.length === 0) return false;
+    // ASSUMED: nút Continue hiển thị khi conversation restore còn action chưa thực thi
+    return parsed.actions.some((_action: any, idx: number) => {
       const actionId = `${lastMessage.id}-action-${idx}`;
       const hasOutput = toolOutputs && toolOutputs[actionId];
       const isClicked = clickedActions.has(actionId);
       return !hasOutput && !isClicked;
     });
-    if (!firstPendingAction) return false;
-    return false;
-  }, [messages, isRestored, toolOutputs, clickedActions, feature, toolFormat]);
+  }, [messages, parsedMessages, isRestored, toolOutputs, clickedActions]);
+
+  const parsedById = useMemo(
+    () => new Map(parsedMessages.map((pm) => [pm.id, pm])),
+    [parsedMessages],
+  );
+
+  const messageNeighbors = useMemo(() => {
+    const nextUser = new Array<(typeof messages)[number] | undefined>(messages.length);
+    const prevAssistant = new Array<(typeof messages)[number] | undefined>(messages.length);
+    const indexById = new Map<string, number>();
+    let upcomingUser: (typeof messages)[number] | undefined;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      nextUser[i] = upcomingUser;
+      if (messages[i].role === 'user') upcomingUser = messages[i];
+    }
+    let lastAssistant: (typeof messages)[number] | undefined;
+    for (let i = 0; i < messages.length; i++) {
+      indexById.set(messages[i].id, i);
+      prevAssistant[i] = lastAssistant;
+      if (messages[i].role === 'assistant') lastAssistant = messages[i];
+    }
+    return { nextUser, prevAssistant, indexById };
+  }, [messages]);
 
   const visibleMessages = useMemo(() => {
     const filtered = messages.filter((msg) => !msg.uiHidden && !msg.isCancelled);
@@ -471,7 +497,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     if (!isProcessing || visibleMessages.length === 0) return false;
     const lastMessage = visibleMessages[visibleMessages.length - 1];
     if (lastMessage.role !== 'assistant') return false;
-    const parsedMessage = parsedMessages.find((pm) => pm.id === lastMessage.id);
+    const parsedMessage = parsedById.get(lastMessage.id);
     if (!parsedMessage || !parsedMessage.parsed) return false;
     const parsed = parsedMessage.parsed;
 
@@ -518,7 +544,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
     }
 
     return true;
-  }, [isProcessing, visibleMessages, parsedMessages]);
+  }, [isProcessing, visibleMessages, parsedById]);
 
   return (
     <div
@@ -555,7 +581,7 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
                 return <ModelInfoBar key={message.id} message={message} />;
               }
 
-              const parsedMessage = parsedMessages.find((pm) => pm.id === message.id);
+              const parsedMessage = parsedById.get(message.id);
               if (!parsedMessage || !parsedMessage.parsed) return null;
               const parsedContent = parsedMessage.parsed;
 
@@ -565,16 +591,9 @@ const ChatBodyInternal: React.FC<ExtendedChatBodyProps> = ({
               const currentResponseNumber =
                 message.role === 'assistant' ? assistantResponseCount : null;
 
-              const nextUserMessage = messages
-                .slice(messages.findIndex((m) => m.id === message.id) + 1)
-                .find((m) => m.role === 'user');
-              const previousAssistantMessage = messages
-                .slice(
-                  0,
-                  messages.findIndex((m) => m.id === message.id),
-                )
-                .reverse()
-                .find((m) => m.role === 'assistant');
+              const messageIndex = messageNeighbors.indexById.get(message.id) ?? -1;
+              const nextUserMessage = messageNeighbors.nextUser[messageIndex];
+              const previousAssistantMessage = messageNeighbors.prevAssistant[messageIndex];
 
               const nextVisibleMessage = visibleMessages[index + 1];
               const hasNextAssistantMessage = nextVisibleMessage?.role === 'assistant';

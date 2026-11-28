@@ -17,8 +17,8 @@ import {
   ConversationService as NewConversationService,
   ConversationData as NewConversationData,
   generateMessageId,
-} from '../../../shared/services/ConversationService';
-import { extensionService } from '../../../shared/services/ExtensionService';
+} from '../../../shared/conversations/conversation-storage.service';
+import { electronWidgetBridge } from '../../../shared/platform/electron-widget-bridge.service';
 
 // ── Types ──
 import { Message } from '../types/message.types';
@@ -174,7 +174,7 @@ export const deleteConversation = async (
     await NewConversationService.delete(moduleId, conversationId, folderPath);
 
     // Notify backend (keep for compatibility)
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'deleteConversation',
       conversationId: conversationId,
     });

@@ -9,7 +9,7 @@
  * ------------------------------------------------------------------
  */
 
-import { extensionService } from '../../../shared/services/ExtensionService';
+import { electronWidgetBridge } from '../../../shared/platform/electron-widget-bridge.service';
 
 export const logChatToWorkspace = (chatUuid: string, message: any) => {
   try {
@@ -22,7 +22,7 @@ export const logChatToWorkspace = (chatUuid: string, message: any) => {
     logEntry.timestamp = new Date().toISOString();
     logEntry.conversationId = message.conversationId;
 
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'logChat',
       chatUuid,
       logEntry,

@@ -22,7 +22,7 @@ import type { WorkflowAgentId } from '../types/workflow_agent.types';
 import type { ToolFormatId } from '../types/tool_format.types';
 
 // ── Services ──
-import { extensionService } from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+import { electronWidgetBridge } from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 import { DEFAULT_TOOL_FORMAT } from '../registries/tool_format.registry';
 import { getShallowTree } from '../utils/project_tree';
 
@@ -218,7 +218,7 @@ export class PromptBuilder {
     };
 
     try {
-      const fetchedInfo = await extensionService.getSystemInfo();
+      const fetchedInfo = await electronWidgetBridge.getSystemInfo();
       if (fetchedInfo?.data) {
         systemInfo = {
           ...systemInfo,
@@ -367,7 +367,7 @@ export class PromptBuilder {
             }
           };
           window.addEventListener('message', handler);
-          extensionService.postMessage({
+          electronWidgetBridge.postMessage({
             command: 'getFolderTree',
             requestId,
             path: f.path,

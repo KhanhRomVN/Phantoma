@@ -4,6 +4,7 @@ import { memo, useMemo, useState } from 'react';
 
 // ── UI ──
 import { GitBranch, Plus } from 'lucide-react';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── Components ──
 import { SessionCard } from '../SessionCard/SessionCard';
@@ -104,6 +105,11 @@ export const BranchBlock = memo(function BranchBlock({
     const res = await codeApi.git.publishBranch(branch.path).catch((e) => ({ error: String(e) }));
     if (res?.error) {
       setGone({ busy: false, error: res.error });
+      toastService.show({
+        variant: 'error',
+        title: 'Publish failed',
+        description: String(res.error).split('\n')[0],
+      });
       return;
     }
 
@@ -127,6 +133,11 @@ export const BranchBlock = memo(function BranchBlock({
     const res = await codeApi.fs.removeDir(branch.path).catch((e) => ({ error: String(e) }));
     if (res && 'error' in res && res.error) {
       setGone({ busy: false, error: String(res.error) });
+      toastService.show({
+        variant: 'error',
+        title: 'Delete folder failed',
+        description: String(res.error).split('\n')[0],
+      });
       return;
     }
 

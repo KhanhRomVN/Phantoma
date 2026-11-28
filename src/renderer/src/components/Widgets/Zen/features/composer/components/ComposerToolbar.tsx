@@ -12,7 +12,7 @@ import PromptLengthDropdown, {
   PROMPT_LENGTH_MODE_META,
 } from './PromptLengthDropdown';
 import PromptSettingsDropdown from './PromptSettingsDropdown';
-import type { PickedSkill } from './SkillPickerDrawer';
+import type { PickedSkill } from './SkillPickerModal';
 import { SimpleTooltip, TooltipRow, TooltipCard } from './SimpleTooltip';
 import type { MessageInputProps, ToggleButtonProps } from '../types/composer.types';
 import {

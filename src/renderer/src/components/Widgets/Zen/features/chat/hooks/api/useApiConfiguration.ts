@@ -22,7 +22,7 @@ const DEFAULT_API_URL = 'http://localhost:8888';
 // ── Utils ──
 
 // ── Services ──
-import { extensionService } from '../../../../shared/services/ExtensionService';
+import { electronWidgetBridge } from '../../../../shared/platform/electron-widget-bridge.service';
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 export const useApiConfiguration = () => {
@@ -32,7 +32,7 @@ export const useApiConfiguration = () => {
 
   // Load API URL from storage
   useEffect(() => {
-    const storage = extensionService.getStorage();
+    const storage = electronWidgetBridge.getStorage();
     storage
       .get('backend-api-url')
       .then((res: any) => {

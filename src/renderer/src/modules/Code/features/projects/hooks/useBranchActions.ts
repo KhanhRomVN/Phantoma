@@ -6,6 +6,7 @@ import type { Dispatch, SetStateAction } from 'react';
 // ── Services ──
 import { gitIpc } from '../../../shared/ipc/git.ipc';
 import { codeApi } from '../../../shared/api/code.api';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
@@ -211,7 +212,14 @@ export function useBranchActions({
             worktreePath: targetBranch.path,
             title: created.title,
           })
-          .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
+          .catch((err) => {
+            console.error('[ProjectPanel] Failed to create session:', err);
+            toastService.show({
+              variant: 'error',
+              title: 'Create session failed',
+              description: String(err?.message ?? err).split('\n')[0],
+            });
+          });
       }
     },
     [projects, updateProject],

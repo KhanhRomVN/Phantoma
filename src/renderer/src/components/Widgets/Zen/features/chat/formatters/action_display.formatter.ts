@@ -10,7 +10,7 @@
  * ------------------------------------------------------------------
  */
 
-import { ActionDisplayFormatter } from '../../../shared/types/tool-display';
+import { ActionDisplayFormatter } from '../types/tool-display';
 import { getToolLabel } from '../registries/tag.registry';
 import type { ToolAction } from '../types/tool_action.types';
 

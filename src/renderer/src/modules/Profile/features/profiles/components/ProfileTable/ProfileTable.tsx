@@ -22,6 +22,7 @@ import type { LucideIcon } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { Checkbox } from '@renderer/components/ui/Checkbox';
 import { Tooltip } from '@renderer/components/ui/Tooltip';
+import { toastService } from '@renderer/components/ui/Toast';
 import {
   Dropdown,
   DropdownContent,
@@ -595,7 +596,10 @@ export function ProfileTable({
                 <DropdownItem
                   icon={<Copy className="h-3.5 w-3.5" />}
                   onClick={() =>
-                    void navigator.clipboard.writeText(menuProfile.email).catch(() => undefined)
+                    void navigator.clipboard.writeText(menuProfile.email).then(
+                      () => toastService.show({ variant: 'success', title: 'Email copied' }),
+                      () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+                    )
                   }
                 >
                   Copy email

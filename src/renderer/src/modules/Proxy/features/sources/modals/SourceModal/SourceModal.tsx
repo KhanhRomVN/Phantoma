@@ -8,6 +8,7 @@ import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
 import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { ErrorNote, INPUT, SOFT_PRIMARY, ValidatedField as Field } from '../../../../shared/components/form';
 import type { ProxySource } from '../../../../shared/types/source-domain.types';
+import { toastService } from '@renderer/components/ui/Toast';
 import { errorMessage } from '../../../../shared/utils/error';
 import { sourcesApi } from '../../api/source.api';
 
@@ -52,9 +53,19 @@ export function SourceModal({ isOpen, onClose, existingNames, source, onSaved }:
       const input = { name: trimmed, websiteUrl: websiteUrl.trim() };
       const id = source ? (await sourcesApi.update(source.id, input)).id : (await sourcesApi.create(input)).id;
       onSaved(id);
+      toastService.show({
+        variant: 'success',
+        title: source ? 'Source updated' : 'Source created',
+        description: trimmed,
+      });
       onClose();
     } catch (err) {
       setError(errorMessage(err));
+      toastService.show({
+        variant: 'error',
+        title: source ? 'Update source failed' : 'Create source failed',
+        description: errorMessage(err),
+      });
     } finally {
       setBusy(false);
     }

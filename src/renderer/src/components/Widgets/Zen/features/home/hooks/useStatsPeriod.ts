@@ -13,9 +13,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  extensionService,
+  electronWidgetBridge,
   messageDispatcher,
-} from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+} from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
 import type { StatsPeriod, StatsPeriodState } from '../data/dashboard.types';
 
 export type { StatsPeriod, StatsPeriodState };
@@ -71,7 +71,7 @@ export function useStatsPeriod() {
       3000,
       done,
     );
-    extensionService.postMessage({ command: 'storageGet', requestId, key: STORAGE_KEY });
+    electronWidgetBridge.postMessage({ command: 'storageGet', requestId, key: STORAGE_KEY });
     return () => {
       active = false;
     };
@@ -86,7 +86,7 @@ export function useStatsPeriod() {
     } catch {
       // best-effort
     }
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'storageSet',
       requestId: `setStatsPeriod-${Date.now()}`,
       key: STORAGE_KEY,

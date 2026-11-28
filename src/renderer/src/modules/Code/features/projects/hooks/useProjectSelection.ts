@@ -11,6 +11,7 @@ import { useBusyTargetIds } from '@renderer/hooks/useTargetLock';
 
 // ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── Stores ──
 import { useCodeStore } from '../../../shared/stores/code.store';
@@ -100,7 +101,14 @@ export function useProjectSelection(
         if (proj.path) {
           codeApi.sessions
             .create({ id: fresh.id, projectId, worktreePath: proj.path, title: fresh.title })
-            .catch((err) => console.error('[ProjectPanel] Failed to create session:', err));
+            .catch((err) => {
+              console.error('[ProjectPanel] Failed to create session:', err);
+              toastService.show({
+                variant: 'error',
+                title: 'Create session failed',
+                description: String(err?.message ?? err).split('\n')[0],
+              });
+            });
         }
       }
       setSelectedSessionId(sessionId);

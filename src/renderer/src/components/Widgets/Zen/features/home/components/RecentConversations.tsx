@@ -14,7 +14,7 @@
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { ConversationItem } from '../../../history/History/types';
+import { ConversationItem } from '../../history/types';
 import HistoryCard from '../../history/components/HistoryCard';
 
 interface RecentConversationsProps {

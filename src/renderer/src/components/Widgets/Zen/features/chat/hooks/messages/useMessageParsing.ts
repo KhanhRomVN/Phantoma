@@ -122,7 +122,7 @@ export const useMessageParsing = (
   ) {
     // STREAMING FIX: Always parse fresh for streaming messages to ensure
     // letter-by-letter animation works. No cache optimization during streaming.
-    const contentCacheKey = `${toolFormat}::${msg.content}`;
+    const contentCacheKey = `${feature ?? ''}::${toolFormat}::${msg.content}`;
     if (!isAssistantStreaming && cache.has(contentCacheKey)) {
       const parsed = cache.get(contentCacheKey)!;
       const clickedKey = (msg.clickedActions || []).join(',');
@@ -148,6 +148,9 @@ export const useMessageParsing = (
 
     // Cache the parse result (but always create new object for streaming)
     if (!isAssistantStreaming) {
+      if (cache.size >= 200) {
+        cache.delete(cache.keys().next().value as string);
+      }
       cache.set(contentCacheKey, parsed);
     }
 

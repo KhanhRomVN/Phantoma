@@ -8,6 +8,7 @@ import { ModalFooter } from '@renderer/components/ui/Modal/ModalFooter';
 import { ErrorNote, INPUT, SOFT_PRIMARY, ValidatedField as Field } from '../../../../shared/components/form';
 import { TONE_CLASS } from '../../../../shared/constants/tone.constants';
 import type { ProxySource, VpnProviderInfo } from '../../../../shared/types/source-domain.types';
+import { toastService } from '@renderer/components/ui/Toast';
 import { errorMessage } from '../../../../shared/utils/error';
 import { vpnApi } from '../../api/vpn.api';
 
@@ -80,9 +81,11 @@ export function VpnSourceModal({ isOpen, onClose, source, onSaved }: VpnSourceMo
     try {
       await persist();
       onSaved(source.id);
+      toastService.show({ variant: 'success', title: 'VPN source saved', description: source.name });
       onClose();
     } catch (err) {
       setError(errorMessage(err));
+      toastService.show({ variant: 'error', title: 'Save VPN source failed', description: errorMessage(err) });
     } finally {
       setBusy(null);
     }
@@ -100,9 +103,11 @@ export function VpnSourceModal({ isOpen, onClose, source, onSaved }: VpnSourceMo
       setSecretsSet(next.secretsSet);
       setCreds((prev) => ({ ...prev, ...next.config }));
       onSaved(next.id);
+      toastService.show({ variant: 'success', title: 'VPN activated', description: source.name });
     } catch (err) {
       setActivated(false);
       setError(errorMessage(err));
+      toastService.show({ variant: 'error', title: 'Activate VPN failed', description: errorMessage(err) });
     } finally {
       setBusy(null);
     }

@@ -14,6 +14,7 @@
 
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
+import { electronWidgetBridge } from '../../../../shared/platform/electron-widget-bridge.service';
 import { useCallback, useRef, useEffect } from 'react';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -105,14 +106,11 @@ export const useTextareaHandlers = ({
   );
 
   const handleOpenImage = useCallback((file: any) => {
-    const vscodeApi = (window as any).vscodeApi;
-    if (vscodeApi) {
-      vscodeApi.postMessage({
-          command: 'openTempImage',
-        content: file.content,
-        filename: file.name,
-      });
-    }
+    electronWidgetBridge.postMessage({
+      command: 'openTempImage',
+      content: file.content,
+      filename: file.name,
+    });
   }, []);
 
   // Cleanup timeouts on unmount

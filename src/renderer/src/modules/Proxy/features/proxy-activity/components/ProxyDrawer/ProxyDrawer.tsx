@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Activity, ChevronRight, History, LayoutDashboard, Link2, Loader2, Plug, Trash2, Unplug, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 import { COUNTRY_NAME } from '../../../../shared/constants/proxy-meta.constants';
 import { TONE_CLASS } from '../../../../shared/constants/tone.constants';
 import type { Proxy, ProxyStatus, Tone } from '../../../../shared/types/proxy-domain.types';
@@ -100,7 +101,12 @@ export function ProxyDrawer({ proxy, testing, onClose, onTest, onDelete }: Proxy
             </button>
             <button
               type='button'
-              onClick={() => void navigator.clipboard.writeText(buildProxyUrl(proxy, true)).catch(() => undefined)}
+              onClick={() =>
+                void navigator.clipboard.writeText(buildProxyUrl(proxy, true)).then(
+                  () => toastService.show({ variant: 'success', title: 'Proxy URL copied' }),
+                  () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+                )
+              }
               className={cn(SOFT_BTN, 'flex items-center gap-1.5 px-3 text-xs font-medium transition-colors')}
             >
               <Link2 className='h-3.5 w-3.5' />

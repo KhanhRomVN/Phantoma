@@ -401,7 +401,11 @@ interface LocalCommitBoxProps {
   projectPath: string;
   busy: boolean;
   onCommit: (message: string) => Promise<boolean>;
-  onNotice: (message: string) => void;
+  onNotice: (
+    message: string,
+    variant?: 'info' | 'success' | 'error' | 'warning' | 'loading',
+    description?: string,
+  ) => void;
 }
 
 export const LocalCommitBox = memo(function LocalCommitBox({
@@ -450,9 +454,9 @@ export const LocalCommitBox = memo(function LocalCommitBox({
       await navigator.clipboard.writeText(getCommitMessagePlainPrompt('en', status, undefined));
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
-      onNotice('Prompt copied — paste it to any AI and paste the reply below');
+      onNotice('Prompt copied', 'success', 'Paste it to any AI and paste the reply below');
     } catch (e: any) {
-      onNotice(e?.message ?? 'Cannot copy prompt');
+      onNotice('Cannot copy prompt', 'error', e?.message);
     } finally {
       setWorking(false);
     }
@@ -472,9 +476,10 @@ export const LocalCommitBox = memo(function LocalCommitBox({
       const wr = await fsIpc.writeFile(filePath,
         getCommitMessagePlainPrompt('en', status, diffRes?.diff),
       );
-      onNotice(wr?.error ? String(wr.error).split('\n')[0] : `Exported ${filePath}`);
+      if (wr?.error) onNotice('Export failed', 'error', String(wr.error).split('\n')[0]);
+      else onNotice('Exported prompt', 'success', filePath);
     } catch (e: any) {
-      onNotice(e?.message ?? 'Cannot export prompt');
+      onNotice('Cannot export prompt', 'error', e?.message);
     } finally {
       setWorking(false);
     }

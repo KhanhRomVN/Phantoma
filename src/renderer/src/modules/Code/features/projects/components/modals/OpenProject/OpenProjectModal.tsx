@@ -15,6 +15,7 @@ import {
   FolderGit2,
 } from 'lucide-react';
 import { Button } from '@renderer/components/ui/Button';
+import { toastService } from '@renderer/components/ui/Toast';
 import { Modal } from '@renderer/components/ui/Modal';
 import { ModalHeader } from '@renderer/components/ui/Modal/ModalHeader';
 import { ModalBody } from '@renderer/components/ui/Modal/ModalBody';
@@ -307,6 +308,11 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
       return result?.success && result.paths?.[0] ? result.paths[0] : null;
     } catch (err) {
       console.error('[OpenProjectModal] Browse failed:', err);
+      toastService.show({
+        variant: 'error',
+        title: 'Browse folder failed',
+        description: String((err as Error)?.message ?? err).split('\n')[0],
+      });
       return null;
     }
   };
@@ -444,6 +450,11 @@ export function OpenProjectModal({ isOpen, onClose, onProjectAdded }: OpenProjec
     } catch (err: any) {
       console.error('[OpenProjectModal] Submit failed:', err);
       setError(err?.message || String(err));
+      toastService.show({
+        variant: 'error',
+        title: 'Open project failed',
+        description: String(err?.message ?? err).split('\n')[0],
+      });
     } finally {
       setLoading(false);
     }

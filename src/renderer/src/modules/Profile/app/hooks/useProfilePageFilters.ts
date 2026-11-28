@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { toastService } from '@renderer/components/ui/Toast';
 import { profileApi } from '../../shared/api/profile.api';
 import type { Profile as ProfileRecord, SavedQuery } from '../../shared/types';
 import { useProfileViewStore } from '../../features/profiles';
@@ -64,6 +65,7 @@ export function useProfilePageFilters({ run, sourceProfiles }: FilterDeps) {
       );
       setActiveQueryId(saved.id);
       setQueryDrawer(null);
+      toastService.show({ variant: 'success', title: 'Query saved' });
     });
   };
 
@@ -73,6 +75,7 @@ export function useProfilePageFilters({ run, sourceProfiles }: FilterDeps) {
       setQueries((prev) => prev.filter((q) => q.id !== id));
       setActiveQueryId((prev) => (prev === id ? null : prev));
       setQueryDrawer((prev) => (prev?.editId === id ? null : prev));
+      toastService.show({ variant: 'success', title: 'Query deleted' });
     });
   };
 

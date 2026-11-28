@@ -13,6 +13,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import { useMemo, useState } from 'react';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── UI ──
 import { ArrowDownLeft, ArrowUpRight, Circle, Copy, Filter, Search, Trash2 } from 'lucide-react';
@@ -119,7 +120,10 @@ function FrameRow({ frame }: { frame: WebSocketFrame }) {
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(frame.payload);
+    navigator.clipboard.writeText(frame.payload).then(
+      () => toastService.show({ variant: 'success', title: 'Payload copied' }),
+      () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+    );
   };
 
   return (

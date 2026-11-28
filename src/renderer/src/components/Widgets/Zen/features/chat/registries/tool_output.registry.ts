@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------
  */
 
-import { ToolOutputFormatter } from '../../../shared/types/tool-output';
+import { ToolOutputFormatter } from '../types/tool-output';
 
 // ─── Registry State ─────────────────────────────────────────────────────
 const outputFormatters: ToolOutputFormatter[] = [];

@@ -2,6 +2,9 @@
 // ── React ──
 import { useCallback, useState } from 'react';
 
+// ── UI ──
+import { toastService, type ToastVariant } from '@renderer/components/ui/Toast';
+
 // ── Services ──
 import { codeApi } from '../../../shared/api/code.api';
 import { gitIpc } from '../../../shared/ipc/git.ipc';
@@ -17,7 +20,7 @@ interface UseGitActionsProps {
   localChanges: Array<{ name: string }>;
   cloneBranchPaths: Record<string, string>;
   refresh: () => Promise<void>;
-  showNotice: (msg: string) => void;
+  showNotice: (title: string, variant?: ToastVariant, description?: string) => void;
   selectHash: (hash: string, block?: ScrollLogicalPosition) => void;
 }
 
@@ -37,6 +40,8 @@ interface UseGitActionsReturn {
     root?: string,
   ) => Promise<void>;
 }
+
+const firstLine = (err: unknown): string => String(err).split('\n')[0];
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGitActions({
@@ -73,7 +78,7 @@ export function useGitActions({
           if (remote?.hash) res = remote;
         }
         if (res?.error || !res?.hash) {
-          showNotice(`Cannot resolve "${name}"`);
+          showNotice('Cannot resolve branch', 'error', res?.error ? firstLine(res.error) : name);
           return;
         }
         if (commits.some((c) => c.hash === res.hash)) {
@@ -81,9 +86,13 @@ export function useGitActions({
           setActiveBranch(name);
         } else {
           showNotice(
+            'Commit not loaded',
+            'warning',
             `Tip of "${name}" (${res.hash.slice(0, 7)}) is outside the loaded 300 commits`,
           );
         }
+      } catch (e: any) {
+        showNotice('Cannot jump to branch', 'error', firstLine(e?.message || e));
       } finally {
         setBusyBranch(null);
       }
@@ -94,48 +103,72 @@ export function useGitActions({
   const handleCheckout = useCallback(
     async (name: string) => {
       setBusyBranch(name);
+      const id = toastService.show({
+        id: 'git-checkout',
+        variant: 'loading',
+        title: 'Checking out',
+        description: name,
+      });
       try {
         const res = await codeApi.git
           .checkout(projectPath, name)
           .catch((e: any) => ({ error: e?.message || String(e) }));
         if (res?.error) {
-          showNotice(String(res.error).split('\n')[0]);
+          toastService.show({
+            id,
+            variant: 'error',
+            title: 'Checkout failed',
+            description: firstLine(res.error),
+          });
         } else {
-          showNotice(`Checked out "${name}"`);
+          toastService.show({
+            id,
+            variant: 'success',
+            title: 'Checked out',
+            description: name,
+          });
           await refresh();
         }
       } finally {
         setBusyBranch(null);
       }
     },
-    [projectPath, refresh, showNotice],
+    [projectPath, refresh],
   );
 
   const handlePush = useCallback(
     async (root?: string) => {
       setPushing(true);
+      const id = toastService.show({
+        id: 'git-push',
+        variant: 'loading',
+        title: 'Pushing',
+        description: 'Pushing commits to remote...',
+      });
       try {
         const res = await codeApi.git
           .push(root ?? projectPath)
           .catch((e: any) => ({ error: e?.message || String(e) }));
-        showNotice(res?.error ? String(res.error).split('\n')[0] : 'Pushed');
+        toastService.show(
+          res?.error
+            ? { id, variant: 'error', title: 'Push failed', description: firstLine(res.error) }
+            : { id, variant: 'success', title: 'Pushed', description: 'Commits were pushed to remote' },
+        );
         await refresh();
       } finally {
         setPushing(false);
       }
     },
-    [projectPath, refresh, showNotice],
+    [projectPath, refresh],
   );
 
   const runFileOp = useCallback(
     async (channel: string, payload: unknown, okMsg: string, opts?: unknown, root?: string) => {
-      const res = await gitIpc.invoke(
-        channel,
-        root ?? projectPath,
-        payload,
-        ...(opts === undefined ? [] : [opts]),
-      );
-      showNotice(res?.error ? String(res.error).split('\n')[0] : okMsg);
+      const res: any = await gitIpc
+        .invoke(channel, root ?? projectPath, payload, ...(opts === undefined ? [] : [opts]))
+        .catch((e: any) => ({ error: e?.message || String(e) }));
+      if (res?.error) showNotice('Git operation failed', 'error', firstLine(res.error));
+      else showNotice(okMsg, 'success');
       await refresh();
     },
     [projectPath, refresh, showNotice],

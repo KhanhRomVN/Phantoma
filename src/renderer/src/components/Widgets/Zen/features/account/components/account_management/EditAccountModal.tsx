@@ -9,7 +9,7 @@ import {
   overlayStyle,
   useAccountModalLayout,
 } from '../shared/AccountModalShell';
-import { useDbFetch } from '@renderer/components/Widgets/Zen/shared/services/useDbFetch';
+import { useDbFetch } from '@renderer/components/Widgets/Zen/features/account/hooks/useAccountDbFetch';
 
 interface EditAccountModalProps {
   open: boolean;

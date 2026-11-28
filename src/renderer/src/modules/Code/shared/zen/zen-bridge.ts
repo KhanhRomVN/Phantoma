@@ -96,7 +96,8 @@ export { DISPLAY_ONLY_RESULT } from '@renderer/components/Widgets/Zen/features/c
 export { extractParamValue } from '@renderer/components/Widgets/Zen/features/chat/utils/toolParser';
 export { getNextUserMessage } from '@renderer/components/Widgets/Zen/features/chat/utils/message_navigator';
 
-export { extensionService } from '@renderer/components/Widgets/Zen/shared/services/ExtensionService';
+export { electronWidgetBridge } from '@renderer/components/Widgets/Zen/shared/platform/electron-widget-bridge.service';
+import './code-bridge-handlers';
 export { ZEN_INSERT_TEXT_EVENT } from '@renderer/components/Widgets/Zen/shared/constants/events';
 export {
   TERMINAL_STATUS,
@@ -110,16 +111,16 @@ export type {
   RawContentDiffExtractor,
   SingleLineReviewChecker,
   ToolMutationChecker,
-} from '@renderer/components/Widgets/Zen/shared/types/tool-mutation';
+} from '@renderer/components/Widgets/Zen/features/chat/types/tool-mutation';
 export type {
   ToolCollapseChecker,
   ToolDangerChecker,
   ToolMarkdownFormatter,
   ToolOutputTransformer,
-} from '@renderer/components/Widgets/Zen/shared/types/tool-behaviors';
+} from '@renderer/components/Widgets/Zen/features/chat/types/tool-behaviors';
 export type {
   ActionDisplayFormatter,
   CompletedTooltipFormatter,
-} from '@renderer/components/Widgets/Zen/shared/types/tool-display';
-export type { ToolOutputFormatter } from '@renderer/components/Widgets/Zen/shared/types/tool-output';
-export type { ToolStatusChecker } from '@renderer/components/Widgets/Zen/shared/types/tool-status';
+} from '@renderer/components/Widgets/Zen/features/chat/types/tool-display';
+export type { ToolOutputFormatter } from '@renderer/components/Widgets/Zen/features/chat/types/tool-output';
+export type { ToolStatusChecker } from '@renderer/components/Widgets/Zen/features/chat/types/tool-status';

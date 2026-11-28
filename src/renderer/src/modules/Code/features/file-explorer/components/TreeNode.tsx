@@ -1,6 +1,7 @@
 import { shellIpc } from '../../../shared/ipc/shell.ipc';
 import { useState, useCallback, useMemo, useRef, useEffect, useContext, memo } from 'react';
 import { ChevronRight, Loader } from 'lucide-react';
+import { toastService } from '@renderer/components/ui/Toast';
 import { Kbd } from '@renderer/components/ui/Kbd';
 import {
   Dropdown,
@@ -235,9 +236,10 @@ export const TreeNode = memo(function TreeNode({
     if (selectedNodeIds.size > 0) {
       onCopyAbsolutePath();
     } else if (node.path) {
-      navigator.clipboard.writeText(node.path).catch(() => {
-        console.warn('[FileTree] Failed to copy path to clipboard');
-      });
+      navigator.clipboard.writeText(node.path).then(
+        () => toastService.show({ variant: 'success', title: 'Copied path', description: node.path }),
+        () => toastService.show({ variant: 'error', title: 'Cannot copy path' }),
+      );
     }
   }, [node.path, selectedNodeIds, onCopyAbsolutePath]);
 
@@ -252,9 +254,15 @@ export const TreeNode = memo(function TreeNode({
         const relative = node.path.startsWith(rootPath)
           ? node.path.substring(rootPath.length)
           : node.path;
-        navigator.clipboard.writeText(relative).catch(() => {
-          console.warn('[FileTree] Failed to copy relative path to clipboard');
-        });
+        navigator.clipboard.writeText(relative).then(
+          () =>
+            toastService.show({
+              variant: 'success',
+              title: 'Copied relative path',
+              description: relative,
+            }),
+          () => toastService.show({ variant: 'error', title: 'Cannot copy path' }),
+        );
       }
     }
   }, [node.path, selectedNodeIds, onCopyRelativePath]);
@@ -304,9 +312,17 @@ export const TreeNode = memo(function TreeNode({
     try {
       // shell:open-path is a system-level operation, keep IPC for now
       const err = await shellIpc.openPath(node.path); // Keep IPC: shell operation không thuộc code server
-      if (err) console.error('[FileExplorer] Cannot open folder:', err);
+      if (err) {
+        console.error('[FileExplorer] Cannot open folder:', err);
+        toastService.show({ variant: 'error', title: 'Cannot open folder', description: String(err).split('\n')[0] });
+      }
     } catch (err) {
       console.error('[FileExplorer] Failed to open folder:', err);
+      toastService.show({
+        variant: 'error',
+        title: 'Open folder failed',
+        description: String((err as Error)?.message ?? err).split('\n')[0],
+      });
     }
   }, [node.path]);
 

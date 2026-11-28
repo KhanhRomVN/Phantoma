@@ -1,6 +1,6 @@
 /**
  * ------------------------------------------------------------------
- * ConfirmClearHistoryDrawer
+ * ConfirmClearHistoryModal
  * ------------------------------------------------------------------
  * Bottom-sheet drawer xác nhận xóa toàn bộ lịch sử hội thoại.
  * - Chỉ đóng khi thao tác xóa thành công (onConfirm trả true).
@@ -12,9 +12,10 @@
 import React from 'react';
 import { Loader2, Trash2 } from 'lucide-react';
 import { $ } from '@renderer/utils/color';
+import ResponsiveModal from '../../../shared/components/ResponsiveModal';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────
-interface ConfirmClearHistoryDrawerProps {
+interface ConfirmClearHistoryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Trả true nếu xóa thành công, false nếu thất bại. */
@@ -23,7 +24,7 @@ interface ConfirmClearHistoryDrawerProps {
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
-const ConfirmClearHistoryDrawer: React.FC<ConfirmClearHistoryDrawerProps> = ({
+const ConfirmClearHistoryModal: React.FC<ConfirmClearHistoryModalProps> = ({
   open,
   onOpenChange,
   onConfirm,
@@ -87,7 +88,7 @@ const ConfirmClearHistoryDrawer: React.FC<ConfirmClearHistoryDrawerProps> = ({
         setErrorMessage('Failed to delete history. Please try again.');
       }
     } catch (error) {
-      console.error('[ConfirmClearHistoryDrawer] Clear failed:', error);
+      console.error('[ConfirmClearHistoryModal] Clear failed:', error);
       if (aliveRef.current) setErrorMessage('Failed to delete history. Please try again.');
     } finally {
       if (aliveRef.current) setIsPending(false);
@@ -99,30 +100,16 @@ const ConfirmClearHistoryDrawer: React.FC<ConfirmClearHistoryDrawerProps> = ({
   const errorColor = $('--error');
   const secondaryText = $('--text-secondary');
   const primaryText = $('--text-primary');
-  const cardBg = $('--card-background');
-  const borderColor = $('--border');
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-[200] animate-fade-in" onClick={handleClose} />
-
-      {/* Bottom Sheet */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={descId}
-        className="fixed bottom-0 left-0 right-0 z-[201] rounded-t-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.25)] border-t animate-slide-up"
-        style={{
-          backgroundColor: cardBg,
-          borderColor: borderColor,
-        }}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center py-2.5">
-          <div className="w-8 h-[3px] rounded-full" style={{ backgroundColor: borderColor }} />
-        </div>
+    <ResponsiveModal
+      isOpen={open}
+      onClose={handleClose}
+      fitContent
+      closeOnEscape={false}
+      ariaLabelledBy={titleId}
+      ariaDescribedBy={descId}
+    >
 
         {/* Content */}
         <div className="p-4 pb-6 flex flex-col items-center gap-2.5">
@@ -204,26 +191,8 @@ const ConfirmClearHistoryDrawer: React.FC<ConfirmClearHistoryDrawerProps> = ({
             </button>
           </div>
         </div>
-      </div>
-
-      <style>{`
-        @keyframes slide-up {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-slide-up {
-          animation: slide-up 0.22s ease-out forwards;
-        }
-        .animate-fade-in {
-          animation: fade-in 0.15s ease-out forwards;
-        }
-      `}</style>
-    </>
+    </ResponsiveModal>
   );
 };
 
-export default ConfirmClearHistoryDrawer;
+export default ConfirmClearHistoryModal;

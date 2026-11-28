@@ -30,8 +30,8 @@ import {
   resolveAccountEmail,
   splitAuthMethod,
 } from '../../utils/auth-method.utils';
-import { useDbFetch } from '@renderer/components/Widgets/Zen/shared/services/useDbFetch';
-import { listChromiumProfiles } from '@renderer/components/Widgets/Zen/shared/services/chromeProfiles';
+import { useDbFetch } from '@renderer/components/Widgets/Zen/features/account/hooks/useAccountDbFetch';
+import { listChromiumProfiles } from '@renderer/components/Widgets/Zen/features/account/services/chromium-profile.service';
 
 interface AddAccountModalProps {
   open: boolean;

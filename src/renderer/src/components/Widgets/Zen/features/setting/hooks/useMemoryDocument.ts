@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { extensionService } from '../../../shared/services/ExtensionService';
+import { electronWidgetBridge } from '../../../shared/platform/electron-widget-bridge.service';
 
 export type MemorySaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -24,7 +24,7 @@ interface MemoryApi {
   saveMemory?: (content: string) => Promise<{ success: boolean; error?: string } | undefined>;
 }
 
-const getMemoryApi = (): MemoryApi => extensionService as unknown as MemoryApi;
+const getMemoryApi = (): MemoryApi => electronWidgetBridge as unknown as MemoryApi;
 
 const getErrorMessage = (e: unknown, fallback: string): string =>
   e instanceof Error && e.message ? e.message : fallback;

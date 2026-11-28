@@ -24,7 +24,7 @@ import { useToolExecution } from './hooks/tools/useToolExecution';
 import { useWorkspaceData } from './hooks/workspace/useWorkspaceData';
 import { useGitOperations } from './hooks/workspace/useGitOperations';
 import { useConversationRestore } from './hooks/conversation/useConversationRestore';
-import { useFileHandling } from '../../shared/hooks/useFileHandling';
+import { useFileHandling } from '../../shared/files/useFileHandling';
 import { useBrowserSession } from './hooks/llm/useBrowserSession';
 import { useDraftManagement } from './hooks/conversation/useDraftManagement';
 import { useModelAccount } from '../../shared/hooks/useModelAccount';
@@ -47,92 +47,12 @@ import { useSessionCleanup } from './hooks/llm/useSessionCleanup';
 import { ChatSession } from './types/chat.types';
 
 // ── Utils ──
-// ── Conversation Export Utils ──
-export const messagesToMarkdown = (input: {
-  messages: any[];
-  conversationId?: string | null;
-  title?: string;
-}): string => {
-  const { messages, conversationId, title } = input;
-  const lines: string[] = [];
-  lines.push(`# ${title || 'Conversation'}`);
-  if (conversationId) lines.push(`\n> ID: \`${conversationId}\``);
-  lines.push(`\n> Exported at: ${new Date().toISOString()}\n`);
-  lines.push('---\n');
-  for (const msg of messages) {
-    if (msg.uiHidden) continue;
-    const roleLabel =
-      msg.role === 'user'
-        ? '👤 User'
-        : msg.role === 'assistant'
-          ? '🤖 Assistant'
-          : `⚙️ ${msg.role}`;
-    lines.push(`## ${roleLabel}\n`);
-    lines.push(msg.content || '');
-    lines.push('\n---\n');
-  }
-  return lines.join('\n');
-};
-
-export const messagesToJson = (input: {
-  messages: any[];
-  conversationId?: string | null;
-  title?: string;
-}): string => {
-  const { messages, conversationId, title } = input;
-  const payload = {
-    title: title || 'Conversation',
-    conversationId: conversationId || null,
-    exportedAt: new Date().toISOString(),
-    messages: messages
-      .filter((m) => !m.uiHidden)
-      .map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        timestamp: m.timestamp,
-        token_usage: m.token_usage,
-        usage: m.usage,
-        providerId: m.providerId,
-        modelId: m.modelId,
-      })),
-  };
-  return JSON.stringify(payload, null, 2);
-};
-
-export const downloadJson = (content: string, filename: string): void => {
-  const blob = new Blob([content], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
-export const copyToClipboard = async (text: string): Promise<boolean> => {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const el = document.createElement('textarea');
-      el.value = text;
-      el.style.position = 'fixed';
-      el.style.opacity = '0';
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-};
+import {
+  messagesToMarkdown,
+  messagesToJson,
+  downloadJson,
+  copyToClipboard,
+} from './utils/conversation-export';
 
 // ── Services ──
 import { deleteConversation } from './services/conversation_persistence.service';
@@ -173,6 +93,8 @@ interface ChatPanelProps {
   onOpenSubView?: (target: NavTarget) => void;
   /** Workflow agent ID for specialized prompts (orchestrator/planner/executor/reviewer) */
   workflowAgentId?: 'orchestrator' | 'planner' | 'executor' | 'reviewer' | null;
+  /** false khi AgentView bị ẩn (keep-alive) → tạm dừng polling */
+  isActive?: boolean;
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -186,6 +108,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onTitleChange,
   onOpenSubView,
   workflowAgentId: workflowAgentIdProp,
+  isActive = true,
 }: ChatPanelProps) => {
   // Read workflowAgentId from context (priority: prop > context > initialMessageData.conversationOverrides)
   const workflowSync = useWorkflowAgentSync();
@@ -395,6 +318,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     currentModel,
     currentAccount,
     apiUrl,
+    isActive,
   );
 
   // --- Provider Session Cleanup ---

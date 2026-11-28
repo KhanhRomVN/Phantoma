@@ -18,7 +18,7 @@ import { Message } from '../../types/message.types';
 import { ChatSession } from '../../types/chat.types';
 
 // ── Services ──
-import { extensionService } from '../../../../shared/services/ExtensionService';
+import { electronWidgetBridge } from '../../../../shared/platform/electron-widget-bridge.service';
 import { saveConversation } from '../../services/conversation_persistence.service';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -135,16 +135,8 @@ export const useChatSendHandlers = ({
 
       // Check for invalid external files before sending
       if (currentInvalidFiles && currentInvalidFiles.length > 0) {
-        const vscodeApi = (window as any).vscodeApi;
         const message = `Cannot send message due to invalid file(s):\n${currentInvalidFiles.map((f) => `• ${f.name}: ${f.reason}`).join('\n')}\n\nPlease remove these files and try again.`;
-        if (vscodeApi) {
-          vscodeApi.postMessage({
-            command: 'showError',
-            message: message,
-          });
-        } else {
-          alert(message);
-        }
+        alert(message);
         return;
       }
 
@@ -234,7 +226,7 @@ export const useChatSendHandlers = ({
   ]);
 
   const handleClearChat = useCallback(() => {
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'confirmClearChat',
       conversationId: currentConversationId,
     });

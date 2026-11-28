@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { uploadFileToBackend } from '../../../../shared/files/file-upload.service';
 
 /**
  * ------------------------------------------------------------------
@@ -40,50 +41,7 @@ export const useFileUpload = (apiUrl: string) => {
         }
 
         try {
-          let blob: Blob;
-          if (file.content.startsWith('data:')) {
-            const arr = file.content.split(',');
-            const mime = arr[0].match(/:(.*?);/)?.[1] || file.type || 'application/octet-stream';
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) {
-              u8arr[n] = bstr.charCodeAt(n);
-            }
-            blob = new Blob([u8arr], { type: mime });
-          } else {
-            blob = new Blob([file.content], {
-              type: file.type || 'text/plain',
-            });
-          }
-
-          const formData = new FormData();
-          formData.append('file', blob, file.name);
-
-          const uploadUrl = `${apiUrl}/v1/uploads/accounts/${accountId}/uploads`;
-
-          const uploadRes = await fetch(uploadUrl, {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!uploadRes.ok) {
-            const errorText = await uploadRes.text();
-            console.error(
-              `[useFileUpload] Upload failed with status ${uploadRes.status}: ${errorText}`,
-            );
-            throw new Error(`Upload API returned status ${uploadRes.status}: ${errorText}`);
-          }
-
-          const uploadData = await uploadRes.json();
-
-          if (uploadData.success && uploadData.data?.file_id) {
-            ref_file_ids.push(uploadData.data.file_id);
-          } else {
-            const errorMsg = uploadData.error || 'Unknown upload error';
-            console.error(`[useFileUpload] Upload failed: ${errorMsg}`);
-            throw new Error(errorMsg);
-          }
+          ref_file_ids.push(await uploadFileToBackend({ apiUrl, accountId, file }));
         } catch (err) {
           const errorMsg = `Failed to upload ${file.name}: ${err instanceof Error ? err.message : String(err)}`;
           console.error(`[useFileUpload] Exception:`, err);

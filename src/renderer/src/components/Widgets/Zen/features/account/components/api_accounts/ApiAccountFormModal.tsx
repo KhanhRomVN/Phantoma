@@ -9,7 +9,7 @@ import {
   DropdownContent,
   DropdownItem,
 } from '@renderer/components/ui/Dropdown';
-import { useDbFetch } from '@renderer/components/Widgets/Zen/shared/services/useDbFetch';
+import { useDbFetch } from '@renderer/components/Widgets/Zen/features/account/hooks/useAccountDbFetch';
 import type { FlatAccount } from '../../types/account.types';
 import type {
   FieldDef,

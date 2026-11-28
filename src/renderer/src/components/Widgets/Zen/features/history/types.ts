@@ -1,4 +1,4 @@
-import ConversationService from '../../../shared/services/ConversationService';
+import ConversationService from '../../shared/conversations/conversation-storage.service';
 
 type ServiceConversation = NonNullable<Awaited<ReturnType<typeof ConversationService.get>>>;
 type ServiceMessage = ServiceConversation['messages'][number];

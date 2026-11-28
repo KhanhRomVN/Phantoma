@@ -4,6 +4,7 @@ import { memo, useMemo, useRef, useState } from 'react';
 
 // ── UI ──
 import { ChevronRight, ChevronDown, Replace, Folder, X } from 'lucide-react';
+import { toastService } from '@renderer/components/ui/Toast';
 import {
   Dropdown,
   DropdownTrigger,
@@ -171,7 +172,10 @@ const FileGroup = memo(function FileGroup({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const copyText = (text: string) => {
-    navigator.clipboard.writeText(text).catch(() => {});
+    navigator.clipboard.writeText(text).then(
+      () => toastService.show({ variant: 'success', title: 'Copied' }),
+      () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+    );
   };
 
   const lastCKeyTimeRef = useRef(0);
@@ -207,6 +211,11 @@ const FileGroup = memo(function FileGroup({
       await shellIpc.openPath(result.file.substring(0, result.file.lastIndexOf('/')));
     } catch (err) {
       console.error('[Search] Failed to open folder:', err);
+      toastService.show({
+        variant: 'error',
+        title: 'Open folder failed',
+        description: String((err as Error)?.message ?? err).split('\n')[0],
+      });
     }
   };
 

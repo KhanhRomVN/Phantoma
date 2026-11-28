@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { File, Folder } from 'lucide-react';
+import { toastService } from '@renderer/components/ui/Toast';
 import { codeApi } from '../../../shared/api/code.api';
 
 // ─── InlineNewInput ─────────────────────────────────────────────────────────
@@ -35,6 +36,11 @@ export function InlineNewInput({ type, parentPath, depth, onCreated, onCancel }:
       onCreated();
     } catch (err) {
       console.error(`[FileExplorer] Failed to create ${type}:`, err);
+      toastService.show({
+        variant: 'error',
+        title: type === 'file' ? 'Create file failed' : 'Create folder failed',
+        description: String((err as Error)?.message ?? err).split('\n')[0],
+      });
       onCancel();
     }
   };

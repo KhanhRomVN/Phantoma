@@ -3,6 +3,7 @@ import { proxiesApi, useProxies, useProxyFilters, useProxyMutations, useProxySel
 import { computeSourceStats, sourcesApi, useSources, withProxyCounts } from '../../features/sources';
 import { useVpnLifecycle, vpnApi, warpApi } from '../../features/vpn';
 import type { WarpCreateInput } from '../../features/vpn';
+import { toastService } from '@renderer/components/ui/Toast';
 import { errorMessage } from '../../shared/utils/error';
 import { foxholeProfileGateway } from '../integrations/foxhole-profile.adapter';
 import { useProxyDialogs } from './useProxyDialogs';
@@ -26,6 +27,7 @@ export function useProxyPage() {
       setError(null);
     } catch (err) {
       setError(errorMessage(err));
+      toastService.show({ variant: 'error', title: 'Cannot load proxies', description: errorMessage(err) });
     }
   }, [applySources, setProxies]);
 
@@ -84,6 +86,19 @@ export function useProxyPage() {
     const { created, errors } = await warpApi.create(input);
     mutations.prependProxies(created);
     setError(errors.length > 0 ? errors[0] : null);
+    toastService.show(
+      errors.length > 0
+        ? {
+            variant: 'warning',
+            title: `Created ${created.length} WARP prox${created.length === 1 ? 'y' : 'ies'}`,
+            description: errors[0],
+          }
+        : {
+            variant: 'success',
+            title: 'WARP proxies created',
+            description: `${created.length} prox${created.length === 1 ? 'y' : 'ies'}`,
+          },
+    );
   };
 
   const removeSource = async (): Promise<void> => {
@@ -94,8 +109,10 @@ export function useProxyPage() {
       else await sourcesApi.remove(target.id);
       selection.clearSelected();
       await reload();
+      toastService.show({ variant: 'success', title: 'Source removed', description: target.name });
     } catch (err) {
       setError(errorMessage(err));
+      toastService.show({ variant: 'error', title: 'Remove source failed', description: errorMessage(err) });
     }
     dialogs.clearDeleteSourceId();
   };

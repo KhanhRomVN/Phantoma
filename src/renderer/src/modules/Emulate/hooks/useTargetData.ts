@@ -16,6 +16,7 @@
 // ─── Imports ────────────────────────────────────────────────────────────
 // ── React ──
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ── Services ──
 import { dataService } from '../services/emulate-api.service';
@@ -147,9 +148,15 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
       try {
         const created = await dataService.createTarget(input);
         setTargets((prev) => [...prev, created]);
+        toastService.show({ variant: 'success', title: 'Target created', description: created.title });
         return created;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to create target');
+        toastService.show({
+          variant: 'error',
+          title: 'Create target failed',
+          description: err instanceof Error ? err.message : undefined,
+        });
         throw err;
       } finally {
         setLoading(false);
@@ -166,10 +173,16 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
       const result = await dataService.deleteTarget(id);
       if (result) {
         setTargets((prev) => prev.filter((t) => t.id !== id));
+        toastService.show({ variant: 'success', title: 'Target deleted' });
       }
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete target');
+      toastService.show({
+        variant: 'error',
+        title: 'Delete target failed',
+        description: err instanceof Error ? err.message : undefined,
+      });
       throw err;
     } finally {
       setLoading(false);
@@ -184,10 +197,20 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
       const result = await dataService.deleteTargets(ids);
       if (result > 0) {
         setTargets((prev) => prev.filter((t) => !ids.includes(t.id)));
+        toastService.show({
+          variant: 'success',
+          title: 'Targets deleted',
+          description: `${result} target${result === 1 ? '' : 's'}`,
+        });
       }
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete targets');
+      toastService.show({
+        variant: 'error',
+        title: 'Delete targets failed',
+        description: err instanceof Error ? err.message : undefined,
+      });
       throw err;
     } finally {
       setLoading(false);
@@ -201,9 +224,15 @@ export function useTargetData(options: UseTargetDataOptions = {}): UseTargetData
     try {
       const result = await dataService.clearAllTargets();
       setTargets([]);
+      toastService.show({ variant: 'success', title: 'All targets cleared' });
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clear all targets');
+      toastService.show({
+        variant: 'error',
+        title: 'Clear targets failed',
+        description: err instanceof Error ? err.message : undefined,
+      });
       throw err;
     } finally {
       setLoading(false);

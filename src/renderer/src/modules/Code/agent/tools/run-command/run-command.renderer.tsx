@@ -15,7 +15,7 @@ import { useSettings } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { useCodeStore } from '../../../shared/stores/code.store';
 
 // Services
-import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { electronWidgetBridge } from '@renderer/modules/Code/shared/zen/zen-bridge';
 
 // ── Constants ──
 
@@ -593,7 +593,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
       }
     };
     window.addEventListener('message', handleMessage);
-    extensionService.postMessage({
+    electronWidgetBridge.postMessage({
       command: 'readTerminalOutput',
       chatUuid: conversationId || '',
       outputUuid,
@@ -673,7 +673,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  extensionService.postMessage({
+                  electronWidgetBridge.postMessage({
                     command: 'closeTerminal',
                     actionId,
                     terminalId,
@@ -715,7 +715,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
         path={displayFolderPath}
         compactPath
         onPathClick={(clickedPath) => {
-          extensionService.postMessage({
+          electronWidgetBridge.postMessage({
             command: 'openFile',
             path: isRelativePath && rootPath ? `${rootPath}/${clickedPath}` : clickedPath,
           });
@@ -754,7 +754,7 @@ export const RunCommandRenderer: React.FC<RunCommandRendererProps> = ({
               isTerminalBusy
                 ? (data: any) => {
                     if (terminalId)
-                      extensionService.postMessage({
+                      electronWidgetBridge.postMessage({
                         command: 'terminalInput',
                         terminalId,
                         data,

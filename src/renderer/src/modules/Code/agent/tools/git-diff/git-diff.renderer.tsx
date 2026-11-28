@@ -10,7 +10,7 @@ import { $ } from '@renderer/utils/color';
 
 // ── Components ──
 import { getFileIconPath } from '@renderer/utils/file-icon';
-import { extensionService } from '@renderer/modules/Code/shared/zen/zen-bridge';
+import { electronWidgetBridge } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { TagHeader } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { ToolAction } from '@renderer/modules/Code/shared/zen/zen-bridge';
 import { TOOL_ACTION_TYPES } from '@renderer/modules/Code/shared/zen/zen-bridge';
@@ -256,7 +256,7 @@ export const GitDiffRenderer: React.FC<GitDiffRendererProps> = ({
 
   const handleFileClick = (path: string) => {
     if (!path) return;
-    extensionService.postMessage({ command: 'openFile', path });
+    electronWidgetBridge.postMessage({ command: 'openFile', path });
   };
 
   if (!hasOutput && !isActiveGroup) {

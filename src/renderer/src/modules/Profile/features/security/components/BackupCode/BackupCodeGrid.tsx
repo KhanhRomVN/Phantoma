@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, Copy, Plus, Upload, X } from 'lucide-react';
 import { cn } from '@renderer/utils/cn';
 import { Tooltip } from '@renderer/components/ui/Tooltip';
+import { toastService } from '@renderer/components/ui/Toast';
 import { TONE_CLASS } from '../../../../shared/constants/tone.constants';
 import { BackupItem, BACKUP_TONES, parseCodeText, writeClipboard } from '../../utils/backup-code.util';
 
@@ -14,6 +15,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       setTimeout(() => setCopied(false), 1200);
     } catch {
       setCopied(false);
+      toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' });
     }
   };
   return (

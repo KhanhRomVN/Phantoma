@@ -1,3 +1,4 @@
+import { toastService } from '@renderer/components/ui/Toast';
 import { profileApi } from '../../../shared/api/profile.api';
 import type { Profile as ProfileRecord, ProfileSource } from '../../../shared/types';
 import type { ProfileDraft } from '../components/modals/CreateProfileModal/create-profile-modal.types';
@@ -44,6 +45,7 @@ export function useProfileMutations({
       setSelectedId(record.id);
       setQueryDrawer(null);
       setDialog(null);
+      toastService.show({ variant: 'success', title: 'Profile created', description: record.email });
     });
   };
 
@@ -67,6 +69,11 @@ export function useProfileMutations({
       setActiveSourceId(sourceId);
       setCheckedIds(new Set());
       setDialog(null);
+      toastService.show({
+        variant: 'success',
+        title: 'Profiles imported',
+        description: `${rows.length} profile${rows.length === 1 ? '' : 's'}`,
+      });
     });
   };
 
@@ -79,6 +86,11 @@ export function useProfileMutations({
         prev.map((p) => (checkedIds.has(p.id) ? { ...p, group: name, purpose: nextPurpose } : p)),
       );
       setDialog(null);
+      toastService.show({
+        variant: 'success',
+        title: 'Group assigned',
+        description: `${ids.length} profile${ids.length === 1 ? '' : 's'} → ${name}`,
+      });
     });
   };
 
@@ -92,6 +104,7 @@ export function useProfileMutations({
       setProfiles((prev) =>
         prev.map((p) => (p.group === oldName ? { ...p, group: name, purpose: nextPurpose } : p)),
       );
+      toastService.show({ variant: 'success', title: 'Group updated', description: name });
     });
   };
 
@@ -99,6 +112,7 @@ export function useProfileMutations({
     void run(async () => {
       await profileApi.profiles.updateMany({ where: { group: name } }, { group: 'Ungrouped' });
       setProfiles((prev) => prev.map((p) => (p.group === name ? { ...p, group: 'Ungrouped' } : p)));
+      toastService.show({ variant: 'success', title: 'Group deleted', description: name });
     });
   };
 
@@ -109,12 +123,18 @@ export function useProfileMutations({
       setProfiles((prev) => prev.filter((p) => !gone.has(p.id)));
       setSelectedId((prev) => (prev && gone.has(prev) ? null : prev));
       setCheckedIds((prev) => new Set([...prev].filter((id) => !gone.has(id))));
+      toastService.show({
+        variant: 'success',
+        title: 'Profiles deleted',
+        description: `${gone.size} profile${gone.size === 1 ? '' : 's'}`,
+      });
     });
   };
 
   const openProfileFolder = (profile: ProfileRecord): void => {
     void run(async () => {
       await profileApi.profiles.openFolder(profile.id);
+      toastService.show({ variant: 'success', title: 'Folder opened', description: profile.email });
     });
   };
 

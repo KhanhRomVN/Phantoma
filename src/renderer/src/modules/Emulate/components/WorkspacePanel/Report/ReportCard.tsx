@@ -34,6 +34,7 @@ import type { Report } from '../../../stores/reportStore';
 
 // ── Utils ──
 import { cn } from '@renderer/utils/cn';
+import { toastService } from '@renderer/components/ui/Toast';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ReportCardProps {
@@ -82,7 +83,10 @@ export const ReportCard: React.FC<ReportCardProps> = ({
         <DropdownContent>
           <DropdownItem
             onClick={() => {
-              navigator.clipboard.writeText(report.content).catch(() => {});
+              navigator.clipboard.writeText(report.content).then(
+                () => toastService.show({ variant: 'success', title: 'Copied report' }),
+                () => toastService.show({ variant: 'error', title: 'Cannot copy to clipboard' }),
+              );
             }}
           >
             <Copy className="w-3.5 h-3.5" />

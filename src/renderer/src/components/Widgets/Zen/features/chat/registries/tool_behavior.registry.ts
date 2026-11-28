@@ -12,7 +12,7 @@ import {
   ToolDangerChecker,
   ToolMarkdownFormatter,
   ToolOutputTransformer,
-} from '../../../shared/types/tool-behaviors';
+} from '../types/tool-behaviors';
 import type { ToolAction } from '../types/tool_action.types';
 
 // ─── Registry State ─────────────────────────────────────────────────────

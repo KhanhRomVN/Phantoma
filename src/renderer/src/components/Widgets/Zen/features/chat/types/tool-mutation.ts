@@ -6,7 +6,7 @@
  * ------------------------------------------------------------------
  */
 
-import { ToolAction } from '../../features/chat/types/tool_action.types';
+import { ToolAction } from './tool_action.types';
 
 /**
  * Check if a tool mutates files/state.
